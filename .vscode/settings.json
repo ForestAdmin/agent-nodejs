@@ -6,6 +6,7 @@
     ".vscode": true,
     ".eslintrc.json": true,
     ".prettierrc": true,
+    "commitlint.config.js": true,
     "dist-docs": true,
     "yarn.lock": true,
     "lerna.json": true,
