@@ -1,26 +1,44 @@
 {
+  // Format all files on save with prettier
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "prettier.enable": true,
+
+  // Display rulers
   "editor.rulers": [100, 120],
-  "files.exclude": {
-    ".github": true,
-    ".husky": true,
-    ".vscode": true,
-    ".eslintrc.json": true,
-    ".prettierrc": true,
-    "commitlint.config.js": true,
-    "dist-docs": true,
-    "yarn.lock": true,
-    "lerna.json": true,
-    "typedoc.json": true,
-    "**/dist": true,
-    "**/node_modules": true,
-    "**/jest.config.js": true,
-    "**/LICENSE": true,
-    "**/tsconfig.json": true
-  },
-  "files.watcherExclude": {
-    "**/node_modules/**": true
-  },
+
+  // Eslint
+  "eslint.enable": true,
+  "eslint.workingDirectories": ["."],
+  "eslint.format.enable": false,
+
+  // Easier debugging
+  "debug.javascript.autoAttachFilter": "onlyWithFlag",
   "debug.javascript.terminalOptions": {
     "skipFiles": ["<node_internals>/**", "**/node_modules"]
+  },
+
+  // Remove build & configuration files from the sidebar
+  "files.exclude": {
+    // ".github": true,
+    // ".husky": true,
+    // ".vscode": true,
+    // ".eslintrc.json": true,
+    // ".prettierrc": true,
+    // "commitlint.config.js": true,
+    // "dist-docs": true,
+    // "yarn.lock": true,
+    // "lerna.json": true,
+    // "typedoc.json": true,
+    // "**/dist": true,
+    // "**/node_modules": true,
+    // "**/jest.config.js": true,
+    // "**/LICENSE": true,
+    // "**/tsconfig.json": true
+  },
+
+  // Performance
+  "files.watcherExclude": {
+    "**/node_modules/**": true
   }
 }

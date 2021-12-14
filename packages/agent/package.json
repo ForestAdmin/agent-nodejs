@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "lint": "prettier -cw src && eslint src",
+    "lint": "prettier -c src && eslint src",
     "test": "jest"
   }
 }
