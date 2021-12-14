@@ -2,6 +2,8 @@
   // Format all files on save with prettier
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
+  "editor.formatOnType": false,
+  "editor.formatOnPaste": false,
   "prettier.enable": true,
 
   // Display rulers
