@@ -1,0 +1,19 @@
+{
+  "name": "@forestadmin/datasource-sequelize",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@forestadmin/datasource-toolkit": "^1.0.0"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "lint": "prettier -c src && eslint src",
+    "test": "jest"
+  }
+}
