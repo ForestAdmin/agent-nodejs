@@ -19,7 +19,7 @@
     "bootstrap": "lerna bootstrap",
     "build:watch": "lerna run --parallel --no-bail --no-prefix build:watch",
     "build": "lerna run build",
-    "docs": "typedoc",
+    "docs": "yarn build && typedoc",
     "lint": "lerna run lint",
     "prepare": "husky install",
     "test": "jest"
