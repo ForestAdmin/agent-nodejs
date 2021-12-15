@@ -1,17 +1,43 @@
 import { Filter, Operator, Aggregator } from "./query/selection";
 
+/**
+ * Representation of a collection schema.
+ *
+ * It is used to generated the `.forestadmin-schema.json` file.
+ */
 export type CollectionSchema = {
-  actions: Array<{
-    name: string;
-    scope: "single" | "bulk" | "global";
-    forceDownload?: boolean;
-  }>;
+  /* Declare action(s) associated with a collection. */
+  actions: Array<ActionSchema>;
+  /* Declare the list of fields of the collection. */
   fields: { [fieldName: string]: FieldSchema };
+  /* When "true", the collection is searchable. */
   searchable: boolean;
+  /* Declare a list of segment name. */
   segments: string[];
+  /* Declare a list of filters that every records should match. */
   validation?: Filter;
 };
 
+/**
+ * Representation of an action schema.
+ */
+export type ActionSchema = {
+  /* Visible name of the action */
+  name: string;
+  /**
+   * Scope of the action
+   * - "single" mean the action is visible only when a single record is selected
+   * - "bulk" mean the action is visible when more than one record is selected
+   * - "global" mean the action is visible only when no records are selected
+   */
+  scope: "single" | "bulk" | "global";
+  /* When "true", the action response will force a file download */
+  forceDownload?: boolean;
+};
+
+/**
+ *
+ */
 export type FieldSchema =
   | ColumnSchema
   | ManyToOneSchema
@@ -19,6 +45,9 @@ export type FieldSchema =
   | OneToOneSchema
   | ManyToManySchema;
 
+/**
+ *
+ */
 export type ColumnSchema = {
   columnType: ColumnType;
   filterOperators: Set<Operator>;
@@ -61,6 +90,7 @@ export type ManyToManySchema = {
 
 export type ColumnType = PrimitiveTypes | { [key: string]: ColumnType } | [ColumnType];
 
+/* Enumeration of supported primitive types */
 export enum PrimitiveTypes {
   Boolean = "Boolean",
   Date = "Date",
@@ -74,6 +104,7 @@ export enum PrimitiveTypes {
   Uuid = "Uuid",
 }
 
+/* Enumeration of supported field types */
 export enum FieldTypes {
   Column = "Column",
   ManyToOne = "ManyToOne",
