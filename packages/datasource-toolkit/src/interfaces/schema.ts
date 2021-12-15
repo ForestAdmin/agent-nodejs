@@ -4,7 +4,7 @@ export type CollectionSchema = {
   actions: Array<{
     name: string;
     scope: "single" | "bulk" | "global";
-    forceDownload: boolean;
+    forceDownload?: boolean;
   }>;
   fields: { [fieldName: string]: FieldSchema };
   searchable: boolean;
@@ -14,44 +14,44 @@ export type CollectionSchema = {
 
 export type FieldSchema =
   | ColumnSchema
-  | BelongsToSchema
-  | HasManySchema
-  | HasOneSchema
-  | BelongsToManySchema;
+  | ManyToOneSchema
+  | OneToManySchema
+  | OneToOneSchema
+  | ManyToManySchema;
 
 export type ColumnSchema = {
   columnType: ColumnType;
   filterOperators: Set<Operator>;
-  defaultValue: unknown;
+  defaultValue?: unknown;
   enumValues?: string[];
-  isPrimaryKey: boolean;
-  isReadOnly: boolean;
-  isSortable: boolean;
+  isPrimaryKey?: boolean;
+  isReadOnly?: boolean;
+  isSortable?: boolean;
   type: FieldTypes.Column;
   validation?:
     | { aggregator: Aggregator; conditions: ColumnSchema["validation"] }
     | { operator: Operator; field: string; value: unknown };
 };
 
-export type BelongsToSchema = {
+export type ManyToOneSchema = {
   foreignCollection: string;
   foreignKey: string;
   type: FieldTypes.ManyToOne;
 };
 
-export type HasManySchema = {
+export type OneToManySchema = {
   foreignCollection: string;
   foreignKey: string;
   type: FieldTypes.OneToMany;
 };
 
-export type HasOneSchema = {
+export type OneToOneSchema = {
   foreignCollection: string;
   foreignKey: string;
   type: FieldTypes.OneToOne;
 };
 
-export type BelongsToManySchema = {
+export type ManyToManySchema = {
   foreignCollection?: string;
   foreignKey?: string;
   otherField?: string;

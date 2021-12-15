@@ -1,2 +1,2 @@
 export type CompositeId = Array<number | string>;
-export type RecordData = Record<string, unknown>;
+export type RecordData = { [field: string]: unknown };

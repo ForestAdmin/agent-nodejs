@@ -5,13 +5,13 @@ import { CompositeId, RecordData } from "./query/record";
 import { PaginatedFilter, Filter } from "./query/selection";
 import { CollectionSchema } from "./schema";
 
-export interface IDataSource {
-  get collections(): ICollection[];
-  getCollection(name: string): ICollection;
+export interface DataSource {
+  get collections(): Collection[];
+  getCollection(name: string): Collection;
 }
 
-export interface ICollection {
-  get dataSource(): IDataSource;
+export interface Collection {
+  get dataSource(): DataSource;
   get name(): string;
   get schema(): CollectionSchema;
 
@@ -27,5 +27,5 @@ export interface ICollection {
 
   delete(filter: Filter): Promise<void>;
 
-  aggregate(filter: Filter, aggregation: Aggregation, limit?: number): Promise<AggregateResult[]>;
+  aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]>;
 }
