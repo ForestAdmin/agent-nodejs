@@ -1,0 +1,79 @@
+name: Build, Lint and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    strategy:
+      matrix:
+        node: [ '14', '16' ]
+    name: Linting on Node ${{ matrix.node }}
+    steps:
+      - name: Cancel previous running workflows
+        uses: fkirc/skip-duplicate-actions@master
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v2
+      with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/cache@v2
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+      - name: install dependencies
+        run: yarn install --frozen-lockfile --non-interactive --production=false
+      - name: Lint commit message
+        uses: wagoid/commitlint-github-action@v2
+      - name: lint Javascript
+        run: yarn lint
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint]
+    strategy:
+      matrix:
+        node: [ '14', '16' ]
+    name: Building on Node ${{ matrix.node }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+      with:
+          node-version: ${{ matrix.node }}
+      - name: Cache node_modules
+        uses: actions/cache@v2
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+      - name: Build
+        run: yarn build
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [lint, build]
+    strategy:
+      matrix:
+        node: [ '14', '16' ]
+    name: Testing on Node ${{ matrix.node }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+      with:
+          node-version: ${{ matrix.node }}
+      - name: Cache node_modules
+        uses: actions/cache@v2
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+      - name: Send coverage
+        uses: paambaati/codeclimate-action@v2.7.4
+        env:
+          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+        with:
+          coverageCommand: yarn bootstrap && yarn test:coverage
