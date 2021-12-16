@@ -34,6 +34,7 @@ jobs:
   build:
     name: Building
     runs-on: ubuntu-latest
+    needs: [lint]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -73,7 +74,9 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: build
-          path: 'packages/**/dist/*'
+          path: 'packages/'
+      - name: log
+        run: ls packages/agent/dist
       - name: Send coverage
         uses: paambaati/codeclimate-action@v2.7.4
         env:
