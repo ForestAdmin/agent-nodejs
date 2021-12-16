@@ -22,21 +22,21 @@
 
   // Remove build & configuration files from the sidebar
   "files.exclude": {
+    ".eslintrc.json": true,
     ".github": true,
     ".husky": true,
-    ".vscode": true,
-    ".eslintrc.json": true,
     ".prettierrc": true,
-    "commitlint.config.js": true,
-    "dist-docs": true,
-    "yarn.lock": true,
-    "lerna.json": true,
-    "typedoc.json": true,
+    ".vscode": true,
     "**/dist": true,
-    "**/node_modules": true,
     "**/jest.config.js": true,
     "**/LICENSE": true,
-    "**/tsconfig.json": true
+    "**/node_modules": true,
+    "**/tsconfig.json": true,
+    "commitlint.config.js": true,
+    "dist-docs": true,
+    "lerna.json": true,
+    "typedoc.json": true,
+    "yarn.lock": true
   },
 
   // Performance
