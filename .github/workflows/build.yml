@@ -21,7 +21,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v2
-      with:
+        with:
           node-version: ${{ matrix.node }}
       - uses: actions/cache@v2
         with:
@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
-      with:
+        with:
           node-version: ${{ matrix.node }}
       - name: Cache node_modules
         uses: actions/cache@v2
@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
-      with:
+        with:
           node-version: ${{ matrix.node }}
       - name: Cache node_modules
         uses: actions/cache@v2
