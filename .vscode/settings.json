@@ -34,9 +34,7 @@
     "**/tsconfig.json": true,
     "commitlint.config.js": true,
     "dist-docs": true,
-    "jest.base.json": true,
     "lerna.json": true,
-    "tsconfig.base.json": true,
     "typedoc.json": true,
     "yarn.lock": true
   },

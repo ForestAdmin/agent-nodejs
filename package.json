@@ -24,7 +24,7 @@
     "docs": "yarn build && typedoc",
     "lint": "lerna run lint",
     "prepare": "husky install",
-    "test": "lerna run test"
+    "test": "jest"
   },
   "workspaces": [
     "packages/*"
