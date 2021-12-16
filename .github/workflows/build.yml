@@ -64,6 +64,8 @@ jobs:
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
       - name: Bootstrap
         run: yarn bootstrap
+      - name: Build
+        run: yarn build
       - name: Send coverage
         uses: paambaati/codeclimate-action@v2.7.4
         env:
