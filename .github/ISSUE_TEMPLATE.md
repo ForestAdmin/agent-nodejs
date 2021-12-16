@@ -15,7 +15,3 @@ TODO: Please include any relevant log snippets, if necessary.
 TODO: Please provide any relevant information about your setup.
 
 - Package Version:
-- Express Version:
-- Sequelize Version:
-- Database Dialect:
-- Database Version:
