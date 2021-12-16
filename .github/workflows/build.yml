@@ -8,12 +8,9 @@ on:
 
 jobs:
   lint:
+    name: Linting
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
-    strategy:
-      matrix:
-        node: [ '14', '16' ]
-    name: Linting on Node ${{ matrix.node }}
     steps:
       - name: Cancel previous running workflows
         uses: fkirc/skip-duplicate-actions@master
@@ -22,7 +19,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v2
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '14.17.6'
       - uses: actions/cache@v2
         with:
           path: '**/node_modules'
@@ -35,17 +32,14 @@ jobs:
         run: yarn lint
 
   build:
+    name: Building
     runs-on: ubuntu-latest
     needs: [lint]
-    strategy:
-      matrix:
-        node: [ '14', '16' ]
-    name: Building on Node ${{ matrix.node }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '14.17.6'
       - name: Cache node_modules
         uses: actions/cache@v2
         with:
@@ -55,17 +49,14 @@ jobs:
         run: yarn build
 
   test:
+    name: Testing
     runs-on: ubuntu-latest
     needs: [lint, build]
-    strategy:
-      matrix:
-        node: [ '14', '16' ]
-    name: Testing on Node ${{ matrix.node }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '14.17.6'
       - name: Cache node_modules
         uses: actions/cache@v2
         with:
@@ -76,4 +67,4 @@ jobs:
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
-          coverageCommand: yarn bootstrap && yarn test:coverage
+          coverageCommand: yarn test:coverage
