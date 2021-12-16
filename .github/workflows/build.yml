@@ -62,14 +62,14 @@ jobs:
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+      - name: Bootstrap
+        run: yarn bootstrap
       - name: Send coverage
         uses: paambaati/codeclimate-action@v2.7.4
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
-          coverageCommand: |
-            yarn bootstrap --no-ci
-            yarn test:coverage
+          coverageCommand: yarn test:coverage
 
   doc:
     name: Doc
