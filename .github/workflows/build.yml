@@ -75,8 +75,6 @@ jobs:
         with:
           name: build
           path: 'packages/'
-      - name: log
-        run: ls packages/agent/dist
       - name: Send coverage
         uses: paambaati/codeclimate-action@v2.7.4
         env:
