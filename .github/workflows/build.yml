@@ -1,4 +1,4 @@
-name: Build, Lint and Test
+name: Lint, Build, Test and Doc
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v2
         with:
-          node-version: '14.17.6'
+          node-version: 14.17.6
       - uses: actions/cache@v2
         with:
           path: '**/node_modules'
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: '14.17.6'
+          node-version: 14.17.6
       - name: Cache node_modules
         uses: actions/cache@v2
         with:
@@ -59,12 +59,13 @@ jobs:
   test:
     name: Testing
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [lint, build]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: '14.17.6'
+          node-version: 14.17.6
       - name: Cache node_modules
         uses: actions/cache@v2
         with:
@@ -93,7 +94,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: '14.17.6'
+          node-version: 14.17.6
       - name: Cache node_modules
         uses: actions/cache@v2
         with:
