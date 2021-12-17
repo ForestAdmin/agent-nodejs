@@ -3,12 +3,33 @@
     "browser": true,
     "es2021": true
   },
-  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+  "extends": ["airbnb-base", "airbnb-typescript/base", "plugin:@typescript-eslint/recommended"],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "ecmaVersion": 13,
-    "sourceType": "module"
+    "ecmaVersion": 12,
+    "sourceType": "module",
+    "project": ["./tsconfig.json", "./tsconfig.eslint.json"]
   },
   "plugins": ["@typescript-eslint"],
-  "rules": {}
+  "rules": {
+    "max-len": [
+      "error",
+      {
+        "code": 100
+      }
+    ],
+    "@typescript-eslint/lines-between-class-members": [
+      "error",
+      "always",
+      { "exceptAfterSingleLine": true }
+    ],
+    "@typescript-eslint/no-unused-vars": ["error"],
+    "no-void": ["error", { "allowAsStatement": true }],
+    "@typescript-eslint/restrict-template-expressions": "off",
+    "no-console": ["error", { "allow": ["debug", "info", "warn", "error"] }],
+    "arrow-parens": ["error", "as-needed"],
+    "class-methods-use-this": "off",
+    "no-param-reassign": ["error", { "props": false }],
+    "@typescript-eslint/indent": "off"
+  }
 }

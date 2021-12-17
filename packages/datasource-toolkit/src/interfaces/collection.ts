@@ -1,9 +1,9 @@
-import { Action } from "./action";
-import { AggregateResult, Aggregation } from "./query/aggregation";
-import { Projection } from "./query/projection";
-import { CompositeId, RecordData } from "./query/record";
-import { PaginatedFilter, Filter } from "./query/selection";
-import { CollectionSchema } from "./schema";
+import { Action } from './action';
+import { AggregateResult, Aggregation } from './query/aggregation';
+import { Projection } from './query/projection';
+import { CompositeId, RecordData } from './query/record';
+import { PaginatedFilter, Filter } from './query/selection';
+import { CollectionSchema } from './schema';
 
 export interface DataSource {
   get collections(): Collection[];

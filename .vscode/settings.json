@@ -5,7 +5,7 @@
   "editor.formatOnType": false,
   "editor.formatOnPaste": false,
   "prettier.enable": true,
-
+  
   // Display rulers
   "editor.rulers": [100, 120],
 
@@ -21,23 +21,23 @@
   },
 
   // Remove build & configuration files from the sidebar
-  "files.exclude": {
-    ".eslintrc.json": true,
-    ".github": true,
-    ".husky": true,
-    ".prettierrc": true,
-    ".vscode": true,
-    "**/dist": true,
-    "**/jest.config.js": true,
-    "**/LICENSE": true,
-    "**/node_modules": true,
-    "**/tsconfig.json": true,
-    "commitlint.config.js": true,
-    "dist-docs": true,
-    "lerna.json": true,
-    "typedoc.json": true,
-    "yarn.lock": true
-  },
+  // "files.exclude": {
+  //   ".eslintrc.json": true,
+  //   ".github": true,
+  //   ".husky": true,
+  //   ".prettierrc": true,
+  //   ".vscode": true,
+  //   "**/dist": true,
+  //   "**/jest.config.js": true,
+  //   "**/LICENSE": true,
+  //   "**/node_modules": true,
+  //   "**/tsconfig.json": true,
+  //   "commitlint.config.js": true,
+  //   "dist-docs": true,
+  //   "lerna.json": true,
+  //   "typedoc.json": true,
+  //   "yarn.lock": true
+  // },
 
   // Performance
   "files.watcherExclude": {
