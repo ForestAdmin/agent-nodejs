@@ -83,6 +83,7 @@ jobs:
           coverageLocations: |
             ${{github.workspace}}/coverage/lcov.info:lcov
           ref: ${{ env.CHECKOUT_REFERENCE }}
+          coverageCommand: yarn test:coverage
 
   doc:
     name: Doc
