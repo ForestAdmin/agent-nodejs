@@ -53,7 +53,7 @@ export enum ActionResponseType {
 export type SuccessReponse = {
   type: ActionResponseType.Success;
   message: string;
-  invalidatedDependencies: Projection;
+  invalidatedDependencies?: Projection;
   options: {
     type: "html" | "text";
   };
