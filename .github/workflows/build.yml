@@ -76,11 +76,13 @@ jobs:
           name: build
           path: 'packages/'
       - name: Send coverage
-        uses: paambaati/codeclimate-action@v2.7.4
+        uses: ForestAdmin/codeclimate-action@master
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
-          coverageCommand: yarn test:coverage
+          coverageLocations: |
+            ${{github.workspace}}/coverage/lcov.info:lcov
+          ref: ${{ env.CHECKOUT_REFERENCE }}
 
   doc:
     name: Doc
