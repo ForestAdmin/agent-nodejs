@@ -1,6 +1,3 @@
-/**
- * [[include:packages/datasource-toolkit/docs/datasource/index.md]]
- */
 import { Action } from "./action";
 import { AggregateResult, Aggregation } from "./query/aggregation";
 import { Projection } from "./query/projection";

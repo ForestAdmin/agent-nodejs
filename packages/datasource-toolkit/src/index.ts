@@ -1,3 +1,9 @@
+/**
+ * [[include:packages/datasource-toolkit/docs/datasource.md]]
+ * [[include:packages/datasource-toolkit/docs/collection.md]]
+ * @module Datasource-toolkit
+ */
+
 export * from "./interfaces/schema";
 export * from "./interfaces/collection";
 export * from "./interfaces/action";
