@@ -13,6 +13,7 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
     "lint": "prettier -c src && eslint src",
     "test": "jest"
   }
