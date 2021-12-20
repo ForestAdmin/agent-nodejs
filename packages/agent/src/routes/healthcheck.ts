@@ -8,7 +8,7 @@ export default class HealthCheck extends BaseRoute {
     router.get("/healthcheck", this.handleRequest.bind(this));
   }
 
-  private async handleRequest(ctx: Context) {
+  public async handleRequest(ctx: Context) {
     ctx.response.body = {};
     ctx.response.status = 200;
   }

@@ -67,7 +67,7 @@ export default class Frontend {
    */
   async start(): Promise<void> {
     if (this._status !== "waiting") {
-      throw new Error("This application was already started.");
+      throw new Error("Frontend cannot be restarted.");
     }
 
     const router = new Router();
@@ -89,7 +89,7 @@ export default class Frontend {
    */
   async stop(): Promise<void> {
     if (this._status !== "running") {
-      throw new Error("Frontend app is already started.");
+      throw new Error("Frontend is not running.");
     }
 
     this._status = "done";

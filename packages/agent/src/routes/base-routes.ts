@@ -1,4 +1,4 @@
-import { Collection, DataSource } from "@forestadmin/datasource-toolkit";
+import { DataSource } from "@forestadmin/datasource-toolkit";
 import Router from "@koa/router";
 import { FrontendOptions, FrontendServices } from "../frontend";
 
@@ -31,38 +31,5 @@ export abstract class BaseRoute {
 
   setupPrivateRoutes(router: Router): void {
     void router;
-  }
-}
-
-export abstract class CollectionRoute extends BaseRoute {
-  private readonly collectionName: string;
-
-  protected get collection(): Collection {
-    return this.dataSource.getCollection(this.collectionName);
-  }
-
-  constructor(
-    services: FrontendServices,
-    dataSource: DataSource,
-    options: FrontendOptions,
-    collectionName: string
-  ) {
-    super(services, dataSource, options);
-    this.collectionName = collectionName;
-  }
-}
-
-export abstract class RelationRoute extends CollectionRoute {
-  protected readonly relation: string;
-
-  constructor(
-    services: FrontendServices,
-    dataSource: DataSource,
-    options: FrontendOptions,
-    collectionName: string,
-    relation: string
-  ) {
-    super(services, dataSource, options, collectionName);
-    this.relation = relation;
   }
 }
