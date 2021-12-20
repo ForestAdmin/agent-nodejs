@@ -25,6 +25,7 @@
     "arrow-parens": ["error", "as-needed"],
     "class-methods-use-this": "off",
     "no-param-reassign": ["error", { "props": false }],
-    "@typescript-eslint/indent": "off"
+    "@typescript-eslint/indent": "off",
+    "no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"]
   }
 }

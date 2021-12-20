@@ -115,7 +115,8 @@ export default class BookCollection implements Collection {
   }
 
   private makeRecord(projection: Projection): RecordData {
-    return projection.reduce((record, field) => {
+    const record = {};
+    for (const field of projection) {
       const schema = this.schema.fields[field];
       if (schema === undefined) throw new Error(`No such field "${field}" in schema`);
       if (schema.type === FieldTypes.Column) {
@@ -129,8 +130,9 @@ export default class BookCollection implements Collection {
       } else {
         throw new Error(`Unsupported field type: ${schema.type}`);
       }
-      return record;
-    }, {});
+    }
+
+    return record;
   }
 
   /** @see https://stackoverflow.com/questions/1349404 */
