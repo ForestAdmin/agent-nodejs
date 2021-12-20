@@ -37,8 +37,7 @@ describe("Frontend", () => {
   test("should allow access to the request handler before being started", () => {
     // This is a requirement for forestadmin of forestadmin.
     // Otherwise forestadmin-server's in app integration can't be started.
-    const dataSource = new DummyDataSource();
-    const frontend = new Frontend(dataSource, {});
+    const frontend = new Frontend(dataSource, options);
     expect(frontend.handler).toBeTruthy();
   });
 });
