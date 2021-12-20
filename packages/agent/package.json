@@ -4,7 +4,11 @@
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "^1.0.0"
+    "@forestadmin/datasource-toolkit": "^1.0.0",
+    "@koa/cors": "^3.1.0",
+    "@koa/router": "^10.1.1",
+    "koa": "^2.13.4",
+    "koa-bodyparser": "^4.3.0"
   },
   "files": [
     "dist/**/*.js",
@@ -16,5 +20,12 @@
     "clean": "rm -rf coverage dist",
     "lint": "prettier -c src test && eslint src test",
     "test": "jest"
+  },
+  "devDependencies": {
+    "@forestadmin/datasource-dummy": "^1.0.0",
+    "@types/koa": "^2.13.4",
+    "@types/koa-bodyparser": "^4.3.4",
+    "@types/koa__cors": "^3.1.0",
+    "@types/koa__router": "^8.0.11"
   }
 }

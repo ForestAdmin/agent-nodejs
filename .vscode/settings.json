@@ -24,24 +24,26 @@
   },
 
   // Remove build & configuration files from the sidebar
-  // "files.exclude": {
-  //   ".eslintrc.json": true,
-  //   ".github": true,
-  //   ".husky": true,
-  //   ".prettierrc": true,
-  //   ".vscode": true,
-  //   "**/dist": true,
-  //   "**/jest.config.js": true,
-  //   "**/LICENSE": true,
-  //   "**/node_modules": true,
-  //   "**/tsconfig.json": true,
-  //   "**/tsconfig.eslint.json": true,
-  //   "commitlint.config.js": true,
-  //   "dist-docs": true,
-  //   "lerna.json": true,
-  //   "typedoc.json": true,
-  //   "yarn.lock": true
-  // },
+  "files.exclude": {
+    // ".eslintrc.json": true,
+    // ".github": true,
+    // ".husky": true,
+    // ".prettierrc": true,
+    // ".vscode": true,
+    // "**/coverage": true,
+    // "**/dist": true,
+    // "**/jest.config.ts": true,
+    // "**/LICENSE": true,
+    // "**/node_modules": true,
+    // "**/tsconfig.eslint.json": true,
+    // "**/tsconfig.json": true,
+    // "commitlint.config.js": true,
+    // "dist-docs": true,
+    // "global.d.ts": true,
+    // "lerna.json": true,
+    // "typedoc.json": true,
+    // "yarn.lock": true
+  },
 
   // Performance
   "files.watcherExclude": {
