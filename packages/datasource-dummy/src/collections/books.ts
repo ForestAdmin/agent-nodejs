@@ -1,8 +1,5 @@
 import {
   Action,
-  ActionForm,
-  ActionResponse,
-  ActionResponseType,
   AggregateResult,
   Aggregation,
   Collection,
@@ -16,6 +13,7 @@ import {
   Projection,
   RecordData,
 } from "@forestadmin/datasource-toolkit";
+import { MarkAsLiveAction } from "../actions/mark-as-live";
 
 export class BookCollection implements Collection {
   readonly dataSource: DataSource;
@@ -45,6 +43,16 @@ export class BookCollection implements Collection {
         columnType: PrimitiveTypes.Number,
         filterOperators: new Set([]),
         defaultValue: 34,
+      },
+      publication: {
+        type: FieldTypes.Column,
+        columnType: PrimitiveTypes.Date,
+        filterOperators: new Set([]),
+      },
+      publisher: {
+        type: FieldTypes.ManyToOne,
+        foreignCollection: null,
+        foreignKey: null,
       },
     },
     searchable: true,
@@ -92,8 +100,9 @@ export class BookCollection implements Collection {
   async aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
     void filter;
 
+    const numRows = filter?.page?.limit ?? 10;
     const rows = [];
-    for (let i = 0; i < 10; ++i) {
+    for (let i = 0; i < numRows; ++i) {
       const row = { value: Math.floor(Math.random() * 1000), group: {} };
       for (const { field } of aggregation.groups) {
         row.group[field] = this.makeRandomString(6);
@@ -108,6 +117,7 @@ export class BookCollection implements Collection {
     const record: RecordData = {};
     for (const field of projection) {
       const schema = this.schema.fields[field];
+      if (schema === undefined) throw new Error(`No such field "${field}" in schema`);
       if (schema.type === FieldTypes.Column) {
         if (schema.columnType === PrimitiveTypes.Number) {
           record[field] = Math.floor(Math.random() * 10000);
@@ -133,33 +143,5 @@ export class BookCollection implements Collection {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return result;
-  }
-}
-
-class MarkAsLiveAction implements Action {
-  async execute(formValues: RecordData, selection?: Selection): Promise<ActionResponse> {
-    void formValues;
-    void selection;
-
-    return {
-      type: ActionResponseType.Success,
-      message: "Yolo, all of your record are belongs to us",
-      invalidatedDependencies: [],
-      options: {
-        type: "text",
-      },
-    };
-  }
-
-  async getForm(
-    selection?: Selection,
-    changedField?: string,
-    formValues?: RecordData
-  ): Promise<ActionForm> {
-    void selection;
-    void changedField;
-    void formValues;
-
-    return { fields: [] };
   }
 }
