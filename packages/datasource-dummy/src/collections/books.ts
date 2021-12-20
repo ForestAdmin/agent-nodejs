@@ -71,6 +71,7 @@ export default class BookCollection implements Collection {
 
   async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
     void id;
+
     return this.makeRecord(projection);
   }
 
@@ -83,9 +84,11 @@ export default class BookCollection implements Collection {
 
     const numRecords = filter?.page?.limit ?? 10;
     const records = [];
+
     for (let i = 0; i < numRecords; i += 1) {
       records.push(this.makeRecord(projection));
     }
+
     return records;
   }
 
@@ -116,6 +119,7 @@ export default class BookCollection implements Collection {
 
   private makeRecord(projection: Projection): RecordData {
     const record = {};
+
     for (const field of projection) {
       const schema = this.schema.fields[field];
       if (schema === undefined) throw new Error(`No such field "${field}" in schema`);
@@ -140,9 +144,11 @@ export default class BookCollection implements Collection {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
+
     for (let i = 0; i < length; i += 1) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
+
     return result;
   }
 }
