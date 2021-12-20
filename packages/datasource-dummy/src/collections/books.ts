@@ -108,9 +108,11 @@ export default class BookCollection implements Collection {
     const rows = [];
     for (let i = 0; i < numRows; ++i) {
       const row = { value: Math.floor(Math.random() * 1000), group: {} };
-      aggregation.groups.forEach(({ field }) => {
+
+      for (const { field } of aggregation.groups) {
         row.group[field] = this.makeRandomString(6);
-      });
+      }
+
       rows.push(row);
     }
 
