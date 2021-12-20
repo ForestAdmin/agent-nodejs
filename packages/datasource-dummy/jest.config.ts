@@ -1,9 +1,7 @@
-<<<<<<< HEAD
-// eslint-disable-next-line global-require
-export default require('../../jest.config');
-=======
 export default {
-  ...require("../../jest.config"),
-  collectCoverageFrom: ["src/**/*.ts"],
+  // eslint-disable-next-line global-require
+  ...require('../../jest.config'),
+
+  // Allow generation of coverage for this specific package
+  collectCoverageFrom: ['src/**/*.ts'],
 };
->>>>>>> 10397c5 (feat: bootstrap frontend)
