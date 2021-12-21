@@ -10,7 +10,7 @@ describe("Implementations > MarkAsLiveAction", () => {
     it("should resolve with a SuccessResponse", async () => {
       await expect(new MarkAsLiveAction().execute({ value: 42 })).resolves.toMatchObject({
         type: ActionResponseType.Success,
-        message: "Yolo, all of your record are belongs to us",
+        message: "Record set as active",
         options: {
           type: "text",
         },

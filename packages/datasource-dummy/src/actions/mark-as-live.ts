@@ -13,7 +13,7 @@ export class MarkAsLiveAction implements Action {
 
     return {
       type: ActionResponseType.Success,
-      message: "Yolo, all of your record are belongs to us",
+      message: "Record set as active",
       options: {
         type: "text",
       },
