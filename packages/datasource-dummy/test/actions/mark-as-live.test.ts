@@ -1,7 +1,7 @@
 import { ActionResponseType } from "@forestadmin/datasource-toolkit";
 import { MarkAsLiveAction } from "../../src/actions/mark-as-live";
 
-describe("Implementations > MarkAsLiveAction", () => {
+describe("DummyDataSource > Actions > MarkAsLiveAction", () => {
   it("should instanciate properly", () => {
     expect(new MarkAsLiveAction()).toBeDefined();
   });
