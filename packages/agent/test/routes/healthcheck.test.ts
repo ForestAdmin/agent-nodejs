@@ -1,11 +1,11 @@
-import { DummyDataSource } from "@forestadmin/datasource-dummy";
 import { Context } from "koa";
 import HealthCheck from "../../src/routes/healthcheck";
-import RouterMock, { routerMockGet } from "../__mocks__/router";
+import DataSourceMock from "../__mocks__/datasource";
+import RouterMock, { routerMockGet } from "../__mocks__/koa-router";
 
 describe("Healthcheck", () => {
   const services = {};
-  const dataSource = new DummyDataSource();
+  const dataSource = new DataSourceMock();
   const options = {};
   const router = new RouterMock();
 

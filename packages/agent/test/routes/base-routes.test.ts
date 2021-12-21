@@ -1,18 +1,18 @@
-import { DummyDataSource } from "@forestadmin/datasource-dummy";
 import { BaseRoute } from "../../src/routes/base-routes";
-import Router, {
+import DataSourceMock from "../__mocks__/datasource";
+import RouterMock, {
   routerMockDelete,
   routerMockGet,
   routerMockPost,
   routerMockPut,
   routerMockUse,
-} from "../__mocks__/router";
+} from "../__mocks__/koa-router";
 
 describe("Base routes", () => {
   const services = {};
-  const dataSource = new DummyDataSource();
+  const dataSource = new DataSourceMock();
   const options = {};
-  const router = new Router();
+  const router = new RouterMock();
 
   test("should not register any route", async () => {
     const baseRoute = new (class extends BaseRoute {})(services, dataSource, options);

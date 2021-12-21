@@ -1,8 +1,8 @@
-import { DummyDataSource } from "@forestadmin/datasource-dummy";
 import Frontend from "../src/frontend";
+import DataSourceMock from "./__mocks__/datasource";
 
 describe("Frontend", () => {
-  const dataSource = new DummyDataSource();
+  const dataSource = new DataSourceMock();
   const options = {};
 
   test("should start and stop", async () => {
