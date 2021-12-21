@@ -14,7 +14,7 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { MarkAsLiveAction } from '../actions/mark-as-live';
+import MarkAsLiveAction from '../actions/mark-as-live';
 
 export default class BookCollection implements Collection {
   readonly dataSource: DataSource;
@@ -106,7 +106,8 @@ export default class BookCollection implements Collection {
 
     const numRows = filter?.page?.limit ?? 10;
     const rows = [];
-    for (let i = 0; i < numRows; ++i) {
+
+    for (let i = 0; i < numRows; i += 1) {
       const row = { value: Math.floor(Math.random() * 1000), group: {} };
 
       for (const { field } of aggregation.groups) {
@@ -125,6 +126,7 @@ export default class BookCollection implements Collection {
     for (const field of projection) {
       const schema = this.schema.fields[field];
       if (schema === undefined) throw new Error(`No such field "${field}" in schema`);
+
       if (schema.type === FieldTypes.Column) {
         if (schema.columnType === PrimitiveTypes.Number) {
           record[field] = Math.floor(Math.random() * 10000);
