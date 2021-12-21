@@ -1,8 +1,8 @@
-import { DataSource } from "@forestadmin/datasource-toolkit";
-import Router from "@koa/router";
-import { FrontendOptions, FrontendServices } from "../frontend";
+import { DataSource } from '@forestadmin/datasource-toolkit';
+import Router from '@koa/router';
+import { FrontendOptions, FrontendServices } from '../types';
 
-export abstract class BaseRoute {
+export default abstract class BaseRoute {
   protected readonly services: FrontendServices;
   protected readonly dataSource: DataSource;
   protected readonly options: FrontendOptions;

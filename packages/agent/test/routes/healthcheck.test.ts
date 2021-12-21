@@ -1,9 +1,9 @@
-import { Context } from "koa";
-import HealthCheck from "../../src/routes/healthcheck";
-import DataSourceMock from "../__mocks__/datasource";
-import RouterMock, { routerMockGet } from "../__mocks__/koa-router";
+import { Context } from 'koa';
+import HealthCheck from '../../src/routes/healthcheck';
+import DataSourceMock from '../__mocks__/datasource';
+import RouterMock, { routerMockGet } from '../__mocks__/koa-router';
 
-describe("Healthcheck", () => {
+describe('Healthcheck', () => {
   const services = {};
   const dataSource = new DataSourceMock();
   const options = {};
@@ -17,11 +17,11 @@ describe("Healthcheck", () => {
     const healthCheck = new HealthCheck(services, dataSource, options);
     healthCheck.setupPublicRoutes(router);
 
-    expect(routerMockGet).toHaveBeenCalledWith("/", expect.any(Function));
-    expect(routerMockGet).toHaveBeenCalledWith("/healthcheck", expect.any(Function));
+    expect(routerMockGet).toHaveBeenCalledWith('/', expect.any(Function));
+    expect(routerMockGet).toHaveBeenCalledWith('/healthcheck', expect.any(Function));
   });
 
-  test("return a 200 response", async () => {
+  test('return a 200 response', async () => {
     const healthCheck = new HealthCheck(services, dataSource, options);
     const context = { response: {} } as Context;
     await healthCheck.handleRequest(context);

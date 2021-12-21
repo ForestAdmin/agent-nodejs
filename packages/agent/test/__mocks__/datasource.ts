@@ -13,7 +13,7 @@ export const collectionAggregate = jest.fn();
 
 export const CollectionMock = jest.fn().mockImplementation(() => ({
   dataSource: null,
-  name: "book",
+  name: 'book',
   schema: collectionSchema,
   getAction: collectionGetAction,
   getById: collectionGetById,
