@@ -1,2 +1,9 @@
-// eslint-disable-next-line global-require
-export default require('../../jest.config');
+/* eslint-disable import/no-relative-packages */
+import jestConfig from '../../jest.config';
+
+export default {
+  ...jestConfig,
+
+  // Allow generation of coverage for this specific package
+  collectCoverageFrom: ['src/**/*.ts'],
+};
