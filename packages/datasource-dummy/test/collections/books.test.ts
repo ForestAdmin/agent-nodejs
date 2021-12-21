@@ -41,25 +41,30 @@ describe("DummyDataSource > Collections > Books", () => {
     describe("with an invalid projection", () => {
       it("should throw an error with an unknown field", async () => {
         const bookCollection = instanciateCollection();
+        const unknownField = "__no_such_field__";
 
-        await expect(() => bookCollection.getById([42], ["__no_such_field__"])).rejects.toThrow(
-          /No such field ".*" in schema/
+        await expect(() => bookCollection.getById([42], [unknownField])).rejects.toThrow(
+          `No such field "${unknownField}" in schema`
         );
       });
 
       it("should throw an error with an unsupported primitive type", async () => {
         const bookCollection = instanciateCollection();
+        const unsupportedField = "publication";
 
-        await expect(() => bookCollection.getById([42], ["publication"])).rejects.toThrow(
-          /Unsupported primitive: .+$/
+        // Date type not supported by `BookCollection.makeRecord`.
+        await expect(() => bookCollection.getById([42], [unsupportedField])).rejects.toThrow(
+          `Unsupported primitive: ${unsupportedField}`
         );
       });
 
       it("should throw an error with an unsupported field type", async () => {
         const bookCollection = instanciateCollection();
+        const unsupportedField = "publisher";
 
-        await expect(() => bookCollection.getById([42], ["publisher"])).rejects.toThrow(
-          /Unsupported field type: .+$/
+        // ManyToOne relationship not supported by `BookCollection.makeRecord`.
+        await expect(() => bookCollection.getById([42], [unsupportedField])).rejects.toThrow(
+          `Unsupported field type: ${unsupportedField}`
         );
       });
     });
