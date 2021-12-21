@@ -55,10 +55,10 @@ export default class Frontend {
     const router = new Router({ prefix: this.options.prefix });
     router.use(cors({ credentials: true, maxAge: 24 * 3600 }));
     router.use(bodyParser());
-    this.routes.forEach(r => r.setupPublicRoutes(router));
-    this.routes.forEach(r => r.setupAuthentication(router));
-    this.routes.forEach(r => r.setupPrivateRoutes(router));
-    await Promise.all(this.routes.map(r => r.bootstrap()));
+    this.routes.forEach(route => route.setupPublicRoutes(router));
+    this.routes.forEach(route => route.setupAuthentication(router));
+    this.routes.forEach(route => route.setupPrivateRoutes(router));
+    await Promise.all(this.routes.map(route => route.bootstrap()));
 
     this.app.use(router.routes());
   }
@@ -72,7 +72,7 @@ export default class Frontend {
     }
 
     this.status = 'done';
-    await Promise.all(this.routes.map(f => f.tearDown()));
+    await Promise.all(this.routes.map(route => route.tearDown()));
   }
 
   private buildRoutes(): void {
