@@ -49,18 +49,18 @@ export default class Frontend {
       throw new Error('Frontend cannot be restarted.');
     }
 
-    const router = new Router();
+    this.status = 'running';
     this.buildRoutes();
+
+    const router = new Router({ prefix: this.options.prefix });
+    router.use(cors({ credentials: true, maxAge: 24 * 3600 }));
+    router.use(bodyParser());
     this.routes.forEach(f => f.setupPublicRoutes(router));
     this.routes.forEach(f => f.setupAuthentication(router));
     this.routes.forEach(f => f.setupPrivateRoutes(router));
-
-    this.app.use(cors({ credentials: true, maxAge: 24 * 3600 }));
-    this.app.use(bodyParser());
-    this.app.use(router.routes());
-
-    this.status = 'running';
     await Promise.all(this.routes.map(f => f.bootstrap()));
+
+    this.app.use(router.routes());
   }
 
   /**

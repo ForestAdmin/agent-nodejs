@@ -4,3 +4,5 @@ import DummyDataSource from './datasource';
 export default function getCollections(): Collection[] {
   return new DummyDataSource().collections;
 }
+
+export { DummyDataSource };
