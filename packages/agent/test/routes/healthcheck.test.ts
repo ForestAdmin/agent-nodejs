@@ -6,7 +6,7 @@ import RouterMock, { routerMockGet } from '../__mocks__/koa-router';
 describe('Healthcheck', () => {
   const services = {};
   const dataSource = new DataSourceMock();
-  const options = {};
+  const options = { prefix: '/forest' };
   const router = new RouterMock();
 
   beforeEach(() => {

@@ -3,7 +3,7 @@ import DataSourceMock from './__mocks__/datasource';
 
 describe('Frontend', () => {
   const dataSource = new DataSourceMock();
-  const options = {};
+  const options = { prefix: '/forest' };
 
   test('should not allow to start multiple times', async () => {
     const frontend = new Frontend(dataSource, options);

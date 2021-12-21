@@ -11,7 +11,7 @@ import RouterMock, {
 describe('Base routes', () => {
   const services = {};
   const dataSource = new DataSourceMock();
-  const options = {};
+  const options = { prefix: '/forest' };
   const router = new RouterMock();
 
   test('should not register any route', async () => {
