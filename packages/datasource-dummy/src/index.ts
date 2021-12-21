@@ -1,6 +1,6 @@
-import { Collection } from "@forestadmin/datasource-toolkit";
-import { DummyDataSource } from "./datasource";
+import { Collection } from '@forestadmin/datasource-toolkit';
+import DummyDataSource from './datasource';
 
-export function getCollections(): Collection[] {
+export default function getCollections(): Collection[] {
   return new DummyDataSource().collections;
 }

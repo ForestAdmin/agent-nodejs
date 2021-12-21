@@ -1,16 +1,16 @@
 export enum AggregationOperation {
-  Count = "Count",
-  Sum = "Sum",
-  Average = "Avg",
-  Max = "Max",
-  Min = "Min",
+  Count = 'Count',
+  Sum = 'Sum',
+  Average = 'Avg',
+  Max = 'Max',
+  Min = 'Min',
 }
 
 export enum DateOperation {
-  ToYear = "Year",
-  ToMonth = "Month",
-  ToWeek = "Week",
-  toDay = "Day",
+  ToYear = 'Year',
+  ToMonth = 'Month',
+  ToWeek = 'Week',
+  toDay = 'Day',
 }
 
 export type Aggregation = {

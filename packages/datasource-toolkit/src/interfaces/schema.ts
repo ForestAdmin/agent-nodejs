@@ -1,9 +1,9 @@
-import { Filter, Operator, Aggregator } from "./query/selection";
+import { Filter, Operator, Aggregator } from './query/selection';
 
 export type CollectionSchema = {
   actions: Array<{
     name: string;
-    scope: "single" | "bulk" | "global";
+    scope: 'single' | 'bulk' | 'global';
     forceDownload?: boolean;
   }>;
   fields: { [fieldName: string]: FieldSchema };
@@ -29,7 +29,7 @@ export type ColumnSchema = {
   isSortable?: boolean;
   type: FieldTypes.Column;
   validation?:
-    | { aggregator: Aggregator; conditions: ColumnSchema["validation"] }
+    | { aggregator: Aggregator; conditions: ColumnSchema['validation'] }
     | { operator: Operator; field: string; value: unknown };
 };
 
@@ -62,22 +62,22 @@ export type ManyToManySchema = {
 export type ColumnType = PrimitiveTypes | { [key: string]: ColumnType } | [ColumnType];
 
 export enum PrimitiveTypes {
-  Boolean = "Boolean",
-  Date = "Date",
-  Dateonly = "Dateonly",
-  Enum = "Enum",
-  Json = "Json",
-  Number = "Number",
-  Point = "Point",
-  String = "String",
-  Timeonly = "Timeonly",
-  Uuid = "Uuid",
+  Boolean = 'Boolean',
+  Date = 'Date',
+  Dateonly = 'Dateonly',
+  Enum = 'Enum',
+  Json = 'Json',
+  Number = 'Number',
+  Point = 'Point',
+  String = 'String',
+  Timeonly = 'Timeonly',
+  Uuid = 'Uuid',
 }
 
 export enum FieldTypes {
-  Column = "Column",
-  ManyToOne = "ManyToOne",
-  OneToOne = "OneToOne",
-  OneToMany = "OneToMany",
-  ManyToMany = "ManyToMany",
+  Column = 'Column',
+  ManyToOne = 'ManyToOne',
+  OneToOne = 'OneToOne',
+  OneToMany = 'OneToMany',
+  ManyToMany = 'ManyToMany',
 }

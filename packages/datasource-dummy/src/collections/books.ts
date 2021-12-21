@@ -8,40 +8,41 @@ import {
   DataSource,
   FieldTypes,
   Filter,
+  Operator,
   PaginatedFilter,
   PrimitiveTypes,
   Projection,
   RecordData,
-} from "@forestadmin/datasource-toolkit";
-import { MarkAsLiveAction } from "../actions/mark-as-live";
+} from '@forestadmin/datasource-toolkit';
+import MarkAsLiveAction from '../actions/mark-as-live';
 
-export class BookCollection implements Collection {
+export default class BookCollection implements Collection {
   readonly dataSource: DataSource;
-  readonly name: string = "book";
+  readonly name: string = 'book';
   readonly schema: CollectionSchema = {
     actions: [
       {
-        name: "Mark as Live",
-        scope: "bulk",
+        name: 'Mark as Live',
+        scope: 'bulk',
       },
     ],
     fields: {
       id: {
         type: FieldTypes.Column,
         columnType: PrimitiveTypes.Number,
-        filterOperators: new Set([]),
+        filterOperators: new Set<Operator>([]),
         isPrimaryKey: true,
       },
       title: {
         type: FieldTypes.Column,
         columnType: PrimitiveTypes.String,
-        filterOperators: new Set([]),
-        defaultValue: "Le rouge et le noir",
+        filterOperators: new Set<Operator>([]),
+        defaultValue: 'Le rouge et le noir',
       },
       authorId: {
         type: FieldTypes.Column,
         columnType: PrimitiveTypes.Number,
-        filterOperators: new Set([]),
+        filterOperators: new Set<Operator>([]),
         defaultValue: 34,
       },
       publication: {
@@ -56,7 +57,7 @@ export class BookCollection implements Collection {
       },
     },
     searchable: true,
-    segments: ["Active", "Inactive"],
+    segments: ['Active', 'Inactive'],
   };
 
   constructor(datasource: DataSource) {
@@ -64,12 +65,13 @@ export class BookCollection implements Collection {
   }
 
   getAction(name: string): Action {
-    if (name === "Mark as Live") return new MarkAsLiveAction();
-    else throw new Error("Action not found.");
+    if (name === 'Mark as Live') return new MarkAsLiveAction();
+    throw new Error('Action not found.');
   }
 
   async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
     void id;
+
     return this.makeRecord(projection);
   }
 
@@ -82,9 +84,11 @@ export class BookCollection implements Collection {
 
     const numRecords = filter?.page?.limit ?? 10;
     const records = [];
-    for (let i = 0; i < numRecords; ++i) {
+
+    for (let i = 0; i < numRecords; i += 1) {
       records.push(this.makeRecord(projection));
     }
+
     return records;
   }
 
@@ -102,11 +106,14 @@ export class BookCollection implements Collection {
 
     const numRows = filter?.page?.limit ?? 10;
     const rows = [];
-    for (let i = 0; i < numRows; ++i) {
+
+    for (let i = 0; i < numRows; i += 1) {
       const row = { value: Math.floor(Math.random() * 1000), group: {} };
+
       for (const { field } of aggregation.groups) {
         row.group[field] = this.makeRandomString(6);
       }
+
       rows.push(row);
     }
 
@@ -114,10 +121,12 @@ export class BookCollection implements Collection {
   }
 
   private makeRecord(projection: Projection): RecordData {
-    const record: RecordData = {};
+    const record = {};
+
     for (const field of projection) {
       const schema = this.schema.fields[field];
       if (schema === undefined) throw new Error(`No such field "${field}" in schema`);
+
       if (schema.type === FieldTypes.Column) {
         if (schema.columnType === PrimitiveTypes.Number) {
           record[field] = Math.floor(Math.random() * 10000);
@@ -136,12 +145,14 @@ export class BookCollection implements Collection {
 
   /** @see https://stackoverflow.com/questions/1349404 */
   private makeRandomString(length = 10) {
-    let result = "";
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
-    for (let i = 0; i < length; i++) {
+
+    for (let i = 0; i < length; i += 1) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
+
     return result;
   }
 }

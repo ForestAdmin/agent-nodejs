@@ -1,12 +1,12 @@
-import { Projection } from "./query/projection";
-import { RecordData } from "./query/record";
+import { Projection } from './query/projection';
+import { RecordData } from './query/record';
 
 export interface Action {
   execute(formValues: RecordData, selection?: Selection): Promise<ActionResponse>;
   getForm(
     selection?: Selection,
     changedField?: string,
-    formValues?: RecordData
+    formValues?: RecordData,
   ): Promise<ActionForm>;
 }
 
@@ -28,18 +28,18 @@ export interface ActionField {
 }
 
 export enum ActionFieldType {
-  Boolean = "Boolean",
-  Collection = "Collection",
-  Date = "Date",
-  Dateonly = "Dateonly",
-  Enum = "Enum",
-  File = "File",
-  Number = "Number",
-  String = "String",
-  Json = "Json",
-  EnumList = "Enum[]",
-  NumberList = "Number[]",
-  StringList = "String[]",
+  Boolean = 'Boolean',
+  Collection = 'Collection',
+  Date = 'Date',
+  Dateonly = 'Dateonly',
+  Enum = 'Enum',
+  File = 'File',
+  Number = 'Number',
+  String = 'String',
+  Json = 'Json',
+  EnumList = 'Enum[]',
+  NumberList = 'Number[]',
+  StringList = 'String[]',
 }
 
 export enum ActionResponseType {
@@ -55,7 +55,7 @@ export type SuccessReponse = {
   message: string;
   invalidatedDependencies?: Projection;
   options: {
-    type: "html" | "text";
+    type: 'html' | 'text';
   };
 };
 
@@ -64,7 +64,7 @@ export type ErrorResponse = SuccessReponse & { type: ActionResponseType.Error };
 export type WebHookReponse = {
   type: ActionResponseType.Webhook;
   url: string;
-  method: "GET" | "POST";
+  method: 'GET' | 'POST';
   headers: { [key: string]: string };
   body: unknown;
 };
