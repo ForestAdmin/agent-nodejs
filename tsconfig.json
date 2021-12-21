@@ -10,5 +10,6 @@
     "sourceMap": true,
     "noImplicitOverride": true,
     "stripInternal": true
-  }
+  },
+  "files": ["global.d.ts"]
 }
