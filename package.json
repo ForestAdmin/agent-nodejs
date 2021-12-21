@@ -28,12 +28,7 @@
     "lint": "lerna run lint",
     "prepare": "husky install",
     "test": "jest",
-    "test:coverage": "yarn test --coverage",
-    "test:coverage:clean": "rm -rf coverage",
-    "test:coverage:report:_base": "nyc report --report-dir=coverage --temp-dir=coverage --reporter",
-    "test:coverage:report:html": "yarn test:coverage:report:_base html",
-    "test:coverage:report:lcov": "yarn test:coverage:report:_base lcov",
-    "test:coverage:report:summary": "yarn test:coverage:report:_base summary"
+    "test:coverage": "yarn test --coverage"
   },
   "workspaces": [
     "packages/*"
