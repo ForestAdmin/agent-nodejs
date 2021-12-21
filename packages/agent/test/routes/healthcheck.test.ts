@@ -18,7 +18,6 @@ describe('Healthcheck', () => {
     healthCheck.setupPublicRoutes(router);
 
     expect(routerMockGet).toHaveBeenCalledWith('/', expect.any(Function));
-    expect(routerMockGet).toHaveBeenCalledWith('/healthcheck', expect.any(Function));
   });
 
   test('return a 200 response', async () => {
