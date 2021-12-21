@@ -1,4 +1,4 @@
-import { AggregationOperation } from "@forestadmin/datasource-toolkit";
+import { AggregationOperation, ColumnSchema } from "@forestadmin/datasource-toolkit";
 import { MarkAsLiveAction } from "../../src/actions/mark-as-live";
 import { BookCollection } from "../../src/collections/books";
 import { DummyDataSource } from "../../src/datasource";
@@ -52,9 +52,13 @@ describe("DummyDataSource > Collections > Books", () => {
         const bookCollection = instanciateCollection();
         const unsupportedField = "publication";
 
+        const expectedUnsupportedFieldColumnType = (
+          bookCollection.schema.fields[unsupportedField] as ColumnSchema
+        ).columnType;
+
         // Date type not supported by `BookCollection.makeRecord`.
         await expect(() => bookCollection.getById([42], [unsupportedField])).rejects.toThrow(
-          `Unsupported primitive: ${unsupportedField}`
+          `Unsupported primitive: ${expectedUnsupportedFieldColumnType}`
         );
       });
 
@@ -62,9 +66,13 @@ describe("DummyDataSource > Collections > Books", () => {
         const bookCollection = instanciateCollection();
         const unsupportedField = "publisher";
 
+        const expectedUnsupportedFieldColumnType = (
+          bookCollection.schema.fields[unsupportedField] as ColumnSchema
+        ).type;
+
         // ManyToOne relationship not supported by `BookCollection.makeRecord`.
         await expect(() => bookCollection.getById([42], [unsupportedField])).rejects.toThrow(
-          `Unsupported field type: ${unsupportedField}`
+          `Unsupported field type: ${expectedUnsupportedFieldColumnType}`
         );
       });
     });
