@@ -1,26 +1,26 @@
 import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
 import DataSourceMock from './__mocks__/datasource';
 
-describe('Frontend', () => {
+describe('ForestAdminHttpDriver', () => {
   const dataSource = new DataSourceMock();
   const options = { prefix: '/forest' };
 
   test('should not allow to start multiple times', async () => {
     const httpDriver = new ForestAdminHttpDriver(dataSource, options);
     await httpDriver.start();
-    await expect(httpDriver.start()).rejects.toEqual(new Error('Frontend cannot be restarted.'));
+    await expect(httpDriver.start()).rejects.toEqual(new Error('Agent cannot be restarted.'));
   });
 
   test('should not allow to stop multiple times', async () => {
     const httpDriver = new ForestAdminHttpDriver(dataSource, options);
     await httpDriver.start();
     await httpDriver.stop();
-    await expect(httpDriver.stop()).rejects.toEqual(new Error('Frontend is not running.'));
+    await expect(httpDriver.stop()).rejects.toEqual(new Error('Agent is not running.'));
   });
 
   test('should not allow to stop without starting', async () => {
     const httpDriver = new ForestAdminHttpDriver(dataSource, options);
-    await expect(httpDriver.stop()).rejects.toEqual(new Error('Frontend is not running.'));
+    await expect(httpDriver.stop()).rejects.toEqual(new Error('Agent is not running.'));
   });
 
   test('should allow access to the request handler before being started', () => {

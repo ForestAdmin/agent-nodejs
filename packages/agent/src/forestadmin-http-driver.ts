@@ -49,7 +49,7 @@ export default class ForestAdminHttpDriver {
    */
   async start(): Promise<void> {
     if (this.status !== 'waiting') {
-      throw new Error('Frontend cannot be restarted.');
+      throw new Error('Agent cannot be restarted.');
     }
 
     this.status = 'running';
@@ -71,7 +71,7 @@ export default class ForestAdminHttpDriver {
    */
   async stop(): Promise<void> {
     if (this.status !== 'running') {
-      throw new Error('Frontend is not running.');
+      throw new Error('Agent is not running.');
     }
 
     this.status = 'done';

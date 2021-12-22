@@ -10,7 +10,7 @@ export enum LoggerLevel {
 /** Logger */
 export type Logger = (level: LoggerLevel, message: string) => void;
 
-/** Options to configure behavior of an agent's frontend */
+/** Options to configure behavior of an agent's forestadmin driver */
 export interface ForestAdminHttpDriverOptions {
   prefix: string;
   logger?: Logger;
