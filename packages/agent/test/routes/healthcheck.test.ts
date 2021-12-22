@@ -2,9 +2,10 @@ import { Context } from 'koa';
 import HealthCheck from '../../src/routes/healthcheck';
 import DataSourceMock from '../__mocks__/datasource';
 import RouterMock, { routerMockGet } from '../__mocks__/koa-router';
+import servicesMock from '../__mocks__/services';
 
 describe('Healthcheck', () => {
-  const services = {};
+  const services = servicesMock;
   const dataSource = new DataSourceMock();
   const options = { prefix: '/forest' };
   const router = new RouterMock();
@@ -13,7 +14,7 @@ describe('Healthcheck', () => {
     routerMockGet.mockClear();
   });
 
-  test("should register '/' and '/healthcheck' public routes", () => {
+  test("should register '/' public routes", () => {
     const healthCheck = new HealthCheck(services, dataSource, options);
     healthCheck.setupPublicRoutes(router);
 

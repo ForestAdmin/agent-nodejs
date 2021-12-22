@@ -1,5 +1,5 @@
 import {
-  Collection,
+  CollectionSchema,
   ColumnSchema,
   CompositeId,
   PrimitiveTypes,
@@ -8,29 +8,47 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 export default class IdUtils {
-  static packId(collection: Collection, record: RecordData): string {
-    return SchemaUtils.getPrimaryKeys(collection.schema)
-      .map(pk => String(record[pk]))
+  static packId(schema: CollectionSchema, record: RecordData): string {
+    const pks = SchemaUtils.getPrimaryKeys(schema);
+
+    if (!pks.length) {
+      throw new Error('This collection has no primary key');
+    }
+
+    return pks
+      .map(pk => {
+        if (record[pk] === undefined) {
+          throw new Error(`RecordData is missing field ${pk}`);
+        }
+
+        return String(record[pk]);
+      })
       .join('|');
   }
 
-  static unpackId(collection: Collection, packedId: string): CompositeId {
+  static unpackId(schema: CollectionSchema, packedId: string): CompositeId {
     const parts = packedId.split('|');
+    const pks = SchemaUtils.getPrimaryKeys(schema);
 
-    return SchemaUtils.getPrimaryKeys(collection.schema).map((pk, index) => {
-      const { columnType } = collection.schema.fields[pk] as ColumnSchema;
+    if (parts.length !== pks.length) {
+      throw new Error(`Expected ${pks.length} parts, found ${parts.length}`);
+    }
 
-      switch (columnType) {
-        case PrimitiveTypes.Number:
-          return Number(parts[index]);
-        case PrimitiveTypes.Enum:
-        case PrimitiveTypes.String:
-        case PrimitiveTypes.Uuid:
-          return parts[index];
+    return pks.map((pk, index) => {
+      const { columnType } = schema.fields[pk] as ColumnSchema;
+      const part = parts[index];
 
-        default:
-          throw new Error(`Unexpected type for composite primary key: ${columnType}`);
+      if (columnType !== PrimitiveTypes.Number) {
+        return part;
       }
+
+      const partAsNumber = Number(part);
+
+      if (!Number.isFinite(partAsNumber)) {
+        throw new Error(`Failed to parse number from ${parts[index]}`);
+      }
+
+      return partAsNumber;
     });
   }
 }

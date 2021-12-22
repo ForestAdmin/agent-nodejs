@@ -6,7 +6,8 @@ import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import BaseRoute from './routes/base-route';
 import HealthCheck from './routes/healthcheck';
-import { FrontendOptions } from './types';
+import Serializer from './services/serializer';
+import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverServices } from './types';
 
 /** Native NodeJS callback that can be passed to an HTTP Server */
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
@@ -16,11 +17,11 @@ export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
  */
 const ROOT_CTOR = [HealthCheck];
 
-export default class Frontend {
+export default class ForestAdminHttpDriver {
   public readonly dataSource: DataSource;
-  public readonly options: FrontendOptions;
+  public readonly options: ForestAdminHttpDriverOptions;
   public readonly routes: BaseRoute[] = [];
-  public readonly services: Record<string, never>;
+  public readonly services: ForestAdminHttpDriverServices;
 
   private readonly app = new Koa();
   private status: 'waiting' | 'running' | 'done' = 'waiting';
@@ -34,10 +35,12 @@ export default class Frontend {
     return this.app.callback();
   }
 
-  constructor(dataSource: DataSource, options: FrontendOptions) {
+  constructor(dataSource: DataSource, options: ForestAdminHttpDriverOptions) {
     this.dataSource = dataSource;
     this.options = options;
-    this.services = {};
+    this.services = {
+      serializer: new Serializer(this.options.prefix),
+    };
   }
 
   /**
