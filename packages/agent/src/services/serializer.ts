@@ -99,15 +99,13 @@ export default class Serializer {
   }
 
   private stripUndefinedsInPlace(record: unknown): void {
-    if (typeof record !== 'object') {
-      return;
-    }
-
-    for (const key of Object.keys(record)) {
-      if (record[key] === undefined) {
-        delete record[key];
-      } else {
-        this.stripUndefinedsInPlace(record[key]);
+    if (typeof record === 'object') {
+      for (const key of Object.keys(record)) {
+        if (record[key] === undefined) {
+          delete record[key];
+        } else {
+          this.stripUndefinedsInPlace(record[key]);
+        }
       }
     }
   }
