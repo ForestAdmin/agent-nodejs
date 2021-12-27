@@ -8,9 +8,11 @@ export type ActionSchema = {
   staticForm?: boolean;
 };
 
+export type FieldsSchema = { [key: string]: FieldSchema };
+
 export type CollectionSchema = {
   actions: { [actionName: string]: ActionSchema };
-  fields: { [fieldName: string]: FieldSchema };
+  fields: FieldsSchema;
   searchable: boolean;
   segments: string[];
 };
@@ -25,6 +27,7 @@ export type ColumnSchema = {
   enumValues?: string[];
   isPrimaryKey?: boolean;
   isReadOnly?: boolean;
+  isRequired?: boolean;
   isSortable?: boolean;
   type: 'Column';
   validation?: Array<{ operator: Operator; value?: unknown }>;
