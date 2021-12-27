@@ -3,3 +3,6 @@ coverage
 dist
 dist-docs
 node_modules
+
+# IDE
+.idea
