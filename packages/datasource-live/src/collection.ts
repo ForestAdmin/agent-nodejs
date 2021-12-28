@@ -17,6 +17,8 @@ import {
 export default class LiveCollection implements Collection {
   private model = null;
   private sequelize = null;
+  private synched = false;
+
   readonly dataSource: DataSource;
   readonly name = null;
   readonly schema: CollectionSchema = null;
@@ -40,6 +42,12 @@ export default class LiveCollection implements Collection {
     });
   }
 
+  private ensureSynched(): void {
+    if (!this.synched) {
+      throw new Error(`Collection "${this.name}" is not synched yet. Call "sync" first.`);
+    }
+  }
+
   getAction(name: string): Action {
     const actionSchema = this.schema.actions.find(action => action.name === name);
 
@@ -53,33 +61,56 @@ export default class LiveCollection implements Collection {
     void id;
     void projection;
     throw new Error('Method not implemented.');
+    this.ensureSynched();
+
   }
 
   create(data: RecordData[]): Promise<RecordData[]> {
     void data;
     throw new Error('Method not implemented.');
+    this.ensureSynched();
+
   }
 
   list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+    this.ensureSynched();
+
     void filter;
     void projection;
     throw new Error('Method not implemented.');
   }
 
   update(filter: Filter, patch: RecordData): Promise<void> {
+    this.ensureSynched();
+
     void filter;
     void patch;
     throw new Error('Method not implemented.');
   }
 
   delete(filter: Filter): Promise<void> {
+    this.ensureSynched();
+
     void filter;
     throw new Error('Method not implemented.');
   }
 
   aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
+    this.ensureSynched();
+
     void filter;
     void aggregation;
     throw new Error('Method not implemented.');
+  }
+
+  async sync(): Promise<boolean> {
+    this.synched = false;
+
+    return this.model
+      .sync({ force: true })
+      .then(() => {
+        this.synched = true;
+      })
+      .then(() => true);
   }
 }

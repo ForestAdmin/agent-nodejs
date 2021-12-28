@@ -18,4 +18,8 @@ export default class LiveDataSource implements DataSource {
   getCollection(name: string): LiveCollection {
     return this.collections.find(collection => collection.name === name) || null;
   }
+
+  async syncCollections(): Promise<boolean> {
+    return Promise.all(this.collections.map(collection => collection.sync())).then(() => true);
+  }
 }
