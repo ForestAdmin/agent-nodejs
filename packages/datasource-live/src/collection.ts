@@ -66,10 +66,9 @@ export default class LiveCollection implements Collection {
   }
 
   create(data: RecordData[]): Promise<RecordData[]> {
-    void data;
-    throw new Error('Method not implemented.');
     this.ensureSynched();
 
+    return this.model.bulkCreate(data);
   }
 
   list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
