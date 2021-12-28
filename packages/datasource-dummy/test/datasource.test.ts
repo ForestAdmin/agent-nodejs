@@ -5,16 +5,18 @@ describe('DummyDataSource', () => {
     expect(new DummyDataSource()).toBeDefined();
   });
 
-  describe('collections', () => {
-    it('should only hold the book collection', () => {
-      const dummyDataSource = new DummyDataSource();
+  describe('attributes', () => {
+    describe('collections', () => {
+      it('should only hold the book collection', () => {
+        const dummyDataSource = new DummyDataSource();
 
-      expect(dummyDataSource.collections).toBeArrayOfSize(1);
-      expect(dummyDataSource.collections).toEqual([
-        expect.objectContaining({
-          name: 'books',
-        }),
-      ]);
+        expect(dummyDataSource.collections).toBeArrayOfSize(1);
+        expect(dummyDataSource.collections).toEqual([
+          expect.objectContaining({
+            name: 'books',
+          }),
+        ]);
+      });
     });
   });
 });
