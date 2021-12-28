@@ -7,24 +7,32 @@ describe('LiveDataSource', () => {
     expect(new LiveDataSource(dataSourceWithDummyCollectionSchema)).toBeDefined();
   });
 
-  describe('collections', () => {
-    it('should hold collections according to the given schema', () => {
-      const liveDataSource = new LiveDataSource(dataSourceWithDummyCollectionSchema);
-      const expectedCollectionCount = Object.entries(
-        dataSourceWithDummyCollectionSchema.collections,
-      ).length;
+  describe('attributes', () => {
+    describe('collections', () => {
+      it('should hold collections according to the given schema', () => {
+        const liveDataSource = new LiveDataSource(dataSourceWithDummyCollectionSchema);
+        const expectedCollectionCount = Object.entries(
+          dataSourceWithDummyCollectionSchema.collections,
+        ).length;
 
-      expect(liveDataSource.collections).toBeArrayOfSize(expectedCollectionCount);
+        expect(liveDataSource.collections).toBeArrayOfSize(expectedCollectionCount);
+      });
     });
   });
 
   describe('getCollection', () => {
     it('should return null for unknown collection name', () => {
-      expect(
-        new LiveDataSource(dataSourceWithDummyCollectionSchema).getCollection(
-          '__no_such_collection',
-        ),
-      ).toBeNull();
+      const liveDataSource = new LiveDataSource(dataSourceWithDummyCollectionSchema);
+
+      expect(liveDataSource.getCollection('__no_such_collection')).toBeNull();
+    });
+  });
+
+  describe('syncCollections', () => {
+    it('should return a truthy Promise', async () => {
+      const liveDataSource = new LiveDataSource(dataSourceWithDummyCollectionSchema);
+
+      await expect(liveDataSource.syncCollections()).resolves.toBeTruthy();
     });
   });
 });
