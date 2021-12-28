@@ -1,3 +1,5 @@
+import { DataTypes } from 'sequelize';
+
 import {
   Action,
   AggregateResult,
@@ -13,6 +15,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 export default class LiveCollection implements Collection {
+  private model = null;
   private sequelize = null;
   readonly dataSource: DataSource;
   readonly name = null;
@@ -23,6 +26,18 @@ export default class LiveCollection implements Collection {
     this.name = name;
     this.schema = schema;
     this.sequelize = sequelize;
+
+    // TODO: Properly call `define` with details from schema.
+    this.model = this.sequelize.define(name, {
+      id: {
+        primaryKey: true,
+        autoIncrement: true,
+        type: DataTypes.INTEGER,
+      },
+      value: {
+        type: DataTypes.STRING,
+      },
+    });
   }
 
   getAction(name: string): Action {
