@@ -9,7 +9,7 @@ export default class LiveDataSource implements DataSource {
   readonly collections: LiveCollection[] = [];
 
   constructor(dataSourceSchema: DataSourceSchema) {
-    this.sequelize = new Sequelize('sqlite::memory:');
+    this.sequelize = new Sequelize('sqlite::memory:', { logging: false });
     this.collections = Object.entries(dataSourceSchema.collections).map(
       ([name, schema]) => new LiveCollection(name, this, schema, this.sequelize),
     );
