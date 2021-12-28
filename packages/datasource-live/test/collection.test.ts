@@ -1,3 +1,5 @@
+import { Sequelize } from 'sequelize';
+
 import { CollectionSchema } from '@forestadmin/datasource-toolkit';
 import LiveCollection from '../src/collection';
 
@@ -7,27 +9,52 @@ const liveCollectionSchema: CollectionSchema = {
   searchable: true,
   segments: [],
 };
-const instanciateCollection = () =>
-  // eslint-disable-next-line implicit-arrow-linebreak
-  new LiveCollection('__name__', null, liveCollectionSchema, null);
+
+const instanciateCollection = () => {
+  const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+
+  return {
+    liveCollection:
+      // eslint-disable-next-line implicit-arrow-linebreak
+      new LiveCollection('__name__', null, liveCollectionSchema, sequelize),
+    sequelize,
+  };
+};
 
 describe('LiveDataSource > Collection', () => {
   it('should instanciate properly', () => {
-    const liveCollection = instanciateCollection();
+    const { liveCollection } = instanciateCollection();
 
     expect(liveCollection).toBeDefined();
   });
 
+  describe('sync', () => {
+    it('should return a truthy Promise', async () => {
+      const { liveCollection } = instanciateCollection();
+
+      await expect(liveCollection.sync()).resolves.toBeTruthy();
+    });
+
+    it('should create the collection table', async () => {
+      const { liveCollection, sequelize } = instanciateCollection();
+
+      await liveCollection.sync();
+
+      expect(sequelize.model(liveCollection.name)).toBeDefined();
+      await expect(sequelize.model(liveCollection.name).findAll()).resolves.toBeArrayOfSize(0);
+    });
+  });
+
   describe('getAction', () => {
     it('should return a known action', () => {
-      const liveCollection = instanciateCollection();
+      const { liveCollection } = instanciateCollection();
 
       // TODO: Match actual action when defined.
       expect(liveCollection.getAction('__action__')).toBeNull();
     });
 
     it('should thrown with an unknown action name', () => {
-      const liveCollection = instanciateCollection();
+      const { liveCollection } = instanciateCollection();
 
       expect(() => liveCollection.getAction('__no_such_action__')).toThrow(
         'Action "__no_such_action__" not found.',
@@ -36,11 +63,64 @@ describe('LiveDataSource > Collection', () => {
   });
 
   describe('getById', () => {
-    it.todo('TODO');
+    it('should reject if collection is not synched first', async () => {
+      const { liveCollection } = instanciateCollection();
+
+      expect(() => liveCollection.getById([null], null)).toThrow(
+        `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
+      );
+    });
+
+    it('should resolve with the requested record data', async () => {
+      const { liveCollection, sequelize } = instanciateCollection();
+
+      await liveCollection.sync();
+      const instance = await sequelize.model(liveCollection.name).create({ value: '__dummy__' });
+
+      const recordData = await liveCollection.getById([Number(instance.get('id'))], null);
+
+      expect(recordData).toEqual(
+        expect.objectContaining({ id: instance.get('id'), value: instance.get('value') }),
+      );
+    });
+
+    it.todo('should resolve when given an actual composite ID');
+
+    it('should resolve honoring the projection', async () => {
+      const { liveCollection, sequelize } = instanciateCollection();
+
+      await liveCollection.sync();
+      const instance = await sequelize.model(liveCollection.name).create({ value: '__dummy__' });
+
+      const recordData = await liveCollection.getById([Number(instance.get('id'))], ['id']);
+
+      expect(recordData.id).toEqual(instance.get('id'));
+      expect(recordData.value).toBeUndefined();
+    });
   });
 
   describe('create', () => {
-    it.todo('TODO');
+    it('should reject if collection is not synched first', async () => {
+      const { liveCollection } = instanciateCollection();
+
+      expect(() => liveCollection.create([])).toThrow(
+        `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
+      );
+    });
+
+    it('should resolve with the newly created record data', async () => {
+      const { liveCollection } = instanciateCollection();
+      const recordData = [{ value: '__first_record__' }, { value: '__second_record__' }];
+
+      await liveCollection.sync();
+
+      const records = await liveCollection.create(recordData);
+
+      expect(records).toBeArrayOfSize(recordData.length);
+      expect(records).toEqual(
+        expect.arrayContaining(recordData.map(record => expect.objectContaining(record))),
+      );
+    });
   });
 
   describe('list', () => {
