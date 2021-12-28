@@ -4,7 +4,9 @@
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "^1.0.0"
+    "@forestadmin/datasource-toolkit": "^1.0.0",
+    "sequelize": "^6.12.3",
+    "sqlite3": "^5.0.2"
   },
   "files": [
     "dist/**/*.js",
