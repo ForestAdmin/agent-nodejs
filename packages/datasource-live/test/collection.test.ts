@@ -1,14 +1,38 @@
+import { CollectionSchema } from '@forestadmin/datasource-toolkit';
 import LiveCollection from '../src/collection';
+
+const liveCollectionSchema: CollectionSchema = {
+  actions: [{ name: '__action__', scope: 'single' }],
+  fields: {},
+  searchable: true,
+  segments: [],
+};
+const instanciateCollection = () =>
+  // eslint-disable-next-line implicit-arrow-linebreak
+  new LiveCollection('__name__', null, liveCollectionSchema, null);
 
 describe('LiveDataSource > Collection', () => {
   it('should instanciate properly', () => {
-    const liveDataSource = new LiveCollection('__name__', null, null, null);
+    const liveCollection = instanciateCollection();
 
-    expect(liveDataSource).toBeDefined();
+    expect(liveCollection).toBeDefined();
   });
 
   describe('getAction', () => {
-    it.todo('TODO');
+    it('should return a known action', () => {
+      const liveCollection = instanciateCollection();
+
+      // TODO: Match actual action when defined.
+      expect(liveCollection.getAction('__action__')).toBeNull();
+    });
+
+    it('should thrown with an unknown action name', () => {
+      const liveCollection = instanciateCollection();
+
+      expect(() => liveCollection.getAction('__no_such_action__')).toThrow(
+        'Action "__no_such_action__" not found.',
+      );
+    });
   });
 
   describe('getById', () => {

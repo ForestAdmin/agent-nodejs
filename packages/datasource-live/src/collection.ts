@@ -26,8 +26,12 @@ export default class LiveCollection implements Collection {
   }
 
   getAction(name: string): Action {
-    void name;
-    throw new Error('Method not implemented.');
+    const actionSchema = this.schema.actions.find(action => action.name === name);
+
+    if (actionSchema === undefined) throw new Error(`Action "${name}" not found.`);
+
+    // TODO: Properly instanciate action.
+    return null;
   }
 
   getById(id: CompositeId, projection: Projection): Promise<RecordData> {
