@@ -62,7 +62,9 @@ export default class LiveCollection implements Collection {
 
     const actualId = id.length === 1 ? id[0] : id;
 
-    return this.model.findByPk(actualId, { attributes: projection, plain: true });
+    return this.model
+      .findByPk(actualId, { attributes: projection })
+      .then(record => record.get({ plain: true }));
   }
 
   create(data: RecordData[]): Promise<RecordData[]> {
