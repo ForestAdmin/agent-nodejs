@@ -124,7 +124,24 @@ describe('LiveDataSource > Collection', () => {
   });
 
   describe('list', () => {
-    it.todo('TODO');
+    it('should reject if collection is not synched first', async () => {
+      const { liveCollection } = instanciateCollection();
+
+      expect(() => liveCollection.list({}, [])).toThrow(
+        `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
+      );
+    });
+
+    it('should get all record data from the collection', async () => {
+      const { liveCollection, sequelize } = instanciateCollection();
+      const recordData = new Array(9).fill(0).map((_, i) => ({ value: `record_${i + 1}` }));
+
+      await liveCollection.sync();
+
+      sequelize.model(liveCollection.name).bulkCreate(recordData);
+
+      await expect(liveCollection.list({}, null)).resolves.toBeArrayOfSize(recordData.length);
+    });
   });
 
   describe('update', () => {
