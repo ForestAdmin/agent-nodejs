@@ -76,9 +76,16 @@ export default class LiveCollection implements Collection {
   list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
     this.ensureSynched();
 
-    void filter;
-    void projection;
-    throw new Error('Method not implemented.');
+    return this.model
+      .findAll({
+        // FIXME: Get default limit from constant in toolkit.
+        limit: filter.page?.limit || 10,
+        offset: filter.page?.skip || 0,
+        // TODO: Make an util to handle these conversions.
+        order: filter.sort?.map(value => [value.field, value.ascending === false ? 'DESC' : 'ASC']),
+        attributes: projection,
+      })
+      .then(records => records.map(record => record.get({ plain: true })));
   }
 
   update(filter: Filter, patch: RecordData): Promise<void> {
