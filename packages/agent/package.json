@@ -18,7 +18,7 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
-    "lint": "prettier -c src test && eslint src test",
+    "lint": "eslint src test",
     "test": "jest"
   },
   "devDependencies": {
