@@ -1,4 +1,5 @@
 import { Sequelize } from 'sequelize';
+import sortBy from 'lodash/sortby';
 
 import { CollectionSchema } from '@forestadmin/datasource-toolkit';
 import LiveCollection from '../src/collection';
@@ -92,10 +93,10 @@ describe('LiveDataSource > Collection', () => {
       await liveCollection.sync();
       const instance = await sequelize.model(liveCollection.name).create({ value: '__dummy__' });
 
-      const recordData = await liveCollection.getById([Number(instance.get('id'))], ['id']);
+      const record = await liveCollection.getById([Number(instance.get('id'))], ['id']);
 
-      expect(recordData.id).toEqual(instance.get('id'));
-      expect(recordData.value).toBeUndefined();
+      expect(record.id).toEqual(instance.get('id'));
+      expect(record.value).toBeUndefined();
     });
   });
 
@@ -133,14 +134,108 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should get all record data from the collection', async () => {
+      const recordCount = 9;
       const { liveCollection, sequelize } = instanciateCollection();
-      const recordData = new Array(9).fill(0).map((_, i) => ({ value: `record_${i + 1}` }));
+      const recordData = new Array(recordCount)
+        .fill(0)
+        .map((_, i) => ({ value: `record_${i + 1}` }));
 
       await liveCollection.sync();
 
       sequelize.model(liveCollection.name).bulkCreate(recordData);
 
-      await expect(liveCollection.list({}, null)).resolves.toBeArrayOfSize(recordData.length);
+      await expect(liveCollection.list({}, null)).resolves.toBeArrayOfSize(recordCount);
+    });
+
+    it('should resolve honoring the projection', async () => {
+      const recordCount = 9;
+      const { liveCollection, sequelize } = instanciateCollection();
+      const recordData = new Array(recordCount)
+        .fill(0)
+        .map((_, i) => ({ value: `record_${i + 1}` }));
+
+      await liveCollection.sync();
+
+      sequelize.model(liveCollection.name).bulkCreate(recordData);
+
+      const records = await liveCollection.list({}, ['id']);
+
+      records.forEach(record => {
+        expect(record.id).toBeNumber();
+        expect(record.value).toBeUndefined();
+      });
+    });
+
+    it('should resolve honoring the ascending ordering', async () => {
+      const { liveCollection, sequelize } = instanciateCollection();
+      const recordData = [{ value: 'record_2' }, { value: 'record_1' }, { value: 'record_3' }];
+
+      await liveCollection.sync();
+
+      sequelize.model(liveCollection.name).bulkCreate(recordData);
+
+      const records = await liveCollection.list(
+        { sort: [{ field: 'value', ascending: true }] },
+        null,
+      );
+      const sortedRecords = sortBy(records, 'value');
+
+      expect(records).toEqual(sortedRecords);
+    });
+
+    it('should resolve honoring the descending ordering', async () => {
+      const { liveCollection, sequelize } = instanciateCollection();
+      const recordData = [{ value: 'record_2' }, { value: 'record_1' }, { value: 'record_3' }];
+
+      await liveCollection.sync();
+
+      sequelize.model(liveCollection.name).bulkCreate(recordData);
+
+      const records = await liveCollection.list(
+        { sort: [{ field: 'value', ascending: false }] },
+        null,
+      );
+      const sortedRecords = sortBy(records, 'value').reverse();
+
+      expect(records).toEqual(sortedRecords);
+    });
+
+    it('should resolve honoring the `limit` parameter', async () => {
+      const [recordCount, limit] = [9, 2];
+      const { liveCollection, sequelize } = instanciateCollection();
+      const recordData = new Array(recordCount)
+        .fill(0)
+        .map((_, i) => ({ value: `record_${i + 1}` }));
+
+      await liveCollection.sync();
+
+      sequelize.model(liveCollection.name).bulkCreate(recordData);
+
+      const records = await liveCollection.list({ page: { skip: 0, limit } }, ['id']);
+
+      expect(records).toBeArrayOfSize(limit);
+    });
+
+    it('should resolve honoring the `skip` parameter', async () => {
+      const [recordCount, offset] = [9, 2];
+      const { liveCollection, sequelize } = instanciateCollection();
+      const recordData = new Array(recordCount)
+        .fill(0)
+        .map((_, i) => ({ value: `record_${i + 1}` }));
+
+      await liveCollection.sync();
+
+      sequelize.model(liveCollection.name).bulkCreate(recordData);
+
+      const records = await liveCollection.list(
+        { sort: [{ field: 'value', ascending: true }], page: { skip: offset } },
+        null,
+      );
+
+      expect(records).toBeArrayOfSize(recordCount - offset);
+      records.forEach((record, i) => {
+        expect(record.value).toEqual(`record_${i + 1 + offset}`);
+      });
     });
   });
 
