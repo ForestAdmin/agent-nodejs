@@ -13,6 +13,10 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+import {
+  convertFilterToSequelize,
+  convertPaginatedFilterToSequelize,
+} from './utils/filterConverter';
 
 export default class LiveCollection implements Collection {
   private model = null;
@@ -78,11 +82,7 @@ export default class LiveCollection implements Collection {
 
     return this.model
       .findAll({
-        // FIXME: Get default limit from constant in toolkit.
-        limit: filter.page?.limit || 10,
-        offset: filter.page?.skip || 0,
-        // TODO: Make an util to handle these conversions.
-        order: filter.sort?.map(value => [value.field, value.ascending === false ? 'DESC' : 'ASC']),
+        ...convertPaginatedFilterToSequelize(filter),
         attributes: projection,
       })
       .then(records => records.map(record => record.get({ plain: true })));

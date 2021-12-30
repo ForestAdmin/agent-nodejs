@@ -1,7 +1,7 @@
 import { Sequelize } from 'sequelize';
 import sortBy from 'lodash/sortby';
 
-import { CollectionSchema } from '@forestadmin/datasource-toolkit';
+import { CollectionSchema, Operator } from '@forestadmin/datasource-toolkit';
 import LiveCollection from '../src/collection';
 
 const liveCollectionSchema: CollectionSchema = {
@@ -164,6 +164,26 @@ describe('LiveDataSource > Collection', () => {
         expect(record.id).toBeNumber();
         expect(record.value).toBeUndefined();
       });
+    });
+
+    it.only('should resolve honoring the filtering', async () => {
+      const recordCount = 9;
+      const { liveCollection, sequelize } = instanciateCollection();
+      const recordData = new Array(recordCount)
+        .fill(0)
+        .map((_, i) => ({ value: `record_${i + 1}` }));
+
+      await liveCollection.sync();
+
+      sequelize.model(liveCollection.name).bulkCreate(recordData);
+
+      const records = await liveCollection.list(
+        { conditionTree: { operator: Operator.Equal, field: 'value', value: 'record_4' } },
+        null,
+      );
+
+      expect(records).toBeArrayOfSize(1);
+      expect(records[0].value).toEqual('record_4');
     });
 
     it('should resolve honoring the ascending ordering', async () => {
