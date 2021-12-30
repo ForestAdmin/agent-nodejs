@@ -22,6 +22,31 @@ const instanciateCollection = () => {
   };
 };
 
+const preloadRecords = async (recordCount, options?) => {
+  const { liveCollection, sequelize } = instanciateCollection();
+  const recordData = new Array(recordCount).fill(0).map((_, i) => ({ value: `record_${i + 1}` }));
+
+  if (options?.shuffle && recordCount > 1) {
+    [recordData[0].value, recordData[recordCount - 1].value] = [
+      recordData[recordCount - 1].value,
+      recordData[0].value,
+    ];
+  }
+
+  await liveCollection.sync();
+  const sequelizeRecords = await sequelize
+    .model(liveCollection.name)
+    .bulkCreate(recordData, { returning: true });
+
+  return {
+    liveCollection,
+    recordCount,
+    recordData,
+    sequelize,
+    sequelizeRecords,
+  };
+};
+
 describe('LiveDataSource > Collection', () => {
   it('should instanciate properly', () => {
     const { liveCollection } = instanciateCollection();
@@ -73,29 +98,32 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should resolve with the requested record data', async () => {
-      const { liveCollection, sequelize } = instanciateCollection();
+      const {
+        liveCollection,
+        sequelizeRecords: [expectedRecord],
+      } = await preloadRecords(1);
 
-      await liveCollection.sync();
-      const instance = await sequelize.model(liveCollection.name).create({ value: '__dummy__' });
+      const record = await liveCollection.getById([Number(expectedRecord.get('id'))], null);
 
-      const recordData = await liveCollection.getById([Number(instance.get('id'))], null);
-
-      expect(recordData).toEqual(
-        expect.objectContaining({ id: instance.get('id'), value: instance.get('value') }),
+      expect(record).toEqual(
+        expect.objectContaining({
+          id: expectedRecord.get('id'),
+          value: expectedRecord.get('value'),
+        }),
       );
     });
 
     it.todo('should resolve when given an actual composite ID');
 
     it('should resolve honoring the projection', async () => {
-      const { liveCollection, sequelize } = instanciateCollection();
+      const {
+        liveCollection,
+        sequelizeRecords: [expectedRecord],
+      } = await preloadRecords(1);
 
-      await liveCollection.sync();
-      const instance = await sequelize.model(liveCollection.name).create({ value: '__dummy__' });
+      const record = await liveCollection.getById([Number(expectedRecord.get('id'))], ['id']);
 
-      const record = await liveCollection.getById([Number(instance.get('id'))], ['id']);
-
-      expect(record.id).toEqual(instance.get('id'));
+      expect(record.id).toEqual(expectedRecord.get('id'));
       expect(record.value).toBeUndefined();
     });
   });
@@ -110,14 +138,11 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should resolve with the newly created record data', async () => {
-      const { liveCollection } = instanciateCollection();
-      const recordData = [{ value: '__first_record__' }, { value: '__second_record__' }];
-
-      await liveCollection.sync();
+      const { liveCollection, recordCount, recordData } = await preloadRecords(9);
 
       const records = await liveCollection.create(recordData);
 
-      expect(records).toBeArrayOfSize(recordData.length);
+      expect(records).toBeArrayOfSize(recordCount);
       expect(records).toEqual(
         expect.arrayContaining(recordData.map(record => expect.objectContaining(record))),
       );
@@ -134,29 +159,13 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should get all record data from the collection', async () => {
-      const recordCount = 9;
-      const { liveCollection, sequelize } = instanciateCollection();
-      const recordData = new Array(recordCount)
-        .fill(0)
-        .map((_, i) => ({ value: `record_${i + 1}` }));
-
-      await liveCollection.sync();
-
-      sequelize.model(liveCollection.name).bulkCreate(recordData);
+      const { liveCollection, recordCount } = await preloadRecords(9);
 
       await expect(liveCollection.list({}, null)).resolves.toBeArrayOfSize(recordCount);
     });
 
     it('should resolve honoring the projection', async () => {
-      const recordCount = 9;
-      const { liveCollection, sequelize } = instanciateCollection();
-      const recordData = new Array(recordCount)
-        .fill(0)
-        .map((_, i) => ({ value: `record_${i + 1}` }));
-
-      await liveCollection.sync();
-
-      sequelize.model(liveCollection.name).bulkCreate(recordData);
+      const { liveCollection, recordCount } = await preloadRecords(9);
 
       const records = await liveCollection.list({}, ['id']);
 
@@ -169,15 +178,7 @@ describe('LiveDataSource > Collection', () => {
     describe('when using filtering', () => {
       // TODO: Test more cases.
       it('should resolve honoring the filtering', async () => {
-        const recordCount = 9;
-        const { liveCollection, sequelize } = instanciateCollection();
-        const recordData = new Array(recordCount)
-          .fill(0)
-          .map((_, i) => ({ value: `record_${i + 1}` }));
-
-        await liveCollection.sync();
-
-        sequelize.model(liveCollection.name).bulkCreate(recordData);
+        const { liveCollection } = await preloadRecords(9);
 
         const records = await liveCollection.list(
           { conditionTree: { operator: Operator.Equal, field: 'value', value: 'record_4' } },
@@ -191,12 +192,7 @@ describe('LiveDataSource > Collection', () => {
 
     describe('when using ordering', () => {
       it('should resolve honoring the ascending ordering', async () => {
-        const { liveCollection, sequelize } = instanciateCollection();
-        const recordData = [{ value: 'record_2' }, { value: 'record_1' }, { value: 'record_3' }];
-
-        await liveCollection.sync();
-
-        sequelize.model(liveCollection.name).bulkCreate(recordData);
+        const { liveCollection } = await preloadRecords(9);
 
         const records = await liveCollection.list(
           { sort: [{ field: 'value', ascending: true }] },
@@ -208,12 +204,7 @@ describe('LiveDataSource > Collection', () => {
       });
 
       it('should resolve honoring the descending ordering', async () => {
-        const { liveCollection, sequelize } = instanciateCollection();
-        const recordData = [{ value: 'record_2' }, { value: 'record_1' }, { value: 'record_3' }];
-
-        await liveCollection.sync();
-
-        sequelize.model(liveCollection.name).bulkCreate(recordData);
+        const { liveCollection } = await preloadRecords(9, { shuffle: true });
 
         const records = await liveCollection.list(
           { sort: [{ field: 'value', ascending: false }] },
@@ -227,15 +218,8 @@ describe('LiveDataSource > Collection', () => {
 
     describe('when using pagination', () => {
       it('should resolve honoring the `limit` parameter', async () => {
-        const [recordCount, limit] = [9, 2];
-        const { liveCollection, sequelize } = instanciateCollection();
-        const recordData = new Array(recordCount)
-          .fill(0)
-          .map((_, i) => ({ value: `record_${i + 1}` }));
-
-        await liveCollection.sync();
-
-        sequelize.model(liveCollection.name).bulkCreate(recordData);
+        const { liveCollection } = await preloadRecords(9);
+        const limit = 2;
 
         const records = await liveCollection.list({ page: { skip: 0, limit } }, ['id']);
 
@@ -243,15 +227,8 @@ describe('LiveDataSource > Collection', () => {
       });
 
       it('should resolve honoring the `skip` parameter', async () => {
-        const [recordCount, offset] = [9, 2];
-        const { liveCollection, sequelize } = instanciateCollection();
-        const recordData = new Array(recordCount)
-          .fill(0)
-          .map((_, i) => ({ value: `record_${i + 1}` }));
-
-        await liveCollection.sync();
-
-        sequelize.model(liveCollection.name).bulkCreate(recordData);
+        const { liveCollection, recordCount } = await preloadRecords(9);
+        const offset = 2;
 
         const records = await liveCollection.list(
           { sort: [{ field: 'value', ascending: true }], page: { skip: offset } },
