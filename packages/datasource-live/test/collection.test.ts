@@ -166,95 +166,102 @@ describe('LiveDataSource > Collection', () => {
       });
     });
 
-    it.only('should resolve honoring the filtering', async () => {
-      const recordCount = 9;
-      const { liveCollection, sequelize } = instanciateCollection();
-      const recordData = new Array(recordCount)
-        .fill(0)
-        .map((_, i) => ({ value: `record_${i + 1}` }));
+    describe('when using filtering', () => {
+      // TODO: Test more cases.
+      it('should resolve honoring the filtering', async () => {
+        const recordCount = 9;
+        const { liveCollection, sequelize } = instanciateCollection();
+        const recordData = new Array(recordCount)
+          .fill(0)
+          .map((_, i) => ({ value: `record_${i + 1}` }));
 
-      await liveCollection.sync();
+        await liveCollection.sync();
 
-      sequelize.model(liveCollection.name).bulkCreate(recordData);
+        sequelize.model(liveCollection.name).bulkCreate(recordData);
 
-      const records = await liveCollection.list(
-        { conditionTree: { operator: Operator.Equal, field: 'value', value: 'record_4' } },
-        null,
-      );
+        const records = await liveCollection.list(
+          { conditionTree: { operator: Operator.Equal, field: 'value', value: 'record_4' } },
+          null,
+        );
 
-      expect(records).toBeArrayOfSize(1);
-      expect(records[0].value).toEqual('record_4');
+        expect(records).toBeArrayOfSize(1);
+        expect(records[0].value).toEqual('record_4');
+      });
     });
 
-    it('should resolve honoring the ascending ordering', async () => {
-      const { liveCollection, sequelize } = instanciateCollection();
-      const recordData = [{ value: 'record_2' }, { value: 'record_1' }, { value: 'record_3' }];
+    describe('when using ordering', () => {
+      it('should resolve honoring the ascending ordering', async () => {
+        const { liveCollection, sequelize } = instanciateCollection();
+        const recordData = [{ value: 'record_2' }, { value: 'record_1' }, { value: 'record_3' }];
 
-      await liveCollection.sync();
+        await liveCollection.sync();
 
-      sequelize.model(liveCollection.name).bulkCreate(recordData);
+        sequelize.model(liveCollection.name).bulkCreate(recordData);
 
-      const records = await liveCollection.list(
-        { sort: [{ field: 'value', ascending: true }] },
-        null,
-      );
-      const sortedRecords = sortBy(records, 'value');
+        const records = await liveCollection.list(
+          { sort: [{ field: 'value', ascending: true }] },
+          null,
+        );
+        const sortedRecords = sortBy(records, 'value');
 
-      expect(records).toEqual(sortedRecords);
+        expect(records).toEqual(sortedRecords);
+      });
+
+      it('should resolve honoring the descending ordering', async () => {
+        const { liveCollection, sequelize } = instanciateCollection();
+        const recordData = [{ value: 'record_2' }, { value: 'record_1' }, { value: 'record_3' }];
+
+        await liveCollection.sync();
+
+        sequelize.model(liveCollection.name).bulkCreate(recordData);
+
+        const records = await liveCollection.list(
+          { sort: [{ field: 'value', ascending: false }] },
+          null,
+        );
+        const sortedRecords = sortBy(records, 'value').reverse();
+
+        expect(records).toEqual(sortedRecords);
+      });
     });
 
-    it('should resolve honoring the descending ordering', async () => {
-      const { liveCollection, sequelize } = instanciateCollection();
-      const recordData = [{ value: 'record_2' }, { value: 'record_1' }, { value: 'record_3' }];
+    describe('when using pagination', () => {
+      it('should resolve honoring the `limit` parameter', async () => {
+        const [recordCount, limit] = [9, 2];
+        const { liveCollection, sequelize } = instanciateCollection();
+        const recordData = new Array(recordCount)
+          .fill(0)
+          .map((_, i) => ({ value: `record_${i + 1}` }));
 
-      await liveCollection.sync();
+        await liveCollection.sync();
 
-      sequelize.model(liveCollection.name).bulkCreate(recordData);
+        sequelize.model(liveCollection.name).bulkCreate(recordData);
 
-      const records = await liveCollection.list(
-        { sort: [{ field: 'value', ascending: false }] },
-        null,
-      );
-      const sortedRecords = sortBy(records, 'value').reverse();
+        const records = await liveCollection.list({ page: { skip: 0, limit } }, ['id']);
 
-      expect(records).toEqual(sortedRecords);
-    });
+        expect(records).toBeArrayOfSize(limit);
+      });
 
-    it('should resolve honoring the `limit` parameter', async () => {
-      const [recordCount, limit] = [9, 2];
-      const { liveCollection, sequelize } = instanciateCollection();
-      const recordData = new Array(recordCount)
-        .fill(0)
-        .map((_, i) => ({ value: `record_${i + 1}` }));
+      it('should resolve honoring the `skip` parameter', async () => {
+        const [recordCount, offset] = [9, 2];
+        const { liveCollection, sequelize } = instanciateCollection();
+        const recordData = new Array(recordCount)
+          .fill(0)
+          .map((_, i) => ({ value: `record_${i + 1}` }));
 
-      await liveCollection.sync();
+        await liveCollection.sync();
 
-      sequelize.model(liveCollection.name).bulkCreate(recordData);
+        sequelize.model(liveCollection.name).bulkCreate(recordData);
 
-      const records = await liveCollection.list({ page: { skip: 0, limit } }, ['id']);
+        const records = await liveCollection.list(
+          { sort: [{ field: 'value', ascending: true }], page: { skip: offset } },
+          null,
+        );
 
-      expect(records).toBeArrayOfSize(limit);
-    });
-
-    it('should resolve honoring the `skip` parameter', async () => {
-      const [recordCount, offset] = [9, 2];
-      const { liveCollection, sequelize } = instanciateCollection();
-      const recordData = new Array(recordCount)
-        .fill(0)
-        .map((_, i) => ({ value: `record_${i + 1}` }));
-
-      await liveCollection.sync();
-
-      sequelize.model(liveCollection.name).bulkCreate(recordData);
-
-      const records = await liveCollection.list(
-        { sort: [{ field: 'value', ascending: true }], page: { skip: offset } },
-        null,
-      );
-
-      expect(records).toBeArrayOfSize(recordCount - offset);
-      records.forEach((record, i) => {
-        expect(record.value).toEqual(`record_${i + 1 + offset}`);
+        expect(records).toBeArrayOfSize(recordCount - offset);
+        records.forEach((record, i) => {
+          expect(record.value).toEqual(`record_${i + 1 + offset}`);
+        });
       });
     });
   });
