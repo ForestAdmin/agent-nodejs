@@ -6,7 +6,7 @@ export default abstract class SequelizeDataSource implements DataSource {
 
   readonly collections: SequelizeCollection[] = [];
 
-  constructor(collections: SequelizeCollection[]) {
+  constructor(collections: SequelizeCollection[] = []) {
     this.collections = collections;
   }
 
