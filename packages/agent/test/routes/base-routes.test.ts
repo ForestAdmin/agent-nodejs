@@ -4,7 +4,9 @@ import factories from '../__factories__';
 describe('Base routes', () => {
   const services = factories.forestAdminHttpDriverServices.build();
   const dataSource = factories.dataSource.build();
-  const options = factories.forestAdminHttpDriverOptions.build();
+  const options = factories.forestAdminHttpDriverOptions.build({
+    prefix: '/forest',
+  });
   const router = factories.router.mockAllMethods().build();
 
   test('should not register any route', async () => {

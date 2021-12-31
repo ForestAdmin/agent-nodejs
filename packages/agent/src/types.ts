@@ -12,8 +12,13 @@ export type Logger = (level: LoggerLevel, message: string) => void;
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export interface ForestAdminHttpDriverOptions {
-  prefix: string;
+  agentUrl: string;
+  authSecret: string;
+  clientId?: string;
+  envSecret: string;
+  forestServerUrl?: string;
   logger?: Logger;
+  prefix: string;
 }
 
 /**

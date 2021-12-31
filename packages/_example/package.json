@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "fishery": "^2.1.0",
+    "nock": "^13.2.1",
     "superagent": "^6.1.0"
   }
 }
