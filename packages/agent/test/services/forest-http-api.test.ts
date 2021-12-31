@@ -10,7 +10,7 @@ describe('ForestHttpApi', () => {
   describe('initialize', () => {
     describe('when forestServerUrl or envSecret are null', () => {
       it('should throw an error', () => {
-        expect(() => new ForestHttpApi(null, null)).toThrowError(
+        expect(() => new ForestHttpApi(null, null)).toThrow(
           'forestServerUrl: null and envSecret: null must be present.',
         );
       });
