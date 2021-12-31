@@ -148,7 +148,7 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should resolve honoring the projection', async () => {
-      const { liveCollection, recordCount } = await preloadRecords(9);
+      const { liveCollection } = await preloadRecords(9);
 
       const records = await liveCollection.list({}, ['id']);
 

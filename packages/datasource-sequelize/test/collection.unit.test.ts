@@ -4,7 +4,6 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { resolve } from 'path/posix';
 import { SequelizeCollection } from '../src';
 
 describe('SequelizeDataSource > Collection', () => {
