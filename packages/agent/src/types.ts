@@ -1,5 +1,12 @@
+/** Logger Level */
+export enum LoggerLevel {
+  info = 'info',
+  warn = 'warn',
+  error = 'error',
+}
+
 /** Logger */
-export type Logger = (level: 'info' | 'warn' | 'error', message: string) => void;
+export type Logger = (level: LoggerLevel, message: string) => void;
 
 /** Options to configure behavior of an agent's frontend */
 export interface FrontendOptions {
