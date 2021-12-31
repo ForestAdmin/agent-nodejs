@@ -1,22 +1,22 @@
 import { Sequelize } from 'sequelize';
 
-import { DataSource, DataSourceSchema } from '@forestadmin/datasource-toolkit';
+import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
+import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
 import LiveCollection from './collection';
 
-export default class LiveDataSource implements DataSource {
-  private sequelize = null;
-  readonly collections: LiveCollection[] = [];
+export default class LiveDataSource extends SequelizeDataSource {
+  override readonly collections: LiveCollection[] = [];
 
   constructor(dataSourceSchema: DataSourceSchema) {
+    // FIXME
+    super();
+
     this.sequelize = new Sequelize('sqlite::memory:', { logging: false });
+
     this.collections = Object.entries(dataSourceSchema.collections).map(
       ([name, schema]) => new LiveCollection(name, this, schema, this.sequelize),
     );
-  }
-
-  getCollection(name: string): LiveCollection {
-    return this.collections.find(collection => collection.name === name) || null;
   }
 
   async syncCollections(): Promise<boolean> {

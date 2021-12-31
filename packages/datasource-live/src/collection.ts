@@ -1,10 +1,8 @@
 import { DataTypes } from 'sequelize';
 
 import {
-  Action,
   AggregateResult,
   Aggregation,
-  Collection,
   CollectionSchema,
   CompositeId,
   DataSource,
@@ -13,25 +11,13 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import {
-  convertFilterToSequelize,
-  convertPaginatedFilterToSequelize,
-} from './utils/filterConverter';
+import { SequelizeCollection } from '@forestadmin/datasource-sequelize';
 
-export default class LiveCollection implements Collection {
-  private model = null;
-  private sequelize = null;
+export default class LiveCollection extends SequelizeCollection {
   private synched = false;
 
-  readonly dataSource: DataSource;
-  readonly name = null;
-  readonly schema: CollectionSchema = null;
-
   constructor(name, datasource: DataSource, schema: CollectionSchema, sequelize) {
-    this.dataSource = datasource;
-    this.name = name;
-    this.schema = schema;
-    this.sequelize = sequelize;
+    super(name, datasource, schema, sequelize);
 
     // TODO: Properly call `define` with details from schema.
     this.model = this.sequelize.define(name, {
@@ -52,65 +38,6 @@ export default class LiveCollection implements Collection {
     }
   }
 
-  getAction(name: string): Action {
-    const actionSchema = this.schema.actions.find(action => action.name === name);
-
-    if (actionSchema === undefined) throw new Error(`Action "${name}" not found.`);
-
-    // TODO: Properly instanciate action.
-    return null;
-  }
-
-  getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    this.ensureSynched();
-
-    const actualId = id.length === 1 ? id[0] : id;
-
-    return this.model
-      .findByPk(actualId, { attributes: projection })
-      .then(record => record.get({ plain: true }));
-  }
-
-  create(data: RecordData[]): Promise<RecordData[]> {
-    this.ensureSynched();
-
-    return this.model.bulkCreate(data);
-  }
-
-  list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    this.ensureSynched();
-
-    return this.model
-      .findAll({
-        ...convertPaginatedFilterToSequelize(filter),
-        attributes: projection,
-      })
-      .then(records => records.map(record => record.get({ plain: true })));
-  }
-
-  update(filter: Filter, patch: RecordData): Promise<void> {
-    this.ensureSynched();
-
-    void filter;
-    void patch;
-    throw new Error('Method not implemented.');
-  }
-
-  delete(filter: Filter): Promise<void> {
-    this.ensureSynched();
-
-    void filter;
-    throw new Error('Method not implemented.');
-  }
-
-  aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
-    this.ensureSynched();
-
-    void filter;
-    void aggregation;
-    throw new Error('Method not implemented.');
-  }
-
   async sync(): Promise<boolean> {
     this.synched = false;
 
@@ -120,5 +47,44 @@ export default class LiveCollection implements Collection {
         this.synched = true;
       })
       .then(() => true);
+  }
+
+  override getById(id: CompositeId, projection: Projection): Promise<RecordData> {
+    this.ensureSynched();
+
+    return super.getById(id, projection);
+  }
+
+  override create(data: RecordData[]): Promise<RecordData[]> {
+    this.ensureSynched();
+
+    return super.create(data);
+  }
+
+  override list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+    this.ensureSynched();
+
+    return super.list(filter, projection);
+  }
+
+  override update(filter: Filter, patch: RecordData): Promise<void> {
+    this.ensureSynched();
+
+    return super.update(filter, patch);
+  }
+
+  override delete(filter: Filter): Promise<void> {
+    this.ensureSynched();
+
+    return super.delete(filter);
+  }
+
+  override aggregate(
+    filter: PaginatedFilter,
+    aggregation: Aggregation,
+  ): Promise<AggregateResult[]> {
+    this.ensureSynched();
+
+    return super.aggregate(filter, aggregation);
   }
 }

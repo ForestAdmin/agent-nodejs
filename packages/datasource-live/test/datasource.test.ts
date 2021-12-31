@@ -20,14 +20,6 @@ describe('LiveDataSource', () => {
     });
   });
 
-  describe('getCollection', () => {
-    it('should return null for unknown collection name', () => {
-      const liveDataSource = new LiveDataSource(dataSourceWithDummyCollectionSchema);
-
-      expect(liveDataSource.getCollection('__no_such_collection')).toBeNull();
-    });
-  });
-
   describe('syncCollections', () => {
     it('should return a truthy Promise', async () => {
       const liveDataSource = new LiveDataSource(dataSourceWithDummyCollectionSchema);
