@@ -73,8 +73,24 @@ export default class SequelizeCollection implements Collection {
   }
 
   aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
-    void filter;
-    void aggregation;
-    throw new Error('Method not implemented.');
+    // FIXME: Properly convert `operation`.
+    const operation = aggregation.operation.toUpperCase();
+    const field = aggregation.field ?? '*';
+    const aggregateFieldName = '__aggregate__';
+
+    const attributes: [string | string[]] = [
+      [this.sequelize.fn(operation, this.sequelize.col(field)), aggregateFieldName],
+    ];
+    if (aggregation.field) attributes.push(field);
+
+    return this.model
+      .findAll({
+        ...convertPaginatedFilterToSequelize(filter),
+        attributes,
+        group: aggregation.field,
+      })
+      .then(aggregates =>
+        aggregates.map(aggregate => ({ value: aggregate.get(aggregateFieldName), group: field })),
+      );
   }
 }
