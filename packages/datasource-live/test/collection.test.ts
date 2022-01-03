@@ -1,7 +1,7 @@
 import { Sequelize } from 'sequelize';
 import sortBy from 'lodash/sortby';
 
-import { CollectionSchema, Operator } from '@forestadmin/datasource-toolkit';
+import { AggregationOperation, CollectionSchema, Operator } from '@forestadmin/datasource-toolkit';
 import LiveCollection from '../src/collection';
 
 const liveCollectionSchema: CollectionSchema = {
@@ -327,6 +327,51 @@ describe('LiveDataSource > Collection', () => {
   });
 
   describe('aggregate', () => {
-    it.todo('TODO');
+    it('should reject if collection is not synched first', async () => {
+      const { liveCollection } = instanciateCollection();
+      const aggregation = {
+        operation: AggregationOperation.Count,
+      };
+
+      expect(() => liveCollection.aggregate({}, aggregation)).toThrow(
+        `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
+      );
+    });
+
+    it('should resolve with an aggregation array', async () => {
+      const recordCount = 9;
+      const { liveCollection } = await preloadRecords(recordCount);
+      const aggregation = {
+        operation: AggregationOperation.Count,
+      };
+
+      await expect(liveCollection.aggregate({}, aggregation)).resolves.toEqual([
+        { group: '*', value: recordCount },
+      ]);
+    });
+
+    it('should resolve honoring filter', async () => {
+      const recordCount = 9;
+      const { liveCollection, recordData, sequelize } = await preloadRecords(recordCount);
+      const aggregation = {
+        operation: AggregationOperation.Count,
+      };
+
+      const [originalRecord] = await plainRecords(
+        sequelize.model(liveCollection.name).findAll({ where: { value: recordData[4].value } }),
+      );
+
+      const filter = {
+        conditionTree: {
+          operator: Operator.Equal,
+          field: 'id',
+          value: originalRecord.id,
+        },
+      };
+
+      await expect(liveCollection.aggregate(filter, aggregation)).resolves.toEqual([
+        { group: '*', value: 1 },
+      ]);
+    });
   });
 });

@@ -1,4 +1,5 @@
 import {
+  AggregationOperation,
   CollectionSchema,
   DataSource,
   Projection,
@@ -212,6 +213,39 @@ describe('SequelizeDataSource > Collection', () => {
       await expect(sequelizeCollection.delete(filter)).resolves.toBe(null);
 
       expect(destroy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('aggregate', () => {
+    const setup = () => {
+      const sequelize = {
+        col: jest.fn(),
+        fn: jest.fn(),
+      };
+      const sequelizeCollection = new SequelizeCollection(null, null, null, sequelize);
+      const findAll = jest.fn().mockResolvedValue([]);
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      sequelizeCollection['model'] = {
+        findAll,
+      };
+
+      return {
+        findAll,
+        sequelize,
+        sequelizeCollection,
+      };
+    };
+
+    it('should delegate work to `sequelize.model.aggregate`', async () => {
+      const { findAll, sequelizeCollection } = setup();
+      const aggregation = {
+        operation: AggregationOperation.Count,
+      };
+      const filter = {};
+
+      await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([]);
+
+      expect(findAll).toHaveBeenCalledTimes(1);
     });
   });
 });
