@@ -10,6 +10,31 @@ describe('DummyDataSource > Collections > Books', () => {
     expect(instanciateCollection()).toBeDefined();
   });
 
+  describe('dataSource', () => {
+    it('should return the dataSource', () => {
+      const dataSource = new DummyDataSource();
+      const bookCollection = new BookCollection(dataSource);
+
+      expect(bookCollection.dataSource).toEqual(dataSource);
+    });
+  });
+
+  describe('name', () => {
+    it('should return the collection name', () => {
+      const bookCollection = instanciateCollection();
+
+      expect(bookCollection.name).toEqual('book');
+    });
+  });
+
+  describe('schema', () => {
+    it('should return the schema', () => {
+      const bookCollection = instanciateCollection();
+
+      expect(bookCollection.schema).toBeDefined();
+    });
+  });
+
   describe('getAction', () => {
     it('should return a known action', () => {
       const bookCollection = instanciateCollection();
