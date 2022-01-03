@@ -26,6 +26,9 @@ export default class LiveCollection extends SequelizeCollection {
         autoIncrement: true,
         type: DataTypes.INTEGER,
       },
+      fixed: {
+        type: DataTypes.STRING,
+      },
       value: {
         type: DataTypes.STRING,
       },

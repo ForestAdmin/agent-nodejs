@@ -6,6 +6,7 @@ import LiveCollection from '../src/collection';
 
 const liveCollectionSchema: CollectionSchema = {
   actions: [{ name: '__action__', scope: 'single' }],
+  // FIXME: Define fields when collection handle proper define call.
   fields: {},
   searchable: true,
   segments: [],
@@ -23,8 +24,11 @@ const instanciateCollection = () => {
 };
 
 const preloadRecords = async (recordCount, options?) => {
+  const fixedValue = '__fixed__';
   const { liveCollection, sequelize } = instanciateCollection();
-  const recordData = new Array(recordCount).fill(0).map((_, i) => ({ value: `record_${i + 1}` }));
+  const recordData = new Array(recordCount)
+    .fill(0)
+    .map((_, i) => ({ fixed: fixedValue, value: `record_${i + 1}` }));
 
   if (options?.shuffle && recordCount > 1) {
     [recordData[0].value, recordData[recordCount - 1].value] = [
@@ -39,12 +43,19 @@ const preloadRecords = async (recordCount, options?) => {
     .bulkCreate(recordData, { returning: true });
 
   return {
+    fixedValue,
     liveCollection,
     recordCount,
     recordData,
     sequelize,
     sequelizeRecords,
   };
+};
+
+const plainRecords = async promise => {
+  const records = await promise;
+
+  return records.map(record => record.get());
 };
 
 describe('LiveDataSource > Collection', () => {
@@ -227,7 +238,50 @@ describe('LiveDataSource > Collection', () => {
   });
 
   describe('update', () => {
-    it.todo('TODO');
+    it('should reject if collection is not synched first', async () => {
+      const { liveCollection } = instanciateCollection();
+
+      expect(() => liveCollection.update({}, {})).toThrow(
+        `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
+      );
+    });
+
+    it('should resolve with `null`', async () => {
+      const { liveCollection } = await preloadRecords(9);
+      const filter = {
+        conditionTree: { operator: Operator.Equal, field: 'id', value: '__unknown__' },
+      };
+      const patch = { value: '__new__value__' };
+
+      await expect(liveCollection.update(filter, patch)).resolves.toBeNull();
+    });
+
+    it('should update records honoring fitler and patch', async () => {
+      const { liveCollection, fixedValue, recordData, sequelize } = await preloadRecords(9);
+
+      const [originalRecord] = await plainRecords(
+        sequelize.model(liveCollection.name).findAll({ where: { value: recordData[4].value } }),
+      );
+
+      const filter = {
+        conditionTree: {
+          operator: Operator.Equal,
+          field: 'id',
+          value: originalRecord.id,
+        },
+      };
+      const patch = { value: '__new__value__' };
+
+      await liveCollection.update(filter, patch);
+
+      const allRecords = await plainRecords(sequelize.model(liveCollection.name).findAll());
+
+      allRecords.forEach(record => {
+        expect(record.fixed).toEqual(fixedValue);
+        if (record.id === originalRecord.id) expect(record.value).toEqual('__new__value__');
+        else expect(record.value).toMatch(/^record_[0-9]$/);
+      });
+    });
   });
 
   describe('delete', () => {

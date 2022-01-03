@@ -160,4 +160,35 @@ describe('SequelizeDataSource > Collection', () => {
       expect(record.get).toHaveBeenCalledWith({ plain: true });
     });
   });
+
+  describe('update', () => {
+    const setup = () => {
+      const sequelizeCollection = new SequelizeCollection(null, null, null, null);
+      const recordData = Symbol('recordData');
+      const update = jest.fn().mockResolvedValue(recordData);
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      sequelizeCollection['model'] = {
+        update,
+      };
+
+      return {
+        update,
+        recordData,
+        sequelizeCollection,
+      };
+    };
+
+    it('should delegate work to `sequelize.model.update`', async () => {
+      const { update, sequelizeCollection } = setup();
+      const patch = { field: '__value__' };
+      const filter = {};
+
+      await expect(sequelizeCollection.update(filter, patch)).resolves.toBe(null);
+
+      expect(update).toHaveBeenCalledWith(
+        patch,
+        expect.objectContaining({ fields: Object.keys(patch) }),
+      );
+    });
+  });
 });
