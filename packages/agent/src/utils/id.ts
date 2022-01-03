@@ -9,46 +9,44 @@ import {
 
 export default class IdUtils {
   static packId(schema: CollectionSchema, record: RecordData): string {
-    const pks = SchemaUtils.getPrimaryKeys(schema);
+    const pkNames = SchemaUtils.getPrimaryKeys(schema);
 
-    if (!pks.length) {
+    if (!pkNames.length) {
       throw new Error('This collection has no primary key');
     }
 
-    return pks
-      .map(pk => {
-        if (record[pk] === undefined) {
-          throw new Error(`RecordData is missing field ${pk}`);
-        }
+    for (const pkName of pkNames) {
+      if (record[pkName] === undefined) {
+        throw new Error(`Missing expected field '${pkName}'`);
+      }
+    }
 
-        return String(record[pk]);
-      })
-      .join('|');
+    return pkNames.map(pk => String(record[pk])).join('|');
   }
 
   static unpackId(schema: CollectionSchema, packedId: string): CompositeId {
-    const parts = packedId.split('|');
-    const pks = SchemaUtils.getPrimaryKeys(schema);
+    const pkNames = SchemaUtils.getPrimaryKeys(schema);
+    const pkValues = packedId.split('|');
 
-    if (parts.length !== pks.length) {
-      throw new Error(`Expected ${pks.length} parts, found ${parts.length}`);
+    if (pkValues.length !== pkNames.length) {
+      throw new Error(`Expected ${pkNames.length} values, found ${pkValues.length}`);
     }
 
-    return pks.map((pk, index) => {
-      const { columnType } = schema.fields[pk] as ColumnSchema;
-      const part = parts[index];
+    return pkNames.map((pkName, index) => {
+      const { columnType } = schema.fields[pkName] as ColumnSchema;
+      const part = pkValues[index];
 
-      if (columnType !== PrimitiveTypes.Number) {
-        return part;
+      if (columnType === PrimitiveTypes.Number) {
+        const partAsNumber = Number(part);
+
+        if (!Number.isFinite(partAsNumber)) {
+          throw new Error(`Failed to parse number from ${pkValues[index]}`);
+        }
+
+        return partAsNumber;
       }
 
-      const partAsNumber = Number(part);
-
-      if (!Number.isFinite(partAsNumber)) {
-        throw new Error(`Failed to parse number from ${parts[index]}`);
-      }
-
-      return partAsNumber;
+      return part;
     });
   }
 }

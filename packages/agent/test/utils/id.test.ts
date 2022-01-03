@@ -78,12 +78,12 @@ describe('IdUtils', () => {
 
     test('should fail if no pk is defined', () => {
       const fn = () => IdUtils.packId(noPkSchema, {});
-      expect(fn).toThrowError();
+      expect(fn).toThrow(/no primary key/);
     });
 
     test('should fail if pks are missing the record', () => {
       const fn = () => IdUtils.packId(numberSchema, { otherId: 23 });
-      expect(fn).toThrowError();
+      expect(fn).toThrow(/expected field 'id'/);
     });
   });
 
@@ -102,17 +102,17 @@ describe('IdUtils', () => {
 
     test('should fail if not pk is defined', () => {
       const fn = () => IdUtils.unpackId(noPkSchema, '34|34');
-      expect(fn).toThrowError();
+      expect(fn).toThrow(/Expected 0 values/);
     });
 
     test('should fail if the number of parts does not match the schema', () => {
       const fn = () => IdUtils.unpackId(stringSchema, '34|34');
-      expect(fn).toThrowError();
+      expect(fn).toThrow(/Expected 1 values/);
     });
 
     test('should fail if a number id cannot be properly casted', () => {
       const fn = () => IdUtils.unpackId(numberSchema, 'something');
-      expect(fn).toThrowError();
+      expect(fn).toThrow(/Failed to parse number/);
     });
   });
 });
