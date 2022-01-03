@@ -1,13 +1,17 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
-import { FrontendOptions, FrontendServices } from '../types';
+import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverServices } from '../types';
 
 export default abstract class BaseRoute {
-  protected readonly services: FrontendServices;
+  protected readonly services: ForestAdminHttpDriverServices;
   protected readonly dataSource: DataSource;
-  protected readonly options: FrontendOptions;
+  protected readonly options: ForestAdminHttpDriverOptions;
 
-  constructor(services: FrontendServices, dataSource: DataSource, options: FrontendOptions) {
+  constructor(
+    services: ForestAdminHttpDriverServices,
+    dataSource: DataSource,
+    options: ForestAdminHttpDriverOptions,
+  ) {
     this.services = services;
     this.dataSource = dataSource;
     this.options = options;

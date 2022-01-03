@@ -7,9 +7,10 @@ import RouterMock, {
   routerMockPut,
   routerMockUse,
 } from '../__mocks__/koa-router';
+import servicesMock from '../__mocks__/services';
 
 describe('Base routes', () => {
-  const services = {};
+  const services = servicesMock;
   const dataSource = new DataSourceMock();
   const options = { prefix: '/forest' };
   const router = new RouterMock();

@@ -9,5 +9,5 @@ export default jest.fn().mockImplementation(() => ({
   post: routerMockPost,
   put: routerMockPut,
   delete: routerMockDelete,
-  user: routerMockUse,
+  use: routerMockUse,
 }));

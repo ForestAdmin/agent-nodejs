@@ -1,4 +1,4 @@
-import Frontend from './frontend';
+import ForestAdminHttpDriver from './forestadmin-http-driver';
 
 export default null;
-export { Frontend };
+export { ForestAdminHttpDriver };
