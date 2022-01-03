@@ -69,8 +69,7 @@ export default class SequelizeCollection implements Collection {
   }
 
   delete(filter: Filter): Promise<void> {
-    void filter;
-    throw new Error('Method not implemented.');
+    return this.model.destroy({ ...convertPaginatedFilterToSequelize(filter) }).then(() => null);
   }
 
   aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
