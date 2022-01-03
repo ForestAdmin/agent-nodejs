@@ -285,7 +285,45 @@ describe('LiveDataSource > Collection', () => {
   });
 
   describe('delete', () => {
-    it.todo('TODO');
+    it('should reject if collection is not synched first', async () => {
+      const { liveCollection } = instanciateCollection();
+
+      expect(() => liveCollection.delete({})).toThrow(
+        `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
+      );
+    });
+
+    it('should resolve with `null`', async () => {
+      const { liveCollection } = await preloadRecords(9);
+      const filter = {
+        conditionTree: { operator: Operator.Equal, field: 'id', value: '__unknown__' },
+      };
+
+      await expect(liveCollection.delete(filter)).resolves.toBeNull();
+    });
+
+    it('should delete records honoring filter', async () => {
+      const recordCount = 9;
+      const { liveCollection, recordData, sequelize } = await preloadRecords(recordCount);
+
+      const [originalRecord] = await plainRecords(
+        sequelize.model(liveCollection.name).findAll({ where: { value: recordData[4].value } }),
+      );
+
+      const filter = {
+        conditionTree: {
+          operator: Operator.Equal,
+          field: 'id',
+          value: originalRecord.id,
+        },
+      };
+
+      await liveCollection.delete(filter);
+
+      const newRecordCount = await sequelize.model(liveCollection.name).count();
+
+      expect(newRecordCount).toEqual(recordCount - 1);
+    });
   });
 
   describe('aggregate', () => {

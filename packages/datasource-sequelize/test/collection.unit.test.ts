@@ -164,8 +164,7 @@ describe('SequelizeDataSource > Collection', () => {
   describe('update', () => {
     const setup = () => {
       const sequelizeCollection = new SequelizeCollection(null, null, null, null);
-      const recordData = Symbol('recordData');
-      const update = jest.fn().mockResolvedValue(recordData);
+      const update = jest.fn().mockResolvedValue([]);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         update,
@@ -173,7 +172,6 @@ describe('SequelizeDataSource > Collection', () => {
 
       return {
         update,
-        recordData,
         sequelizeCollection,
       };
     };
@@ -189,6 +187,31 @@ describe('SequelizeDataSource > Collection', () => {
         patch,
         expect.objectContaining({ fields: Object.keys(patch) }),
       );
+    });
+  });
+
+  describe('delete', () => {
+    const setup = () => {
+      const sequelizeCollection = new SequelizeCollection(null, null, null, null);
+      const destroy = jest.fn().mockResolvedValue(0);
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      sequelizeCollection['model'] = {
+        destroy,
+      };
+
+      return {
+        destroy,
+        sequelizeCollection,
+      };
+    };
+
+    it('should delegate work to `sequelize.model.update`', async () => {
+      const { destroy, sequelizeCollection } = setup();
+      const filter = {};
+
+      await expect(sequelizeCollection.delete(filter)).resolves.toBe(null);
+
+      expect(destroy).toHaveBeenCalledTimes(1);
     });
   });
 });
