@@ -256,7 +256,7 @@ describe('LiveDataSource > Collection', () => {
       await expect(liveCollection.update(filter, patch)).resolves.toBeNull();
     });
 
-    it('should update records honoring fitler and patch', async () => {
+    it('should update records honoring filter and patch', async () => {
       const { liveCollection, fixedValue, recordData, sequelize } = await preloadRecords(9);
 
       const [originalRecord] = await plainRecords(
