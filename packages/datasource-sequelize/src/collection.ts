@@ -60,9 +60,12 @@ export default class SequelizeCollection implements Collection {
   }
 
   update(filter: Filter, patch: RecordData): Promise<void> {
-    void filter;
-    void patch;
-    throw new Error('Method not implemented.');
+    return this.model
+      .update(patch, {
+        ...convertPaginatedFilterToSequelize(filter),
+        fields: Object.keys(patch),
+      })
+      .then(() => null);
   }
 
   delete(filter: Filter): Promise<void> {
