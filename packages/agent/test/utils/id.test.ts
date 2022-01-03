@@ -83,7 +83,7 @@ describe('IdUtils', () => {
 
     test('should fail if pks are missing the record', () => {
       const fn = () => IdUtils.packId(numberSchema, { otherId: 23 });
-      expect(fn).toThrow(/expected field 'id'/);
+      expect(fn).toThrow(/expected fields: 'id'/);
     });
   });
 

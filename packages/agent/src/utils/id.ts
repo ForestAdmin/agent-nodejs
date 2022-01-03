@@ -15,10 +15,8 @@ export default class IdUtils {
       throw new Error('This collection has no primary key');
     }
 
-    for (const pkName of pkNames) {
-      if (record[pkName] === undefined) {
-        throw new Error(`Missing expected field '${pkName}'`);
-      }
+    if (pkNames.some(pkName => record[pkName] === undefined)) {
+      throw new Error(`Missing one of expected fields: '${pkNames.join("', '")}'`);
     }
 
     return pkNames.map(pk => String(record[pk])).join('|');
