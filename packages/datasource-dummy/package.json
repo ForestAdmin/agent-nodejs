@@ -16,5 +16,8 @@
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
     "test": "jest"
+  },
+  "devDependencies": {
+    "fishery": "^2.1.0"
   }
 }

@@ -16,6 +16,7 @@
     "test": "jest"
   },
   "devDependencies": {
+    "fishery": "^2.1.0",
     "superagent": "^6.1.0"
   }
 }

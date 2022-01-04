@@ -1,6 +1,6 @@
 import { CollectionSchema, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import IdUtils from '../../src/utils/id';
-import factories from '../factories';
+import factories from '../__factories__';
 
 const noPkSchema: CollectionSchema = factories.collectionSchema.build();
 
