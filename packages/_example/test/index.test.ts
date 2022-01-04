@@ -1,6 +1,8 @@
 import superagent from 'superagent';
 import start from '../src/index';
 
+jest.unmock('superagent');
+
 describe('index', () => {
   test('should start a server on port 3000', async () => {
     const stop = await start();
