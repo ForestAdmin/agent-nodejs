@@ -29,6 +29,9 @@ export default class LiveCollection extends SequelizeCollection {
       fixed: {
         type: DataTypes.STRING,
       },
+      even: {
+        type: DataTypes.BOOLEAN,
+      },
       value: {
         type: DataTypes.STRING,
       },

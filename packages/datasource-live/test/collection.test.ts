@@ -28,7 +28,7 @@ const preloadRecords = async (recordCount, options?) => {
   const { liveCollection, sequelize } = instanciateCollection();
   const recordData = new Array(recordCount)
     .fill(0)
-    .map((_, i) => ({ fixed: fixedValue, value: `record_${i + 1}` }));
+    .map((_, i) => ({ fixed: fixedValue, even: i % 2 === 0, value: `record_${i + 1}` }));
 
   if (options?.shuffle && recordCount > 1) {
     [recordData[0].value, recordData[recordCount - 1].value] = [
@@ -372,6 +372,22 @@ describe('LiveDataSource > Collection', () => {
       await expect(liveCollection.aggregate(filter, aggregation)).resolves.toEqual([
         { group: '*', value: 1 },
       ]);
+    });
+
+    it('should resolve honoring field', async () => {
+      const recordCount = 9;
+      const { liveCollection } = await preloadRecords(recordCount);
+      const aggregation = {
+        field: 'even',
+        operation: AggregationOperation.Count,
+      };
+
+      await expect(liveCollection.aggregate({}, aggregation)).resolves.toEqual(
+        expect.arrayContaining([
+          { group: 'true', value: 5 },
+          { group: 'false', value: 4 },
+        ]),
+      );
     });
   });
 });
