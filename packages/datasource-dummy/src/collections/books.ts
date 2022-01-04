@@ -4,6 +4,7 @@ import {
   Aggregation,
   Collection,
   CollectionSchema,
+  CollectionSchemaScope,
   CompositeId,
   DataSource,
   FieldTypes,
@@ -23,7 +24,7 @@ export default class BookCollection implements Collection {
     actions: [
       {
         name: 'Mark as Live',
-        scope: 'bulk',
+        scope: CollectionSchemaScope.Bulk,
       },
     ],
     fields: {
