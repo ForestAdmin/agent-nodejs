@@ -1,10 +1,7 @@
+import { SequelizeCollection } from '../src';
 import SequelizeDataSource from '../src/datasource';
 
-class ConcreteSequelizeDataSource extends SequelizeDataSource {
-  constructor(collections = []) {
-    super(collections);
-  }
-}
+class ConcreteSequelizeDataSource extends SequelizeDataSource {}
 
 describe('SequelizeDataSource', () => {
   it('should instanciate properly when extended', () => {
@@ -23,7 +20,7 @@ describe('SequelizeDataSource', () => {
     });
 
     it('should return known collection when given its name', () => {
-      const collections = [{ name: 'dummy' }];
+      const collections = [{ name: 'dummy' }] as SequelizeCollection[];
       const sequelizeDataSource = new ConcreteSequelizeDataSource(collections);
 
       expect(sequelizeDataSource.getCollection(collections[0].name)).toBeDefined();

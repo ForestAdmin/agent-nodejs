@@ -1,10 +1,10 @@
 import LiveDataSource from '../src/datasource';
 
-import { dataSourceWithDummyCollectionSchema } from './helpers/schemas';
+import { dataSourceWithDummyCollectionSchema, emptyDataSourceSchema } from './helpers/schemas';
 
 describe('LiveDataSource', () => {
   it('should instanciate properly', () => {
-    expect(new LiveDataSource(dataSourceWithDummyCollectionSchema)).toBeDefined();
+    expect(new LiveDataSource(emptyDataSourceSchema)).toBeDefined();
   });
 
   describe('attributes', () => {
