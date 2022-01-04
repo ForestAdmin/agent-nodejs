@@ -1,10 +1,9 @@
 import { Factory } from 'fishery';
 import { Collection } from '@forestadmin/datasource-toolkit';
-import datasource from './datasource';
-import collectionSchema from './collection-schema';
+import collectionSchema from './schema/collection-schema';
 
 export default Factory.define<Collection>(() => ({
-  dataSource: datasource.build(),
+  dataSource: null,
   name: 'a collection',
   schema: collectionSchema.build(),
   getAction: jest.fn(),

@@ -1,9 +1,9 @@
 import { Filter, Operator, Aggregator } from './query/selection';
 
 export enum CollectionSchemaScope {
-  single = 'single',
-  bulk = 'bulk',
-  global = 'global',
+  Single = 'single',
+  Bulk = 'bulk',
+  Global = 'global',
 }
 
 export type CollectionSchema = {

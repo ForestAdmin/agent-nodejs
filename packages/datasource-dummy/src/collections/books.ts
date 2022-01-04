@@ -24,7 +24,7 @@ export default class BookCollection implements Collection {
     actions: [
       {
         name: 'Mark as Live',
-        scope: CollectionSchemaScope.bulk,
+        scope: CollectionSchemaScope.Bulk,
       },
     ],
     fields: {

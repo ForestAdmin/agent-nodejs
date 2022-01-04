@@ -3,10 +3,8 @@ import Serializer from '../../src/services/serializer';
 import factories from '../__factories__';
 
 const serializer = new Serializer('/forest');
-const dataSource = factories.dataSource.build();
-dataSource.collections.push(
-  factories.collection.build({
-    dataSource,
+const factory = factories.dataSource.withSeveralCollections([
+  {
     name: 'book',
     schema: factories.collectionSchema.build({
       fields: {
@@ -20,17 +18,14 @@ dataSource.collections.push(
         reviews: factories.oneToManySchema.build({
           foreignCollection: 'review',
         }),
-        author: factories.manyToOne.build({
+        author: factories.manyToOneSchema.build({
           foreignCollection: 'person',
           foreignKey: null,
         }),
       },
     }),
-  }),
-);
-dataSource.collections.push(
-  factories.collection.build({
-    dataSource,
+  },
+  {
     name: 'person',
     schema: factories.collectionSchema.build({
       fields: {
@@ -45,8 +40,8 @@ dataSource.collections.push(
         }),
       },
     }),
-  }),
-);
+  },
+]);
 
 const record = factories.recordData.build({
   isbn: '9780345317988',
@@ -81,14 +76,14 @@ const serializedRecord = {
 describe('serializer', () => {
   describe('serialize', () => {
     test('should serialize a record with relations', () => {
-      const result = serializer.serialize(dataSource.collections[0], record);
+      const result = serializer.serialize(factory.build().collections[0], record);
       expect(result).toStrictEqual(serializedRecord);
     });
   });
 
   describe('deserialize', () => {
     test('should deserialize a json api into a record', () => {
-      const result = serializer.deserialize(dataSource.collections[0], serializedRecord);
+      const result = serializer.deserialize(factory.build().collections[0], serializedRecord);
       expect(result).toStrictEqual(record);
     });
   });
