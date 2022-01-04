@@ -1,9 +1,15 @@
 import { Filter, Operator, Aggregator } from './query/selection';
 
+export enum CollectionSchemaScope {
+  single = 'single',
+  bulk = 'bulk',
+  global = 'global',
+}
+
 export type CollectionSchema = {
   actions: Array<{
     name: string;
-    scope: 'single' | 'bulk' | 'global';
+    scope: CollectionSchemaScope;
     forceDownload?: boolean;
   }>;
   fields: { [fieldName: string]: FieldSchema };
