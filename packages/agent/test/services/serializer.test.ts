@@ -3,7 +3,7 @@ import Serializer from '../../src/services/serializer';
 import factories from '../factories';
 
 const serializer = new Serializer('/forest');
-const dataSource = factories.dataSource.build({ collections: [] });
+const dataSource = factories.dataSource.build();
 dataSource.collections.push(
   factories.collection.build({
     dataSource,

@@ -1,65 +1,39 @@
-import {
-  CollectionSchema,
-  FieldTypes,
-  Operator,
-  PrimitiveTypes,
-} from '@forestadmin/datasource-toolkit';
+import { CollectionSchema, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import IdUtils from '../../src/utils/id';
+import factories from '../factories';
 
-const noPkSchema: CollectionSchema = {
-  actions: [],
-  searchable: true,
-  segments: [],
-  fields: {},
-};
+const noPkSchema: CollectionSchema = factories.collectionSchema.build();
 
-const numberSchema: CollectionSchema = {
-  actions: [],
-  searchable: true,
-  segments: [],
+const numberSchema = factories.collectionSchema.build({
   fields: {
-    id: {
-      type: FieldTypes.Column,
+    id: factories.columnSchema.build({
       columnType: PrimitiveTypes.Number,
       isPrimaryKey: true,
-      filterOperators: new Set<Operator>([]),
-    },
+    }),
   },
-};
+});
 
-const stringSchema: CollectionSchema = {
-  actions: [],
-  searchable: true,
-  segments: [],
+const stringSchema = factories.collectionSchema.build({
   fields: {
-    id: {
-      type: FieldTypes.Column,
+    id: factories.columnSchema.build({
       columnType: PrimitiveTypes.String,
       isPrimaryKey: true,
-      filterOperators: new Set<Operator>([]),
-    },
+    }),
   },
-};
+});
 
-const compositeSchema: CollectionSchema = {
-  actions: [],
-  searchable: true,
-  segments: [],
+const compositeSchema = factories.collectionSchema.build({
   fields: {
-    id: {
-      type: FieldTypes.Column,
+    id: factories.columnSchema.build({
       columnType: PrimitiveTypes.Number,
       isPrimaryKey: true,
-      filterOperators: new Set<Operator>([]),
-    },
-    otherId: {
-      type: FieldTypes.Column,
+    }),
+    otherId: factories.columnSchema.build({
       columnType: PrimitiveTypes.String,
       isPrimaryKey: true,
-      filterOperators: new Set<Operator>([]),
-    },
+    }),
   },
-};
+});
 
 describe('IdUtils', () => {
   describe('pack', () => {

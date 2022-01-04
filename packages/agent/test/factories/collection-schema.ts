@@ -1,8 +1,8 @@
 import { Factory } from 'fishery';
-import { CollectionSchema, CollectionSchemaScope } from '@forestadmin/datasource-toolkit';
+import { CollectionSchema } from '@forestadmin/datasource-toolkit';
 
 export default Factory.define<CollectionSchema>(() => ({
-  actions: [{ name: 'a name', scope: CollectionSchemaScope.single }],
+  actions: [],
   fields: {},
   searchable: true,
   segments: [],
