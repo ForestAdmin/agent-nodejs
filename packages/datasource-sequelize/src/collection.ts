@@ -81,6 +81,7 @@ export default class SequelizeCollection implements Collection {
     const attributes: [string | string[]] = [
       [this.sequelize.fn(operation, this.sequelize.col(field)), aggregateFieldName],
     ];
+
     if (aggregation.field) attributes.push(field);
 
     return this.model
@@ -90,7 +91,10 @@ export default class SequelizeCollection implements Collection {
         group: aggregation.field,
       })
       .then(aggregates =>
-        aggregates.map(aggregate => ({ value: aggregate.get(aggregateFieldName), group: field })),
+        aggregates.map(aggregate => ({
+          value: aggregate.get(aggregateFieldName),
+          group: aggregation.field ? `${aggregate.get(field)}` : field,
+        })),
       );
   }
 }

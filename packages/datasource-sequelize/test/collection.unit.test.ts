@@ -223,7 +223,7 @@ describe('SequelizeDataSource > Collection', () => {
         fn: jest.fn(),
       };
       const sequelizeCollection = new SequelizeCollection(null, null, null, sequelize);
-      const findAll = jest.fn().mockResolvedValue([]);
+      const findAll = jest.fn().mockResolvedValue([{ get: jest.fn(attr => `${attr}`) }]);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         findAll,
@@ -236,14 +236,31 @@ describe('SequelizeDataSource > Collection', () => {
       };
     };
 
-    it('should delegate work to `sequelize.model.aggregate`', async () => {
+    it('should delegate work to `sequelize.model.findAll` without a field', async () => {
       const { findAll, sequelizeCollection } = setup();
       const aggregation = {
         operation: AggregationOperation.Count,
       };
       const filter = {};
 
-      await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([]);
+      await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+        { group: '*', value: '__aggregate__' },
+      ]);
+
+      expect(findAll).toHaveBeenCalledTimes(1);
+    });
+
+    it('should delegate work to `sequelize.model.findAll` with a specific field', async () => {
+      const { findAll, sequelizeCollection } = setup();
+      const aggregation = {
+        field: '__field__',
+        operation: AggregationOperation.Count,
+      };
+      const filter = {};
+
+      await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+        { group: '__field__', value: '__aggregate__' },
+      ]);
 
       expect(findAll).toHaveBeenCalledTimes(1);
     });
