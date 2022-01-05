@@ -1,13 +1,41 @@
 import { Sequelize } from 'sequelize';
 import sortBy from 'lodash/sortby';
 
-import { AggregationOperation, CollectionSchema, Operator } from '@forestadmin/datasource-toolkit';
+import {
+  AggregationOperation,
+  CollectionSchema,
+  CollectionSchemaScope,
+  FieldTypes,
+  Operator,
+  PrimitiveTypes,
+} from '@forestadmin/datasource-toolkit';
 import LiveCollection from '../src/collection';
 
 const liveCollectionSchema: CollectionSchema = {
-  actions: [{ name: '__action__', scope: 'single' }],
-  // FIXME: Define fields when collection handle proper define call.
-  fields: {},
+  actions: [{ name: '__action__', scope: CollectionSchemaScope.Single }],
+  fields: {
+    id: {
+      columnType: PrimitiveTypes.Number,
+      filterOperators: new Set<Operator>([Operator.Equal]),
+      isPrimaryKey: true,
+      type: FieldTypes.Column,
+    },
+    fixed: {
+      columnType: PrimitiveTypes.String,
+      filterOperators: new Set<Operator>(),
+      type: FieldTypes.Column,
+    },
+    even: {
+      columnType: PrimitiveTypes.Boolean,
+      filterOperators: new Set<Operator>(),
+      type: FieldTypes.Column,
+    },
+    value: {
+      columnType: PrimitiveTypes.String,
+      filterOperators: new Set<Operator>(),
+      type: FieldTypes.Column,
+    },
+  },
   searchable: true,
   segments: [],
 };
