@@ -2,6 +2,9 @@ import {
   AggregationOperation,
   CollectionSchema,
   DataSource,
+  FieldTypes,
+  Operator,
+  PrimitiveTypes,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -48,39 +51,56 @@ describe('SequelizeDataSource > Collection', () => {
 
   describe('getById', () => {
     const setup = () => {
-      const sequelizeCollection = new SequelizeCollection(null, null, null, null);
+      const schema: CollectionSchema = {
+        actions: [],
+        fields: {
+          id: {
+            columnType: PrimitiveTypes.Number,
+            filterOperators: new Set<Operator>(),
+            isPrimaryKey: true,
+            type: FieldTypes.Column,
+          },
+        },
+        searchable: true,
+        segments: [],
+      } as CollectionSchema;
+
+      const sequelizeCollection = new SequelizeCollection(null, null, schema, null);
       const recordData = Symbol('recordData');
       const record = {
         get: jest.fn(() => recordData),
       };
-      const findByPk = jest.fn().mockResolvedValue(record);
+      const findOne = jest.fn().mockResolvedValue(record);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
-        findByPk,
+        findOne,
       };
 
       return {
-        findByPk,
+        findOne,
         record,
         recordData,
         sequelizeCollection,
       };
     };
 
-    it('should delegate work to `sequelize.model.findByPk`', async () => {
-      const { findByPk, recordData, sequelizeCollection } = setup();
-      const id = [42];
+    it('should delegate work to `sequelize.model.findOne`', async () => {
+      const { findOne, recordData, sequelizeCollection } = setup();
+      const compositeId = [42];
       const projection: Projection = Symbol('projection') as unknown as Projection;
 
-      await expect(sequelizeCollection.getById(id, projection)).resolves.toBe(recordData);
-      expect(findByPk).toHaveBeenCalledWith(id[0], { attributes: projection });
+      await expect(sequelizeCollection.getById(compositeId, projection)).resolves.toBe(recordData);
+      expect(findOne).toHaveBeenCalledWith({
+        where: { id: compositeId[0] },
+        attributes: projection,
+      });
     });
 
     it('should resolve with a plain record', async () => {
       const { record, recordData, sequelizeCollection } = setup();
-      const id = [42];
+      const compositeId = [42];
 
-      const result = await sequelizeCollection.getById(id, null);
+      const result = await sequelizeCollection.getById(compositeId, null);
 
       expect(record.get).toHaveBeenCalledWith({ plain: true });
       expect(result).toBe(recordData);
