@@ -1,5 +1,3 @@
-import { DataTypes } from 'sequelize';
-
 import {
   AggregateResult,
   Aggregation,
