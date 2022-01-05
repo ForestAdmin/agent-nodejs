@@ -1,24 +1,22 @@
 import { Context } from 'koa';
 import HealthCheck from '../../src/routes/healthcheck';
-import DataSourceMock from '../__mocks__/datasource';
-import RouterMock, { routerMockGet } from '../__mocks__/koa-router';
-import servicesMock from '../__mocks__/services';
+import factories from '../__factories__';
 
 describe('Healthcheck', () => {
-  const services = servicesMock;
-  const dataSource = new DataSourceMock();
-  const options = { prefix: '/forest' };
-  const router = new RouterMock();
+  const services = factories.forestAdminHttpDriverServices.build();
+  const dataSource = factories.dataSource.build();
+  const options = factories.forestAdminHttpDriverOptions.build();
+  const router = factories.router.mockAllMethods().build();
 
   beforeEach(() => {
-    routerMockGet.mockClear();
+    (router.get as jest.Mock).mockClear();
   });
 
   test("should register '/' public routes", () => {
     const healthCheck = new HealthCheck(services, dataSource, options);
     healthCheck.setupPublicRoutes(router);
 
-    expect(routerMockGet).toHaveBeenCalledWith('/', expect.any(Function));
+    expect(router.get).toHaveBeenCalledWith('/', expect.any(Function));
   });
 
   test('return a 200 response', async () => {

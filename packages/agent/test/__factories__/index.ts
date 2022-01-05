@@ -5,6 +5,10 @@ import manyToOneSchema from './schema/many-to-one-schema';
 import dataSource from './datasource';
 import collection from './collection';
 import recordData from './record-data';
+import serializer from './serializer';
+import forestAdminHttpDriverServices from './forest-admin-http-driver-services';
+import forestAdminHttpDriverOptions from './forest-admin-http-driver-options';
+import router from './router';
 
 export default {
   collectionSchema,
@@ -14,4 +18,8 @@ export default {
   dataSource,
   collection,
   recordData,
+  serializer,
+  forestAdminHttpDriverServices,
+  forestAdminHttpDriverOptions,
+  router,
 };
