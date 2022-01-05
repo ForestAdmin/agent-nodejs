@@ -10,6 +10,7 @@ import {
   PaginatedFilter,
   Projection,
   RecordData,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
 import { convertPaginatedFilterToSequelize } from './utils/filterConverter';
@@ -40,10 +41,17 @@ export default class SequelizeCollection implements Collection {
   }
 
   getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    const actualId = id.length === 1 ? id[0] : id;
+    const actualId = {};
+
+    SchemaUtils.getPrimaryKeys(this.schema).forEach((field, index) => {
+      actualId[field] = id[index];
+    });
 
     return this.model
-      .findByPk(actualId, { attributes: projection })
+      .findOne({
+        where: actualId,
+        attributes: projection,
+      })
       .then(record => record.get({ plain: true }));
   }
 
