@@ -9,7 +9,6 @@ export default class LiveDataSource extends SequelizeDataSource {
   override readonly collections: LiveCollection[] = [];
 
   constructor(dataSourceSchema: DataSourceSchema) {
-    // FIXME
     super();
 
     this.sequelize = new Sequelize('sqlite::memory:', { logging: false });
