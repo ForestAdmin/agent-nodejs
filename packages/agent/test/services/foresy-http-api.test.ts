@@ -1,9 +1,12 @@
 import superagent from 'superagent';
-import ForestHttpApi from '../../src/services/forest-http-api';
-import superagentMock from '../__mocks__/superagent';
 import factories from '../__factories__';
 
+import ForestHttpApi from '../../src/services/forest-http-api';
+
 describe('ForestHttpApi', () => {
+  const superagentMock = factories.superagent.mockAllMethods().build();
+  jest.mock('superagent', () => superagentMock);
+
   describe('initialize', () => {
     describe('when forestServerUrl or envSecret are null', () => {
       it('should throw an error', () => {
@@ -16,7 +19,7 @@ describe('ForestHttpApi', () => {
 
   describe('getIpWhitelist', () => {
     test('should fetch the correct end point with the env secret', async () => {
-      superagentMock.set = jest.fn().mockResolvedValue({
+      superagent.set.mockResolvedValue({
         body: {
           attributes: {
             use_ip_whitelist: true,
@@ -28,7 +31,7 @@ describe('ForestHttpApi', () => {
       const service = new ForestHttpApi('api.url', 'myEnvSecret');
       await service.getIpWhitelist();
 
-      expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
+      expect(superagent.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
       expect(superagent.get).toHaveBeenCalledWith('api.url/liana/v1/ip-whitelist-rules');
     });
 
@@ -37,7 +40,7 @@ describe('ForestHttpApi', () => {
         const ipRanges = factories.ipRange.buildList(1);
         const isFeatureEnabled = true;
 
-        superagentMock.set = jest.fn().mockResolvedValue({
+        superagent.set.mockResolvedValue({
           body: {
             attributes: {
               use_ip_whitelist: isFeatureEnabled,
@@ -55,7 +58,7 @@ describe('ForestHttpApi', () => {
 
     describe('when the call fails', () => {
       test('should throw an error', async () => {
-        superagentMock.set = jest.fn().mockResolvedValue(new Error());
+        superagent.set.mockResolvedValue(new Error());
 
         const service = new ForestHttpApi('api.url', 'myEnvSecret');
         await expect(service.getIpWhitelist()).rejects.toThrow(
