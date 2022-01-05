@@ -11,7 +11,10 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { SequelizeCollection } from '@forestadmin/datasource-sequelize';
+import {
+  CollectionSchemaToModelAttributesConverter,
+  SequelizeCollection,
+} from '@forestadmin/datasource-sequelize';
 
 export default class LiveCollection extends SequelizeCollection {
   private synched = false;
@@ -19,23 +22,10 @@ export default class LiveCollection extends SequelizeCollection {
   constructor(name, datasource: DataSource, schema: CollectionSchema, sequelize) {
     super(name, datasource, schema, sequelize);
 
-    // TODO: Properly call `define` with details from schema.
-    this.model = this.sequelize.define(name, {
-      id: {
-        primaryKey: true,
-        autoIncrement: true,
-        type: DataTypes.INTEGER,
-      },
-      fixed: {
-        type: DataTypes.STRING,
-      },
-      even: {
-        type: DataTypes.BOOLEAN,
-      },
-      value: {
-        type: DataTypes.STRING,
-      },
-    });
+    this.model = this.sequelize.define(
+      name,
+      CollectionSchemaToModelAttributesConverter.convert(schema),
+    );
   }
 
   private ensureSynched(): void {
