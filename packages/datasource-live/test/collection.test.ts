@@ -1,5 +1,5 @@
 import { Sequelize } from 'sequelize';
-import sortBy from 'lodash/sortby';
+import sortBy from 'lodash/sortBy';
 
 import {
   AggregationOperation,
