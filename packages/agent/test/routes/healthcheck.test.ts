@@ -1,12 +1,12 @@
 import { Context } from 'koa';
 import HealthCheck from '../../src/routes/healthcheck';
-import DataSourceMock from '../__mocks__/datasource';
+import factories from '../__factories__';
 import RouterMock, { routerMockGet } from '../__mocks__/koa-router';
 import servicesMock from '../__mocks__/services';
 
 describe('Healthcheck', () => {
   const services = servicesMock;
-  const dataSource = new DataSourceMock();
+  const dataSource = factories.dataSource.build();
   const options = { prefix: '/forest' };
   const router = new RouterMock();
 

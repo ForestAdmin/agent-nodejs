@@ -1,8 +1,8 @@
 import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
-import DataSourceMock from './__mocks__/datasource';
+import factories from './__factories__';
 
 describe('ForestAdminHttpDriver', () => {
-  const dataSource = new DataSourceMock();
+  const dataSource = factories.dataSource.build();
   const options = { prefix: '/forest' };
 
   test('should not allow to start multiple times', async () => {
