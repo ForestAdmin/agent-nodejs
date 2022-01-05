@@ -24,6 +24,7 @@ export default class SequelizeCollection implements Collection {
 
   constructor(name, datasource: DataSource, schema: CollectionSchema, sequelize) {
     this.dataSource = datasource;
+    this.model = sequelize?.[name] ?? null;
     this.name = name;
     this.schema = schema;
     this.sequelize = sequelize;
