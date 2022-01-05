@@ -7,12 +7,11 @@ import RouterMock, {
   routerMockPut,
   routerMockUse,
 } from '../__mocks__/koa-router';
-import servicesMock from '../__mocks__/services';
 
 describe('Base routes', () => {
-  const services = servicesMock;
+  const services = factories.forestAdminHttpDriverServices.build();
   const dataSource = factories.dataSource.build();
-  const options = { prefix: '/forest' };
+  const options = factories.forestAdminHttpDriverOptions.build();
   const router = new RouterMock();
 
   test('should not register any route', async () => {
