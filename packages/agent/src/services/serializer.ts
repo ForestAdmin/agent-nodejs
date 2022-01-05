@@ -19,14 +19,14 @@ export default class Serializer {
     this.prefix = prefix;
   }
 
-  serialize(collection: Collection, record: RecordData): unknown {
+  serialize(collection: Collection, record: RecordData): JsonApiSerializer.JSONAPIDocument {
     const result = this.getSerializer(collection).serialize(collection.name, record);
     this.stripUndefinedsInPlace(result);
 
     return result;
   }
 
-  deserialize(collection: Collection, data: unknown): RecordData {
+  deserialize(collection: Collection, data: JsonApiSerializer.JSONAPIDocument): RecordData {
     return this.getSerializer(collection).deserialize(collection.name, data);
   }
 
