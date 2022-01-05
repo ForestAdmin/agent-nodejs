@@ -18,6 +18,7 @@ export default class CollectionSchemaToModelAttributesConverter {
     return attributes;
   }
 
+  // TODO: Handle relations.
   private static convertField(field: FieldSchema) {
     if (field.type !== FieldTypes.Column) throw new Error(`Unsupported field type: ${field.type}`);
 

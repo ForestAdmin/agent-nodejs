@@ -2,6 +2,7 @@ import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { DataTypes } from 'sequelize/dist';
 
 export default class TypeConverter {
+  // TODO: Handle all types.
   private static readonly dataTypeToColumnType = {
     STRING: PrimitiveTypes.String,
     CHAR: PrimitiveTypes.String,
@@ -49,6 +50,8 @@ export default class TypeConverter {
     return columnType;
   }
 
+  // TODO: Handle all types.
+  // TODO: Allow to differentiate NUMBER and INTEGER.
   private static readonly columnTypeToDataType = {
     [PrimitiveTypes.Boolean]: DataTypes.BOOLEAN,
     [PrimitiveTypes.Date]: DataTypes.DATE,
