@@ -1,7 +1,5 @@
 import factories from '../__factories__';
-const openidClientMock = factories.openidClient.Issuer.mockAllMethods().build();
-jest.mock('openid-client', () => ({ Issuer: openidClientMock }));
-
+jest.mock('openid-client', () => factories.openidClient.build());
 import { Context } from 'koa';
 import Authentication from '../../src/routes/authentication';
 
