@@ -3,10 +3,11 @@ import jsonwebtoken from 'jsonwebtoken';
 import { Context } from 'koa';
 import jwt from 'koa-jwt';
 import { Client, ClientAuthMethod, Issuer } from 'openid-client';
+import * as oidc from 'openid-client';
 import path from 'path';
-import superagent from 'superagent';
 import BaseRoute from './base-route';
 
+console.log(oidc);
 export default class Authentication extends BaseRoute {
   private client: Client;
 
@@ -23,10 +24,8 @@ export default class Authentication extends BaseRoute {
     let issuer: Issuer = null;
 
     try {
-      const response = await superagent
-        .get(new URL('/oidc/.well-known/openid-configuration', this.options.forestServerUrl))
-        .set('forest-secret-key', this.options.envSecret);
-      issuer = new Issuer(response.body);
+      const response = await this.services.forestHTTPApi.getOpenIdConfiguration();
+      issuer = new Issuer(response);
     } catch (error) {
       throw new Error('Failed to fetch openid-configuration');
     }
@@ -43,11 +42,11 @@ export default class Authentication extends BaseRoute {
     } else {
       // This is due to an issue with the types provided by openid-client
       // Casting to any then calling register works as expected
-      const { register } = issuer.Client as any;
-
-      this.client = await register.call(issuer.Client, registration, {
+      this.client = await (issuer.Client as any).register(registration, {
         initialAccessToken: this.options.envSecret,
       });
+      // const { register } = issuer.Client as any;
+      // this.client = await register.call(issuer.Client, );
     }
   }
 
@@ -92,31 +91,15 @@ export default class Authentication extends BaseRoute {
     const { renderingId } = JSON.parse(state);
 
     try {
-      const response = await superagent
-        .get(
-          new URL(
-            `/liana/v2/renderings/${renderingId}/authorization`,
-            this.options.forestServerUrl,
-          ),
-        )
-        .set('forest-token', tokenSet.access_token)
-        .set('forest-secret-key', this.options.envSecret);
-
-      const user = { ...response.body.data.attributes, id: response.body.data.id };
+      const user = await this.services.forestHTTPApi.getUserAuthorizationInformations(
+        renderingId,
+        tokenSet.access_token,
+      );
 
       // Generate final token.
-      const token = jsonwebtoken.sign(
-        {
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          team: user.teams[0],
-          renderingId,
-        },
-        this.options.authSecret,
-        { expiresIn: '1 hours' },
-      );
+      const token = jsonwebtoken.sign(user, this.options.authSecret, {
+        expiresIn: '1 hours',
+      });
 
       context.response.body = {
         token,

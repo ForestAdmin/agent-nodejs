@@ -9,6 +9,7 @@ import BaseRoute from './routes/base-route';
 import AllRoutes from './routes';
 import Serializer from './services/serializer';
 import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverServices } from './types';
+import ForestHttpApi from './services/forest-http-api';
 
 /** Native NodeJS callback that can be passed to an HTTP Server */
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
@@ -36,6 +37,7 @@ export default class ForestAdminHttpDriver {
     this.options = options;
     this.services = {
       serializer: new Serializer(this.options.prefix),
+      forestHTTPApi: new ForestHttpApi(this.options.forestServerUrl, this.options.envSecret),
     };
   }
 

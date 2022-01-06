@@ -1,3 +1,4 @@
+import ForestHttpApi from './services/forest-http-api';
 import Serializer from './services/serializer';
 
 /** Logger Level */
@@ -21,6 +22,11 @@ export interface ForestAdminHttpDriverOptions {
   prefix: string;
 }
 
+export type IpRange = {
+  ipMinimum: string;
+  ipMaximum: string;
+};
+
 /**
  * Services container
  * This is empty for now, but should grow as we implement all features
@@ -28,4 +34,5 @@ export interface ForestAdminHttpDriverOptions {
  */
 export type ForestAdminHttpDriverServices = {
   serializer: Serializer;
+  forestHTTPApi: ForestHttpApi;
 };

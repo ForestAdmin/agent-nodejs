@@ -1,8 +1,9 @@
+import factories from '../__factories__';
+const openidClientMock = factories.openidClient.Issuer.mockAllMethods().build();
+jest.mock('openid-client', () => ({ Issuer: openidClientMock }));
+
 import { Context } from 'koa';
 import Authentication from '../../src/routes/authentication';
-import { openidClientRegisterMock } from '../__mocks__/openid-client';
-import superagentMock from '../__mocks__/superagent';
-import factories from '../__factories__';
 
 describe('Authentication', () => {
   const services = factories.forestAdminHttpDriverServices.build();
@@ -21,13 +22,15 @@ describe('Authentication', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // superagent has a dedicated mock implementation
-    superagentMock.mockClear();
   });
 
   describe('bootstrap', () => {
     describe('when the openid configuration cannot be retrieved', () => {
       test('should throw an error', async () => {
-        superagentMock.setMockError('failed!', 500);
+        services.forestHTTPApi.getOpenIdConfiguration = jest.fn().mockImplementation(() => {
+          throw new Error('Failed');
+        });
+        // superagentMock.setMockError('failed!', 500);
         const authentication = new Authentication(services, dataSource, options);
 
         await expect(authentication.bootstrap()).rejects.toThrowError(
@@ -39,14 +42,14 @@ describe('Authentication', () => {
 
     describe('when the openid configuration was successfully retrieved', () => {
       beforeEach(() => {
-        superagentMock.setMockResponseBody(openidValidConfiguration);
+        services.forestHTTPApi.getOpenIdConfiguration = jest
+          .fn()
+          .mockReturnValue(openidValidConfiguration);
       });
 
       describe('when not using client id', () => {
         test('should create an oidc client and bootstrap successfully', async () => {
-          openidClientRegisterMock.mockReturnValue({});
           const authentication = new Authentication(services, dataSource, options);
-
           await authentication.bootstrap();
 
           expect((authentication as any).client).toBeDefined();
@@ -117,16 +120,12 @@ describe('Authentication', () => {
         const user = {
           id: 1,
           email: 'hello@forest.admin',
-          first_name: 'erlich',
-          last_name: 'bachman',
-          teams: ['admin'],
+          firstName: 'erlich',
+          lastName: 'bachman',
+          team: 'admin',
+          renderingId: '1',
         };
-        superagentMock.setMockResponseBody({
-          data: {
-            id: 1,
-            attributes: user,
-          },
-        });
+        services.forestHTTPApi.getUserAuthorizationInformations = jest.fn().mockReturnValue(user);
         const authentication = new Authentication(services, dataSource, options);
         (authentication as any).client = {
           callback: jest.fn().mockReturnValue('authorizationUrl'),
@@ -145,7 +144,11 @@ describe('Authentication', () => {
 
     describe('when authentication failed', () => {
       it('should respond with an error', async () => {
-        superagentMock.setMockError('failed!', 400);
+        services.forestHTTPApi.getUserAuthorizationInformations = jest
+          .fn()
+          .mockImplementation(() => {
+            throw new Error('Failed !');
+          });
         const authentication = new Authentication(services, dataSource, options);
         const callbackMock = jest.fn().mockReturnValue('authorizationUrl');
         (authentication as any).client = {

@@ -10,6 +10,7 @@ import forestAdminHttpDriverServices from './forest-admin-http-driver-services';
 import forestAdminHttpDriverOptions from './forest-admin-http-driver-options';
 import router from './router';
 import superagent from './superagent';
+import openidClient from './openid-client';
 
 export default {
   collectionSchema,
@@ -24,4 +25,5 @@ export default {
   forestAdminHttpDriverOptions,
   router,
   superagent,
+  openidClient,
 };
