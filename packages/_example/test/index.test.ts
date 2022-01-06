@@ -7,10 +7,10 @@ describe('index', () => {
     nock('https://api.development.forestadmin.com')
       .get('/oidc/.well-known/openid-configuration')
       .reply(200, {
-        registration_endpoint: 'https://registration-endpoint.org',
+        registration_endpoint: 'https://fake-registration-endpoint.org',
       });
 
-    nock('https://registration-endpoint.org').post('/').reply(201, { client_id: 'xx' });
+    nock('https://fake-registration-endpoint.org').post('/').reply(201, { client_id: 'xx' });
 
     const stop = await start();
     const response = await superagent.get('http://127.0.0.1:3351/forest/');

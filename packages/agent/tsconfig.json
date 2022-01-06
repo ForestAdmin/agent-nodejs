@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "dist"
+    "outDir": "dist",
+    "paths": {
+      "openclient-id": ["./teub.d.ts"]
+    }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "files": ["global.d.ts"]
 }

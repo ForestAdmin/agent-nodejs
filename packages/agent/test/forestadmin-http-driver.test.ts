@@ -1,8 +1,9 @@
+import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
+import factories from './__factories__';
+
 jest.mock('../src/routes', () => {
   return [];
 });
-import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
-import factories from './__factories__';
 
 describe('ForestAdminHttpDriver', () => {
   const dataSource = factories.dataSource.build();

@@ -9,10 +9,10 @@ export default async function start() {
   const dataSource = new DummyDataSource();
   const driver = new ForestAdminHttpDriver(dataSource, {
     logger: console.log,
-    prefix: 'forest',
+    prefix: '/forest',
     authSecret: 'this_is_a_fake_auth_secret',
     agentUrl: 'http://localhost:3351',
-    envSecret: 'bd2cc0ef5b1a4f55821745ae01bae056d9c1da8b71a3f3e4c91e1e5f2b40b891',
+    envSecret: '424f045d2b6117da1dd6ff67be13a8391984221ba6fa3fb128313555a1a2c396',
     forestServerUrl: 'https://api.development.forestadmin.com',
   });
 

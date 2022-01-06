@@ -1,6 +1,7 @@
-import factories from '../__factories__';
-jest.mock('openid-client', () => factories.openidClient.build());
 import { Context } from 'koa';
+import factories from '../__factories__';
+
+jest.mock('openid-client', () => factories.openidClient.build());
 import Authentication from '../../src/routes/authentication';
 
 describe('Authentication', () => {
@@ -19,7 +20,6 @@ describe('Authentication', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // superagent has a dedicated mock implementation
   });
 
   describe('bootstrap', () => {

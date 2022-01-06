@@ -24,8 +24,8 @@ export default class Authentication extends BaseRoute {
     try {
       const response = await this.services.forestHTTPApi.getOpenIdConfiguration();
       issuer = new Issuer(response);
-    } catch (error) {
-      throw new Error('Failed to fetch openid-configuration');
+    } catch {
+      throw new Error('Failed to fetch openid-configuration.');
     }
 
     // Either instanciate or create a new oidc client.
@@ -35,16 +35,16 @@ export default class Authentication extends BaseRoute {
       redirect_uris: [this.redirectUrl],
     };
 
-    if (registration.client_id) {
-      this.client = new issuer.Client(registration);
-    } else {
-      // This is due to an issue with the types provided by openid-client
-      // Casting to any then calling register works as expected
-      this.client = await (issuer.Client as any).register(registration, {
-        initialAccessToken: this.options.envSecret,
-      });
-      // const { register } = issuer.Client as any;
-      // this.client = await register.call(issuer.Client, );
+    try {
+      if (registration.client_id) {
+        this.client = new issuer.Client(registration);
+      } else {
+        this.client = await issuer.Client.register(registration, {
+          initialAccessToken: this.options.envSecret,
+        });
+      }
+    } catch {
+      throw new Error('Failed to create the openid client.');
     }
   }
 

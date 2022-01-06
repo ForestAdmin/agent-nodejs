@@ -59,12 +59,8 @@ export default class ForestAdminHttpDriver {
     this.routes.forEach(route => route.setupPrivateRoutes(router));
     await Promise.all(this.routes.map(route => route.bootstrap()));
 
-    router.use(
-      cors({
-        credentials: true,
-        maxAge: 24 * 3600,
-      }),
-    );
+    // FIXME: Cors & body parser should be attached to the router, not the app itself
+    this.app.use(cors({ credentials: true, maxAge: 24 * 3600 }));
     this.app.use(bodyParser());
     this.app.use(router.routes());
   }

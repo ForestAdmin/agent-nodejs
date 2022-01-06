@@ -11,8 +11,4 @@ class IssuerMock {
 
 export default Factory.define<{ Issuer }>(() => ({
   Issuer: IssuerMock,
-  // Issuer: Factory.define<Issuer>((issuer: any): Issuer => {
-  //   issuer.Client = ClientMock as any;
-  //   return new Issuer({ issuer: 'blbl' });
-  // }),
 }));

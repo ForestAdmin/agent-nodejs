@@ -22,11 +22,6 @@ export interface ForestAdminHttpDriverOptions {
   prefix: string;
 }
 
-export type IpRange = {
-  ipMinimum: string;
-  ipMaximum: string;
-};
-
 /**
  * Services container
  * This is empty for now, but should grow as we implement all features
