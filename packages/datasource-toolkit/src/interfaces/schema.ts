@@ -1,5 +1,5 @@
 import { ConditionTreeLeaf, Operator } from './query/selection';
-import BaseAction from '../baseAction';
+import BaseAction from '../base-action';
 
 export enum ActionSchemaScope {
   Single = 'single',

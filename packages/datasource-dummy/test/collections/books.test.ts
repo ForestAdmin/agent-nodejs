@@ -1,9 +1,4 @@
-import {
-  ActionResponseType,
-  AggregationOperation,
-  ColumnSchema,
-} from '@forestadmin/datasource-toolkit';
-import MarkAsLiveAction from '../../src/actions/mark-as-live';
+import { AggregationOperation, ColumnSchema } from '@forestadmin/datasource-toolkit';
 import BookCollection from '../../src/collections/books';
 import DummyDataSource from '../../src/datasource';
 
@@ -36,34 +31,6 @@ describe('DummyDataSource > Collections > Books', () => {
       const bookCollection = instanciateCollection();
 
       expect(bookCollection.schema).toBeDefined();
-    });
-  });
-
-  describe('getAction', () => {
-    it('should return a known action', () => {
-      const bookCollection = instanciateCollection();
-
-      expect(bookCollection.getAction('Mark as Live')).toBeInstanceOf(MarkAsLiveAction);
-    });
-
-    it('should return a known action which executes well', async () => {
-      const bookCollection = instanciateCollection();
-
-      const action = bookCollection.getAction('Mark as Live');
-      await expect(action.execute(null)).resolves.toEqual(
-        expect.objectContaining({
-          type: ActionResponseType.Success,
-          message: 'Record set as active',
-        }),
-      );
-    });
-
-    it('should thrown with an unknown action name', () => {
-      const bookCollection = instanciateCollection();
-
-      expect(() => bookCollection.getAction('__no_such_action__')).toThrow(
-        'Action "__no_such_action__" not found.',
-      );
     });
   });
 

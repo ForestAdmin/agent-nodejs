@@ -6,7 +6,7 @@ export * from './interfaces/query/record';
 export * from './interfaces/query/selection';
 export * from './interfaces/schema';
 
-export { default as BaseAction } from './baseAction';
-export { default as BaseCollection } from './baseCollection';
+export { default as BaseAction } from './base-action';
+export { default as BaseCollection } from './base-collection';
 
 export { default as SchemaUtils } from './utils/schema';
