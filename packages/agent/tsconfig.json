@@ -6,6 +6,5 @@
       "openclient-id": ["./global.d.ts"]
     }
   },
-  "include": ["src/**/*"],
-  "files": ["global.d.ts"]
+  "include": ["src/**/*"]
 }
