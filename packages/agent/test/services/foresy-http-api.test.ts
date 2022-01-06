@@ -37,7 +37,7 @@ describe('ForestHttpApi', () => {
 
     describe('when the call succeeds', () => {
       test('should return the ip ranges and the isFeatureEnabled attributes', async () => {
-        const ipRanges = factories.ipRange.buildList(1);
+        const ipRanges = [];
         const isFeatureEnabled = true;
 
         superagent.set.mockResolvedValue({

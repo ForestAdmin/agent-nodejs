@@ -24,8 +24,3 @@ export interface ForestAdminHttpDriverOptions {
 export type ForestAdminHttpDriverServices = {
   serializer: Serializer;
 };
-
-export declare type IpRange = {
-  ipMinimum: string;
-  ipMaximum: string;
-};

@@ -1,5 +1,9 @@
 import superagent, { Response } from 'superagent';
-import { IpRange } from '../types';
+
+export declare type IpRange = {
+  ipMinimum: string;
+  ipMaximum: string;
+};
 
 export default class ForestHttpApi {
   private readonly forestServerUrl: string;
