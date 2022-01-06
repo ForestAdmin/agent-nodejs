@@ -1,22 +1,24 @@
 import { ConditionTreeLeaf, Operator } from './query/selection';
+import BaseAction from '../baseAction';
 
-export enum CollectionSchemaScope {
+export enum ActionSchemaScope {
   Single = 'single',
   Bulk = 'bulk',
   Global = 'global',
 }
+
+export type ActionSchema = {
+  name: string;
+  scope: ActionSchemaScope;
+  forceDownload?: boolean;
+  actionClass: typeof BaseAction;
+};
 
 export type CollectionSchema = {
   actions: { [actionName: string]: ActionSchema };
   fields: { [fieldName: string]: FieldSchema };
   searchable: boolean;
   segments: string[];
-};
-
-export type ActionSchema = {
-  scope: CollectionSchemaScope;
-  generateFormOnUsage?: boolean;
-  forceDownload?: boolean;
 };
 
 export type RelationSchema = ManyToOneSchema | OneToManySchema | OneToOneSchema | ManyToManySchema;
