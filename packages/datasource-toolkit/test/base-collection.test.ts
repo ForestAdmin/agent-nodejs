@@ -7,13 +7,7 @@ import { Projection } from '../src/interfaces/query/projection';
 import { CompositeId, RecordData } from '../src/interfaces/query/record';
 import { PaginatedFilter, Filter } from '../src/interfaces/query/selection';
 import { ActionSchemaScope, CollectionSchema } from '../src/interfaces/schema';
-import {
-  SuccessReponse,
-  WebHookReponse,
-  FileResponse,
-  RedirectResponse,
-  ActionForm,
-} from '../src/interfaces/action';
+import { ActionForm, ActionResponse } from '../src/interfaces/action';
 
 describe('BaseCollection', () => {
   class TestCollection extends BaseCollection {
@@ -53,10 +47,7 @@ describe('BaseCollection', () => {
   }
 
   class TestAction extends BaseAction {
-    execute(
-      formValues: RecordData,
-      selection?: Selection,
-    ): Promise<SuccessReponse | WebHookReponse | FileResponse | RedirectResponse> {
+    execute(formValues: RecordData, selection?: Selection): Promise<ActionResponse> {
       void formValues;
       void selection;
       throw new Error('Method not implemented.');
@@ -74,70 +65,67 @@ describe('BaseCollection', () => {
     }
   }
   describe('addAction', () => {
-    it('should add the action to schema', () => {
+    it('should add the action to the collection schema', () => {
       const collection = new TestCollection(
         'collectionTest',
         {} as DataSource,
-        { actions: [] } as CollectionSchema,
+        { actions: {} } as CollectionSchema,
       );
 
       const actionSchema = {
-        name: 'actionTest',
         scope: ActionSchemaScope.Single,
         actionClass: TestAction,
       };
 
-      collection.addAction(actionSchema);
+      collection.addAction('actionTest', actionSchema);
 
-      expect(collection.schema.actions).toHaveLength(1);
-      expect(collection.schema.actions[0]).toBe(actionSchema);
+      expect(collection.schema.actions).toHaveProperty('actionTest');
+      expect(collection.schema.actions.actionTest).toBe(actionSchema);
     });
 
-    it('should throw an error if the action already exist', () => {
+    it('should throw an error if the action already exists', () => {
       const collection = new TestCollection(
         'collectionTest',
         {} as DataSource,
-        { actions: [] } as CollectionSchema,
+        { actions: {} } as CollectionSchema,
       );
 
       const actionSchema = {
-        name: 'actionTest',
         scope: ActionSchemaScope.Single,
         actionClass: TestAction,
       };
 
-      collection.addAction(actionSchema);
+      collection.addAction('actionTest', actionSchema);
 
-      expect(() => collection.addAction(actionSchema)).toThrow(
+      expect(() => collection.addAction('actionTest', actionSchema)).toThrow(
         `Action "actionTest" already defined in collection`,
       );
     });
   });
 
   describe('getAction', () => {
-    it('should get the right action', () => {
+    it('should get the action when known', () => {
       const collection = new TestCollection(
         'collectionTest',
         {} as DataSource,
         {
-          actions: [
-            {
-              name: 'actionTest',
+          actions: {
+            actionTest: {
               scope: ActionSchemaScope.Single,
               actionClass: TestAction,
             },
-          ],
+          },
         } as unknown as CollectionSchema,
       );
 
       expect(collection.getAction('actionTest')).toBeInstanceOf(TestAction);
     });
 
-    it('should thrown with an unknown action name', () => {
+    it('should throw with an unknown action name', () => {
       const collection = new TestCollection(
         'collectionTest',
         {} as DataSource,
-        { actions: [] } as CollectionSchema,
+        { actions: {} } as CollectionSchema,
       );
 
       expect(() => collection.getAction('__no_such_action__')).toThrow(
