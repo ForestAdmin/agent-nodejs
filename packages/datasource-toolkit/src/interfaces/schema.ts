@@ -8,7 +8,6 @@ export enum ActionSchemaScope {
 }
 
 export type ActionSchema = {
-  name: string;
   scope: ActionSchemaScope;
   forceDownload?: boolean;
   actionClass: typeof BaseAction;

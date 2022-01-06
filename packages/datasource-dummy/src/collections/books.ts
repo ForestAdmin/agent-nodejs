@@ -1,10 +1,10 @@
+// eslint-disable-next-line max-classes-per-file
 import {
-  Action,
+  ActionSchemaScope,
   AggregateResult,
   Aggregation,
-  Collection,
+  BaseCollection,
   CollectionSchema,
-  CollectionSchemaScope,
   CompositeId,
   DataSource,
   FieldTypes,
@@ -17,56 +17,50 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import MarkAsLiveAction from '../actions/mark-as-live';
 
-export default class BookCollection implements Collection {
-  readonly dataSource: DataSource;
-  readonly name: string = 'book';
-  readonly schema: CollectionSchema = {
-    actions: {
-      'Mark as Live': {
-        scope: CollectionSchemaScope.Bulk,
-      },
+const SCHEMA: CollectionSchema = {
+  actions: {
+    'Mark as Live': {
+      scope: ActionSchemaScope.Bulk,
+      actionClass: MarkAsLiveAction,
     },
-    fields: {
-      id: {
-        type: FieldTypes.Column,
-        columnType: PrimitiveTypes.Number,
-        filterOperators: new Set<Operator>([]),
-        isPrimaryKey: true,
-      },
-      title: {
-        type: FieldTypes.Column,
-        columnType: PrimitiveTypes.String,
-        filterOperators: new Set<Operator>([]),
-        defaultValue: 'Le rouge et le noir',
-      },
-      authorId: {
-        type: FieldTypes.Column,
-        columnType: PrimitiveTypes.Number,
-        filterOperators: new Set<Operator>([]),
-        defaultValue: 34,
-      },
-      publication: {
-        type: FieldTypes.Column,
-        columnType: PrimitiveTypes.Date,
-        filterOperators: new Set([]),
-      },
-      publisher: {
-        type: FieldTypes.ManyToOne,
-        foreignCollection: null,
-        foreignKey: null,
-      },
+  },
+  fields: {
+    id: {
+      type: FieldTypes.Column,
+      columnType: PrimitiveTypes.Number,
+      filterOperators: new Set<Operator>([]),
+      isPrimaryKey: true,
     },
-    searchable: true,
-    segments: ['Active', 'Inactive'],
-  };
+    title: {
+      type: FieldTypes.Column,
+      columnType: PrimitiveTypes.String,
+      filterOperators: new Set<Operator>([]),
+      defaultValue: 'Le rouge et le noir',
+    },
+    authorId: {
+      type: FieldTypes.Column,
+      columnType: PrimitiveTypes.Number,
+      filterOperators: new Set<Operator>([]),
+      defaultValue: 34,
+    },
+    publication: {
+      type: FieldTypes.Column,
+      columnType: PrimitiveTypes.Date,
+      filterOperators: new Set([]),
+    },
+    publisher: {
+      type: FieldTypes.ManyToOne,
+      foreignCollection: null,
+      foreignKey: null,
+    },
+  },
+  searchable: true,
+  segments: ['Active', 'Inactive'],
+};
 
+export default class BookCollection extends BaseCollection {
   constructor(datasource: DataSource) {
-    this.dataSource = datasource;
-  }
-
-  getAction(name: string): Action {
-    if (name === 'Mark as Live') return new MarkAsLiveAction();
-    throw new Error('Action not found.');
+    super('book', datasource, SCHEMA);
   }
 
   async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
