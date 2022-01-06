@@ -12,7 +12,7 @@ export default class ForestHttpApi {
   constructor(forestServerUrl: string, envSecret: string) {
     if (!forestServerUrl || !envSecret) {
       throw new Error(
-        `forestServerUrl: ${forestServerUrl} and envSecret ${envSecret} must be present.`,
+        `forestServerUrl: ${forestServerUrl} and envSecret: ${envSecret} must be present.`,
       );
     }
 
