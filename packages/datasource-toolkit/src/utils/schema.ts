@@ -1,4 +1,5 @@
-import { CollectionSchema, FieldTypes } from '../interfaces/schema';
+import { Collection } from '../interfaces/collection';
+import { CollectionSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
 
 export default class SchemaUtils {
   static getPrimaryKeys(schema: CollectionSchema): string[] {
@@ -7,5 +8,39 @@ export default class SchemaUtils {
 
       return field.type === FieldTypes.Column && field.isPrimaryKey;
     });
+  }
+
+  static isSolelyForeignKey(schema: CollectionSchema, name: string): boolean {
+    const field = schema.fields[name];
+
+    return (
+      field.type === FieldTypes.Column &&
+      !field.isPrimaryKey &&
+      Object.values(schema.fields).some(
+        relation => relation.type === FieldTypes.ManyToOne && relation.foreignKey === name,
+      )
+    );
+  }
+
+  static getInverseRelation(collection: Collection, name: string): string {
+    const relation = collection.schema.fields[name] as RelationSchema;
+    const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
+    const inverse = Object.entries(foreignCollection.schema.fields).find(
+      ([, field]) =>
+        field.type !== FieldTypes.Column &&
+        field.foreignCollection === collection.name &&
+        ((field.foreignKey === relation.foreignKey &&
+          ((relation.type === FieldTypes.ManyToOne &&
+            (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne)) ||
+            relation.type === FieldTypes.OneToMany ||
+            (relation.type === FieldTypes.OneToOne && field.type === FieldTypes.ManyToOne))) ||
+          (relation.type === FieldTypes.ManyToMany &&
+            field.type === FieldTypes.ManyToMany &&
+            field.throughCollection === relation.throughCollection &&
+            field.foreignKey === relation.otherField &&
+            field.otherField === relation.foreignKey)),
+    ) as [string, RelationSchema];
+
+    return inverse ? inverse[0] : null;
   }
 }
