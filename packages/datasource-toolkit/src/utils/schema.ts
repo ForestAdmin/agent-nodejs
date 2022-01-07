@@ -29,23 +29,24 @@ export default class SchemaUtils {
       ([, field]: [string, RelationSchema]) => {
         const isManyToManyInverse =
           field.type === FieldTypes.ManyToMany &&
-          field.otherField === relation.foreignKey &&
           relation.type === FieldTypes.ManyToMany &&
+          field.otherField === relation.foreignKey &&
           field.throughCollection === relation.throughCollection &&
           field.foreignKey === relation.otherField;
 
         const isManyToOneInverse =
           field.type === FieldTypes.ManyToOne &&
-          (relation.type === FieldTypes.OneToMany || relation.type === FieldTypes.OneToOne);
+          (relation.type === FieldTypes.OneToMany || relation.type === FieldTypes.OneToOne) &&
+          field.foreignKey === relation.foreignKey;
 
         const isOtherInverse =
           (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne) &&
-          relation.type === FieldTypes.ManyToOne;
+          relation.type === FieldTypes.ManyToOne &&
+          field.foreignKey === relation.foreignKey;
 
         return (
-          field.foreignCollection === collection.name &&
-          (isManyToManyInverse ||
-            (field.foreignKey === relation.foreignKey && (isManyToOneInverse || isOtherInverse)))
+          (isManyToManyInverse || isManyToOneInverse || isOtherInverse) &&
+          field.foreignCollection === collection.name
         );
       },
     ) as [string, RelationSchema];
