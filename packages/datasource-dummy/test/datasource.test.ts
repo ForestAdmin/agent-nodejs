@@ -17,18 +17,4 @@ describe('DummyDataSource', () => {
       ]);
     });
   });
-
-  describe('getCollection', () => {
-    it("should give access to the 'book' collection", () => {
-      const dummyDataSource = new DummyDataSource();
-
-      expect(dummyDataSource.getCollection('book')).toMatchObject({
-        name: 'book',
-      });
-    });
-
-    it('should return null for unknown collection name', () => {
-      expect(new DummyDataSource().getCollection('__no_such_collection')).toBeNull();
-    });
-  });
 });

@@ -1,10 +1,10 @@
-import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+import { BaseDatasource, Collection } from '@forestadmin/datasource-toolkit';
 import BookCollection from './collections/books';
 
-export default class DummyDataSource implements DataSource {
-  readonly collections: Collection[] = [new BookCollection(this)];
+export default class DummyDataSource extends BaseDatasource<Collection> {
+  constructor() {
+    super();
 
-  getCollection(name: string): Collection {
-    return name === 'book' ? this.collections[0] : null;
+    this.collections.push(new BookCollection(this));
   }
 }
