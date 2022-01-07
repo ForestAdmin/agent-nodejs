@@ -38,6 +38,7 @@
       { "blankLine": "always", "prev": "*", "next": "return" },
       { "blankLine": "always", "prev": "*", "next": "block-like" },
       { "blankLine": "always", "prev": "block-like", "next": "*" }
-    ]
+    ],
+    "import/no-extraneous-dependencies": ["error", { "devDependencies": ["**/test/**/*.ts"] }]
   }
 }
