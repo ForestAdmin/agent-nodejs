@@ -4,7 +4,7 @@ import { AggregateResult, Aggregation } from './interfaces/query/aggregation';
 import { Projection } from './interfaces/query/projection';
 import { CompositeId, RecordData } from './interfaces/query/record';
 import { Filter, PaginatedFilter } from './interfaces/query/selection';
-import { ActionSchema, CollectionSchema } from './interfaces/schema';
+import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 
 export default abstract class BaseCollection implements Collection {
   readonly dataSource: DataSource;
@@ -39,6 +39,24 @@ export default abstract class BaseCollection implements Collection {
 
     this.actions[name] = instance;
     this.schema.actions[name] = schema;
+  }
+
+  protected addField(name: string, schema: FieldSchema): void {
+    const fieldSchema = this.schema.fields[name];
+
+    if (fieldSchema !== undefined) throw new Error(`Field "${name}" already defined in collection`);
+
+    this.schema.fields[name] = schema;
+  }
+
+  protected addFields(fields: { [fieldName: string]: FieldSchema }): void {
+    Object.entries(fields).forEach(([fieldName, fieldSchema]) =>
+      this.addField(fieldName, fieldSchema),
+    );
+  }
+
+  protected enableSearch(): void {
+    this.schema.searchable = true;
   }
 
   abstract getById(id: CompositeId, projection: Projection): Promise<RecordData>;

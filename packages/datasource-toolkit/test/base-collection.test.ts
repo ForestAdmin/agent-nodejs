@@ -7,7 +7,9 @@ import {
   ActionResponseType,
   ActionSchema,
   AggregateResult,
+  ColumnSchema,
   DataSource,
+  FieldSchema,
   RecordData,
 } from '../src';
 
@@ -108,6 +110,83 @@ describe('BaseCollection', () => {
       const collection = new CollectionWithAction('collection', null);
 
       expect(() => collection.getAction('__no_such_action__')).toThrow();
+    });
+  });
+
+  describe('addField', () => {
+    const expectedField: FieldSchema = {} as ColumnSchema;
+    class CollectionWithField extends ConcreteCollection {
+      constructor(name: string, dataSource: DataSource) {
+        super(name, dataSource);
+
+        this.addField('__field__', expectedField);
+      }
+    }
+
+    class DuplicatedFieldErrorCollection extends ConcreteCollection {
+      constructor(name: string, dataSource: DataSource) {
+        super(name, dataSource);
+
+        this.addField('__duplicated__', null);
+        this.addField('__duplicated__', null);
+      }
+    }
+
+    it('should prevent instanciation when adding field with duplicated name', () => {
+      expect(() => new DuplicatedFieldErrorCollection('__duplicated__', null)).toThrow(
+        'Field "__duplicated__" already defined in collection',
+      );
+    });
+
+    it('should add field with unique name', () => {
+      const collection = new CollectionWithField('__valid__', null);
+
+      expect(collection).toBeInstanceOf(CollectionWithField);
+      expect(collection.schema.fields).toMatchObject({
+        __field__: expectedField,
+      });
+    });
+  });
+
+  describe('addFields', () => {
+    const firstExpectedField: FieldSchema = {} as ColumnSchema;
+    const secondExpectedField: FieldSchema = {} as ColumnSchema;
+
+    class CollectionWithFields extends ConcreteCollection {
+      constructor(name: string, dataSource: DataSource) {
+        super(name, dataSource);
+
+        this.addFields({
+          __first__: firstExpectedField,
+          __second__: secondExpectedField,
+        });
+      }
+    }
+
+    it('should add all fields', () => {
+      const collection = new CollectionWithFields('__valid__', null);
+
+      expect(collection).toBeInstanceOf(CollectionWithFields);
+      expect(collection.schema.fields).toMatchObject({
+        __first__: firstExpectedField,
+        __second__: secondExpectedField,
+      });
+    });
+  });
+
+  describe('enableSearch', () => {
+    class CollectionSearchable extends ConcreteCollection {
+      constructor(name: string, dataSource: DataSource) {
+        super(name, dataSource);
+
+        this.enableSearch();
+      }
+    }
+
+    it('should set searchable to true', () => {
+      const collection = new CollectionSearchable('__searchable__', null);
+
+      expect(collection.schema.searchable).toBe(true);
     });
   });
 });
