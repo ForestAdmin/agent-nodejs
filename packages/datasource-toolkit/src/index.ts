@@ -7,6 +7,6 @@ export * from './interfaces/query/selection';
 export * from './interfaces/schema';
 
 export { default as BaseCollection } from './base-collection';
-export { default as BaseDatasource } from './base-datasource';
+export { default as BaseDataSource } from './base-datasource';
 
 export { default as SchemaUtils } from './utils/schema';

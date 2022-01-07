@@ -1,6 +1,6 @@
 import { Collection, DataSource } from './interfaces/collection';
 
-export default abstract class BaseDatasource<T extends Collection> implements DataSource {
+export default abstract class BaseDataSource<T extends Collection> implements DataSource {
   readonly collections: T[] = [];
 
   getCollection(name: string): T {

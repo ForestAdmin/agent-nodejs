@@ -1,8 +1,8 @@
 // eslint-disable-next-line max-classes-per-file
-import BaseDatasource from '../src/base-datasource';
+import BaseDataSource from '../src/base-datasource';
 import { Collection } from '../src';
 
-class ConcreteDatasource extends BaseDatasource<Collection> {}
+class ConcreteDatasource extends BaseDataSource<Collection> {}
 
 describe('BaseDatasource', () => {
   it('should instanciate properly when extended', () => {
@@ -11,7 +11,7 @@ describe('BaseDatasource', () => {
 
   describe('getCollection', () => {
     const expectedCollection = { name: '__collection__' } as Collection;
-    class DataSourceWithCollection extends BaseDatasource<Collection> {
+    class DataSourceWithCollection extends BaseDataSource<Collection> {
       constructor() {
         super();
         this.collections.push(expectedCollection);
