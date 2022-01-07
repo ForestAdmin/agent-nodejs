@@ -1,12 +1,12 @@
 import {
-  BaseAction,
+  Action,
   RecordData,
   ActionResponse,
   ActionResponseType,
   ActionForm,
 } from '@forestadmin/datasource-toolkit';
 
-export default class MarkAsLiveAction extends BaseAction {
+export default class MarkAsLiveAction implements Action {
   async execute(formValues: RecordData, selection?: Selection): Promise<ActionResponse> {
     void formValues;
     void selection;

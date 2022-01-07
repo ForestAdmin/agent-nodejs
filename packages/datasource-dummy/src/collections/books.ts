@@ -3,7 +3,6 @@ import {
   AggregateResult,
   Aggregation,
   BaseCollection,
-  CollectionSchema,
   CompositeId,
   DataSource,
   FieldTypes,
@@ -16,50 +15,49 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import MarkAsLiveAction from '../actions/mark-as-live';
 
-const SCHEMA: CollectionSchema = {
-  actions: {
-    'Mark as Live': {
-      scope: ActionSchemaScope.Bulk,
-      actionClass: MarkAsLiveAction,
-    },
-  },
-  fields: {
-    id: {
-      type: FieldTypes.Column,
-      columnType: PrimitiveTypes.Number,
-      filterOperators: new Set<Operator>([]),
-      isPrimaryKey: true,
-    },
-    title: {
-      type: FieldTypes.Column,
-      columnType: PrimitiveTypes.String,
-      filterOperators: new Set<Operator>([]),
-      defaultValue: 'Le rouge et le noir',
-    },
-    authorId: {
-      type: FieldTypes.Column,
-      columnType: PrimitiveTypes.Number,
-      filterOperators: new Set<Operator>([]),
-      defaultValue: 34,
-    },
-    publication: {
-      type: FieldTypes.Column,
-      columnType: PrimitiveTypes.Date,
-      filterOperators: new Set([]),
-    },
-    publisher: {
-      type: FieldTypes.ManyToOne,
-      foreignCollection: null,
-      foreignKey: null,
-    },
-  },
-  searchable: true,
-  segments: ['Active', 'Inactive'],
-};
+// TODO handle segments
+// const SCHEMA = {
+//   segments: ['Active', 'Inactive'],
+// };
 
 export default class BookCollection extends BaseCollection {
   constructor(datasource: DataSource) {
-    super('book', datasource, SCHEMA);
+    super('book', datasource);
+
+    this.enableSearch();
+
+    this.addAction('Mark as Live', { scope: ActionSchemaScope.Bulk }, new MarkAsLiveAction());
+
+    this.addFields({
+      id: {
+        type: FieldTypes.Column,
+        columnType: PrimitiveTypes.Number,
+        filterOperators: new Set<Operator>([]),
+        isPrimaryKey: true,
+      },
+      title: {
+        type: FieldTypes.Column,
+        columnType: PrimitiveTypes.String,
+        filterOperators: new Set<Operator>([]),
+        defaultValue: 'Le rouge et le noir',
+      },
+      authorId: {
+        type: FieldTypes.Column,
+        columnType: PrimitiveTypes.Number,
+        filterOperators: new Set<Operator>([]),
+        defaultValue: 34,
+      },
+      publication: {
+        type: FieldTypes.Column,
+        columnType: PrimitiveTypes.Date,
+        filterOperators: new Set([]),
+      },
+      publisher: {
+        type: FieldTypes.ManyToOne,
+        foreignCollection: null,
+        foreignKey: null,
+      },
+    });
   }
 
   async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
@@ -137,7 +135,7 @@ export default class BookCollection extends BaseCollection {
   }
 
   /** @see https://stackoverflow.com/questions/1349404 */
-  private makeRandomString(length = 10) {
+  private makeRandomString(length) {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
