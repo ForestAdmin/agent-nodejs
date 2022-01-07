@@ -12,7 +12,10 @@ import path from 'path';
 import { ForestServerAction, ForestServerActionField } from './types';
 
 export default class SchemaGeneratorActions {
-  /** Schema sent to forestadmin-server when { load: true } to work around frontend bug */
+  /**
+   * 'fields' sent to forestadmin-server when we want to generate the form on demand.
+   * This works around a bug in frontend which won't call the server if no fields are defined.
+   */
   private static defaultFields = [
     {
       field: 'Loading...',
@@ -50,7 +53,7 @@ export default class SchemaGeneratorActions {
       hooks: {
         load: Boolean(schema.generateFormOnUsage),
 
-        // Always registering has no consequences the change hook, even if we don't use it.
+        // Always registering the change hook has no consequences, even if we don't use it.
         change: ['changeHook'],
       },
     };
