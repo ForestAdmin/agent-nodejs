@@ -6,29 +6,27 @@ describe('Serializer', () => {
   const serializer = new Serializer('/forest');
 
   describe('With composite pk', () => {
-    const dataSource = factories.dataSource
-      .withOneCollection({
-        name: 'person',
-        schema: factories.collectionSchema.build({
-          fields: {
-            birthdate: factories.columnSchema.build({
-              type: FieldTypes.Column,
-              columnType: PrimitiveTypes.String,
-              isPrimaryKey: true,
-            }),
-            firstName: factories.columnSchema.build({
-              type: FieldTypes.Column,
-              columnType: PrimitiveTypes.String,
-            }),
-            lastName: factories.columnSchema.build({
-              type: FieldTypes.Column,
-              columnType: PrimitiveTypes.String,
-              isPrimaryKey: true,
-            }),
-          },
-        }),
-      })
-      .build();
+    const dataSource = factories.dataSource.buildWithCollection({
+      name: 'person',
+      schema: factories.collectionSchema.build({
+        fields: {
+          birthdate: factories.columnSchema.build({
+            type: FieldTypes.Column,
+            columnType: PrimitiveTypes.String,
+            isPrimaryKey: true,
+          }),
+          firstName: factories.columnSchema.build({
+            type: FieldTypes.Column,
+            columnType: PrimitiveTypes.String,
+          }),
+          lastName: factories.columnSchema.build({
+            type: FieldTypes.Column,
+            columnType: PrimitiveTypes.String,
+            isPrimaryKey: true,
+          }),
+        },
+      }),
+    });
 
     const person = { birthdate: '1920-01-02', firstName: 'Isaac', lastName: 'Asimov' };
     const serializedPerson = {
@@ -52,52 +50,50 @@ describe('Serializer', () => {
   });
 
   describe('With relations', () => {
-    const dataSource = factories.dataSource
-      .withSeveralCollections([
-        factories.collection.build({
-          name: 'book',
-          schema: factories.collectionSchema.build({
-            fields: {
-              isbn: factories.columnSchema.build({
-                type: FieldTypes.Column,
-                columnType: PrimitiveTypes.String,
-                isPrimaryKey: true,
-              }),
-              author: factories.manyToOneSchema.build({
-                type: FieldTypes.ManyToOne,
-                foreignCollection: 'person',
-                foreignKey: 'authorId',
-              }),
-              authorId: factories.columnSchema.build({
-                type: FieldTypes.Column,
-                columnType: PrimitiveTypes.String,
-              }),
-            },
-          }),
+    const dataSource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'book',
+        schema: factories.collectionSchema.build({
+          fields: {
+            isbn: factories.columnSchema.build({
+              type: FieldTypes.Column,
+              columnType: PrimitiveTypes.String,
+              isPrimaryKey: true,
+            }),
+            author: factories.manyToOneSchema.build({
+              type: FieldTypes.ManyToOne,
+              foreignCollection: 'person',
+              foreignKey: 'authorId',
+            }),
+            authorId: factories.columnSchema.build({
+              type: FieldTypes.Column,
+              columnType: PrimitiveTypes.String,
+            }),
+          },
         }),
-        factories.collection.build({
-          name: 'person',
-          schema: factories.collectionSchema.build({
-            fields: {
-              id: factories.columnSchema.build({
-                type: FieldTypes.Column,
-                columnType: PrimitiveTypes.String,
-                isPrimaryKey: true,
-              }),
-              name: factories.columnSchema.build({
-                type: FieldTypes.Column,
-                columnType: PrimitiveTypes.String,
-              }),
-              books: factories.oneToManySchema.build({
-                type: FieldTypes.OneToMany,
-                foreignCollection: 'book',
-                foreignKey: 'authorId',
-              }),
-            },
-          }),
+      }),
+      factories.collection.build({
+        name: 'person',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.build({
+              type: FieldTypes.Column,
+              columnType: PrimitiveTypes.String,
+              isPrimaryKey: true,
+            }),
+            name: factories.columnSchema.build({
+              type: FieldTypes.Column,
+              columnType: PrimitiveTypes.String,
+            }),
+            books: factories.oneToManySchema.build({
+              type: FieldTypes.OneToMany,
+              foreignCollection: 'book',
+              foreignKey: 'authorId',
+            }),
+          },
         }),
-      ])
-      .build();
+      }),
+    ]);
 
     const record = {
       isbn: '9780345317988',

@@ -56,6 +56,6 @@ export enum Aggregator {
 }
 
 export type ConditionTreeNot = { condition: ConditionTree };
-export type ConditionTreeLeaf = { operator: Operator; field: string; value: unknown };
+export type ConditionTreeLeaf = { operator: Operator; field: string; value?: unknown };
 export type ConditionTreeBranch = { aggregator: Aggregator; conditions: ConditionTree[] };
 export type ConditionTree = ConditionTreeBranch | ConditionTreeLeaf | ConditionTreeNot;

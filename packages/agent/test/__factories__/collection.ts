@@ -1,8 +1,23 @@
+import { ActionForm, ActionSchema, Collection } from '@forestadmin/datasource-toolkit';
 import { Factory } from 'fishery';
-import { Collection } from '@forestadmin/datasource-toolkit';
 import collectionSchema from './schema/collection-schema';
 
-export default Factory.define<Collection>(() => ({
+export class CollectionFactory extends Factory<Collection> {
+  buildWithAction(name: string, schema: ActionSchema, form: ActionForm = null): Collection {
+    return this.build({
+      name: 'books',
+      schema: collectionSchema.build({
+        actions: { [name]: schema },
+      }),
+      getAction: jest.fn().mockReturnValue({
+        execute: jest.fn(),
+        getForm: jest.fn().mockReturnValue(Promise.resolve(form)),
+      }),
+    });
+  }
+}
+
+export default CollectionFactory.define(() => ({
   dataSource: null,
   name: 'a collection',
   schema: collectionSchema.build(),

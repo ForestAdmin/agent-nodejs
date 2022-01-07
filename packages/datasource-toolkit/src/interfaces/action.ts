@@ -15,15 +15,14 @@ export interface ActionForm {
 }
 
 export interface ActionField {
-  field: string;
+  label: string;
   description?: string;
   type: ActionFieldType;
+  enumValues: string[];
   isRequired?: boolean;
   isReadOnly?: boolean;
   defaultValue?: unknown;
-  useChangeHook: boolean;
-
-  enums?: unknown[]; // When type === ActionFieldType.Enum
+  reloadOnChange: boolean;
   collectionName?: string; // When type === ActionFieldType.Collection
 }
 
@@ -34,9 +33,9 @@ export enum ActionFieldType {
   Dateonly = 'Dateonly',
   Enum = 'Enum',
   File = 'File',
+  Json = 'Json',
   Number = 'Number',
   String = 'String',
-  Json = 'Json',
   EnumList = 'Enum[]',
   NumberList = 'Number[]',
   StringList = 'String[]',

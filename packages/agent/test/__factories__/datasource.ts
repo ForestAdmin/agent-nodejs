@@ -3,36 +3,27 @@ import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
 import factoryCollection from './collection';
 
 export class DataSourceFactory extends Factory<DataSource> {
-  withOneCollection(partialCollection: Partial<Collection>) {
-    return this.params({
-      collections: [],
-      getCollection: jest.fn(),
-    }).afterBuild(dataSource => {
-      const collection = factoryCollection.build({ ...partialCollection, dataSource });
-      dataSource.collections.push(collection);
-      dataSource.getCollection = jest.fn().mockResolvedValue(collection);
-    });
+  buildWithCollection(partialCollection: Partial<Collection>): DataSource {
+    return this.buildWithCollections([partialCollection]);
   }
 
-  withSeveralCollections(partialCollections: Array<Partial<Collection>>) {
-    return this.params({
-      collections: [],
-      getCollection: jest.fn(),
-    }).afterBuild(dataSource => {
+  buildWithCollections(partialCollections: Array<Partial<Collection>>): DataSource {
+    const factory = this.afterBuild(dataSource => {
+      // Add collections
       partialCollections.forEach(partialCollection => {
         const collection = factoryCollection.build({ ...partialCollection, dataSource });
         dataSource.collections.push(collection);
-        dataSource.getCollection = jest
-          .fn()
-          .mockImplementation(name =>
-            dataSource.collections.find(dataSourceCollection => dataSourceCollection.name === name),
-          );
       });
+
+      // Implement the getCollection method
+      const getCollection = dataSource.getCollection as jest.Mock<Collection, [string]>;
+      getCollection.mockImplementation(name =>
+        dataSource.collections.find(dataSourceCollection => dataSourceCollection.name === name),
+      );
     });
+
+    return factory.build();
   }
 }
 
-export default DataSourceFactory.define(() => ({
-  collections: [],
-  getCollection: jest.fn(),
-}));
+export default DataSourceFactory.define(() => ({ collections: [], getCollection: jest.fn() }));

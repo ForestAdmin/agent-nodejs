@@ -1,4 +1,4 @@
-import { Filter, Operator, Aggregator } from './query/selection';
+import { ConditionTreeLeaf, Operator } from './query/selection';
 
 export enum CollectionSchemaScope {
   Single = 'single',
@@ -7,36 +7,31 @@ export enum CollectionSchemaScope {
 }
 
 export type CollectionSchema = {
-  actions: Array<{
-    name: string;
-    scope: CollectionSchemaScope;
-    forceDownload?: boolean;
-  }>;
+  actions: { [actionName: string]: ActionSchema };
   fields: { [fieldName: string]: FieldSchema };
   searchable: boolean;
   segments: string[];
-  validation?: Filter;
 };
 
-export type FieldSchema =
-  | ColumnSchema
-  | ManyToOneSchema
-  | OneToManySchema
-  | OneToOneSchema
-  | ManyToManySchema;
+export type ActionSchema = {
+  scope: CollectionSchemaScope;
+  generateFormOnUsage?: boolean;
+  forceDownload?: boolean;
+};
+
+export type RelationSchema = ManyToOneSchema | OneToManySchema | OneToOneSchema | ManyToManySchema;
+export type FieldSchema = ColumnSchema | RelationSchema;
 
 export type ColumnSchema = {
   columnType: ColumnType;
-  filterOperators: Set<Operator>;
+  filterOperators?: Set<Operator>;
   defaultValue?: unknown;
   enumValues?: string[];
   isPrimaryKey?: boolean;
   isReadOnly?: boolean;
   isSortable?: boolean;
   type: FieldTypes.Column;
-  validation?:
-    | { aggregator: Aggregator; conditions: ColumnSchema['validation'] }
-    | { operator: Operator; field: string; value: unknown };
+  validation?: Array<Omit<ConditionTreeLeaf, 'field'>>;
 };
 
 export type ManyToOneSchema = {
@@ -58,10 +53,10 @@ export type OneToOneSchema = {
 };
 
 export type ManyToManySchema = {
-  foreignCollection?: string;
-  foreignKey?: string;
-  otherField?: string;
-  throughCollection?: string;
+  foreignCollection: string;
+  foreignKey: string;
+  otherField: string;
+  throughCollection: string;
   type: FieldTypes.ManyToMany;
 };
 
