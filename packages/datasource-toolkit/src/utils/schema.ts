@@ -1,5 +1,5 @@
 import { Collection } from '../interfaces/collection';
-import { CollectionSchema, FieldSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
+import { CollectionSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
 
 export default class SchemaUtils {
   static getPrimaryKeys(schema: CollectionSchema): string[] {
