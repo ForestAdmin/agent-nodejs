@@ -21,12 +21,11 @@ export default class BookCollection implements Collection {
   readonly dataSource: DataSource;
   readonly name: string = 'book';
   readonly schema: CollectionSchema = {
-    actions: [
-      {
-        name: 'Mark as Live',
+    actions: {
+      'Mark as Live': {
         scope: CollectionSchemaScope.Bulk,
       },
-    ],
+    },
     fields: {
       id: {
         type: FieldTypes.Column,
