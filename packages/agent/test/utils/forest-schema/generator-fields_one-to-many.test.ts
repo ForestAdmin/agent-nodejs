@@ -21,7 +21,6 @@ describe('SchemaGeneratorFields > One to Many', () => {
           authorId: factories.columnSchema.build({
             type: FieldTypes.Column,
             columnType: PrimitiveTypes.Uuid,
-            filterOperators: new Set(),
           }),
         },
       }),

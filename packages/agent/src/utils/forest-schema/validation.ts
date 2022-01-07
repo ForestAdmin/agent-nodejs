@@ -5,7 +5,7 @@ type FrontendValidation = ForestServerField['validations'][number];
 type Validation = ColumnSchema['validation'][number];
 
 export default class FrontendValidationUtils {
-  private static operatorMap: Partial<Record<Operator, ValidationType>> = {
+  private static operatorValidationTypeMap: Partial<Record<Operator, ValidationType>> = {
     [Operator.Present]: ValidationType.Present,
     [Operator.GreaterThan]: ValidationType.GreaterThan,
     [Operator.LessThan]: ValidationType.LessThan,
@@ -20,7 +20,7 @@ export default class FrontendValidationUtils {
 
     return predicates
       .map(p => {
-        const type = FrontendValidationUtils.operatorMap[p.operator];
+        const type = FrontendValidationUtils.operatorValidationTypeMap[p.operator];
 
         return type ? { type, value: p.value, message: null } : null;
       })

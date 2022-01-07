@@ -39,6 +39,8 @@ export default class SchemaGeneratorActions {
   ): Promise<ForestServerAction> {
     const schema = collection.schema.actions[name];
     const actionIndex = Object.keys(collection.schema.actions).indexOf(name);
+
+    // Generate url-safe friendly name (which won't be unique, but that's OK).
     const slug = name.toLocaleLowerCase().replace(/[^a-z0-9-]+/g, '-');
 
     return {
