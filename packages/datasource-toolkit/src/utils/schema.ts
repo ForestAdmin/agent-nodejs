@@ -42,15 +42,16 @@ export default class SchemaUtils {
 
         const isOneToManyInverse =
           relation.type === FieldTypes.ManyToOne &&
-          (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne) &&
-          field.foreignKey === relation.foreignKey;
+          (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne);
 
         const isOtherInverse =
           (relation.type === FieldTypes.OneToMany || relation.type === FieldTypes.OneToOne) &&
-          field.type === FieldTypes.ManyToOne &&
-          field.foreignKey === relation.foreignKey;
+          field.type === FieldTypes.ManyToOne;
 
-        return isManyToManyInverse || isOneToManyInverse || isOtherInverse;
+        return (
+          isManyToManyInverse ||
+          (field.foreignKey === relation.foreignKey && (isOneToManyInverse || isOtherInverse))
+        );
       }) as [string, RelationSchema];
 
     return inverse ? inverse[0] : null;
