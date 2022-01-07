@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
-import { FieldTypes, ManyToOneSchema } from '@forestadmin/datasource-toolkit';
+import { FieldTypes, ManyToOneSchema } from '../../../src/interfaces/schema';
 
 export default Factory.define<ManyToOneSchema>(() => ({
   type: FieldTypes.ManyToOne,

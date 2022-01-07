@@ -1,4 +1,4 @@
 import { Factory } from 'fishery';
-import { RecordData } from '@forestadmin/datasource-toolkit';
+import { RecordData } from '../../src/interfaces/query/record';
 
 export default Factory.define<RecordData>(() => ({}));

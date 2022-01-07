@@ -1,5 +1,7 @@
-import { ActionForm, ActionSchema, Collection } from '@forestadmin/datasource-toolkit';
 import { Factory } from 'fishery';
+import { ActionForm } from '../../src/interfaces/action';
+import { Collection } from '../../src/interfaces/collection';
+import { ActionSchema } from '../../src/interfaces/schema';
 import collectionSchema from './schema/collection-schema';
 
 export class CollectionFactory extends Factory<Collection> {

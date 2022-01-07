@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
-import { ColumnSchema, FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { ColumnSchema, FieldTypes, PrimitiveTypes } from '../../../src/interfaces/schema';
 
 export default Factory.define<ColumnSchema>(() => ({
   type: FieldTypes.Column,
