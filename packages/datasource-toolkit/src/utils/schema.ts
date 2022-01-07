@@ -25,20 +25,14 @@ export default class SchemaUtils {
   static getInverseRelation(collection: Collection, name: string): string {
     const relation = collection.schema.fields[name] as RelationSchema;
     const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
-    const inverse = Object.entries(foreignCollection.schema.fields)
-      // Consider only relations to collection
-      .filter(
-        ([, field]: [string, FieldSchema]) =>
-          field.type !== FieldTypes.Column && field.foreignCollection === collection.name,
-      )
-      // Check if relation is inverse
-      .find(([, field]: [string, RelationSchema]) => {
+    const inverse = Object.entries(foreignCollection.schema.fields).find(
+      ([, field]: [string, RelationSchema]) => {
         const isManyToManyInverse =
           field.type === FieldTypes.ManyToMany &&
+          field.otherField === relation.foreignKey &&
           relation.type === FieldTypes.ManyToMany &&
           field.throughCollection === relation.throughCollection &&
-          field.foreignKey === relation.otherField &&
-          field.otherField === relation.foreignKey;
+          field.foreignKey === relation.otherField;
 
         const isOneToManyInverse =
           relation.type === FieldTypes.ManyToOne &&
@@ -49,10 +43,12 @@ export default class SchemaUtils {
           field.type === FieldTypes.ManyToOne;
 
         return (
-          isManyToManyInverse ||
-          (field.foreignKey === relation.foreignKey && (isOneToManyInverse || isOtherInverse))
+          field.foreignCollection === collection.name &&
+          (isManyToManyInverse ||
+            (field.foreignKey === relation.foreignKey && (isOneToManyInverse || isOtherInverse)))
         );
-      }) as [string, RelationSchema];
+      },
+    ) as [string, RelationSchema];
 
     return inverse ? inverse[0] : null;
   }
