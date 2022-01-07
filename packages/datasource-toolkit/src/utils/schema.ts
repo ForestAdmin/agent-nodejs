@@ -34,18 +34,18 @@ export default class SchemaUtils {
           field.throughCollection === relation.throughCollection &&
           field.foreignKey === relation.otherField;
 
-        const isOneToManyInverse =
-          relation.type === FieldTypes.ManyToOne &&
-          (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne);
+        const isManyToOneInverse =
+          field.type === FieldTypes.ManyToOne &&
+          (relation.type === FieldTypes.OneToMany || relation.type === FieldTypes.OneToOne);
 
         const isOtherInverse =
-          (relation.type === FieldTypes.OneToMany || relation.type === FieldTypes.OneToOne) &&
-          field.type === FieldTypes.ManyToOne;
+          (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne) &&
+          relation.type === FieldTypes.ManyToOne;
 
         return (
           field.foreignCollection === collection.name &&
           (isManyToManyInverse ||
-            (field.foreignKey === relation.foreignKey && (isOneToManyInverse || isOtherInverse)))
+            (field.foreignKey === relation.foreignKey && (isManyToOneInverse || isOtherInverse)))
         );
       },
     ) as [string, RelationSchema];
