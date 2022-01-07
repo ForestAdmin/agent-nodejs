@@ -1,19 +1,15 @@
-import {
-  ActionFieldType,
-  Collection,
-  CollectionSchemaScope,
-} from '@forestadmin/datasource-toolkit';
+import { ActionFieldType, ActionSchemaScope, Collection } from '@forestadmin/datasource-toolkit';
 import SchemaGeneratorActions from '../../../src/utils/forest-schema/generator-actions';
 import factories from '../../__factories__';
 
 describe('SchemaGeneratorActions', () => {
   describe('Without form', () => {
     const collection = factories.collection.buildWithAction('Send email', {
-      scope: CollectionSchemaScope.Single,
+      scope: ActionSchemaScope.Single,
       forceDownload: false,
     });
 
-    it('should generate schema correctly', async () => {
+    test('should generate schema correctly', async () => {
       const schema = await SchemaGeneratorActions.buildSchema('/forest', collection, 'Send email');
 
       expect(schema).toStrictEqual({
@@ -38,7 +34,7 @@ describe('SchemaGeneratorActions', () => {
     const collection: Collection = factories.collection.buildWithAction(
       'Send {} email',
       {
-        scope: CollectionSchemaScope.Single,
+        scope: ActionSchemaScope.Single,
         forceDownload: false,
         generateFormOnUsage: true,
       },
@@ -58,7 +54,7 @@ describe('SchemaGeneratorActions', () => {
       },
     );
 
-    it('should generate schema correctly', async () => {
+    test('should generate schema correctly', async () => {
       const schema = await SchemaGeneratorActions.buildSchema(
         '/forest',
         collection,
@@ -88,7 +84,7 @@ describe('SchemaGeneratorActions', () => {
     const collection: Collection = factories.collection.buildWithAction(
       'Send email',
       {
-        scope: CollectionSchemaScope.Single,
+        scope: ActionSchemaScope.Single,
         forceDownload: false,
         generateFormOnUsage: false,
       },
@@ -108,7 +104,7 @@ describe('SchemaGeneratorActions', () => {
       },
     );
 
-    it('should include a reference to the change hook', async () => {
+    test('should include a reference to the change hook', async () => {
       const schema = await SchemaGeneratorActions.buildSchema('/forest', collection, 'Send email');
       expect(schema.fields[0].hook).toEqual('changeHook');
     });
@@ -119,7 +115,7 @@ describe('SchemaGeneratorActions', () => {
       factories.collection.buildWithAction(
         'Send email',
         {
-          scope: CollectionSchemaScope.Single,
+          scope: ActionSchemaScope.Single,
           forceDownload: false,
           generateFormOnUsage: false,
         },
@@ -171,7 +167,7 @@ describe('SchemaGeneratorActions', () => {
       }),
     ]);
 
-    it('special fields should work', async () => {
+    test('special fields should work', async () => {
       const collection = dataSource.getCollection('books');
       const schema = await SchemaGeneratorActions.buildSchema('/forest', collection, 'Send email');
 
