@@ -1,6 +1,6 @@
 // eslint-disable-next-line max-classes-per-file
 import BaseDataSource from '../src/base-datasource';
-import { Collection, CollectionSchema } from '../src';
+import { Collection } from '../src';
 
 class ConcreteDatasource extends BaseDataSource<Collection> {}
 
