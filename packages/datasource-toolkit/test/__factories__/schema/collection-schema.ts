@@ -1,5 +1,5 @@
-import { CollectionSchema } from '@forestadmin/datasource-toolkit';
 import { Factory } from 'fishery';
+import { CollectionSchema } from '../../../src/interfaces/schema';
 
 export default Factory.define<CollectionSchema>(() => ({
   actions: {},
