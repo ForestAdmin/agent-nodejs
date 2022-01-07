@@ -27,7 +27,6 @@ export default class SchemaGeneratorCollection {
       isSearchable: collection.schema.searchable,
       isVirtual: false,
       name: collection.name,
-      nameOld: collection.name,
       onlyForRelationships: false,
       paginationType: 'page',
       segments: collection.schema.segments.map(name =>

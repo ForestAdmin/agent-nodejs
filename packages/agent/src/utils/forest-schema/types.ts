@@ -2,7 +2,6 @@ import { ColumnType } from '@forestadmin/datasource-toolkit';
 
 export type ForestServerCollection = {
   name: string;
-  nameOld: string;
   icon: null;
   integration: null;
   isReadOnly: boolean;
