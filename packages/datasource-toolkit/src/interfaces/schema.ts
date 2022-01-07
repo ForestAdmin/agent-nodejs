@@ -1,5 +1,4 @@
 import { ConditionTreeLeaf, Operator } from './query/selection';
-import BaseAction from '../base-action';
 
 export enum ActionSchemaScope {
   Single = 'single',
@@ -10,7 +9,7 @@ export enum ActionSchemaScope {
 export type ActionSchema = {
   scope: ActionSchemaScope;
   forceDownload?: boolean;
-  actionClass: typeof BaseAction;
+  generateFormOnUsage?: boolean;
 };
 
 export type CollectionSchema = {

@@ -11,26 +11,34 @@ export default abstract class BaseCollection implements Collection {
   readonly name = null;
   readonly schema: CollectionSchema = null;
 
-  constructor(name, datasource: DataSource, schema: CollectionSchema) {
+  private actions: { [actionName: string]: Action } = {};
+
+  constructor(name: string, datasource: DataSource) {
     this.dataSource = datasource;
     this.name = name;
-    this.schema = schema;
+    this.schema = {
+      actions: {},
+      fields: {},
+      searchable: false,
+      segments: [],
+    };
   }
 
   getAction(name: string): Action {
-    const actionSchema = this.schema.actions[name];
+    const action = this.actions[name];
 
-    if (actionSchema === undefined) throw new Error(`Action "${name}" not found.`);
+    if (action === undefined) throw new Error(`Action "${name}" not found.`);
 
-    return new (actionSchema.actionClass as new () => Action)();
+    return action;
   }
 
-  addAction(name: string, action: ActionSchema): void {
-    const actionSchema = this.schema.actions[name];
+  protected addAction(name: string, schema: ActionSchema, instance: Action): void {
+    const action = this.actions[name];
 
-    if (actionSchema) throw new Error(`Action "${name}" already defined in collection`);
+    if (action !== undefined) throw new Error(`Action "${name}" already defined in collection`);
 
-    this.schema.actions[name] = action;
+    this.actions[name] = instance;
+    this.schema.actions[name] = schema;
   }
 
   abstract getById(id: CompositeId, projection: Projection): Promise<RecordData>;
