@@ -27,8 +27,8 @@ export default class SchemaUtils {
     const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
     const inverse = Object.entries(foreignCollection.schema.fields).find(([, field]) => {
       const isOneToManyInverse =
-        relation.type === FieldTypes.ManyToOne &&
         (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne) &&
+        relation.type === FieldTypes.ManyToOne &&
         field.foreignKey === relation.foreignKey;
 
       const isManyToOneInverse =
