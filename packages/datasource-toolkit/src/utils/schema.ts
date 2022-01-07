@@ -26,29 +26,29 @@ export default class SchemaUtils {
     const relation = collection.schema.fields[name] as RelationSchema;
     const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
     const inverse = Object.entries(foreignCollection.schema.fields).find(([, field]) => {
-      if (field.type !== FieldTypes.Column && field.foreignCollection === collection.name) {
-        const isOneToManyInverse =
-          relation.type === FieldTypes.ManyToOne &&
-          (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne);
+      const isOneToManyInverse =
+        relation.type === FieldTypes.ManyToOne &&
+        (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne) &&
+        field.foreignKey === relation.foreignKey;
 
-        const isManyToOneInverse =
-          relation.type === FieldTypes.OneToMany ||
-          (relation.type === FieldTypes.OneToOne && field.type === FieldTypes.ManyToOne);
+      const isManyToOneInverse =
+        relation.type === FieldTypes.OneToMany ||
+        (relation.type === FieldTypes.OneToOne &&
+          field.type === FieldTypes.ManyToOne &&
+          field.foreignKey === relation.foreignKey);
 
-        const isManyToManyInverse =
-          relation.type === FieldTypes.ManyToMany &&
-          field.type === FieldTypes.ManyToMany &&
-          field.throughCollection === relation.throughCollection &&
-          field.foreignKey === relation.otherField &&
-          field.otherField === relation.foreignKey;
+      const isManyToManyInverse =
+        relation.type === FieldTypes.ManyToMany &&
+        field.type === FieldTypes.ManyToMany &&
+        field.throughCollection === relation.throughCollection &&
+        field.foreignKey === relation.otherField &&
+        field.otherField === relation.foreignKey;
 
-        return (
-          isManyToManyInverse ||
-          (field.foreignKey === relation.foreignKey && (isOneToManyInverse || isManyToOneInverse))
-        );
-      }
-
-      return false;
+      return (
+        field.type !== FieldTypes.Column &&
+        field.foreignCollection === collection.name &&
+        (isManyToManyInverse || isOneToManyInverse || isManyToOneInverse)
+      );
     }) as [string, RelationSchema];
 
     return inverse ? inverse[0] : null;
