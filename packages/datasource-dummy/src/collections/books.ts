@@ -1,10 +1,8 @@
 import {
-  Action,
+  ActionSchemaScope,
   AggregateResult,
   Aggregation,
-  Collection,
-  CollectionSchema,
-  CollectionSchemaScope,
+  BaseCollection,
   CompositeId,
   DataSource,
   FieldTypes,
@@ -17,16 +15,20 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import MarkAsLiveAction from '../actions/mark-as-live';
 
-export default class BookCollection implements Collection {
-  readonly dataSource: DataSource;
-  readonly name: string = 'book';
-  readonly schema: CollectionSchema = {
-    actions: {
-      'Mark as Live': {
-        scope: CollectionSchemaScope.Bulk,
-      },
-    },
-    fields: {
+// TODO handle segments
+// const SCHEMA = {
+//   segments: ['Active', 'Inactive'],
+// };
+
+export default class BookCollection extends BaseCollection {
+  constructor(datasource: DataSource) {
+    super('book', datasource);
+
+    this.enableSearch();
+
+    this.addAction('Mark as Live', { scope: ActionSchemaScope.Bulk }, new MarkAsLiveAction());
+
+    this.addFields({
       id: {
         type: FieldTypes.Column,
         columnType: PrimitiveTypes.Number,
@@ -55,18 +57,7 @@ export default class BookCollection implements Collection {
         foreignCollection: null,
         foreignKey: null,
       },
-    },
-    searchable: true,
-    segments: ['Active', 'Inactive'],
-  };
-
-  constructor(datasource: DataSource) {
-    this.dataSource = datasource;
-  }
-
-  getAction(name: string): Action {
-    if (name === 'Mark as Live') return new MarkAsLiveAction();
-    throw new Error('Action not found.');
+    });
   }
 
   async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
@@ -144,7 +135,7 @@ export default class BookCollection implements Collection {
   }
 
   /** @see https://stackoverflow.com/questions/1349404 */
-  private makeRandomString(length = 10) {
+  private makeRandomString(length) {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;

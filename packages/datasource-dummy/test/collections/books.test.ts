@@ -1,5 +1,4 @@
 import { AggregationOperation, ColumnSchema } from '@forestadmin/datasource-toolkit';
-import MarkAsLiveAction from '../../src/actions/mark-as-live';
 import BookCollection from '../../src/collections/books';
 import DummyDataSource from '../../src/datasource';
 
@@ -32,20 +31,6 @@ describe('DummyDataSource > Collections > Books', () => {
       const bookCollection = instanciateCollection();
 
       expect(bookCollection.schema).toBeDefined();
-    });
-  });
-
-  describe('getAction', () => {
-    it('should return a known action', () => {
-      const bookCollection = instanciateCollection();
-
-      expect(bookCollection.getAction('Mark as Live')).toBeInstanceOf(MarkAsLiveAction);
-    });
-
-    it('should thrown with an unknown action name', () => {
-      const bookCollection = instanciateCollection();
-
-      expect(() => bookCollection.getAction('__no_such_action__')).toThrow('Action not found.');
     });
   });
 
