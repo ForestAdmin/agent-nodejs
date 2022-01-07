@@ -34,10 +34,10 @@ export default class SchemaUtils {
       // Check if relation is inverse
       .find(([, field]: [string, RelationSchema]) => {
         const isManyToManyInverse =
-          relation.type === FieldTypes.ManyToMany &&
           field.type === FieldTypes.ManyToMany &&
-          field.foreignKey === relation.otherField &&
+          relation.type === FieldTypes.ManyToMany &&
           field.throughCollection === relation.throughCollection &&
+          field.foreignKey === relation.otherField &&
           field.otherField === relation.foreignKey;
 
         const isOneToManyInverse =
