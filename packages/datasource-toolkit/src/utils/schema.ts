@@ -27,14 +27,13 @@ export default class SchemaUtils {
     const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
     const inverse = Object.entries(foreignCollection.schema.fields).find(([, field]) => {
       if (field.type !== FieldTypes.Column && field.foreignCollection === collection.name) {
-        const isOtherInverse =
-          // foreignKeys are equal in both relations
-          field.foreignKey === relation.foreignKey &&
-          // relation.type is the inverse of field.type
-          ((relation.type === FieldTypes.ManyToOne &&
-            (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne)) ||
-            relation.type === FieldTypes.OneToMany ||
-            (relation.type === FieldTypes.OneToOne && field.type === FieldTypes.ManyToOne));
+        const isOneToManyInverse =
+          relation.type === FieldTypes.ManyToOne &&
+          (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne);
+
+        const isManyToOneInverse =
+          relation.type === FieldTypes.OneToMany ||
+          (relation.type === FieldTypes.OneToOne && field.type === FieldTypes.ManyToOne);
 
         const isManyToManyInverse =
           relation.type === FieldTypes.ManyToMany &&
@@ -43,7 +42,10 @@ export default class SchemaUtils {
           field.foreignKey === relation.otherField &&
           field.otherField === relation.foreignKey;
 
-        return isOtherInverse || isManyToManyInverse;
+        return (
+          isManyToManyInverse ||
+          (field.foreignKey === relation.foreignKey && (isOneToManyInverse || isManyToOneInverse))
+        );
       }
 
       return false;
