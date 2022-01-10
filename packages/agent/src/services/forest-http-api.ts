@@ -27,7 +27,7 @@ export default class ForestHttpApi {
   }> {
     try {
       const response: Response = await superagent
-        .get(`${this.forestServerUrl}/liana/v1/ip-whitelist-rules`)
+        .get(new URL('/liana/v1/ip-whitelist-rules', this.forestServerUrl))
         .set('forest-secret-key', this.envSecret);
 
       return {
@@ -47,7 +47,7 @@ export default class ForestHttpApi {
 
       return response.body;
     } catch {
-      throw new Error('Failed to fetch openid-configuration');
+      throw new Error('Failed to fetch openid-configuration.');
     }
   }
 
@@ -61,6 +61,8 @@ export default class ForestHttpApi {
     lastName: string;
     team: string;
     renderingId: string;
+    role: string;
+    tags: { key: string; value: string }[];
   }> {
     try {
       const response = await superagent
@@ -76,10 +78,12 @@ export default class ForestHttpApi {
         firstName: attributes.first_name,
         lastName: attributes.last_name,
         team: attributes.teams[0],
+        role: attributes.role,
+        tags: attributes.tags,
         renderingId,
       };
     } catch {
-      throw new Error('Failed to retrieve authorization informations');
+      throw new Error('Failed to retrieve authorization informations.');
     }
   }
 }
