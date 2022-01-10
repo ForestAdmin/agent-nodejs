@@ -1,8 +1,8 @@
 import nock from 'nock';
 import superagent from 'superagent';
-import start from '../src/index';
+import agent from '../src/agent';
 
-describe('index', () => {
+describe('agent', () => {
   test('should start a server on port 3351', async () => {
     nock('https://api.development.forestadmin.com')
       .get('/oidc/.well-known/openid-configuration')
@@ -12,8 +12,15 @@ describe('index', () => {
 
     nock('https://fake-registration-endpoint.org').post('/').reply(201, { client_id: 'xx' });
 
-    const stop = await start();
-    const response = await superagent.get('http://127.0.0.1:3351/forest/');
+    const stop = await agent(3352, 'localhost', {
+      prefix: '/forest',
+      authSecret: 'xxx',
+      envSecret: 'yyy',
+      forestServerUrl: 'https://api.development.forestadmin.com',
+      agentUrl: 'http://localhost:3352',
+    });
+    const response = await superagent.get('http://localhost:3352/forest/');
+
     stop();
 
     expect(response.status).toBe(200);
