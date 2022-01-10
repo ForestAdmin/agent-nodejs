@@ -1,10 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "paths": {
-      "openclient-id": ["./global.d.ts"]
-    }
+    "outDir": "dist"
   },
   "include": ["src/**/*"]
 }
