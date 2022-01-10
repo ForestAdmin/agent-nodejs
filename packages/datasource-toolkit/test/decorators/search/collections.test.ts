@@ -43,7 +43,7 @@ describe('SearchCollection', () => {
 
     describe('when the search is given and the collection schema is not searchable', () => {
       describe('when the search is composed by empty spaces', () => {
-        test('should return null', () => {
+        test('should return filter with search as null', () => {
           const collection = factories.collection.build({
             schema: factories.collectionSchema.build({ searchable: false }),
           });
@@ -52,7 +52,7 @@ describe('SearchCollection', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection);
 
           const refinedFilter = searchCollectionDecorator.refineFilter(filter);
-          expect(refinedFilter).toStrictEqual(null);
+          expect(refinedFilter).toStrictEqual({ ...filter, search: null });
         });
       });
     });

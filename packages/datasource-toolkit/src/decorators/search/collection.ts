@@ -22,7 +22,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
     if (search && !this.collection.schema.searchable) {
       if (SearchCollectionDecorator.getSearchType(search) === 'none') {
-        return null;
+        return { ...filter, search: null };
       }
 
       const searchFields = SearchCollectionDecorator.getSearchFields(
