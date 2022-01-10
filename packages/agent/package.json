@@ -9,7 +9,8 @@
     "@koa/router": "^10.1.1",
     "json-api-serializer": "^2.6.6",
     "koa": "^2.13.4",
-    "koa-bodyparser": "^4.3.0"
+    "koa-bodyparser": "^4.3.0",
+    "superagent": "^6.1.0"
   },
   "files": [
     "dist/**/*.js",
