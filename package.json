@@ -18,6 +18,8 @@
     "jest": "^27.4.4",
     "jest-extended": "^1.2.0",
     "lerna": "^4.0.0",
+    "patch-package": "^6.4.7",
+    "postinstall-postinstall": "^2.1.0",
     "prettier": "2.5.1",
     "prettier-eslint": "^13.0.0",
     "ts-jest": "^27.1.1",
@@ -33,6 +35,7 @@
     "lint": "lerna exec eslint src test",
     "lint:fix": "lerna exec eslint src test -- --fix",
     "prepare": "husky install",
+    "postinstall": "patch-package",
     "test": "jest",
     "test:coverage": "yarn test --coverage"
   },

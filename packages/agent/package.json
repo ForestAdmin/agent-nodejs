@@ -8,8 +8,11 @@
     "@koa/cors": "^3.1.0",
     "@koa/router": "^10.1.1",
     "json-api-serializer": "^2.6.6",
+    "jsonwebtoken": "^8.5.1",
     "koa": "^2.13.4",
     "koa-bodyparser": "^4.3.0",
+    "koa-jwt": "^4.0.3",
+    "openid-client": "^5.1.1",
     "superagent": "^6.1.0"
   },
   "files": [

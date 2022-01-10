@@ -4,18 +4,15 @@ import Router from '@koa/router';
 import { IncomingMessage, ServerResponse } from 'http';
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
+import path from 'path';
 import BaseRoute from './routes/base-route';
-import HealthCheck from './routes/healthcheck';
+import AllRoutes from './routes';
 import Serializer from './services/serializer';
 import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverServices } from './types';
+import ForestHttpApi from './services/forest-http-api';
 
 /** Native NodeJS callback that can be passed to an HTTP Server */
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
-
-/**
- * List of routes constructors. One instance = One exposed route.
- */
-const ROOT_CTOR = [HealthCheck];
 
 export default class ForestAdminHttpDriver {
   public readonly dataSource: DataSource;
@@ -40,6 +37,7 @@ export default class ForestAdminHttpDriver {
     this.options = options;
     this.services = {
       serializer: new Serializer(this.options.prefix),
+      forestHTTPApi: new ForestHttpApi(this.options.forestServerUrl, this.options.envSecret),
     };
   }
 
@@ -53,16 +51,15 @@ export default class ForestAdminHttpDriver {
     }
 
     this.status = 'running';
+    const router = new Router({ prefix: path.join('/', this.options.prefix) });
     this.buildRoutes();
 
-    const router = new Router({ prefix: this.options.prefix });
-    router.use(cors({ credentials: true, maxAge: 24 * 3600 }));
-    router.use(bodyParser());
     this.routes.forEach(route => route.setupPublicRoutes(router));
     this.routes.forEach(route => route.setupAuthentication(router));
     this.routes.forEach(route => route.setupPrivateRoutes(router));
     await Promise.all(this.routes.map(route => route.bootstrap()));
 
+    this.app.use(cors({ credentials: true, maxAge: 24 * 3600 })).use(bodyParser());
     this.app.use(router.routes());
   }
 
@@ -81,6 +78,6 @@ export default class ForestAdminHttpDriver {
   private buildRoutes(): void {
     const { dataSource, options } = this;
 
-    this.routes.push(...ROOT_CTOR.map(Route => new Route(this.services, dataSource, options)));
+    this.routes.push(...AllRoutes.map(Route => new Route(this.services, dataSource, options)));
   }
 }
