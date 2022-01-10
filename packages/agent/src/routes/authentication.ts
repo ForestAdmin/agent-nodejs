@@ -84,16 +84,28 @@ export default class Authentication extends BaseRoute {
       state,
     });
 
-    // Load User from forestadmin-server
-    // The request is in JSON API format, but we parse it manually here
-    const { renderingId } = JSON.parse(state);
+    let renderingId;
 
     try {
-      const user = await this.services.forestHTTPApi.getUserAuthorizationInformations(
+      // Load User from forestadmin-server
+      // The request is in JSON API format, but we parse it manually here
+      renderingId = JSON.parse(state).renderingId;
+    } catch {
+      context.throw(400, 'Failed to parse renderingId.');
+    }
+
+    let user;
+
+    try {
+      user = await this.services.forestHTTPApi.getUserAuthorizationInformations(
         renderingId,
         tokenSet.access_token,
       );
+    } catch {
+      context.throw(500, 'Failed to fetch user informations.');
+    }
 
+    try {
       // Generate final token.
       const token = jsonwebtoken.sign(user, this.options.authSecret, {
         expiresIn: '1 hours',
@@ -104,7 +116,7 @@ export default class Authentication extends BaseRoute {
         tokenData: jsonwebtoken.decode(token),
       };
     } catch (error) {
-      context.throw(400, 'Failed to exchange token with forestadmin-server.');
+      context.throw(400, 'Failed to create token with forestadmin-server.');
     }
   }
 

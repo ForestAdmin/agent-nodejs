@@ -144,7 +144,7 @@ describe('Authentication', () => {
         const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
           authorizationUrl: jest.fn().mockReturnValue('authorizationUrl'),
         });
-        const context = { response: {}, request: { body: { renderingId: 1 } } } as Context;
+        const context = { response: {}, request: { body: { renderingId: '1' } } } as Context;
 
         await authentication.handleAuthentication(context);
 
@@ -204,27 +204,66 @@ describe('Authentication', () => {
     });
 
     describe('when authentication failed', () => {
-      it('should respond with an error', async () => {
-        services.forestHTTPApi.getUserAuthorizationInformations = jest
-          .fn()
-          .mockImplementation(() => {
-            throw new Error('Failed !');
+      describe('when the request state is not a valid json', () => {
+        it('should respond with an error', async () => {
+          const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
+            callback: jest.fn().mockReturnValue({}),
           });
-        const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
-          callback: jest.fn().mockReturnValue({}),
+
+          const context = {
+            response: {},
+            request: { query: { state: '{"rendeId":' } },
+            throw: jest.fn(),
+          } as unknown as Context;
+          await authentication.handleAuthenticationCallback(context);
+
+          expect(context.throw).toHaveBeenCalledWith(400, 'Failed to parse renderingId.');
         });
+      });
 
-        const context = {
-          response: {},
-          request: { query: { state: '{"renderingId": 1}' } },
-          throw: jest.fn(),
-        } as unknown as Context;
-        await authentication.handleAuthenticationCallback(context);
+      describe('when the fetch of user informations failed', () => {
+        it('should respond with an error', async () => {
+          services.forestHTTPApi.getUserAuthorizationInformations = jest
+            .fn()
+            .mockImplementation(() => {
+              throw new Error('Failed !');
+            });
+          const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
+            callback: jest.fn().mockReturnValue({}),
+          });
 
-        expect(context.throw).toHaveBeenCalledWith(
-          400,
-          'Failed to exchange token with forestadmin-server.',
-        );
+          const context = {
+            response: {},
+            request: { query: { state: '{"renderingId": 1}' } },
+            throw: jest.fn(),
+          } as unknown as Context;
+          await authentication.handleAuthenticationCallback(context);
+
+          expect(context.throw).toHaveBeenCalledWith(500, 'Failed to fetch user informations.');
+        });
+      });
+
+      describe('when the provided user does not allow to sign a token', () => {
+        it('should respond with an error', async () => {
+          services.forestHTTPApi.getUserAuthorizationInformations = jest
+            .fn()
+            .mockResolvedValue(null);
+          const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
+            callback: jest.fn().mockReturnValue({}),
+          });
+
+          const context = {
+            response: {},
+            request: { query: { state: '{"renderingId": 1}' } },
+            throw: jest.fn(),
+          } as unknown as Context;
+          await authentication.handleAuthenticationCallback(context);
+
+          expect(context.throw).toHaveBeenCalledWith(
+            400,
+            'Failed to create token with forestadmin-server.',
+          );
+        });
       });
     });
   });
