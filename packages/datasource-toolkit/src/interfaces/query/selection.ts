@@ -48,6 +48,10 @@ export enum Operator {
   PreviousYear = 'previous_year',
   Today = 'today',
   Yesterday = 'yesterday',
+
+  LongerThan = 'longer_than',
+  ShorterThan = 'shorter_than',
+  Like = 'like',
 }
 
 export enum Aggregator {
