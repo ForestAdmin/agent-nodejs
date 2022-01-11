@@ -16,8 +16,6 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { SequelizeCollection } from '../src';
 
-import ModelConverter from '../src/utils/modelToCollectionSchemaConverter';
-
 describe('SequelizeDataSource > Collection', () => {
   it('should instanciate properly', () => {
     const name = Symbol('name') as unknown as string;
@@ -85,7 +83,10 @@ describe('SequelizeDataSource > Collection', () => {
         segments: [],
       } as CollectionSchema;
 
-      ModelConverter.convert = jest.fn(() => schema);
+      // TODO: Mock CollectionSchemaToModelAttributesConverter.
+      // CollectionSchemaConverter.convert = ...
+      // TODO: Put back when ModelToCollectionSchemaConverter is done.
+      // ModelConverter.convert = jest.fn(() => schema);
 
       const sequelize = {
         define: jest.fn(() => ({})),
