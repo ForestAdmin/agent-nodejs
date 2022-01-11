@@ -1,16 +1,14 @@
-import { DataSource } from '@forestadmin/datasource-toolkit';
+import { BaseDataSource } from '@forestadmin/datasource-toolkit';
 import SequelizeCollection from './collection';
 
-export default abstract class SequelizeDataSource implements DataSource {
+export default abstract class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
   protected sequelize = null;
 
-  readonly collections: SequelizeCollection[] = [];
+  constructor(collections: SequelizeCollection[] = [], sequelize = null) {
+    super();
 
-  constructor(collections: SequelizeCollection[] = []) {
-    this.collections = collections;
-  }
+    this.sequelize = sequelize;
 
-  getCollection(name: string): SequelizeCollection {
-    return this.collections.find(collection => collection.name === name) || null;
+    collections.forEach(collection => this.addCollection(collection.name, collection));
   }
 }
