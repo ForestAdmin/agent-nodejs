@@ -4,19 +4,39 @@ import sortBy from 'lodash/sortBy';
 import {
   AggregationOperation,
   CollectionSchema,
-  ActionSchemaScope,
   FieldTypes,
   Operator,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
 import LiveCollection from '../src/collection';
 
-const liveCollectionSchema: CollectionSchema = {
-  actions: {
-    __action__: {
-      scope: ActionSchemaScope.Single,
+const compositeKeyCollectionSchema: CollectionSchema = {
+  actions: {},
+  fields: {
+    pkA: {
+      columnType: PrimitiveTypes.Number,
+      filterOperators: new Set<Operator>([Operator.Equal]),
+      isPrimaryKey: true,
+      type: FieldTypes.Column,
+    },
+    pkB: {
+      columnType: PrimitiveTypes.Number,
+      filterOperators: new Set<Operator>([Operator.Equal]),
+      isPrimaryKey: true,
+      type: FieldTypes.Column,
+    },
+    value: {
+      columnType: PrimitiveTypes.String,
+      filterOperators: new Set<Operator>(),
+      type: FieldTypes.Column,
     },
   },
+  searchable: false,
+  segments: [],
+};
+
+const liveCollectionSchema: CollectionSchema = {
+  actions: {},
   fields: {
     id: {
       columnType: PrimitiveTypes.Number,
@@ -55,12 +75,9 @@ const instanciateCollection = schema => {
   };
 };
 
-const preloadRecords = async (recordCount, schema, options?) => {
-  const fixedValue = '__fixed__';
+const preloadRecords = async (recordCount, schema, options) => {
   const { liveCollection, sequelize } = instanciateCollection(schema);
-  const recordData = new Array(recordCount)
-    .fill(0)
-    .map((_, i) => ({ fixed: fixedValue, even: i % 2 === 0, value: `record_${i + 1}` }));
+  const recordData = new Array(recordCount).fill(0).map((_, i) => options.recordBuilder(i));
 
   if (options?.shuffle && recordCount > 1) {
     [recordData[0].value, recordData[recordCount - 1].value] = [
@@ -75,12 +92,27 @@ const preloadRecords = async (recordCount, schema, options?) => {
     .bulkCreate(recordData, { returning: true });
 
   return {
-    fixedValue,
     liveCollection,
     recordCount,
     recordData,
     sequelize,
     sequelizeRecords,
+  };
+};
+
+const preloadLiveCollectionRecords = async (recordCount, schema, options = {}) => {
+  const fixedValue = '__fixed__';
+
+  // eslint-disable-next-line @typescript-eslint/dot-notation
+  options['recordBuilder'] = index => ({
+    fixed: fixedValue,
+    even: index % 2 === 0,
+    value: `record_${index + 1}`,
+  });
+
+  return {
+    ...(await preloadRecords(recordCount, schema, options)),
+    fixedValue,
   };
 };
 
@@ -127,7 +159,7 @@ describe('LiveDataSource > Collection', () => {
       const {
         liveCollection,
         sequelizeRecords: [expectedRecord],
-      } = await preloadRecords(1, liveCollectionSchema);
+      } = await preloadLiveCollectionRecords(1, liveCollectionSchema);
 
       const record = await liveCollection.getById([Number(expectedRecord.get('id'))], null);
 
@@ -139,13 +171,27 @@ describe('LiveDataSource > Collection', () => {
       );
     });
 
-    it.todo('should resolve when given an actual composite ID');
+    it('should resolve when given an actual composite ID', async () => {
+      const {
+        liveCollection,
+        sequelizeRecords: [expectedRecord],
+      } = await preloadLiveCollectionRecords(1, liveCollectionSchema);
+
+      const record = await liveCollection.getById([Number(expectedRecord.get('id'))], null);
+
+      expect(record).toEqual(
+        expect.objectContaining({
+          id: expectedRecord.get('id'),
+          value: expectedRecord.get('value'),
+        }),
+      );
+    });
 
     it('should resolve honoring the projection', async () => {
       const {
         liveCollection,
         sequelizeRecords: [expectedRecord],
-      } = await preloadRecords(1, liveCollectionSchema);
+      } = await preloadLiveCollectionRecords(1, liveCollectionSchema);
 
       const record = await liveCollection.getById([Number(expectedRecord.get('id'))], ['id']);
 
@@ -164,7 +210,7 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should resolve with the newly created record data', async () => {
-      const { liveCollection, recordCount, recordData } = await preloadRecords(
+      const { liveCollection, recordCount, recordData } = await preloadLiveCollectionRecords(
         9,
         liveCollectionSchema,
       );
@@ -188,13 +234,16 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should get all record data from the collection', async () => {
-      const { liveCollection, recordCount } = await preloadRecords(9, liveCollectionSchema);
+      const { liveCollection, recordCount } = await preloadLiveCollectionRecords(
+        9,
+        liveCollectionSchema,
+      );
 
       await expect(liveCollection.list({}, null)).resolves.toBeArrayOfSize(recordCount);
     });
 
     it('should resolve honoring the projection', async () => {
-      const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
+      const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
 
       const records = await liveCollection.list({}, ['id']);
 
@@ -207,7 +256,7 @@ describe('LiveDataSource > Collection', () => {
     describe('when using filtering', () => {
       // TODO: Test more cases.
       it('should resolve honoring the filtering', async () => {
-        const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
+        const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
 
         const records = await liveCollection.list(
           { conditionTree: { operator: Operator.Equal, field: 'value', value: 'record_4' } },
@@ -221,7 +270,7 @@ describe('LiveDataSource > Collection', () => {
 
     describe('when using ordering', () => {
       it('should resolve honoring the ascending ordering', async () => {
-        const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
+        const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
 
         const records = await liveCollection.list(
           { sort: [{ field: 'value', ascending: true }] },
@@ -233,7 +282,9 @@ describe('LiveDataSource > Collection', () => {
       });
 
       it('should resolve honoring the descending ordering', async () => {
-        const { liveCollection } = await preloadRecords(9, liveCollectionSchema, { shuffle: true });
+        const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema, {
+          shuffle: true,
+        });
 
         const records = await liveCollection.list(
           { sort: [{ field: 'value', ascending: false }] },
@@ -247,7 +298,7 @@ describe('LiveDataSource > Collection', () => {
 
     describe('when using pagination', () => {
       it('should resolve honoring the `limit` parameter', async () => {
-        const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
+        const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
         const limit = 2;
 
         const records = await liveCollection.list({ page: { skip: 0, limit } }, ['id']);
@@ -256,7 +307,10 @@ describe('LiveDataSource > Collection', () => {
       });
 
       it('should resolve honoring the `skip` parameter', async () => {
-        const { liveCollection, recordCount } = await preloadRecords(9, liveCollectionSchema);
+        const { liveCollection, recordCount } = await preloadLiveCollectionRecords(
+          9,
+          liveCollectionSchema,
+        );
         const offset = 2;
 
         const records = await liveCollection.list(
@@ -282,7 +336,7 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should resolve with `null`', async () => {
-      const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
+      const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
       const filter = {
         conditionTree: { operator: Operator.Equal, field: 'id', value: '__unknown__' },
       };
@@ -292,10 +346,8 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should update records honoring filter and patch', async () => {
-      const { liveCollection, fixedValue, recordData, sequelize } = await preloadRecords(
-        9,
-        liveCollectionSchema,
-      );
+      const { liveCollection, fixedValue, recordData, sequelize } =
+        await preloadLiveCollectionRecords(9, liveCollectionSchema);
 
       const [originalRecord] = await plainRecords(
         sequelize.model(liveCollection.name).findAll({ where: { value: recordData[4].value } }),
@@ -332,7 +384,7 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should resolve with `null`', async () => {
-      const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
+      const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
       const filter = {
         conditionTree: { operator: Operator.Equal, field: 'id', value: '__unknown__' },
       };
@@ -342,7 +394,7 @@ describe('LiveDataSource > Collection', () => {
 
     it('should delete records honoring filter', async () => {
       const recordCount = 9;
-      const { liveCollection, recordData, sequelize } = await preloadRecords(
+      const { liveCollection, recordData, sequelize } = await preloadLiveCollectionRecords(
         recordCount,
         liveCollectionSchema,
       );
@@ -381,7 +433,10 @@ describe('LiveDataSource > Collection', () => {
 
     it('should resolve with an aggregation array', async () => {
       const recordCount = 9;
-      const { liveCollection } = await preloadRecords(recordCount, liveCollectionSchema);
+      const { liveCollection } = await preloadLiveCollectionRecords(
+        recordCount,
+        liveCollectionSchema,
+      );
       const aggregation = {
         operation: AggregationOperation.Count,
       };
@@ -393,7 +448,7 @@ describe('LiveDataSource > Collection', () => {
 
     it('should resolve honoring filter', async () => {
       const recordCount = 9;
-      const { liveCollection, recordData, sequelize } = await preloadRecords(
+      const { liveCollection, recordData, sequelize } = await preloadLiveCollectionRecords(
         recordCount,
         liveCollectionSchema,
       );
@@ -420,7 +475,10 @@ describe('LiveDataSource > Collection', () => {
 
     it('should resolve honoring field', async () => {
       const recordCount = 9;
-      const { liveCollection } = await preloadRecords(recordCount, liveCollectionSchema);
+      const { liveCollection } = await preloadLiveCollectionRecords(
+        recordCount,
+        liveCollectionSchema,
+      );
       const aggregation = {
         field: 'even',
         operation: AggregationOperation.Count,
