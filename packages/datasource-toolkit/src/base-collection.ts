@@ -55,6 +55,10 @@ export default abstract class BaseCollection implements Collection {
     );
   }
 
+  protected addSegments(segments: string[]) {
+    this.schema.segments.push(...segments);
+  }
+
   protected enableSearch(): void {
     this.schema.searchable = true;
   }

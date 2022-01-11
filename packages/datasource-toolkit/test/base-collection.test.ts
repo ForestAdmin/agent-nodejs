@@ -158,6 +158,23 @@ describe('BaseCollection', () => {
     });
   });
 
+  describe('addSegments', () => {
+    const expectedSegments = ['__first__', '__second__'];
+    class CollectionWithSegments extends ConcreteCollection {
+      constructor(name: string, dataSource: DataSource) {
+        super(name, dataSource);
+
+        this.addSegments(expectedSegments);
+      }
+    }
+
+    it('should add all segments', () => {
+      const collection = new CollectionWithSegments('__with_segments__', null);
+
+      expect(collection.schema.segments).toEqual(expectedSegments);
+    });
+  });
+
   describe('enableSearch', () => {
     class CollectionSearchable extends ConcreteCollection {
       constructor(name: string, dataSource: DataSource) {
