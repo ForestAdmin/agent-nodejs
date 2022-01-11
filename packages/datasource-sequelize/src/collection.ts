@@ -29,6 +29,11 @@ export default class SequelizeCollection extends BaseCollection {
 
       if (schema) {
         this.model = sequelize.define(name, CollectionSchemaConverter.convert(schema)) || null;
+
+        // FIXME: Remove when ModelToCollectionSchemaConverter is done.
+        this.addFields(schema.fields);
+        if (schema.searchable) this.enableSearch();
+        this.addSegments(schema.segments);
       } else {
         this.model = sequelize[name] ?? null;
       }
