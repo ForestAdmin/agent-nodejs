@@ -1,173 +1,131 @@
 import { Context, Next } from 'koa';
 import IpWhitelist from '../../src/routes/ip-whitelist';
-import factories from '../__factories__';
 import { HttpCode } from '../../src/types';
+import factories from '../__factories__';
 
 describe('IpWhitelist', () => {
+  let getIpWhitelist: jest.Mock;
+  let ipWhitelistService: IpWhitelist;
+
+  beforeEach(() => {
+    getIpWhitelist = jest.fn();
+    const services = factories.forestAdminHttpDriverServices.build({
+      forestHTTPApi: { getIpWhitelist },
+    });
+    const dataSource = factories.dataSource.build();
+    const options = factories.forestAdminHttpDriverOptions.build();
+    ipWhitelistService = new IpWhitelist(services, dataSource, options);
+  });
+
   describe('setupAuthentication', () => {
     test('should attach the checkIp method to the router', () => {
-      const services = factories.forestAdminHttpDriverServices.build();
-      const dataSource = factories.dataSource.build();
-      const options = factories.forestAdminHttpDriverOptions.build();
-
-      const ipWhitelistService = new IpWhitelist(services, dataSource, options);
-
-      const router = factories.router.build();
-      router.use = jest.fn();
-
+      const routerUse = jest.fn();
+      const router = factories.router.build({ use: routerUse });
       ipWhitelistService.setupAuthentication(router);
 
-      expect((router.use as jest.Mock).mock.calls[0][0].name).toEqual('bound checkIp');
+      expect(routerUse).toHaveBeenCalledTimes(1);
+      expect(routerUse.mock.calls[0][0].name).toEqual('bound checkIp');
     });
   });
 
   describe('bootstrap', () => {
-    describe('when the http call succeeds', () => {
-      test('should not throw an error ', async () => {
-        const services = factories.forestAdminHttpDriverServices.build();
-        const dataSource = factories.dataSource.build();
-        const options = factories.forestAdminHttpDriverOptions.build();
-
-        services.forestHTTPApi.getIpWhitelist = jest.fn().mockResolvedValue({
-          isFeatureEnabled: true,
-          ipRules: [],
-        });
-
-        const ipWhitelistService = new IpWhitelist(services, dataSource, options);
-        await expect(ipWhitelistService.bootstrap()).resolves.not.toThrowError();
-      });
+    test('shoud reject when forestadmin-server is down', async () => {
+      getIpWhitelist.mockRejectedValue(new Error());
+      await expect(ipWhitelistService.bootstrap()).rejects.toThrowError();
     });
 
-    describe('when the http call fails', () => {
-      test('should throw an error', async () => {
-        const services = factories.forestAdminHttpDriverServices.build();
-        const dataSource = factories.dataSource.build();
-        const options = factories.forestAdminHttpDriverOptions.build();
+    test('should resolve when the feature is disabled', async () => {
+      getIpWhitelist.mockResolvedValue({ isFeatureEnabled: false });
+      await expect(ipWhitelistService.bootstrap()).resolves.not.toThrowError();
+    });
 
-        services.forestHTTPApi.getIpWhitelist = jest.fn().mockRejectedValue(new Error());
-
-        const ipWhitelistService = new IpWhitelist(services, dataSource, options);
-
-        await expect(ipWhitelistService.bootstrap()).rejects.toThrowError();
+    test('should resolve when the feature is enabled', async () => {
+      getIpWhitelist.mockResolvedValue({
+        isFeatureEnabled: true,
+        ipRules: [{ type: 0, ip: '66.66.66.66' }],
       });
+
+      await expect(ipWhitelistService.bootstrap()).resolves.not.toThrowError();
     });
   });
 
   describe('checkIp', () => {
-    test('should call the next callback', async () => {
-      const services = factories.forestAdminHttpDriverServices.build();
-      const dataSource = factories.dataSource.build();
-      const options = factories.forestAdminHttpDriverOptions.build();
+    describe('when the feature is disabled', () => {
+      beforeEach(async () => {
+        getIpWhitelist.mockResolvedValue({ isFeatureEnabled: false });
+        await ipWhitelistService.bootstrap();
+      });
 
-      const ipWhitelistService = new IpWhitelist(services, dataSource, options);
+      test('should call next()', async () => {
+        const context = {} as unknown as Context;
+        const next = jest.fn() as Next;
+        await ipWhitelistService.checkIp(context, next);
 
-      const context = {} as unknown as Context;
-      const next = jest.fn() as Next;
-      await ipWhitelistService.checkIp(context, next);
-
-      expect(next).toHaveBeenCalled();
+        expect(next).toHaveBeenCalled();
+      });
     });
 
     describe('when the feature is enabled', () => {
-      const setupServiceWith = (ipWhitelistService, values) => {
-        const { isFeatureEnabled, ipRules } = values;
-        ipWhitelistService.services.forestHTTPApi.getIpWhitelist = jest.fn().mockResolvedValue({
-          isFeatureEnabled,
-          ipRules,
+      beforeEach(async () => {
+        getIpWhitelist.mockResolvedValue({
+          isFeatureEnabled: true,
+          ipRules: [{ type: 0, ip: '10.20.15.10' }],
         });
 
-        return ipWhitelistService.bootstrap();
-      };
-
-      describe('when x-forwarded-for is missing', () => {
-        test('should take the ip from the request', async () => {
-          const services = factories.forestAdminHttpDriverServices.build();
-          const dataSource = factories.dataSource.build();
-          const options = factories.forestAdminHttpDriverOptions.build();
-
-          const ipWhitelistService = new IpWhitelist(services, dataSource, options);
-
-          const isFeatureEnabled = true;
-          const ipRules = [
-            {
-              type: 0,
-              ip: '10.20.15.10',
-            },
-          ];
-          await setupServiceWith(ipWhitelistService, { isFeatureEnabled, ipRules });
-
-          const context = {
-            request: { ip: '10.20.15.10', headers: { 'x-forwarded-for': null } },
-          } as unknown as Context;
-          const next = jest.fn() as Next;
-
-          await ipWhitelistService.checkIp(context, next);
-
-          expect(next).toHaveBeenCalled();
-        });
+        await ipWhitelistService.bootstrap();
       });
 
-      describe('when the ip is not allowed', () => {
-        test('should throw error when the ip is not allowed and not call next', async () => {
-          const services = factories.forestAdminHttpDriverServices.build();
-          const dataSource = factories.dataSource.build();
-          const options = factories.forestAdminHttpDriverOptions.build();
+      test('call next() when request.ip is in range (x-forwarded-for not defined)', async () => {
+        const context = {
+          request: { ip: '10.20.15.10', headers: {} },
+        } as unknown as Context;
+        const next = jest.fn() as Next;
 
-          const ipWhitelistService = new IpWhitelist(services, dataSource, options);
+        await ipWhitelistService.checkIp(context, next);
 
-          const isFeatureEnabled = true;
-          const ipRules = [
-            {
-              type: 0,
-              ip: '10.20.15.10',
-            },
-          ];
-          await setupServiceWith(ipWhitelistService, { isFeatureEnabled, ipRules });
-
-          const notAllowedIp = '10.20.15.1';
-
-          const context = {
-            throw: jest.fn(),
-            request: { headers: { 'x-forwarded-for': notAllowedIp } },
-          } as unknown as Context;
-          const next = jest.fn() as Next;
-
-          await ipWhitelistService.checkIp(context, next);
-
-          expect(next).not.toHaveBeenCalled();
-          expect(context.throw).toHaveBeenCalledWith(
-            HttpCode.Forbidden,
-            `IP address rejected (${notAllowedIp})`,
-          );
-        });
+        expect(next).toHaveBeenCalled();
       });
 
-      describe('when the ip is allowed', () => {
-        test('should call next', async () => {
-          const services = factories.forestAdminHttpDriverServices.build();
-          const dataSource = factories.dataSource.build();
-          const options = factories.forestAdminHttpDriverOptions.build();
+      test('throw when request.ip is not in range (x-forwarded-for not defined)', async () => {
+        const context = {
+          throw: jest.fn(),
+          request: { ip: '192.168.0.1', headers: {} },
+        } as unknown as Context;
+        const next = jest.fn() as Next;
 
-          const ipWhitelistService = new IpWhitelist(services, dataSource, options);
+        await ipWhitelistService.checkIp(context, next);
 
-          const isFeatureEnabled = true;
-          const ipRules = [
-            {
-              type: 0,
-              ip: '10.20.15.10',
-            },
-          ];
-          await setupServiceWith(ipWhitelistService, { isFeatureEnabled, ipRules });
+        expect(next).not.toHaveBeenCalled();
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.Forbidden,
+          `IP address rejected (192.168.0.1)`,
+        );
+      });
 
-          const allowedIp = '10.20.15.10';
-          const context = {
-            request: { headers: { 'x-forwarded-for': allowedIp } },
-          } as unknown as Context;
-          const next = jest.fn() as Next;
-          await ipWhitelistService.checkIp(context, next);
+      test('call next() when x-forwarded-for is in range', async () => {
+        const context = {
+          request: { headers: { 'x-forwarded-for': '10.20.15.10' } },
+        } as unknown as Context;
+        const next = jest.fn() as Next;
+        await ipWhitelistService.checkIp(context, next);
 
-          expect(next).toHaveBeenCalled();
-        });
+        expect(next).toHaveBeenCalled();
+      });
+
+      test('throw when x-forwarded-for is not in range', async () => {
+        const context = {
+          throw: jest.fn(),
+          request: { headers: { 'x-forwarded-for': '192.168.0.1' } },
+        } as unknown as Context;
+        const next = jest.fn() as Next;
+
+        await ipWhitelistService.checkIp(context, next);
+
+        expect(next).not.toHaveBeenCalled();
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.Forbidden,
+          `IP address rejected (192.168.0.1)`,
+        );
       });
     });
   });
