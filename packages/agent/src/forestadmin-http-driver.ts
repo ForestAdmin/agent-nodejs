@@ -35,9 +35,11 @@ export default class ForestAdminHttpDriver {
   constructor(dataSource: DataSource, options: ForestAdminHttpDriverOptions) {
     this.dataSource = dataSource;
     this.options = options;
+
+    const { prefix, forestServerUrl, envSecret } = this.options;
     this.services = {
-      serializer: new Serializer(this.options.prefix),
-      forestHTTPApi: new ForestHttpApi(this.options.forestServerUrl, this.options.envSecret),
+      serializer: new Serializer(prefix),
+      forestHTTPApi: new ForestHttpApi(forestServerUrl, envSecret),
     };
   }
 

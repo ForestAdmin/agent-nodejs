@@ -7,10 +7,6 @@ describe('ForestHttpApi', () => {
   const superagentMock = factories.superagent.mockAllMethods().build();
   jest.mock('superagent', () => superagentMock);
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe('initialize', () => {
     describe('when forestServerUrl or envSecret are null', () => {
       it('should throw an error', () => {
@@ -22,53 +18,82 @@ describe('ForestHttpApi', () => {
   });
 
   describe('getIpWhitelist', () => {
-    test('should fetch the correct end point with the env secret', async () => {
-      superagent.set.mockResolvedValue({
-        body: {
-          attributes: {
-            use_ip_whitelist: true,
-            rules: [],
-          },
-        },
-      });
-
-      const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
-      await service.getIpWhitelist();
-
-      expect(superagent.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
-      expect(superagent.get).toHaveBeenCalledWith(
-        new URL('http://api.url/liana/v1/ip-whitelist-rules'),
-      );
-    });
-
-    describe('when the call succeeds', () => {
-      test('should return the ip ranges and the isFeatureEnabled attributes', async () => {
-        const ipRanges = [];
+    describe('the syntax of the rules', () => {
+      it.each([
+        { ipMinimum: '10.10.1.2', ipMaximum: '10.10.1.3' },
+        { ip: '10.10.1.2' },
+        { range: '10.10.1.2/24' },
+      ])(`%s should be supported`, async rule => {
+        const ipRules = [{ type: 1, ...rule }];
         const isFeatureEnabled = true;
 
         superagent.set.mockResolvedValue({
           body: {
-            attributes: {
-              use_ip_whitelist: isFeatureEnabled,
-              rules: ipRanges,
+            data: {
+              attributes: {
+                use_ip_whitelist: isFeatureEnabled,
+                rules: ipRules,
+              },
             },
           },
         });
 
-        const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
+        const service = new ForestHttpApi('https://api.url', 'myEnvSecret');
         const result = await service.getIpWhitelist();
 
-        expect(result).toStrictEqual({ isFeatureEnabled, ipRanges });
+        expect(result).toStrictEqual({ isFeatureEnabled, ipRules });
+      });
+    });
+
+    test('should fetch the correct end point with the env secret', async () => {
+      superagent.set.mockResolvedValue({
+        body: {
+          data: {
+            attributes: {
+              use_ip_whitelist: true,
+              rules: [],
+            },
+          },
+        },
+      });
+
+      const service = new ForestHttpApi('https://api.url', 'myEnvSecret');
+      await service.getIpWhitelist();
+
+      expect(superagent.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
+      expect(superagent.get).toHaveBeenCalledWith(
+        new URL('/liana/v1/ip-whitelist-rules', 'https://api.url'),
+      );
+    });
+
+    describe('when the call succeeds', () => {
+      test('should return the ip rules and the isFeatureEnabled attributes', async () => {
+        const ipRules = [{ type: 1, ip: '10.20.15.10' }];
+        const isFeatureEnabled = true;
+
+        superagent.set.mockResolvedValue({
+          body: {
+            data: {
+              attributes: {
+                use_ip_whitelist: isFeatureEnabled,
+                rules: ipRules,
+              },
+            },
+          },
+        });
+
+        const service = new ForestHttpApi('https://api.url', 'myEnvSecret');
+        const result = await service.getIpWhitelist();
+
+        expect(result).toStrictEqual({ isFeatureEnabled, ipRules });
       });
     });
 
     describe('when the call fails', () => {
       test('should throw an error', async () => {
-        superagent.set.mockImplementation(() => {
-          throw new Error();
-        });
+        superagent.set.mockRejectedValue();
 
-        const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
+        const service = new ForestHttpApi('https://api.url', 'myEnvSecret');
         await expect(service.getIpWhitelist()).rejects.toThrow(
           'An error occurred while retrieving your IP whitelist.',
         );

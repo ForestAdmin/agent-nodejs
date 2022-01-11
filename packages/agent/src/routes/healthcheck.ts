@@ -1,6 +1,7 @@
 import Router from '@koa/router';
 import { Context } from 'koa';
 import BaseRoute from './base-route';
+import { HttpCode } from '../types';
 
 export default class HealthCheck extends BaseRoute {
   override setupPublicRoutes(router: Router): void {
@@ -9,6 +10,6 @@ export default class HealthCheck extends BaseRoute {
 
   public async handleRequest(ctx: Context) {
     ctx.response.body = { error: null, message: 'Agent is running' };
-    ctx.response.status = 200;
+    ctx.response.status = HttpCode.Ok;
   }
 }

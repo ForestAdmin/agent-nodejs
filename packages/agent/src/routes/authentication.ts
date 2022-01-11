@@ -5,6 +5,7 @@ import jwt from 'koa-jwt';
 import { Client, ClientAuthMethod, Issuer } from 'openid-client';
 import path from 'path';
 import BaseRoute from './base-route';
+import { HttpCode } from '../types';
 
 export default class Authentication extends BaseRoute {
   private client: Client;
@@ -73,7 +74,7 @@ export default class Authentication extends BaseRoute {
 
       context.response.body = { authorizationUrl };
     } catch (error) {
-      context.throw(400, 'Failed to retrieve authorization url.');
+      context.throw(HttpCode.BadRequest, 'Failed to retrieve authorization url.');
     }
   }
 
@@ -91,7 +92,7 @@ export default class Authentication extends BaseRoute {
       // The request is in JSON API format, but we parse it manually here
       renderingId = JSON.parse(state).renderingId;
     } catch {
-      context.throw(400, 'Failed to parse renderingId.');
+      context.throw(HttpCode.BadRequest, 'Failed to parse renderingId.');
     }
 
     let user;
@@ -102,7 +103,7 @@ export default class Authentication extends BaseRoute {
         tokenSet.access_token,
       );
     } catch {
-      context.throw(500, 'Failed to fetch user informations.');
+      context.throw(HttpCode.InternalServerError, 'Failed to fetch user informations.');
     }
 
     try {
@@ -116,11 +117,11 @@ export default class Authentication extends BaseRoute {
         tokenData: jsonwebtoken.decode(token),
       };
     } catch (error) {
-      context.throw(400, 'Failed to create token with forestadmin-server.');
+      context.throw(HttpCode.BadRequest, 'Failed to create token with forestadmin-server.');
     }
   }
 
   public async handleAuthenticationLogout(context: Context) {
-    context.response.status = 204;
+    context.response.status = HttpCode.NoContent;
   }
 }
