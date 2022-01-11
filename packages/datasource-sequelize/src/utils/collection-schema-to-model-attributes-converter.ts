@@ -4,7 +4,7 @@ import {
   FieldTypes,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
-import { DataTypes } from 'sequelize/dist';
+import { DataTypes } from 'sequelize';
 import TypeConverter from './typeConverter';
 
 export default class CollectionSchemaToModelAttributesConverter {

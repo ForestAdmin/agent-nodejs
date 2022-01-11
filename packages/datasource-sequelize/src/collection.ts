@@ -11,10 +11,10 @@ import {
   RecordData,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import CollectionSchemaConverter from './utils/collectionSchemaToModelAttributesConverter';
-import ModelConverter from './utils/modelToCollectionSchemaConverter';
+import CollectionSchemaConverter from './utils/collection-schema-to-model-attributes-converter';
+import ModelConverter from './utils/model-to-collection-schema-converter';
 
-import { convertPaginatedFilterToSequelize } from './utils/filterConverter';
+import { convertPaginatedFilterToSequelize } from './utils/filter-converter';
 
 export default class SequelizeCollection extends BaseCollection {
   protected model = null;
