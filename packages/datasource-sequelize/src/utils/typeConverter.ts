@@ -1,7 +1,30 @@
+import { DataTypes } from 'sequelize';
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import { DataTypes } from 'sequelize/dist';
 
 export default class TypeConverter {
+  // TODO: Handle all types.
+  // TODO: Allow to differentiate NUMBER and INTEGER.
+  private static readonly columnTypeToDataType = {
+    [PrimitiveTypes.Boolean]: DataTypes.BOOLEAN,
+    [PrimitiveTypes.Date]: DataTypes.DATE,
+    [PrimitiveTypes.Dateonly]: DataTypes.DATEONLY,
+    [PrimitiveTypes.Enum]: DataTypes.ENUM,
+    [PrimitiveTypes.Json]: DataTypes.JSON,
+    [PrimitiveTypes.Number]: DataTypes.NUMBER,
+    [PrimitiveTypes.Point]: null,
+    [PrimitiveTypes.String]: DataTypes.STRING,
+    [PrimitiveTypes.Timeonly]: DataTypes.TIME,
+    [PrimitiveTypes.Uuid]: DataTypes.UUID,
+  };
+
+  public static fromColumnType(columnType) {
+    const dataType = TypeConverter.columnTypeToDataType[columnType];
+
+    if (!dataType) throw new Error(`Unsupported column type: "${columnType}".`);
+
+    return dataType;
+  }
+
   // TODO: Handle all types.
   private static readonly dataTypeToColumnType = {
     STRING: PrimitiveTypes.String,
@@ -45,31 +68,8 @@ export default class TypeConverter {
   public static fromDataType(dataType) {
     const columnType = TypeConverter.dataTypeToColumnType[dataType];
 
-    if (!columnType) throw new Error(`Unsupported data type: ${dataType}`);
+    if (!columnType) throw new Error(`Unsupported data type: "${dataType}".`);
 
     return columnType;
-  }
-
-  // TODO: Handle all types.
-  // TODO: Allow to differentiate NUMBER and INTEGER.
-  private static readonly columnTypeToDataType = {
-    [PrimitiveTypes.Boolean]: DataTypes.BOOLEAN,
-    [PrimitiveTypes.Date]: DataTypes.DATE,
-    [PrimitiveTypes.Dateonly]: DataTypes.DATEONLY,
-    [PrimitiveTypes.Enum]: DataTypes.ENUM,
-    [PrimitiveTypes.Json]: DataTypes.JSON,
-    [PrimitiveTypes.Number]: DataTypes.NUMBER,
-    [PrimitiveTypes.Point]: null,
-    [PrimitiveTypes.String]: DataTypes.STRING,
-    [PrimitiveTypes.Timeonly]: DataTypes.TIME,
-    [PrimitiveTypes.Uuid]: DataTypes.UUID,
-  };
-
-  public static fromColumnType(columnType) {
-    const dataType = TypeConverter.columnTypeToDataType[columnType];
-
-    if (!dataType) throw new Error(`Unsupported data type: ${columnType}`);
-
-    return dataType;
   }
 }
