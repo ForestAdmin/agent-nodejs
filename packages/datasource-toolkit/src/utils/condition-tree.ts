@@ -6,7 +6,7 @@ export const ConditionTreeNotMatchAnyResult = Object.freeze({
 });
 
 export default class ConditionTreeUtils {
-  static addConditionsTree(...conditionTrees: ConditionTree[]): ConditionTree {
+  static buildConditionsTree(...conditionTrees: ConditionTree[]): ConditionTree {
     const conditions = conditionTrees.reduce((currentConditions, condition) => {
       if (!condition) return currentConditions;
 
@@ -15,10 +15,6 @@ export default class ConditionTreeUtils {
         ? [...currentConditions, ...condition.conditions]
         : [...currentConditions, condition];
     }, []);
-
-    if (conditions.length === 0) {
-      return null;
-    }
 
     if (conditions.length === 1) {
       return conditions[0];

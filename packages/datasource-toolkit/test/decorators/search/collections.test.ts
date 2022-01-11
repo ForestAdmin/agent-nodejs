@@ -1,6 +1,6 @@
 import factories from '../../__factories__';
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
-import { Operator, PrimitiveTypes } from '../../../src';
+import { FieldTypes, Operator, PrimitiveTypes, Aggregator } from '../../../src';
 import { ConditionTreeNotMatchAnyResult } from '../../../src/utils/condition-tree';
 
 describe('SearchCollection', () => {
@@ -29,10 +29,9 @@ describe('SearchCollection', () => {
       });
     });
 
-    describe('when the column types is not searchable', () => {
-      test('should return filter that does not match any record', () => {
+    describe('when the field is not a column', () => {
+      test('should add an empty condition with a "or" aggregator', () => {
         const collection = factories.collection.build({
-          dataSource: factories.dataSource.build(),
           schema: factories.collectionSchema.build({
             searchable: false,
             fields: {
@@ -81,10 +80,55 @@ describe('SearchCollection', () => {
         });
       });
 
+      describe('when the filter contains already conditions', () => {
+        test('should add its conditions', () => {
+          const collection = factories.collection.build({
+            schema: factories.collectionSchema.build({
+              searchable: false,
+              fields: {
+                fieldName: factories.columnSchema.build({
+                  columnType: PrimitiveTypes.String,
+                }),
+              },
+            }),
+          });
+
+          const filter = factories.filter.build({
+            search: 'a text',
+            conditionTree: {
+              aggregator: Aggregator.And,
+              conditions: [
+                {
+                  operator: Operator.Equal,
+                  field: 'aFieldName',
+                  value: 'fieldValue',
+                },
+              ],
+            },
+          });
+
+          const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+
+          const refinedFilter = searchCollectionDecorator.refineFilter(filter);
+          expect(refinedFilter).toStrictEqual({
+            search: null,
+            conditionTree: {
+              aggregator: 'and',
+              conditions: [
+                { operator: 'equal', field: 'aFieldName', value: 'fieldValue' },
+                {
+                  aggregator: 'or',
+                  conditions: [{ field: 'fieldName', operator: 'contains', value: 'a text' }],
+                },
+              ],
+            },
+          });
+        });
+      });
+
       describe('when the search is a string and the column type is a string', () => {
         test('should return filter with "contains" condition and "or" aggregator', () => {
           const collection = factories.collection.build({
-            dataSource: factories.dataSource.build(),
             schema: factories.collectionSchema.build({
               searchable: false,
               fields: {
@@ -119,7 +163,6 @@ describe('SearchCollection', () => {
       describe('when the search is an uuid and the column type is an uuid', () => {
         test('should return filter with "equal" condition and "or" aggregator', () => {
           const collection = factories.collection.build({
-            dataSource: factories.dataSource.build(),
             schema: factories.collectionSchema.build({
               searchable: false,
               fields: {
@@ -154,7 +197,6 @@ describe('SearchCollection', () => {
       describe('when the search is a number and the column type is a number', () => {
         test('should return filter with "equal" condition and "or" aggregator', () => {
           const collection = factories.collection.build({
-            dataSource: factories.dataSource.build(),
             schema: factories.collectionSchema.build({
               searchable: false,
               fields: {
@@ -189,7 +231,6 @@ describe('SearchCollection', () => {
       describe('when the search is an string and the column type is an enum', () => {
         test('should return filter with "equal" condition and "or" aggregator', () => {
           const collection = factories.collection.build({
-            dataSource: factories.dataSource.build(),
             schema: factories.collectionSchema.build({
               searchable: false,
               fields: {
@@ -222,9 +263,8 @@ describe('SearchCollection', () => {
         });
 
         describe('when the search value does not match any enum', () => {
-          test('should return filter that does not match any record', () => {
+          test('should add an empty condition with a "or" aggregator', () => {
             const collection = factories.collection.build({
-              dataSource: factories.dataSource.build(),
               schema: factories.collectionSchema.build({
                 searchable: false,
                 fields: {
@@ -249,9 +289,8 @@ describe('SearchCollection', () => {
         });
 
         describe('when the enum values are not defined', () => {
-          test('should return filter that does not match any record', () => {
+          test('should add an empty condition with a "or" aggregator', () => {
             const collection = factories.collection.build({
-              dataSource: factories.dataSource.build(),
               schema: factories.collectionSchema.build({
                 searchable: false,
                 fields: {
@@ -276,9 +315,8 @@ describe('SearchCollection', () => {
         });
 
         describe('when the column type is not searchable', () => {
-          test('should return filter that does not match any record', () => {
+          test('should add an empty condition with a "or" aggregator', () => {
             const collection = factories.collection.build({
-              dataSource: factories.dataSource.build(),
               schema: factories.collectionSchema.build({
                 searchable: false,
                 fields: {
@@ -302,10 +340,9 @@ describe('SearchCollection', () => {
         });
       });
 
-      describe('when there are several number fields', () => {
-        test('should return all the number fields', () => {
+      describe('when there are several fields', () => {
+        test('should return all the number fields when a number is researched', () => {
           const collection = factories.collection.build({
-            dataSource: factories.dataSource.build(),
             schema: factories.collectionSchema.build({
               searchable: false,
               fields: {
@@ -344,6 +381,127 @@ describe('SearchCollection', () => {
                 },
               ],
             },
+          });
+        });
+
+        describe('when it is a deep search with relation fields', () => {
+          test('should return all the uuid fields when uuid is researched', () => {
+            const dataSource = factories.dataSource.buildWithCollections([
+              factories.collection.build({
+                name: 'books',
+                schema: factories.collectionSchema.build({
+                  searchable: false,
+                  fields: {
+                    id: {
+                      type: FieldTypes.Column,
+                      columnType: PrimitiveTypes.Uuid,
+                      isPrimaryKey: true,
+                    },
+                    myPersons: {
+                      type: FieldTypes.ManyToMany,
+                      foreignCollection: 'persons',
+                      foreignKey: 'personId',
+                      otherField: 'bookId',
+                      throughCollection: 'bookPersons',
+                    },
+                    myBookPersons: {
+                      type: FieldTypes.OneToMany,
+                      foreignCollection: 'bookPersons',
+                      foreignKey: 'bookId',
+                    },
+                  },
+                }),
+              }),
+              factories.collection.build({
+                name: 'bookPersons',
+                schema: factories.collectionSchema.build({
+                  searchable: false,
+                  fields: {
+                    bookId: {
+                      type: FieldTypes.Column,
+                      columnType: PrimitiveTypes.Uuid,
+                      isPrimaryKey: true,
+                    },
+                    personId: {
+                      type: FieldTypes.Column,
+                      columnType: PrimitiveTypes.Uuid,
+                      isPrimaryKey: true,
+                    },
+                    myBook: {
+                      type: FieldTypes.ManyToOne,
+                      foreignCollection: 'books',
+                      foreignKey: 'bookId',
+                    },
+                    myPerson: {
+                      type: FieldTypes.ManyToOne,
+                      foreignCollection: 'persons',
+                      foreignKey: 'personId',
+                    },
+                  },
+                }),
+              }),
+              factories.collection.build({
+                name: 'persons',
+                schema: factories.collectionSchema.build({
+                  searchable: false,
+                  fields: {
+                    id: {
+                      type: FieldTypes.Column,
+                      columnType: PrimitiveTypes.Uuid,
+                      isPrimaryKey: true,
+                    },
+                    myBookPerson: {
+                      type: FieldTypes.OneToOne,
+                      foreignCollection: 'bookPersons',
+                      foreignKey: 'personId',
+                    },
+                    myBooks: {
+                      type: FieldTypes.ManyToMany,
+                      foreignCollection: 'books',
+                      foreignKey: 'bookId',
+                      otherField: 'personId',
+                      throughCollection: 'bookPersons',
+                    },
+                  },
+                }),
+              }),
+            ]);
+
+            const filter = factories.filter.build({
+              searchExtended: true,
+              search: '2d162303-78bf-599e-b197-93590ac3d315',
+            });
+
+            const searchCollectionDecorator = new SearchCollectionDecorator(
+              dataSource.collections[0],
+            );
+
+            const refinedFilter = searchCollectionDecorator.refineFilter(filter);
+            expect(refinedFilter).toStrictEqual({
+              searchExtended: true,
+              search: null,
+              conditionTree: {
+                aggregator: 'or',
+                conditions: [
+                  { field: 'id', operator: 'equal', value: '2d162303-78bf-599e-b197-93590ac3d315' },
+                  {
+                    field: 'myPersons:id',
+                    operator: 'equal',
+                    value: '2d162303-78bf-599e-b197-93590ac3d315',
+                  },
+                  {
+                    field: 'myBookPersons:bookId',
+                    operator: 'equal',
+                    value: '2d162303-78bf-599e-b197-93590ac3d315',
+                  },
+                  {
+                    field: 'myBookPersons:personId',
+                    operator: 'equal',
+                    value: '2d162303-78bf-599e-b197-93590ac3d315',
+                  },
+                ],
+              },
+            });
           });
         });
       });
