@@ -38,6 +38,8 @@ export default class SequelizeCollection extends BaseCollection {
       const modelSchema = ModelConverter.convert(this.model);
 
       this.addFields(modelSchema.fields);
+      if (modelSchema.searchable) this.enableSearch();
+      this.addSegments(modelSchema.segments);
     }
   }
 
