@@ -1,7 +1,7 @@
 import Router from '@koa/router';
 import { Context } from 'koa';
 import BaseRoute from './base-route';
-import HttpCode from './http-code';
+import { HttpCode } from '../types';
 
 export default class HealthCheck extends BaseRoute {
   override setupPublicRoutes(router: Router): void {

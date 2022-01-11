@@ -13,7 +13,7 @@
     "koa-bodyparser": "^4.3.0",
     "koa-jwt": "^4.0.3",
     "openid-client": "^5.1.1",
-    "superagent": "^6.1.0",
+    "superagent": "^7.0.1",
     "forest-ip-utils": "^1.0.1"
   },
   "files": [
@@ -30,8 +30,8 @@
   "devDependencies": {
     "@types/json-api-serializer": "^2.6.3",
     "@types/koa": "^2.13.4",
-    "@types/koa-bodyparser": "^4.3.4",
-    "@types/koa__cors": "^3.1.0",
+    "@types/koa-bodyparser": "^4.3.5",
+    "@types/koa__cors": "^3.1.1",
     "@types/koa__router": "^8.0.11",
     "fishery": "^2.1.0"
   }

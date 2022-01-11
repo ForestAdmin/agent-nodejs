@@ -2,6 +2,7 @@ import openidClient, { Issuer } from 'openid-client';
 import { Context } from 'koa';
 import factories from '../__factories__';
 import Authentication from '../../src/routes/authentication';
+import { HttpCode } from '../../src/types';
 
 describe('Authentication', () => {
   const services = factories.forestAdminHttpDriverServices.build();
@@ -167,7 +168,10 @@ describe('Authentication', () => {
         } as unknown as Context;
         await authentication.handleAuthentication(context);
 
-        expect(context.throw).toHaveBeenCalledWith(400, 'Failed to retrieve authorization url.');
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.BadRequest,
+          'Failed to retrieve authorization url.',
+        );
       });
     });
   });
@@ -217,7 +221,10 @@ describe('Authentication', () => {
           } as unknown as Context;
           await authentication.handleAuthenticationCallback(context);
 
-          expect(context.throw).toHaveBeenCalledWith(400, 'Failed to parse renderingId.');
+          expect(context.throw).toHaveBeenCalledWith(
+            HttpCode.BadRequest,
+            'Failed to parse renderingId.',
+          );
         });
       });
 
@@ -239,7 +246,10 @@ describe('Authentication', () => {
           } as unknown as Context;
           await authentication.handleAuthenticationCallback(context);
 
-          expect(context.throw).toHaveBeenCalledWith(500, 'Failed to fetch user informations.');
+          expect(context.throw).toHaveBeenCalledWith(
+            HttpCode.InternalServerError,
+            'Failed to fetch user informations.',
+          );
         });
       });
 
@@ -260,7 +270,7 @@ describe('Authentication', () => {
           await authentication.handleAuthenticationCallback(context);
 
           expect(context.throw).toHaveBeenCalledWith(
-            400,
+            HttpCode.BadRequest,
             'Failed to create token with forestadmin-server.',
           );
         });
@@ -277,7 +287,7 @@ describe('Authentication', () => {
       } as Context;
       await authentication.handleAuthenticationLogout(context);
 
-      expect(context.response.status).toEqual(204);
+      expect(context.response.status).toEqual(HttpCode.NoContent);
     });
   });
 });

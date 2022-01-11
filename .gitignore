@@ -6,3 +6,6 @@ node_modules
 
 # IDE
 .idea
+
+# Configuration
+packages/*/.env
