@@ -1,7 +1,7 @@
 import { IssuerMetadata } from 'openid-client';
 import superagent, { Response } from 'superagent';
 
-export declare type IpRule = {
+export type IpRule = {
   type: number;
   ipMinimum?: string;
   ipMaximum?: string;
