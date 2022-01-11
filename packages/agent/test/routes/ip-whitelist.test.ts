@@ -42,22 +42,11 @@ describe('IpWhitelist', () => {
     });
 
     test('bootstrap should resolve', async () => {
-      getIpWhitelist.mockResolvedValue({ isFeatureEnabled: false });
       await expect(ipWhitelistService.bootstrap()).resolves.not.toThrowError();
-    });
-
-    test('checkIp should call next()', async () => {
-      const context = {} as unknown as Context;
-      const next = jest.fn() as Next;
-
-      await ipWhitelistService.checkIp(context, next);
-
-      expect(next).toHaveBeenCalled();
     });
 
     describe('and the route bootstraped', () => {
       beforeEach(async () => {
-        getIpWhitelist.mockResolvedValue({ isFeatureEnabled: false });
         await ipWhitelistService.bootstrap();
       });
 
