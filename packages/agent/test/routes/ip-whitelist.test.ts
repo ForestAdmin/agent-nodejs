@@ -14,6 +14,7 @@ describe('IpWhitelist', () => {
     });
     const dataSource = factories.dataSource.build();
     const options = factories.forestAdminHttpDriverOptions.build();
+
     ipWhitelistService = new IpWhitelist(services, dataSource, options);
   });
 
