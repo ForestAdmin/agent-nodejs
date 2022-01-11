@@ -4,7 +4,6 @@ import { ForestAdminHttpDriver, ForestAdminHttpDriverOptions } from '@forestadmi
 import { DummyDataSource } from '@forestadmin/datasource-dummy';
 import http from 'http';
 
-/** Start a server on port 3000 using the dummy datasource */
 export default async function start(
   serverPort: number,
   serverHost: string,

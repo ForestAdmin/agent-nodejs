@@ -3,7 +3,7 @@ import superagent from 'superagent';
 import agent from '../src/agent';
 
 describe('agent', () => {
-  test('should start a server on port 3351', async () => {
+  test('should start a server on port 3352', async () => {
     nock('https://api.development.forestadmin.com')
       .get('/oidc/.well-known/openid-configuration')
       .reply(200, {
