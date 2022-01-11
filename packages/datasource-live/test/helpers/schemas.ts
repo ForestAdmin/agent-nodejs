@@ -6,7 +6,7 @@ export const dataSourceWithDummyCollectionSchema: DataSourceSchema = {
   name: 'Live DataSource with Dummy Collection',
   collections: {
     dummy: {
-      actions: [],
+      actions: {},
       fields: {},
       searchable: true,
       segments: [],
