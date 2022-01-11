@@ -4,7 +4,6 @@ import agent from './agent';
 
 dotenv.config();
 
-/** Start a server on port 3000 using the dummy datasource */
 export default async function start() {
   return agent(Number(process.env.SERVER_PORT), process.env.SERVER_HOST, {
     logger: console.log,
