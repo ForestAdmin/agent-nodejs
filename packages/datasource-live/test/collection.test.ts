@@ -4,7 +4,7 @@ import sortBy from 'lodash/sortBy';
 import {
   AggregationOperation,
   CollectionSchema,
-  CollectionSchemaScope,
+  ActionSchemaScope,
   FieldTypes,
   Operator,
   PrimitiveTypes,
@@ -12,7 +12,11 @@ import {
 import LiveCollection from '../src/collection';
 
 const liveCollectionSchema: CollectionSchema = {
-  actions: [{ name: '__action__', scope: CollectionSchemaScope.Single }],
+  actions: {
+    __action__: {
+      scope: ActionSchemaScope.Single,
+    },
+  },
   fields: {
     id: {
       columnType: PrimitiveTypes.Number,
@@ -40,20 +44,20 @@ const liveCollectionSchema: CollectionSchema = {
   segments: [],
 };
 
-const instanciateCollection = () => {
+const instanciateCollection = schema => {
   const sequelize = new Sequelize('sqlite::memory:', { logging: false });
 
   return {
     liveCollection:
       // eslint-disable-next-line implicit-arrow-linebreak
-      new LiveCollection('__name__', null, liveCollectionSchema, sequelize),
+      new LiveCollection('__name__', null, sequelize, schema),
     sequelize,
   };
 };
 
-const preloadRecords = async (recordCount, options?) => {
+const preloadRecords = async (recordCount, schema, options?) => {
   const fixedValue = '__fixed__';
-  const { liveCollection, sequelize } = instanciateCollection();
+  const { liveCollection, sequelize } = instanciateCollection(schema);
   const recordData = new Array(recordCount)
     .fill(0)
     .map((_, i) => ({ fixed: fixedValue, even: i % 2 === 0, value: `record_${i + 1}` }));
@@ -88,20 +92,20 @@ const plainRecords = async promise => {
 
 describe('LiveDataSource > Collection', () => {
   it('should instanciate properly', () => {
-    const { liveCollection } = instanciateCollection();
+    const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
     expect(liveCollection).toBeDefined();
   });
 
   describe('sync', () => {
     it('should return a truthy Promise', async () => {
-      const { liveCollection } = instanciateCollection();
+      const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
       await expect(liveCollection.sync()).resolves.toBeTruthy();
     });
 
     it('should create the collection table', async () => {
-      const { liveCollection, sequelize } = instanciateCollection();
+      const { liveCollection, sequelize } = instanciateCollection(liveCollectionSchema);
 
       await liveCollection.sync();
 
@@ -112,7 +116,7 @@ describe('LiveDataSource > Collection', () => {
 
   describe('getById', () => {
     it('should reject if collection is not synched first', async () => {
-      const { liveCollection } = instanciateCollection();
+      const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
       expect(() => liveCollection.getById([null], null)).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
@@ -123,7 +127,7 @@ describe('LiveDataSource > Collection', () => {
       const {
         liveCollection,
         sequelizeRecords: [expectedRecord],
-      } = await preloadRecords(1);
+      } = await preloadRecords(1, liveCollectionSchema);
 
       const record = await liveCollection.getById([Number(expectedRecord.get('id'))], null);
 
@@ -141,7 +145,7 @@ describe('LiveDataSource > Collection', () => {
       const {
         liveCollection,
         sequelizeRecords: [expectedRecord],
-      } = await preloadRecords(1);
+      } = await preloadRecords(1, liveCollectionSchema);
 
       const record = await liveCollection.getById([Number(expectedRecord.get('id'))], ['id']);
 
@@ -152,7 +156,7 @@ describe('LiveDataSource > Collection', () => {
 
   describe('create', () => {
     it('should reject if collection is not synched first', async () => {
-      const { liveCollection } = instanciateCollection();
+      const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
       expect(() => liveCollection.create([])).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
@@ -160,7 +164,10 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should resolve with the newly created record data', async () => {
-      const { liveCollection, recordCount, recordData } = await preloadRecords(9);
+      const { liveCollection, recordCount, recordData } = await preloadRecords(
+        9,
+        liveCollectionSchema,
+      );
 
       const records = await liveCollection.create(recordData);
 
@@ -173,7 +180,7 @@ describe('LiveDataSource > Collection', () => {
 
   describe('list', () => {
     it('should reject if collection is not synched first', async () => {
-      const { liveCollection } = instanciateCollection();
+      const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
       expect(() => liveCollection.list({}, [])).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
@@ -181,13 +188,13 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should get all record data from the collection', async () => {
-      const { liveCollection, recordCount } = await preloadRecords(9);
+      const { liveCollection, recordCount } = await preloadRecords(9, liveCollectionSchema);
 
       await expect(liveCollection.list({}, null)).resolves.toBeArrayOfSize(recordCount);
     });
 
     it('should resolve honoring the projection', async () => {
-      const { liveCollection } = await preloadRecords(9);
+      const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
 
       const records = await liveCollection.list({}, ['id']);
 
@@ -200,7 +207,7 @@ describe('LiveDataSource > Collection', () => {
     describe('when using filtering', () => {
       // TODO: Test more cases.
       it('should resolve honoring the filtering', async () => {
-        const { liveCollection } = await preloadRecords(9);
+        const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
 
         const records = await liveCollection.list(
           { conditionTree: { operator: Operator.Equal, field: 'value', value: 'record_4' } },
@@ -214,7 +221,7 @@ describe('LiveDataSource > Collection', () => {
 
     describe('when using ordering', () => {
       it('should resolve honoring the ascending ordering', async () => {
-        const { liveCollection } = await preloadRecords(9);
+        const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
 
         const records = await liveCollection.list(
           { sort: [{ field: 'value', ascending: true }] },
@@ -226,7 +233,7 @@ describe('LiveDataSource > Collection', () => {
       });
 
       it('should resolve honoring the descending ordering', async () => {
-        const { liveCollection } = await preloadRecords(9, { shuffle: true });
+        const { liveCollection } = await preloadRecords(9, liveCollectionSchema, { shuffle: true });
 
         const records = await liveCollection.list(
           { sort: [{ field: 'value', ascending: false }] },
@@ -240,7 +247,7 @@ describe('LiveDataSource > Collection', () => {
 
     describe('when using pagination', () => {
       it('should resolve honoring the `limit` parameter', async () => {
-        const { liveCollection } = await preloadRecords(9);
+        const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
         const limit = 2;
 
         const records = await liveCollection.list({ page: { skip: 0, limit } }, ['id']);
@@ -249,7 +256,7 @@ describe('LiveDataSource > Collection', () => {
       });
 
       it('should resolve honoring the `skip` parameter', async () => {
-        const { liveCollection, recordCount } = await preloadRecords(9);
+        const { liveCollection, recordCount } = await preloadRecords(9, liveCollectionSchema);
         const offset = 2;
 
         const records = await liveCollection.list(
@@ -267,7 +274,7 @@ describe('LiveDataSource > Collection', () => {
 
   describe('update', () => {
     it('should reject if collection is not synched first', async () => {
-      const { liveCollection } = instanciateCollection();
+      const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
       expect(() => liveCollection.update({}, {})).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
@@ -275,7 +282,7 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should resolve with `null`', async () => {
-      const { liveCollection } = await preloadRecords(9);
+      const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
       const filter = {
         conditionTree: { operator: Operator.Equal, field: 'id', value: '__unknown__' },
       };
@@ -285,7 +292,10 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should update records honoring filter and patch', async () => {
-      const { liveCollection, fixedValue, recordData, sequelize } = await preloadRecords(9);
+      const { liveCollection, fixedValue, recordData, sequelize } = await preloadRecords(
+        9,
+        liveCollectionSchema,
+      );
 
       const [originalRecord] = await plainRecords(
         sequelize.model(liveCollection.name).findAll({ where: { value: recordData[4].value } }),
@@ -314,7 +324,7 @@ describe('LiveDataSource > Collection', () => {
 
   describe('delete', () => {
     it('should reject if collection is not synched first', async () => {
-      const { liveCollection } = instanciateCollection();
+      const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
       expect(() => liveCollection.delete({})).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
@@ -322,7 +332,7 @@ describe('LiveDataSource > Collection', () => {
     });
 
     it('should resolve with `null`', async () => {
-      const { liveCollection } = await preloadRecords(9);
+      const { liveCollection } = await preloadRecords(9, liveCollectionSchema);
       const filter = {
         conditionTree: { operator: Operator.Equal, field: 'id', value: '__unknown__' },
       };
@@ -332,7 +342,10 @@ describe('LiveDataSource > Collection', () => {
 
     it('should delete records honoring filter', async () => {
       const recordCount = 9;
-      const { liveCollection, recordData, sequelize } = await preloadRecords(recordCount);
+      const { liveCollection, recordData, sequelize } = await preloadRecords(
+        recordCount,
+        liveCollectionSchema,
+      );
 
       const [originalRecord] = await plainRecords(
         sequelize.model(liveCollection.name).findAll({ where: { value: recordData[4].value } }),
@@ -356,7 +369,7 @@ describe('LiveDataSource > Collection', () => {
 
   describe('aggregate', () => {
     it('should reject if collection is not synched first', async () => {
-      const { liveCollection } = instanciateCollection();
+      const { liveCollection } = instanciateCollection(liveCollectionSchema);
       const aggregation = {
         operation: AggregationOperation.Count,
       };
@@ -368,7 +381,7 @@ describe('LiveDataSource > Collection', () => {
 
     it('should resolve with an aggregation array', async () => {
       const recordCount = 9;
-      const { liveCollection } = await preloadRecords(recordCount);
+      const { liveCollection } = await preloadRecords(recordCount, liveCollectionSchema);
       const aggregation = {
         operation: AggregationOperation.Count,
       };
@@ -380,7 +393,10 @@ describe('LiveDataSource > Collection', () => {
 
     it('should resolve honoring filter', async () => {
       const recordCount = 9;
-      const { liveCollection, recordData, sequelize } = await preloadRecords(recordCount);
+      const { liveCollection, recordData, sequelize } = await preloadRecords(
+        recordCount,
+        liveCollectionSchema,
+      );
       const aggregation = {
         operation: AggregationOperation.Count,
       };
@@ -404,7 +420,7 @@ describe('LiveDataSource > Collection', () => {
 
     it('should resolve honoring field', async () => {
       const recordCount = 9;
-      const { liveCollection } = await preloadRecords(recordCount);
+      const { liveCollection } = await preloadRecords(recordCount, liveCollectionSchema);
       const aggregation = {
         field: 'even',
         operation: AggregationOperation.Count,
