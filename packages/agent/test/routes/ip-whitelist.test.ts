@@ -17,15 +17,13 @@ describe('IpWhitelist', () => {
     ipWhitelistService = new IpWhitelist(services, dataSource, options);
   });
 
-  describe('Always', () => {
-    test('setupAuthentication should attach the checkIp method to the router', () => {
-      const routerUse = jest.fn();
-      const router = factories.router.build({ use: routerUse });
-      ipWhitelistService.setupAuthentication(router);
+  test('setupAuthentication should attach the checkIp method to the router', () => {
+    const routerUse = jest.fn();
+    const router = factories.router.build({ use: routerUse });
+    ipWhitelistService.setupAuthentication(router);
 
-      expect(routerUse).toHaveBeenCalledTimes(1);
-      expect(routerUse.mock.calls[0][0].name).toEqual('bound checkIp');
-    });
+    expect(routerUse).toHaveBeenCalledTimes(1);
+    expect(routerUse.mock.calls[0][0].name).toEqual('bound checkIp');
   });
 
   describe('if forestadmin-server is down', () => {
