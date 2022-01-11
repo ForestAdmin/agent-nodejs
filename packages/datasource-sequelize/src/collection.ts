@@ -1,8 +1,7 @@
 import {
-  Action,
   AggregateResult,
   Aggregation,
-  Collection,
+  BaseCollection,
   CollectionSchema,
   CompositeId,
   DataSource,
@@ -12,32 +11,34 @@ import {
   RecordData,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
+import CollectionSchemaConverter from './utils/collectionSchemaToModelAttributesConverter';
+import ModelConverter from './utils/modelToCollectionSchemaConverter';
 
 import { convertPaginatedFilterToSequelize } from './utils/filterConverter';
 
-export default class SequelizeCollection implements Collection {
+export default class SequelizeCollection extends BaseCollection {
   protected model = null;
   protected sequelize = null;
 
-  readonly dataSource: DataSource;
-  readonly name = null;
-  readonly schema: CollectionSchema = null;
+  constructor(name, datasource: DataSource, sequelize, schema?: CollectionSchema) {
+    super(name, datasource);
 
-  constructor(name, datasource: DataSource, schema: CollectionSchema, sequelize) {
-    this.dataSource = datasource;
-    this.model = sequelize?.[name] ?? null;
-    this.name = name;
-    this.schema = schema;
-    this.sequelize = sequelize;
-  }
+    // TODO: Prevent initialization if no Sequelize instance is given?
+    if (sequelize) {
+      this.sequelize = sequelize;
 
-  getAction(name: string): Action {
-    const actionSchema = this.schema.actions.find(action => action.name === name);
+      if (schema) {
+        this.model = sequelize.define(name, CollectionSchemaConverter.convert(schema)) || null;
+      } else {
+        this.model = sequelize[name] ?? null;
+      }
+    }
 
-    if (actionSchema === undefined) throw new Error(`Action "${name}" not found.`);
+    if (this.model) {
+      const modelSchema = ModelConverter.convert(this.model);
 
-    // TODO: Properly instanciate action.
-    return null;
+      this.addFields(modelSchema.fields);
+    }
   }
 
   getById(id: CompositeId, projection: Projection): Promise<RecordData> {
