@@ -56,6 +56,22 @@ describe('IpWhitelist', () => {
 
       expect(next).toHaveBeenCalled();
     });
+
+    describe('and the route bootstraped', () => {
+      beforeEach(async () => {
+        getIpWhitelist.mockResolvedValue({ isFeatureEnabled: false });
+        await ipWhitelistService.bootstrap();
+      });
+
+      test('checkIp should call next()', async () => {
+        const context = {} as unknown as Context;
+        const next = jest.fn() as Next;
+
+        await ipWhitelistService.checkIp(context, next);
+
+        expect(next).toHaveBeenCalled();
+      });
+    });
   });
 
   describe('if the feature is enabled', () => {
@@ -69,85 +85,64 @@ describe('IpWhitelist', () => {
     test('bootstrap should resolve', async () => {
       await expect(ipWhitelistService.bootstrap()).resolves.not.toThrowError();
     });
-  });
 
-  describe('if the feature is disabled and bootstraped', () => {
-    beforeEach(async () => {
-      getIpWhitelist.mockResolvedValue({ isFeatureEnabled: false });
-      await ipWhitelistService.bootstrap();
-    });
-
-    test('checkIp should call next()', async () => {
-      const context = {} as unknown as Context;
-      const next = jest.fn() as Next;
-
-      await ipWhitelistService.checkIp(context, next);
-
-      expect(next).toHaveBeenCalled();
-    });
-  });
-
-  describe('if the feature is enabled and bootstraped', () => {
-    beforeEach(async () => {
-      getIpWhitelist.mockResolvedValue({
-        isFeatureEnabled: true,
-        ipRules: [{ type: 0, ip: '10.20.15.10' }],
+    describe('and the route bootstraped', () => {
+      beforeEach(async () => {
+        await ipWhitelistService.bootstrap();
       });
 
-      await ipWhitelistService.bootstrap();
-    });
+      test('checkIp should call next() if request.ip is valid (no x-forwarded-for)', async () => {
+        const context = {
+          request: { ip: '10.20.15.10', headers: {} },
+        } as unknown as Context;
+        const next = jest.fn() as Next;
 
-    test('checkIp should call next() if request.ip is in range (no x-forwarded-for)', async () => {
-      const context = {
-        request: { ip: '10.20.15.10', headers: {} },
-      } as unknown as Context;
-      const next = jest.fn() as Next;
+        await ipWhitelistService.checkIp(context, next);
 
-      await ipWhitelistService.checkIp(context, next);
+        expect(next).toHaveBeenCalled();
+      });
 
-      expect(next).toHaveBeenCalled();
-    });
+      test('checkIp should call next() if x-forwarded-for is valid', async () => {
+        const context = {
+          request: { headers: { 'x-forwarded-for': '10.20.15.10' } },
+        } as unknown as Context;
+        const next = jest.fn() as Next;
+        await ipWhitelistService.checkIp(context, next);
 
-    test('checkIp should call next() if x-forwarded-for is in range', async () => {
-      const context = {
-        request: { headers: { 'x-forwarded-for': '10.20.15.10' } },
-      } as unknown as Context;
-      const next = jest.fn() as Next;
-      await ipWhitelistService.checkIp(context, next);
+        expect(next).toHaveBeenCalled();
+      });
 
-      expect(next).toHaveBeenCalled();
-    });
+      test('checkIp should throw if request.ip is invalid (no x-forwarded-for)', async () => {
+        const context = {
+          throw: jest.fn(),
+          request: { ip: '192.168.0.1', headers: {} },
+        } as unknown as Context;
+        const next = jest.fn() as Next;
 
-    test('checkIp should throw if request.ip is not in range (no x-forwarded-for)', async () => {
-      const context = {
-        throw: jest.fn(),
-        request: { ip: '192.168.0.1', headers: {} },
-      } as unknown as Context;
-      const next = jest.fn() as Next;
+        await ipWhitelistService.checkIp(context, next);
 
-      await ipWhitelistService.checkIp(context, next);
+        expect(next).not.toHaveBeenCalled();
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.Forbidden,
+          `IP address rejected (192.168.0.1)`,
+        );
+      });
 
-      expect(next).not.toHaveBeenCalled();
-      expect(context.throw).toHaveBeenCalledWith(
-        HttpCode.Forbidden,
-        `IP address rejected (192.168.0.1)`,
-      );
-    });
+      test('checkIp should throw if x-forwarded-for is invalid', async () => {
+        const context = {
+          throw: jest.fn(),
+          request: { headers: { 'x-forwarded-for': '192.168.0.1' } },
+        } as unknown as Context;
+        const next = jest.fn() as Next;
 
-    test('checkIp should throw if x-forwarded-for is not in range', async () => {
-      const context = {
-        throw: jest.fn(),
-        request: { headers: { 'x-forwarded-for': '192.168.0.1' } },
-      } as unknown as Context;
-      const next = jest.fn() as Next;
+        await ipWhitelistService.checkIp(context, next);
 
-      await ipWhitelistService.checkIp(context, next);
-
-      expect(next).not.toHaveBeenCalled();
-      expect(context.throw).toHaveBeenCalledWith(
-        HttpCode.Forbidden,
-        `IP address rejected (192.168.0.1)`,
-      );
+        expect(next).not.toHaveBeenCalled();
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.Forbidden,
+          `IP address rejected (192.168.0.1)`,
+        );
+      });
     });
   });
 });
