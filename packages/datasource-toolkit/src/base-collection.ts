@@ -7,9 +7,9 @@ import { Filter, PaginatedFilter } from './interfaces/query/selection';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 
 export default abstract class BaseCollection implements Collection {
-  readonly dataSource: DataSource;
-  readonly name: string;
-  readonly schema: CollectionSchema;
+  readonly dataSource: DataSource = null;
+  readonly name = null;
+  readonly schema: CollectionSchema = null;
 
   private actions: { [actionName: string]: Action } = {};
 
