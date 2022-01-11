@@ -1,9 +1,12 @@
 import { IssuerMetadata } from 'openid-client';
 import superagent, { Response } from 'superagent';
 
-export declare type IpRange = {
-  ipMinimum: string;
-  ipMaximum: string;
+export declare type IpRule = {
+  type: number;
+  ipMinimum?: string;
+  ipMaximum?: string;
+  ip?: string;
+  range?: string;
 };
 
 export default class ForestHttpApi {
@@ -23,17 +26,16 @@ export default class ForestHttpApi {
 
   async getIpWhitelist(): Promise<{
     isFeatureEnabled: boolean;
-    ipRanges: Array<IpRange>;
+    ipRules: Array<IpRule>;
   }> {
     try {
       const response: Response = await superagent
         .get(new URL('/liana/v1/ip-whitelist-rules', this.forestServerUrl))
         .set('forest-secret-key', this.envSecret);
 
-      return {
-        isFeatureEnabled: response.body.attributes.use_ip_whitelist,
-        ipRanges: response.body.attributes.rules,
-      };
+      const { use_ip_whitelist: isFeatureEnabled, rules: ipRules } = response.body.data.attributes;
+
+      return { isFeatureEnabled, ipRules };
     } catch {
       throw new Error('An error occurred while retrieving your IP whitelist.');
     }

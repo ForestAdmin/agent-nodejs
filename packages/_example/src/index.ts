@@ -1,16 +1,31 @@
 /* eslint-disable no-console */
-import dotenv from 'dotenv';
-import agent from './agent';
 
-dotenv.config();
+import { ForestAdminHttpDriver } from '@forestadmin/agent';
+import { DummyDataSource } from '@forestadmin/datasource-dummy';
+import http from 'http';
 
+/** Start a server on port 3000 using the dummy datasource */
 export default async function start() {
-  return agent(Number(process.env.SERVER_PORT), process.env.SERVER_HOST, {
+  const dataSource = new DummyDataSource();
+  const driver = new ForestAdminHttpDriver(dataSource, {
     logger: console.log,
-    prefix: process.env.FOREST_PREFIX,
-    authSecret: process.env.FOREST_AUTH_SECRET,
-    agentUrl: process.env.FOREST_AGENT_URL,
-    envSecret: process.env.FOREST_ENV_SECRET,
-    forestServerUrl: process.env.FOREST_SERVER_URL,
+    prefix: '/forest',
+    authSecret: 'this_is_a_fake_auth_secret',
+    agentUrl: 'http://localhost:3351',
+    envSecret: '424f045d2b6117da1dd6ff67be13a8391984221ba6fa3fb128313555a1a2c396',
+    forestServerUrl: 'https://api.development.forestadmin.com',
   });
+
+  await driver.start();
+
+  const server = http.createServer(driver.handler);
+  await new Promise<void>(resolve => {
+    server.listen(3351, 'localhost', null, () => {
+      resolve();
+    });
+  });
+
+  return () => {
+    server.close();
+  };
 }

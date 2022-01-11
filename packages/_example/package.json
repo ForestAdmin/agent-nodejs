@@ -5,8 +5,7 @@
   "private": true,
   "dependencies": {
     "@forestadmin/agent": "^1.0.0",
-    "@forestadmin/datasource-dummy": "^1.0.0",
-    "dotenv": "^10.0.0"
+    "@forestadmin/datasource-dummy": "^1.0.0"
   },
   "scripts": {
     "build": "tsc",
@@ -18,7 +17,7 @@
   },
   "devDependencies": {
     "fishery": "^2.1.0",
-    "nock": "^13.2.2",
-    "superagent": "^7.0.1"
+    "nock": "^13.2.1",
+    "superagent": "^6.1.0"
   }
 }
