@@ -10,7 +10,7 @@ describe('ForestHttpApi', () => {
   describe('initialize', () => {
     describe('when forestServerUrl or envSecret are null', () => {
       it('should throw an error', () => {
-        expect(() => new ForestHttpApi(null, null)).toThrow(
+        expect(() => new ForestHttpApi(null, null, null)).toThrow(
           'forestServerUrl: null and envSecret: null must be present.',
         );
       });
@@ -38,7 +38,7 @@ describe('ForestHttpApi', () => {
           },
         });
 
-        const service = new ForestHttpApi('https://api.url', 'myEnvSecret');
+        const service = new ForestHttpApi('https://api.url', 'myEnvSecret', () => {});
         const result = await service.getIpWhitelist();
 
         expect(result).toStrictEqual({ isFeatureEnabled, ipRules });
@@ -57,7 +57,7 @@ describe('ForestHttpApi', () => {
         },
       });
 
-      const service = new ForestHttpApi('https://api.url', 'myEnvSecret');
+      const service = new ForestHttpApi('https://api.url', 'myEnvSecret', () => {});
       await service.getIpWhitelist();
 
       expect(superagent.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
@@ -82,7 +82,7 @@ describe('ForestHttpApi', () => {
           },
         });
 
-        const service = new ForestHttpApi('https://api.url', 'myEnvSecret');
+        const service = new ForestHttpApi('https://api.url', 'myEnvSecret', () => {});
         const result = await service.getIpWhitelist();
 
         expect(result).toStrictEqual({ isFeatureEnabled, ipRules });
@@ -93,7 +93,7 @@ describe('ForestHttpApi', () => {
       test('should throw an error', async () => {
         superagent.set.mockRejectedValue();
 
-        const service = new ForestHttpApi('https://api.url', 'myEnvSecret');
+        const service = new ForestHttpApi('https://api.url', 'myEnvSecret', () => {});
         await expect(service.getIpWhitelist()).rejects.toThrow(
           'An error occurred while retrieving your IP whitelist.',
         );
@@ -107,7 +107,7 @@ describe('ForestHttpApi', () => {
         body: {},
       });
 
-      const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
+      const service = new ForestHttpApi('http://api.url', 'myEnvSecret', () => {});
       await service.getOpenIdConfiguration();
 
       expect(superagent.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
@@ -125,7 +125,7 @@ describe('ForestHttpApi', () => {
           body: openidConfiguration,
         });
 
-        const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
+        const service = new ForestHttpApi('http://api.url', 'myEnvSecret', () => {});
         const result = await service.getOpenIdConfiguration();
 
         expect(result).toStrictEqual(openidConfiguration);
@@ -138,7 +138,7 @@ describe('ForestHttpApi', () => {
           throw new Error();
         });
 
-        const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
+        const service = new ForestHttpApi('http://api.url', 'myEnvSecret', () => {});
         await expect(service.getOpenIdConfiguration()).rejects.toThrow(
           'Failed to fetch openid-configuration',
         );
@@ -172,7 +172,7 @@ describe('ForestHttpApi', () => {
       }));
       superagent.set = secondSetSpy;
 
-      const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
+      const service = new ForestHttpApi('http://api.url', 'myEnvSecret', () => {});
       await service.getUserAuthorizationInformations('1', 'tokenset');
 
       expect(firstSetSpy).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
@@ -186,7 +186,7 @@ describe('ForestHttpApi', () => {
       test('should return the openid configuration', async () => {
         superagent.set.mockReturnValue({ ...body, set: () => body });
 
-        const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
+        const service = new ForestHttpApi('http://api.url', 'myEnvSecret', () => {});
         const result = await service.getUserAuthorizationInformations('1', 'tokenset');
 
         expect(result).toStrictEqual({
@@ -210,7 +210,7 @@ describe('ForestHttpApi', () => {
           },
         }));
 
-        const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
+        const service = new ForestHttpApi('http://api.url', 'myEnvSecret', () => {});
         await expect(service.getUserAuthorizationInformations('1', 'tokenset')).rejects.toThrow(
           'Failed to retrieve authorization informations.',
         );

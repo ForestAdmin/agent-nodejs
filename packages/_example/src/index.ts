@@ -12,5 +12,7 @@ export default async function start() {
     agentUrl: process.env.FOREST_AGENT_URL,
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
+    isProduction: false,
+    schemaDir: '.',
   });
 }

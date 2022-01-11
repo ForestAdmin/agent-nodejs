@@ -5,11 +5,11 @@ import { IncomingMessage, ServerResponse } from 'http';
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import path from 'path';
-import BaseRoute from './routes/base-route';
 import AllRoutes from './routes';
-import Serializer from './services/serializer';
-import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverServices } from './types';
-import ForestHttpApi from './services/forest-http-api';
+import BaseRoute from './routes/base-route';
+import makeServices, { ForestAdminHttpDriverServices } from './services';
+import { ForestAdminHttpDriverOptions } from './types';
+import SchemaEmitter from './utils/forest-schema/emitter';
 
 /** Native NodeJS callback that can be passed to an HTTP Server */
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
@@ -35,12 +35,7 @@ export default class ForestAdminHttpDriver {
   constructor(dataSource: DataSource, options: ForestAdminHttpDriverOptions) {
     this.dataSource = dataSource;
     this.options = options;
-
-    const { prefix, forestServerUrl, envSecret } = this.options;
-    this.services = {
-      serializer: new Serializer(prefix),
-      forestHTTPApi: new ForestHttpApi(forestServerUrl, envSecret),
-    };
+    this.services = makeServices(options);
   }
 
   /**
@@ -53,6 +48,8 @@ export default class ForestAdminHttpDriver {
     }
 
     this.status = 'running';
+
+    // Build http application
     const router = new Router({ prefix: path.join('/', this.options.prefix) });
     this.buildRoutes();
 
@@ -63,6 +60,13 @@ export default class ForestAdminHttpDriver {
 
     this.app.use(cors({ credentials: true, maxAge: 24 * 3600 })).use(bodyParser());
     this.app.use(router.routes());
+
+    // Send apimap to forestadmin-server (if relevant).
+    const [apimap, hash] = await SchemaEmitter.getSchema(this.options, this.dataSource);
+
+    if (await this.services.forestHTTPApi.hasSchema(hash)) {
+      await this.services.forestHTTPApi.uploadSchema(apimap);
+    }
   }
 
   /**

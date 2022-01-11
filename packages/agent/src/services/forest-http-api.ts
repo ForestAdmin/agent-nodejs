@@ -1,5 +1,7 @@
+import JSONAPISerializer from 'json-api-serializer';
 import { IssuerMetadata } from 'openid-client';
 import superagent, { Response } from 'superagent';
+import { Logger, LoggerLevel } from '../types';
 
 export type IpRule = {
   type: number;
@@ -12,8 +14,9 @@ export type IpRule = {
 export default class ForestHttpApi {
   private readonly forestServerUrl: string;
   private readonly envSecret: string;
+  private readonly logger: Logger;
 
-  constructor(forestServerUrl: string, envSecret: string) {
+  constructor(forestServerUrl: string, envSecret: string, logger: Logger) {
     if (!forestServerUrl || !envSecret) {
       throw new Error(
         `forestServerUrl: ${forestServerUrl} and envSecret: ${envSecret} must be present.`,
@@ -22,6 +25,7 @@ export default class ForestHttpApi {
 
     this.forestServerUrl = forestServerUrl;
     this.envSecret = envSecret;
+    this.logger = logger;
   }
 
   async getIpWhitelist(): Promise<{
@@ -86,6 +90,47 @@ export default class ForestHttpApi {
       };
     } catch {
       throw new Error('Failed to retrieve authorization informations.');
+    }
+  }
+
+  async hasSchema(hash: string): Promise<boolean> {
+    const response = await superagent
+      .post(new URL(`/forest/apimaps/hashcheck`, this.forestServerUrl))
+      .send({ schemaFileHash: hash })
+      .set('forest-secret-key', this.envSecret);
+
+    return Boolean(response?.body?.sendSchema);
+  }
+
+  async uploadSchema(apimap: JSONAPISerializer.JSONAPIDocument): Promise<void> {
+    try {
+      const response = await superagent
+        .post(new URL(`/forest/apimaps`, this.forestServerUrl))
+        .send(apimap)
+        .set('forest-secret-key', this.envSecret);
+
+      // Forestadmin-server may warn customers about deprecation to come.
+      if (response?.body?.warning) {
+        this.logger?.(LoggerLevel.Warn, response.body.warning);
+      }
+    } catch (e) {
+      // Sending the schema to forestadmin-server is mandatory: crash the server gracefully
+      // when we fail to do so.
+      const messages = {
+        0: 'Cannot send the apimap to Forest. Are you online?',
+        404:
+          'Cannot find the project related to the envSecret you configured. ' +
+          'Can you check on Forest that you copied it properly in the Forest initialization?',
+        503:
+          'Forest is in maintenance for a few minutes. ' +
+          'We are upgrading your experience in the forest. ' +
+          'We just need a few more minutes to get it right.',
+        default:
+          'An error occured with the apimap sent to Forest. ' +
+          'Please contact support@forestadmin.com for further investigations.',
+      };
+
+      throw new Error(messages[e.response.status] ?? messages.default);
     }
   }
 }
