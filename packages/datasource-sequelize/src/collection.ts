@@ -28,11 +28,11 @@ export default class SequelizeCollection extends BaseCollection {
       this.sequelize = sequelize;
 
       if (schema) {
-        this.model = sequelize.define(name, CollectionSchemaConverter.convert(schema)) || null;
+        this.model = sequelize.define(name, CollectionSchemaConverter.convert(schema));
+        if (schema.searchable) this.enableSearch();
 
         // FIXME: Remove when ModelToCollectionSchemaConverter is done.
         this.addFields(schema.fields);
-        if (schema.searchable) this.enableSearch();
         this.addSegments(schema.segments);
       } else {
         this.model = sequelize[name] ?? null;
@@ -43,7 +43,6 @@ export default class SequelizeCollection extends BaseCollection {
       const modelSchema = ModelConverter.convert(this.model);
 
       this.addFields(modelSchema.fields);
-      if (modelSchema.searchable) this.enableSearch();
       this.addSegments(modelSchema.segments);
     }
   }
