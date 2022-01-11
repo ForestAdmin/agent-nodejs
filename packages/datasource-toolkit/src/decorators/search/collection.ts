@@ -31,17 +31,18 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
         filter.searchExtended,
       );
       const conditions = searchFields
-        .map(([path, schema]) =>
-          SearchCollectionDecorator.buildCondition(path, schema, filter.search),
+        .map(([field, schema]) =>
+          SearchCollectionDecorator.buildCondition(field, schema, filter.search),
         )
         .filter(Boolean);
+
+      search = null;
 
       // Note that if not fields are searchable with the provided searchString, the conditions
       // array might be empty, which will create a condition returning zero records
       // (this is the desired behavior).
       const searchFilter = { aggregator: Aggregator.Or, conditions };
       conditionTree = ConditionTreeUtils.addConditionsTree(conditionTree, searchFilter);
-      search = null;
 
       return { ...filter, conditionTree, search };
     }
@@ -50,7 +51,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   }
 
   private static buildCondition(
-    path: string,
+    field: string,
     schema: ColumnSchema,
     searchString: string,
   ): ConditionTree {
@@ -63,7 +64,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
         // a ' active' search string should match all record with the 'ACTIVE' enum value.
         return SearchCollectionDecorator.getEnumValue(enumValues, searchString)
           ? {
-              field: path,
+              field,
               operator: Operator.Equal,
               value: SearchCollectionDecorator.getEnumValue(enumValues, searchString),
             }
@@ -72,29 +73,30 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       case PrimitiveTypes.Number:
         // When searching on number fields, we expect exact matches (a '12' search string should
         // not match on a record containing 3123)
-        return searchType === 'number'
-          ? { field: path, operator: Operator.Equal, value: Number(searchString) }
-          : null;
-
-      case PrimitiveTypes.String:
-        // String are always be searched with the 'contains' operator.
-        return searchType !== 'none'
-          ? { field: path, operator: Operator.Contains, value: searchString }
+        return searchType === 'number' 
+          ? { field, operator: Operator.Equal, value: Number(searchString) }
           : null;
 
       case PrimitiveTypes.Uuid:
         // Like numbers, uuids are exact matches (this prevents postgres drivers from complaining)
         return searchType === 'uuid'
-          ? { field: path, operator: Operator.Equal, value: searchString }
+          ? { field, operator: Operator.Equal, value: searchString }
           : null;
       default:
-        return null;
+        // String case
+        // String are always be searched with the 'contains' operator.
+        return searchType !== 'none'
+          ? { field, operator: Operator.Contains, value: searchString }
+          : null;
     }
   }
 
-  private static getEnumValue(enumValues: string[], searchString: string) {
-    return enumValues.find(
-      enumValue => enumValue.toLocaleLowerCase() === searchString.toLocaleLowerCase().trim(),
+  private static getEnumValue(enumValues: string[], searchString: string): string {
+    return (
+      enumValues &&
+      enumValues.find(
+        enumValue => enumValue.toLocaleLowerCase() === searchString.toLocaleLowerCase().trim(),
+      )
     );
   }
 

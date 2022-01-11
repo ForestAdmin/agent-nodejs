@@ -1,5 +1,10 @@
 import { Aggregator, ConditionTree, ConditionTreeBranch } from '../interfaces/query/selection';
 
+export const ConditionTreeNotMatchAnyResult = Object.freeze({
+  aggregator: 'or',
+  conditions: [],
+});
+
 export default class ConditionTreeUtils {
   static addConditionsTree(...conditionTrees: ConditionTree[]): ConditionTree {
     const conditions = conditionTrees.reduce((currentConditions, condition) => {
