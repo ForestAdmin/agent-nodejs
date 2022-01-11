@@ -1,30 +1,16 @@
 import {
   AggregateResult,
   Aggregation,
-  CollectionSchema,
   CompositeId,
-  DataSource,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import {
-  CollectionSchemaToModelAttributesConverter,
-  SequelizeCollection,
-} from '@forestadmin/datasource-sequelize';
+import { SequelizeCollection } from '@forestadmin/datasource-sequelize';
 
 export default class LiveCollection extends SequelizeCollection {
   private synched = false;
-
-  constructor(name, datasource: DataSource, schema: CollectionSchema, sequelize) {
-    super(name, datasource, schema, sequelize);
-
-    this.model = this.sequelize.define(
-      name,
-      CollectionSchemaToModelAttributesConverter.convert(schema),
-    );
-  }
 
   private ensureSynched(): void {
     if (!this.synched) {
