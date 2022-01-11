@@ -16,7 +16,9 @@ describe('SequelizeDataSource', () => {
     it('should return null for unknown collection name', () => {
       const sequelizeDataSource = new ConcreteSequelizeDataSource();
 
-      expect(sequelizeDataSource.getCollection('__no_such_collection')).toBeNull();
+      expect(() => sequelizeDataSource.getCollection('__no_such_collection__')).toThrow(
+        'Collection "__no_such_collection__" not found.',
+      );
     });
 
     it('should return known collection when given its name', () => {
