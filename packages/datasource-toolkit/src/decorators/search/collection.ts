@@ -4,14 +4,15 @@ import {
   CollectionSchema,
   ColumnSchema,
   ConditionTree,
-  Filter,
-  Operator,
-  FieldTypes,
   DataSource,
   FieldSchema,
+  FieldTypes,
+  Filter,
+  Operator,
+  PrimitiveTypes,
 } from '../../index';
 import ConditionTreeUtils from '../../utils/condition-tree';
-import { PrimitiveTypes } from '../../interfaces/schema';
+import {PrimitiveTypes} from '../../interfaces/schema';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   private static readonly REGEX_UUID =
@@ -21,7 +22,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     let { conditionTree, search } = filter;
 
     if (search && !this.collection.schema.searchable) {
-      if (SearchCollectionDecorator.getSearchType(search) === 'none') {
+      if (!SearchCollectionDecorator.getSearchType(search)) {
         return { ...filter, search: null };
       }
 
@@ -36,14 +37,13 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
         )
         .filter(Boolean);
 
-      search = null;
-
       // Note that if not fields are searchable with the provided searchString, the conditions
       // array might be empty, which will create a condition returning zero records
       // (this is the desired behavior).
       const searchFilter = { aggregator: Aggregator.Or, conditions };
       conditionTree = ConditionTreeUtils.addConditionsTree(conditionTree, searchFilter);
 
+      search = null;
       return { ...filter, conditionTree, search };
     }
 
@@ -73,7 +73,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       case PrimitiveTypes.Number:
         // When searching on number fields, we expect exact matches (a '12' search string should
         // not match on a record containing 3123)
-        return searchType === 'number' 
+        return searchType === 'number'
           ? { field, operator: Operator.Equal, value: Number(searchString) }
           : null;
 
@@ -85,7 +85,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       default:
         // String case
         // String are always be searched with the 'contains' operator.
-        return searchType !== 'none'
+        return searchType !== null
           ? { field, operator: Operator.Contains, value: searchString }
           : null;
     }
@@ -126,9 +126,9 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     ) as [string, ColumnSchema][];
   }
 
-  private static getSearchType(searchString: string): 'none' | 'number' | 'string' | 'uuid' {
+  private static getSearchType(searchString: string): null | 'number' | 'string' | 'uuid' {
     if (searchString.trim().length === 0) {
-      return 'none';
+      return null;
     }
 
     if (searchString.match(SearchCollectionDecorator.REGEX_UUID)) {

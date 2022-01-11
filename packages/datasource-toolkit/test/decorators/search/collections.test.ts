@@ -301,6 +301,52 @@ describe('SearchCollection', () => {
           });
         });
       });
+
+      describe('when there are several number fields', () => {
+        test('should return all the number fields', () => {
+          const collection = factories.collection.build({
+            dataSource: factories.dataSource.build(),
+            schema: factories.collectionSchema.build({
+              searchable: false,
+              fields: {
+                numberField1: factories.columnSchema.build({
+                  columnType: PrimitiveTypes.Number,
+                }),
+                numberField2: factories.columnSchema.build({
+                  columnType: PrimitiveTypes.Number,
+                }),
+                fieldNotReturned: factories.columnSchema.build({
+                  columnType: PrimitiveTypes.Uuid,
+                }),
+              },
+            }),
+          });
+
+          const filter = factories.filter.build({ search: '1584' });
+
+          const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+
+          const refinedFilter = searchCollectionDecorator.refineFilter(filter);
+          expect(refinedFilter).toStrictEqual({
+            search: null,
+            conditionTree: {
+              aggregator: 'or',
+              conditions: [
+                {
+                  field: 'numberField1',
+                  operator: Operator.Equal,
+                  value: 1584,
+                },
+                {
+                  field: 'numberField2',
+                  operator: Operator.Equal,
+                  value: 1584,
+                },
+              ],
+            },
+          });
+        });
+      });
     });
   });
 });
