@@ -14,13 +14,13 @@ const compositeKeyCollectionSchema: CollectionSchema = {
   actions: {},
   fields: {
     pkA: {
-      columnType: PrimitiveTypes.Number,
+      columnType: PrimitiveTypes.String,
       filterOperators: new Set<Operator>([Operator.Equal]),
       isPrimaryKey: true,
       type: FieldTypes.Column,
     },
     pkB: {
-      columnType: PrimitiveTypes.Number,
+      columnType: PrimitiveTypes.String,
       filterOperators: new Set<Operator>([Operator.Equal]),
       isPrimaryKey: true,
       type: FieldTypes.Column,
@@ -100,6 +100,17 @@ const preloadRecords = async (recordCount, schema, options) => {
   };
 };
 
+const preloadCompositeKeyCollectionRecords = async (recordCount, schema, options = {}) => {
+  // eslint-disable-next-line @typescript-eslint/dot-notation
+  options['recordBuilder'] = index => ({
+    pkA: `pkA_${index}`,
+    pkB: `pkB_${index}`,
+    value: `record_${index + 1}`,
+  });
+
+  return preloadRecords(recordCount, schema, options);
+};
+
 const preloadLiveCollectionRecords = async (recordCount, schema, options = {}) => {
   const fixedValue = '__fixed__';
 
@@ -175,13 +186,17 @@ describe('LiveDataSource > Collection', () => {
       const {
         liveCollection,
         sequelizeRecords: [expectedRecord],
-      } = await preloadLiveCollectionRecords(1, liveCollectionSchema);
+      } = await preloadCompositeKeyCollectionRecords(1, compositeKeyCollectionSchema);
 
-      const record = await liveCollection.getById([Number(expectedRecord.get('id'))], null);
+      const record = await liveCollection.getById(
+        [String(expectedRecord.get('pkA')), String(expectedRecord.get('pkB'))],
+        null,
+      );
 
       expect(record).toEqual(
         expect.objectContaining({
-          id: expectedRecord.get('id'),
+          pkA: expectedRecord.get('pkA'),
+          pkB: expectedRecord.get('pkB'),
           value: expectedRecord.get('value'),
         }),
       );
