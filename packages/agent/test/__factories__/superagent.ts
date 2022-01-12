@@ -6,6 +6,8 @@ export class SuperAgentFactory extends Factory<superagent> {
     return this.afterBuild(superagentInstance => {
       superagentInstance.set = jest.fn().mockReturnThis();
       superagentInstance.get = jest.fn().mockReturnThis();
+      superagentInstance.send = jest.fn().mockReturnThis();
+      superagentInstance.post = jest.fn().mockReturnThis();
     });
   }
 }

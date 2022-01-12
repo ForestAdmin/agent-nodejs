@@ -9,3 +9,4 @@ node_modules
 
 # Configuration
 packages/*/.env
+.forestadmin-schema.json

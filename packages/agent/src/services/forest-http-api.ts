@@ -130,7 +130,7 @@ export default class ForestHttpApi {
           'Please contact support@forestadmin.com for further investigations.',
       };
 
-      throw new Error(messages[e.response.status] ?? messages.default);
+      throw new Error(messages[e.response?.status] ?? messages.default);
     }
   }
 }
