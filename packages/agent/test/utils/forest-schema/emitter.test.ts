@@ -1,5 +1,6 @@
 import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import fs from 'fs';
+import path from 'path';
 import SchemaEmitter from '../../../src/utils/forest-schema/emitter';
 import * as factories from '../../__factories__';
 
@@ -53,7 +54,10 @@ describe('SchemaEmitter', () => {
 
     describe('with an available schema file', () => {
       beforeEach(() => {
-        fs.copyFileSync('./test/__data__/forestadmin-schema.json', schemaPath);
+        fs.copyFileSync(
+          path.resolve(__dirname, '../../__data__/forestadmin-schema.json'),
+          schemaPath,
+        );
       });
 
       test('it should return the schema from the file', async () => {
