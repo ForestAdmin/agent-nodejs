@@ -14,6 +14,12 @@ import {
 } from '../../index';
 import ConditionTreeUtils from '../../utils/condition-tree';
 
+enum SearchType {
+  String,
+  Number,
+  Uuid,
+}
+
 export default class SearchCollectionDecorator extends CollectionDecorator {
   private static readonly REGEX_V3_UUID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -58,31 +64,26 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   ): ConditionTree {
     const searchType = SearchCollectionDecorator.getSearchType(searchString);
     const { columnType, enumValues } = schema;
+    let condition = null;
 
     if (
       PrimitiveTypes.Enum === columnType &&
       SearchCollectionDecorator.getEnumValue(enumValues, searchString)
     ) {
-      return {
+      condition = {
         field,
         operator: Operator.Equal,
         value: SearchCollectionDecorator.getEnumValue(enumValues, searchString),
       };
+    } else if (PrimitiveTypes.Number === columnType && searchType === SearchType.Number) {
+      condition = { field, operator: Operator.Equal, value: Number(searchString) };
+    } else if (PrimitiveTypes.Uuid === columnType && searchType === SearchType.Uuid) {
+      condition = { field, operator: Operator.Equal, value: searchString };
+    } else if (PrimitiveTypes.String === columnType && searchType === SearchType.String) {
+      condition = { field, operator: Operator.Contains, value: searchString };
     }
 
-    if (PrimitiveTypes.Number === columnType && searchType === 'number') {
-      return { field, operator: Operator.Equal, value: Number(searchString) };
-    }
-
-    if (PrimitiveTypes.Uuid === columnType && searchType === 'uuid') {
-      return { field, operator: Operator.Equal, value: searchString };
-    }
-
-    if (PrimitiveTypes.String === columnType && searchType === 'string') {
-      return { field, operator: Operator.Contains, value: searchString };
-    }
-
-    return null;
+    return condition;
   }
 
   private static getEnumValue(enumValues: string[], searchString: string): string {
@@ -129,17 +130,17 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     return searchString.trim().length === 0;
   }
 
-  private static getSearchType(searchString: string): 'number' | 'string' | 'uuid' {
+  private static getSearchType(searchString: string): SearchType {
     if (searchString.match(SearchCollectionDecorator.REGEX_V3_UUID)) {
-      return 'uuid';
+      return SearchType.Uuid;
     }
 
     if (!Number.isNaN(Number(searchString)) && !Number.isNaN(parseFloat(searchString))) {
       // @see https://stackoverflow.com/questions/175739
-      return 'number';
+      return SearchType.Number;
     }
 
-    return 'string';
+    return SearchType.String;
   }
 
   private static isSearchable(schema: FieldSchema): boolean {
