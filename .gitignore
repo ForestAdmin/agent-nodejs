@@ -8,5 +8,5 @@ node_modules
 .idea
 
 # Configuration
-packages/*/.env
+.env
 .forestadmin-schema.json
