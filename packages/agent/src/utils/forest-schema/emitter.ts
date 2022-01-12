@@ -8,8 +8,8 @@ import { ForestAdminHttpDriverOptions } from '../../types';
 import SchemaGeneratorCollection from './generator-collection';
 import { ForestServerCollection } from './types';
 
-type JsonApiDocument = JSONAPISerializer.JSONAPIDocument;
 type Schema = ForestServerCollection[];
+type SerializedSchema = { meta: { schemaFileHash: string } };
 type Options = Pick<
   ForestAdminHttpDriverOptions,
   'envSecret' | 'forestServerUrl' | 'isProduction' | 'logger' | 'prefix' | 'schemaDir'
@@ -28,10 +28,10 @@ export default class SchemaEmitter {
     },
   };
 
-  static async getSchema(
+  static async getSerializedSchema(
     options: Options,
     dataSource: DataSource,
-  ): Promise<[JsonApiDocument, string]> {
+  ): Promise<SerializedSchema> {
     const schema: Schema = options.isProduction
       ? await SchemaEmitter.loadFromDisk(options.schemaDir)
       : await SchemaEmitter.generate(options.prefix, dataSource);
@@ -43,9 +43,8 @@ export default class SchemaEmitter {
     }
 
     const hash = crypto.createHash('sha1').update(JSON.stringify(schema)).digest('hex');
-    const apimap = SchemaEmitter.serialize(schema, hash);
 
-    return [apimap, hash];
+    return SchemaEmitter.serialize(schema, hash);
   }
 
   private static async loadFromDisk(schemaDir: string): Promise<Schema> {
@@ -68,7 +67,7 @@ export default class SchemaEmitter {
     return Promise.all(collectionSchemas);
   }
 
-  private static serialize(schema: Schema, hash: string): JsonApiDocument {
+  private static serialize(schema: Schema, hash: string): SerializedSchema {
     // Build serializer
     const serializer = new JSONAPISerializer();
 
@@ -88,6 +87,6 @@ export default class SchemaEmitter {
       'collections',
       schema.map(c => ({ id: c.name, ...c })),
       { ...SchemaEmitter.meta, schemaFileHash: hash },
-    );
+    ) as SerializedSchema;
   }
 }

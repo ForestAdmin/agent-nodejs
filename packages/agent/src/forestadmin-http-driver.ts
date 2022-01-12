@@ -61,11 +61,12 @@ export default class ForestAdminHttpDriver {
     this.app.use(cors({ credentials: true, maxAge: 24 * 3600 })).use(bodyParser());
     this.app.use(router.routes());
 
-    // Send apimap to forestadmin-server (if relevant).
-    const [apimap, hash] = await SchemaEmitter.getSchema(this.options, this.dataSource);
+    // Send schema to forestadmin-server (if relevant).
+    const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSource);
+    const schemaIsKnown = await this.services.forestHTTPApi.hasSchema(schema.meta.schemaFileHash);
 
-    if (await this.services.forestHTTPApi.hasSchema(hash)) {
-      await this.services.forestHTTPApi.uploadSchema(apimap);
+    if (!schemaIsKnown) {
+      await this.services.forestHTTPApi.uploadSchema(schema);
     }
   }
 
