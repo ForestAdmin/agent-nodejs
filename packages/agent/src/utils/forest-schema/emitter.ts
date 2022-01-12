@@ -1,6 +1,8 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 import crypto from 'crypto';
-import fs from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import JSONAPISerializer from 'json-api-serializer';
 import stringify from 'json-stringify-pretty-compact';
 import { ForestAdminHttpDriverOptions } from '../../types';
@@ -11,13 +13,16 @@ type RawSchema = ForestServerCollection[];
 type SerializedSchema = { meta: { schemaFileHash: string } };
 type Options = Pick<ForestAdminHttpDriverOptions, 'isProduction' | 'prefix' | 'schemaPath'>;
 
+// Load version from package.json at startup
+const { version } = JSON.parse(readFileSync(resolve(__dirname, '../../../package.json'), 'utf8'));
+
 /**
  * Generate and dispatch dataSource schema on agent start.
  */
 export default class SchemaEmitter {
   private static readonly meta = {
     liana: 'forest-nodejs-agent',
-    liana_version: '1.0.0',
+    liana_version: version,
     stack: {
       engine: 'nodejs',
       engine_version: process.versions && process.versions.node,
@@ -34,7 +39,7 @@ export default class SchemaEmitter {
 
     if (!options.isProduction) {
       const pretty = stringify(schema, { maxLength: 80 });
-      await fs.writeFile(options.schemaPath, pretty, { encoding: 'utf-8' });
+      await writeFile(options.schemaPath, pretty, { encoding: 'utf-8' });
     }
 
     const hash = crypto.createHash('sha1').update(JSON.stringify(schema)).digest('hex');
@@ -44,7 +49,7 @@ export default class SchemaEmitter {
 
   private static async loadFromDisk(schemaPath: string): Promise<RawSchema> {
     try {
-      const fileContent = await fs.readFile(schemaPath, { encoding: 'utf-8' });
+      const fileContent = await readFile(schemaPath, { encoding: 'utf-8' });
 
       return JSON.parse(fileContent);
     } catch (e) {
