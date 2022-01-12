@@ -3,7 +3,6 @@ import crypto from 'crypto';
 import fs from 'fs/promises';
 import JSONAPISerializer from 'json-api-serializer';
 import stringify from 'json-stringify-pretty-compact';
-import path from 'path';
 import { ForestAdminHttpDriverOptions } from '../../types';
 import SchemaGeneratorCollection from './generator-collection';
 import { ForestServerCollection } from './types';
@@ -12,7 +11,7 @@ type Schema = ForestServerCollection[];
 type SerializedSchema = { meta: { schemaFileHash: string } };
 type Options = Pick<
   ForestAdminHttpDriverOptions,
-  'envSecret' | 'forestServerUrl' | 'isProduction' | 'logger' | 'prefix' | 'schemaDir'
+  'envSecret' | 'forestServerUrl' | 'isProduction' | 'logger' | 'prefix' | 'schemaPath'
 >;
 
 /**
@@ -33,13 +32,12 @@ export default class SchemaEmitter {
     dataSource: DataSource,
   ): Promise<SerializedSchema> {
     const schema: Schema = options.isProduction
-      ? await SchemaEmitter.loadFromDisk(options.schemaDir)
+      ? await SchemaEmitter.loadFromDisk(options.schemaPath)
       : await SchemaEmitter.generate(options.prefix, dataSource);
 
     if (!options.isProduction) {
-      const schemaPath = path.join(options.schemaDir, '.forestadmin-schema.json');
       const pretty = stringify(schema, { maxLength: 80 });
-      await fs.writeFile(schemaPath, pretty, { encoding: 'utf-8' });
+      await fs.writeFile(options.schemaPath, pretty, { encoding: 'utf-8' });
     }
 
     const hash = crypto.createHash('sha1').update(JSON.stringify(schema)).digest('hex');
@@ -47,9 +45,7 @@ export default class SchemaEmitter {
     return SchemaEmitter.serialize(schema, hash);
   }
 
-  private static async loadFromDisk(schemaDir: string): Promise<Schema> {
-    const schemaPath = path.join(schemaDir, '.forestadmin-schema.json');
-
+  private static async loadFromDisk(schemaPath: string): Promise<Schema> {
     try {
       const fileContent = await fs.readFile(schemaPath, { encoding: 'utf-8' });
 

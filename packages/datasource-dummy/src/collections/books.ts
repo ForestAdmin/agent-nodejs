@@ -52,11 +52,6 @@ export default class BookCollection extends BaseCollection {
         columnType: PrimitiveTypes.Date,
         filterOperators: new Set([]),
       },
-      publisher: {
-        type: FieldTypes.ManyToOne,
-        foreignCollection: null,
-        foreignKey: null,
-      },
     });
   }
 

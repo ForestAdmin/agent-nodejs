@@ -13,6 +13,6 @@ export default async function start() {
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: false,
-    schemaDir: '.',
+    schemaPath: '.forestadmin-schema.json',
   });
 }

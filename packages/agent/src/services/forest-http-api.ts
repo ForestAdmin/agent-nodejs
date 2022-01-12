@@ -99,7 +99,7 @@ export default class ForestHttpApi {
       .send({ schemaFileHash: hash })
       .set('forest-secret-key', this.envSecret);
 
-    return Boolean(response?.body?.sendSchema);
+    return !response?.body?.sendSchema;
   }
 
   async uploadSchema(apimap: JSONAPISerializer.JSONAPIDocument): Promise<void> {

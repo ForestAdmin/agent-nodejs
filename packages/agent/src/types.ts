@@ -18,7 +18,7 @@ export interface ForestAdminHttpDriverOptions {
   logger?: Logger;
   prefix: string;
   isProduction: boolean;
-  schemaDir: string;
+  schemaPath: string;
 }
 
 export enum HttpCode {

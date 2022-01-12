@@ -8,5 +8,5 @@ export default Factory.define<ForestAdminHttpDriverOptions>(() => ({
   envSecret: 'env_secret_xxx',
   forestServerUrl: 'https://api.forestadmin.com',
   isProduction: false,
-  schemaDir: '/tmp/',
+  schemaPath: '/tmp/.testschema.json',
 }));
