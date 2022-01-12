@@ -1,5 +1,5 @@
 import superagent from 'superagent';
-import factories from '../__factories__';
+import * as factories from '../__factories__';
 
 import ForestHttpApi from '../../src/services/forest-http-api';
 

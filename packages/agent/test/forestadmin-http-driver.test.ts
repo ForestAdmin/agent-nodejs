@@ -1,5 +1,5 @@
 import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
-import factories from './__factories__';
+import * as factories from './__factories__';
 
 jest.mock('../src/routes', () => {
   return [];

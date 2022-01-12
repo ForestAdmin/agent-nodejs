@@ -1,6 +1,6 @@
 import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import Serializer from '../../src/services/serializer';
-import factories from '../__factories__';
+import * as factories from '../__factories__';
 
 describe('Serializer', () => {
   const serializer = new Serializer('/forest');

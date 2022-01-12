@@ -1,6 +1,6 @@
 import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
 import SchemaUtils from '../../src/utils/schema';
-import factories from '../__factories__';
+import * as factories from '../__factories__';
 
 describe('SchemaUtils', () => {
   describe('getPrimaryKeys', () => {
