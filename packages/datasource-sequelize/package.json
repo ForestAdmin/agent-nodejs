@@ -4,8 +4,7 @@
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "^1.0.0",
-    "sequelize": "^6.12.4"
+    "@forestadmin/datasource-toolkit": "^1.0.0"
   },
   "files": [
     "dist/**/*.js",
@@ -19,6 +18,10 @@
     "test": "jest"
   },
   "devDependencies": {
-    "fishery": "^2.1.0"
+    "fishery": "^2.1.0",
+    "sequelize": "^6.12.4"
+  },
+  "peerDependencies": {
+    "sequelize": "^6.12.4"
   }
 }
