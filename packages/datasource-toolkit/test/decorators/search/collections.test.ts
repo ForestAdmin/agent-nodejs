@@ -6,7 +6,7 @@ import { ConditionTreeNotMatchAnyResult } from '../../../src/utils/condition-tre
 describe('SearchCollection', () => {
   describe('refineFilter', () => {
     describe('when the given filter is empty', () => {
-      test('should return the given filter', () => {
+      test('should return the given filter to return all records', () => {
         const collection = factories.collection.build();
         const filter = factories.filter.build({});
 
@@ -18,7 +18,7 @@ describe('SearchCollection', () => {
     });
 
     describe('when the search value is null', () => {
-      test('should return the given filter', () => {
+      test('should return the given filter to return all records', () => {
         const collection = factories.collection.build();
         const filter = factories.filter.build({ search: null });
 
@@ -29,8 +29,8 @@ describe('SearchCollection', () => {
       });
     });
 
-    describe('when the field is not a column', () => {
-      test('should add an empty condition with a "or" aggregator', () => {
+    describe('when the given field is not a column', () => {
+      test('adds a condition to not return record if it is the only one filter', () => {
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
             searchable: false,
@@ -52,7 +52,7 @@ describe('SearchCollection', () => {
     });
 
     describe('when the collection schema is searchable', () => {
-      test('should return the given filter', () => {
+      test('should return the given filter without adding condition', () => {
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({ searchable: true }),
         });
@@ -65,9 +65,9 @@ describe('SearchCollection', () => {
       });
     });
 
-    describe('when the search is given and the collection schema is not searchable', () => {
-      describe('when the search is white spaces', () => {
-        test('should return the same filter with search as null', () => {
+    describe('when the search is defined and the collection schema is not searchable', () => {
+      describe('when the search is empty', () => {
+        test('returns the same filter and set search as null to return all the records', () => {
           const collection = factories.collection.build({
             schema: factories.collectionSchema.build({ searchable: false }),
           });
@@ -81,7 +81,7 @@ describe('SearchCollection', () => {
       });
 
       describe('when the filter contains already conditions', () => {
-        test('should add its conditions', () => {
+        test('should add its conditions to the filter', () => {
           const collection = factories.collection.build({
             schema: factories.collectionSchema.build({
               searchable: false,
@@ -195,7 +195,7 @@ describe('SearchCollection', () => {
       });
 
       describe('when the search is a number and the column type is a number', () => {
-        test('should return filter with "equal" condition and "or" aggregator', () => {
+        test('returns filter "equal" condition, "or" aggregator and cast value to Number', () => {
           const collection = factories.collection.build({
             schema: factories.collectionSchema.build({
               searchable: false,
@@ -263,7 +263,7 @@ describe('SearchCollection', () => {
         });
 
         describe('when the search value does not match any enum', () => {
-          test('should add an empty condition with a "or" aggregator', () => {
+          test('adds a condition to not return record if it is the only one filter', () => {
             const collection = factories.collection.build({
               schema: factories.collectionSchema.build({
                 searchable: false,
@@ -289,7 +289,7 @@ describe('SearchCollection', () => {
         });
 
         describe('when the enum values are not defined', () => {
-          test('should add an empty condition with a "or" aggregator', () => {
+          test('adds a condition to not return record if it is the only one filter', () => {
             const collection = factories.collection.build({
               schema: factories.collectionSchema.build({
                 searchable: false,
@@ -315,7 +315,7 @@ describe('SearchCollection', () => {
         });
 
         describe('when the column type is not searchable', () => {
-          test('should add an empty condition with a "or" aggregator', () => {
+          test('adds a condition to not return record if it is the only one filter', () => {
             const collection = factories.collection.build({
               schema: factories.collectionSchema.build({
                 searchable: false,
@@ -468,7 +468,7 @@ describe('SearchCollection', () => {
             ]);
 
             const filter = factories.filter.build({
-              searchExtended: true,
+              deepSearch: true,
               search: '2d162303-78bf-599e-b197-93590ac3d315',
             });
 
@@ -478,7 +478,7 @@ describe('SearchCollection', () => {
 
             const refinedFilter = searchCollectionDecorator.refineFilter(filter);
             expect(refinedFilter).toStrictEqual({
-              searchExtended: true,
+              deepSearch: true,
               search: null,
               conditionTree: {
                 aggregator: 'or',

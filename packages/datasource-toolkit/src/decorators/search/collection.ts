@@ -15,21 +15,21 @@ import {
 import ConditionTreeUtils from '../../utils/condition-tree';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
-  private static readonly REGEX_UUID =
+  private static readonly REGEX_V3_UUID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   public refineFilter(filter: Filter): Filter {
     let { conditionTree, search } = filter;
 
     if (search && !this.collection.schema.searchable) {
-      if (!SearchCollectionDecorator.getSearchType(search)) {
+      if (SearchCollectionDecorator.checkEmptyString(search)) {
         return { ...filter, search: null };
       }
 
       const searchFields = SearchCollectionDecorator.getSearchFields(
         this.collection.schema,
         this.collection.dataSource,
-        filter.searchExtended,
+        filter.deepSearch,
       );
       const conditions = searchFields
         .map(([field, schema]) =>
@@ -125,12 +125,12 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     });
   }
 
-  private static getSearchType(searchString: string): null | 'number' | 'string' | 'uuid' {
-    if (searchString.trim().length === 0) {
-      return null;
-    }
+  private static checkEmptyString(searchString: string) {
+    return searchString.trim().length === 0;
+  }
 
-    if (searchString.match(SearchCollectionDecorator.REGEX_UUID)) {
+  private static getSearchType(searchString: string): 'number' | 'string' | 'uuid' {
+    if (searchString.match(SearchCollectionDecorator.REGEX_V3_UUID)) {
       return 'uuid';
     }
 
