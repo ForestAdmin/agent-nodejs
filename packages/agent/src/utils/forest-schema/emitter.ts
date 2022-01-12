@@ -7,12 +7,9 @@ import { ForestAdminHttpDriverOptions } from '../../types';
 import SchemaGeneratorCollection from './generator-collection';
 import { ForestServerCollection } from './types';
 
-type Schema = ForestServerCollection[];
+type RawSchema = ForestServerCollection[];
 type SerializedSchema = { meta: { schemaFileHash: string } };
-type Options = Pick<
-  ForestAdminHttpDriverOptions,
-  'envSecret' | 'forestServerUrl' | 'isProduction' | 'logger' | 'prefix' | 'schemaPath'
->;
+type Options = Pick<ForestAdminHttpDriverOptions, 'isProduction' | 'prefix' | 'schemaPath'>;
 
 /**
  * Generate and dispatch dataSource schema on agent start.
@@ -31,7 +28,7 @@ export default class SchemaEmitter {
     options: Options,
     dataSource: DataSource,
   ): Promise<SerializedSchema> {
-    const schema: Schema = options.isProduction
+    const schema: RawSchema = options.isProduction
       ? await SchemaEmitter.loadFromDisk(options.schemaPath)
       : await SchemaEmitter.generate(options.prefix, dataSource);
 
@@ -45,17 +42,19 @@ export default class SchemaEmitter {
     return SchemaEmitter.serialize(schema, hash);
   }
 
-  private static async loadFromDisk(schemaPath: string): Promise<Schema> {
+  private static async loadFromDisk(schemaPath: string): Promise<RawSchema> {
     try {
       const fileContent = await fs.readFile(schemaPath, { encoding: 'utf-8' });
 
       return JSON.parse(fileContent);
     } catch (e) {
-      throw new Error(`Failed to load ${schemaPath}`);
+      throw new Error(
+        `Cannot load ${schemaPath}. Providing a schema is mandatory in production mode.`,
+      );
     }
   }
 
-  private static async generate(prefix: string, dataSource: DataSource): Promise<Schema> {
+  private static async generate(prefix: string, dataSource: DataSource): Promise<RawSchema> {
     const collectionSchemas = dataSource.collections.map(collection =>
       SchemaGeneratorCollection.buildSchema(prefix, collection),
     );
@@ -63,7 +62,7 @@ export default class SchemaEmitter {
     return Promise.all(collectionSchemas);
   }
 
-  private static serialize(schema: Schema, hash: string): SerializedSchema {
+  private static serialize(schema: RawSchema, hash: string): SerializedSchema {
     // Build serializer
     const serializer = new JSONAPISerializer();
 
