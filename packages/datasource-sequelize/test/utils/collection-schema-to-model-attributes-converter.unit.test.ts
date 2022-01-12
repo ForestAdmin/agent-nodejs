@@ -1,3 +1,4 @@
+import { DataTypes } from 'sequelize';
 import {
   CollectionSchema,
   FieldTypes,
@@ -10,35 +11,62 @@ import CollectionSchemaToModelAttributesConverter from '../../src/utils/collecti
 describe('Utils > CollectionSchemaToModelAttributesConverter', () => {
   describe('convert', () => {
     describe('with Column fields', () => {
-      it('should convert all fields', () => {
-        const schema: CollectionSchema = {
-          actions: {},
-          fields: {
-            a: {
-              columnType: PrimitiveTypes.Number,
-              filterOperators: new Set<Operator>(),
-              isPrimaryKey: true,
-              type: FieldTypes.Column,
-            },
-            b: {
-              columnType: PrimitiveTypes.String,
-              filterOperators: new Set<Operator>(),
-              isPrimaryKey: true,
-              type: FieldTypes.Column,
-            },
+      const prepareSchema = (): CollectionSchema => ({
+        actions: {},
+        fields: {
+          a: {
+            columnType: PrimitiveTypes.Number,
+            filterOperators: new Set<Operator>(),
+            isPrimaryKey: true,
+            type: FieldTypes.Column,
           },
-          searchable: false,
-          segments: [],
-        };
+          b: {
+            columnType: PrimitiveTypes.String,
+            filterOperators: new Set<Operator>(),
+            isPrimaryKey: false,
+            type: FieldTypes.Column,
+          },
+        },
+        searchable: false,
+        segments: [],
+      });
+
+      it('should convert all fields', () => {
+        const schema: CollectionSchema = prepareSchema();
 
         const attributes = CollectionSchemaToModelAttributesConverter.convert(schema);
 
         expect(Object.keys(attributes)).toBeArrayOfSize(Object.keys(schema.fields).length);
       });
 
-      it.todo('should properly flag primary keys');
+      it('should properly flag primary keys', () => {
+        const schema: CollectionSchema = prepareSchema();
 
-      it.todo('should properly flag number primary keys as autoincrement');
+        const attributes = CollectionSchemaToModelAttributesConverter.convert(schema);
+
+        expect(attributes).toEqual(
+          expect.objectContaining({
+            a: expect.objectContaining({ primaryKey: true }),
+            b: expect.objectContaining({ primaryKey: false }),
+          }),
+        );
+      });
+
+      it('should properly convert number primary keys to autoincrementing integer', () => {
+        const schema: CollectionSchema = prepareSchema();
+
+        const attributes = CollectionSchemaToModelAttributesConverter.convert(schema);
+
+        expect(attributes).toEqual(
+          expect.objectContaining({
+            a: expect.objectContaining({
+              autoIncrement: true,
+              primaryKey: true,
+              type: DataTypes.INTEGER,
+            }),
+          }),
+        );
+      });
     });
 
     describe('with Relation fields', () => {
