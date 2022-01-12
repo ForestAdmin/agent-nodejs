@@ -1,7 +1,6 @@
 import JSONAPISerializer from 'json-api-serializer';
 import { IssuerMetadata } from 'openid-client';
 import superagent, { Response } from 'superagent';
-import { Logger, LoggerLevel } from '../types';
 
 export type IpRule = {
   type: number;
@@ -14,9 +13,8 @@ export type IpRule = {
 export default class ForestHttpApi {
   private readonly forestServerUrl: string;
   private readonly envSecret: string;
-  private readonly logger: Logger;
 
-  constructor(forestServerUrl: string, envSecret: string, logger: Logger) {
+  constructor(forestServerUrl: string, envSecret: string) {
     if (!forestServerUrl || !envSecret) {
       throw new Error(
         `forestServerUrl: ${forestServerUrl} and envSecret: ${envSecret} must be present.`,
@@ -25,7 +23,6 @@ export default class ForestHttpApi {
 
     this.forestServerUrl = forestServerUrl;
     this.envSecret = envSecret;
-    this.logger = logger;
   }
 
   async getIpWhitelist(): Promise<{
@@ -95,7 +92,7 @@ export default class ForestHttpApi {
 
   async hasSchema(hash: string): Promise<boolean> {
     const response = await superagent
-      .post(new URL(`/forest/apimaps/hashcheck`, this.forestServerUrl))
+      .post(new URL('/forest/apimaps/hashcheck', this.forestServerUrl))
       .send({ schemaFileHash: hash })
       .set('forest-secret-key', this.envSecret);
 
@@ -104,15 +101,10 @@ export default class ForestHttpApi {
 
   async uploadSchema(apimap: JSONAPISerializer.JSONAPIDocument): Promise<void> {
     try {
-      const response = await superagent
-        .post(new URL(`/forest/apimaps`, this.forestServerUrl))
+      await superagent
+        .post(new URL('/forest/apimaps', this.forestServerUrl))
         .send(apimap)
         .set('forest-secret-key', this.envSecret);
-
-      // Forestadmin-server may warn customers about deprecation to come.
-      if (response?.body?.warning) {
-        this.logger?.(LoggerLevel.Warn, response.body.warning);
-      }
     } catch (e) {
       // Sending the schema to forestadmin-server is mandatory: crash the server gracefully
       // when we fail to do so.

@@ -16,8 +16,7 @@ export default ({
   prefix,
   forestServerUrl,
   envSecret,
-  logger,
 }: Options): ForestAdminHttpDriverServices => ({
-  forestHTTPApi: new ForestHttpApi(forestServerUrl, envSecret, logger),
+  forestHTTPApi: new ForestHttpApi(forestServerUrl, envSecret),
   serializer: new Serializer(prefix),
 });
