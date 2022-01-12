@@ -2,8 +2,17 @@ import factories from '../../__factories__';
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
 import { FieldTypes, Operator, PrimitiveTypes, Aggregator } from '../../../src';
 import { ConditionTreeNotMatchAnyResult } from '../../../src/utils/condition-tree';
+import CollectionDecorator from '../../../src/decorators/CollectionDecorator';
 
-describe('SearchCollection', () => {
+describe('SearchCollectionDecorator', () => {
+  test('should extend the collection decorator', () => {
+    const collection = factories.collection.build();
+
+    const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+
+    expect(searchCollectionDecorator).toBeInstanceOf(CollectionDecorator);
+  });
+
   describe('refineFilter', () => {
     describe('when the given filter is empty', () => {
       test('should return the given filter to return all records', () => {

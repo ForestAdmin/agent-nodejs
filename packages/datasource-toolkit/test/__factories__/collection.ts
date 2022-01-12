@@ -1,8 +1,17 @@
+// eslint-disable-next-line max-classes-per-file
 import { Factory } from 'fishery';
 import { ActionForm } from '../../src/interfaces/action';
 import { Collection } from '../../src/interfaces/collection';
 import { ActionSchema } from '../../src/interfaces/schema';
 import collectionSchemaFactory from './schema/collection-schema';
+import CollectionDecorator from '../../src/decorators/CollectionDecorator';
+import { Filter } from '../../src';
+
+export class DecoratedCollection extends CollectionDecorator {
+  public refineFilter(filter: Filter): Filter {
+    return filter;
+  }
+}
 
 export class CollectionFactory extends Factory<Collection> {
   buildWithAction(name: string, schema: ActionSchema, form: ActionForm = null): Collection {
@@ -16,6 +25,10 @@ export class CollectionFactory extends Factory<Collection> {
         getForm: jest.fn().mockReturnValue(Promise.resolve(form)),
       }),
     });
+  }
+
+  buildDecoratedCollection(partialCollection?: Partial<Collection>): DecoratedCollection {
+    return new DecoratedCollection(this.build(partialCollection));
   }
 }
 
