@@ -1,6 +1,5 @@
 import superagent from 'superagent';
 import ForestHttpApi from '../../src/services/forest-http-api';
-import { LoggerLevel } from '../../src/types';
 import * as factories from '../__factories__';
 
 describe('ForestHttpApi', () => {
