@@ -19,8 +19,28 @@ export default abstract class CollectionDecorator implements Collection {
     this.childCollection = childCollection;
   }
 
+  get dataSource(): DataSource {
+    return this.childCollection.dataSource;
+  }
+
+  get name(): string {
+    return this.childCollection.name;
+  }
+
   get schema(): CollectionSchema {
     return this.refineSchema(this.childCollection.schema);
+  }
+
+  async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
+    return this.childCollection.getById(id, projection);
+  }
+
+  getAction(name: string): Action {
+    return this.childCollection.getAction(name);
+  }
+
+  async create(data: RecordData[]): Promise<RecordData[]> {
+    return this.childCollection.create(data);
   }
 
   async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
@@ -45,26 +65,6 @@ export default abstract class CollectionDecorator implements Collection {
     const refinedFilter = this.refineFilter(filter);
 
     return this.childCollection.aggregate(refinedFilter, aggregation);
-  }
-
-  async create(data: RecordData[]): Promise<RecordData[]> {
-    return this.childCollection.create(data);
-  }
-
-  get dataSource(): DataSource {
-    return this.childCollection.dataSource;
-  }
-
-  getAction(name: string): Action {
-    return this.childCollection.getAction(name);
-  }
-
-  async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    return this.childCollection.getById(id, projection);
-  }
-
-  get name(): string {
-    return this.childCollection.name;
   }
 
   protected abstract refineFilter(filter?: Filter): Filter;
