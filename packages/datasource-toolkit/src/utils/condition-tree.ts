@@ -1,7 +1,7 @@
 import { Aggregator, ConditionTree, ConditionTreeBranch } from '../interfaces/query/selection';
 
 export const ConditionTreeNotMatchAnyResult = Object.freeze({
-  aggregator: 'or',
+  aggregator: Aggregator.Or,
   conditions: [],
 });
 
