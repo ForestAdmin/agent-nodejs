@@ -12,7 +12,7 @@ export default class Count extends CollectionBaseRoute {
     router.get(`/${this.collection.name}/count`, this.handleCount.bind(this));
   }
 
-  protected async handleCount(ctx: Context): Promise<void> {
+  public async handleCount(ctx: Context): Promise<void> {
     const paginatedFilter: PaginatedFilter = {};
     const aggregation: Aggregation = { operation: AggregationOperation.Count };
 
