@@ -69,20 +69,6 @@ describe('DummyDataSource > Collections > Books', () => {
           `Unsupported primitive: ${expectedUnsupportedFieldColumnType}`,
         );
       });
-
-      it('should throw an error with an unsupported field type', async () => {
-        const bookCollection = instanciateCollection();
-        const unsupportedField = 'publisher';
-
-        const expectedUnsupportedFieldColumnType = (
-          bookCollection.schema.fields[unsupportedField] as ColumnSchema
-        ).type;
-
-        // ManyToOne relationship not supported by `BookCollection.makeRecord`.
-        await expect(() => bookCollection.getById([42], [unsupportedField])).rejects.toThrow(
-          `Unsupported field type: ${expectedUnsupportedFieldColumnType}`,
-        );
-      });
     });
   });
 

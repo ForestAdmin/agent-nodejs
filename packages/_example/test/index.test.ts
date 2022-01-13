@@ -6,9 +6,11 @@ describe('agent', () => {
   test('should start a server on port 3352', async () => {
     nock('https://api.development.forestadmin.com')
       .get('/oidc/.well-known/openid-configuration')
-      .reply(200, {
-        registration_endpoint: 'https://fake-registration-endpoint.org',
-      });
+      .reply(200, { registration_endpoint: 'https://fake-registration-endpoint.org' });
+
+    nock('https://api.development.forestadmin.com')
+      .post('/forest/apimaps/hashcheck')
+      .reply(200, { sendSchema: false });
 
     nock('https://fake-registration-endpoint.org').post('/').reply(201, { client_id: 'xx' });
 
@@ -18,6 +20,8 @@ describe('agent', () => {
       envSecret: 'yyy',
       forestServerUrl: 'https://api.development.forestadmin.com',
       agentUrl: 'http://localhost:3352',
+      isProduction: false,
+      schemaPath: '/tmp/.testschema.json',
     });
     const response = await superagent.get('http://localhost:3352/forest/');
 

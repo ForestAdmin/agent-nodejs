@@ -1,6 +1,7 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
-import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverServices } from '../types';
+import { ForestAdminHttpDriverServices } from '../services';
+import { ForestAdminHttpDriverOptions } from '../types';
 
 export default abstract class BaseRoute {
   protected readonly services: ForestAdminHttpDriverServices;

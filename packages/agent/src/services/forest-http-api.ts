@@ -1,3 +1,4 @@
+import JSONAPISerializer from 'json-api-serializer';
 import { IssuerMetadata } from 'openid-client';
 import superagent, { Response } from 'superagent';
 
@@ -86,6 +87,42 @@ export default class ForestHttpApi {
       };
     } catch {
       throw new Error('Failed to retrieve authorization informations.');
+    }
+  }
+
+  async hasSchema(hash: string): Promise<boolean> {
+    const response = await superagent
+      .post(new URL('/forest/apimaps/hashcheck', this.forestServerUrl))
+      .send({ schemaFileHash: hash })
+      .set('forest-secret-key', this.envSecret);
+
+    return !response?.body?.sendSchema;
+  }
+
+  async uploadSchema(apimap: JSONAPISerializer.JSONAPIDocument): Promise<void> {
+    try {
+      await superagent
+        .post(new URL('/forest/apimaps', this.forestServerUrl))
+        .send(apimap)
+        .set('forest-secret-key', this.envSecret);
+    } catch (e) {
+      // Sending the schema to forestadmin-server is mandatory: crash the server gracefully
+      // when we fail to do so.
+      const messages = {
+        0: 'Cannot send the apimap to Forest. Are you online?',
+        404:
+          'Cannot find the project related to the envSecret you configured. ' +
+          'Can you check on Forest that you copied it properly in the Forest initialization?',
+        503:
+          'Forest is in maintenance for a few minutes. ' +
+          'We are upgrading your experience in the forest. ' +
+          'We just need a few more minutes to get it right.',
+        default:
+          'An error occured with the apimap sent to Forest. ' +
+          'Please contact support@forestadmin.com for further investigations.',
+      };
+
+      throw new Error(messages[e.response?.status] ?? messages.default);
     }
   }
 }

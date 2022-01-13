@@ -1,0 +1,32 @@
+[
+  {
+    "icon": null,
+    "integration": null,
+    "isReadOnly": false,
+    "isSearchable": true,
+    "isVirtual": false,
+    "name": "book",
+    "onlyForRelationships": false,
+    "paginationType": "page",
+    "segments": [],
+    "actions": [],
+    "fields": [
+      {
+        "defaultValue": null,
+        "enums": null,
+        "field": "id",
+        "integration": null,
+        "inverseOf": null,
+        "isFilterable": false,
+        "isPrimaryKey": true,
+        "isReadOnly": false,
+        "isRequired": false,
+        "isSortable": false,
+        "isVirtual": false,
+        "reference": null,
+        "type": "Number",
+        "validations": []
+      }
+    ]
+  }
+]
