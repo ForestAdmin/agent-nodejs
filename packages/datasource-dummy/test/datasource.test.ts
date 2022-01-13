@@ -12,7 +12,7 @@ describe('DummyDataSource', () => {
       expect(dummyDataSource.collections).toBeArrayOfSize(1);
       expect(dummyDataSource.collections).toEqual([
         expect.objectContaining({
-          name: 'book',
+          name: 'books',
         }),
       ]);
     });

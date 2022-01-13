@@ -85,6 +85,14 @@ export default class ForestAdminHttpDriver {
   private buildRoutes(): void {
     const { dataSource, options } = this;
 
-    this.routes.push(...AllRoutes.map(Route => new Route(this.services, dataSource, options)));
+    this.routes.push(...AllRoutes.root.map(Route => new Route(this.services, dataSource, options)));
+
+    dataSource.collections.forEach(collection => {
+      this.routes.push(
+        ...AllRoutes.models.map(
+          Route => new Route(this.services, dataSource, options, collection.name),
+        ),
+      );
+    });
   }
 }

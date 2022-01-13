@@ -1,0 +1,33 @@
+import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import Count from '../../src/routes/count';
+import * as factories from '../__factories__';
+
+describe('Count', () => {
+  const services = factories.forestAdminHttpDriverServices.build();
+  const partialCollection = {
+    name: 'books',
+    schema: factories.collectionSchema.build({
+      fields: {
+        id: {
+          type: FieldTypes.Column,
+          columnType: PrimitiveTypes.Uuid,
+          isPrimaryKey: true,
+        },
+      },
+    }),
+  };
+  const dataSource = factories.dataSource.buildWithCollection(partialCollection);
+  const options = factories.forestAdminHttpDriverOptions.build();
+  const router = factories.router.mockAllMethods().build();
+
+  beforeEach(() => {
+    (router.get as jest.Mock).mockClear();
+  });
+
+  test('should register "/books/count" private routes', () => {
+    const list = new Count(services, dataSource, options, partialCollection.name);
+    list.setupPrivateRoutes(router);
+
+    expect(router.get).toHaveBeenCalledWith('/books/count', expect.any(Function));
+  });
+});
