@@ -23,28 +23,27 @@ export default class SequelizeCollection extends BaseCollection {
   constructor(name, datasource: DataSource, sequelize, schema?: CollectionSchema) {
     super(name, datasource);
 
-    // TODO: Prevent initialization if no Sequelize instance is given?
-    if (sequelize) {
-      this.sequelize = sequelize;
+    if (!sequelize) throw new Error('Invalid (null) Sequelize instance.');
 
-      if (schema) {
-        this.model = sequelize.define(name, CollectionSchemaConverter.convert(schema));
-        if (schema.searchable) this.enableSearch();
+    this.sequelize = sequelize;
 
-        // FIXME: Remove when ModelToCollectionSchemaConverter is done.
-        this.addFields(schema.fields);
-        this.addSegments(schema.segments);
-      } else {
-        this.model = sequelize[name] ?? null;
-      }
+    if (schema) {
+      this.model = sequelize.define(name, CollectionSchemaConverter.convert(schema));
+      if (schema.searchable) this.enableSearch();
+
+      // FIXME: Remove when ModelToCollectionSchemaConverter is done.
+      this.addFields(schema.fields);
+      this.addSegments(schema.segments);
+    } else {
+      this.model = sequelize[name] ?? null;
     }
 
-    if (this.model) {
-      const modelSchema = ModelConverter.convert(this.model);
+    if (!this.model) throw new Error(`Could not get model for "${name}".`);
 
-      this.addFields(modelSchema.fields);
-      this.addSegments(modelSchema.segments);
-    }
+    const modelSchema = ModelConverter.convert(this.model);
+
+    this.addFields(modelSchema.fields);
+    this.addSegments(modelSchema.segments);
   }
 
   getById(id: CompositeId, projection: Projection): Promise<RecordData> {
