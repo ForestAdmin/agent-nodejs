@@ -1,4 +1,4 @@
-import factories from '../../__factories__';
+import * as factories from '../../__factories__';
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
 import { FieldTypes, Operator, PrimitiveTypes, Aggregator } from '../../../src';
 import { ConditionTreeNotMatchAnyResult } from '../../../src/utils/condition-tree';

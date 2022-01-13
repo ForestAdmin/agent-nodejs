@@ -1,4 +1,4 @@
-import factories from '../__factories__';
+import * as factories from '../__factories__';
 
 describe('CollectionDecorator', () => {
   const projection = factories.projection.build();
