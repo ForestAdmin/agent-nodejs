@@ -11,11 +11,39 @@ import {
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 
-function convertOperatorToSequelize(operator: Operator): symbol {
-  // FIXME: Handle proper mapping.
-  void operator;
-
-  return Op.eq;
+function makeWhereClause(operator: Operator, value?) {
+  switch (operator) {
+    case Operator.Blank:
+      return { [Op.or]: [makeWhereClause(Operator.Missing), { [Op.eq]: '' }] };
+    case Operator.Contains:
+      return { [Op.iLike]: `%${value}%` };
+    case Operator.EndsWith:
+      return { [Op.iLike]: `%${value}` };
+    case Operator.Equal:
+      return { [Op.eq]: value };
+    case Operator.GreaterThan:
+      return { [Op.gt]: value };
+    case Operator.In:
+      return { [Op.in]: value };
+    case Operator.IncludesAll:
+      return { [Op.contains]: value };
+    case Operator.LessThan:
+      return { [Op.lt]: value };
+    case Operator.Missing:
+      return { [Op.is]: null };
+    case Operator.NotContains:
+      return { [Op.notILike]: `%${value}%` };
+    case Operator.NotEqual:
+      return { [Op.ne]: value };
+    case Operator.NotIn:
+      return { [Op.notIn]: value };
+    case Operator.Present:
+      return { [Op.not]: { [Op.is]: null } };
+    case Operator.StartsWith:
+      return { [Op.iLike]: `${value}%` };
+    default:
+      throw new Error(`Unsupported operator: "${operator}".`);
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,9 +82,7 @@ function convertConditionTreeToSequelize(conditionTree: ConditionTree): any {
     // FIXME: Cannot express filter like `field: {[Op.or]: { [Op.lt]: 1000, [Op.eq]: null } }`
     const { field, operator, value } = conditionTree as ConditionTreeLeaf;
 
-    sequelizeWhereClause[field] = {
-      [convertOperatorToSequelize(operator)]: value,
-    };
+    sequelizeWhereClause[field] = makeWhereClause(operator, value);
   } else {
     throw new Error('Invalid ConditionTree.');
   }

@@ -134,6 +134,52 @@ describe('Utils > FilterConverter', () => {
       });
 
       describe('with a ConditionTreeLeaf node', () => {
+        const defaultArrayValue = [21, 42, 84];
+        const defaultIntegerValue = 42;
+
+        it.each([
+          ['Operator.Blank', undefined, { [Op.or]: [{ [Op.is]: null }, { [Op.eq]: '' }] }],
+          ['Operator.Contains', '__value__', { [Op.iLike]: '%__value__%' }],
+          ['Operator.EndsWith', '__value__', { [Op.iLike]: '%__value__' }],
+          ['Operator.Equal', defaultIntegerValue, { [Op.eq]: defaultIntegerValue }],
+          ['Operator.GreaterThan', defaultIntegerValue, { [Op.gt]: defaultIntegerValue }],
+          ['Operator.In', defaultArrayValue, { [Op.in]: defaultArrayValue }],
+          ['Operator.IncludesAll', defaultArrayValue, { [Op.contains]: defaultArrayValue }],
+          ['Operator.LessThan', defaultIntegerValue, { [Op.lt]: defaultIntegerValue }],
+          ['Operator.Missing', undefined, { [Op.is]: null }],
+          ['Operator.NotContains', '__value__', { [Op.notILike]: '%__value__%' }],
+          ['Operator.NotEqual', defaultIntegerValue, { [Op.ne]: defaultIntegerValue }],
+          ['Operator.NotIn', defaultArrayValue, { [Op.notIn]: defaultArrayValue }],
+          ['Operator.Present', undefined, { [Op.not]: { [Op.is]: null } }],
+          ['Operator.StartsWith', '__value__', { [Op.iLike]: '__value__%' }],
+        ])(
+          'should generate a "where" Sequelize filter from a "%s" ConditionTreeLeaf',
+          (operator, value, where) => {
+            const conditionTree: ConditionTreeLeaf = {
+              operator: Operator[operator.split('.')[1]],
+              field: '__field__',
+              value,
+            };
+            const filter: Filter = {
+              conditionTree,
+            };
+
+            const sequelizeFilter = convertFilterToSequelize(filter);
+
+            expect(sequelizeFilter).toEqual(
+              expect.objectContaining({
+                where: expect.objectContaining({
+                  __field__: expect.anything(),
+                }),
+              }),
+            );
+
+            const { __field__: fieldClause } = sequelizeFilter.where;
+
+            expect(fieldClause).toEqual(where);
+          },
+        );
+
         it('should generate a "where" Sequelize filter from a ConditionTreeLeaf', () => {
           const conditionTree: ConditionTreeLeaf = {
             operator: Operator.Equal,
