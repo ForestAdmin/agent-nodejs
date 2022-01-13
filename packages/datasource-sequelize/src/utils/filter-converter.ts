@@ -12,6 +12,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 function makeWhereClause(operator: Operator, value?) {
+  if (operator === null) throw new Error('Invalid (null) operator.');
+
   switch (operator) {
     case Operator.Blank:
       return { [Op.or]: [makeWhereClause(Operator.Missing), { [Op.eq]: '' }] };

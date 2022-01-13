@@ -180,19 +180,24 @@ describe('Utils > FilterConverter', () => {
           },
         );
 
-        it('should generate a "where" Sequelize filter from a ConditionTreeLeaf', () => {
-          const conditionTree: ConditionTreeLeaf = {
-            operator: Operator.Equal,
-            field: '__field__',
-            value: '__value__',
-          };
-          const filter: Filter = {
-            conditionTree,
-          };
+        it('should fail with a null operator', () => {
+          expect(() =>
+            convertFilterToSequelize({
+              conditionTree: { operator: null, field: '__field__', value: '__value__' },
+            }),
+          ).toThrow('Invalid (null) operator.');
+        });
 
-          expect(convertFilterToSequelize(filter)).toEqual({
-            where: { [conditionTree.field]: { [Op.eq]: conditionTree.value } },
-          });
+        it('should fail with an invalid operator', () => {
+          expect(() =>
+            convertFilterToSequelize({
+              conditionTree: {
+                operator: '__invalid__' as Operator,
+                field: '__field__',
+                value: '__value__',
+              },
+            }),
+          ).toThrow('Unsupported operator: "__invalid__".');
         });
       });
 
