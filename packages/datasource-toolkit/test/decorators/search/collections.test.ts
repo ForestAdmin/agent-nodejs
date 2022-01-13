@@ -45,7 +45,7 @@ describe('SearchCollectionDecorator', () => {
     describe('when the given field is not a column', () => {
       test('adds a condition to not return record if it is the only one filter', () => {
         const collection = factories.collection.build({
-          schema: factories.collectionSchema.buildUnsearchable({
+          schema: factories.collectionSchema.unsearchable().build({
             fields: {
               fieldName: factories.oneToManySchema.build(),
             },
@@ -81,7 +81,7 @@ describe('SearchCollectionDecorator', () => {
       describe('when the search is empty', () => {
         test('returns the same filter and set search as null to return all the records', () => {
           const collection = factories.collection.build({
-            schema: factories.collectionSchema.buildUnsearchable(),
+            schema: factories.collectionSchema.unsearchable().build(),
           });
           const filter = factories.filter.build({ search: '     ' });
 
@@ -95,7 +95,7 @@ describe('SearchCollectionDecorator', () => {
       describe('when the filter contains already conditions', () => {
         test('should add its conditions to the filter', () => {
           const collection = factories.collection.build({
-            schema: factories.collectionSchema.buildUnsearchable({
+            schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: PrimitiveTypes.String,
@@ -140,7 +140,7 @@ describe('SearchCollectionDecorator', () => {
       describe('when the search is a string and the column type is a string', () => {
         test('should return filter with "contains" condition and "or" aggregator', () => {
           const collection = factories.collection.build({
-            schema: factories.collectionSchema.buildUnsearchable({
+            schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: PrimitiveTypes.String,
@@ -173,7 +173,7 @@ describe('SearchCollectionDecorator', () => {
       describe('when the search is an uuid and the column type is an uuid', () => {
         test('should return filter with "equal" condition and "or" aggregator', () => {
           const collection = factories.collection.build({
-            schema: factories.collectionSchema.buildUnsearchable({
+            schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: PrimitiveTypes.Uuid,
@@ -206,7 +206,7 @@ describe('SearchCollectionDecorator', () => {
       describe('when the search is a number and the column type is a number', () => {
         test('returns filter "equal" condition, "or" aggregator and cast value to Number', () => {
           const collection = factories.collection.build({
-            schema: factories.collectionSchema.buildUnsearchable({
+            schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: PrimitiveTypes.Number,
@@ -239,7 +239,7 @@ describe('SearchCollectionDecorator', () => {
       describe('when the search is an string and the column type is an enum', () => {
         test('should return filter with "equal" condition and "or" aggregator', () => {
           const collection = factories.collection.build({
-            schema: factories.collectionSchema.buildUnsearchable({
+            schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: PrimitiveTypes.Enum,
@@ -272,7 +272,7 @@ describe('SearchCollectionDecorator', () => {
         describe('when the search value does not match any enum', () => {
           test('adds a condition to not return record if it is the only one filter', () => {
             const collection = factories.collection.build({
-              schema: factories.collectionSchema.buildUnsearchable({
+              schema: factories.collectionSchema.unsearchable().build({
                 fields: {
                   fieldName: factories.columnSchema.build({
                     columnType: PrimitiveTypes.Enum,
@@ -297,7 +297,7 @@ describe('SearchCollectionDecorator', () => {
         describe('when the enum values are not defined', () => {
           test('adds a condition to not return record if it is the only one filter', () => {
             const collection = factories.collection.build({
-              schema: factories.collectionSchema.buildUnsearchable({
+              schema: factories.collectionSchema.unsearchable().build({
                 fields: {
                   fieldName: factories.columnSchema.build({
                     columnType: PrimitiveTypes.Enum,
@@ -322,7 +322,7 @@ describe('SearchCollectionDecorator', () => {
         describe('when the column type is not searchable', () => {
           test('adds a condition to not return record if it is the only one filter', () => {
             const collection = factories.collection.build({
-              schema: factories.collectionSchema.buildUnsearchable({
+              schema: factories.collectionSchema.unsearchable().build({
                 fields: {
                   fieldName: factories.columnSchema.build({
                     columnType: PrimitiveTypes.Boolean,
@@ -347,7 +347,7 @@ describe('SearchCollectionDecorator', () => {
       describe('when there are several fields', () => {
         test('should return all the number fields when a number is researched', () => {
           const collection = factories.collection.build({
-            schema: factories.collectionSchema.buildUnsearchable({
+            schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 numberField1: factories.columnSchema.build({
                   columnType: PrimitiveTypes.Number,
@@ -392,7 +392,7 @@ describe('SearchCollectionDecorator', () => {
             const dataSource = factories.dataSource.buildWithCollections([
               factories.collection.build({
                 name: 'books',
-                schema: factories.collectionSchema.buildUnsearchable({
+                schema: factories.collectionSchema.unsearchable().build({
                   fields: {
                     id: {
                       type: FieldTypes.Column,
@@ -414,7 +414,7 @@ describe('SearchCollectionDecorator', () => {
               }),
               factories.collection.build({
                 name: 'bookPersons',
-                schema: factories.collectionSchema.buildUnsearchable({
+                schema: factories.collectionSchema.unsearchable().build({
                   fields: {
                     bookId: {
                       type: FieldTypes.Column,
@@ -431,7 +431,7 @@ describe('SearchCollectionDecorator', () => {
               }),
               factories.collection.build({
                 name: 'persons',
-                schema: factories.collectionSchema.buildUnsearchable({
+                schema: factories.collectionSchema.unsearchable().build({
                   fields: {
                     id: {
                       type: FieldTypes.Column,

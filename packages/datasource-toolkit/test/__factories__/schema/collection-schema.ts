@@ -2,8 +2,8 @@ import { Factory } from 'fishery';
 import { CollectionSchema } from '../../../src/interfaces/schema';
 
 export class CollectionSchemaFactory extends Factory<CollectionSchema> {
-  buildUnsearchable(partialCollection?: Partial<CollectionSchema>): CollectionSchema {
-    return this.build({ ...partialCollection, searchable: false });
+  unsearchable(): CollectionSchemaFactory {
+    return this.params({ searchable: false });
   }
 }
 
