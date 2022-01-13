@@ -1,10 +1,7 @@
-/* eslint-disable max-classes-per-file */
+// eslint-disable-next-line max-classes-per-file
+import * as factories from './__factories__';
 import BaseCollection from '../src/base-collection';
 import {
-  Action,
-  ActionForm,
-  ActionResponse,
-  ActionResponseType,
   ActionSchema,
   AggregateResult,
   ColumnSchema,
@@ -12,19 +9,6 @@ import {
   FieldSchema,
   RecordData,
 } from '../src';
-
-class ConcreteAction implements Action {
-  async execute(): Promise<ActionResponse> {
-    return {
-      type: ActionResponseType.Redirect,
-      path: 'https://test.com',
-    };
-  }
-
-  async getForm(): Promise<ActionForm> {
-    return { fields: [] };
-  }
-}
 
 class ConcreteCollection extends BaseCollection {
   getById(): Promise<RecordData> {
@@ -53,7 +37,7 @@ class ConcreteCollection extends BaseCollection {
 }
 
 describe('BaseCollection', () => {
-  it('should instanciate properly when extended', () => {
+  it('should instantiate properly when extended', () => {
     expect(new ConcreteCollection('collection', null)).toBeDefined();
   });
 
@@ -90,7 +74,7 @@ describe('BaseCollection', () => {
   });
 
   describe('getAction', () => {
-    const expectedAction = new ConcreteAction();
+    const expectedAction = factories.action.build();
 
     class CollectionWithAction extends ConcreteCollection {
       constructor(name: string, dataSource: DataSource) {

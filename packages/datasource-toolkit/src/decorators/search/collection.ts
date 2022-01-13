@@ -1,4 +1,4 @@
-import CollectionDecorator from '../CollectionDecorator';
+import CollectionDecorator from '../collection-decorator';
 import {
   Aggregator,
   CollectionSchema,
@@ -21,33 +21,35 @@ enum SearchType {
 }
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
-  private static readonly REGEX_V3_UUID =
+  private static readonly REGEX_UUID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-  public refineFilter(filter: Filter): Filter {
-    let { conditionTree, search } = filter;
+  public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
+    return { ...subSchema, searchable: true };
+  }
 
-    if (search && !this.collection.schema.searchable) {
+  public override refineFilter(filter?: Filter): Filter {
+    if (filter?.search && !this.childCollection.schema.searchable) {
+      let { conditionTree, search } = filter;
+
       if (SearchCollectionDecorator.checkEmptyString(search)) {
         return { ...filter, search: null };
       }
 
       const searchFields = SearchCollectionDecorator.getSearchFields(
-        this.collection.schema,
-        this.collection.dataSource,
-        filter.deepSearch,
+        this.childCollection.schema,
+        this.childCollection.dataSource,
+        filter.searchExtended,
       );
       const conditions = searchFields
-        .map(([field, schema]) =>
-          SearchCollectionDecorator.buildCondition(field, schema, filter.search),
-        )
+        .map(([field, schema]) => SearchCollectionDecorator.buildCondition(field, schema, search))
         .filter(Boolean);
 
       // Note that if not fields are searchable with the provided searchString, the conditions
       // array might be empty, which will create a condition returning zero records
       // (this is the desired behavior).
       const searchFilter = { aggregator: Aggregator.Or, conditions };
-      conditionTree = ConditionTreeUtils.buildConditionsTree(conditionTree, searchFilter);
+      conditionTree = ConditionTreeUtils.intersect(conditionTree, searchFilter);
 
       search = null;
 
@@ -98,11 +100,11 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   private static getSearchFields(
     schema: CollectionSchema,
     dataSource: DataSource,
-    deepSearch: boolean,
+    searchExtended: boolean,
   ): [string, ColumnSchema][] {
     const fields = Object.entries(schema.fields);
 
-    if (deepSearch) this.getDeepFields(dataSource, fields);
+    if (searchExtended) this.getDeepFields(dataSource, fields);
 
     return fields.filter(([, fieldSchema]) =>
       SearchCollectionDecorator.isSearchable(fieldSchema),
@@ -131,7 +133,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   }
 
   private static getSearchType(searchString: string): SearchType {
-    if (searchString.match(SearchCollectionDecorator.REGEX_V3_UUID)) {
+    if (searchString.match(SearchCollectionDecorator.REGEX_UUID)) {
       return SearchType.Uuid;
     }
 

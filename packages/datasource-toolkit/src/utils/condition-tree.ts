@@ -6,12 +6,11 @@ export const ConditionTreeNotMatchAnyResult = Object.freeze({
 });
 
 export default class ConditionTreeUtils {
-  static buildConditionsTree(...conditionTrees: ConditionTree[]): ConditionTree {
+  static intersect(...conditionTrees: ConditionTree[]): ConditionTree {
     const conditions = conditionTrees.reduce((currentConditions, condition) => {
       if (!condition) return currentConditions;
 
-      return ConditionTreeUtils.isConditionTreeBranch(condition) &&
-        condition.aggregator === Aggregator.And
+      return ConditionTreeUtils.isBranch(condition) && condition.aggregator === Aggregator.And
         ? [...currentConditions, ...condition.conditions]
         : [...currentConditions, condition];
     }, []);
@@ -23,7 +22,7 @@ export default class ConditionTreeUtils {
     return { aggregator: Aggregator.And, conditions };
   }
 
-  static isConditionTreeBranch(conditionTree: ConditionTree): conditionTree is ConditionTreeBranch {
+  static isBranch(conditionTree: ConditionTree): conditionTree is ConditionTreeBranch {
     return (conditionTree as ConditionTreeBranch).aggregator !== undefined;
   }
 }

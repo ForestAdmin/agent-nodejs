@@ -1,7 +1,7 @@
 export type Filter = {
   conditionTree?: ConditionTree;
   search?: string;
-  deepSearch?: boolean;
+  searchExtended?: boolean;
   segment?: string;
   timezone?: string;
 };

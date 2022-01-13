@@ -2,14 +2,18 @@
 import { Factory } from 'fishery';
 import { ActionForm } from '../../src/interfaces/action';
 import { Collection } from '../../src/interfaces/collection';
-import { ActionSchema } from '../../src/interfaces/schema';
+import { ActionSchema, CollectionSchema } from '../../src/interfaces/schema';
+import { Filter } from '../../src/interfaces/query/selection';
 import collectionSchemaFactory from './schema/collection-schema';
-import CollectionDecorator from '../../src/decorators/CollectionDecorator';
-import { Filter } from '../../src';
+import CollectionDecorator from '../../src/decorators/collection-decorator';
 
 export class DecoratedCollection extends CollectionDecorator {
   public refineFilter(filter: Filter): Filter {
     return filter;
+  }
+
+  public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
+    return subSchema;
   }
 }
 

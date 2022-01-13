@@ -2,22 +2,26 @@ import * as factories from '../../__factories__';
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
 import { FieldTypes, Operator, PrimitiveTypes, Aggregator } from '../../../src';
 import { ConditionTreeNotMatchAnyResult } from '../../../src/utils/condition-tree';
-import CollectionDecorator from '../../../src/decorators/CollectionDecorator';
 
 describe('SearchCollectionDecorator', () => {
-  test('should extend the collection decorator', () => {
-    const collection = factories.collection.build();
+  describe('refineSchema', () => {
+    it('should set the schema searchable', () => {
+      const collection = factories.collection.build();
+      const unsearchableSchema = factories.collectionSchema.build({ searchable: false });
 
-    const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+      const searchCollectionDecorator = new SearchCollectionDecorator(collection);
 
-    expect(searchCollectionDecorator).toBeInstanceOf(CollectionDecorator);
+      const schema = searchCollectionDecorator.refineSchema(unsearchableSchema);
+
+      expect(schema.searchable).toBe(true);
+    });
   });
 
   describe('refineFilter', () => {
-    describe('when the given filter is empty', () => {
+    describe('when the given filter is null', () => {
       test('should return the given filter to return all records', () => {
         const collection = factories.collection.build();
-        const filter = factories.filter.build({});
+        const filter = null;
 
         const searchCollectionDecorator = new SearchCollectionDecorator(collection);
 
@@ -464,7 +468,7 @@ describe('SearchCollectionDecorator', () => {
             ]);
 
             const filter = factories.filter.build({
-              deepSearch: true,
+              searchExtended: true,
               search: '2d162303-78bf-599e-b197-93590ac3d315',
             });
 
@@ -474,7 +478,7 @@ describe('SearchCollectionDecorator', () => {
 
             const refinedFilter = searchCollectionDecorator.refineFilter(filter);
             expect(refinedFilter).toStrictEqual({
-              deepSearch: true,
+              searchExtended: true,
               search: null,
               conditionTree: {
                 aggregator: 'or',

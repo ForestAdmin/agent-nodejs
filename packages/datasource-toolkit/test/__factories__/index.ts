@@ -8,3 +8,6 @@ export { default as oneToManySchema } from './schema/one-to-many-schema';
 export { default as filter } from './filter';
 export { default as aggregation } from './aggregation';
 export { default as projection } from './projection';
+export { default as action } from './action';
+export { default as compositeId } from './composite-id';
+export { default as AggregateResult } from './aggregate-result';
