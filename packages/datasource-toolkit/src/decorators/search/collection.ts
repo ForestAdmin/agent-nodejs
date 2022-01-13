@@ -10,7 +10,6 @@ import {
   Filter,
   Operator,
   PrimitiveTypes,
-  RelationSchema,
 } from '../../index';
 import ConditionTreeUtils from '../../utils/condition-tree';
 
@@ -104,19 +103,16 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   ): [string, ColumnSchema][] {
     const fields = Object.entries(schema.fields);
 
-    if (searchExtended) this.getDeepFields(dataSource, fields);
+    if (searchExtended) SearchCollectionDecorator.getDeepFields(dataSource, fields);
 
     return fields.filter(([, fieldSchema]) =>
       SearchCollectionDecorator.isSearchable(fieldSchema),
     ) as [string, ColumnSchema][];
   }
 
-  private static getDeepFields(
-    dataSource: DataSource,
-    fields: [string, ColumnSchema | RelationSchema][],
-  ) {
+  private static getDeepFields(dataSource: DataSource, fields: [string, FieldSchema][]) {
     fields.forEach(([name, field]) => {
-      if (field.type !== FieldTypes.Column) {
+      if (field.type === FieldTypes.ManyToOne || field.type === FieldTypes.OneToOne) {
         const related = dataSource.getCollection(field.foreignCollection);
         fields.push(
           ...Object.entries(related.schema.fields).map(
