@@ -8,7 +8,7 @@ export default class ProjectionUtils {
     projection.forEach(field => FieldUtils.validate(collection, field));
   }
 
-  static withPks(collection: Collection, projection: Projection): Projection {
+  private static withPks(collection: Collection, projection: Projection): Projection {
     const result = [...projection];
 
     SchemaUtils.getPrimaryKeys(collection.schema).forEach(pk => {
