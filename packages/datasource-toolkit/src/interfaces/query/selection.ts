@@ -26,6 +26,7 @@ export enum Operator {
   In = 'in',
   IncludesAll = 'includes_all',
   LessThan = 'less_than',
+  Missing = 'missing',
   NotContains = 'not_contains',
   NotEqual = 'not_equal',
   NotIn = 'not_in',
