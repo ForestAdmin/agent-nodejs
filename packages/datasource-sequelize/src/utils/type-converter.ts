@@ -2,7 +2,6 @@ import { DataTypes } from 'sequelize';
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export default class TypeConverter {
-  // TODO: Handle all types.
   // TODO: Allow to differentiate NUMBER and INTEGER.
   private static readonly columnTypeToDataType = {
     [PrimitiveTypes.Boolean]: DataTypes.BOOLEAN,
@@ -25,7 +24,6 @@ export default class TypeConverter {
     return dataType;
   }
 
-  // TODO: Handle all types.
   private static readonly dataTypeToColumnType = {
     STRING: PrimitiveTypes.String,
     CHAR: PrimitiveTypes.String,
