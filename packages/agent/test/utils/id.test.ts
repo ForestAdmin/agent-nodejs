@@ -1,6 +1,6 @@
 import { CollectionSchema, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import IdUtils from '../../src/utils/id';
-import factories from '../__factories__';
+import * as factories from '../__factories__';
 
 describe('IdUtils', () => {
   describe('with a schema with no pk', () => {

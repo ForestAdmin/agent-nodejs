@@ -1,6 +1,6 @@
 import { Context, Next } from 'koa';
 import IpWhitelist from '../../src/routes/ip-whitelist';
-import factories from '../__factories__';
+import * as factories from '../__factories__';
 import { HttpCode } from '../../src/types';
 
 describe('IpWhitelist', () => {

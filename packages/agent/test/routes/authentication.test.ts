@@ -1,6 +1,6 @@
 import openidClient, { Issuer } from 'openid-client';
 import { Context } from 'koa';
-import factories from '../__factories__';
+import * as factories from '../__factories__';
 import Authentication from '../../src/routes/authentication';
 import { HttpCode } from '../../src/types';
 

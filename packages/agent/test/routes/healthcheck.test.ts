@@ -1,6 +1,6 @@
 import { Context } from 'koa';
 import HealthCheck from '../../src/routes/healthcheck';
-import factories from '../__factories__';
+import * as factories from '../__factories__';
 
 describe('Healthcheck', () => {
   const services = factories.forestAdminHttpDriverServices.build();
