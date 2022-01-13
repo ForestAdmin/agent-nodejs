@@ -17,10 +17,25 @@ import {
 import { SequelizeCollection } from '../src';
 
 describe('SequelizeDataSource > Collection', () => {
-  it('should instanciate properly', () => {
-    const name = Symbol('name') as unknown as string;
+  const makeConstructorParams = () => {
     const dataSource = Symbol('dataSource') as unknown as DataSource;
-    const sequelize = Symbol('sequelize');
+    const name = Symbol('name') as unknown as string;
+    const sequelize = {
+      col: jest.fn(),
+      define: jest.fn(() => ({})),
+      fn: jest.fn(),
+      [name]: {},
+    };
+
+    return {
+      dataSource,
+      name,
+      sequelize,
+    };
+  };
+
+  it('should instanciate properly', () => {
+    const { dataSource, name, sequelize } = makeConstructorParams();
     const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
 
     expect(sequelizeCollection).toBeDefined();
@@ -28,6 +43,21 @@ describe('SequelizeDataSource > Collection', () => {
     expect(sequelizeCollection.dataSource).toBe(dataSource);
     // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(sequelizeCollection['sequelize']).toBe(sequelize);
+  });
+
+  it('should fail to instanciate without a Sequelize instance', () => {
+    const { dataSource, name } = makeConstructorParams();
+    expect(() => new SequelizeCollection(name, dataSource, null)).toThrow(
+      'Invalid (null) Sequelize instance.',
+    );
+  });
+
+  it('should fail to instanciate if model is not found within Sequelize instance', () => {
+    const { dataSource, sequelize } = makeConstructorParams();
+
+    expect(() => new SequelizeCollection('__unknown_name__', dataSource, sequelize)).toThrow(
+      'Could not get model for "__unknown_name__".',
+    );
   });
 
   describe('getAction', () => {
@@ -53,13 +83,15 @@ describe('SequelizeDataSource > Collection', () => {
     }
 
     it('should return a known action', () => {
-      const collectionWithAction = new CollectionWithAction(null, null, null);
+      const { dataSource, name, sequelize } = makeConstructorParams();
+      const collectionWithAction = new CollectionWithAction(name, dataSource, sequelize);
 
       expect(collectionWithAction.getAction('__action__')).toBeInstanceOf(TestAction);
     });
 
     it('should throw with an unknown action name', () => {
-      const collectionWithAction = new CollectionWithAction(null, null, null);
+      const { dataSource, name, sequelize } = makeConstructorParams();
+      const collectionWithAction = new CollectionWithAction(name, dataSource, sequelize);
 
       expect(() => collectionWithAction.getAction('__no_such_action__')).toThrow(
         'Action "__no_such_action__" not found.',
@@ -88,10 +120,8 @@ describe('SequelizeDataSource > Collection', () => {
       // TODO: Put back when ModelToCollectionSchemaConverter is done.
       // ModelConverter.convert = jest.fn(() => schema);
 
-      const sequelize = {
-        define: jest.fn(() => ({})),
-      };
-      const sequelizeCollection = new SequelizeCollection(null, null, sequelize, schema);
+      const { dataSource, name, sequelize } = makeConstructorParams();
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize, schema);
       const recordData = Symbol('recordData');
       const record = {
         get: jest.fn(() => recordData),
@@ -136,7 +166,8 @@ describe('SequelizeDataSource > Collection', () => {
 
   describe('create', () => {
     const setup = () => {
-      const sequelizeCollection = new SequelizeCollection(null, null, null);
+      const { dataSource, name, sequelize } = makeConstructorParams();
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
       const recordData = Symbol('recordData');
       const bulkCreate = jest.fn().mockResolvedValue(recordData);
       // eslint-disable-next-line @typescript-eslint/dot-notation
@@ -162,7 +193,8 @@ describe('SequelizeDataSource > Collection', () => {
 
   describe('list', () => {
     const setup = () => {
-      const sequelizeCollection = new SequelizeCollection(null, null, null);
+      const { dataSource, name, sequelize } = makeConstructorParams();
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
       const recordData = Symbol('recordData');
       const record = {
         get: jest.fn(() => recordData),
@@ -211,7 +243,8 @@ describe('SequelizeDataSource > Collection', () => {
 
   describe('update', () => {
     const setup = () => {
-      const sequelizeCollection = new SequelizeCollection(null, null, null);
+      const { dataSource, name, sequelize } = makeConstructorParams();
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
       const update = jest.fn().mockResolvedValue([]);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
@@ -240,7 +273,8 @@ describe('SequelizeDataSource > Collection', () => {
 
   describe('delete', () => {
     const setup = () => {
-      const sequelizeCollection = new SequelizeCollection(null, null, null);
+      const { dataSource, name, sequelize } = makeConstructorParams();
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
       const destroy = jest.fn().mockResolvedValue(0);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
@@ -265,11 +299,8 @@ describe('SequelizeDataSource > Collection', () => {
 
   describe('aggregate', () => {
     const setup = () => {
-      const sequelize = {
-        col: jest.fn(),
-        fn: jest.fn(),
-      };
-      const sequelizeCollection = new SequelizeCollection(null, null, sequelize);
+      const { dataSource, name, sequelize } = makeConstructorParams();
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
       const findAll = jest.fn().mockResolvedValue([{ get: jest.fn(attr => `${attr}`) }]);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
