@@ -3,7 +3,5 @@ import HealthCheck from './healthcheck';
 import List from './list';
 import Count from './count';
 
-export default {
-  root: [Authentication, HealthCheck],
-  models: [List, Count],
-};
+export const RootRoutesCtor = [Authentication, HealthCheck];
+export const CollectionRoutesCtor = [List, Count];

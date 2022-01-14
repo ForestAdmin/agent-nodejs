@@ -5,7 +5,7 @@ import { IncomingMessage, ServerResponse } from 'http';
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import path from 'path';
-import AllRoutes from './routes';
+import { RootRoutesCtor, CollectionRoutesCtor } from './routes';
 import BaseRoute from './routes/base-route';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import { ForestAdminHttpDriverOptions } from './types';
@@ -85,11 +85,11 @@ export default class ForestAdminHttpDriver {
   private buildRoutes(): void {
     const { dataSource, options } = this;
 
-    this.routes.push(...AllRoutes.root.map(Route => new Route(this.services, dataSource, options)));
+    this.routes.push(...RootRoutesCtor.map(Route => new Route(this.services, dataSource, options)));
 
     dataSource.collections.forEach(collection => {
       this.routes.push(
-        ...AllRoutes.models.map(
+        ...CollectionRoutesCtor.map(
           Route => new Route(this.services, dataSource, options, collection.name),
         ),
       );
