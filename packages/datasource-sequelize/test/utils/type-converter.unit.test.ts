@@ -18,7 +18,13 @@ describe('Utils > TypeConverter', () => {
   describe('fromDataType', () => {
     it('should throw with an unknown data type', () => {
       expect(() => TypeConverter.fromDataType('__unknown__')).toThrow(
-        'Unsupported data type: "__unknown__".',
+        'Unable to get data type from: "__unknown__".',
+      );
+    });
+
+    it('should throw with an unsupported data type', () => {
+      expect(() => TypeConverter.fromDataType(DataTypes.VIRTUAL)).toThrow(
+        'Unsupported data type: "VIRTUAL".',
       );
     });
 
