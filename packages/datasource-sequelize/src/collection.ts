@@ -22,7 +22,7 @@ export default class SequelizeCollection extends BaseCollection {
     super(name, datasource);
 
     this.sequelize = sequelize;
-    this.model = sequelize?.model(name);
+    this.model = sequelize?.models?.[name];
 
     if (!sequelize) throw new Error('Invalid (null) Sequelize instance.');
     if (!this.model) throw new Error(`Could not get model for "${name}".`);

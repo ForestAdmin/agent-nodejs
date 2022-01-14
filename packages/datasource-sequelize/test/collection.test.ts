@@ -21,8 +21,10 @@ describe('SequelizeDataSource > Collection', () => {
       col: jest.fn(),
       define: jest.fn(() => ({})),
       fn: jest.fn(),
-      [name]: {
-        getAttributes: jest.fn(() => ({})),
+      models: {
+        [name]: {
+          getAttributes: jest.fn(() => ({})),
+        },
       },
     };
 
@@ -103,7 +105,7 @@ describe('SequelizeDataSource > Collection', () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
 
       // eslint-disable-next-line @typescript-eslint/dot-notation,prefer-destructuring
-      const model = sequelize[name];
+      const model = sequelize.models[name];
 
       model.getAttributes = () => ({
         id: {
