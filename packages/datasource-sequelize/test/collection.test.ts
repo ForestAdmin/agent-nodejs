@@ -6,25 +6,24 @@ import {
   ActionResponseType,
   ActionSchemaScope,
   AggregationOperation,
-  CollectionSchema,
   DataSource,
-  FieldTypes,
-  Operator,
-  PrimitiveTypes,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+import { DataTypes } from 'sequelize/dist';
 import { SequelizeCollection } from '../src';
 
 describe('SequelizeDataSource > Collection', () => {
   const makeConstructorParams = () => {
-    const dataSource = Symbol('dataSource') as unknown as DataSource;
-    const name = Symbol('name') as unknown as string;
+    const dataSource = Symbol('datasource') as unknown as DataSource;
+    const name = '__collection__';
     const sequelize = {
       col: jest.fn(),
       define: jest.fn(() => ({})),
       fn: jest.fn(),
-      [name]: {},
+      [name]: {
+        getAttributes: jest.fn(() => ({})),
+      },
     };
 
     return {
@@ -101,36 +100,25 @@ describe('SequelizeDataSource > Collection', () => {
 
   describe('getById', () => {
     const setup = () => {
-      const schema: CollectionSchema = {
-        actions: {},
-        fields: {
-          id: {
-            columnType: PrimitiveTypes.Number,
-            filterOperators: new Set<Operator>(),
-            isPrimaryKey: true,
-            type: FieldTypes.Column,
-          },
-        },
-        searchable: true,
-        segments: [],
-      } as CollectionSchema;
-
-      // TODO: Mock CollectionSchemaToModelAttributesConverter.
-      // CollectionSchemaConverter.convert = ...
-      // TODO: Put back when ModelToCollectionSchemaConverter is done.
-      // ModelConverter.convert = jest.fn(() => schema);
-
       const { dataSource, name, sequelize } = makeConstructorParams();
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize, schema);
+
+      // eslint-disable-next-line @typescript-eslint/dot-notation,prefer-destructuring
+      const model = sequelize[name];
+
+      model.getAttributes = () => ({
+        id: {
+          primaryKey: true,
+          type: DataTypes.INTEGER,
+        },
+      });
+
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
       const recordData = Symbol('recordData');
       const record = {
         get: jest.fn(() => recordData),
       };
       const findOne = jest.fn().mockResolvedValue(record);
-      // eslint-disable-next-line @typescript-eslint/dot-notation
-      sequelizeCollection['model'] = {
-        findOne,
-      };
+      model.findOne = findOne;
 
       return {
         findOne,
