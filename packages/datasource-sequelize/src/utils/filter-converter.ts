@@ -81,7 +81,6 @@ function convertConditionTreeToSequelize(conditionTree: ConditionTree): any {
       (conditionTree as ConditionTreeNot).condition,
     );
   } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
-    // FIXME: Cannot express filter like `field: {[Op.or]: { [Op.lt]: 1000, [Op.eq]: null } }`
     const { field, operator, value } = conditionTree as ConditionTreeLeaf;
 
     sequelizeWhereClause[field] = makeWhereClause(operator, value);
