@@ -1,3 +1,5 @@
+import { DataTypes } from 'sequelize';
+
 import {
   CollectionSchema,
   ColumnSchema,
@@ -6,8 +8,7 @@ import {
   PrimitiveTypes,
   RelationSchema,
 } from '@forestadmin/datasource-toolkit';
-import { DataTypes } from 'sequelize';
-import TypeConverter from './type-converter';
+import { TypeConverter } from '@forestadmin/datasource-sequelize';
 
 export default class CollectionSchemaToModelAttributesConverter {
   public static convert(schema: CollectionSchema) {
