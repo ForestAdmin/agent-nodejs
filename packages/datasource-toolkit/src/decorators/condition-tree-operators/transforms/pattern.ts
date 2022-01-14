@@ -1,5 +1,5 @@
-import { PrimitiveTypes } from '../../..';
 import { Operator } from '../../../interfaces/query/selection';
+import { PrimitiveTypes } from '../../../interfaces/schema';
 import { Alternative } from '../types';
 
 type PatternOperators =
