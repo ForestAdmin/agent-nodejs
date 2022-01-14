@@ -3,10 +3,12 @@ import {
   ConditionTree,
   ConditionTreeBranch,
   ConditionTreeLeaf,
+  ConditionTreeNot,
+  Operator,
 } from '../interfaces/query/selection';
 
 import { Collection } from '../interfaces/collection';
-import { SchemaUtils } from '../index';
+import { PrimitiveTypes, SchemaUtils } from '../index';
 
 export const ConditionTreeNotMatchAnyResult = Object.freeze({
   aggregator: Aggregator.Or,
@@ -14,16 +16,65 @@ export const ConditionTreeNotMatchAnyResult = Object.freeze({
 });
 
 export default class ConditionTreeUtils {
-  static validate(conditionTree: ConditionTree, collection: Collection) {
+  static validate(conditionTree: ConditionTree, collection: Collection): void {
     if (ConditionTreeUtils.isBranch(conditionTree)) {
-      if (conditionTree.conditions.length > 0) {
-        return ConditionTreeUtils.validate(conditionTree.conditions[0], collection);
-      }
+      conditionTree.conditions.forEach(condition =>
+        ConditionTreeUtils.validate(condition, collection),
+      );
 
-      return false;
+      return;
     }
 
-    return !!SchemaUtils.getField((conditionTree as ConditionTreeLeaf).field, collection.schema);
+    const fieldName = (conditionTree as ConditionTreeLeaf).field;
+    ConditionTreeUtils.throwErrorIfFieldNotExistInSchema(fieldName, collection);
+
+    ConditionTreeUtils.throwErrorIfConditionIsNotValid(
+      conditionTree as ConditionTreeLeaf,
+      fieldName,
+    );
+  }
+
+  private static throwErrorIfFieldNotExistInSchema(fieldName: string, collection: Collection) {
+    const field = SchemaUtils.getField(fieldName, collection.schema);
+
+    if (!field) {
+      throw new Error(`field not exist ${fieldName}`);
+    }
+  }
+
+  private static throwErrorIfConditionIsNotValid(
+    conditionTree: ConditionTreeLeaf,
+    value?: unknown,
+  ): void {
+    const map = {
+      [Operator.Present]: ['no_value_expected'],
+    };
+
+    const valueType = ConditionTreeUtils.getValueType(value);
+
+    const allowedOperators = map[conditionTree.operator];
+
+    if (allowedOperators) {
+      const isOperatorExist = !!allowedOperators.find(
+        operatorAllowed => operatorAllowed === valueType,
+      );
+
+      if (!isOperatorExist) {
+        throw new Error(
+          `The given condition ${JSON.stringify(conditionTree)} has an error.\n
+           The value attribute is an unexpected value for the given operator.\n
+          ${
+            allowedOperators === ['no_value_expected']
+              ? 'The value attribute must be empty for the given operator'
+              : `The allowed types for the given operator are: [${allowedOperators}]`
+          }`,
+        );
+      }
+    }
+  }
+
+  private static getValueType(value): 'no_value' | PrimitiveTypes {
+    return PrimitiveTypes.Number;
   }
 
   static intersect(...conditionTrees: ConditionTree[]): ConditionTree {

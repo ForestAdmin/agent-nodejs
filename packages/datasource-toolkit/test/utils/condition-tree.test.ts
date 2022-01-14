@@ -139,19 +139,24 @@ describe('ConditionTreeUtils', () => {
           }),
         });
 
-        const result = ConditionTreeUtils.validate(conditionTree, collection);
-
-        expect(result).toEqual(false);
+        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrowError(
+          'field not exist fieldDoesNotExist',
+        );
       });
 
       describe('when there are several fields', () => {
-        it('should return false', () => {
+        it('should return false when one field does not exist', () => {
           const conditionTree = factories.conditionTreeBranch.build({
             aggregator: Aggregator.Or,
             conditions: [
               factories.conditionTreeBranch.build({
                 aggregator: Aggregator.Or,
                 conditions: [
+                  factories.conditionTreeLeaf.build({
+                    operator: Operator.Equal,
+                    value: 'targetValue',
+                    field: 'target',
+                  }),
                   factories.conditionTreeLeaf.build({
                     operator: Operator.Equal,
                     value: 'targetValue',
@@ -169,9 +174,9 @@ describe('ConditionTreeUtils', () => {
             }),
           });
 
-          const result = ConditionTreeUtils.validate(conditionTree, collection);
-
-          expect(result).toEqual(false);
+          expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrowError(
+            'field not exist fieldDoesNotExist',
+          );
         });
       });
     });
@@ -196,9 +201,7 @@ describe('ConditionTreeUtils', () => {
           }),
         });
 
-        const result = ConditionTreeUtils.validate(conditionTree, collection);
-
-        expect(result).toEqual(true);
+        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).not.toThrowError();
       });
 
       describe('when there are several fields', () => {
@@ -209,6 +212,11 @@ describe('ConditionTreeUtils', () => {
               factories.conditionTreeBranch.build({
                 aggregator: Aggregator.Or,
                 conditions: [
+                  factories.conditionTreeLeaf.build({
+                    operator: Operator.Equal,
+                    value: 'targetValue',
+                    field: 'target',
+                  }),
                   factories.conditionTreeLeaf.build({
                     operator: Operator.Equal,
                     value: 'targetValue',
@@ -226,10 +234,33 @@ describe('ConditionTreeUtils', () => {
             }),
           });
 
-          const result = ConditionTreeUtils.validate(conditionTree, collection);
-
-          expect(result).toEqual(true);
+          expect(() => ConditionTreeUtils.validate(conditionTree, collection)).not.toThrowError();
         });
+      });
+    });
+
+    describe('when the field has an operator incompatible with the field value', () => {
+      it('should throw an error', () => {
+        const conditionTree = factories.conditionTreeBranch.build({
+          aggregator: Aggregator.Or,
+          conditions: [
+            factories.conditionTreeLeaf.build({
+              operator: Operator.Present,
+              value: 'targetValue',
+              field: 'target',
+            }),
+          ],
+        });
+
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              target: factories.columnSchema.build(),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrowError();
       });
     });
   });
