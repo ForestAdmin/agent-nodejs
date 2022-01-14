@@ -119,8 +119,8 @@ describe('ConditionTreeUtils', () => {
   });
 
   describe('validate', () => {
-    describe('when the field does not exist', () => {
-      it('should return false', () => {
+    describe('when the fields does not exist', () => {
+      it('should throw an error', () => {
         const conditionTree = factories.conditionTreeBranch.build({
           aggregator: Aggregator.Or,
           conditions: [
@@ -145,7 +145,7 @@ describe('ConditionTreeUtils', () => {
       });
 
       describe('when there are several fields', () => {
-        it('should return false when one field does not exist', () => {
+        it('should throw an error when a field does not exist', () => {
           const conditionTree = factories.conditionTreeBranch.build({
             aggregator: Aggregator.Or,
             conditions: [
@@ -181,8 +181,8 @@ describe('ConditionTreeUtils', () => {
       });
     });
 
-    describe('when the field exist', () => {
-      it('should return true', () => {
+    describe('when the fields exist', () => {
+      it('should not throw an error', () => {
         const conditionTree = factories.conditionTreeBranch.build({
           aggregator: Aggregator.Or,
           conditions: [
@@ -205,7 +205,7 @@ describe('ConditionTreeUtils', () => {
       });
 
       describe('when there are several fields', () => {
-        it('should return true', () => {
+        it('should not trow an error', () => {
           const conditionTree = factories.conditionTreeBranch.build({
             aggregator: Aggregator.Or,
             conditions: [
@@ -239,7 +239,7 @@ describe('ConditionTreeUtils', () => {
       });
     });
 
-    describe('when the field has an operator incompatible with the field value', () => {
+    describe('when the field has an operator incompatible with the given value', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeBranch.build({
           aggregator: Aggregator.Or,

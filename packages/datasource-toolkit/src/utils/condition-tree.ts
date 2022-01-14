@@ -3,39 +3,52 @@ import {
   ConditionTree,
   ConditionTreeBranch,
   ConditionTreeLeaf,
-  ConditionTreeNot,
   Operator,
 } from '../interfaces/query/selection';
 
 import { Collection } from '../interfaces/collection';
-import { PrimitiveTypes, SchemaUtils } from '../index';
+import { CollectionSchema, PrimitiveTypes, SchemaUtils } from '../index';
+import TypeCheckerUtil from './type-checker';
 
 export const ConditionTreeNotMatchAnyResult = Object.freeze({
   aggregator: Aggregator.Or,
   conditions: [],
 });
 
+const MAP_OPERATOR_TYPES = Object.freeze({
+  [Operator.Present]: [],
+  [Operator.Equal]: [PrimitiveTypes.String, PrimitiveTypes.Number, PrimitiveTypes.Uuid],
+});
+
 export default class ConditionTreeUtils {
   static validate(conditionTree: ConditionTree, collection: Collection): void {
-    if (ConditionTreeUtils.isBranch(conditionTree)) {
-      conditionTree.conditions.forEach(condition =>
-        ConditionTreeUtils.validate(condition, collection),
-      );
-
-      return;
-    }
-
-    const fieldName = (conditionTree as ConditionTreeLeaf).field;
-    ConditionTreeUtils.throwErrorIfFieldNotExistInSchema(fieldName, collection);
-
-    ConditionTreeUtils.throwErrorIfConditionIsNotValid(
-      conditionTree as ConditionTreeLeaf,
-      fieldName,
+    ConditionTreeUtils.forEveryLeafs(
+      conditionTree,
+      collection,
+      (currentCondition: ConditionTreeLeaf): void => {
+        const fieldName = currentCondition.field;
+        ConditionTreeUtils.throwErrorIfFieldNotExistInSchema(collection.schema, fieldName);
+        ConditionTreeUtils.throwErrorIfConditionIsNotValid(currentCondition, fieldName);
+      },
     );
   }
 
-  private static throwErrorIfFieldNotExistInSchema(fieldName: string, collection: Collection) {
-    const field = SchemaUtils.getField(fieldName, collection.schema);
+  private static forEveryLeafs(
+    conditionTree: ConditionTree,
+    collection: Collection,
+    forCurrentLeaf: (conditionTree: ConditionTreeLeaf) => unknown,
+  ): unknown {
+    if (ConditionTreeUtils.isBranch(conditionTree)) {
+      return conditionTree.conditions.forEach(condition =>
+        ConditionTreeUtils.validate(condition, collection),
+      );
+    }
+
+    return forCurrentLeaf(conditionTree as ConditionTreeLeaf);
+  }
+
+  private static throwErrorIfFieldNotExistInSchema(schema: CollectionSchema, fieldName: string) {
+    const field = SchemaUtils.getField(fieldName, schema);
 
     if (!field) {
       throw new Error(`field not exist ${fieldName}`);
@@ -46,35 +59,25 @@ export default class ConditionTreeUtils {
     conditionTree: ConditionTreeLeaf,
     value?: unknown,
   ): void {
-    const map = {
-      [Operator.Present]: ['no_value_expected'],
-    };
+    const valueType = TypeCheckerUtil.check(value);
 
-    const valueType = ConditionTreeUtils.getValueType(value);
+    const allowedOperators = MAP_OPERATOR_TYPES[conditionTree.operator];
 
-    const allowedOperators = map[conditionTree.operator];
+    const isOperatorExist = !!allowedOperators.find(
+      operatorAllowed => operatorAllowed === valueType,
+    );
 
-    if (allowedOperators) {
-      const isOperatorExist = !!allowedOperators.find(
-        operatorAllowed => operatorAllowed === valueType,
-      );
-
-      if (!isOperatorExist) {
-        throw new Error(
-          `The given condition ${JSON.stringify(conditionTree)} has an error.\n
+    if (!isOperatorExist) {
+      throw new Error(
+        `The given condition ${JSON.stringify(conditionTree)} has an error.\n
            The value attribute is an unexpected value for the given operator.\n
           ${
-            allowedOperators === ['no_value_expected']
+            allowedOperators.length
               ? 'The value attribute must be empty for the given operator'
               : `The allowed types for the given operator are: [${allowedOperators}]`
           }`,
-        );
-      }
+      );
     }
-  }
-
-  private static getValueType(value): 'no_value' | PrimitiveTypes {
-    return PrimitiveTypes.Number;
   }
 
   static intersect(...conditionTrees: ConditionTree[]): ConditionTree {
