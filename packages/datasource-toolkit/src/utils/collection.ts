@@ -1,7 +1,33 @@
 import { Collection } from '../interfaces/collection';
-import { FieldTypes, RelationSchema } from '../interfaces/schema';
+import { FieldSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
 
 export default class CollectionUtils {
+  static getFieldSchema(collection: Collection, field: string): FieldSchema {
+    const dotIndex = field.indexOf(':');
+
+    if (dotIndex === -1) {
+      if (!collection.schema.fields[field]) {
+        throw new Error(`Field '${field}' not found on collection '${collection.name}'`);
+      }
+
+      return collection.schema.fields[field];
+    }
+
+    const prefix = field.substring(0, dotIndex);
+    const schema = collection.schema.fields[prefix];
+
+    if (!schema) {
+      throw new Error(`Relation '${prefix}' not found on collection ${collection.name}`);
+    } else if (schema.type === FieldTypes.ManyToOne || schema.type === FieldTypes.OneToOne) {
+      const target = collection.dataSource.getCollection(schema.foreignCollection);
+      const suffix = field.substring(dotIndex + 1);
+
+      return CollectionUtils.getFieldSchema(target, suffix);
+    } else {
+      throw new Error(`Invalid relation type: ${schema.type}`);
+    }
+  }
+
   static getInverseRelation(collection: Collection, relationName: string): string {
     const relation = collection.schema.fields[relationName] as RelationSchema;
     const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
