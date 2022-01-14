@@ -14,7 +14,9 @@ export default class CollectionSchemaToModelAttributesConverter {
     const attributes = {};
 
     Object.entries(schema.fields).forEach(([name, field]) => {
-      attributes[name] = this.convertField(field);
+      const attribute = this.convertField(field);
+
+      if (attribute) attributes[name] = attribute;
     });
 
     return attributes;
@@ -44,6 +46,16 @@ export default class CollectionSchemaToModelAttributesConverter {
 
   // TODO: Handle all relation types.
   private static convertRelation(field: RelationSchema) {
-    throw new Error(`Unsupported field type: "${field.type}".`);
+    if ([FieldTypes.ManyToOne, FieldTypes.OneToMany, FieldTypes.OneToOne].includes(field.type)) {
+      return {
+        references: {
+          key: field.foreignKey,
+          model: field.foreignCollection,
+        },
+      };
+    }
+
+    // TODO: Handle Many-to-Many relations.
+    throw new Error(`Unsupported relation type: "${field.type}".`);
   }
 }
