@@ -10,13 +10,7 @@ describe('ConditionTreeOperators > Comparison', () => {
           { field: 'column', operator: Operator.Blank },
           'Europe/Paris',
         ),
-      ).toStrictEqual({
-        aggregator: Aggregator.Or,
-        conditions: [
-          { field: 'column', operator: Operator.Equal, value: null },
-          { field: 'column', operator: Operator.Equal, value: '' },
-        ],
-      });
+      ).toStrictEqual({ field: 'column', operator: Operator.In, value: [null, ''] });
     });
 
     test('should be rewritten for other types', () => {
@@ -36,13 +30,7 @@ describe('ConditionTreeOperators > Comparison', () => {
           { field: 'column', operator: Operator.Present },
           'Europe/Paris',
         ),
-      ).toStrictEqual({
-        aggregator: Aggregator.And,
-        conditions: [
-          { field: 'column', operator: Operator.NotEqual, value: null },
-          { field: 'column', operator: Operator.NotEqual, value: '' },
-        ],
-      });
+      ).toStrictEqual({ field: 'column', operator: Operator.NotIn, value: [null, ''] });
     });
 
     test('should be rewritten for other types', () => {

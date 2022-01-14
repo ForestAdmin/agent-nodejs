@@ -19,7 +19,7 @@ describe('ConditionTreeOperators', () => {
               columnType: PrimitiveTypes.Date,
               filterOperators: new Set<Operator>([
                 Operator.LessThan,
-                Operator.In,
+                Operator.Equal,
                 Operator.GreaterThan,
               ]),
             }),
@@ -49,31 +49,31 @@ describe('ConditionTreeOperators', () => {
     });
 
     test('list() should not modify supported operators', () => {
-      const tree = { field: 'col', operator: Operator.In, value: ['someDate'] };
-
-      new OperatorsDecorator(collection).list({ conditionTree: tree }, ['col']);
-      expect(collectionList).toHaveBeenCalledWith(
-        { conditionTree: { field: 'col', operator: Operator.In, value: ['someDate'] } },
-        ['col'],
-      );
-    });
-
-    test('list() should transform "Equal -> In"', () => {
       const tree = { field: 'col', operator: Operator.Equal, value: 'someDate' };
 
       new OperatorsDecorator(collection).list({ conditionTree: tree }, ['col']);
       expect(collectionList).toHaveBeenCalledWith(
-        { conditionTree: { field: 'col', operator: Operator.In, value: ['someDate'] } },
+        { conditionTree: { field: 'col', operator: Operator.Equal, value: 'someDate' } },
         ['col'],
       );
     });
 
-    test('list() should transform "Blank -> Equal -> In"', () => {
+    test('list() should transform "In -> Equal"', () => {
+      const tree = { field: 'col', operator: Operator.In, value: ['someDate'] };
+
+      new OperatorsDecorator(collection).list({ conditionTree: tree }, ['col']);
+      expect(collectionList).toHaveBeenCalledWith(
+        { conditionTree: { field: 'col', operator: Operator.Equal, value: 'someDate' } },
+        ['col'],
+      );
+    });
+
+    test('list() should transform "Blank -> In -> Equal"', () => {
       const tree = { field: 'col', operator: Operator.Blank };
 
       new OperatorsDecorator(collection).list({ conditionTree: tree }, ['col']);
       expect(collectionList).toHaveBeenCalledWith(
-        { conditionTree: { field: 'col', operator: Operator.In, value: [null] } },
+        { conditionTree: { field: 'col', operator: Operator.Equal, value: null } },
         ['col'],
       );
     });

@@ -17,15 +17,9 @@ type EqualityOperators =
 const alternatives: Record<EqualityOperators, Alternative[]> = {
   [Operator.Blank]: [
     {
-      dependsOn: [Operator.Equal],
+      dependsOn: [Operator.In],
       forTypes: [PrimitiveTypes.String],
-      replacer: ({ field }) => ({
-        aggregator: Aggregator.Or,
-        conditions: [
-          { field, operator: Operator.Equal, value: null },
-          { field, operator: Operator.Equal, value: '' },
-        ],
-      }),
+      replacer: ({ field }) => ({ field, operator: Operator.In, value: [null, ''] }),
     },
     {
       dependsOn: [Operator.Equal],
@@ -34,15 +28,9 @@ const alternatives: Record<EqualityOperators, Alternative[]> = {
   ],
   [Operator.Present]: [
     {
-      dependsOn: [Operator.NotEqual],
+      dependsOn: [Operator.NotIn],
       forTypes: [PrimitiveTypes.String],
-      replacer: ({ field }) => ({
-        aggregator: Aggregator.And,
-        conditions: [
-          { field, operator: Operator.NotEqual, value: null },
-          { field, operator: Operator.NotEqual, value: '' },
-        ],
-      }),
+      replacer: ({ field }) => ({ field, operator: Operator.NotIn, value: [null, ''] }),
     },
     {
       dependsOn: [Operator.NotEqual],
