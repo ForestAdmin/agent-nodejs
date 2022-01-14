@@ -9,4 +9,5 @@ export * from './interfaces/schema';
 export { default as BaseCollection } from './base-collection';
 export { default as BaseDataSource } from './base-datasource';
 
+export { default as CollectionUtils } from './utils/collection';
 export { default as SchemaUtils } from './utils/schema';
