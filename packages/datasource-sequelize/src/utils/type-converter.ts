@@ -64,7 +64,7 @@ export default class TypeConverter {
   };
 
   public static fromDataType(dataType) {
-    const dataTypeName = dataType?.constructor?.name;
+    const dataTypeName = dataType?.key;
 
     if (!dataTypeName) throw new Error(`Unable to get data type from: "${dataType}".`);
 
