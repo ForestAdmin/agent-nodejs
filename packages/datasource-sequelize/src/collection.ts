@@ -2,7 +2,6 @@ import {
   AggregateResult,
   Aggregation,
   BaseCollection,
-  CollectionSchema,
   CompositeId,
   DataSource,
   Filter,
@@ -11,7 +10,6 @@ import {
   RecordData,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import CollectionSchemaConverter from './utils/collection-schema-to-model-attributes-converter';
 import ModelConverter from './utils/model-to-collection-schema-converter';
 
 import { convertPaginatedFilterToSequelize } from './utils/filter-converter';
@@ -20,24 +18,13 @@ export default class SequelizeCollection extends BaseCollection {
   protected model = null;
   protected sequelize = null;
 
-  constructor(name, datasource: DataSource, sequelize, schema?: CollectionSchema) {
+  constructor(name, datasource: DataSource, sequelize) {
     super(name, datasource);
 
-    if (!sequelize) throw new Error('Invalid (null) Sequelize instance.');
-
     this.sequelize = sequelize;
+    this.model = sequelize?.[name];
 
-    if (schema) {
-      this.model = sequelize.define(name, CollectionSchemaConverter.convert(schema));
-      if (schema.searchable) this.enableSearch();
-
-      // FIXME: Remove when ModelToCollectionSchemaConverter is done.
-      this.addFields(schema.fields);
-      this.addSegments(schema.segments);
-    } else {
-      this.model = sequelize[name] ?? null;
-    }
-
+    if (!sequelize) throw new Error('Invalid (null) Sequelize instance.');
     if (!this.model) throw new Error(`Could not get model for "${name}".`);
 
     const modelSchema = ModelConverter.convert(this.model);
@@ -88,7 +75,6 @@ export default class SequelizeCollection extends BaseCollection {
   }
 
   aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
-    // FIXME: Properly convert `operation`.
     const operation = aggregation.operation.toUpperCase();
     const field = aggregation.field ?? '*';
     const aggregateFieldName = '__aggregate__';
