@@ -1,15 +1,13 @@
-import { SequelizeCollection, SequelizeDataSource } from '../src';
+import { SequelizeCollection, SequelizeDataSource, TypeConverter } from '../src';
 
 describe('exports', () => {
-  describe('class SequelizeCollection', () => {
+  describe.each([
+    ['SequelizeCollection', SequelizeCollection],
+    ['SequelizeDataSource', SequelizeDataSource],
+    ['TypeConverter', TypeConverter],
+  ])('class %s', (message, type) => {
     it('should be defined', () => {
-      expect(SequelizeCollection).toBeDefined();
-    });
-  });
-
-  describe('class SequelizeDataSource', () => {
-    it('should be defined', () => {
-      expect(SequelizeDataSource).toBeDefined();
+      expect(type).toBeDefined();
     });
   });
 });
