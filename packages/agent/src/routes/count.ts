@@ -12,13 +12,17 @@ export default class Count extends CollectionBaseRoute {
     router.get(`/${this.collection.name}/count`, this.handleCount.bind(this));
   }
 
-  public async handleCount(ctx: Context): Promise<void> {
+  public async handleCount(context: Context): Promise<void> {
     const paginatedFilter: PaginatedFilter = {};
     const aggregation: Aggregation = { operation: AggregationOperation.Count };
 
-    const aggregationResult = await this.collection.aggregate(paginatedFilter, aggregation);
+    try {
+      const aggregationResult = await this.collection.aggregate(paginatedFilter, aggregation);
+      const count = aggregationResult?.[0]?.value ?? 0;
 
-    // @fixme quite ugly
-    ctx.response.body = { count: aggregationResult?.[0]?.value ?? 0 };
+      context.response.body = { count };
+    } catch {
+      context.throw(400, `Failed to count collection "${this.collection.name}"`);
+    }
   }
 }

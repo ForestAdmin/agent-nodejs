@@ -48,5 +48,24 @@ describe('Count', () => {
         { operation: AggregationOperation.Count },
       );
     });
+
+    describe('when an error happens', () => {
+      test('should return an HTTP 400 response', async () => {
+        dataSource.getCollection('books').aggregate = jest.fn().mockImplementation(() => {
+          throw new Error();
+        });
+
+        const count = new Count(services, dataSource, options, partialCollection.name);
+        const throwSpy = jest.fn();
+        const context = {
+          request: { query: { 'fields[books]': 'id' } },
+          response: {},
+          throw: throwSpy,
+        } as unknown as Context;
+
+        await count.handleCount(context);
+        expect(throwSpy).toHaveBeenCalledWith(400, 'Failed to count collection "books"');
+      });
+    });
   });
 });

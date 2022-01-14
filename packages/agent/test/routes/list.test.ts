@@ -46,5 +46,24 @@ describe('List', () => {
       expect(services.serializer.serialize).toHaveBeenCalled();
       expect(partialCollection.list).toHaveBeenCalledWith({}, ['id']);
     });
+
+    describe('when an error happens', () => {
+      test('should return an HTTP 400 response', async () => {
+        services.serializer.serialize = jest.fn().mockImplementation(() => {
+          throw new Error();
+        });
+
+        const list = new List(services, dataSource, options, partialCollection.name);
+        const throwSpy = jest.fn();
+        const context = {
+          request: { query: { 'fields[books]': 'id' } },
+          response: {},
+          throw: throwSpy,
+        } as unknown as Context;
+
+        await list.handleList(context);
+        expect(throwSpy).toHaveBeenCalledWith(400, 'Failed to list collection "books"');
+      });
+    });
   });
 });

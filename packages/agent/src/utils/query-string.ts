@@ -23,7 +23,7 @@ export default class QueryStringParser {
 
       ProjectionUtils.validate(collection, explicitRequest);
 
-      // primary keys are not explicitly listed in the projections that the frontend
+      // Primary keys are not explicitly listed in the projections that the frontend
       // is sending, but are still required for the frontend to work.
       return ProjectionUtils.withPks(collection, explicitRequest);
     } catch (e) {

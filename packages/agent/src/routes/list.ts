@@ -13,8 +13,12 @@ export default class ListRoute extends CollectionBaseRoute {
     const paginatedFilter: PaginatedFilter = {};
     const projection: Projection = QueryStringParser.parseProjection(this.collection, context);
 
-    const records = await this.collection.list(paginatedFilter, projection);
+    try {
+      const records = await this.collection.list(paginatedFilter, projection);
 
-    context.response.body = this.services.serializer.serialize(this.collection, records);
+      context.response.body = this.services.serializer.serialize(this.collection, records);
+    } catch {
+      context.throw(400, `Failed to list collection "${this.collection.name}"`);
+    }
   }
 }
