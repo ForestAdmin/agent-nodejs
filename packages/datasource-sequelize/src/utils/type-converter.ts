@@ -64,7 +64,11 @@ export default class TypeConverter {
   };
 
   public static fromDataType(dataType) {
-    const columnType = TypeConverter.dataTypeToColumnType[dataType];
+    const dataTypeName = dataType?.constructor?.name;
+
+    if (!dataTypeName) throw new Error(`Unable to get data type from: "${dataType}".`);
+
+    const columnType = TypeConverter.dataTypeToColumnType[dataTypeName];
 
     if (!columnType) throw new Error(`Unsupported data type: "${dataType}".`);
 
