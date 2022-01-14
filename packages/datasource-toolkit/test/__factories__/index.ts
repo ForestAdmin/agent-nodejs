@@ -13,3 +13,6 @@ export { default as manyToManySchema } from './schema/many-to-many-schema';
 export { default as manyToOneSchema } from './schema/many-to-one-schema';
 export { default as oneToManySchema } from './schema/one-to-many-schema';
 export { default as oneToOneSchema } from './schema/one-to-one-schema';
+export { default as aggregateResult } from './aggregate-result';
+export { default as conditionTreeLeaf } from './condition-tree/condition-tree-leaf';
+export { default as conditionTreeBranch } from './condition-tree/condition-tree-branch';

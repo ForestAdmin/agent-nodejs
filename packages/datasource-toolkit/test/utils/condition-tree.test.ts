@@ -1,3 +1,4 @@
+import * as factories from '../__factories__';
 import { Aggregator, ConditionTreeLeaf, Operator } from '../../src/interfaces/query/selection';
 import ConditionTreeUtils from '../../src/utils/condition-tree';
 
@@ -113,6 +114,122 @@ describe('ConditionTreeUtils', () => {
           { field: 'column2', operator: Operator.Equal, value: true },
           { field: 'otherColumn2', operator: Operator.Equal, value: true },
         ],
+      });
+    });
+  });
+
+  describe('validate', () => {
+    describe('when the field does not exist', () => {
+      it('should return false', () => {
+        const conditionTree = factories.conditionTreeBranch.build({
+          aggregator: Aggregator.Or,
+          conditions: [
+            factories.conditionTreeLeaf.build({
+              operator: Operator.Equal,
+              value: 'targetValue',
+              field: 'fieldDoesNotExist',
+            }),
+          ],
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              target: factories.columnSchema.build(),
+            },
+          }),
+        });
+
+        const result = ConditionTreeUtils.validate(conditionTree, collection);
+
+        expect(result).toEqual(false);
+      });
+
+      describe('when there are several fields', () => {
+        it('should return false', () => {
+          const conditionTree = factories.conditionTreeBranch.build({
+            aggregator: Aggregator.Or,
+            conditions: [
+              factories.conditionTreeBranch.build({
+                aggregator: Aggregator.Or,
+                conditions: [
+                  factories.conditionTreeLeaf.build({
+                    operator: Operator.Equal,
+                    value: 'targetValue',
+                    field: 'fieldDoesNotExist',
+                  }),
+                ],
+              }),
+            ],
+          });
+          const collection = factories.collection.build({
+            schema: factories.collectionSchema.build({
+              fields: {
+                target: factories.columnSchema.build(),
+              },
+            }),
+          });
+
+          const result = ConditionTreeUtils.validate(conditionTree, collection);
+
+          expect(result).toEqual(false);
+        });
+      });
+    });
+
+    describe('when the field exist', () => {
+      it('should return true', () => {
+        const conditionTree = factories.conditionTreeBranch.build({
+          aggregator: Aggregator.Or,
+          conditions: [
+            factories.conditionTreeLeaf.build({
+              operator: Operator.Equal,
+              value: 'targetValue',
+              field: 'target',
+            }),
+          ],
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              target: factories.columnSchema.build(),
+            },
+          }),
+        });
+
+        const result = ConditionTreeUtils.validate(conditionTree, collection);
+
+        expect(result).toEqual(true);
+      });
+
+      describe('when there are several fields', () => {
+        it('should return true', () => {
+          const conditionTree = factories.conditionTreeBranch.build({
+            aggregator: Aggregator.Or,
+            conditions: [
+              factories.conditionTreeBranch.build({
+                aggregator: Aggregator.Or,
+                conditions: [
+                  factories.conditionTreeLeaf.build({
+                    operator: Operator.Equal,
+                    value: 'targetValue',
+                    field: 'target',
+                  }),
+                ],
+              }),
+            ],
+          });
+          const collection = factories.collection.build({
+            schema: factories.collectionSchema.build({
+              fields: {
+                target: factories.columnSchema.build(),
+              },
+            }),
+          });
+
+          const result = ConditionTreeUtils.validate(conditionTree, collection);
+
+          expect(result).toEqual(true);
+        });
       });
     });
   });

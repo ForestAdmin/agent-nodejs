@@ -59,7 +59,7 @@ describe('CollectionDecorator', () => {
       const aggregation = factories.aggregation.build();
       const filter = factories.filter.build();
 
-      const aggregateResult = factories.AggregateResult.build();
+      const aggregateResult = factories.aggregateResult.build();
       const childAggregate = jest.fn().mockReturnValue([aggregateResult]);
 
       const decoratedCollection = factories.collection.buildDecoratedCollection({

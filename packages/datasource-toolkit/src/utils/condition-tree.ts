@@ -5,12 +5,27 @@ import {
   ConditionTreeLeaf,
 } from '../interfaces/query/selection';
 
+import { Collection } from '../interfaces/collection';
+import { SchemaUtils } from '../index';
+
 export const ConditionTreeNotMatchAnyResult = Object.freeze({
   aggregator: Aggregator.Or,
   conditions: [],
 });
 
 export default class ConditionTreeUtils {
+  static validate(conditionTree: ConditionTree, collection: Collection) {
+    if (ConditionTreeUtils.isBranch(conditionTree)) {
+      if (conditionTree.conditions.length > 0) {
+        return ConditionTreeUtils.validate(conditionTree.conditions[0], collection);
+      }
+
+      return false;
+    }
+
+    return !!SchemaUtils.getField((conditionTree as ConditionTreeLeaf).field, collection.schema);
+  }
+
   static intersect(...conditionTrees: ConditionTree[]): ConditionTree {
     const conditions = conditionTrees.reduce((currentConditions, condition) => {
       if (!condition) return currentConditions;
