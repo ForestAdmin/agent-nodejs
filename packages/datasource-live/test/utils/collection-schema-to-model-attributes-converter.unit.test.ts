@@ -69,7 +69,7 @@ describe('Utils > CollectionSchemaToModelAttributesConverter', () => {
       });
     });
 
-    describe.skip('with Relation fields', () => {
+    describe('with Relation fields', () => {
       describe('with ManyToMany fields', () => {
         it('should fail', () => {
           const schema: CollectionSchema = {
