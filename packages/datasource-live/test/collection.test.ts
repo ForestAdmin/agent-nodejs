@@ -4,6 +4,7 @@ import sortBy from 'lodash/sortBy';
 import {
   AggregationOperation,
   CollectionSchema,
+  DataSource,
   FieldTypes,
   Operator,
   PrimitiveTypes,
@@ -65,12 +66,13 @@ const liveCollectionSchema: CollectionSchema = {
 };
 
 const instanciateCollection = schema => {
+  const dataSource = Symbol('datasource') as unknown as DataSource;
   const sequelize = new Sequelize('sqlite::memory:', { logging: false });
 
   return {
     liveCollection:
       // eslint-disable-next-line implicit-arrow-linebreak
-      new LiveCollection('__name__', null, sequelize, schema),
+      new LiveCollection('__name__', dataSource, sequelize, schema),
     sequelize,
   };
 };
