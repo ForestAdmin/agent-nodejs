@@ -12,7 +12,7 @@ import {
   PrimitiveTypes,
 } from '../../index';
 import ConditionTreeUtils from '../../utils/condition-tree';
-import TypeCheckerUtil from '../../utils/type-checker';
+import TypeGetterUtil from '../../utils/type-checker';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
@@ -55,7 +55,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     schema: ColumnSchema,
     searchString: string,
   ): ConditionTree {
-    const searchType = TypeCheckerUtil.check(searchString);
+    const searchType = TypeGetterUtil.get(searchString);
     const { columnType, enumValues } = schema;
     let condition = null;
 

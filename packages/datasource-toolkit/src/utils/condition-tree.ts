@@ -7,36 +7,56 @@ import {
 } from '../interfaces/query/selection';
 
 import { Collection } from '../interfaces/collection';
-import { CollectionSchema, PrimitiveTypes, SchemaUtils } from '../index';
-import TypeCheckerUtil from './type-checker';
+import { CollectionSchema, ColumnSchema, PrimitiveTypes, SchemaUtils } from '../index';
+import TypeGetterUtil from './type-checker';
 
 export const ConditionTreeNotMatchAnyResult = Object.freeze({
   aggregator: Aggregator.Or,
   conditions: [],
 });
 
-const MAP_OPERATOR_TYPES = Object.freeze({
-  [Operator.Present]: [],
-  [Operator.Equal]: [PrimitiveTypes.String, PrimitiveTypes.Number, PrimitiveTypes.Uuid],
-});
+export const MAP_OPERATOR_TYPES: Readonly<{ [operator: string]: PrimitiveTypes[] }> = Object.freeze(
+  {
+    [Operator.Present]: [],
+    [Operator.Blank]: [],
+    [Operator.In]: [],
+    [Operator.Equal]: [PrimitiveTypes.String, PrimitiveTypes.Number, PrimitiveTypes.Uuid],
+    [Operator.Contains]: [PrimitiveTypes.String],
+    [Operator.GreaterThan]: [PrimitiveTypes.Number],
+  },
+);
+
+export const MAP_COLUMN_TYPE_SCHEMA_OPERATORS: Readonly<{ [type: string]: Operator[] }> =
+  Object.freeze({
+    [PrimitiveTypes.String]: [Operator.Present, Operator.Equal],
+    [PrimitiveTypes.Number]: [Operator.Present, Operator.Equal, Operator.GreaterThan],
+  });
 
 export default class ConditionTreeUtils {
   static validate(conditionTree: ConditionTree, collection: Collection): void {
-    ConditionTreeUtils.forEveryLeafs(
+    ConditionTreeUtils.forEveryLeaf(
       conditionTree,
       collection,
       (currentCondition: ConditionTreeLeaf): void => {
         const fieldName = currentCondition.field;
+        const fieldValue = currentCondition.value;
         ConditionTreeUtils.throwErrorIfFieldNotExistInSchema(collection.schema, fieldName);
-        ConditionTreeUtils.throwErrorIfConditionIsNotValid(currentCondition, fieldName);
+        ConditionTreeUtils.throwErrorIfConditionFieldValueIsNotAllowedWithOperator(
+          currentCondition,
+          fieldValue,
+        );
+        ConditionTreeUtils.throwErrorIfConditionOperatorIsNotAllowedWithColumnTypeSchema(
+          currentCondition,
+          collection.schema,
+        );
       },
     );
   }
 
-  private static forEveryLeafs(
+  private static forEveryLeaf(
     conditionTree: ConditionTree,
     collection: Collection,
-    forCurrentLeaf: (conditionTree: ConditionTreeLeaf) => unknown,
+    forCurrentLeafFn: (conditionTree: ConditionTreeLeaf) => unknown,
   ): unknown {
     if (ConditionTreeUtils.isBranch(conditionTree)) {
       return conditionTree.conditions.forEach(condition =>
@@ -44,7 +64,7 @@ export default class ConditionTreeUtils {
       );
     }
 
-    return forCurrentLeaf(conditionTree as ConditionTreeLeaf);
+    return forCurrentLeafFn(conditionTree as ConditionTreeLeaf);
   }
 
   private static throwErrorIfFieldNotExistInSchema(schema: CollectionSchema, fieldName: string) {
@@ -55,27 +75,48 @@ export default class ConditionTreeUtils {
     }
   }
 
-  private static throwErrorIfConditionIsNotValid(
+  private static throwErrorIfConditionFieldValueIsNotAllowedWithOperator(
     conditionTree: ConditionTreeLeaf,
     value?: unknown,
   ): void {
-    const valueType = TypeCheckerUtil.check(value);
+    const valueType = TypeGetterUtil.get(value);
 
-    const allowedOperators = MAP_OPERATOR_TYPES[conditionTree.operator];
+    const allowedTypes = MAP_OPERATOR_TYPES[conditionTree.operator];
 
-    const isOperatorExist = !!allowedOperators.find(
-      operatorAllowed => operatorAllowed === valueType,
-    );
+    const isTypeAllowed = !!allowedTypes.find(type => type === valueType);
 
-    if (!isOperatorExist) {
+    if (!isTypeAllowed) {
       throw new Error(
         `The given condition ${JSON.stringify(conditionTree)} has an error.\n
-           The value attribute is an unexpected value for the given operator.\n
+           The value attribute has an unexpected value for the given operator.\n
           ${
-            allowedOperators.length
-              ? 'The value attribute must be empty for the given operator'
-              : `The allowed types for the given operator are: [${allowedOperators}]`
+            allowedTypes.length === 0
+              ? 'The value attribute must be empty for the given operator.'
+              : `The allowed field value types for the given operator are: [${allowedTypes}].`
           }`,
+      );
+    }
+  }
+
+  private static throwErrorIfConditionOperatorIsNotAllowedWithColumnTypeSchema(
+    conditionTree: ConditionTreeLeaf,
+    schema: CollectionSchema,
+  ): void {
+    const fieldSchema = SchemaUtils.getField(conditionTree.field, schema);
+
+    // TODO: fix
+    const allowedOperators =
+      MAP_COLUMN_TYPE_SCHEMA_OPERATORS[(fieldSchema as ColumnSchema).columnType as PrimitiveTypes];
+
+    const isOperatorAllowed = !!allowedOperators.find(
+      operatorAllowed => operatorAllowed === conditionTree.operator,
+    );
+
+    if (!isOperatorAllowed) {
+      throw new Error(
+        `The given operator ${JSON.stringify(conditionTree)} has an error.\n
+         The operator is not allowed with the column type schema. ${JSON.stringify(fieldSchema)}\n
+         The allowed types for the given operator are: [${allowedOperators}]`,
       );
     }
   }
