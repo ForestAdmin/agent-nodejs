@@ -72,7 +72,7 @@ export const MAP_COLUMN_TYPE_SCHEMA_OPERATORS: Readonly<{
   [PrimitiveTypes.Json]: [],
   [PrimitiveTypes.Point]: [],
   [PrimitiveTypes.Timeonly]: [],
-  [PrimitiveTypes.Uuid]: [],
+  [PrimitiveTypes.Uuid]: [Operator.Equal],
 });
 
 export const MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE: Readonly<{
@@ -87,7 +87,7 @@ export const MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE: Readonly<{
   [PrimitiveTypes.Json]: [],
   [PrimitiveTypes.Point]: [],
   [PrimitiveTypes.Timeonly]: [],
-  [PrimitiveTypes.Uuid]: [],
+  [PrimitiveTypes.Uuid]: [PrimitiveTypes.Uuid],
 });
 
 export default class ConditionTreeUtils {

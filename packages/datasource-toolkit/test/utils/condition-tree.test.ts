@@ -5,7 +5,7 @@ import ConditionTreeUtils, {
   MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE,
 } from '../../src/utils/condition-tree';
 import * as factories from '../__factories__';
-import { NonPrimitiveTypes, PrimitiveTypes } from '../../src/interfaces/schema';
+import { FieldTypes, NonPrimitiveTypes, PrimitiveTypes } from '../../src/interfaces/schema';
 
 describe('ConditionTreeUtils', () => {
   describe('intersect', () => {
@@ -149,6 +149,66 @@ describe('ConditionTreeUtils', () => {
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrowError(
           "Field 'fieldDoesNotExistInSchema' not found on collection 'a collection'",
         );
+      });
+
+      describe('when there are relations in the datasource', () => {
+        it('should not throw an error', () => {
+          const dataSource = factories.dataSource.buildWithCollections([
+            factories.collection.build({
+              name: 'books',
+              schema: factories.collectionSchema.build({
+                fields: {
+                  id: {
+                    type: FieldTypes.Column,
+                    columnType: PrimitiveTypes.Uuid,
+                    isPrimaryKey: true,
+                  },
+                  author: {
+                    type: FieldTypes.ManyToOne,
+                    foreignCollection: 'persons',
+                    foreignKey: 'authorId',
+                  },
+                  authorId: {
+                    type: FieldTypes.Column,
+                    columnType: PrimitiveTypes.Uuid,
+                  },
+                },
+              }),
+            }),
+            factories.collection.build({
+              name: 'persons',
+              schema: factories.collectionSchema.build({
+                fields: {
+                  id: {
+                    type: FieldTypes.Column,
+                    columnType: PrimitiveTypes.Uuid,
+                    isPrimaryKey: true,
+                  },
+                },
+              }),
+            }),
+          ]);
+
+          const conditionTree = factories.conditionTreeBranch.build({
+            aggregator: Aggregator.Or,
+            conditions: [
+              factories.conditionTreeBranch.build({
+                aggregator: Aggregator.Or,
+                conditions: [
+                  factories.conditionTreeLeaf.build({
+                    operator: Operator.Equal,
+                    value: '2d162303-78bf-599e-b197-93590ac3d315',
+                    field: 'author:id',
+                  }),
+                ],
+              }),
+            ],
+          });
+
+          expect(() =>
+            ConditionTreeUtils.validate(conditionTree, dataSource.getCollection('books')),
+          ).not.toThrowError();
+        });
       });
 
       describe('when there are several fields', () => {
