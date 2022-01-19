@@ -1,18 +1,6 @@
-import {
-  CollectionSchema,
-  FieldTypes,
-  CollectionSchema,
-  FieldSchema,
-  FieldTypes,
-  RelationSchema,
-} from '../interfaces/schema';
-import { Collection } from '../interfaces/collection';
+import { CollectionSchema, FieldTypes } from '../interfaces/schema';
 
 export default class SchemaUtils {
-  static getField(name: string, schema: CollectionSchema): FieldSchema {
-    return schema.fields[name];
-  }
-
   static getPrimaryKeys(schema: CollectionSchema): string[] {
     return Object.keys(schema.fields).filter(fieldName => {
       const field = schema.fields[fieldName];

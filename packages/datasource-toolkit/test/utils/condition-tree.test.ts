@@ -4,7 +4,7 @@ import ConditionTreeUtils, {
   MAP_COLUMN_TYPE_SCHEMA_OPERATORS,
 } from '../../src/utils/condition-tree';
 import * as factories from '../__factories__';
-import { PrimitiveTypes } from '../../src/interfaces/schema';
+import { NonPrimitiveTypes, PrimitiveTypes } from '../../src/interfaces/schema';
 
 describe('ConditionTreeUtils', () => {
   describe('intersect', () => {
@@ -123,7 +123,7 @@ describe('ConditionTreeUtils', () => {
   });
 
   describe('validate', () => {
-    describe('when the fields does not exist in the schema', () => {
+    describe('when the field(s) does not exist in the schema', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeBranch.build({
           aggregator: Aggregator.Or,
@@ -138,13 +138,15 @@ describe('ConditionTreeUtils', () => {
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              target: factories.columnSchema.build(),
+              target: factories.columnSchema.build({
+                columnType: PrimitiveTypes.String,
+              }),
             },
           }),
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrowError(
-          'The field fieldDoesNotExistInSchema does not exist',
+          "Field 'fieldDoesNotExistInSchema' not found on collection 'a collection'",
         );
       });
 
@@ -173,19 +175,21 @@ describe('ConditionTreeUtils', () => {
           const collection = factories.collection.build({
             schema: factories.collectionSchema.build({
               fields: {
-                target: factories.columnSchema.build(),
+                target: factories.columnSchema.build({
+                  columnType: PrimitiveTypes.String,
+                }),
               },
             }),
           });
 
           expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-            'The field fieldDoesNotExistInSchema does not exist',
+            "Field 'fieldDoesNotExistInSchema' not found on collection 'a collection'",
           );
         });
       });
     });
 
-    describe('when the fields exist', () => {
+    describe('when the field(s) exist', () => {
       it('should not throw an error', () => {
         const conditionTree = factories.conditionTreeBranch.build({
           aggregator: Aggregator.Or,
@@ -200,7 +204,9 @@ describe('ConditionTreeUtils', () => {
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              target: factories.columnSchema.build(),
+              target: factories.columnSchema.build({
+                columnType: PrimitiveTypes.String,
+              }),
             },
           }),
         });
@@ -233,7 +239,9 @@ describe('ConditionTreeUtils', () => {
           const collection = factories.collection.build({
             schema: factories.collectionSchema.build({
               fields: {
-                target: factories.columnSchema.build(),
+                target: factories.columnSchema.build({
+                  columnType: PrimitiveTypes.String,
+                }),
               },
             }),
           });
@@ -267,16 +275,17 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'The given operator ' +
-            '{"operator":"contains","field":"target","value":"subValue"} has an error.\n' +
-            ' The operator is not allowed with the column type schema. ' +
-            '{"type":"Column","columnType":"Number","filterOperators":{}}\n' +
-            ' The allowed types for the given operator are: [present,equal,greater_than]',
+          'The given operator of ' +
+            '{"operator":"contains","field":"target","value":"subValue"} has an error.\n ' +
+            'The operator is not allowed with the column type schema: ' +
+            '{"type":"Column","columnType":"Number","filterOperators":{}}\n ' +
+            'The allowed types for the given operator are: [present,equal,greater_than,in]' +
+            " and the operator is 'contains'",
         );
       });
     });
 
-    describe('when the field value has an operator incompatible with the given value', () => {
+    describe('when the operator is incompatible with the given value', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeBranch.build({
           aggregator: Aggregator.Or,
@@ -300,42 +309,42 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'The given condition ' +
+          'The given condition of ' +
             '{"operator":"greater_than","field":"target","value":null} has an error.\n ' +
             'The value attribute has an unexpected value for the given operator.\n ' +
-            'The allowed field value types for the given operator are: [Number].',
+            "The allowed field value types are: [Number] and the type is 'null'",
         );
       });
     });
 
-    describe('when the operator does not support field value and a value is defined', () => {
+    describe('when the value is not compatible with the column type', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeBranch.build({
           aggregator: Aggregator.Or,
           conditions: [
             factories.conditionTreeLeaf.build({
-              operator: Operator.Present,
+              operator: Operator.In,
+              value: [1, 2, 3],
               field: 'target',
-              value: 'a value',
             }),
           ],
         });
-
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
               target: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Number,
+                columnType: PrimitiveTypes.String,
               }),
             },
           }),
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'The given condition ' +
-            '{"operator":"present","field":"target","value":"a value"} has an error.\n' +
-            ' The value attribute has an unexpected value for the given operator.\n' +
-            ' The value attribute must be empty for the given operator.',
+          'The given value of ' +
+            '{"operator":"in","field":"target","value":[1,2,3]} has an error.\n ' +
+            'The value is not allowed with the column type schema:' +
+            ' {"type":"Column","columnType":"String","filterOperators":{}}\n ' +
+            'The allowed values for the column type are: [String,ArrayOfString]',
         );
       });
     });
@@ -344,20 +353,36 @@ describe('ConditionTreeUtils', () => {
   describe('MAP_OPERATOR_TYPE', () => {
     it.each([
       [Operator.Present, []],
+      [
+        Operator.In,
+        [
+          NonPrimitiveTypes.ArrayOfNumber,
+          NonPrimitiveTypes.ArrayOfString,
+          NonPrimitiveTypes.EmptyArray,
+        ],
+      ],
       [Operator.Equal, [PrimitiveTypes.String, PrimitiveTypes.Number, PrimitiveTypes.Uuid]],
       [Operator.Blank, []],
       [Operator.Contains, [PrimitiveTypes.String]],
     ])(`%s should be match the allowed types`, async (operator, expectedAllowedTypes) => {
       expect(MAP_OPERATOR_TYPES[operator]).toStrictEqual(expectedAllowedTypes);
     });
+
+    it.each(Object.keys(Operator))(`should implement %s operator`, async operator => {
+      expect(MAP_OPERATOR_TYPES[operator]).toBeDefined();
+    });
   });
 
   describe('MAP_COLUMN_TYPE_SCHEMA_OPERATORS', () => {
     it.each([[PrimitiveTypes.String, [Operator.Present, Operator.Equal]]])(
-      `%s should be match the allowed types`,
+      `%s should be match the allowed primitive types`,
       async (operator, expectedAllowedTypes) => {
         expect(MAP_COLUMN_TYPE_SCHEMA_OPERATORS[operator]).toStrictEqual(expectedAllowedTypes);
       },
     );
+
+    it.each(Object.keys(PrimitiveTypes))(`should implement %s primitive type`, async operator => {
+      expect(MAP_COLUMN_TYPE_SCHEMA_OPERATORS[operator]).toBeDefined();
+    });
   });
 });
