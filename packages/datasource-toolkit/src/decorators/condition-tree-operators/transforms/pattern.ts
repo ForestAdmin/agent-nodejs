@@ -11,29 +11,23 @@ type PatternOperators =
   | Operator.LongerThan
   | Operator.ShorterThan;
 
+function likes(getPattern: (string) => string): Alternative {
+  return {
+    dependsOn: [Operator.Like],
+    forTypes: [PrimitiveTypes.String],
+    replacer: ({ field, value }) => ({
+      field,
+      operator: Operator.Like,
+      value: getPattern(value),
+    }),
+  };
+}
+
 const alternatives: Record<PatternOperators, Alternative[]> = {
   [Operator.Like]: [],
-  [Operator.Contains]: [
-    {
-      dependsOn: [Operator.Like],
-      forTypes: [PrimitiveTypes.String],
-      replacer: ({ field, value }) => ({ field, operator: Operator.Like, value: `%${value}%` }),
-    },
-  ],
-  [Operator.StartsWith]: [
-    {
-      dependsOn: [Operator.Like],
-      forTypes: [PrimitiveTypes.String],
-      replacer: ({ field, value }) => ({ field, operator: Operator.Like, value: `${value}%` }),
-    },
-  ],
-  [Operator.EndsWith]: [
-    {
-      dependsOn: [Operator.Like],
-      forTypes: [PrimitiveTypes.String],
-      replacer: ({ field, value }) => ({ field, operator: Operator.Like, value: `%${value}` }),
-    },
-  ],
+  [Operator.Contains]: [likes(value => `%${value}%`)],
+  [Operator.StartsWith]: [likes(value => `${value}%`)],
+  [Operator.EndsWith]: [likes(value => `%${value}`)],
   [Operator.NotContains]: [],
   [Operator.LongerThan]: [],
   [Operator.ShorterThan]: [],
