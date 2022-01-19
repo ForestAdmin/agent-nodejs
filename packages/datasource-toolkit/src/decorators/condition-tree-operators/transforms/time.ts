@@ -72,6 +72,7 @@ const alternatives: Partial<Record<Operator, Alternative[]>> = {
   [Operator.PreviousQuarterToDate]: [previousIntervalToDate('quarter')],
   [Operator.PreviousYearToDate]: [previousIntervalToDate('year')],
 
+  [Operator.Yesterday]: [previousInterval('day')],
   [Operator.PreviousWeek]: [previousInterval('week')],
   [Operator.PreviousMonth]: [previousInterval('month')],
   [Operator.PreviousQuarter]: [previousInterval('quarter')],
@@ -94,12 +95,6 @@ const alternatives: Partial<Record<Operator, Alternative[]>> = {
     interval(
       now => now.startOf('day'),
       now => now.plus({ day: 1 }).startOf('day'),
-    ),
-  ],
-  [Operator.Yesterday]: [
-    interval(
-      now => now.minus({ day: 1 }).startOf('day'),
-      now => now.startOf('day'),
     ),
   ],
 };

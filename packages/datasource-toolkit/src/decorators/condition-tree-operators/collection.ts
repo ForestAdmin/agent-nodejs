@@ -23,10 +23,10 @@ export default class OperatorsDecorator extends CollectionDecorator {
     ...timeTransforms,
   };
 
-  protected refineSchema(subSchema: CollectionSchema): CollectionSchema {
+  protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
     const fields = {};
 
-    for (const [name, schema] of Object.entries(subSchema.fields)) {
+    for (const [name, schema] of Object.entries(childSchema.fields)) {
       if (schema.type === FieldTypes.Column) {
         const newOperators = Object.values(Operator).filter(op => !!this.getReplacer(op, schema));
 
@@ -36,7 +36,7 @@ export default class OperatorsDecorator extends CollectionDecorator {
       }
     }
 
-    return { ...subSchema, fields };
+    return { ...childSchema, fields };
   }
 
   protected refineFilter(filter?: Filter): Filter {
