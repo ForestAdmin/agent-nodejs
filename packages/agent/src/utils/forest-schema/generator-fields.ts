@@ -1,5 +1,6 @@
 import {
   Collection,
+  CollectionUtils,
   ColumnSchema,
   ColumnType,
   FieldTypes,
@@ -69,7 +70,7 @@ export default class SchemaGeneratorFields {
       enums: null,
       field: name,
       integration: null,
-      inverseOf: SchemaUtils.getInverseRelation(collection, name),
+      inverseOf: CollectionUtils.getInverseRelation(collection, name),
       isFilterable: false,
       isPrimaryKey: false,
       isReadOnly: false,

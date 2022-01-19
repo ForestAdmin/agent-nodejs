@@ -1,4 +1,9 @@
-import { Aggregator, ConditionTree, ConditionTreeBranch } from '../interfaces/query/selection';
+import {
+  Aggregator,
+  ConditionTree,
+  ConditionTreeBranch,
+  ConditionTreeLeaf,
+} from '../interfaces/query/selection';
 
 export const ConditionTreeNotMatchAnyResult = Object.freeze({
   aggregator: Aggregator.Or,
@@ -24,5 +29,26 @@ export default class ConditionTreeUtils {
 
   static isBranch(conditionTree: ConditionTree): conditionTree is ConditionTreeBranch {
     return (conditionTree as ConditionTreeBranch).aggregator !== undefined;
+  }
+
+  static replaceLeafs(
+    tree: ConditionTree,
+    handler: (leaf: ConditionTreeLeaf) => ConditionTree,
+    bind: unknown = null,
+  ): ConditionTree {
+    if (!tree) {
+      return null;
+    }
+
+    if (ConditionTreeUtils.isBranch(tree)) {
+      return {
+        ...tree,
+        conditions: tree.conditions.map((c: ConditionTree) =>
+          ConditionTreeUtils.replaceLeafs(c, handler, bind),
+        ),
+      };
+    }
+
+    return handler.call(bind, tree);
   }
 }
