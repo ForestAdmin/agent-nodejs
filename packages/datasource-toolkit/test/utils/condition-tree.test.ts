@@ -123,7 +123,7 @@ describe('ConditionTreeUtils', () => {
   });
 
   describe('validate', () => {
-    describe('when the fields does not exist', () => {
+    describe('when the fields does not exist in the schema', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeBranch.build({
           aggregator: Aggregator.Or,
@@ -131,7 +131,7 @@ describe('ConditionTreeUtils', () => {
             factories.conditionTreeLeaf.build({
               operator: Operator.Equal,
               value: 'targetValue',
-              field: 'fieldDoesNotExist',
+              field: 'fieldDoesNotExistInSchema',
             }),
           ],
         });
@@ -144,7 +144,7 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrowError(
-          'field not exist fieldDoesNotExist',
+          'The field fieldDoesNotExistInSchema does not exist',
         );
       });
 
@@ -164,7 +164,7 @@ describe('ConditionTreeUtils', () => {
                   factories.conditionTreeLeaf.build({
                     operator: Operator.Equal,
                     value: 'targetValue',
-                    field: 'fieldDoesNotExist',
+                    field: 'fieldDoesNotExistInSchema',
                   }),
                 ],
               }),
@@ -178,8 +178,8 @@ describe('ConditionTreeUtils', () => {
             }),
           });
 
-          expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrowError(
-            'field not exist fieldDoesNotExist',
+          expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
+            'The field fieldDoesNotExistInSchema does not exist',
           );
         });
       });
@@ -243,31 +243,6 @@ describe('ConditionTreeUtils', () => {
       });
     });
 
-    describe('when the field has an operator incompatible with the given value', () => {
-      it('should throw an error', () => {
-        const conditionTree = factories.conditionTreeBranch.build({
-          aggregator: Aggregator.Or,
-          conditions: [
-            factories.conditionTreeLeaf.build({
-              operator: Operator.In,
-              value: 'targetValue',
-              field: 'target',
-            }),
-          ],
-        });
-
-        const collection = factories.collection.build({
-          schema: factories.collectionSchema.build({
-            fields: {
-              target: factories.columnSchema.build(),
-            },
-          }),
-        });
-
-        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrowError();
-      });
-    });
-
     describe('when the field has an operator incompatible with the schema type', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeBranch.build({
@@ -291,11 +266,17 @@ describe('ConditionTreeUtils', () => {
           }),
         });
 
-        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow();
+        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
+          'The given operator ' +
+            '{"operator":"contains","field":"target","value":"subValue"} has an error.\n' +
+            ' The operator is not allowed with the column type schema. ' +
+            '{"type":"Column","columnType":"Number","filterOperators":{}}\n' +
+            ' The allowed types for the given operator are: [present,equal,greater_than]',
+        );
       });
     });
 
-    describe('when the field value is null and has an operator incompatible with null value', () => {
+    describe('when the field value has an operator incompatible with the given value', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeBranch.build({
           aggregator: Aggregator.Or,
@@ -318,11 +299,16 @@ describe('ConditionTreeUtils', () => {
           }),
         });
 
-        expect(ConditionTreeUtils.validate(conditionTree, collection)).toThrow();
+        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
+          'The given condition ' +
+            '{"operator":"greater_than","field":"target","value":null} has an error.\n ' +
+            'The value attribute has an unexpected value for the given operator.\n ' +
+            'The allowed field value types for the given operator are: [Number].',
+        );
       });
     });
 
-    describe('when the field value is not null and has an operator incompatible with not null value', () => {
+    describe('when the operator does not support field value and a value is defined', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeBranch.build({
           aggregator: Aggregator.Or,
@@ -345,7 +331,12 @@ describe('ConditionTreeUtils', () => {
           }),
         });
 
-        expect(ConditionTreeUtils.validate(conditionTree, collection)).toThrow();
+        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
+          'The given condition ' +
+            '{"operator":"present","field":"target","value":"a value"} has an error.\n' +
+            ' The value attribute has an unexpected value for the given operator.\n' +
+            ' The value attribute must be empty for the given operator.',
+        );
       });
     });
   });

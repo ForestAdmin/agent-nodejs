@@ -15,18 +15,19 @@ export const ConditionTreeNotMatchAnyResult = Object.freeze({
   conditions: [],
 });
 
-export const MAP_OPERATOR_TYPES: Readonly<{ [operator: string]: PrimitiveTypes[] }> = Object.freeze(
-  {
-    [Operator.Present]: [],
-    [Operator.Blank]: [],
+const NO_PRIMITIVE_TYPES_ALLOWED: Readonly<PrimitiveTypes[]> = [];
+
+export const MAP_OPERATOR_TYPES: Readonly<{ [operator: string]: readonly PrimitiveTypes[] }> =
+  Object.freeze({
+    [Operator.Present]: NO_PRIMITIVE_TYPES_ALLOWED,
+    [Operator.Blank]: NO_PRIMITIVE_TYPES_ALLOWED,
     [Operator.In]: [],
     [Operator.Equal]: [PrimitiveTypes.String, PrimitiveTypes.Number, PrimitiveTypes.Uuid],
     [Operator.Contains]: [PrimitiveTypes.String],
     [Operator.GreaterThan]: [PrimitiveTypes.Number],
-  },
-);
+  });
 
-export const MAP_COLUMN_TYPE_SCHEMA_OPERATORS: Readonly<{ [type: string]: Operator[] }> =
+export const MAP_COLUMN_TYPE_SCHEMA_OPERATORS: Readonly<{ [type: string]: readonly Operator[] }> =
   Object.freeze({
     [PrimitiveTypes.String]: [Operator.Present, Operator.Equal],
     [PrimitiveTypes.Number]: [Operator.Present, Operator.Equal, Operator.GreaterThan],
@@ -71,7 +72,7 @@ export default class ConditionTreeUtils {
     const field = SchemaUtils.getField(fieldName, schema);
 
     if (!field) {
-      throw new Error(`field not exist ${fieldName}`);
+      throw new Error(`The field ${fieldName} does not exist`);
     }
   }
 
@@ -87,13 +88,13 @@ export default class ConditionTreeUtils {
 
     if (!isTypeAllowed) {
       throw new Error(
-        `The given condition ${JSON.stringify(conditionTree)} has an error.\n
-           The value attribute has an unexpected value for the given operator.\n
-          ${
-            allowedTypes.length === 0
-              ? 'The value attribute must be empty for the given operator.'
-              : `The allowed field value types for the given operator are: [${allowedTypes}].`
-          }`,
+        `The given condition ${JSON.stringify(
+          conditionTree,
+        )} has an error.\n The value attribute has an unexpected value for the given operator.\n ${
+          allowedTypes.length === 0
+            ? 'The value attribute must be empty for the given operator.'
+            : `The allowed field value types for the given operator are: [${allowedTypes}].`
+        }`,
       );
     }
   }
@@ -104,7 +105,7 @@ export default class ConditionTreeUtils {
   ): void {
     const fieldSchema = SchemaUtils.getField(conditionTree.field, schema);
 
-    // TODO: fix
+    // TODO: fix if operators is empty
     const allowedOperators =
       MAP_COLUMN_TYPE_SCHEMA_OPERATORS[(fieldSchema as ColumnSchema).columnType as PrimitiveTypes];
 
@@ -114,9 +115,9 @@ export default class ConditionTreeUtils {
 
     if (!isOperatorAllowed) {
       throw new Error(
-        `The given operator ${JSON.stringify(conditionTree)} has an error.\n
-         The operator is not allowed with the column type schema. ${JSON.stringify(fieldSchema)}\n
-         The allowed types for the given operator are: [${allowedOperators}]`,
+        `The given operator ${JSON.stringify(conditionTree)} has an error.
+ The operator is not allowed with the column type schema. ${JSON.stringify(fieldSchema)}
+ The allowed types for the given operator are: [${allowedOperators}]`,
       );
     }
   }
