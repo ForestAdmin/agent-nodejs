@@ -24,23 +24,21 @@ type TimeOperator =
   | Operator.Today
   | Operator.Yesterday;
 
-type DateCallback = (date: DateTime, value: unknown) => DateTime;
+type DateCallback = (now: DateTime, value: unknown) => DateTime;
 
-function format(value: unknown, tz: string, callback: DateCallback): string {
-  const now = DateTime.utc().setZone(tz);
-
-  return callback(now, value).toUTC().toISO({ suppressMilliseconds: true });
+function format(value: DateTime): string {
+  return value.toUTC().toISO({ suppressMilliseconds: true });
 }
 
 function compare(operator: Operator, dateFn: DateCallback): Alternative {
   return {
     dependsOn: [operator],
     forTypes: [PrimitiveTypes.Date, PrimitiveTypes.Dateonly],
-    replacer: ({ field, value }, tz) => ({
-      field,
-      operator,
-      value: format(value, tz, dateFn),
-    }),
+    replacer: ({ field, value }, tz) => {
+      const now = DateTime.utc().setZone(tz);
+
+      return { field, operator, value: format(dateFn(now, value)) };
+    },
   };
 }
 
@@ -48,19 +46,14 @@ function interval(startFn: DateCallback, endFn: DateCallback): Alternative {
   return {
     dependsOn: [Operator.LessThan, Operator.GreaterThan],
     forTypes: [PrimitiveTypes.Date, PrimitiveTypes.Dateonly],
-    replacer: ({ field, value }, tz) =>
-      ConditionTreeUtils.intersect(
-        {
-          field,
-          operator: Operator.GreaterThan,
-          value: format(value, tz, startFn),
-        },
-        {
-          field,
-          operator: Operator.LessThan,
-          value: format(value, tz, endFn),
-        },
-      ),
+    replacer: ({ field, value }, tz) => {
+      const now = DateTime.utc().setZone(tz);
+
+      return ConditionTreeUtils.intersect(
+        { field, operator: Operator.GreaterThan, value: format(startFn(now, value)) },
+        { field, operator: Operator.LessThan, value: format(endFn(now, value)) },
+      );
+    },
   };
 }
 
@@ -79,13 +72,9 @@ function previousIntervalToDate(duration: DateTimeUnit): Alternative {
 }
 
 const alternatives: Record<TimeOperator, Alternative[]> = {
-  [Operator.Before]: [
-    compare(Operator.LessThan, (now, value) => DateTime.fromISO(value as string).setZone(now.zone)),
-  ],
+  [Operator.Before]: [compare(Operator.LessThan, (_, value) => DateTime.fromISO(value as string))],
   [Operator.After]: [
-    compare(Operator.GreaterThan, (now, value) =>
-      DateTime.fromISO(value as string).setZone(now.zone),
-    ),
+    compare(Operator.GreaterThan, (_, value) => DateTime.fromISO(value as string)),
   ],
 
   [Operator.Past]: [compare(Operator.LessThan, now => now)],
