@@ -2,27 +2,27 @@ import { Collection } from '../interfaces/collection';
 import { FieldSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
 
 export default class CollectionUtils {
-  static getFieldSchema(collection: Collection, field: string): FieldSchema {
-    const dotIndex = field.indexOf(':');
+  static getFieldSchema(collection: Collection, path: string): FieldSchema {
+    const dotIndex = path.indexOf(':');
 
     if (dotIndex === -1) {
-      if (!collection.schema.fields[field]) {
-        throw new Error(`Field '${field}' not found on collection '${collection.name}'`);
+      if (!collection.schema.fields[path]) {
+        throw new Error(`Field '${path}' not found on collection '${collection.name}'`);
       }
 
-      return collection.schema.fields[field];
+      return collection.schema.fields[path];
     }
 
-    const prefix = field.substring(0, dotIndex);
-    const schema = collection.schema.fields[prefix];
+    const field = path.substring(0, dotIndex);
+    const schema = collection.schema.fields[field];
 
     if (!schema) {
-      throw new Error(`Relation '${prefix}' not found on collection ${collection.name}`);
+      throw new Error(`Relation '${field}' not found on collection '${collection.name}'`);
     } else if (schema.type === FieldTypes.ManyToOne || schema.type === FieldTypes.OneToOne) {
       const target = collection.dataSource.getCollection(schema.foreignCollection);
-      const suffix = field.substring(dotIndex + 1);
+      const childField = path.substring(dotIndex + 1);
 
-      return CollectionUtils.getFieldSchema(target, suffix);
+      return CollectionUtils.getFieldSchema(target, childField);
     } else {
       throw new Error(`Invalid relation type: ${schema.type}`);
     }

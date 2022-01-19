@@ -64,13 +64,13 @@ describe('CollectionUtils', () => {
       test('should throw if a relation is missing', () => {
         expect(() =>
           CollectionUtils.getFieldSchema(dataSource.getCollection('books'), 'unknown:id'),
-        ).toThrow(/Relation 'unknown' not found/);
+        ).toThrow("Relation 'unknown' not found on collection 'books'");
       });
 
       test('should throw if the field is missing', () => {
         expect(() =>
           CollectionUtils.getFieldSchema(dataSource.getCollection('books'), 'author:something'),
-        ).toThrow(/Field 'something' not found/);
+        ).toThrow(`Field 'something' not found on collection 'persons'`);
       });
     });
   });
