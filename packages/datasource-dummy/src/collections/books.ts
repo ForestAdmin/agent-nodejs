@@ -22,7 +22,7 @@ import MarkAsLiveAction from '../actions/mark-as-live';
 
 export default class BookCollection extends BaseCollection {
   constructor(datasource: DataSource) {
-    super('book', datasource);
+    super('books', datasource);
 
     this.enableSearch();
 
@@ -96,7 +96,7 @@ export default class BookCollection extends BaseCollection {
     for (let i = 0; i < numRows; i += 1) {
       const row = { value: Math.floor(Math.random() * 1000), group: {} };
 
-      for (const { field } of aggregation.groups) {
+      for (const { field } of aggregation.groups ?? []) {
         row.group[field] = this.makeRandomString(6);
       }
 
@@ -118,6 +118,8 @@ export default class BookCollection extends BaseCollection {
           record[field] = Math.floor(Math.random() * 10000);
         } else if (schema.columnType === PrimitiveTypes.String) {
           record[field] = this.makeRandomString(10);
+        } else if (schema.columnType === PrimitiveTypes.Date) {
+          record[field] = new Date().toISOString();
         } else {
           throw new Error(`Unsupported primitive: ${schema.columnType}`);
         }

@@ -19,7 +19,7 @@ export default class Serializer {
     this.prefix = prefix;
   }
 
-  serialize(collection: Collection, record: RecordData): unknown {
+  serialize(collection: Collection, record: RecordData | RecordData[]): unknown {
     const result = this.getSerializer(collection).serialize(collection.name, record);
     this.stripUndefinedsInPlace(result);
 

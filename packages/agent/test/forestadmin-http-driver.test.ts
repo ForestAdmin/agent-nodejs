@@ -8,7 +8,7 @@ import {
 } from './__factories__';
 
 // Mock routes
-jest.mock('../src/routes', () => []);
+jest.mock('../src/routes', () => ({ RootRoutesCtor: [], CollectionRoutesCtor: [] }));
 
 // Mock services
 const hasSchema = jest.fn();

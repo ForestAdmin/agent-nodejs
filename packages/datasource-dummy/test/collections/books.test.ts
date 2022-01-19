@@ -1,4 +1,4 @@
-import { AggregationOperation, ColumnSchema } from '@forestadmin/datasource-toolkit';
+import { AggregationOperation } from '@forestadmin/datasource-toolkit';
 import BookCollection from '../../src/collections/books';
 import DummyDataSource from '../../src/datasource';
 
@@ -22,7 +22,7 @@ describe('DummyDataSource > Collections > Books', () => {
     it('should return the collection name', () => {
       const bookCollection = instanciateCollection();
 
-      expect(bookCollection.name).toEqual('book');
+      expect(bookCollection.name).toEqual('books');
     });
   });
 
@@ -53,20 +53,6 @@ describe('DummyDataSource > Collections > Books', () => {
 
         await expect(() => bookCollection.getById([42], [unknownField])).rejects.toThrow(
           `No such field "${unknownField}" in schema`,
-        );
-      });
-
-      it('should throw an error with an unsupported primitive type', async () => {
-        const bookCollection = instanciateCollection();
-        const unsupportedField = 'publication';
-
-        const expectedUnsupportedFieldColumnType = (
-          bookCollection.schema.fields[unsupportedField] as ColumnSchema
-        ).columnType;
-
-        // Date type not supported by `BookCollection.makeRecord`.
-        await expect(() => bookCollection.getById([42], [unsupportedField])).rejects.toThrow(
-          `Unsupported primitive: ${expectedUnsupportedFieldColumnType}`,
         );
       });
     });

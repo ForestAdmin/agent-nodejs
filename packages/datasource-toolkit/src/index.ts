@@ -12,3 +12,4 @@ export { default as BaseDataSource } from './base-datasource';
 export { default as CollectionUtils } from './utils/collection';
 export { default as ConditionTreeUtils } from './utils/condition-tree';
 export { default as SchemaUtils } from './utils/schema';
+export { default as ProjectionUtils } from './utils/projection';
