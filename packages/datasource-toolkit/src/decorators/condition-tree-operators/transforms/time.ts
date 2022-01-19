@@ -4,26 +4,6 @@ import { PrimitiveTypes } from '../../../interfaces/schema';
 import ConditionTreeUtils from '../../../utils/condition-tree';
 import { Alternative } from '../types';
 
-type TimeOperator =
-  | Operator.Before
-  | Operator.After
-  | Operator.Past
-  | Operator.Future
-  | Operator.BeforeXHoursAgo
-  | Operator.AfterXHoursAgo
-  | Operator.PreviousMonthToDate
-  | Operator.PreviousMonth
-  | Operator.PreviousQuarterToDate
-  | Operator.PreviousQuarter
-  | Operator.PreviousWeekToDate
-  | Operator.PreviousWeek
-  | Operator.PreviousXDaysToDate
-  | Operator.PreviousXDays
-  | Operator.PreviousYearToDate
-  | Operator.PreviousYear
-  | Operator.Today
-  | Operator.Yesterday;
-
 type DateCallback = (now: DateTime, value: unknown) => DateTime;
 
 function format(value: DateTime): string {
@@ -71,7 +51,7 @@ function previousIntervalToDate(duration: DateTimeUnit): Alternative {
   );
 }
 
-const alternatives: Record<TimeOperator, Alternative[]> = {
+const alternatives: Partial<Record<Operator, Alternative[]>> = {
   [Operator.Before]: [compare(Operator.LessThan, (_, value) => DateTime.fromISO(value as string))],
   [Operator.After]: [
     compare(Operator.GreaterThan, (_, value) => DateTime.fromISO(value as string)),

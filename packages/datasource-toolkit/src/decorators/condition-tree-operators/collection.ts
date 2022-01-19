@@ -17,7 +17,7 @@ import { Alternative, Replacer } from './types';
  * Decorator which emulates filter operators from others.
  */
 export default class OperatorsDecorator extends CollectionDecorator {
-  private static alternatives: Record<Operator, Alternative[]> = {
+  private static alternatives: Partial<Record<Operator, Alternative[]>> = {
     ...equalityTransforms,
     ...patternTransforms,
     ...timeTransforms,
@@ -55,7 +55,7 @@ export default class OperatorsDecorator extends CollectionDecorator {
 
     if (filterOperators.has(op)) return leaf => leaf;
 
-    for (const alt of OperatorsDecorator.alternatives[op]) {
+    for (const alt of OperatorsDecorator.alternatives[op] ?? []) {
       const { replacer, dependsOn } = alt;
       const valid = !alt.forTypes || alt.forTypes.includes(columnType as PrimitiveTypes);
 

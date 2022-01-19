@@ -1,20 +1,9 @@
-import { PrimitiveTypes } from '../../../interfaces/schema';
 import { Aggregator, Operator } from '../../../interfaces/query/selection';
-import { Alternative } from '../types';
+import { PrimitiveTypes } from '../../../interfaces/schema';
 import ConditionTreeUtils from '../../../utils/condition-tree';
+import { Alternative } from '../types';
 
-type EqualityOperators =
-  | Operator.Blank
-  | Operator.Present
-  | Operator.LessThan
-  | Operator.GreaterThan
-  | Operator.Equal
-  | Operator.In
-  | Operator.NotEqual
-  | Operator.NotIn
-  | Operator.IncludesAll;
-
-const alternatives: Record<EqualityOperators, Alternative[]> = {
+const alternatives: Partial<Record<Operator, Alternative[]>> = {
   [Operator.Blank]: [
     {
       dependsOn: [Operator.In],
@@ -37,9 +26,6 @@ const alternatives: Record<EqualityOperators, Alternative[]> = {
       replacer: ({ field }) => ({ field, operator: Operator.NotEqual, value: null }),
     },
   ],
-
-  [Operator.LessThan]: [],
-  [Operator.GreaterThan]: [],
   [Operator.Equal]: [
     {
       dependsOn: [Operator.In],
@@ -79,8 +65,6 @@ const alternatives: Record<EqualityOperators, Alternative[]> = {
       },
     },
   ],
-
-  [Operator.IncludesAll]: [],
 };
 
 export default alternatives;
