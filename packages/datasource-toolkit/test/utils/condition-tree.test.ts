@@ -2,6 +2,7 @@ import { Aggregator, ConditionTreeLeaf, Operator } from '../../src/interfaces/qu
 import ConditionTreeUtils, {
   MAP_OPERATOR_TYPES,
   MAP_COLUMN_TYPE_SCHEMA_OPERATORS,
+  MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE,
 } from '../../src/utils/condition-tree';
 import * as factories from '../__factories__';
 import { NonPrimitiveTypes, PrimitiveTypes } from '../../src/interfaces/schema';
@@ -368,21 +369,27 @@ describe('ConditionTreeUtils', () => {
       expect(MAP_OPERATOR_TYPES[operator]).toStrictEqual(expectedAllowedTypes);
     });
 
-    it.each(Object.keys(Operator))(`should implement %s operator`, async operator => {
-      expect(MAP_OPERATOR_TYPES[operator]).toBeDefined();
+    it.each(Object.values(Operator))(`should implement %s operator`, async operator => {
+      expect(MAP_OPERATOR_TYPES[operator]).not.toBeUndefined();
     });
   });
 
   describe('MAP_COLUMN_TYPE_SCHEMA_OPERATORS', () => {
-    it.each([[PrimitiveTypes.String, [Operator.Present, Operator.Equal]]])(
+    it.each([[PrimitiveTypes.String, [Operator.Present, Operator.Equal, Operator.In]]])(
       `%s should be match the allowed primitive types`,
       async (operator, expectedAllowedTypes) => {
         expect(MAP_COLUMN_TYPE_SCHEMA_OPERATORS[operator]).toStrictEqual(expectedAllowedTypes);
       },
     );
 
-    it.each(Object.keys(PrimitiveTypes))(`should implement %s primitive type`, async operator => {
+    it.each(Object.values(PrimitiveTypes))(`should implement %s primitive type`, async operator => {
       expect(MAP_COLUMN_TYPE_SCHEMA_OPERATORS[operator]).toBeDefined();
+    });
+  });
+
+  describe('MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE', () => {
+    it.each(Object.values(PrimitiveTypes))(`should implement %s primitive type`, async operator => {
+      expect(MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE[operator]).toBeDefined();
     });
   });
 });

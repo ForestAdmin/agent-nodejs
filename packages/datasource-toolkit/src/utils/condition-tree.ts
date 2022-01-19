@@ -31,6 +31,33 @@ export const MAP_OPERATOR_TYPES: Readonly<{
   [Operator.Equal]: [PrimitiveTypes.String, PrimitiveTypes.Number, PrimitiveTypes.Uuid],
   [Operator.Contains]: [PrimitiveTypes.String],
   [Operator.GreaterThan]: [PrimitiveTypes.Number],
+  [Operator.EndsWith]: [],
+  [Operator.IncludesAll]: [],
+  [Operator.LessThan]: [],
+  [Operator.NotContains]: [],
+  [Operator.NotEqual]: [],
+  [Operator.NotIn]: [],
+  [Operator.StartsWith]: [],
+  [Operator.AfterXHoursAgo]: [],
+  [Operator.BeforeXHoursAgo]: [],
+  [Operator.Future]: [],
+  [Operator.Past]: [],
+  [Operator.PreviousMonth]: [],
+  [Operator.PreviousMonthToDate]: [],
+  [Operator.PreviousQuarter]: [],
+  [Operator.PreviousQuarterToDate]: [],
+  [Operator.PreviousYear]: [],
+  [Operator.PreviousYearToDate]: [],
+  [Operator.PreviousWeek]: [],
+  [Operator.PreviousWeekToDate]: [],
+  [Operator.PreviousXDays]: [],
+  [Operator.PreviousXDaysToDate]: [],
+  [Operator.Today]: [],
+  [Operator.Yesterday]: [],
+  [Operator.LessThan]: [],
+  [Operator.LongerThan]: [],
+  [Operator.ShorterThan]: [],
+  [Operator.Like]: [],
 });
 
 export const MAP_COLUMN_TYPE_SCHEMA_OPERATORS: Readonly<{
@@ -38,6 +65,14 @@ export const MAP_COLUMN_TYPE_SCHEMA_OPERATORS: Readonly<{
 }> = Object.freeze({
   [PrimitiveTypes.String]: [Operator.Present, Operator.Equal, Operator.In],
   [PrimitiveTypes.Number]: [Operator.Present, Operator.Equal, Operator.GreaterThan, Operator.In],
+  [PrimitiveTypes.Boolean]: [],
+  [PrimitiveTypes.Date]: [],
+  [PrimitiveTypes.Dateonly]: [],
+  [PrimitiveTypes.Enum]: [],
+  [PrimitiveTypes.Json]: [],
+  [PrimitiveTypes.Point]: [],
+  [PrimitiveTypes.Timeonly]: [],
+  [PrimitiveTypes.Uuid]: [],
 });
 
 export const MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE: Readonly<{
@@ -45,6 +80,14 @@ export const MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE: Readonly<{
 }> = Object.freeze({
   [PrimitiveTypes.String]: [PrimitiveTypes.String, NonPrimitiveTypes.ArrayOfString],
   [PrimitiveTypes.Number]: [PrimitiveTypes.Number, NonPrimitiveTypes.ArrayOfNumber],
+  [PrimitiveTypes.Boolean]: [],
+  [PrimitiveTypes.Date]: [],
+  [PrimitiveTypes.Dateonly]: [],
+  [PrimitiveTypes.Enum]: [],
+  [PrimitiveTypes.Json]: [],
+  [PrimitiveTypes.Point]: [],
+  [PrimitiveTypes.Timeonly]: [],
+  [PrimitiveTypes.Uuid]: [],
 });
 
 export default class ConditionTreeUtils {
@@ -53,16 +96,16 @@ export default class ConditionTreeUtils {
       conditionTree,
       collection,
       (currentCondition: ConditionTreeLeaf): void => {
+        const fieldSchema = CollectionUtils.getFieldSchema(
+          collection,
+          currentCondition.field,
+        ) as ColumnSchema;
+
         const fieldValue = currentCondition.value;
         ConditionTreeUtils.throwErrorIfConditionFieldValueIsNotAllowedWithOperator(
           currentCondition,
           fieldValue,
         );
-
-        const fieldSchema = CollectionUtils.getFieldSchema(
-          collection,
-          currentCondition.field,
-        ) as ColumnSchema;
 
         ConditionTreeUtils.throwErrorIfConditionOperatorIsNotAllowedWithColumnTypeSchema(
           currentCondition,
