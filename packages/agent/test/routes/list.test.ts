@@ -35,7 +35,7 @@ describe('List', () => {
 
   describe('handleList', () => {
     test('should call the serializer using the list implementation', async () => {
-      services.serializer.serialize = jest.fn();
+      services.serializer.serialize = jest.fn().mockReturnValue('test');
       const list = new List(services, dataSource, options, partialCollection.name);
       const context = {
         request: { query: { 'fields[books]': 'id' } },
@@ -45,6 +45,7 @@ describe('List', () => {
       await list.handleList(context);
       expect(services.serializer.serialize).toHaveBeenCalled();
       expect(partialCollection.list).toHaveBeenCalledWith({}, ['id']);
+      expect(context.response.body).toEqual('test');
     });
 
     describe('when an error happens', () => {
@@ -62,7 +63,7 @@ describe('List', () => {
         } as unknown as Context;
 
         await list.handleList(context);
-        expect(throwSpy).toHaveBeenCalledWith(400, 'Failed to list collection "books"');
+        expect(throwSpy).toHaveBeenCalledWith(500, 'Failed to list collection "books"');
       });
     });
   });

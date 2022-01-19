@@ -34,8 +34,9 @@ describe('Count', () => {
   });
 
   describe('handleCount', () => {
-    test('should call the serializer using the aggregate implementation', async () => {
-      services.serializer.serialize = jest.fn();
+    test('should the aggregate implementation', async () => {
+      const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
+      dataSource.getCollection('books').aggregate = aggregateSpy;
       const count = new Count(services, dataSource, options, partialCollection.name);
       const context = {
         request: {},
@@ -43,10 +44,8 @@ describe('Count', () => {
       } as Context;
 
       await count.handleCount(context);
-      expect(partialCollection.aggregate).toHaveBeenCalledWith(
-        {},
-        { operation: AggregationOperation.Count },
-      );
+      expect(aggregateSpy).toHaveBeenCalledWith({}, { operation: AggregationOperation.Count });
+      expect(context.response.body).toEqual({ count: 2 });
     });
 
     describe('when an error happens', () => {
@@ -58,13 +57,13 @@ describe('Count', () => {
         const count = new Count(services, dataSource, options, partialCollection.name);
         const throwSpy = jest.fn();
         const context = {
-          request: { query: { 'fields[books]': 'id' } },
+          request: {},
           response: {},
           throw: throwSpy,
         } as unknown as Context;
 
         await count.handleCount(context);
-        expect(throwSpy).toHaveBeenCalledWith(400, 'Failed to count collection "books"');
+        expect(throwSpy).toHaveBeenCalledWith(500, 'Failed to count collection "books"');
       });
     });
   });

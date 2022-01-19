@@ -64,5 +64,47 @@ describe('ProjectionUtils', () => {
         ]);
       });
     });
+
+    describe('when dealing with projection using relationships', () => {
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'cars',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: {
+                type: FieldTypes.Column,
+                columnType: PrimitiveTypes.Uuid,
+                isPrimaryKey: true,
+              },
+              name: { type: FieldTypes.Column, columnType: PrimitiveTypes.String },
+              owner: {
+                type: FieldTypes.OneToOne,
+                foreignCollection: 'owner',
+                foreignKey: 'id',
+              },
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'owner',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: {
+                type: FieldTypes.Column,
+                columnType: PrimitiveTypes.Uuid,
+                isPrimaryKey: true,
+              },
+              name: { type: FieldTypes.Column, columnType: PrimitiveTypes.String },
+            },
+          }),
+        }),
+      ]);
+
+      test('should automatically add pks for all relations', () => {
+        expect(
+          ProjectionUtils.withPks(dataSource.getCollection('cars'), ['name', 'owner:name']),
+        ).toEqual(['name', 'owner:name', 'id', 'owner:id']);
+      });
+    });
   });
 });

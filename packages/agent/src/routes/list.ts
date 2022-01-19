@@ -18,7 +18,7 @@ export default class ListRoute extends CollectionBaseRoute {
 
       context.response.body = this.services.serializer.serialize(this.collection, records);
     } catch {
-      context.throw(400, `Failed to list collection "${this.collection.name}"`);
+      context.throw(500, `Failed to list collection "${this.collection.name}"`);
     }
   }
 }

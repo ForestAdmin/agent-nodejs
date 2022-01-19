@@ -96,10 +96,8 @@ export default class BookCollection extends BaseCollection {
     for (let i = 0; i < numRows; i += 1) {
       const row = { value: Math.floor(Math.random() * 1000), group: {} };
 
-      if (aggregation.groups) {
-        for (const { field } of aggregation.groups) {
-          row.group[field] = this.makeRandomString(6);
-        }
+      for (const { field } of aggregation.groups ?? []) {
+        row.group[field] = this.makeRandomString(6);
       }
 
       rows.push(row);
@@ -121,7 +119,7 @@ export default class BookCollection extends BaseCollection {
         } else if (schema.columnType === PrimitiveTypes.String) {
           record[field] = this.makeRandomString(10);
         } else if (schema.columnType === PrimitiveTypes.Date) {
-          record[field] = new Date();
+          record[field] = new Date().toISOString();
         } else {
           throw new Error(`Unsupported primitive: ${schema.columnType}`);
         }

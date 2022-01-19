@@ -22,7 +22,7 @@ export default class Count extends CollectionBaseRoute {
 
       context.response.body = { count };
     } catch {
-      context.throw(400, `Failed to count collection "${this.collection.name}"`);
+      context.throw(500, `Failed to count collection "${this.collection.name}"`);
     }
   }
 }
