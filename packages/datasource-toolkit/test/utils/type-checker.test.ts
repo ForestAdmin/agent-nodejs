@@ -16,6 +16,12 @@ describe('TypeGetterUtil', () => {
         });
       });
 
+      describe('when all the values are boolean', () => {
+        it('should return the expected type', () => {
+          expect(TypeGetterUtil.get([true, false])).toEqual(NonPrimitiveTypes.ArrayOfBoolean);
+        });
+      });
+
       describe('when all the values are string', () => {
         it('should return the expected type', () => {
           expect(TypeGetterUtil.get(['str', 'str2', 'str'])).toEqual(

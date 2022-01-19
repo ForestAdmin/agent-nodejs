@@ -419,6 +419,7 @@ describe('ConditionTreeUtils', () => {
         [
           NonPrimitiveTypes.ArrayOfNumber,
           NonPrimitiveTypes.ArrayOfString,
+          NonPrimitiveTypes.ArrayOfBoolean,
           NonPrimitiveTypes.EmptyArray,
         ],
       ],

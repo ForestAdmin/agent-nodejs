@@ -17,6 +17,10 @@ export default class TypeGetterUtil {
       if (value.every(item => TypeGetterUtil.get(item) === PrimitiveTypes.String)) {
         return NonPrimitiveTypes.ArrayOfString;
       }
+
+      if (value.every(item => TypeGetterUtil.get(item) === PrimitiveTypes.Boolean)) {
+        return NonPrimitiveTypes.ArrayOfBoolean;
+      }
     }
 
     if (typeof value === 'string') {
@@ -34,6 +38,10 @@ export default class TypeGetterUtil {
 
     if (typeof value === 'number') {
       return PrimitiveTypes.Number;
+    }
+
+    if (typeof value === 'boolean') {
+      return PrimitiveTypes.Boolean;
     }
 
     return null;

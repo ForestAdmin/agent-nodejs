@@ -26,6 +26,7 @@ export const MAP_OPERATOR_TYPES: Readonly<{
   [Operator.In]: [
     NonPrimitiveTypes.ArrayOfNumber,
     NonPrimitiveTypes.ArrayOfString,
+    NonPrimitiveTypes.ArrayOfBoolean,
     NonPrimitiveTypes.EmptyArray,
   ],
   [Operator.Equal]: [PrimitiveTypes.String, PrimitiveTypes.Number, PrimitiveTypes.Uuid],
@@ -80,7 +81,7 @@ export const MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE: Readonly<{
 }> = Object.freeze({
   [PrimitiveTypes.String]: [PrimitiveTypes.String, NonPrimitiveTypes.ArrayOfString],
   [PrimitiveTypes.Number]: [PrimitiveTypes.Number, NonPrimitiveTypes.ArrayOfNumber],
-  [PrimitiveTypes.Boolean]: [],
+  [PrimitiveTypes.Boolean]: [PrimitiveTypes.Boolean, NonPrimitiveTypes.ArrayOfBoolean],
   [PrimitiveTypes.Date]: [],
   [PrimitiveTypes.Dateonly]: [],
   [PrimitiveTypes.Enum]: [],
