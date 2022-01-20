@@ -40,7 +40,13 @@ describe('Count', () => {
       const context = createMockContext();
 
       await count.handleCount(context);
-      expect(aggregateSpy).toHaveBeenCalledWith({}, { operation: AggregationOperation.Count });
+      expect(aggregateSpy).toHaveBeenCalledWith(
+        {
+          search: undefined,
+          searchExtended: false,
+        },
+        { operation: AggregationOperation.Count },
+      );
       expect(context.response.body).toEqual({ count: 2 });
     });
 

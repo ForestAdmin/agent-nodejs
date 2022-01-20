@@ -121,19 +121,17 @@ describe('QueryStringParser', () => {
 
   describe('parseSearch', () => {
     test('should return the query search parameter', () => {
-      const contextSearch = {
-        request: { query: { search: 'searched argument' } },
-        response: {},
-      } as unknown as Context;
+      const context = createMockContext({
+        customProperties: { query: { search: 'searched argument' } },
+      });
 
-      expect(QueryStringParser.parseSearch(contextSearch)).toEqual('searched argument');
+      expect(QueryStringParser.parseSearch(context)).toEqual('searched argument');
     });
 
     test('should convert the query search parameter as string', () => {
-      const context = {
-        request: { query: { search: 1234 } },
-        response: {},
-      } as unknown as Context;
+      const context = createMockContext({
+        customProperties: { query: { search: 1234 } },
+      });
 
       expect(QueryStringParser.parseSearch(context)).toEqual('1234');
     });
@@ -141,30 +139,27 @@ describe('QueryStringParser', () => {
 
   describe('parseSearchExtended', () => {
     test('should return the query searchExtended parameter', () => {
-      const context = {
-        request: { query: { searchExtended: true } },
-        response: {},
-      } as unknown as Context;
+      const context = createMockContext({
+        customProperties: { query: { searchExtended: true } },
+      });
 
       expect(QueryStringParser.parseSearchExtended(context)).toEqual(true);
     });
 
     test('should return false for falsy "0" string', () => {
-      const context = {
-        request: { query: { searchExtended: '0' } },
-        response: {},
-      } as unknown as Context;
+      const context = createMockContext({
+        customProperties: { query: { searchExtended: '0' } },
+      });
 
       expect(QueryStringParser.parseSearchExtended(context)).toEqual(false);
     });
 
     test('should return false for falsy "false" string', () => {
-      const contextExtendedStringBoolean = {
-        request: { query: { searchExtended: 'false' } },
-        response: {},
-      } as unknown as Context;
+      const context = createMockContext({
+        customProperties: { query: { searchExtended: 'false' } },
+      });
 
-      expect(QueryStringParser.parseSearchExtended(contextExtendedStringBoolean)).toEqual(false);
+      expect(QueryStringParser.parseSearchExtended(context)).toEqual(false);
     });
   });
 });

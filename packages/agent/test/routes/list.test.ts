@@ -42,7 +42,13 @@ describe('List', () => {
 
       await list.handleList(context);
       expect(services.serializer.serialize).toHaveBeenCalled();
-      expect(partialCollection.list).toHaveBeenCalledWith({}, ['id']);
+      expect(partialCollection.list).toHaveBeenCalledWith(
+        {
+          search: undefined,
+          searchExtended: false,
+        },
+        ['id'],
+      );
       expect(context.response.body).toEqual('test');
     });
 
