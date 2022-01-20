@@ -11,7 +11,7 @@ export class DecoratedCollection extends CollectionDecorator {
   public override childCollection: Collection;
 
   public override refineFilter(filter: Filter): Filter {
-    return filter;
+    return super.refineFilter(filter);
   }
 
   public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
