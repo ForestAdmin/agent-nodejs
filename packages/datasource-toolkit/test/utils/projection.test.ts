@@ -1,4 +1,4 @@
-import { PrimitiveTypes, FieldTypes } from '../../src/interfaces/schema';
+import { PrimitiveTypes } from '../../src/interfaces/schema';
 import ProjectionUtils from '../../src/utils/projection';
 import * as factories from '../__factories__';
 
@@ -7,12 +7,11 @@ describe('ProjectionUtils', () => {
     const collection = factories.collection.build({
       schema: factories.collectionSchema.build({
         fields: {
-          id: { type: FieldTypes.Column, columnType: PrimitiveTypes.Uuid, isPrimaryKey: true },
-          author: {
-            type: FieldTypes.ManyToOne,
+          id: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid, isPrimaryKey: true }),
+          author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
             foreignKey: 'authorId',
-          },
+          }),
         },
       }),
     });
@@ -30,8 +29,8 @@ describe('ProjectionUtils', () => {
     const singlePKCollection = factories.collection.build({
       schema: factories.collectionSchema.build({
         fields: {
-          id: { type: FieldTypes.Column, columnType: PrimitiveTypes.Uuid, isPrimaryKey: true },
-          name: { type: FieldTypes.Column, columnType: PrimitiveTypes.String },
+          id: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid, isPrimaryKey: true }),
+          name: factories.columnSchema.build(),
         },
       }),
     });
@@ -49,9 +48,15 @@ describe('ProjectionUtils', () => {
       const compositePKCollection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
-            key1: { type: FieldTypes.Column, columnType: PrimitiveTypes.Uuid, isPrimaryKey: true },
-            key2: { type: FieldTypes.Column, columnType: PrimitiveTypes.Uuid, isPrimaryKey: true },
-            name: { type: FieldTypes.Column, columnType: PrimitiveTypes.String },
+            key1: factories.columnSchema.build({
+              columnType: PrimitiveTypes.Uuid,
+              isPrimaryKey: true,
+            }),
+            key2: factories.columnSchema.build({
+              columnType: PrimitiveTypes.Uuid,
+              isPrimaryKey: true,
+            }),
+            name: factories.columnSchema.build(),
           },
         }),
       });
@@ -71,17 +76,15 @@ describe('ProjectionUtils', () => {
           name: 'cars',
           schema: factories.collectionSchema.build({
             fields: {
-              id: {
-                type: FieldTypes.Column,
+              id: factories.columnSchema.build({
                 columnType: PrimitiveTypes.Uuid,
                 isPrimaryKey: true,
-              },
-              name: { type: FieldTypes.Column, columnType: PrimitiveTypes.String },
-              owner: {
-                type: FieldTypes.OneToOne,
+              }),
+              name: factories.columnSchema.build(),
+              owner: factories.oneToOneSchema.build({
                 foreignCollection: 'owner',
                 foreignKey: 'id',
-              },
+              }),
             },
           }),
         }),
@@ -89,12 +92,11 @@ describe('ProjectionUtils', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              id: {
-                type: FieldTypes.Column,
+              id: factories.columnSchema.build({
                 columnType: PrimitiveTypes.Uuid,
                 isPrimaryKey: true,
-              },
-              name: { type: FieldTypes.Column, columnType: PrimitiveTypes.String },
+              }),
+              name: factories.columnSchema.build(),
             },
           }),
         }),

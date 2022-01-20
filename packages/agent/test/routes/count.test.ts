@@ -1,4 +1,4 @@
-import { FieldTypes, PrimitiveTypes, AggregationOperation } from '@forestadmin/datasource-toolkit';
+import { AggregationOperation, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Count from '../../src/routes/count';
 import * as factories from '../__factories__';
@@ -10,11 +10,10 @@ describe('Count', () => {
     aggregate: jest.fn(),
     schema: factories.collectionSchema.build({
       fields: {
-        id: {
-          type: FieldTypes.Column,
+        id: factories.columnSchema.build({
           columnType: PrimitiveTypes.Uuid,
           isPrimaryKey: true,
-        },
+        }),
       },
     }),
   };

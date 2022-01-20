@@ -1,4 +1,4 @@
-import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
 import * as factories from '../../__factories__';
 
@@ -8,16 +8,12 @@ describe('SchemaGeneratorFields > One to One', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: { type: FieldTypes.Column, columnType: PrimitiveTypes.Uuid, isPrimaryKey: true },
-          author: {
-            type: FieldTypes.ManyToOne,
+          id: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid, isPrimaryKey: true }),
+          authorId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+          author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
             foreignKey: 'authorId',
-          },
-          authorId: {
-            type: FieldTypes.Column,
-            columnType: PrimitiveTypes.Uuid,
-          },
+          }),
         },
       }),
     }),
@@ -25,12 +21,11 @@ describe('SchemaGeneratorFields > One to One', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: { type: FieldTypes.Column, columnType: PrimitiveTypes.Uuid, isPrimaryKey: true },
-          book: {
-            type: FieldTypes.OneToOne,
+          id: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid, isPrimaryKey: true }),
+          book: factories.oneToOneSchema.build({
             foreignCollection: 'books',
             foreignKey: 'authorId',
-          },
+          }),
         },
       }),
     }),
