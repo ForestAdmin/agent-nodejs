@@ -10,7 +10,7 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { DataTypes } from 'sequelize/dist';
+import { DataTypes } from 'sequelize';
 import { SequelizeCollection } from '../src';
 
 describe('SequelizeDataSource > Collection', () => {
