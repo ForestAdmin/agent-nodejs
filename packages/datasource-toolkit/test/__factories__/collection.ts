@@ -1,13 +1,15 @@
 // eslint-disable-next-line max-classes-per-file
 import { Factory } from 'fishery';
-import { ActionForm } from '../../src/interfaces/action';
-import { Collection } from '../../src/interfaces/collection';
-import { ActionSchema, CollectionSchema } from '../../src/interfaces/schema';
-import { Filter } from '../../src/interfaces/query/selection';
-import collectionSchemaFactory from './schema/collection-schema';
 import CollectionDecorator from '../../src/decorators/collection-decorator';
+import { ActionForm } from '../../src/interfaces/action';
+import { Collection, DataSource } from '../../src/interfaces/collection';
+import { Filter } from '../../src/interfaces/query/selection';
+import { ActionSchema, CollectionSchema } from '../../src/interfaces/schema';
+import collectionSchemaFactory from './schema/collection-schema';
 
 export class DecoratedCollection extends CollectionDecorator {
+  public override childCollection: Collection;
+
   public refineFilter(filter: Filter): Filter {
     return filter;
   }
@@ -31,8 +33,11 @@ export class CollectionFactory extends Factory<Collection> {
     });
   }
 
-  buildDecoratedCollection(partialCollection?: Partial<Collection>): DecoratedCollection {
-    return new DecoratedCollection(this.build(partialCollection));
+  buildDecoratedCollection(
+    partialCollection?: Partial<Collection>,
+    dataSource: DataSource = null,
+  ): DecoratedCollection {
+    return new DecoratedCollection(this.build(partialCollection), dataSource);
   }
 }
 
