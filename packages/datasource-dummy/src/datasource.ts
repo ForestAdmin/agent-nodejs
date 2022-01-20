@@ -5,6 +5,6 @@ export default class DummyDataSource extends BaseDataSource<Collection> {
   constructor() {
     super();
 
-    this.addCollection('books', new BookCollection(this));
+    this.addCollection(new BookCollection(this));
   }
 }

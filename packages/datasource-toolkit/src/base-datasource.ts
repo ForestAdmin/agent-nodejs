@@ -15,10 +15,10 @@ export default abstract class BaseDataSource<T extends Collection> implements Da
     return collection;
   }
 
-  protected addCollection(name: string, collection: T): void {
-    if (this._collections[name] !== undefined)
-      throw new Error(`Collection "${name}" already defined in datasource`);
+  protected addCollection(collection: T): void {
+    if (this._collections[collection.name] !== undefined)
+      throw new Error(`Collection "${collection.name}" already defined in datasource`);
 
-    this._collections[name] = collection;
+    this._collections[collection.name] = collection;
   }
 }

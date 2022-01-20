@@ -1,6 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import BaseDataSource from '../src/base-datasource';
-import { Collection } from '../src';
+import { Collection } from '../src/interfaces/collection';
+import * as factories from './__factories__';
 
 class ConcreteDatasource extends BaseDataSource<Collection> {}
 
@@ -10,13 +11,13 @@ describe('BaseDatasource', () => {
   });
 
   describe('collections (getter)', () => {
-    const expectedCollection = { name: '__collection__' } as Collection;
+    const expectedCollection = factories.collection.build({ name: '__collection__' });
 
     class DataSourceWithCollection extends BaseDataSource<Collection> {
       constructor() {
         super();
 
-        this.addCollection(expectedCollection.name, expectedCollection);
+        this.addCollection(expectedCollection);
       }
     }
 
@@ -28,13 +29,13 @@ describe('BaseDatasource', () => {
   });
 
   describe('getCollection', () => {
-    const expectedCollection = { name: '__collection__' } as Collection;
+    const expectedCollection = factories.collection.build({ name: '__collection__' });
 
     class DataSourceWithCollection extends BaseDataSource<Collection> {
       constructor() {
         super();
 
-        this.addCollection(expectedCollection.name, expectedCollection);
+        this.addCollection(expectedCollection);
       }
     }
 
@@ -54,12 +55,13 @@ describe('BaseDatasource', () => {
   });
 
   describe('addCollection', () => {
-    const expectedCollection: Collection = {} as Collection;
+    const expectedCollection = factories.collection.build({ name: '__collection__' });
+
     class DataSourceWithCollection extends ConcreteDatasource {
       constructor() {
         super();
 
-        this.addCollection('__collection__', expectedCollection);
+        this.addCollection(expectedCollection);
       }
     }
 
@@ -67,8 +69,8 @@ describe('BaseDatasource', () => {
       constructor() {
         super();
 
-        this.addCollection('__duplicated__', null);
-        this.addCollection('__duplicated__', null);
+        this.addCollection(factories.collection.build({ name: '__duplicated__' }));
+        this.addCollection(factories.collection.build({ name: '__duplicated__' }));
       }
     }
 
