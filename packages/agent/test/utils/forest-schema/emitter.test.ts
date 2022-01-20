@@ -1,4 +1,4 @@
-import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import fs from 'fs';
 import path from 'path';
 import SchemaEmitter from '../../../src/utils/forest-schema/emitter';
@@ -13,11 +13,10 @@ describe('SchemaEmitter', () => {
       name: 'reviews',
       schema: factories.collectionSchema.build({
         fields: {
-          id: {
-            type: FieldTypes.Column,
+          id: factories.columnSchema.build({
             columnType: PrimitiveTypes.Uuid,
             isPrimaryKey: true,
-          },
+          }),
         },
       }),
     }),

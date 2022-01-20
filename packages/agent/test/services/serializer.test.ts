@@ -1,4 +1,3 @@
-import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import Serializer from '../../src/services/serializer';
 import * as factories from '../__factories__';
 
@@ -10,20 +9,9 @@ describe('Serializer', () => {
       name: 'person',
       schema: factories.collectionSchema.build({
         fields: {
-          birthdate: factories.columnSchema.build({
-            type: FieldTypes.Column,
-            columnType: PrimitiveTypes.String,
-            isPrimaryKey: true,
-          }),
-          firstName: factories.columnSchema.build({
-            type: FieldTypes.Column,
-            columnType: PrimitiveTypes.String,
-          }),
-          lastName: factories.columnSchema.build({
-            type: FieldTypes.Column,
-            columnType: PrimitiveTypes.String,
-            isPrimaryKey: true,
-          }),
+          birthdate: factories.columnSchema.build({ isPrimaryKey: true }),
+          firstName: factories.columnSchema.build(),
+          lastName: factories.columnSchema.build({ isPrimaryKey: true }),
         },
       }),
     });
@@ -55,19 +43,11 @@ describe('Serializer', () => {
         name: 'book',
         schema: factories.collectionSchema.build({
           fields: {
-            isbn: factories.columnSchema.build({
-              type: FieldTypes.Column,
-              columnType: PrimitiveTypes.String,
-              isPrimaryKey: true,
-            }),
+            isbn: factories.columnSchema.build({ isPrimaryKey: true }),
+            authorId: factories.columnSchema.build(),
             author: factories.manyToOneSchema.build({
-              type: FieldTypes.ManyToOne,
               foreignCollection: 'person',
               foreignKey: 'authorId',
-            }),
-            authorId: factories.columnSchema.build({
-              type: FieldTypes.Column,
-              columnType: PrimitiveTypes.String,
             }),
           },
         }),
@@ -76,17 +56,9 @@ describe('Serializer', () => {
         name: 'person',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
-              type: FieldTypes.Column,
-              columnType: PrimitiveTypes.String,
-              isPrimaryKey: true,
-            }),
-            name: factories.columnSchema.build({
-              type: FieldTypes.Column,
-              columnType: PrimitiveTypes.String,
-            }),
+            id: factories.columnSchema.build({ isPrimaryKey: true }),
+            name: factories.columnSchema.build(),
             books: factories.oneToManySchema.build({
-              type: FieldTypes.OneToMany,
               foreignCollection: 'book',
               foreignKey: 'authorId',
             }),
@@ -122,19 +94,15 @@ describe('Serializer', () => {
       jsonapi: { version: '1.0' },
     };
 
-    describe('serialize', () => {
-      test('should serialize a record with relations', () => {
-        const result = serializer.serialize(dataSource.collections[0], record);
-        expect(result).toStrictEqual(serializedRecord);
-      });
+    test('should serialize a record with relations', () => {
+      const result = serializer.serialize(dataSource.collections[0], record);
+      expect(result).toStrictEqual(serializedRecord);
     });
 
-    describe('deserialize', () => {
-      test('should deserialize a json api into a record', () => {
-        const result = serializer.deserialize(dataSource.collections[0], serializedRecord);
+    test('should deserialize a json api into a record', () => {
+      const result = serializer.deserialize(dataSource.collections[0], serializedRecord);
 
-        expect(result).toStrictEqual(record);
-      });
+      expect(result).toStrictEqual(record);
     });
   });
 });

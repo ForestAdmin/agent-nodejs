@@ -1,4 +1,4 @@
-import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
 import * as factories from '../../__factories__';
 
@@ -8,18 +8,16 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: {
-            type: FieldTypes.Column,
+          id: factories.columnSchema.build({
             columnType: PrimitiveTypes.Uuid,
             isPrimaryKey: true,
-          },
-          reviewers: {
-            type: FieldTypes.ManyToMany,
+          }),
+          reviewers: factories.manyToManySchema.build({
             foreignCollection: 'persons',
             foreignKey: 'personId',
             otherField: 'bookId',
             throughCollection: 'bookPersons',
-          },
+          }),
         },
       }),
     }),
@@ -27,16 +25,14 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       name: 'bookPersons',
       schema: factories.collectionSchema.build({
         fields: {
-          bookId: {
-            type: FieldTypes.Column,
+          bookId: factories.columnSchema.build({
             columnType: PrimitiveTypes.Uuid,
             isPrimaryKey: true,
-          },
-          personId: {
-            type: FieldTypes.Column,
+          }),
+          personId: factories.columnSchema.build({
             columnType: PrimitiveTypes.Uuid,
             isPrimaryKey: true,
-          },
+          }),
         },
       }),
     }),
@@ -44,18 +40,16 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: {
-            type: FieldTypes.Column,
+          id: factories.columnSchema.build({
             columnType: PrimitiveTypes.Uuid,
             isPrimaryKey: true,
-          },
-          books: {
-            type: FieldTypes.ManyToMany,
+          }),
+          books: factories.manyToManySchema.build({
             foreignCollection: 'books',
             foreignKey: 'bookId',
             otherField: 'personId',
             throughCollection: 'bookPersons',
-          },
+          }),
         },
       }),
     }),

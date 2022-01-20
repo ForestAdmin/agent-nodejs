@@ -9,16 +9,17 @@ describe('CollectionUtils', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: { type: FieldTypes.Column, columnType: PrimitiveTypes.Uuid, isPrimaryKey: true },
-            author: {
-              type: FieldTypes.ManyToOne,
+            id: factories.columnSchema.build({
+              columnType: PrimitiveTypes.Uuid,
+              isPrimaryKey: true,
+            }),
+            author: factories.manyToOneSchema.build({
               foreignCollection: 'persons',
               foreignKey: 'authorId',
-            },
-            authorId: {
-              type: FieldTypes.Column,
+            }),
+            authorId: factories.columnSchema.build({
               columnType: PrimitiveTypes.Uuid,
-            },
+            }),
           },
         }),
       }),
@@ -26,7 +27,10 @@ describe('CollectionUtils', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: { type: FieldTypes.Column, columnType: PrimitiveTypes.Uuid, isPrimaryKey: true },
+            id: factories.columnSchema.build({
+              columnType: PrimitiveTypes.Uuid,
+              isPrimaryKey: true,
+            }),
           },
         }),
       }),
@@ -81,23 +85,17 @@ describe('CollectionUtils', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: {
-              type: FieldTypes.Column,
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            },
-            myPersons: {
-              type: FieldTypes.ManyToMany,
+            id: factories.columnSchema.build({ isPrimaryKey: true }),
+            myPersons: factories.manyToManySchema.build({
               foreignCollection: 'persons',
               foreignKey: 'personId',
               otherField: 'bookId',
               throughCollection: 'bookPersons',
-            },
-            myBookPersons: {
-              type: FieldTypes.OneToMany,
+            }),
+            myBookPersons: factories.oneToManySchema.build({
               foreignCollection: 'bookPersons',
               foreignKey: 'bookId',
-            },
+            }),
           },
         }),
       }),
@@ -105,26 +103,16 @@ describe('CollectionUtils', () => {
         name: 'bookPersons',
         schema: factories.collectionSchema.build({
           fields: {
-            bookId: {
-              type: FieldTypes.Column,
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            },
-            personId: {
-              type: FieldTypes.Column,
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            },
-            myBook: {
-              type: FieldTypes.ManyToOne,
+            bookId: factories.columnSchema.build({ isPrimaryKey: true }),
+            personId: factories.columnSchema.build({ isPrimaryKey: true }),
+            myBook: factories.manyToOneSchema.build({
               foreignCollection: 'books',
               foreignKey: 'bookId',
-            },
-            myPerson: {
-              type: FieldTypes.ManyToOne,
+            }),
+            myPerson: factories.manyToOneSchema.build({
               foreignCollection: 'persons',
               foreignKey: 'personId',
-            },
+            }),
           },
         }),
       }),
@@ -132,23 +120,17 @@ describe('CollectionUtils', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: {
-              type: FieldTypes.Column,
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            },
-            myBookPerson: {
-              type: FieldTypes.OneToOne,
+            id: factories.columnSchema.build({ isPrimaryKey: true }),
+            myBookPerson: factories.oneToOneSchema.build({
               foreignCollection: 'bookPersons',
               foreignKey: 'personId',
-            },
-            myBooks: {
-              type: FieldTypes.ManyToMany,
+            }),
+            myBooks: factories.manyToManySchema.build({
               foreignCollection: 'books',
               foreignKey: 'bookId',
               otherField: 'personId',
               throughCollection: 'bookPersons',
-            },
+            }),
           },
         }),
       }),

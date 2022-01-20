@@ -1,4 +1,4 @@
-import { PrimitiveTypes, FieldTypes } from '../../src/interfaces/schema';
+import { PrimitiveTypes } from '../../src/interfaces/schema';
 import FieldUtils from '../../src/utils/field';
 import * as factories from '../__factories__';
 
@@ -9,17 +9,15 @@ describe('FieldUtils', () => {
         name: 'cars',
         schema: factories.collectionSchema.build({
           fields: {
-            id: {
-              type: FieldTypes.Column,
+            id: factories.columnSchema.build({
               columnType: PrimitiveTypes.Uuid,
               isPrimaryKey: true,
-            },
-            name: { type: FieldTypes.Column, columnType: PrimitiveTypes.String },
-            owner: {
-              type: FieldTypes.OneToOne,
+            }),
+            name: factories.columnSchema.build(),
+            owner: factories.oneToOneSchema.build({
               foreignCollection: 'owner',
               foreignKey: 'id',
-            },
+            }),
           },
         }),
       }),
@@ -27,13 +25,12 @@ describe('FieldUtils', () => {
         name: 'owner',
         schema: factories.collectionSchema.build({
           fields: {
-            id: {
-              type: FieldTypes.Column,
+            id: factories.columnSchema.build({
               columnType: PrimitiveTypes.Uuid,
               isPrimaryKey: true,
-            },
-            name: { type: FieldTypes.Column, columnType: PrimitiveTypes.String },
-            address: { type: FieldTypes.OneToOne },
+            }),
+            name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+            address: factories.oneToOneSchema.build({}),
           },
         }),
       }),

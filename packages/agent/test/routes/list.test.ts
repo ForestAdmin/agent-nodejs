@@ -1,4 +1,4 @@
-import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import List from '../../src/routes/list';
 import * as factories from '../__factories__';
@@ -10,11 +10,10 @@ describe('List', () => {
     list: jest.fn(),
     schema: factories.collectionSchema.build({
       fields: {
-        id: {
-          type: FieldTypes.Column,
+        id: factories.columnSchema.build({
           columnType: PrimitiveTypes.Uuid,
           isPrimaryKey: true,
-        },
+        }),
       },
     }),
   };

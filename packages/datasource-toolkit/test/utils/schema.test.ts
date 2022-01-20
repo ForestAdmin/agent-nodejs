@@ -1,4 +1,3 @@
-import { FieldTypes } from '../../src/interfaces/schema';
 import SchemaUtils from '../../src/utils/schema';
 import * as factories from '../__factories__';
 
@@ -6,9 +5,9 @@ describe('SchemaUtils', () => {
   describe('getPrimaryKeys', () => {
     const schema = factories.collectionSchema.build({
       fields: {
-        id: { type: FieldTypes.Column, isPrimaryKey: true },
-        notId: { type: FieldTypes.Column, isPrimaryKey: false },
-        otherId: { type: FieldTypes.Column, isPrimaryKey: true },
+        id: factories.columnSchema.build({ isPrimaryKey: true }),
+        notId: factories.columnSchema.build({ isPrimaryKey: false }),
+        otherId: factories.columnSchema.build({ isPrimaryKey: true }),
       },
     });
 
@@ -32,13 +31,11 @@ describe('SchemaUtils', () => {
         name: factories.columnSchema.build({}),
 
         idModel: factories.manyToOneSchema.build({
-          type: FieldTypes.ManyToOne,
           foreignCollection: 'otherCollection',
           foreignKey: 'id',
         }),
 
         book: factories.manyToOneSchema.build({
-          type: FieldTypes.ManyToOne,
           foreignCollection: 'books',
           foreignKey: 'bookId',
         }),

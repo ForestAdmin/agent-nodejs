@@ -1,4 +1,4 @@
-import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
 import * as factories from '../../__factories__';
 
@@ -9,17 +9,14 @@ describe('SchemaGeneratorFields > One to Many', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.build({
-            type: FieldTypes.Column,
             columnType: PrimitiveTypes.Uuid,
             isPrimaryKey: true,
           }),
           author: factories.manyToOneSchema.build({
-            type: FieldTypes.ManyToOne,
             foreignCollection: 'persons',
             foreignKey: 'authorId',
           }),
           authorId: factories.columnSchema.build({
-            type: FieldTypes.Column,
             columnType: PrimitiveTypes.Uuid,
           }),
         },
@@ -30,12 +27,10 @@ describe('SchemaGeneratorFields > One to Many', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.build({
-            type: FieldTypes.Column,
             columnType: PrimitiveTypes.Uuid,
             isPrimaryKey: true,
           }),
           writtenBooks: factories.oneToManySchema.build({
-            type: FieldTypes.OneToMany,
             foreignCollection: 'books',
             foreignKey: 'authorId',
           }),

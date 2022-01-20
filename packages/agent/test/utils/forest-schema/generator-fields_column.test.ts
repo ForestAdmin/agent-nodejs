@@ -28,7 +28,6 @@ describe('SchemaGeneratorFields > Column', () => {
       schema: factories.collectionSchema.build({
         fields: {
           isbn: factories.columnSchema.build({
-            type: FieldTypes.Column,
             columnType: PrimitiveTypes.String,
             isPrimaryKey: true,
             isSortable: true,
@@ -37,7 +36,6 @@ describe('SchemaGeneratorFields > Column', () => {
             validation: [{ operator: Operator.Present }],
           }),
           otherField: factories.columnSchema.build({
-            type: FieldTypes.Column,
             columnType: PrimitiveTypes.Number,
             filterOperators: new Set(),
             isPrimaryKey: false,

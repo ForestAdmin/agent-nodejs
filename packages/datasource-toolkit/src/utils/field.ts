@@ -2,7 +2,7 @@ import { Collection } from '../interfaces/collection';
 import { FieldTypes } from '../interfaces/schema';
 
 export default class FieldUtils {
-  static validate(collection: Collection, field: string, values: any[] = undefined) {
+  static validate(collection: Collection, field: string, values?: unknown[]) {
     const dotIndex = field.indexOf(':');
 
     if (dotIndex === -1) {
