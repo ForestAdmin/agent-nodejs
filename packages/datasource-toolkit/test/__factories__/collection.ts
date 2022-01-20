@@ -8,6 +8,8 @@ import { ActionSchema, CollectionSchema } from '../../src/interfaces/schema';
 import collectionSchemaFactory from './schema/collection-schema';
 
 export class DecoratedCollection extends CollectionDecorator {
+  public override childCollection: Collection;
+
   public refineFilter(filter: Filter): Filter {
     return filter;
   }
