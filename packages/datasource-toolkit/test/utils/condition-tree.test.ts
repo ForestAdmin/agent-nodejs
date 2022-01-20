@@ -1,7 +1,7 @@
 import { Aggregator, ConditionTreeLeaf, Operator } from '../../src/interfaces/query/selection';
 import ConditionTreeUtils from '../../src/utils/condition-tree';
 import * as factories from '../__factories__';
-import { FieldTypes, NonPrimitiveTypes, PrimitiveTypes } from '../../src/interfaces/schema';
+import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
 import {
   MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE,
   MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER,

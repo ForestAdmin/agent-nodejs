@@ -119,7 +119,7 @@ export default class ConditionTreeUtils {
     const isValueAllowed = !!allowedTypes.find(allowedType => allowedType === type);
 
     if (isValueAllowed && columnSchema.columnType === PrimitiveTypes.Enum) {
-      let isEnumAllowed = false;
+      let isEnumAllowed;
 
       if (type === NonPrimitiveTypes.ArrayOfString) {
         const enumValuesConditionTree = conditionTree.value as Array<string>;

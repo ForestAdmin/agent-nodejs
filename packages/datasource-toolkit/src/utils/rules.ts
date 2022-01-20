@@ -1,8 +1,6 @@
 import { NonPrimitiveTypes, PrimitiveTypes } from '../interfaces/schema';
 import { Operator } from '../interfaces/query/selection';
 
-const NO_TYPES_ALLOWED: Readonly<PrimitiveTypes[]> = [];
-
 export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<{
   [type: string]: readonly Operator[];
 }> = Object.freeze({
@@ -15,10 +13,15 @@ export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<{
     Operator.NotContains,
     Operator.EndsWith,
     Operator.StartsWith,
+    Operator.NotEqual,
+    Operator.LongerThan,
+    Operator.ShorterThan,
+    Operator.Like,
   ],
   [PrimitiveTypes.Number]: [
     Operator.Present,
     Operator.Equal,
+    Operator.NotEqual,
     Operator.GreaterThan,
     Operator.NotIn,
     Operator.LessThan,
@@ -62,26 +65,27 @@ export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<{
     Operator.PreviousYearToDate,
     Operator.Past,
     Operator.Future,
+    Operator.PreviousXDays,
     Operator.BeforeXHoursAgo,
     Operator.AfterXHoursAgo,
-    Operator.PreviousXDays,
   ],
   [PrimitiveTypes.Timeonly]: [
     Operator.Equal,
+    Operator.NotEqual,
     Operator.LessThan,
     Operator.GreaterThan,
     Operator.Present,
-    Operator.NotEqual,
     Operator.Blank,
   ],
   [PrimitiveTypes.Enum]: [
     Operator.Equal,
+    Operator.NotEqual,
     Operator.In,
     Operator.NotIn,
     Operator.Present,
     Operator.Blank,
   ],
-  [PrimitiveTypes.Json]: [Operator.Equal, Operator.Present, Operator.Blank],
+  [PrimitiveTypes.Json]: [Operator.Present, Operator.Blank],
   [PrimitiveTypes.Point]: [Operator.Equal],
   [PrimitiveTypes.Uuid]: [Operator.Equal, Operator.NotEqual, Operator.Present, Operator.Blank],
 });
@@ -115,6 +119,8 @@ function computeAllowedTypesForOperators() {
     return mapMemo;
   }, {});
 }
+
+const NO_TYPES_ALLOWED: Readonly<[]> = [];
 
 export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<{
   [operator: string]: readonly (PrimitiveTypes | NonPrimitiveTypes)[];
