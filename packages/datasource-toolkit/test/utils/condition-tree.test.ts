@@ -340,9 +340,7 @@ describe('ConditionTreeUtils', () => {
           'The given operator of ' +
             '{"operator":"contains","field":"target","value":"subValue"} has an error.\n ' +
             'The operator is not allowed with the column type schema: ' +
-            '{"type":"Column","columnType":"Number","filterOperators":{}}\n ' +
-            'The allowed types for the given operator are: [present,equal,greater_than,in]' +
-            " and the operator is 'contains'",
+            '{"type":"Column","columnType":"Number","filterOperators":{}}\n',
         );
       });
     });
@@ -374,7 +372,7 @@ describe('ConditionTreeUtils', () => {
           'The given condition of ' +
             '{"operator":"greater_than","field":"target","value":null} has an error.\n ' +
             'The value attribute has an unexpected value for the given operator.\n ' +
-            "The allowed field value types are: [Number] and the type is 'null'",
+            "The allowed field value types are: [Number,Timeonly] and the type is 'null'",
         );
       });
     });
@@ -479,28 +477,8 @@ describe('ConditionTreeUtils', () => {
   });
 
   describe('MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER', () => {
-    it.each([
-      [Operator.Present, []],
-      [
-        Operator.In,
-        [
-          NonPrimitiveTypes.ArrayOfNumber,
-          NonPrimitiveTypes.ArrayOfString,
-          NonPrimitiveTypes.ArrayOfBoolean,
-          NonPrimitiveTypes.EmptyArray,
-        ],
-      ],
-      [Operator.Equal, [PrimitiveTypes.String, PrimitiveTypes.Number, PrimitiveTypes.Uuid]],
-      [Operator.Blank, []],
-      [Operator.Contains, [PrimitiveTypes.String]],
-    ])(`%s should be match the allowed types`, async (operator, expectedAllowedTypes) => {
-      expect(MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[operator]).toStrictEqual(
-        expectedAllowedTypes,
-      );
-    });
-
     it.each(Object.values(Operator))(`should implement %s operator`, async operator => {
-      expect(MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[operator]).not.toBeUndefined();
+      expect(MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[operator]).toBeDefined();
     });
   });
 

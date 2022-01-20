@@ -43,6 +43,22 @@ describe('TypeGetterUtil', () => {
       });
     });
 
+    describe('when the value is a Point', () => {
+      it('should return null', () => {
+        expect(TypeGetterUtil.get(JSON.stringify({ message: 'hello' }))).toEqual(
+          PrimitiveTypes.Json,
+        );
+      });
+    });
+
+    describe('when the value is a json', () => {
+      it('should return the expected type', () => {
+        expect(TypeGetterUtil.get(JSON.stringify({ message: 'hello' }))).toEqual(
+          PrimitiveTypes.Json,
+        );
+      });
+    });
+
     describe('when the value is an object', () => {
       it('should return null', () => {
         expect(TypeGetterUtil.get({ message: 'hello' })).toEqual(null);
@@ -59,6 +75,12 @@ describe('TypeGetterUtil', () => {
       describe('when it is a date with time', () => {
         it('should return the expected type', () => {
           expect(TypeGetterUtil.get('2016-05-25T09:24:15.123')).toEqual(PrimitiveTypes.Date);
+        });
+      });
+
+      describe('when there is only the time', () => {
+        it('should return the expected type', () => {
+          expect(TypeGetterUtil.get('09:24:15.123')).toEqual(PrimitiveTypes.Timeonly);
         });
       });
     });

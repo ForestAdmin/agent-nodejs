@@ -32,6 +32,10 @@ export default class TypeGetterUtil {
           return PrimitiveTypes.Dateonly;
         }
 
+        if (dateTime.toISOTime().match(value)) {
+          return PrimitiveTypes.Timeonly;
+        }
+
         return PrimitiveTypes.Date;
       }
 
@@ -42,6 +46,10 @@ export default class TypeGetterUtil {
       if (!Number.isNaN(Number(value)) && !Number.isNaN(parseFloat(value))) {
         // @see https://stackoverflow.com/questions/175739
         return PrimitiveTypes.Number;
+      }
+
+      if (TypeGetterUtil.isJson(value)) {
+        return PrimitiveTypes.Json;
       }
 
       return PrimitiveTypes.String;
@@ -56,5 +64,15 @@ export default class TypeGetterUtil {
     }
 
     return null;
+  }
+
+  private static isJson(value: string) {
+    try {
+      JSON.parse(value);
+
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
