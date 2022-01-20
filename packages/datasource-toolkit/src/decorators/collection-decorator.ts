@@ -13,14 +13,12 @@ import {
 } from '../index';
 
 export default abstract class CollectionDecorator implements Collection {
+  readonly dataSource: DataSource;
   protected childCollection: Collection;
 
-  constructor(childCollection: Collection) {
+  constructor(childCollection: Collection, dataSource: DataSource) {
     this.childCollection = childCollection;
-  }
-
-  get dataSource(): DataSource {
-    return this.childCollection.dataSource;
+    this.dataSource = dataSource;
   }
 
   get name(): string {
@@ -67,7 +65,7 @@ export default abstract class CollectionDecorator implements Collection {
     return this.childCollection.aggregate(refinedFilter, aggregation);
   }
 
-  protected abstract refineFilter(filter?: Filter): Filter;
+  protected abstract refineFilter(filter?: PaginatedFilter): PaginatedFilter;
 
   protected abstract refineSchema(subSchema: CollectionSchema): CollectionSchema;
 }

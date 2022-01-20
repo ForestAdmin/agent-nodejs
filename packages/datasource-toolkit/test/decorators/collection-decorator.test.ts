@@ -104,15 +104,15 @@ describe('CollectionDecorator', () => {
   });
 
   describe('dataSource', () => {
-    it('calls the child dataSource', () => {
-      const dataSource = factories.dataSource.build();
-      const decoratedCollection = factories.collection.buildDecoratedCollection({
-        dataSource,
-      });
+    it('owns its datasource', () => {
+      const parentDataSource = factories.dataSource.build();
+      const childDataSource = factories.dataSource.build();
+      const parentCollection = factories.collection.buildDecoratedCollection(
+        { dataSource: childDataSource },
+        parentDataSource,
+      );
 
-      const result = decoratedCollection.dataSource;
-
-      expect(result).toEqual(dataSource);
+      expect(parentCollection.dataSource).toBe(parentDataSource);
     });
   });
 

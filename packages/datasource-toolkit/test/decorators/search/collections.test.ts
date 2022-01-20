@@ -1,15 +1,15 @@
-import * as factories from '../../__factories__';
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
-import { FieldTypes, Operator, PrimitiveTypes, Aggregator } from '../../../src';
+import { Aggregator, Operator } from '../../../src/interfaces/query/selection';
+import { PrimitiveTypes } from '../../../src/interfaces/schema';
 import { ConditionTreeNotMatchAnyResult } from '../../../src/utils/condition-tree';
+import * as factories from '../../__factories__';
 
 describe('SearchCollectionDecorator', () => {
   describe('refineSchema', () => {
     it('should set the schema searchable', () => {
       const collection = factories.collection.build();
       const unsearchableSchema = factories.collectionSchema.build({ searchable: false });
-
-      const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+      const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
       const schema = searchCollectionDecorator.refineSchema(unsearchableSchema);
 
@@ -23,7 +23,7 @@ describe('SearchCollectionDecorator', () => {
         const collection = factories.collection.build();
         const filter = null;
 
-        const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+        const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
         const refinedFilter = searchCollectionDecorator.refineFilter(filter);
         expect(refinedFilter).toStrictEqual(filter);
@@ -35,7 +35,7 @@ describe('SearchCollectionDecorator', () => {
         const collection = factories.collection.build();
         const filter = factories.filter.build({ search: null });
 
-        const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+        const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
         const refinedFilter = searchCollectionDecorator.refineFilter(filter);
         expect(refinedFilter).toStrictEqual(filter);
@@ -53,7 +53,7 @@ describe('SearchCollectionDecorator', () => {
         });
         const filter = factories.filter.build({ search: 'a search value' });
 
-        const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+        const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
         const refinedFilter = searchCollectionDecorator.refineFilter(filter);
         expect(refinedFilter).toStrictEqual({
@@ -70,7 +70,7 @@ describe('SearchCollectionDecorator', () => {
         });
         const filter = factories.filter.build({ search: 'a text' });
 
-        const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+        const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
         const refinedFilter = searchCollectionDecorator.refineFilter(filter);
         expect(refinedFilter).toStrictEqual(filter);
@@ -85,7 +85,7 @@ describe('SearchCollectionDecorator', () => {
           });
           const filter = factories.filter.build({ search: '     ' });
 
-          const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+          const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = searchCollectionDecorator.refineFilter(filter);
           expect(refinedFilter).toStrictEqual({ ...filter, search: null });
@@ -108,17 +108,11 @@ describe('SearchCollectionDecorator', () => {
             search: 'a text',
             conditionTree: {
               aggregator: Aggregator.And,
-              conditions: [
-                {
-                  operator: Operator.Equal,
-                  field: 'aFieldName',
-                  value: 'fieldValue',
-                },
-              ],
+              conditions: [{ operator: Operator.Equal, field: 'aFieldName', value: 'fieldValue' }],
             },
           });
 
-          const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+          const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = searchCollectionDecorator.refineFilter(filter);
           expect(refinedFilter).toStrictEqual({
@@ -151,20 +145,14 @@ describe('SearchCollectionDecorator', () => {
 
           const filter = factories.filter.build({ search: 'a text' });
 
-          const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+          const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = searchCollectionDecorator.refineFilter(filter);
           expect(refinedFilter).toStrictEqual({
             search: null,
             conditionTree: {
               aggregator: 'or',
-              conditions: [
-                {
-                  field: 'fieldName',
-                  operator: Operator.Contains,
-                  value: 'a text',
-                },
-              ],
+              conditions: [{ field: 'fieldName', operator: Operator.Contains, value: 'a text' }],
             },
           });
         });
@@ -184,7 +172,7 @@ describe('SearchCollectionDecorator', () => {
 
           const filter = factories.filter.build({ search: '2d162303-78bf-599e-b197-93590ac3d315' });
 
-          const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+          const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = searchCollectionDecorator.refineFilter(filter);
           expect(refinedFilter).toStrictEqual({
@@ -217,20 +205,14 @@ describe('SearchCollectionDecorator', () => {
 
           const filter = factories.filter.build({ search: '1584' });
 
-          const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+          const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = searchCollectionDecorator.refineFilter(filter);
           expect(refinedFilter).toStrictEqual({
             search: null,
             conditionTree: {
               aggregator: 'or',
-              conditions: [
-                {
-                  field: 'fieldName',
-                  operator: Operator.Equal,
-                  value: 1584,
-                },
-              ],
+              conditions: [{ field: 'fieldName', operator: Operator.Equal, value: 1584 }],
             },
           });
         });
@@ -251,20 +233,14 @@ describe('SearchCollectionDecorator', () => {
 
           const filter = factories.filter.build({ search: 'AEnumValue' });
 
-          const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+          const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = searchCollectionDecorator.refineFilter(filter);
           expect(refinedFilter).toStrictEqual({
             search: null,
             conditionTree: {
               aggregator: 'or',
-              conditions: [
-                {
-                  field: 'fieldName',
-                  operator: Operator.Equal,
-                  value: 'AEnumValue',
-                },
-              ],
+              conditions: [{ field: 'fieldName', operator: Operator.Equal, value: 'AEnumValue' }],
             },
           });
         });
@@ -284,7 +260,7 @@ describe('SearchCollectionDecorator', () => {
 
             const filter = factories.filter.build({ search: 'NotExistEnum' });
 
-            const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+            const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
             const refinedFilter = searchCollectionDecorator.refineFilter(filter);
             expect(refinedFilter).toStrictEqual({
@@ -309,7 +285,7 @@ describe('SearchCollectionDecorator', () => {
 
             const filter = factories.filter.build({ search: 'NotExistEnum' });
 
-            const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+            const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
             const refinedFilter = searchCollectionDecorator.refineFilter(filter);
             expect(refinedFilter).toStrictEqual({
@@ -324,16 +300,14 @@ describe('SearchCollectionDecorator', () => {
             const collection = factories.collection.build({
               schema: factories.collectionSchema.unsearchable().build({
                 fields: {
-                  fieldName: factories.columnSchema.build({
-                    columnType: PrimitiveTypes.Boolean,
-                  }),
+                  fieldName: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
                 },
               }),
             });
 
             const filter = factories.filter.build({ search: '1584' });
 
-            const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+            const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
             const refinedFilter = searchCollectionDecorator.refineFilter(filter);
             expect(refinedFilter).toStrictEqual({
@@ -349,22 +323,16 @@ describe('SearchCollectionDecorator', () => {
           const collection = factories.collection.build({
             schema: factories.collectionSchema.unsearchable().build({
               fields: {
-                numberField1: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Number,
-                }),
-                numberField2: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Number,
-                }),
-                fieldNotReturned: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Uuid,
-                }),
+                numberField1: factories.columnSchema.build({ columnType: PrimitiveTypes.Number }),
+                numberField2: factories.columnSchema.build({ columnType: PrimitiveTypes.Number }),
+                fieldNotReturned: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
               },
             }),
           });
 
           const filter = factories.filter.build({ search: '1584' });
 
-          const searchCollectionDecorator = new SearchCollectionDecorator(collection);
+          const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = searchCollectionDecorator.refineFilter(filter);
           expect(refinedFilter).toStrictEqual({
@@ -372,16 +340,8 @@ describe('SearchCollectionDecorator', () => {
             conditionTree: {
               aggregator: 'or',
               conditions: [
-                {
-                  field: 'numberField1',
-                  operator: Operator.Equal,
-                  value: 1584,
-                },
-                {
-                  field: 'numberField2',
-                  operator: Operator.Equal,
-                  value: 1584,
-                },
+                { field: 'numberField1', operator: Operator.Equal, value: 1584 },
+                { field: 'numberField2', operator: Operator.Equal, value: 1584 },
               ],
             },
           });
@@ -394,21 +354,18 @@ describe('SearchCollectionDecorator', () => {
                 name: 'books',
                 schema: factories.collectionSchema.unsearchable().build({
                   fields: {
-                    id: {
-                      type: FieldTypes.Column,
+                    id: factories.columnSchema.build({
                       columnType: PrimitiveTypes.Uuid,
                       isPrimaryKey: true,
-                    },
-                    myPersons: {
-                      type: FieldTypes.OneToOne,
+                    }),
+                    myPersons: factories.oneToOneSchema.build({
                       foreignCollection: 'persons',
                       foreignKey: 'personId',
-                    },
-                    myBookPersons: {
-                      type: FieldTypes.ManyToOne,
+                    }),
+                    myBookPersons: factories.manyToOneSchema.build({
                       foreignCollection: 'bookPersons',
                       foreignKey: 'bookId',
-                    },
+                    }),
                   },
                 }),
               }),
@@ -416,16 +373,14 @@ describe('SearchCollectionDecorator', () => {
                 name: 'bookPersons',
                 schema: factories.collectionSchema.unsearchable().build({
                   fields: {
-                    bookId: {
-                      type: FieldTypes.Column,
+                    bookId: factories.columnSchema.build({
                       columnType: PrimitiveTypes.Uuid,
                       isPrimaryKey: true,
-                    },
-                    personId: {
-                      type: FieldTypes.Column,
+                    }),
+                    personId: factories.columnSchema.build({
                       columnType: PrimitiveTypes.Uuid,
                       isPrimaryKey: true,
-                    },
+                    }),
                   },
                 }),
               }),
@@ -433,11 +388,10 @@ describe('SearchCollectionDecorator', () => {
                 name: 'persons',
                 schema: factories.collectionSchema.unsearchable().build({
                   fields: {
-                    id: {
-                      type: FieldTypes.Column,
+                    id: factories.columnSchema.build({
                       columnType: PrimitiveTypes.Uuid,
                       isPrimaryKey: true,
-                    },
+                    }),
                   },
                 }),
               }),
@@ -450,6 +404,7 @@ describe('SearchCollectionDecorator', () => {
 
             const searchCollectionDecorator = new SearchCollectionDecorator(
               dataSource.collections[0],
+              null,
             );
 
             const refinedFilter = searchCollectionDecorator.refineFilter(filter);
