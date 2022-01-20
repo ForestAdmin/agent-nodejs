@@ -1,5 +1,5 @@
 import openidClient, { Issuer } from 'openid-client';
-import { Context } from 'koa';
+import { createMockContext } from '@shopify/jest-koa-mocks';
 import * as factories from '../__factories__';
 import Authentication from '../../src/routes/authentication';
 import { HttpCode } from '../../src/types';
@@ -145,7 +145,9 @@ describe('Authentication', () => {
         const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
           authorizationUrl: jest.fn().mockReturnValue('authorizationUrl'),
         });
-        const context = { response: {}, request: { body: { renderingId: '1' } } } as Context;
+        const context = createMockContext({
+          requestBody: { renderingId: '1' },
+        });
 
         await authentication.handleAuthentication(context);
 
@@ -161,11 +163,11 @@ describe('Authentication', () => {
           authorizationUrl: jest.fn().mockReturnValue('authorizationUrl'),
         });
 
-        const context = {
-          response: {},
-          request: { body: { renderingId: 'somethingInvalid' } },
-          throw: jest.fn(),
-        } as unknown as Context;
+        const context = createMockContext({
+          requestBody: {
+            renderingId: 'somethingInvalid',
+          },
+        });
         await authentication.handleAuthentication(context);
 
         expect(context.throw).toHaveBeenCalledWith(
@@ -192,18 +194,12 @@ describe('Authentication', () => {
           callback: jest.fn().mockReturnValue({}),
         });
 
-        interface PartialContext {
-          response: { body?: { token?: string; tokenData?: string } };
-          request: unknown;
-        }
-        const context: PartialContext = {
-          response: {},
-          request: { query: { state: '{"renderingId": 1}' } },
-        };
-        await authentication.handleAuthenticationCallback(context as unknown as Context);
+        const context = createMockContext({
+          customProperties: { query: { state: '{"renderingId": 1}' } },
+        });
+        await authentication.handleAuthenticationCallback(context);
 
-        expect(context.response.body.token).toBeDefined();
-        expect(context.response.body.tokenData).toBeDefined();
+        expect(context.response.body).toContainAllKeys(['token', 'tokenData']);
       });
     });
 
@@ -214,11 +210,10 @@ describe('Authentication', () => {
             callback: jest.fn().mockReturnValue({}),
           });
 
-          const context = {
-            response: {},
-            request: { query: { state: '{"rendeId":' } },
-            throw: jest.fn(),
-          } as unknown as Context;
+          const context = createMockContext({
+            customProperties: { query: { state: '{"rendeId":' } },
+          });
+
           await authentication.handleAuthenticationCallback(context);
 
           expect(context.throw).toHaveBeenCalledWith(
@@ -239,11 +234,9 @@ describe('Authentication', () => {
             callback: jest.fn().mockReturnValue({}),
           });
 
-          const context = {
-            response: {},
-            request: { query: { state: '{"renderingId": 1}' } },
-            throw: jest.fn(),
-          } as unknown as Context;
+          const context = createMockContext({
+            customProperties: { query: { state: '{"renderingId": 1}' } },
+          });
           await authentication.handleAuthenticationCallback(context);
 
           expect(context.throw).toHaveBeenCalledWith(
@@ -262,11 +255,9 @@ describe('Authentication', () => {
             callback: jest.fn().mockReturnValue({}),
           });
 
-          const context = {
-            response: {},
-            request: { query: { state: '{"renderingId": 1}' } },
-            throw: jest.fn(),
-          } as unknown as Context;
+          const context = createMockContext({
+            customProperties: { query: { state: '{"renderingId": 1}' } },
+          });
           await authentication.handleAuthenticationCallback(context);
 
           expect(context.throw).toHaveBeenCalledWith(
@@ -282,9 +273,8 @@ describe('Authentication', () => {
     test('should return a 204', async () => {
       const authentication = new Authentication(services, dataSource, options);
 
-      const context = {
-        response: {},
-      } as Context;
+      const context = createMockContext();
+
       await authentication.handleAuthenticationLogout(context);
 
       expect(context.response.status).toEqual(HttpCode.NoContent);
