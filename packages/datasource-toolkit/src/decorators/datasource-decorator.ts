@@ -9,12 +9,12 @@ export default class DataSourceDecorator<
   CollectionDecorator extends Collection,
 > extends BaseDataSource<CollectionDecorator> {
   constructor(
-    childBackend: DataSource,
+    childDataSource: DataSource,
     CollectionDecoratorCtor: CollectionDecoratorCtor<CollectionDecorator>,
   ) {
     super();
 
-    for (const collection of childBackend.collections) {
+    for (const collection of childDataSource.collections) {
       this.addCollection(new CollectionDecoratorCtor(collection, this));
     }
   }
