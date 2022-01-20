@@ -25,6 +25,15 @@ export default class TypeGetterUtil {
     }
 
     if (typeof value === 'string') {
+      if (value.match(TypeGetterUtil.REGEX_UUID)) {
+        return PrimitiveTypes.Uuid;
+      }
+
+      if (!Number.isNaN(Number(value)) && !Number.isNaN(parseFloat(value))) {
+        // @see https://stackoverflow.com/questions/175739
+        return PrimitiveTypes.Number;
+      }
+
       const dateTime = DateTime.fromISO(value);
 
       if (!dateTime.invalid) {
@@ -37,15 +46,6 @@ export default class TypeGetterUtil {
         }
 
         return PrimitiveTypes.Date;
-      }
-
-      if (value.match(TypeGetterUtil.REGEX_UUID)) {
-        return PrimitiveTypes.Uuid;
-      }
-
-      if (!Number.isNaN(Number(value)) && !Number.isNaN(parseFloat(value))) {
-        // @see https://stackoverflow.com/questions/175739
-        return PrimitiveTypes.Number;
       }
 
       if (TypeGetterUtil.isJson(value)) {

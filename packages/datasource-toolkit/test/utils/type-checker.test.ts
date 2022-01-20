@@ -51,6 +51,12 @@ describe('TypeGetterUtil', () => {
       });
     });
 
+    describe('when the value is a number', () => {
+      it('should the expected type', () => {
+        expect(TypeGetterUtil.get(1526)).toEqual(PrimitiveTypes.Number);
+      });
+    });
+
     describe('when the value is a json', () => {
       it('should return the expected type', () => {
         expect(TypeGetterUtil.get(JSON.stringify({ message: 'hello' }))).toEqual(
@@ -96,7 +102,7 @@ describe('TypeGetterUtil', () => {
 
       describe('when it is a number as string', () => {
         it('should return the expected type', () => {
-          expect(TypeGetterUtil.get('2')).toEqual(PrimitiveTypes.Number);
+          expect(TypeGetterUtil.get('2258')).toEqual(PrimitiveTypes.Number);
         });
       });
 
