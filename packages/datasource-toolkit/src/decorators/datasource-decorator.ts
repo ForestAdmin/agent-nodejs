@@ -10,12 +10,12 @@ export default class DataSourceDecorator<
 > extends BaseDataSource<CollectionDecorator> {
   constructor(
     childDataSource: DataSource,
-    CollectionDecoratorCtor: CollectionDecoratorCtor<CollectionDecorator>,
+    CollectionDecoratorConstructor: CollectionDecoratorCtor<CollectionDecorator>,
   ) {
     super();
 
     for (const collection of childDataSource.collections) {
-      this.addCollection(new CollectionDecoratorCtor(collection, this));
+      this.addCollection(new CollectionDecoratorConstructor(collection, this));
     }
   }
 }
