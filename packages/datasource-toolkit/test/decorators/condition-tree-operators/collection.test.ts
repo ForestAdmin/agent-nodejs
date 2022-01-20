@@ -8,6 +8,7 @@ describe('ConditionTreeOperators', () => {
   describe('with a date field which support only "<", "==" and ">"', () => {
     let collectionList: jest.Mock;
     let collection: Collection;
+    let decorator: OperatorsDecorator;
 
     beforeEach(() => {
       collectionList = jest.fn();
@@ -31,10 +32,12 @@ describe('ConditionTreeOperators', () => {
         }),
         list: collectionList,
       });
+
+      decorator = new OperatorsDecorator(collection, null);
     });
 
     test('schema should support more operators', () => {
-      const schema = new OperatorsDecorator(collection).schema.fields.col as ColumnSchema;
+      const schema = decorator.schema.fields.col as ColumnSchema;
 
       // We don't want this test to break when we support new operators by being too restrictive
       // At the time of writing, 24 operators are supported.
@@ -42,7 +45,7 @@ describe('ConditionTreeOperators', () => {
     });
 
     test('schema should not have dropped relations', () => {
-      const { schema } = new OperatorsDecorator(collection);
+      const { schema } = decorator;
 
       expect(schema.fields).toHaveProperty('col');
       expect(schema.fields).toHaveProperty('rel');
@@ -51,7 +54,7 @@ describe('ConditionTreeOperators', () => {
     test('list() should not modify supported operators', () => {
       const tree = { field: 'col', operator: Operator.Equal, value: 'someDate' };
 
-      new OperatorsDecorator(collection).list({ conditionTree: tree }, ['col']);
+      decorator.list({ conditionTree: tree }, ['col']);
       expect(collectionList).toHaveBeenCalledWith(
         { conditionTree: { field: 'col', operator: Operator.Equal, value: 'someDate' } },
         ['col'],
@@ -61,7 +64,7 @@ describe('ConditionTreeOperators', () => {
     test('list() should transform "In -> Equal"', () => {
       const tree = { field: 'col', operator: Operator.In, value: ['someDate'] };
 
-      new OperatorsDecorator(collection).list({ conditionTree: tree }, ['col']);
+      decorator.list({ conditionTree: tree }, ['col']);
       expect(collectionList).toHaveBeenCalledWith(
         { conditionTree: { field: 'col', operator: Operator.Equal, value: 'someDate' } },
         ['col'],
@@ -71,7 +74,7 @@ describe('ConditionTreeOperators', () => {
     test('list() should transform "Blank -> In -> Equal"', () => {
       const tree = { field: 'col', operator: Operator.Blank };
 
-      new OperatorsDecorator(collection).list({ conditionTree: tree }, ['col']);
+      decorator.list({ conditionTree: tree }, ['col']);
       expect(collectionList).toHaveBeenCalledWith(
         { conditionTree: { field: 'col', operator: Operator.Equal, value: null } },
         ['col'],
