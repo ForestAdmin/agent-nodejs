@@ -49,6 +49,20 @@ describe('TypeGetterUtil', () => {
       });
     });
 
+    describe('when the value is a date', () => {
+      describe('when it is a date without time', () => {
+        it('should return the expected type', () => {
+          expect(TypeGetterUtil.get('2016-05-25')).toEqual(PrimitiveTypes.Dateonly);
+        });
+      });
+
+      describe('when it is a date with time', () => {
+        it('should return the expected type', () => {
+          expect(TypeGetterUtil.get('2016-05-25T09:24:15.123')).toEqual(PrimitiveTypes.Date);
+        });
+      });
+    });
+
     describe('when the value is a string', () => {
       describe('when it is an uuid', () => {
         it('should return the expected type', () => {

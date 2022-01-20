@@ -1,11 +1,12 @@
 import { Aggregator, ConditionTreeLeaf, Operator } from '../../src/interfaces/query/selection';
-import ConditionTreeUtils, {
-  MAP_OPERATOR_TYPES,
-  MAP_COLUMN_TYPE_SCHEMA_OPERATORS,
-  MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE,
-} from '../../src/utils/condition-tree';
+import ConditionTreeUtils from '../../src/utils/condition-tree';
 import * as factories from '../__factories__';
 import { FieldTypes, NonPrimitiveTypes, PrimitiveTypes } from '../../src/interfaces/schema';
+import {
+  MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE,
+  MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER,
+  MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE,
+} from '../../src/utils/rules';
 
 describe('ConditionTreeUtils', () => {
   describe('intersect', () => {
@@ -409,9 +410,75 @@ describe('ConditionTreeUtils', () => {
         );
       });
     });
+
+    describe('when the field is an enum', () => {
+      it('should throw an error when the field value is not a valid enum', () => {
+        const conditionTree = factories.conditionTreeBranch.build({
+          aggregator: Aggregator.Or,
+          conditions: [
+            factories.conditionTreeBranch.build({
+              aggregator: Aggregator.Or,
+              conditions: [
+                factories.conditionTreeLeaf.build({
+                  operator: Operator.Equal,
+                  value: 'aRandomValue',
+                  field: 'enumField',
+                }),
+              ],
+            }),
+          ],
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              enumField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Enum,
+                enumValues: ['anAllowedValue'],
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
+          'Error enum value',
+        );
+      });
+
+      it('should throw an error when the at least one field value is not a valid enum', () => {
+        const conditionTree = factories.conditionTreeBranch.build({
+          aggregator: Aggregator.Or,
+          conditions: [
+            factories.conditionTreeBranch.build({
+              aggregator: Aggregator.Or,
+              conditions: [
+                factories.conditionTreeLeaf.build({
+                  operator: Operator.In,
+                  value: ['allowedValue', 'aRandomValue'],
+                  field: 'enumField',
+                }),
+              ],
+            }),
+          ],
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              enumField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Enum,
+                enumValues: ['allowedValue'],
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
+          'Error enum value [allowedValue,aRandomValue]',
+        );
+      });
+    });
   });
 
-  describe('MAP_OPERATOR_TYPE', () => {
+  describe('MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER', () => {
     it.each([
       [Operator.Present, []],
       [
@@ -427,30 +494,25 @@ describe('ConditionTreeUtils', () => {
       [Operator.Blank, []],
       [Operator.Contains, [PrimitiveTypes.String]],
     ])(`%s should be match the allowed types`, async (operator, expectedAllowedTypes) => {
-      expect(MAP_OPERATOR_TYPES[operator]).toStrictEqual(expectedAllowedTypes);
+      expect(MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[operator]).toStrictEqual(
+        expectedAllowedTypes,
+      );
     });
 
     it.each(Object.values(Operator))(`should implement %s operator`, async operator => {
-      expect(MAP_OPERATOR_TYPES[operator]).not.toBeUndefined();
+      expect(MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[operator]).not.toBeUndefined();
     });
   });
 
-  describe('MAP_COLUMN_TYPE_SCHEMA_OPERATORS', () => {
-    it.each([[PrimitiveTypes.String, [Operator.Present, Operator.Equal, Operator.In]]])(
-      `%s should be match the allowed primitive types`,
-      async (operator, expectedAllowedTypes) => {
-        expect(MAP_COLUMN_TYPE_SCHEMA_OPERATORS[operator]).toStrictEqual(expectedAllowedTypes);
-      },
-    );
-
+  describe('MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE', () => {
     it.each(Object.values(PrimitiveTypes))(`should implement %s primitive type`, async operator => {
-      expect(MAP_COLUMN_TYPE_SCHEMA_OPERATORS[operator]).toBeDefined();
+      expect(MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE[operator]).toBeDefined();
     });
   });
 
-  describe('MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE', () => {
+  describe('MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE', () => {
     it.each(Object.values(PrimitiveTypes))(`should implement %s primitive type`, async operator => {
-      expect(MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE[operator]).toBeDefined();
+      expect(MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[operator]).toBeDefined();
     });
   });
 });

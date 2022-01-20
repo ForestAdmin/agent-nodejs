@@ -3,92 +3,21 @@ import {
   ConditionTree,
   ConditionTreeBranch,
   ConditionTreeLeaf,
-  Operator,
 } from '../interfaces/query/selection';
 
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, NonPrimitiveTypes, PrimitiveTypes } from '../interfaces/schema';
 import TypeGetterUtil from './type-checker';
 import CollectionUtils from './collection';
+import {
+  MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE,
+  MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER,
+  MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE,
+} from './rules';
 
-export const ConditionTreeNotMatchAnyResult = Object.freeze({
+export const CONDITION_TREE_NOT_MATCH_ANY_RESULT = Object.freeze({
   aggregator: Aggregator.Or,
   conditions: [],
-});
-
-const NO_TYPES_ALLOWED: Readonly<PrimitiveTypes[]> = [];
-
-export const MAP_OPERATOR_TYPES: Readonly<{
-  [operator: string]: readonly (PrimitiveTypes | NonPrimitiveTypes)[];
-}> = Object.freeze({
-  [Operator.Present]: NO_TYPES_ALLOWED,
-  [Operator.Blank]: NO_TYPES_ALLOWED,
-  [Operator.In]: [
-    NonPrimitiveTypes.ArrayOfNumber,
-    NonPrimitiveTypes.ArrayOfString,
-    NonPrimitiveTypes.ArrayOfBoolean,
-    NonPrimitiveTypes.EmptyArray,
-  ],
-  [Operator.Equal]: [PrimitiveTypes.String, PrimitiveTypes.Number, PrimitiveTypes.Uuid],
-  [Operator.Contains]: [PrimitiveTypes.String],
-  [Operator.GreaterThan]: [PrimitiveTypes.Number],
-  [Operator.EndsWith]: [],
-  [Operator.IncludesAll]: [],
-  [Operator.LessThan]: [],
-  [Operator.NotContains]: [],
-  [Operator.NotEqual]: [],
-  [Operator.NotIn]: [],
-  [Operator.StartsWith]: [],
-  [Operator.AfterXHoursAgo]: [],
-  [Operator.BeforeXHoursAgo]: [],
-  [Operator.Future]: [],
-  [Operator.Past]: [],
-  [Operator.PreviousMonth]: [],
-  [Operator.PreviousMonthToDate]: [],
-  [Operator.PreviousQuarter]: [],
-  [Operator.PreviousQuarterToDate]: [],
-  [Operator.PreviousYear]: [],
-  [Operator.PreviousYearToDate]: [],
-  [Operator.PreviousWeek]: [],
-  [Operator.PreviousWeekToDate]: [],
-  [Operator.PreviousXDays]: [],
-  [Operator.PreviousXDaysToDate]: [],
-  [Operator.Today]: [],
-  [Operator.Yesterday]: [],
-  [Operator.LessThan]: [],
-  [Operator.LongerThan]: [],
-  [Operator.ShorterThan]: [],
-  [Operator.Like]: [],
-});
-
-export const MAP_COLUMN_TYPE_SCHEMA_OPERATORS: Readonly<{
-  [type: string]: readonly Operator[];
-}> = Object.freeze({
-  [PrimitiveTypes.String]: [Operator.Present, Operator.Equal, Operator.In],
-  [PrimitiveTypes.Number]: [Operator.Present, Operator.Equal, Operator.GreaterThan, Operator.In],
-  [PrimitiveTypes.Boolean]: [],
-  [PrimitiveTypes.Date]: [],
-  [PrimitiveTypes.Dateonly]: [],
-  [PrimitiveTypes.Enum]: [],
-  [PrimitiveTypes.Json]: [],
-  [PrimitiveTypes.Point]: [],
-  [PrimitiveTypes.Timeonly]: [],
-  [PrimitiveTypes.Uuid]: [Operator.Equal],
-});
-
-export const MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE: Readonly<{
-  [type: string]: readonly (PrimitiveTypes | NonPrimitiveTypes)[];
-}> = Object.freeze({
-  [PrimitiveTypes.String]: [PrimitiveTypes.String, NonPrimitiveTypes.ArrayOfString],
-  [PrimitiveTypes.Number]: [PrimitiveTypes.Number, NonPrimitiveTypes.ArrayOfNumber],
-  [PrimitiveTypes.Boolean]: [PrimitiveTypes.Boolean, NonPrimitiveTypes.ArrayOfBoolean],
-  [PrimitiveTypes.Date]: [],
-  [PrimitiveTypes.Dateonly]: [],
-  [PrimitiveTypes.Enum]: [],
-  [PrimitiveTypes.Json]: [],
-  [PrimitiveTypes.Point]: [],
-  [PrimitiveTypes.Timeonly]: [],
-  [PrimitiveTypes.Uuid]: [PrimitiveTypes.Uuid],
 });
 
 export default class ConditionTreeUtils {
@@ -140,7 +69,7 @@ export default class ConditionTreeUtils {
   ): void {
     const valueType = TypeGetterUtil.get(value);
 
-    const allowedTypes = MAP_OPERATOR_TYPES[conditionTree.operator];
+    const allowedTypes = MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[conditionTree.operator];
 
     const isTypeAllowed = !!allowedTypes.find(type => type === valueType);
 
@@ -162,7 +91,7 @@ export default class ConditionTreeUtils {
     columnSchema: ColumnSchema,
   ): void {
     const allowedOperators =
-      MAP_COLUMN_TYPE_SCHEMA_OPERATORS[columnSchema.columnType as PrimitiveTypes];
+      MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE[columnSchema.columnType as PrimitiveTypes];
 
     const isOperatorAllowed = !!allowedOperators.find(
       allowedOperator => allowedOperator === conditionTree.operator,
@@ -184,11 +113,27 @@ export default class ConditionTreeUtils {
     columnSchema: ColumnSchema,
   ): void {
     const allowedTypes =
-      MAP_COLUMN_TYPE_SCHEMA_VALUE_TYPE[columnSchema.columnType as PrimitiveTypes];
+      MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[columnSchema.columnType as PrimitiveTypes];
 
-    const isValueAllowed = !!allowedTypes.find(
-      allowedType => allowedType === TypeGetterUtil.get(conditionTree.value),
-    );
+    const type = TypeGetterUtil.get(conditionTree.value);
+    const isValueAllowed = !!allowedTypes.find(allowedType => allowedType === type);
+
+    if (isValueAllowed && columnSchema.columnType === PrimitiveTypes.Enum) {
+      let isEnumAllowed = false;
+
+      if (type === NonPrimitiveTypes.ArrayOfString) {
+        const enumValuesConditionTree = conditionTree.value as Array<string>;
+        isEnumAllowed = !!columnSchema.enumValues.find(
+          value => !!enumValuesConditionTree.every(enumValue => enumValue === value),
+        );
+      } else {
+        isEnumAllowed = !!columnSchema.enumValues.find(value => conditionTree.value === value);
+      }
+
+      if (!isEnumAllowed) {
+        throw new Error(`Error enum value [${conditionTree.value}]`);
+      }
+    }
 
     if (!isValueAllowed) {
       throw new Error(

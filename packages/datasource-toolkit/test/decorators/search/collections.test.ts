@@ -1,8 +1,7 @@
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
-import { Aggregator, Operator } from '../../../src/interfaces/query/selection';
-import { PrimitiveTypes } from '../../../src/interfaces/schema';
-import { ConditionTreeNotMatchAnyResult } from '../../../src/utils/condition-tree';
 import * as factories from '../../__factories__';
+import { Operator, PrimitiveTypes, Aggregator } from '../../../src';
+import { CONDITION_TREE_NOT_MATCH_ANY_RESULT } from '../../../src/utils/condition-tree';
 
 describe('SearchCollectionDecorator', () => {
   describe('refineSchema', () => {
@@ -58,7 +57,7 @@ describe('SearchCollectionDecorator', () => {
         const refinedFilter = searchCollectionDecorator.refineFilter(filter);
         expect(refinedFilter).toStrictEqual({
           search: null,
-          conditionTree: ConditionTreeNotMatchAnyResult,
+          conditionTree: CONDITION_TREE_NOT_MATCH_ANY_RESULT,
         });
       });
     });
@@ -265,7 +264,7 @@ describe('SearchCollectionDecorator', () => {
             const refinedFilter = searchCollectionDecorator.refineFilter(filter);
             expect(refinedFilter).toStrictEqual({
               search: null,
-              conditionTree: ConditionTreeNotMatchAnyResult,
+              conditionTree: CONDITION_TREE_NOT_MATCH_ANY_RESULT,
             });
           });
         });
@@ -290,7 +289,7 @@ describe('SearchCollectionDecorator', () => {
             const refinedFilter = searchCollectionDecorator.refineFilter(filter);
             expect(refinedFilter).toStrictEqual({
               search: null,
-              conditionTree: ConditionTreeNotMatchAnyResult,
+              conditionTree: CONDITION_TREE_NOT_MATCH_ANY_RESULT,
             });
           });
         });
@@ -312,7 +311,7 @@ describe('SearchCollectionDecorator', () => {
             const refinedFilter = searchCollectionDecorator.refineFilter(filter);
             expect(refinedFilter).toStrictEqual({
               search: null,
-              conditionTree: ConditionTreeNotMatchAnyResult,
+              conditionTree: CONDITION_TREE_NOT_MATCH_ANY_RESULT,
             });
           });
         });

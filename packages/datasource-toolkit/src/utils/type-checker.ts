@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon';
 import { NonPrimitiveTypes, PrimitiveTypes } from '../interfaces/schema';
 
 export default class TypeGetterUtil {
@@ -24,6 +25,16 @@ export default class TypeGetterUtil {
     }
 
     if (typeof value === 'string') {
+      const dateTime = DateTime.fromISO(value);
+
+      if (!dateTime.invalid) {
+        if (dateTime.toISODate() === value) {
+          return PrimitiveTypes.Dateonly;
+        }
+
+        return PrimitiveTypes.Date;
+      }
+
       if (value.match(TypeGetterUtil.REGEX_UUID)) {
         return PrimitiveTypes.Uuid;
       }
