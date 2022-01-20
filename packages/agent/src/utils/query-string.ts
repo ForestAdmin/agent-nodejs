@@ -30,4 +30,14 @@ export default class QueryStringParser {
       context.throw(400, `Invalid projection (${e.message})`);
     }
   }
+
+  static parseSearch(context: Context): string {
+    return context.request.query.search?.toString();
+  }
+
+  static parseSearchExtended(context: Context): boolean {
+    const extended = context.request.query.searchExtended?.toString?.();
+
+    return !!extended && extended !== '0' && extended !== 'false';
+  }
 }

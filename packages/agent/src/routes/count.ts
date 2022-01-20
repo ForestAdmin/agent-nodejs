@@ -5,6 +5,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
+import QueryStringParser from '../utils/query-string';
 import CollectionBaseRoute from './collection-base-route';
 
 export default class Count extends CollectionBaseRoute {
@@ -13,7 +14,10 @@ export default class Count extends CollectionBaseRoute {
   }
 
   public async handleCount(context: Context): Promise<void> {
-    const paginatedFilter: PaginatedFilter = {};
+    const paginatedFilter: PaginatedFilter = {
+      search: QueryStringParser.parseSearch(context),
+      searchExtended: QueryStringParser.parseSearchExtended(context),
+    };
     const aggregation: Aggregation = { operation: AggregationOperation.Count };
 
     try {

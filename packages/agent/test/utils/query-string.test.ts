@@ -118,4 +118,53 @@ describe('QueryStringParser', () => {
       });
     });
   });
+
+  describe('parseSearch', () => {
+    test('should return the query search parameter', () => {
+      const contextSearch = {
+        request: { query: { search: 'searched argument' } },
+        response: {},
+      } as unknown as Context;
+
+      expect(QueryStringParser.parseSearch(contextSearch)).toEqual('searched argument');
+    });
+
+    test('should convert the query search parameter as string', () => {
+      const context = {
+        request: { query: { search: 1234 } },
+        response: {},
+      } as unknown as Context;
+
+      expect(QueryStringParser.parseSearch(context)).toEqual('1234');
+    });
+  });
+
+  describe('parseSearchExtended', () => {
+    test('should return the query searchExtended parameter', () => {
+      const context = {
+        request: { query: { searchExtended: true } },
+        response: {},
+      } as unknown as Context;
+
+      expect(QueryStringParser.parseSearchExtended(context)).toEqual(true);
+    });
+
+    test('should return false for falsy "0" string', () => {
+      const context = {
+        request: { query: { searchExtended: '0' } },
+        response: {},
+      } as unknown as Context;
+
+      expect(QueryStringParser.parseSearchExtended(context)).toEqual(false);
+    });
+
+    test('should return false for falsy "false" string', () => {
+      const contextExtendedStringBoolean = {
+        request: { query: { searchExtended: 'false' } },
+        response: {},
+      } as unknown as Context;
+
+      expect(QueryStringParser.parseSearchExtended(contextExtendedStringBoolean)).toEqual(false);
+    });
+  });
 });
