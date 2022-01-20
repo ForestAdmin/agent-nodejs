@@ -11,6 +11,6 @@ export default abstract class SequelizeDataSource extends BaseDataSource<Sequeli
 
     this.sequelize = sequelize;
 
-    collections.forEach(collection => this.addCollection(collection.name, collection));
+    collections.forEach(collection => this.addCollection(collection));
   }
 }
