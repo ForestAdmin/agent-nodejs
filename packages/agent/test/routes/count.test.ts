@@ -37,13 +37,17 @@ describe('Count', () => {
       const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
       dataSource.getCollection('books').aggregate = aggregateSpy;
       const count = new Count(services, dataSource, options, partialCollection.name);
-      const context = createMockContext();
+      const context = createMockContext({
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+      });
 
       await count.handleCount(context);
       expect(aggregateSpy).toHaveBeenCalledWith(
         {
           search: undefined,
           searchExtended: false,
+          segment: null,
+          timezone: 'Europe/Paris',
         },
         { operation: AggregationOperation.Count },
       );

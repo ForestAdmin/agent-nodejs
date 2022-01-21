@@ -4,22 +4,23 @@ import QueryStringParser from '../../src/utils/query-string';
 import * as factories from '../__factories__';
 
 describe('QueryStringParser', () => {
+  const partialCollection = {
+    name: 'books',
+    schema: factories.collectionSchema.build({
+      fields: {
+        id: factories.columnSchema.build({
+          columnType: PrimitiveTypes.Uuid,
+          isPrimaryKey: true,
+        }),
+        name: factories.columnSchema.build(),
+      },
+      segments: ['fake-segment'],
+    }),
+  };
+  const collectionSimple = factories.collection.build(partialCollection);
+
   describe('parseProjection', () => {
     describe('on a flat collection', () => {
-      const partialCollection = {
-        name: 'books',
-        schema: factories.collectionSchema.build({
-          fields: {
-            id: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            }),
-            name: factories.columnSchema.build(),
-          },
-        }),
-      };
-      const collectionSimple = factories.collection.build(partialCollection);
-
       describe('on a well formed request', () => {
         test('should convert the request to a valid projection', () => {
           const context = createMockContext({
@@ -160,6 +161,101 @@ describe('QueryStringParser', () => {
       });
 
       expect(QueryStringParser.parseSearchExtended(context)).toEqual(false);
+    });
+  });
+
+  describe('parseSegment', () => {
+    test('should return null when no segment is provided', () => {
+      const context = createMockContext({
+        customProperties: { query: {} },
+      });
+
+      expect(QueryStringParser.parseSegment(collectionSimple, context)).toEqual(null);
+    });
+
+    test('should return the segment name when it exists', () => {
+      const context = createMockContext({
+        customProperties: { query: { segment: 'fake-segment' } },
+      });
+
+      expect(QueryStringParser.parseSegment(collectionSimple, context)).toEqual('fake-segment');
+    });
+
+    test('should throw a HTTP 400 when the segment name does not exist', () => {
+      const context = createMockContext({
+        customProperties: { query: { segment: 'fake-segment-that-dont-exist' } },
+      });
+
+      QueryStringParser.parseSegment(collectionSimple, context);
+
+      expect(context.throw).toHaveBeenCalledWith(
+        400,
+        'Invalid segment: "fake-segment-that-dont-exist"',
+      );
+    });
+  });
+
+  describe('parseTimezone', () => {
+    test('should return the timezone', () => {
+      const context = createMockContext({
+        customProperties: { query: { timezone: 'America/Los_Angeles' } },
+      });
+
+      expect(QueryStringParser.parseTimezone(context)).toEqual('America/Los_Angeles');
+    });
+
+    test('should throw a HTTP 400 when the timezone is missing', () => {
+      const context = createMockContext({
+        customProperties: { query: {} },
+      });
+
+      QueryStringParser.parseTimezone(context);
+
+      expect(context.throw).toHaveBeenCalledWith(400, 'Missing timezone');
+    });
+
+    test('should throw a HTTP 400 when the timezone is invalid', () => {
+      const context = createMockContext({
+        customProperties: { query: { timezone: 'ThisTZ/Donotexist' } },
+      });
+
+      QueryStringParser.parseTimezone(context);
+
+      expect(context.throw).toHaveBeenCalledWith(400, 'Invalid timezone: "ThisTZ/Donotexist"');
+    });
+
+    describe('when timezone are not available in the environment', () => {
+      let intlDateTimeFormatSpy;
+      beforeEach(() => {
+        intlDateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(
+          () =>
+            ({
+              resolvedOptions: () => ({
+                timeZone: null,
+                locale: null,
+                calendar: null,
+                numberingSystem: null,
+              }),
+            } as unknown as Intl.DateTimeFormat),
+        );
+      });
+
+      afterEach(() => {
+        intlDateTimeFormatSpy.mockRestore();
+      });
+
+      test('should throw a HTTP 500 when the timezone cannot be validated', () => {
+        const context = createMockContext({
+          customProperties: { query: { timezone: 'America/Los_Angeles' } },
+        });
+
+        QueryStringParser.parseTimezone(context);
+
+        expect(context.throw).toHaveBeenCalledWith(
+          500,
+          'Time zones are not available in this environment',
+        );
+      });
     });
   });
 });

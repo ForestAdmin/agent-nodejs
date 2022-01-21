@@ -17,6 +17,8 @@ export default class Count extends CollectionBaseRoute {
     const paginatedFilter: PaginatedFilter = {
       search: QueryStringParser.parseSearch(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
+      segment: QueryStringParser.parseSegment(this.collection, context),
+      timezone: QueryStringParser.parseTimezone(context),
     };
     const aggregation: Aggregation = { operation: AggregationOperation.Count };
 

@@ -37,7 +37,7 @@ describe('List', () => {
       services.serializer.serialize = jest.fn().mockReturnValue('test');
       const list = new List(services, dataSource, options, partialCollection.name);
       const context = createMockContext({
-        customProperties: { query: { 'fields[books]': 'id' } },
+        customProperties: { query: { 'fields[books]': 'id', timezone: 'Europe/Paris' } },
       });
 
       await list.handleList(context);
@@ -46,6 +46,8 @@ describe('List', () => {
         {
           search: undefined,
           searchExtended: false,
+          segment: null,
+          timezone: 'Europe/Paris',
         },
         ['id'],
       );
