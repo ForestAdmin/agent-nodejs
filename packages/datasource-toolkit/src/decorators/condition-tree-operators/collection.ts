@@ -39,7 +39,7 @@ export default class OperatorsDecorator extends CollectionDecorator {
     return { ...childSchema, fields };
   }
 
-  protected refineFilter(filter?: Filter): Filter {
+  protected override refineFilter(filter?: Filter): Filter {
     const conditionTree = ConditionTreeUtils.replaceLeafs(filter.conditionTree, leaf => {
       const schema = CollectionUtils.getFieldSchema(this.childCollection, leaf.field);
 
