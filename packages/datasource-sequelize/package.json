@@ -22,6 +22,6 @@
     "sequelize": "^6.12.4"
   },
   "peerDependencies": {
-    "sequelize": "^6.12.4"
+    "sequelize": ">= 6.X"
   }
 }
