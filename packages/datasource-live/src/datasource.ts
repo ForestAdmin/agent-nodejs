@@ -5,25 +5,22 @@ import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
 import LiveCollection from './collection';
 
-import CollectionSchemaConverter from './utils/collection-schema-to-model-attributes-converter';
+import CollectionAttributesConverter from './utils/collection-schema-to-model-attributes-converter';
+import CollectionRelationsConverter from './utils/collection-schema-to-model-relations-converter';
 
 export default class LiveDataSource extends SequelizeDataSource {
   constructor(dataSourceSchema: DataSourceSchema) {
     super([], new Sequelize('sqlite::memory:', { logging: false }));
     const collections = Object.entries(dataSourceSchema.collections);
 
-    // Convert all collections to Sequelize models.
+    // Convert all collections to Sequelize models, only with plain attributes.
     collections.forEach(([name, schema]) => {
-      const modelSchema = CollectionSchemaConverter.convert(schema);
-      const model = this.sequelize.define(name, modelSchema);
-
-      return model;
+      this.sequelize.define(name, CollectionAttributesConverter.convert(schema));
     });
 
-    // Extend models with relationships.
+    // Add all relationships.
     collections.forEach(([name, schema]) => {
-      void name;
-      void schema;
+      CollectionRelationsConverter.convert(name, schema, this.sequelize);
     });
 
     // Add actual Collection instances to DataSource.
