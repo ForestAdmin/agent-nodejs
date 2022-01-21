@@ -10,8 +10,8 @@ import collectionSchemaFactory from './schema/collection-schema';
 export class DecoratedCollection extends CollectionDecorator {
   public override childCollection: Collection;
 
-  public refineFilter(filter: Filter): Filter {
-    return filter;
+  public override refineFilter(filter: Filter): Filter {
+    return super.refineFilter(filter);
   }
 
   public override refineSchema(subSchema: CollectionSchema): CollectionSchema {

@@ -65,7 +65,9 @@ export default abstract class CollectionDecorator implements Collection {
     return this.childCollection.aggregate(refinedFilter, aggregation);
   }
 
-  protected abstract refineFilter(filter?: PaginatedFilter): PaginatedFilter;
+  protected refineFilter(filter?: PaginatedFilter): PaginatedFilter {
+    return filter;
+  }
 
   protected abstract refineSchema(subSchema: CollectionSchema): CollectionSchema;
 }

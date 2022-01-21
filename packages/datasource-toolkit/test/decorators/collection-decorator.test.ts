@@ -158,4 +158,13 @@ describe('CollectionDecorator', () => {
       expect(decoratedCollection.name).toStrictEqual('a name');
     });
   });
+
+  describe('refineFilter', () => {
+    it('should be the identity function', async () => {
+      const decoratedCollection = factories.collection.buildDecoratedCollection({});
+      const filter = {};
+
+      expect(decoratedCollection.refineFilter(filter)).toBe(filter);
+    });
+  });
 });
