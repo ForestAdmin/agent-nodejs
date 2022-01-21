@@ -1,6 +1,23 @@
+import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
+
 import LiveDataSource from '../src/datasource';
 
-import { dataSourceWithDummyCollectionSchema, emptyDataSourceSchema } from './helpers/schemas';
+const dataSourceWithDummyCollectionSchema: DataSourceSchema = {
+  name: '__dummy_data_source__',
+  collections: {
+    dummy: {
+      actions: {},
+      fields: {},
+      searchable: true,
+      segments: [],
+    },
+  },
+};
+
+const emptyDataSourceSchema: DataSourceSchema = {
+  name: '__empty_data_source__',
+  collections: {},
+};
 
 describe('LiveDataSource', () => {
   it('should instanciate properly', () => {

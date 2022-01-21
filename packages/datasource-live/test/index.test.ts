@@ -1,7 +1,12 @@
+import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
+
 import getCollections from '../src';
 import LiveDataSource from '../src/datasource';
 
-import { emptyDataSourceSchema } from './helpers/schemas';
+const emptyDataSourceSchema: DataSourceSchema = {
+  name: '__empty_data_source__',
+  collections: {},
+};
 
 describe('getCollections', () => {
   it('should return LiveDataSource collections', () => {
