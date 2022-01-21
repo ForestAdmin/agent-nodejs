@@ -2,11 +2,6 @@ import { Aggregator, ConditionTreeLeaf, Operator } from '../../src/interfaces/qu
 import ConditionTreeUtils from '../../src/utils/condition-tree';
 import * as factories from '../__factories__';
 import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
-import {
-  MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE,
-  MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER,
-  MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE,
-} from '../../src/utils/rules';
 
 describe('ConditionTreeUtils', () => {
   describe('intersect', () => {
@@ -337,10 +332,8 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'The given operator of ' +
-            '{"operator":"contains","field":"target","value":"subValue"} has an error.\n ' +
-            'The operator is not allowed with the column type schema: ' +
-            '{"type":"Column","columnType":"Number","filterOperators":{}}\n',
+          "The given operator 'contains' is not allowed with the columnType schema: 'Number'. \n" +
+            'The allowed types are/is: [present,equal,not_equal,greater_than,not_in,less_than]',
         );
       });
     });
@@ -369,10 +362,9 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'The given condition of ' +
-            '{"operator":"greater_than","field":"target","value":null} has an error.\n ' +
-            'The value attribute has an unexpected value for the given operator.\n ' +
-            "The allowed field value types are: [Number,Timeonly] and the type is 'null'",
+          "The given value attribute 'null (type: null)' has an unexpected " +
+            "value for the given operator 'greater_than'.\n " +
+            'The allowed field value types are: [Number,Timeonly].',
         );
       });
     });
@@ -400,11 +392,9 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'The given value of ' +
-            '{"operator":"in","field":"target","value":[1,2,3]} has an error.\n ' +
-            'The value is not allowed with the column type schema:' +
-            ' {"type":"Column","columnType":"String","filterOperators":{}}\n ' +
-            'The allowed values for the column type are: [String,ArrayOfString]',
+          "The given value '[1,2,3] (type: ArrayOfNumber)' " +
+            "is not allowed with the columnType schema 'String'. \n" +
+            'The allowed value(s) are/is ["String","ArrayOfString"].',
         );
       });
     });
@@ -438,7 +428,7 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'Error enum value',
+          'The given enum value(s) \'"aRandomValue"\' is not list in ["anAllowedValue"]',
         );
       });
 
@@ -470,27 +460,10 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'Error enum value [allowedValue,aRandomValue]',
+          'The given enum value(s) \'["allowedValue","aRandomValue"]\' ' +
+            'is not list in ["allowedValue"]',
         );
       });
-    });
-  });
-
-  describe('MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER', () => {
-    it.each(Object.values(Operator))(`should implement %s operator`, async operator => {
-      expect(MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[operator]).toBeDefined();
-    });
-  });
-
-  describe('MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE', () => {
-    it.each(Object.values(PrimitiveTypes))(`should implement %s primitive type`, async operator => {
-      expect(MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE[operator]).toBeDefined();
-    });
-  });
-
-  describe('MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE', () => {
-    it.each(Object.values(PrimitiveTypes))(`should implement %s primitive type`, async operator => {
-      expect(MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[operator]).toBeDefined();
     });
   });
 });

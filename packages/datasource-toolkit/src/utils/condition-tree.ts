@@ -22,7 +22,7 @@ export const CONDITION_TREE_NOT_MATCH_ANY_RESULT = Object.freeze({
 
 export default class ConditionTreeUtils {
   static validate(conditionTree: ConditionTree, collection: Collection): void {
-    ConditionTreeUtils.forEveryLeaf(
+    ConditionTreeUtils.forEveryLeafs(
       conditionTree,
       collection,
       (currentCondition: ConditionTreeLeaf): void => {
@@ -49,7 +49,7 @@ export default class ConditionTreeUtils {
     );
   }
 
-  private static forEveryLeaf(
+  private static forEveryLeafs(
     conditionTree: ConditionTree,
     collection: Collection,
     forCurrentLeafFn: (conditionTree: ConditionTreeLeaf) => unknown,
@@ -75,13 +75,13 @@ export default class ConditionTreeUtils {
 
     if (!isTypeAllowed) {
       throw new Error(
-        `The given condition of ${JSON.stringify(
-          conditionTree,
-        )} has an error.\n The value attribute has an unexpected value for the given operator.\n ${
-          allowedTypes.length === 0
-            ? 'The value attribute must be empty for the given operator.'
-            : `The allowed field value types are: [${allowedTypes}] and the type is '${valueType}'.`
-        }`,
+        `The given value attribute '${value} (type: ${valueType})' has an unexpected value ` +
+          `for the given operator '${conditionTree.operator}'.\n ` +
+          `${
+            allowedTypes.length === 0
+              ? 'The value attribute must be empty.'
+              : `The allowed field value types are: [${allowedTypes}].`
+          }`,
       );
     }
   }
@@ -99,11 +99,9 @@ export default class ConditionTreeUtils {
 
     if (!isOperatorAllowed) {
       throw new Error(
-        `The given operator of ${JSON.stringify(conditionTree)} has an error.
- The operator is not allowed with the column type schema: ${JSON.stringify(columnSchema)}
- The allowed types for the given operator are: [${allowedOperators}] and the operator is '${
-          conditionTree.operator
-        }'`,
+        `The given operator '${conditionTree.operator}' ` +
+          `is not allowed with the columnType schema: '${columnSchema.columnType}'. \n` +
+          `The allowed types are/is: [${allowedOperators}]`,
       );
     }
   }
@@ -118,28 +116,40 @@ export default class ConditionTreeUtils {
     const type = TypeGetterUtil.get(conditionTree.value);
     const isValueAllowed = !!allowedTypes.find(allowedType => allowedType === type);
 
-    if (isValueAllowed && columnSchema.columnType === PrimitiveTypes.Enum) {
-      let isEnumAllowed;
-
-      if (type === NonPrimitiveTypes.ArrayOfString) {
-        const enumValuesConditionTree = conditionTree.value as Array<string>;
-        isEnumAllowed = !!columnSchema.enumValues.find(
-          value => !!enumValuesConditionTree.every(enumValue => enumValue === value),
-        );
-      } else {
-        isEnumAllowed = !!columnSchema.enumValues.find(value => conditionTree.value === value);
-      }
-
-      if (!isEnumAllowed) {
-        throw new Error(`Error enum value [${conditionTree.value}]`);
-      }
-    }
-
     if (!isValueAllowed) {
       throw new Error(
-        `The given value of ${JSON.stringify(conditionTree)} has an error.
- The value is not allowed with the column type schema: ${JSON.stringify(columnSchema)}
- The allowed values for the column type are: [${allowedTypes}]`,
+        `The given value '${JSON.stringify(conditionTree.value)} (type: ${type})' ` +
+          `is not allowed with the columnType schema '${columnSchema.columnType}'. \n` +
+          `The allowed value(s) are/is ${JSON.stringify(allowedTypes)}.`,
+      );
+    }
+
+    if (columnSchema.columnType === PrimitiveTypes.Enum) {
+      this.throwErrorIfEnumIsNotValid(type, conditionTree, columnSchema);
+    }
+  }
+
+  private static throwErrorIfEnumIsNotValid(
+    type: PrimitiveTypes | NonPrimitiveTypes,
+    conditionTree: ConditionTreeLeaf,
+    columnSchema: ColumnSchema,
+  ) {
+    let isEnumAllowed;
+
+    if (type === NonPrimitiveTypes.ArrayOfString) {
+      const enumValuesConditionTree = conditionTree.value as Array<string>;
+      isEnumAllowed = !!columnSchema.enumValues.find(
+        value => !!enumValuesConditionTree.every(enumValue => enumValue === value),
+      );
+    } else {
+      isEnumAllowed = !!columnSchema.enumValues.find(value => conditionTree.value === value);
+    }
+
+    if (!isEnumAllowed) {
+      throw new Error(
+        `The given enum value(s) '${JSON.stringify(
+          conditionTree.value,
+        )}' is not list in ${JSON.stringify(columnSchema.enumValues)}`,
       );
     }
   }
