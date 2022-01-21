@@ -9,6 +9,10 @@ describe('TypeGetterUtil', () => {
           expect(TypeGetterUtil.get([1, 2, 3])).toEqual(NonPrimitiveTypes.ArrayOfNumber);
         });
 
+        it('should return the expected type when there are negative numbers', () => {
+          expect(TypeGetterUtil.get([-1, 2, 3])).toEqual(NonPrimitiveTypes.ArrayOfNumber);
+        });
+
         describe('when values are number and string number', () => {
           it('should return the expected type', () => {
             expect(TypeGetterUtil.get(['1', 2, 3])).toEqual(NonPrimitiveTypes.ArrayOfNumber);

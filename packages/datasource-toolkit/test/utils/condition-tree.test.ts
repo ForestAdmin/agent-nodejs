@@ -394,7 +394,7 @@ describe('ConditionTreeUtils', () => {
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
           "The given value '[1,2,3] (type: ArrayOfNumber)' " +
             "is not allowed with the columnType schema 'String'. \n" +
-            'The allowed value(s) are/is ["String","ArrayOfString"].',
+            'The allowed value(s) are/is [String,ArrayOfString].',
         );
       });
     });
@@ -428,7 +428,7 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'The given enum value(s) \'"aRandomValue"\' is not list in ["anAllowedValue"]',
+          'The given enum value(s) [aRandomValue] is not list in [anAllowedValue]',
         );
       });
 
@@ -460,9 +460,75 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'The given enum value(s) \'["allowedValue","aRandomValue"]\' ' +
-            'is not list in ["allowedValue"]',
+          'The given enum value(s) [allowedValue,aRandomValue] is not list in [allowedValue]',
         );
+      });
+    });
+
+    describe('when the field is a Point', () => {
+      it('should not throw an error when the filter value is well formatted', () => {
+        const conditionTree = factories.conditionTreeBranch.build({
+          aggregator: Aggregator.Or,
+          conditions: [
+            factories.conditionTreeBranch.build({
+              aggregator: Aggregator.Or,
+              conditions: [
+                factories.conditionTreeLeaf.build({
+                  operator: Operator.Equal,
+                  value: [-80, 20],
+                  field: 'pointField',
+                }),
+              ],
+            }),
+          ],
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              pointField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Point,
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).not.toThrow();
+      });
+
+      describe('when the field value is not well formatted', () => {
+        it('should throw an error', () => {
+          const conditionTree = factories.conditionTreeBranch.build({
+            aggregator: Aggregator.Or,
+            conditions: [
+              factories.conditionTreeBranch.build({
+                aggregator: Aggregator.Or,
+                conditions: [
+                  factories.conditionTreeLeaf.build({
+                    operator: Operator.Equal,
+                    value: [-80, 20, 90],
+                    field: 'pointField',
+                  }),
+                ],
+              }),
+            ],
+          });
+          const collection = factories.collection.build({
+            schema: factories.collectionSchema.build({
+              fields: {
+                pointField: factories.columnSchema.build({
+                  columnType: PrimitiveTypes.Point,
+                }),
+              },
+            }),
+          });
+
+          expect(() => ConditionTreeUtils.validate(conditionTree, collection)).not.toThrow(
+            "The given value attribute '[-80,20,90] (type: ArrayOfNumber)'" +
+              "has an unexpected value for the given operator 'equal'.\n " +
+              'The allowed field value types are:' +
+              '[Boolean,Date,Dateonly,Enum,Number,Point,String,Timeonly,Uuid].',
+          );
+        });
       });
     });
   });

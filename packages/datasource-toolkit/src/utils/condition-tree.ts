@@ -31,12 +31,10 @@ export default class ConditionTreeUtils {
           currentCondition.field,
         ) as ColumnSchema;
 
-        const fieldValue = currentCondition.value;
         ConditionTreeUtils.throwErrorIfConditionFieldValueIsNotAllowedWithOperator(
           currentCondition,
-          fieldValue,
+          fieldSchema,
         );
-
         ConditionTreeUtils.throwErrorIfConditionOperatorIsNotAllowedWithColumnTypeSchema(
           currentCondition,
           fieldSchema,
@@ -65,9 +63,11 @@ export default class ConditionTreeUtils {
 
   private static throwErrorIfConditionFieldValueIsNotAllowedWithOperator(
     conditionTree: ConditionTreeLeaf,
-    value?: unknown,
+    columnSchema: ColumnSchema,
   ): void {
-    const valueType = TypeGetterUtil.get(value);
+    const { value } = conditionTree;
+    let valueType = TypeGetterUtil.get(value);
+    valueType = ConditionTreeUtils.checkIfItIsAPointOrReturnType(valueType, columnSchema, value);
 
     const allowedTypes = MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[conditionTree.operator];
 
@@ -75,7 +75,9 @@ export default class ConditionTreeUtils {
 
     if (!isTypeAllowed) {
       throw new Error(
-        `The given value attribute '${value} (type: ${valueType})' has an unexpected value ` +
+        `The given value attribute '${JSON.stringify(
+          value,
+        )} (type: ${valueType})' has an unexpected value ` +
           `for the given operator '${conditionTree.operator}'.\n ` +
           `${
             allowedTypes.length === 0
@@ -84,6 +86,23 @@ export default class ConditionTreeUtils {
           }`,
       );
     }
+  }
+
+  private static checkIfItIsAPointOrReturnType(
+    type: PrimitiveTypes | NonPrimitiveTypes,
+    columnSchema: ColumnSchema,
+    value: unknown,
+  ) {
+    if (
+      type === NonPrimitiveTypes.ArrayOfNumber &&
+      columnSchema.columnType === PrimitiveTypes.Point
+    ) {
+      return (value as number[]).length === 2
+        ? PrimitiveTypes.Point
+        : NonPrimitiveTypes.ArrayOfNumber;
+    }
+
+    return type;
   }
 
   private static throwErrorIfConditionOperatorIsNotAllowedWithColumnTypeSchema(
@@ -110,17 +129,20 @@ export default class ConditionTreeUtils {
     conditionTree: ConditionTreeLeaf,
     columnSchema: ColumnSchema,
   ): void {
-    const allowedTypes =
-      MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[columnSchema.columnType as PrimitiveTypes];
+    const { value } = conditionTree;
+    const { columnType } = columnSchema;
+    const allowedTypes = MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[columnType as PrimitiveTypes];
 
-    const type = TypeGetterUtil.get(conditionTree.value);
+    let type = TypeGetterUtil.get(value);
+    type = ConditionTreeUtils.checkIfItIsAPointOrReturnType(type, columnSchema, value);
+
     const isValueAllowed = !!allowedTypes.find(allowedType => allowedType === type);
 
     if (!isValueAllowed) {
       throw new Error(
-        `The given value '${JSON.stringify(conditionTree.value)} (type: ${type})' ` +
-          `is not allowed with the columnType schema '${columnSchema.columnType}'. \n` +
-          `The allowed value(s) are/is ${JSON.stringify(allowedTypes)}.`,
+        `The given value '${JSON.stringify(value)} (type: ${type})' ` +
+          `is not allowed with the columnType schema '${columnType}'. \n` +
+          `The allowed value(s) are/is [${allowedTypes}].`,
       );
     }
 
@@ -147,9 +169,8 @@ export default class ConditionTreeUtils {
 
     if (!isEnumAllowed) {
       throw new Error(
-        `The given enum value(s) '${JSON.stringify(
-          conditionTree.value,
-        )}' is not list in ${JSON.stringify(columnSchema.enumValues)}`,
+        `The given enum value(s) [${conditionTree.value}] is not list in ` +
+          `[${columnSchema.enumValues}]`,
       );
     }
   }
