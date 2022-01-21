@@ -169,7 +169,7 @@ export default class ConditionTreeUtils {
 
     if (!isEnumAllowed) {
       throw new Error(
-        `The given enum value(s) [${conditionTree.value}] is not list in ` +
+        `The given enum value(s) [${conditionTree.value}] is not listed in ` +
           `[${columnSchema.enumValues}]`,
       );
     }

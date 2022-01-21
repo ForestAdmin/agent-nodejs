@@ -428,7 +428,7 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'The given enum value(s) [aRandomValue] is not list in [anAllowedValue]',
+          'The given enum value(s) [aRandomValue] is not listed in [anAllowedValue]',
         );
       });
 
@@ -460,7 +460,7 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          'The given enum value(s) [allowedValue,aRandomValue] is not list in [allowedValue]',
+          'The given enum value(s) [allowedValue,aRandomValue] is not listed in [allowedValue]',
         );
       });
     });
