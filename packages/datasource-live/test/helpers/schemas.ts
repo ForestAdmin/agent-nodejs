@@ -1,5 +1,3 @@
-/* eslint-disable import/prefer-default-export */
-
 import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
 
 export const dataSourceWithDummyCollectionSchema: DataSourceSchema = {

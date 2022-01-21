@@ -1,10 +1,8 @@
 import { Sequelize } from 'sequelize';
-
 import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
 import LiveCollection from './collection';
-
 import CollectionAttributesConverter from './utils/collection-schema-to-model-attributes-converter';
 import CollectionRelationsConverter from './utils/collection-schema-to-model-relations-converter';
 

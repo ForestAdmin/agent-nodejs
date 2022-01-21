@@ -1,5 +1,5 @@
-import { SequelizeCollection } from '../src';
 import SequelizeDataSource from '../src/datasource';
+import { SequelizeCollection } from '../src';
 
 class ConcreteSequelizeDataSource extends SequelizeDataSource {}
 

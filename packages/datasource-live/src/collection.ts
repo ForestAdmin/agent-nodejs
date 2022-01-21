@@ -10,6 +10,7 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 import { SequelizeCollection } from '@forestadmin/datasource-sequelize';
+
 import CollectionSchemaConverter from './utils/collection-schema-to-model-attributes-converter';
 
 export default class LiveCollection extends SequelizeCollection {

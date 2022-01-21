@@ -1,4 +1,5 @@
 /* eslint-disable max-classes-per-file */
+import { DataTypes } from 'sequelize';
 import {
   Action,
   ActionForm,
@@ -10,7 +11,7 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { DataTypes } from 'sequelize';
+
 import { SequelizeCollection } from '../src';
 
 describe('SequelizeDataSource > Collection', () => {

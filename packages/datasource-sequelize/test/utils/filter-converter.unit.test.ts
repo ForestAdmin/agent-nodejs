@@ -1,5 +1,4 @@
 import { Op } from 'sequelize';
-
 import {
   Aggregator,
   ConditionTreeBranch,

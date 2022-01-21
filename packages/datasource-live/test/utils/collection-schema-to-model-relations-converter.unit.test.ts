@@ -4,6 +4,7 @@ import {
   Operator,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
+
 // eslint-disable-next-line max-len
 import CollectionSchemaToModelRelationsConverter from '../../src/utils/collection-schema-to-model-relations-converter';
 

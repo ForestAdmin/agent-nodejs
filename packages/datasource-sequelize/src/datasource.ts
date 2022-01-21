@@ -1,4 +1,5 @@
 import { BaseDataSource } from '@forestadmin/datasource-toolkit';
+
 import SequelizeCollection from './collection';
 
 export default abstract class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
