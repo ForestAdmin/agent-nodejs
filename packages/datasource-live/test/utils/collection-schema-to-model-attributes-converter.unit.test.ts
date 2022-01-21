@@ -70,105 +70,25 @@ describe('Utils > CollectionSchemaToModelAttributesConverter', () => {
     });
 
     describe('with Relation fields', () => {
-      describe('with ManyToMany fields', () => {
-        it('should fail', () => {
-          const schema: CollectionSchema = {
-            actions: {},
-            fields: {
-              a: {
-                foreignCollection: '__none__',
-                foreignKey: '__none__',
-                otherField: '__none__',
-                throughCollection: '__none__',
-                type: FieldTypes.ManyToMany,
-              },
-            },
-            searchable: false,
-            segments: [],
-          };
-
-          expect(() => CollectionSchemaToModelAttributesConverter.convert(schema)).toThrow(
-            'Unsupported relation type: "ManyToMany".',
-          );
-        });
-      });
-
-      describe('with ManyToOne fields', () => {
-        it('should generate a reference', () => {
-          const schema: CollectionSchema = {
-            actions: {},
-            fields: {
-              a: {
-                foreignCollection: '__collection__',
-                foreignKey: '__key__',
-                type: FieldTypes.ManyToOne,
-              },
-            },
-            searchable: false,
-            segments: [],
-          };
-
-          expect(CollectionSchemaToModelAttributesConverter.convert(schema)).toEqual({
+      it('should ignore all fields', () => {
+        const schema: CollectionSchema = {
+          actions: {},
+          fields: {
             a: {
-              references: {
-                key: '__key__',
-                model: '__collection__',
-              },
+              foreignCollection: '__none__',
+              foreignKey: '__none__',
+              otherField: '__none__',
+              throughCollection: '__none__',
+              type: FieldTypes.ManyToMany,
             },
-          });
-        });
-      });
+          },
+          searchable: false,
+          segments: [],
+        };
 
-      describe('with OneToMany fields', () => {
-        it('should generate a reference', () => {
-          const schema: CollectionSchema = {
-            actions: {},
-            fields: {
-              a: {
-                foreignCollection: '__collection__',
-                foreignKey: '__key__',
-                type: FieldTypes.OneToMany,
-              },
-            },
-            searchable: false,
-            segments: [],
-          };
+        const attributes = CollectionSchemaToModelAttributesConverter.convert(schema);
 
-          expect(CollectionSchemaToModelAttributesConverter.convert(schema)).toEqual({
-            a: {
-              references: {
-                key: '__key__',
-                model: '__collection__',
-              },
-            },
-          });
-        });
-      });
-
-      describe('with OneToOne fields', () => {
-        it('should generate a reference', () => {
-          const schema: CollectionSchema = {
-            actions: {},
-            fields: {
-              a: {
-                foreignCollection: '__collection__',
-                foreignKey: '__key__',
-                type: FieldTypes.OneToOne,
-              },
-            },
-            searchable: false,
-            segments: [],
-          };
-
-          expect(CollectionSchemaToModelAttributesConverter.convert(schema)).toEqual({
-            a: {
-              references: {
-                key: '__key__',
-                model: '__collection__',
-              },
-            },
-          });
-        });
+        expect(Object.keys(attributes)).toBeArrayOfSize(0);
       });
     });
   });
