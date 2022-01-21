@@ -1,5 +1,5 @@
 import { AggregationOperation, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
+import { createMockContext } from '@shopify/jest-koa-mocks';
 import Count from '../../src/routes/count';
 import * as factories from '../__factories__';
 
@@ -37,10 +37,7 @@ describe('Count', () => {
       const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
       dataSource.getCollection('books').aggregate = aggregateSpy;
       const count = new Count(services, dataSource, options, partialCollection.name);
-      const context = {
-        request: {},
-        response: {},
-      } as Context;
+      const context = createMockContext();
 
       await count.handleCount(context);
       expect(aggregateSpy).toHaveBeenCalledWith({}, { operation: AggregationOperation.Count });
@@ -54,15 +51,10 @@ describe('Count', () => {
         });
 
         const count = new Count(services, dataSource, options, partialCollection.name);
-        const throwSpy = jest.fn();
-        const context = {
-          request: {},
-          response: {},
-          throw: throwSpy,
-        } as unknown as Context;
+        const context = createMockContext();
 
         await count.handleCount(context);
-        expect(throwSpy).toHaveBeenCalledWith(500, 'Failed to count collection "books"');
+        expect(context.throw).toHaveBeenCalledWith(500, 'Failed to count collection "books"');
       });
     });
   });

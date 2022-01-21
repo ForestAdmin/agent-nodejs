@@ -1,5 +1,5 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
+import { createMockContext } from '@shopify/jest-koa-mocks';
 import List from '../../src/routes/list';
 import * as factories from '../__factories__';
 
@@ -36,10 +36,9 @@ describe('List', () => {
     test('should call the serializer using the list implementation', async () => {
       services.serializer.serialize = jest.fn().mockReturnValue('test');
       const list = new List(services, dataSource, options, partialCollection.name);
-      const context = {
-        request: { query: { 'fields[books]': 'id' } },
-        response: {},
-      } as unknown as Context;
+      const context = createMockContext({
+        customProperties: { query: { 'fields[books]': 'id' } },
+      });
 
       await list.handleList(context);
       expect(services.serializer.serialize).toHaveBeenCalled();
@@ -54,15 +53,12 @@ describe('List', () => {
         });
 
         const list = new List(services, dataSource, options, partialCollection.name);
-        const throwSpy = jest.fn();
-        const context = {
-          request: { query: { 'fields[books]': 'id' } },
-          response: {},
-          throw: throwSpy,
-        } as unknown as Context;
-
+        const context = createMockContext({
+          customProperties: { query: { 'fields[books]': 'id' } },
+        });
         await list.handleList(context);
-        expect(throwSpy).toHaveBeenCalledWith(500, 'Failed to list collection "books"');
+
+        expect(context.throw).toHaveBeenCalledWith(500, 'Failed to list collection "books"');
       });
     });
   });

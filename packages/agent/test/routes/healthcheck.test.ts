@@ -1,4 +1,4 @@
-import { Context } from 'koa';
+import { createMockContext } from '@shopify/jest-koa-mocks';
 import HealthCheck from '../../src/routes/healthcheck';
 import * as factories from '../__factories__';
 
@@ -21,7 +21,7 @@ describe('Healthcheck', () => {
 
   test('return a 200 response', async () => {
     const healthCheck = new HealthCheck(services, dataSource, options);
-    const context = { response: {} } as Context;
+    const context = createMockContext();
     await healthCheck.handleRequest(context);
 
     expect(context.response.status).toEqual(200);

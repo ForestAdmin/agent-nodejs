@@ -1,4 +1,5 @@
 import { Context, Next } from 'koa';
+import { createMockContext } from '@shopify/jest-koa-mocks';
 import IpWhitelist from '../../src/routes/ip-whitelist';
 import * as factories from '../__factories__';
 import { HttpCode } from '../../src/types';
@@ -61,7 +62,7 @@ describe('IpWhitelist', () => {
 
       const ipWhitelistService = new IpWhitelist(services, dataSource, options);
 
-      const context = {} as unknown as Context;
+      const context = createMockContext();
       const next = jest.fn() as Next;
       await ipWhitelistService.checkIp(context, next);
 
@@ -96,6 +97,8 @@ describe('IpWhitelist', () => {
           ];
           await setupServiceWith(ipWhitelistService, { isFeatureEnabled, ipRules });
 
+          // The ip property of the koa context is not supposed to be changed
+          // Thus, forging a manual context is the only way of testing this function
           const context = {
             request: { ip: '10.20.15.10', headers: { 'x-forwarded-for': null } },
           } as unknown as Context;
@@ -126,10 +129,9 @@ describe('IpWhitelist', () => {
 
           const notAllowedIp = '10.20.15.1';
 
-          const context = {
-            throw: jest.fn(),
-            request: { headers: { 'x-forwarded-for': notAllowedIp } },
-          } as unknown as Context;
+          const context = createMockContext({
+            headers: { 'x-forwarded-for': notAllowedIp },
+          });
           const next = jest.fn() as Next;
 
           await ipWhitelistService.checkIp(context, next);
@@ -160,9 +162,9 @@ describe('IpWhitelist', () => {
           await setupServiceWith(ipWhitelistService, { isFeatureEnabled, ipRules });
 
           const allowedIp = '10.20.15.10';
-          const context = {
-            request: { headers: { 'x-forwarded-for': allowedIp } },
-          } as unknown as Context;
+          const context = createMockContext({
+            headers: { 'x-forwarded-for': allowedIp },
+          });
           const next = jest.fn() as Next;
           await ipWhitelistService.checkIp(context, next);
 

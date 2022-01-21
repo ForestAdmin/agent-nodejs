@@ -7,6 +7,7 @@
     "@forestadmin/datasource-toolkit": "^1.0.0",
     "@koa/cors": "^3.1.0",
     "@koa/router": "^10.1.1",
+    "forest-ip-utils": "^1.0.1",
     "json-api-serializer": "^2.6.6",
     "json-stringify-pretty-compact": "^3.0.0",
     "jsonwebtoken": "^8.5.1",
@@ -14,8 +15,7 @@
     "koa-bodyparser": "^4.3.0",
     "koa-jwt": "^4.0.3",
     "openid-client": "^5.1.1",
-    "superagent": "^7.0.1",
-    "forest-ip-utils": "^1.0.1"
+    "superagent": "^7.0.1"
   },
   "files": [
     "dist/**/*.js",
@@ -29,6 +29,7 @@
     "test": "jest"
   },
   "devDependencies": {
+    "@shopify/jest-koa-mocks": "^3.1.0",
     "@types/json-api-serializer": "^2.6.3",
     "@types/koa": "^2.13.4",
     "@types/koa-bodyparser": "^4.3.5",
