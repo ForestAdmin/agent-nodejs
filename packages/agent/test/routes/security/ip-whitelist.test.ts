@@ -1,8 +1,8 @@
 import { Context, Next } from 'koa';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import IpWhitelist from '../../src/routes/ip-whitelist';
-import * as factories from '../__factories__';
-import { HttpCode } from '../../src/types';
+import IpWhitelist from '../../../src/routes/security/ip-whitelist';
+import * as factories from '../../__factories__';
+import { HttpCode } from '../../../src/types';
 
 describe('IpWhitelist', () => {
   describe('setupAuthentication', () => {

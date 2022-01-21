@@ -1,4 +1,4 @@
-import Authentication from './authentication';
+import Authentication from './security/authentication';
 import HealthCheck from './healthcheck';
 import List from './access/list';
 import Count from './access/count';
