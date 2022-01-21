@@ -37,12 +37,20 @@ describe('List', () => {
       services.serializer.serialize = jest.fn().mockReturnValue('test');
       const list = new List(services, dataSource, options, partialCollection.name);
       const context = createMockContext({
-        customProperties: { query: { 'fields[books]': 'id' } },
+        customProperties: { query: { 'fields[books]': 'id', timezone: 'Europe/Paris' } },
       });
 
       await list.handleList(context);
       expect(services.serializer.serialize).toHaveBeenCalled();
-      expect(partialCollection.list).toHaveBeenCalledWith({}, ['id']);
+      expect(partialCollection.list).toHaveBeenCalledWith(
+        {
+          search: undefined,
+          searchExtended: false,
+          segment: null,
+          timezone: 'Europe/Paris',
+        },
+        ['id'],
+      );
       expect(context.response.body).toEqual('test');
     });
 

@@ -10,7 +10,12 @@ export default class ListRoute extends CollectionBaseRoute {
   }
 
   public async handleList(context: Context) {
-    const paginatedFilter: PaginatedFilter = {};
+    const paginatedFilter: PaginatedFilter = {
+      search: QueryStringParser.parseSearch(context),
+      searchExtended: QueryStringParser.parseSearchExtended(context),
+      segment: QueryStringParser.parseSegment(this.collection, context),
+      timezone: QueryStringParser.parseTimezone(context),
+    };
     const projection: Projection = QueryStringParser.parseProjection(this.collection, context);
 
     try {
