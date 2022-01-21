@@ -15,18 +15,18 @@ import CollectionSchemaConverter from './utils/collection-schema-to-model-attrib
 export default class LiveCollection extends SequelizeCollection {
   private synched = false;
 
-  constructor(name, dataSource: DataSource, sequelize, schema: CollectionSchema) {
+  constructor(name, dataSource: DataSource, sequelize, schema?: CollectionSchema) {
     super(
       name,
       dataSource,
       // Make Sequelize believe model was previously defined to use it in Collection.
       // Only if not defined previously at DataSource level.
       (sequelize.models[name] ||
-        sequelize.define(name, CollectionSchemaConverter.convert(schema))) &&
+        (schema && sequelize.define(name, CollectionSchemaConverter.convert(schema)))) &&
         sequelize,
     );
 
-    if (schema.searchable) this.enableSearch();
+    if (schema?.searchable) this.enableSearch();
   }
 
   private ensureSynched(): void {
