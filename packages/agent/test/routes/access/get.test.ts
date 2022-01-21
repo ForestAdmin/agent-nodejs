@@ -5,20 +5,44 @@ import * as factories from '../../__factories__';
 
 describe('Get', () => {
   const services = factories.forestAdminHttpDriverServices.build();
-  const partialCollection = {
-    name: 'books',
-    getById: jest.fn(),
-    schema: factories.collectionSchema.build({
-      fields: {
-        id: factories.columnSchema.build({
-          columnType: PrimitiveTypes.Number,
-          isPrimaryKey: true,
-        }),
-        name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-      },
+  const dataSource = factories.dataSource.buildWithCollections([
+    factories.collection.build({
+      name: 'books',
+      schema: factories.collectionSchema.build({
+        fields: {
+          id: factories.columnSchema.build({
+            columnType: PrimitiveTypes.Uuid,
+            isPrimaryKey: true,
+          }),
+          name: factories.columnSchema.build({
+            columnType: PrimitiveTypes.String,
+          }),
+          author: factories.oneToOneSchema.build({
+            foreignCollection: 'persons',
+            foreignKey: 'authorId',
+          }),
+          authorId: factories.columnSchema.build({
+            columnType: PrimitiveTypes.Uuid,
+          }),
+        },
+      }),
     }),
-  };
-  const dataSource = factories.dataSource.buildWithCollection(partialCollection);
+    factories.collection.build({
+      name: 'persons',
+      schema: factories.collectionSchema.build({
+        fields: {
+          id: factories.columnSchema.build({
+            columnType: PrimitiveTypes.Uuid,
+            isPrimaryKey: true,
+          }),
+          writtenBook: factories.oneToOneSchema.build({
+            foreignCollection: 'books',
+            foreignKey: 'authorId',
+          }),
+        },
+      }),
+    }),
+  ]);
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
 
@@ -27,7 +51,7 @@ describe('Get', () => {
   });
 
   test('should register "/books/:id" private routes', () => {
-    const get = new Get(services, dataSource, options, partialCollection.name);
+    const get = new Get(services, dataSource, options, 'books');
     get.setupPrivateRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith('/books/:id', expect.any(Function));
@@ -36,7 +60,7 @@ describe('Get', () => {
   describe('handleGet', () => {
     test('should call the serializer using the getOne implementation', async () => {
       services.serializer.serialize = jest.fn().mockReturnValue('test');
-      const get = new Get(services, dataSource, options, partialCollection.name);
+      const get = new Get(services, dataSource, options, 'books');
       const context = createMockContext({
         customProperties: { params: { id: '1' } },
       });
@@ -44,7 +68,11 @@ describe('Get', () => {
       await get.handleGet(context);
 
       expect(services.serializer.serialize).toHaveBeenCalled();
-      expect(partialCollection.getById).toHaveBeenCalledWith([1], ['id', 'name']);
+
+      expect(dataSource.getCollection('books').getById).toHaveBeenCalledWith(
+        ['1'],
+        ['id', 'name', 'author:id', 'authorId'],
+      );
       expect(context.response.body).toEqual('test');
     });
 
@@ -53,7 +81,7 @@ describe('Get', () => {
         services.serializer.serialize = jest.fn().mockImplementation(() => {
           throw new Error();
         });
-        const get = new Get(services, dataSource, options, partialCollection.name);
+        const get = new Get(services, dataSource, options, 'books');
         const context = createMockContext({
           customProperties: { params: { id: '1' } },
         });
