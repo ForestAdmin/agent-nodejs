@@ -65,7 +65,7 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
     return { ...childSchema, fields };
   }
 
-  protected refineFilter(filter?: PaginatedFilter): PaginatedFilter {
+  protected override refineFilter(filter?: PaginatedFilter): PaginatedFilter {
     return {
       ...filter,
       conditionTree: ConditionTreeUtils.replaceLeafs(filter.conditionTree, leaf => ({
