@@ -5,8 +5,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
-import QueryStringParser from '../utils/query-string';
-import CollectionBaseRoute from './collection-base-route';
+import QueryStringParser from '../../utils/query-string';
+import CollectionBaseRoute from '../collection-base-route';
 
 export default class Count extends CollectionBaseRoute {
   override setupPrivateRoutes(router: Router): void {

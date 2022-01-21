@@ -1,8 +1,8 @@
 import { Context } from 'koa';
 import Router from '@koa/router';
 import { PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
-import QueryStringParser from '../utils/query-string';
-import CollectionBaseRoute from './collection-base-route';
+import QueryStringParser from '../../utils/query-string';
+import CollectionBaseRoute from '../collection-base-route';
 
 export default class ListRoute extends CollectionBaseRoute {
   override setupPrivateRoutes(router: Router): void {
