@@ -333,7 +333,8 @@ describe('ConditionTreeUtils', () => {
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
           "The given operator 'contains' is not allowed with the columnType schema: 'Number'. \n" +
-            'The allowed types are/is: [present,equal,not_equal,greater_than,not_in,less_than]',
+            'The allowed types are/is: ' +
+            '[present,blank,equal,not_equal,greater_than,less_than,in,not_in]',
         );
       });
     });
@@ -463,6 +464,36 @@ describe('ConditionTreeUtils', () => {
           'The given enum value(s) [allowedValue,aRandomValue] is not listed in [allowedValue]',
         );
       });
+
+      it('should not throw an error when all enum values are allowed', () => {
+        const conditionTree = factories.conditionTreeBranch.build({
+          aggregator: Aggregator.Or,
+          conditions: [
+            factories.conditionTreeBranch.build({
+              aggregator: Aggregator.Or,
+              conditions: [
+                factories.conditionTreeLeaf.build({
+                  operator: Operator.In,
+                  value: ['allowedValue', 'otherAllowedValue'],
+                  field: 'enumField',
+                }),
+              ],
+            }),
+          ],
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              enumField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Enum,
+                enumValues: ['allowedValue', 'otherAllowedValue'],
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeUtils.validate(conditionTree, collection)).not.toThrow();
+      });
     });
 
     describe('when the field is a Point', () => {
@@ -522,11 +553,8 @@ describe('ConditionTreeUtils', () => {
             }),
           });
 
-          expect(() => ConditionTreeUtils.validate(conditionTree, collection)).not.toThrow(
-            "The given value attribute '[-80,20,90] (type: ArrayOfNumber)'" +
-              "has an unexpected value for the given operator 'equal'.\n " +
-              'The allowed field value types are:' +
-              '[Boolean,Date,Dateonly,Enum,Number,Point,String,Timeonly,Uuid].',
+          expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
+            "The given Point value '[-80,20,90]' is badly formatted. The format is: [x,y].",
           );
         });
       });

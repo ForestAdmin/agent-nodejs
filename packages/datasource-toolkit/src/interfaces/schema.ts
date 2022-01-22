@@ -62,13 +62,6 @@ export type ManyToManySchema = {
 
 export type ColumnType = PrimitiveTypes | { [key: string]: ColumnType } | [ColumnType];
 
-export enum NonPrimitiveTypes {
-  ArrayOfBoolean = 'ArrayOfBoolean',
-  ArrayOfNumber = 'ArrayOfNumber',
-  ArrayOfString = 'ArrayOfString',
-  EmptyArray = 'EmptyArray',
-}
-
 export enum PrimitiveTypes {
   Boolean = 'Boolean',
   Date = 'Date',

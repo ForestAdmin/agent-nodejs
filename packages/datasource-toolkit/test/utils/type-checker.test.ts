@@ -1,36 +1,35 @@
 import TypeGetterUtil from '../../src/utils/type-checker';
-import { NonPrimitiveTypes, PrimitiveTypes } from '../../src/interfaces/schema';
+import { PrimitiveTypes } from '../../src/interfaces/schema';
+import ValidationTypes from '../../src/interfaces/validation';
 
 describe('TypeGetterUtil', () => {
   describe('get', () => {
     describe('when the value is an Array', () => {
       describe('when all the values are numbers', () => {
         it('should return the expected type', () => {
-          expect(TypeGetterUtil.get([1, 2, 3])).toEqual(NonPrimitiveTypes.ArrayOfNumber);
+          expect(TypeGetterUtil.get([1, 2, 3])).toEqual(ValidationTypes.ArrayOfNumber);
         });
 
         it('should return the expected type when there are negative numbers', () => {
-          expect(TypeGetterUtil.get([-1, 2, 3])).toEqual(NonPrimitiveTypes.ArrayOfNumber);
+          expect(TypeGetterUtil.get([-1, 2, 3])).toEqual(ValidationTypes.ArrayOfNumber);
         });
 
         describe('when values are number and string number', () => {
           it('should return the expected type', () => {
-            expect(TypeGetterUtil.get(['1', 2, 3])).toEqual(NonPrimitiveTypes.ArrayOfNumber);
+            expect(TypeGetterUtil.get(['1', 2, 3])).toEqual(ValidationTypes.ArrayOfNumber);
           });
         });
       });
 
       describe('when all the values are boolean', () => {
         it('should return the expected type', () => {
-          expect(TypeGetterUtil.get([true, false])).toEqual(NonPrimitiveTypes.ArrayOfBoolean);
+          expect(TypeGetterUtil.get([true, false])).toEqual(ValidationTypes.ArrayOfBoolean);
         });
       });
 
       describe('when all the values are string', () => {
         it('should return the expected type', () => {
-          expect(TypeGetterUtil.get(['str', 'str2', 'str'])).toEqual(
-            NonPrimitiveTypes.ArrayOfString,
-          );
+          expect(TypeGetterUtil.get(['str', 'str2', 'str'])).toEqual(ValidationTypes.ArrayOfString);
         });
       });
 
@@ -42,7 +41,7 @@ describe('TypeGetterUtil', () => {
 
       describe('when there is no value', () => {
         it('should return null', () => {
-          expect(TypeGetterUtil.get([])).toEqual(NonPrimitiveTypes.EmptyArray);
+          expect(TypeGetterUtil.get([])).toEqual(ValidationTypes.EmptyArray);
         });
       });
     });

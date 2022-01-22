@@ -1,6 +1,7 @@
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
 import * as factories from '../../__factories__';
-import { Operator, PrimitiveTypes, Aggregator } from '../../../src';
+import { Operator, Aggregator } from '../../../src/interfaces/query/selection';
+import { PrimitiveTypes } from '../../../src/interfaces/schema';
 import { CONDITION_TREE_NOT_MATCH_ANY_RESULT } from '../../../src/utils/condition-tree';
 
 describe('SearchCollectionDecorator', () => {

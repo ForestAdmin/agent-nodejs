@@ -6,7 +6,7 @@ import {
 } from '../interfaces/query/selection';
 
 import { Collection } from '../interfaces/collection';
-import { ColumnSchema, NonPrimitiveTypes, PrimitiveTypes } from '../interfaces/schema';
+import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 import TypeGetterUtil from './type-checker';
 import CollectionUtils from './collection';
 import {
@@ -14,6 +14,7 @@ import {
   MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER,
   MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE,
 } from './rules';
+import ValidationTypes from '../interfaces/validation';
 
 export const CONDITION_TREE_NOT_MATCH_ANY_RESULT = Object.freeze({
   aggregator: Aggregator.Or,
@@ -22,7 +23,7 @@ export const CONDITION_TREE_NOT_MATCH_ANY_RESULT = Object.freeze({
 
 export default class ConditionTreeUtils {
   static validate(conditionTree: ConditionTree, collection: Collection): void {
-    ConditionTreeUtils.forEveryLeafs(
+    ConditionTreeUtils.forEachLeaf(
       conditionTree,
       collection,
       (currentCondition: ConditionTreeLeaf): void => {
@@ -31,27 +32,18 @@ export default class ConditionTreeUtils {
           currentCondition.field,
         ) as ColumnSchema;
 
-        ConditionTreeUtils.throwErrorIfConditionFieldValueIsNotAllowedWithOperator(
-          currentCondition,
-          fieldSchema,
-        );
-        ConditionTreeUtils.throwErrorIfConditionOperatorIsNotAllowedWithColumnTypeSchema(
-          currentCondition,
-          fieldSchema,
-        );
-        ConditionTreeUtils.throwErrorIfConditionFieldValueIsNotAllowedWithColumnTypeSchema(
-          currentCondition,
-          fieldSchema,
-        );
+        ConditionTreeUtils.throwIfValueNotAllowedWithOperator(currentCondition, fieldSchema);
+        ConditionTreeUtils.throwIfOperatorNotAllowedWithColumnType(currentCondition, fieldSchema);
+        ConditionTreeUtils.throwIfValueNotAllowedWithColumnType(currentCondition, fieldSchema);
       },
     );
   }
 
-  private static forEveryLeafs(
+  private static forEachLeaf(
     conditionTree: ConditionTree,
     collection: Collection,
-    forCurrentLeafFn: (conditionTree: ConditionTreeLeaf) => unknown,
-  ): unknown {
+    forCurrentLeafFn: (conditionTree: ConditionTreeLeaf) => void,
+  ): void {
     if (ConditionTreeUtils.isBranch(conditionTree)) {
       return conditionTree.conditions.forEach(condition =>
         ConditionTreeUtils.validate(condition, collection),
@@ -61,7 +53,7 @@ export default class ConditionTreeUtils {
     return forCurrentLeafFn(conditionTree as ConditionTreeLeaf);
   }
 
-  private static throwErrorIfConditionFieldValueIsNotAllowedWithOperator(
+  private static throwIfValueNotAllowedWithOperator(
     conditionTree: ConditionTreeLeaf,
     columnSchema: ColumnSchema,
   ): void {
@@ -71,9 +63,7 @@ export default class ConditionTreeUtils {
 
     const allowedTypes = MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[conditionTree.operator];
 
-    const isTypeAllowed = !!allowedTypes.find(type => type === valueType);
-
-    if (!isTypeAllowed) {
+    if (!allowedTypes.includes(valueType)) {
       throw new Error(
         `The given value attribute '${JSON.stringify(
           value,
@@ -89,34 +79,36 @@ export default class ConditionTreeUtils {
   }
 
   private static checkIfItIsAPointOrReturnType(
-    type: PrimitiveTypes | NonPrimitiveTypes,
+    type: PrimitiveTypes | ValidationTypes,
     columnSchema: ColumnSchema,
     value: unknown,
   ) {
     if (
-      type === NonPrimitiveTypes.ArrayOfNumber &&
+      type === ValidationTypes.ArrayOfNumber &&
       columnSchema.columnType === PrimitiveTypes.Point
     ) {
-      return (value as number[]).length === 2
-        ? PrimitiveTypes.Point
-        : NonPrimitiveTypes.ArrayOfNumber;
+      if ((value as number[]).length !== 2) {
+        throw new Error(
+          `The given Point value '${JSON.stringify(
+            value,
+          )}' is badly formatted. The format is: [x,y].`,
+        );
+      }
+
+      return PrimitiveTypes.Point;
     }
 
     return type;
   }
 
-  private static throwErrorIfConditionOperatorIsNotAllowedWithColumnTypeSchema(
+  private static throwIfOperatorNotAllowedWithColumnType(
     conditionTree: ConditionTreeLeaf,
     columnSchema: ColumnSchema,
   ): void {
     const allowedOperators =
       MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE[columnSchema.columnType as PrimitiveTypes];
 
-    const isOperatorAllowed = !!allowedOperators.find(
-      allowedOperator => allowedOperator === conditionTree.operator,
-    );
-
-    if (!isOperatorAllowed) {
+    if (!allowedOperators.includes(conditionTree.operator)) {
       throw new Error(
         `The given operator '${conditionTree.operator}' ` +
           `is not allowed with the columnType schema: '${columnSchema.columnType}'. \n` +
@@ -125,7 +117,7 @@ export default class ConditionTreeUtils {
     }
   }
 
-  private static throwErrorIfConditionFieldValueIsNotAllowedWithColumnTypeSchema(
+  private static throwIfValueNotAllowedWithColumnType(
     conditionTree: ConditionTreeLeaf,
     columnSchema: ColumnSchema,
   ): void {
@@ -136,9 +128,7 @@ export default class ConditionTreeUtils {
     let type = TypeGetterUtil.get(value);
     type = ConditionTreeUtils.checkIfItIsAPointOrReturnType(type, columnSchema, value);
 
-    const isValueAllowed = !!allowedTypes.find(allowedType => allowedType === type);
-
-    if (!isValueAllowed) {
+    if (!allowedTypes.includes(type)) {
       throw new Error(
         `The given value '${JSON.stringify(value)} (type: ${type})' ` +
           `is not allowed with the columnType schema '${columnType}'. \n` +
@@ -147,24 +137,24 @@ export default class ConditionTreeUtils {
     }
 
     if (columnSchema.columnType === PrimitiveTypes.Enum) {
-      this.throwErrorIfEnumIsNotValid(type, conditionTree, columnSchema);
+      this.throwIfInvalidEnumValue(type, conditionTree, columnSchema);
     }
   }
 
-  private static throwErrorIfEnumIsNotValid(
-    type: PrimitiveTypes | NonPrimitiveTypes,
+  private static throwIfInvalidEnumValue(
+    type: PrimitiveTypes | ValidationTypes,
     conditionTree: ConditionTreeLeaf,
     columnSchema: ColumnSchema,
   ) {
     let isEnumAllowed;
 
-    if (type === NonPrimitiveTypes.ArrayOfString) {
+    if (type === ValidationTypes.ArrayOfString) {
       const enumValuesConditionTree = conditionTree.value as Array<string>;
-      isEnumAllowed = !!columnSchema.enumValues.find(
-        value => !!enumValuesConditionTree.every(enumValue => enumValue === value),
+      isEnumAllowed = enumValuesConditionTree.every(value =>
+        columnSchema.enumValues.includes(value),
       );
     } else {
-      isEnumAllowed = !!columnSchema.enumValues.find(value => conditionTree.value === value);
+      isEnumAllowed = columnSchema.enumValues.includes(conditionTree.value as string);
     }
 
     if (!isEnumAllowed) {

@@ -1,11 +1,12 @@
 import { DateTime } from 'luxon';
-import { NonPrimitiveTypes, PrimitiveTypes } from '../interfaces/schema';
+import { PrimitiveTypes } from '../interfaces/schema';
+import ValidationTypes from '../interfaces/validation';
 
 export default class TypeGetterUtil {
   private static readonly REGEX_UUID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-  static get(value: unknown): PrimitiveTypes | NonPrimitiveTypes | null {
+  static get(value: unknown): PrimitiveTypes | ValidationTypes | null {
     if (Array.isArray(value)) {
       return TypeGetterUtil.getArrayType(value);
     }
@@ -25,21 +26,21 @@ export default class TypeGetterUtil {
     return null;
   }
 
-  private static getArrayType(value: Array<unknown>): NonPrimitiveTypes | null {
+  private static getArrayType(value: Array<unknown>): ValidationTypes | null {
     if (value.length === 0) {
-      return NonPrimitiveTypes.EmptyArray;
+      return ValidationTypes.EmptyArray;
     }
 
     if (value.every(item => TypeGetterUtil.get(item) === PrimitiveTypes.Number)) {
-      return NonPrimitiveTypes.ArrayOfNumber;
+      return ValidationTypes.ArrayOfNumber;
     }
 
     if (value.every(item => TypeGetterUtil.get(item) === PrimitiveTypes.String)) {
-      return NonPrimitiveTypes.ArrayOfString;
+      return ValidationTypes.ArrayOfString;
     }
 
     if (value.every(item => TypeGetterUtil.get(item) === PrimitiveTypes.Boolean)) {
-      return NonPrimitiveTypes.ArrayOfBoolean;
+      return ValidationTypes.ArrayOfBoolean;
     }
 
     return null;
@@ -69,7 +70,7 @@ export default class TypeGetterUtil {
 
     const dateTime = DateTime.fromISO(value);
 
-    if (!dateTime.invalid) {
+    if (dateTime.isValid) {
       return TypeGetterUtil.getDateType(value, dateTime);
     }
 

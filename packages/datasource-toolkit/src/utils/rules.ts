@@ -1,102 +1,75 @@
-import { NonPrimitiveTypes, PrimitiveTypes } from '../interfaces/schema';
+import { PrimitiveTypes } from '../interfaces/schema';
 import { Operator } from '../interfaces/query/selection';
+import ValidationTypes from '../interfaces/validation';
 
-export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<{
-  [type: string]: readonly Operator[];
-}> = Object.freeze({
+const BASE_OPERATORS: Operator[] = [
+  Operator.Present,
+  Operator.Blank,
+  Operator.Equal,
+  Operator.NotEqual,
+];
+
+const BASE_DATEONLY_OPERATORS: Operator[] = [
+  Operator.Today,
+  Operator.Yesterday,
+  Operator.PreviousXDaysToDate,
+  Operator.PreviousWeek,
+  Operator.PreviousWeekToDate,
+  Operator.PreviousMonth,
+  Operator.PreviousMonthToDate,
+  Operator.PreviousQuarter,
+  Operator.PreviousQuarterToDate,
+  Operator.PreviousYear,
+  Operator.PreviousYearToDate,
+  Operator.Past,
+  Operator.Future,
+  Operator.PreviousXDays,
+];
+
+export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
+  Record<PrimitiveTypes, readonly Operator[]>
+> = Object.freeze({
   [PrimitiveTypes.String]: [
-    Operator.Present,
-    Operator.Equal,
+    ...BASE_OPERATORS,
     Operator.In,
     Operator.NotIn,
     Operator.Contains,
     Operator.NotContains,
     Operator.EndsWith,
     Operator.StartsWith,
-    Operator.NotEqual,
     Operator.LongerThan,
     Operator.ShorterThan,
     Operator.Like,
   ],
   [PrimitiveTypes.Number]: [
-    Operator.Present,
-    Operator.Equal,
-    Operator.NotEqual,
+    ...BASE_OPERATORS,
     Operator.GreaterThan,
-    Operator.NotIn,
     Operator.LessThan,
+    Operator.In,
+    Operator.NotIn,
   ],
-  [PrimitiveTypes.Boolean]: [Operator.Equal, Operator.NotEqual, Operator.Blank],
-  [PrimitiveTypes.Dateonly]: [
-    Operator.Equal,
-    Operator.NotEqual,
-    Operator.Present,
-    Operator.Blank,
-    Operator.Today,
-    Operator.Yesterday,
-    Operator.PreviousXDaysToDate,
-    Operator.PreviousWeek,
-    Operator.PreviousWeekToDate,
-    Operator.PreviousMonth,
-    Operator.PreviousMonthToDate,
-    Operator.PreviousQuarter,
-    Operator.PreviousQuarterToDate,
-    Operator.PreviousYear,
-    Operator.PreviousYearToDate,
-    Operator.Past,
-    Operator.Future,
-    Operator.PreviousXDays,
-  ],
+  [PrimitiveTypes.Dateonly]: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS],
   [PrimitiveTypes.Date]: [
-    Operator.Equal,
-    Operator.NotEqual,
-    Operator.Present,
-    Operator.Blank,
-    Operator.Today,
-    Operator.Yesterday,
-    Operator.PreviousXDaysToDate,
-    Operator.PreviousWeek,
-    Operator.PreviousWeekToDate,
-    Operator.PreviousMonth,
-    Operator.PreviousMonthToDate,
-    Operator.PreviousQuarter,
-    Operator.PreviousQuarterToDate,
-    Operator.PreviousYear,
-    Operator.PreviousYearToDate,
-    Operator.Past,
-    Operator.Future,
-    Operator.PreviousXDays,
+    ...BASE_OPERATORS,
+    ...BASE_DATEONLY_OPERATORS,
     Operator.BeforeXHoursAgo,
     Operator.AfterXHoursAgo,
   ],
-  [PrimitiveTypes.Timeonly]: [
-    Operator.Equal,
-    Operator.NotEqual,
-    Operator.LessThan,
-    Operator.GreaterThan,
-    Operator.Present,
-    Operator.Blank,
-  ],
-  [PrimitiveTypes.Enum]: [
-    Operator.Equal,
-    Operator.NotEqual,
-    Operator.In,
-    Operator.NotIn,
-    Operator.Present,
-    Operator.Blank,
-  ],
+  [PrimitiveTypes.Timeonly]: [...BASE_OPERATORS, Operator.LessThan, Operator.GreaterThan],
+  [PrimitiveTypes.Enum]: [...BASE_OPERATORS, Operator.In, Operator.NotIn],
   [PrimitiveTypes.Json]: [Operator.Present, Operator.Blank],
-  [PrimitiveTypes.Point]: [Operator.Equal],
-  [PrimitiveTypes.Uuid]: [Operator.Equal, Operator.NotEqual, Operator.Present, Operator.Blank],
+  [PrimitiveTypes.Boolean]: BASE_OPERATORS,
+  [PrimitiveTypes.Point]: BASE_OPERATORS,
+  [PrimitiveTypes.Uuid]: BASE_OPERATORS,
 });
 
-export const MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE: Readonly<{
-  [type: string]: readonly (PrimitiveTypes | NonPrimitiveTypes)[];
-}> = Object.freeze({
-  [PrimitiveTypes.String]: [PrimitiveTypes.String, NonPrimitiveTypes.ArrayOfString],
-  [PrimitiveTypes.Number]: [PrimitiveTypes.Number, NonPrimitiveTypes.ArrayOfNumber],
-  [PrimitiveTypes.Boolean]: [PrimitiveTypes.Boolean, NonPrimitiveTypes.ArrayOfBoolean],
-  [PrimitiveTypes.Enum]: [PrimitiveTypes.String, NonPrimitiveTypes.ArrayOfString],
+export const MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
+  Record<PrimitiveTypes, readonly (ValidationTypes | PrimitiveTypes)[]>
+> = Object.freeze({
+  [PrimitiveTypes.String]: [PrimitiveTypes.String, ValidationTypes.ArrayOfString],
+  [PrimitiveTypes.Number]: [PrimitiveTypes.Number, ValidationTypes.ArrayOfNumber],
+  [PrimitiveTypes.Boolean]: [PrimitiveTypes.Boolean, ValidationTypes.ArrayOfBoolean],
+  [PrimitiveTypes.Enum]: [PrimitiveTypes.String, ValidationTypes.ArrayOfString],
   [PrimitiveTypes.Date]: [PrimitiveTypes.Date],
   [PrimitiveTypes.Dateonly]: [PrimitiveTypes.Dateonly],
   [PrimitiveTypes.Json]: [PrimitiveTypes.Json],
@@ -105,7 +78,7 @@ export const MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE: Readonly<{
   [PrimitiveTypes.Uuid]: [PrimitiveTypes.Uuid],
 });
 
-function computeAllowedTypesForOperators() {
+function computeAllowedTypesForOperators(): Record<Operator, PrimitiveTypes[]> {
   return Object.values(PrimitiveTypes).reduce((mapMemo, type) => {
     const allowedOperators = MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE[type];
     allowedOperators.forEach(operator => {
@@ -117,25 +90,25 @@ function computeAllowedTypesForOperators() {
     });
 
     return mapMemo;
-  }, {});
+  }, {} as Record<Operator, PrimitiveTypes[]>);
 }
 
-const NO_TYPES_ALLOWED: Readonly<[]> = [];
+const NO_TYPES_ALLOWED = [];
 
-export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<{
-  [operator: string]: readonly (PrimitiveTypes | NonPrimitiveTypes)[];
-}> = {
+export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<
+  Record<Operator, readonly (ValidationTypes | PrimitiveTypes)[]>
+> = Object.freeze({
   ...computeAllowedTypesForOperators(),
   [Operator.Present]: NO_TYPES_ALLOWED,
   [Operator.Blank]: NO_TYPES_ALLOWED,
   [Operator.In]: [
-    NonPrimitiveTypes.ArrayOfNumber,
-    NonPrimitiveTypes.ArrayOfString,
-    NonPrimitiveTypes.ArrayOfBoolean,
+    ValidationTypes.ArrayOfNumber,
+    ValidationTypes.ArrayOfString,
+    ValidationTypes.ArrayOfBoolean,
   ],
   [Operator.IncludesAll]: [
-    NonPrimitiveTypes.ArrayOfNumber,
-    NonPrimitiveTypes.ArrayOfString,
-    NonPrimitiveTypes.ArrayOfBoolean,
+    ValidationTypes.ArrayOfNumber,
+    ValidationTypes.ArrayOfString,
+    ValidationTypes.ArrayOfBoolean,
   ],
-};
+});
