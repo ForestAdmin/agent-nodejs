@@ -32,6 +32,8 @@ export enum Operator {
   Present = 'present',
   StartsWith = 'starts_with',
 
+  Before = 'before',
+  After = 'after',
   AfterXHoursAgo = 'after_x_hours_ago',
   BeforeXHoursAgo = 'before_x_hours_ago',
   Future = 'future',
