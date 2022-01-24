@@ -3,7 +3,7 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 import Get from '../../../src/routes/access/get';
 import * as factories from '../../__factories__';
 
-describe('Get', () => {
+describe('GetRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
   const dataSource = factories.dataSource.buildWithCollections([
     factories.collection.build({
@@ -19,10 +19,11 @@ describe('Get', () => {
           }),
           author: factories.oneToOneSchema.build({
             foreignCollection: 'persons',
-            foreignKey: 'authorId',
+            foreignKey: 'id',
           }),
-          authorId: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Uuid,
+          readers: factories.oneToManySchema.build({
+            foreignCollection: 'persons',
+            foreignKey: 'id',
           }),
         },
       }),
@@ -34,10 +35,6 @@ describe('Get', () => {
           id: factories.columnSchema.build({
             columnType: PrimitiveTypes.Uuid,
             isPrimaryKey: true,
-          }),
-          writtenBook: factories.oneToOneSchema.build({
-            foreignCollection: 'books',
-            foreignKey: 'authorId',
           }),
         },
       }),
@@ -71,27 +68,47 @@ describe('Get', () => {
 
       expect(dataSource.getCollection('books').getById).toHaveBeenCalledWith(
         ['1'],
-        ['id', 'name', 'author:id', 'authorId'],
+        ['id', 'name', 'author:id'],
       );
       expect(context.response.body).toEqual('test');
     });
 
     describe('when an error happens', () => {
-      test('should return an HTTP 500 response', async () => {
-        services.serializer.serialize = jest.fn().mockImplementation(() => {
-          throw new Error();
-        });
-        const get = new Get(services, dataSource, options, 'books');
-        const context = createMockContext({
-          customProperties: { params: { id: '1' } },
-        });
+      describe('when the provided id does not match the schema definition', () => {
+        test('should return an HTTP 404 response', async () => {
+          const get = new Get(services, dataSource, options, 'books');
+          // In the schema above, ID is a classic primary key
+          // Asking for a composite PK will throw
+          const context = createMockContext({
+            customProperties: { params: { id: '1|2' } },
+          });
 
-        await get.handleGet(context);
+          await get.handleGet(context);
 
-        expect(context.throw).toHaveBeenCalledWith(
-          500,
-          'Failed to get record using id 1 on collection "books"',
-        );
+          expect(context.throw).toHaveBeenCalledWith(
+            404,
+            'Failed to get record using id 1|2, Expected 1 values, found 2',
+          );
+        });
+      });
+
+      describe('if either getById or serialize failed', () => {
+        test('should return an HTTP 500 response', async () => {
+          services.serializer.serialize = jest.fn().mockImplementation(() => {
+            throw new Error();
+          });
+          const get = new Get(services, dataSource, options, 'books');
+          const context = createMockContext({
+            customProperties: { params: { id: '1' } },
+          });
+
+          await get.handleGet(context);
+
+          expect(context.throw).toHaveBeenCalledWith(
+            500,
+            'Failed to get record using id 1 on collection "books"',
+          );
+        });
       });
     });
   });

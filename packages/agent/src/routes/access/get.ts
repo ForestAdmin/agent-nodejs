@@ -4,14 +4,21 @@ import { FieldTypes, Projection } from '@forestadmin/datasource-toolkit';
 import CollectionBaseRoute from '../collection-base-route';
 import IdUtils from '../../utils/id';
 
-export default class ListRoute extends CollectionBaseRoute {
+export default class GetRoute extends CollectionBaseRoute {
   override setupPrivateRoutes(router: Router): void {
     router.get(`/${this.collection.name}/:id`, this.handleGet.bind(this));
   }
 
   public async handleGet(context: Context) {
     const projection = this.buildProjection();
-    const id = IdUtils.unpackId(this.collection.schema, context.params.id);
+
+    let id;
+
+    try {
+      id = IdUtils.unpackId(this.collection.schema, context.params.id);
+    } catch (error) {
+      context.throw(404, `Failed to get record using id ${context.params.id}, ${error.message}`);
+    }
 
     try {
       const record = await this.collection.getById(id, projection);
@@ -35,7 +42,7 @@ export default class ListRoute extends CollectionBaseRoute {
         return [...memo, columnName];
       }
 
-      if (column.type === FieldTypes.OneToOne) {
+      if (column.type === FieldTypes.OneToOne || column.type === FieldTypes.ManyToOne) {
         const relation = this.dataSource.getCollection(column.foreignCollection);
         const relationFields = relation.schema.fields;
 
