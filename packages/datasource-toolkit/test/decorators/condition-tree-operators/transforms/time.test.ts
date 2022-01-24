@@ -4,7 +4,7 @@ import { Aggregator, Operator } from '../../../../src/interfaces/query/selection
 describe('ConditionTreeOperators > Time', () => {
   beforeAll(() => {
     // https://static.wikia.nocookie.net/bttf/images/d/d5/Time_Circuits_BTTF.png
-    const date = new Date('Sat, 26 Oct 1985 01:22:00 PST');
+    const date = new Date('1985-10-26T01:22:00-08:00');
     jest.useFakeTimers().setSystemTime(date);
   });
 

@@ -40,7 +40,6 @@ describe('ConditionTreeOperators', () => {
       const schema = decorator.schema.fields.col as ColumnSchema;
 
       // We don't want this test to break when we support new operators by being too restrictive
-      // At the time of writing, 24 operators are supported.
       expect(schema.filterOperators.size).toBeGreaterThan(20);
     });
 
