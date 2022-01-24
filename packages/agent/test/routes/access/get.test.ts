@@ -19,9 +19,8 @@ describe('GetRoute', () => {
           }),
           author: factories.oneToOneSchema.build({
             foreignCollection: 'persons',
-            foreignKey: 'authorId',
+            foreignKey: 'bookId',
           }),
-          authorId: { columnType: PrimitiveTypes.Number },
         },
       }),
     }),
@@ -33,6 +32,7 @@ describe('GetRoute', () => {
             columnType: PrimitiveTypes.Uuid,
             isPrimaryKey: true,
           }),
+          bookId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
         },
       }),
     }),
@@ -53,6 +53,9 @@ describe('GetRoute', () => {
 
   describe('handleGet', () => {
     test('should call the serializer using the getOne implementation', async () => {
+      jest
+        .spyOn(dataSource.getCollection('books'), 'getById')
+        .mockImplementation(async () => ({ title: 'test ' }));
       services.serializer.serialize = jest.fn().mockReturnValue('test');
       const get = new Get(services, dataSource, options, 'books');
       const context = createMockContext({
@@ -61,12 +64,12 @@ describe('GetRoute', () => {
 
       await get.handleGet(context);
 
-      expect(services.serializer.serialize).toHaveBeenCalled();
-
       expect(dataSource.getCollection('books').getById).toHaveBeenCalledWith(
         ['1'],
-        ['id', 'name', 'author:id'],
+        ['id', 'name', 'author:id', 'author:bookId'],
       );
+      expect(services.serializer.serialize).toHaveBeenCalled();
+
       expect(context.response.body).toEqual('test');
     });
 
@@ -85,6 +88,7 @@ describe('GetRoute', () => {
             404,
             'Record id 1 does not exist on collection "books"',
           );
+          expect(context.throw).toHaveBeenCalledTimes(1);
         });
       });
 
@@ -108,6 +112,9 @@ describe('GetRoute', () => {
 
       describe('if either getById or serialize failed', () => {
         test('should return an HTTP 500 response', async () => {
+          jest
+            .spyOn(dataSource.getCollection('books'), 'getById')
+            .mockImplementation(async () => ({ title: 'test ' }));
           services.serializer.serialize = jest.fn().mockImplementation(() => {
             throw new Error();
           });

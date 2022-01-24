@@ -5,6 +5,8 @@ import CollectionBaseRoute from '../collection-base-route';
 import IdUtils from '../../utils/id';
 
 export default class GetRoute extends CollectionBaseRoute {
+  private static RECORD_NOT_FOUND_ERROR = 'Record does not exist';
+
   override setupPrivateRoutes(router: Router): void {
     router.get(`/${this.collection.name}/:id`, this.handleGet.bind(this));
   }
@@ -24,18 +26,22 @@ export default class GetRoute extends CollectionBaseRoute {
       const record = await this.collection.getById(id, projection);
 
       if (!record) {
+        throw new Error(GetRoute.RECORD_NOT_FOUND_ERROR);
+      }
+
+      context.response.body = this.services.serializer.serialize(this.collection, record);
+    } catch (error) {
+      if (error.message === GetRoute.RECORD_NOT_FOUND_ERROR) {
         context.throw(
           404,
           `Record id ${id} does not exist on collection "${this.collection.name}"`,
         );
+      } else {
+        context.throw(
+          500,
+          `Failed to get record using id ${id} on collection "${this.collection.name}"`,
+        );
       }
-
-      context.response.body = this.services.serializer.serialize(this.collection, record);
-    } catch {
-      context.throw(
-        500,
-        `Failed to get record using id ${id} on collection "${this.collection.name}"`,
-      );
     }
   }
 
