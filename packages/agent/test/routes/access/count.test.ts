@@ -1,9 +1,9 @@
 import { AggregationOperation, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import Count from '../../src/routes/count';
-import * as factories from '../__factories__';
+import Count from '../../../src/routes/access/count';
+import * as factories from '../../__factories__';
 
-describe('Count', () => {
+describe('CountRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
   const partialCollection = {
     name: 'books',

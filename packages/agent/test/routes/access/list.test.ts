@@ -1,9 +1,9 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import List from '../../src/routes/list';
-import * as factories from '../__factories__';
+import List from '../../../src/routes/access/list';
+import * as factories from '../../__factories__';
 
-describe('List', () => {
+describe('ListRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
   const partialCollection = {
     name: 'books',
@@ -55,7 +55,7 @@ describe('List', () => {
     });
 
     describe('when an error happens', () => {
-      test('should return an HTTP 400 response', async () => {
+      test('should return an HTTP 500 response', async () => {
         services.serializer.serialize = jest.fn().mockImplementation(() => {
           throw new Error();
         });

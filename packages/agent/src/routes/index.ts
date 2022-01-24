@@ -1,7 +1,8 @@
-import Authentication from './authentication';
+import Authentication from './security/authentication';
 import HealthCheck from './healthcheck';
-import List from './list';
-import Count from './count';
+import List from './access/list';
+import Count from './access/count';
+import Get from './access/get';
 
 export const RootRoutesCtor = [Authentication, HealthCheck];
-export const CollectionRoutesCtor = [List, Count];
+export const CollectionRoutesCtor = [List, Count, Get];
