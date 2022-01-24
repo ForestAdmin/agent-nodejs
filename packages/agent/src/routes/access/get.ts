@@ -23,6 +23,13 @@ export default class GetRoute extends CollectionBaseRoute {
     try {
       const record = await this.collection.getById(id, projection);
 
+      if (!record) {
+        context.throw(
+          404,
+          `Record id ${id} does not exist on collection "${this.collection.name}"`,
+        );
+      }
+
       context.response.body = this.services.serializer.serialize(this.collection, record);
     } catch {
       context.throw(

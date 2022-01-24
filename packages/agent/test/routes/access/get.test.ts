@@ -19,12 +19,9 @@ describe('GetRoute', () => {
           }),
           author: factories.oneToOneSchema.build({
             foreignCollection: 'persons',
-            foreignKey: 'id',
+            foreignKey: 'authorId',
           }),
-          readers: factories.oneToManySchema.build({
-            foreignCollection: 'persons',
-            foreignKey: 'id',
-          }),
+          authorId: { columnType: PrimitiveTypes.Number },
         },
       }),
     }),
@@ -74,6 +71,23 @@ describe('GetRoute', () => {
     });
 
     describe('when an error happens', () => {
+      describe('when getById returns null', () => {
+        test('should return an HTTP 404 response', async () => {
+          jest.spyOn(dataSource.getCollection('books'), 'getById').mockImplementation(() => null);
+          const get = new Get(services, dataSource, options, 'books');
+          const context = createMockContext({
+            customProperties: { params: { id: '1' } },
+          });
+
+          await get.handleGet(context);
+
+          expect(context.throw).toHaveBeenCalledWith(
+            404,
+            'Record id 1 does not exist on collection "books"',
+          );
+        });
+      });
+
       describe('when the provided id does not match the schema definition', () => {
         test('should return an HTTP 404 response', async () => {
           const get = new Get(services, dataSource, options, 'books');
