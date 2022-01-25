@@ -365,7 +365,7 @@ describe('ConditionTreeUtils', () => {
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
           "The given value attribute 'null (type: null)' has an unexpected " +
             "value for the given operator 'greater_than'.\n " +
-            'The allowed field value types are: [Number,Timeonly].',
+            'The allowed types of the field value are: [Number,Timeonly].',
         );
       });
     });

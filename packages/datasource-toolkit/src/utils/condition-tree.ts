@@ -72,7 +72,7 @@ export default class ConditionTreeUtils {
           `${
             allowedTypes.length === 0
               ? 'The value attribute must be empty.'
-              : `The allowed field value types are: [${allowedTypes}].`
+              : `The allowed types of the field value are: [${allowedTypes}].`
           }`,
       );
     }
