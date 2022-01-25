@@ -12,17 +12,9 @@ import {
   PrimitiveTypes,
 } from '../../index';
 import ConditionTreeUtils from '../../utils/condition-tree';
-
-enum SearchType {
-  String,
-  Number,
-  Uuid,
-}
+import TypeGetterUtil from '../../utils/type-checker';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
-  private static readonly REGEX_UUID =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
   public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     return { ...subSchema, searchable: true };
   }
@@ -63,7 +55,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     schema: ColumnSchema,
     searchString: string,
   ): ConditionTree {
-    const searchType = SearchCollectionDecorator.getSearchType(searchString);
+    const searchType = TypeGetterUtil.get(searchString);
     const { columnType, enumValues } = schema;
     let condition = null;
 
@@ -76,11 +68,11 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
         operator: Operator.Equal,
         value: SearchCollectionDecorator.getEnumValue(enumValues, searchString),
       };
-    } else if (PrimitiveTypes.Number === columnType && searchType === SearchType.Number) {
+    } else if (PrimitiveTypes.Number === columnType && searchType === PrimitiveTypes.Number) {
       condition = { field, operator: Operator.Equal, value: Number(searchString) };
-    } else if (PrimitiveTypes.Uuid === columnType && searchType === SearchType.Uuid) {
+    } else if (PrimitiveTypes.Uuid === columnType && searchType === PrimitiveTypes.Uuid) {
       condition = { field, operator: Operator.Equal, value: searchString };
-    } else if (PrimitiveTypes.String === columnType && searchType === SearchType.String) {
+    } else if (PrimitiveTypes.String === columnType && searchType === PrimitiveTypes.String) {
       condition = { field, operator: Operator.Contains, value: searchString };
     }
 
@@ -126,19 +118,6 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
   private static checkEmptyString(searchString: string) {
     return searchString.trim().length === 0;
-  }
-
-  private static getSearchType(searchString: string): SearchType {
-    if (searchString.match(SearchCollectionDecorator.REGEX_UUID)) {
-      return SearchType.Uuid;
-    }
-
-    if (!Number.isNaN(Number(searchString)) && !Number.isNaN(parseFloat(searchString))) {
-      // @see https://stackoverflow.com/questions/175739
-      return SearchType.Number;
-    }
-
-    return SearchType.String;
   }
 
   private static isSearchable(schema: FieldSchema): boolean {
