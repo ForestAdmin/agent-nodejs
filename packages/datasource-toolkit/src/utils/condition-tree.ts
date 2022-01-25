@@ -112,7 +112,7 @@ export default class ConditionTreeUtils {
       throw new Error(
         `The given operator '${conditionTree.operator}' ` +
           `is not allowed with the columnType schema: '${columnSchema.columnType}'. \n` +
-          `The allowed types are/is: [${allowedOperators}]`,
+          `The allowed types are: [${allowedOperators}]`,
       );
     }
   }
@@ -132,7 +132,7 @@ export default class ConditionTreeUtils {
       throw new Error(
         `The given value '${JSON.stringify(value)} (type: ${type})' ` +
           `is not allowed with the columnType schema '${columnType}'. \n` +
-          `The allowed value(s) are/is [${allowedTypes}].`,
+          `The allowed values are [${allowedTypes}].`,
       );
     }
 

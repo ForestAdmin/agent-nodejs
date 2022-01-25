@@ -333,7 +333,7 @@ describe('ConditionTreeUtils', () => {
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
           "The given operator 'contains' is not allowed with the columnType schema: 'Number'. \n" +
-            'The allowed types are/is: ' +
+            'The allowed types are: ' +
             '[present,blank,equal,not_equal,greater_than,less_than,in,not_in]',
         );
       });
@@ -395,7 +395,7 @@ describe('ConditionTreeUtils', () => {
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
           "The given value '[1,2,3] (type: ArrayOfNumber)' " +
             "is not allowed with the columnType schema 'String'. \n" +
-            'The allowed value(s) are/is [String,ArrayOfString].',
+            'The allowed values are [String,ArrayOfString].',
         );
       });
     });
