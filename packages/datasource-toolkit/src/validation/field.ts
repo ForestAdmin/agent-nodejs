@@ -1,5 +1,6 @@
 import { Collection } from '../interfaces/collection';
 import { FieldTypes } from '../interfaces/schema';
+import FieldUtils from '../utils/field';
 
 export default class FieldValidator {
   static validate(collection: Collection, field: string, values?: unknown[]) {
@@ -20,8 +21,7 @@ export default class FieldValidator {
       }
 
       if (values !== undefined) {
-        // Validate value based on column type
-        throw new Error('Implement me.');
+        values.forEach(value => FieldUtils.validateValue(field, schema, value));
       }
     } else {
       const prefix = field.substring(0, dotIndex);

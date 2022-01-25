@@ -62,7 +62,9 @@ export default class BookCollection extends BaseCollection {
   }
 
   async create(data: RecordData[]): Promise<RecordData[]> {
-    return data;
+    const newData = data.map(d => ({ ...d, id: Math.floor(Math.random() * 10000) }));
+
+    return newData;
   }
 
   async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
