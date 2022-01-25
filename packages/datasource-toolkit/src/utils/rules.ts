@@ -24,6 +24,8 @@ const BASE_DATEONLY_OPERATORS: Operator[] = [
   Operator.Past,
   Operator.Future,
   Operator.PreviousXDays,
+  Operator.Before,
+  Operator.After,
 ];
 
 export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
