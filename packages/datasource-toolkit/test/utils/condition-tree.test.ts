@@ -332,7 +332,7 @@ describe('ConditionTreeUtils', () => {
         });
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-          "The given operator 'contains' is not allowed with the columnType schema: 'Number'. \n" +
+          "The given operator 'contains' is not allowed with the columnType schema: 'Number'.\n" +
             'The allowed types are: ' +
             '[present,blank,equal,not_equal,greater_than,less_than,in,not_in]',
         );
@@ -364,7 +364,7 @@ describe('ConditionTreeUtils', () => {
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
           "The given value attribute 'null (type: null)' has an unexpected " +
-            "value for the given operator 'greater_than'.\n " +
+            "value for the given operator 'greater_than'.\n" +
             'The allowed types of the field value are: [Number,Timeonly].',
         );
       });
@@ -394,7 +394,7 @@ describe('ConditionTreeUtils', () => {
 
         expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
           "The given value '[1,2,3] (type: ArrayOfNumber)' " +
-            "is not allowed with the columnType schema 'String'. \n" +
+            "is not allowed with the columnType schema 'String'.\n" +
             'The allowed values are [String,ArrayOfString].',
         );
       });
@@ -554,7 +554,10 @@ describe('ConditionTreeUtils', () => {
           });
 
           expect(() => ConditionTreeUtils.validate(conditionTree, collection)).toThrow(
-            "The given Point value '[-80,20,90]' is badly formatted. The format is: [x,y].",
+            "The given value attribute '[-80,20,90] (type: ArrayOfNumber)' " +
+              "has an unexpected value for the given operator 'equal'.\n" +
+              'The allowed types of the field value are: ' +
+              '[Boolean,Date,Dateonly,Enum,Number,Point,String,Timeonly,Uuid].',
           );
         });
       });

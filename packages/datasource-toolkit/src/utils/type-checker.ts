@@ -6,13 +6,16 @@ export default class TypeGetterUtil {
   private static readonly REGEX_UUID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-  static get(value: unknown): PrimitiveTypes | ValidationTypes | null {
+  static get(
+    value: unknown,
+    typeContext?: PrimitiveTypes,
+  ): PrimitiveTypes | ValidationTypes | null {
     if (Array.isArray(value)) {
-      return TypeGetterUtil.getArrayType(value);
+      return TypeGetterUtil.getArrayType(value, typeContext);
     }
 
     if (typeof value === 'string') {
-      return TypeGetterUtil.getTypeFromString(value);
+      return TypeGetterUtil.getTypeFromString(value, typeContext);
     }
 
     if (typeof value === 'number') {
@@ -26,9 +29,16 @@ export default class TypeGetterUtil {
     return null;
   }
 
-  private static getArrayType(value: Array<unknown>): ValidationTypes | null {
+  private static getArrayType(
+    value: Array<unknown>,
+    typeContext?: PrimitiveTypes,
+  ): ValidationTypes | PrimitiveTypes | null {
     if (value.length === 0) {
       return ValidationTypes.EmptyArray;
+    }
+
+    if (value.length === 2 && typeContext === PrimitiveTypes.Point) {
+      return PrimitiveTypes.Point;
     }
 
     if (value.every(item => TypeGetterUtil.get(item) === PrimitiveTypes.Number)) {
@@ -58,7 +68,11 @@ export default class TypeGetterUtil {
     return PrimitiveTypes.Date;
   }
 
-  private static getTypeFromString(value: string): PrimitiveTypes {
+  private static getTypeFromString(value: string, typeContext?: PrimitiveTypes): PrimitiveTypes {
+    if (typeContext === PrimitiveTypes.String) {
+      return PrimitiveTypes.String;
+    }
+
     if (value.match(TypeGetterUtil.REGEX_UUID)) {
       return PrimitiveTypes.Uuid;
     }
@@ -83,9 +97,7 @@ export default class TypeGetterUtil {
 
   private static isJson(value: string): boolean {
     try {
-      JSON.parse(value);
-
-      return true;
+      return !!JSON.parse(value);
     } catch {
       return false;
     }

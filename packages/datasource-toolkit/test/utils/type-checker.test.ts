@@ -19,6 +19,12 @@ describe('TypeGetterUtil', () => {
             expect(TypeGetterUtil.get(['1', 2, 3])).toEqual(ValidationTypes.ArrayOfNumber);
           });
         });
+
+        describe('when there are 2 values and the given context is a Point', () => {
+          it('should return the expected type', () => {
+            expect(TypeGetterUtil.get([-2, 3], PrimitiveTypes.Point)).toEqual(PrimitiveTypes.Point);
+          });
+        });
       });
 
       describe('when all the values are boolean', () => {
@@ -40,17 +46,9 @@ describe('TypeGetterUtil', () => {
       });
 
       describe('when there is no value', () => {
-        it('should return null', () => {
+        it('should return the expected type', () => {
           expect(TypeGetterUtil.get([])).toEqual(ValidationTypes.EmptyArray);
         });
-      });
-    });
-
-    describe('when the value is a Point', () => {
-      it('should return null', () => {
-        expect(TypeGetterUtil.get(JSON.stringify({ message: 'hello' }))).toEqual(
-          PrimitiveTypes.Json,
-        );
       });
     });
 
@@ -95,6 +93,22 @@ describe('TypeGetterUtil', () => {
     });
 
     describe('when the value is a string', () => {
+      describe('when the value is a json and the given context is a String', () => {
+        it('should return the expected type', () => {
+          expect(
+            TypeGetterUtil.get(JSON.stringify({ message: 'hello' }), PrimitiveTypes.String),
+          ).toEqual(PrimitiveTypes.String);
+        });
+      });
+
+      describe('when it is a date and the given context is a String', () => {
+        it('should return the expected type', () => {
+          expect(TypeGetterUtil.get('2016-05-25', PrimitiveTypes.String)).toEqual(
+            PrimitiveTypes.String,
+          );
+        });
+      });
+
       describe('when it is an uuid', () => {
         it('should return the expected type', () => {
           expect(TypeGetterUtil.get('2d162303-78bf-599e-b197-93590ac3d315')).toEqual(
@@ -103,9 +117,23 @@ describe('TypeGetterUtil', () => {
         });
       });
 
+      describe('when the value is a uuid and the given context is a String', () => {
+        it('should return the expected type', () => {
+          expect(
+            TypeGetterUtil.get('2d162303-78bf-599e-b197-93590ac3d315', PrimitiveTypes.String),
+          ).toEqual(PrimitiveTypes.String);
+        });
+      });
+
       describe('when it is a number as string', () => {
         it('should return the expected type', () => {
           expect(TypeGetterUtil.get('2258')).toEqual(PrimitiveTypes.Number);
+        });
+      });
+
+      describe('when the value is a number and the given context is a String', () => {
+        it('should return the expected type', () => {
+          expect(TypeGetterUtil.get('12', PrimitiveTypes.String)).toEqual(PrimitiveTypes.String);
         });
       });
 

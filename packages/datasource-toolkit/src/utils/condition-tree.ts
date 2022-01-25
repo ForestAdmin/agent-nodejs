@@ -58,8 +58,7 @@ export default class ConditionTreeUtils {
     columnSchema: ColumnSchema,
   ): void {
     const { value } = conditionTree;
-    let valueType = TypeGetterUtil.get(value);
-    valueType = ConditionTreeUtils.checkIfItIsAPointOrReturnType(valueType, columnSchema, value);
+    const valueType = TypeGetterUtil.get(value, columnSchema.columnType as PrimitiveTypes);
 
     const allowedTypes = MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[conditionTree.operator];
 
@@ -68,7 +67,7 @@ export default class ConditionTreeUtils {
         `The given value attribute '${JSON.stringify(
           value,
         )} (type: ${valueType})' has an unexpected value ` +
-          `for the given operator '${conditionTree.operator}'.\n ` +
+          `for the given operator '${conditionTree.operator}'.\n` +
           `${
             allowedTypes.length === 0
               ? 'The value attribute must be empty.'
@@ -76,29 +75,6 @@ export default class ConditionTreeUtils {
           }`,
       );
     }
-  }
-
-  private static checkIfItIsAPointOrReturnType(
-    type: PrimitiveTypes | ValidationTypes,
-    columnSchema: ColumnSchema,
-    value: unknown,
-  ) {
-    if (
-      type === ValidationTypes.ArrayOfNumber &&
-      columnSchema.columnType === PrimitiveTypes.Point
-    ) {
-      if ((value as number[]).length !== 2) {
-        throw new Error(
-          `The given Point value '${JSON.stringify(
-            value,
-          )}' is badly formatted. The format is: [x,y].`,
-        );
-      }
-
-      return PrimitiveTypes.Point;
-    }
-
-    return type;
   }
 
   private static throwIfOperatorNotAllowedWithColumnType(
@@ -111,7 +87,7 @@ export default class ConditionTreeUtils {
     if (!allowedOperators.includes(conditionTree.operator)) {
       throw new Error(
         `The given operator '${conditionTree.operator}' ` +
-          `is not allowed with the columnType schema: '${columnSchema.columnType}'. \n` +
+          `is not allowed with the columnType schema: '${columnSchema.columnType}'.\n` +
           `The allowed types are: [${allowedOperators}]`,
       );
     }
@@ -125,13 +101,12 @@ export default class ConditionTreeUtils {
     const { columnType } = columnSchema;
     const allowedTypes = MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[columnType as PrimitiveTypes];
 
-    let type = TypeGetterUtil.get(value);
-    type = ConditionTreeUtils.checkIfItIsAPointOrReturnType(type, columnSchema, value);
+    const type = TypeGetterUtil.get(value, columnType as PrimitiveTypes);
 
     if (!allowedTypes.includes(type)) {
       throw new Error(
         `The given value '${JSON.stringify(value)} (type: ${type})' ` +
-          `is not allowed with the columnType schema '${columnType}'. \n` +
+          `is not allowed with the columnType schema '${columnType}'.\n` +
           `The allowed values are [${allowedTypes}].`,
       );
     }
