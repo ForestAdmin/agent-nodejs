@@ -31,10 +31,6 @@ describe('CreateRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
 
-  beforeEach(() => {
-    (router.post as jest.Mock).mockClear();
-  });
-
   test('should register "/books" private routes', () => {
     const create = new CreateRoute(services, dataSource, options, 'books');
     create.setupPrivateRoutes(router);
