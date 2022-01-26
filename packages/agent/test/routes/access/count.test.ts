@@ -48,6 +48,10 @@ describe('CountRoute', () => {
           searchExtended: false,
           segment: null,
           timezone: 'Europe/Paris',
+          page: {
+            limit: 15,
+            skip: 0,
+          },
         },
         { operation: AggregationOperation.Count },
       );

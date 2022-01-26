@@ -258,4 +258,30 @@ describe('QueryStringParser', () => {
       });
     });
   });
+
+  describe('parsePagination', () => {
+    test('should return the pagination parameters', () => {
+      const context = createMockContext({
+        customProperties: { query: { 'page[size]': 10, 'page[number]': 3 } },
+      });
+
+      const pagination = QueryStringParser.parsePagination(context);
+
+      expect(pagination.limit).toEqual(10);
+      expect(pagination.skip).toEqual(20);
+    });
+
+    describe('when context does not provide the pagination parameters', () => {
+      test('should return the default limit 15 skip 0', () => {
+        const context = createMockContext({
+          customProperties: { query: {} },
+        });
+
+        const pagination = QueryStringParser.parsePagination(context);
+
+        expect(pagination.limit).toEqual(15);
+        expect(pagination.skip).toEqual(0);
+      });
+    });
+  });
 });

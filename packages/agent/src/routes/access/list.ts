@@ -15,6 +15,7 @@ export default class ListRoute extends CollectionBaseRoute {
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
+      page: QueryStringParser.parsePagination(context),
     };
     const projection: Projection = QueryStringParser.parseProjection(this.collection, context);
 

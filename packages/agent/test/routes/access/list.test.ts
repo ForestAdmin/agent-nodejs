@@ -48,6 +48,10 @@ describe('ListRoute', () => {
           searchExtended: false,
           segment: null,
           timezone: 'Europe/Paris',
+          page: {
+            limit: 15,
+            skip: 0,
+          },
         },
         ['id'],
       );
