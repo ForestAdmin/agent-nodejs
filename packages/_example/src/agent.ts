@@ -3,6 +3,7 @@ import http from 'http';
 import { ForestAdminHttpDriver, ForestAdminHttpDriverOptions } from '@forestadmin/agent';
 
 import dataSource from './datasource';
+import loadExampleData from './datasource-data';
 
 export default async function start(
   serverPort: number,
@@ -13,12 +14,7 @@ export default async function start(
 
   await dataSource.syncCollections();
 
-  const records = new Array(100).fill(null).map((_, index) => ({
-    name: `item ${index.toString().padStart(3, '0')}`,
-    value: 9000 + index,
-  }));
-
-  await dataSource.collections.find(({ name }) => name === 'items').create(records);
+  await loadExampleData(dataSource);
 
   await driver.start();
 
