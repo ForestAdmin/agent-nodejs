@@ -301,4 +301,36 @@ describe('QueryStringParser', () => {
       });
     });
   });
+
+  describe('parseSort', () => {
+    test('should sort by pk ascending when not sort is given', () => {
+      const context = createMockContext({
+        customProperties: { query: {} },
+      });
+
+      const sort = QueryStringParser.parseSort(collectionSimple, context);
+
+      expect(sort).toEqual([{ field: 'id', ascending: true }]);
+    });
+
+    test('should sort by the request field and order when given', () => {
+      const context = createMockContext({
+        customProperties: { query: { sort: '-name' } },
+      });
+
+      const sort = QueryStringParser.parseSort(collectionSimple, context);
+
+      expect(sort).toEqual([{ field: 'name', ascending: false }]);
+    });
+
+    test('should throw a HTTP 400 when the requested sort is invalid', () => {
+      const context = createMockContext({
+        customProperties: { query: { sort: '-fieldThatDoNotExist' } },
+      });
+
+      QueryStringParser.parseSort(collectionSimple, context);
+
+      expect(context.throw).toHaveBeenCalledWith(400, 'Invalid sort: -fieldThatDoNotExist');
+    });
+  });
 });

@@ -4,6 +4,9 @@ import {
   Page,
   Projection,
   ProjectionValidator,
+  SchemaUtils,
+  Sort,
+  SortUtils,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 
@@ -92,5 +95,31 @@ export default class QueryStringParser {
     }
 
     return new Page(0, 15);
+  }
+
+  static parseSort(collection: Collection, context: Context): Sort {
+    const sortString = context.request.query.sort?.toString();
+
+    try {
+      if (!sortString) {
+        return new Sort(
+          ...SchemaUtils.getPrimaryKeys(collection.schema).map(pk => ({
+            field: pk,
+            ascending: true,
+          })),
+        );
+      }
+
+      const sort = new Sort({
+        field: sortString.replace(/^-/, '').replace('.', ':'),
+        ascending: !sortString.startsWith('-'),
+      });
+
+      SortUtils.validate(collection, sort);
+
+      return sort;
+    } catch (e) {
+      context.throw(400, `Invalid sort: ${sortString}`);
+    }
   }
 }
