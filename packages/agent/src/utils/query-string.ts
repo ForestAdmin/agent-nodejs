@@ -86,6 +86,10 @@ export default class QueryStringParser {
       return { skip, limit };
     }
 
+    if (Number.isNaN(skip) || Number.isNaN(limit) || limit <= 0 || skip < 0) {
+      context.throw(400, `Invalid pagination: "limit: ${limit}, skip: ${skip}"`);
+    }
+
     return { skip: 0, limit: 15 };
   }
 }

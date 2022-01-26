@@ -283,5 +283,20 @@ describe('QueryStringParser', () => {
         expect(pagination.skip).toEqual(0);
       });
     });
+
+    describe('when context provides invalid values', () => {
+      test('should return a HTTP 400 error', () => {
+        const context = createMockContext({
+          customProperties: { query: { 'page[size]': -5, 'page[number]': 'NaN' } },
+        });
+
+        QueryStringParser.parsePagination(context);
+
+        expect(context.throw).toHaveBeenCalledWith(
+          400,
+          'Invalid pagination: "limit: -5, skip: NaN"',
+        );
+      });
+    });
   });
 });
