@@ -3,6 +3,7 @@ import {
   Aggregator,
   ConditionTreeBranch,
   ConditionTreeLeaf,
+  ConditionTreeNot,
   Filter,
   Operator,
   Page,
@@ -209,20 +210,19 @@ describe('Utils > FilterConverter', () => {
       describe('with a ConditionTreeNot node', () => {
         it('should fail with an empty condition', () => {
           const filter = new Filter({
-            conditionTree: null,
+            conditionTree: new ConditionTreeNot(null),
           });
+
           expect(() => convertFilterToSequelize(filter)).toThrow('Invalid (null) condition.');
         });
 
         it('should generate a "where" Sequelize filter from a ConditionTreeNot', () => {
-          const condition = {
+          const condition = new ConditionTreeLeaf({
             operator: Operator.Equal,
             field: '__field__',
             value: '__value__',
-          };
-          const conditionTree: ConditionTreeNot = {
-            condition,
-          };
+          });
+          const conditionTree = new ConditionTreeNot(condition);
           const filter = new Filter({
             conditionTree,
           });
