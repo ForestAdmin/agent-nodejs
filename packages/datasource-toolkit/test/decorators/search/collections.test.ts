@@ -7,12 +7,12 @@ import * as factories from '../../__factories__';
 
 describe('SearchCollectionDecorator', () => {
   describe('refineSchema', () => {
-    it('should set the schema searchable', () => {
+    it('should set the schema searchable', async () => {
       const collection = factories.collection.build();
       const unsearchableSchema = factories.collectionSchema.build({ searchable: false });
       const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-      const schema = searchCollectionDecorator.refineSchema(unsearchableSchema);
+      const schema = await searchCollectionDecorator.refineSchema(unsearchableSchema);
 
       expect(schema.searchable).toBe(true);
     });
