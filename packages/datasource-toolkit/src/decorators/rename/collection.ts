@@ -69,7 +69,7 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
   protected override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
     return filter?.override({
       conditionTree: filter.conditionTree.replaceFields(f => this.pathToChildCollection(f)),
-      sort: filter.sort?.replaceFields(ob => ({
+      sort: filter.sort?.replaceClauses(ob => ({
         ...ob,
         field: this.pathToChildCollection(ob.field),
       })),

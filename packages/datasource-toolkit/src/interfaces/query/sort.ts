@@ -2,14 +2,14 @@ import RecordUtils from '../../utils/record';
 import { RecordData } from '../record';
 import Projection from './projection';
 
-export type OrderBy = { field: string; ascending: boolean };
+export type SortClause = { field: string; ascending: boolean };
 
-export default class Sort extends Array<OrderBy> {
+export default class Sort extends Array<SortClause> {
   get projection(): Projection {
     return new Projection(...this.map(s => s.field));
   }
 
-  replaceFields(callback: (orderBy: OrderBy) => Sort | OrderBy[] | OrderBy): Sort {
+  replaceClauses(callback: (clause: SortClause) => Sort | SortClause[] | SortClause): Sort {
     return this.map(ob => callback(ob)).reduce<Sort>((memo, cbResult) => {
       return Array.isArray(cbResult) ? new Sort(...memo, ...cbResult) : new Sort(...memo, cbResult);
     }, new Sort());
