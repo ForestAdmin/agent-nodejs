@@ -8,9 +8,9 @@ import { CompositeId, RecordData } from './interfaces/record';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 
 export default abstract class BaseCollection implements Collection {
-  readonly dataSource: DataSource;
-  readonly name: string;
-  readonly schema: CollectionSchema;
+  readonly dataSource: DataSource = null;
+  readonly name: string = null;
+  readonly schema: CollectionSchema = null;
 
   private actions: { [actionName: string]: Action } = {};
 
@@ -54,6 +54,10 @@ export default abstract class BaseCollection implements Collection {
     Object.entries(fields).forEach(([fieldName, fieldSchema]) =>
       this.addField(fieldName, fieldSchema),
     );
+  }
+
+  protected addSegments(segments: string[]) {
+    this.schema.segments.push(...segments);
   }
 
   protected enableSearch(): void {
