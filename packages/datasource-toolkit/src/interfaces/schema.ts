@@ -20,7 +20,6 @@ export type CollectionSchema = {
 };
 
 export type DataSourceSchema = {
-  name: string;
   collections: { [name: string]: CollectionSchema };
 };
 
