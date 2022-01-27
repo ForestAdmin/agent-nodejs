@@ -18,6 +18,11 @@
     "test": "jest"
   },
   "devDependencies": {
-    "fishery": "^2.1.0"
+    "fishery": "^2.1.0",
+    "sequelize": "^6.12.4",
+    "sqlite3": "^5.0.2"
+  },
+  "peerDependencies": {
+    "sequelize": ">= 6.X"
   }
 }
