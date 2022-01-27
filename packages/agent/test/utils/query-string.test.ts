@@ -1,6 +1,6 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import QueryStringParser from '../../src/utils/query-string';
+import QueryStringParser from '../../dist/utils/query-string';
 import * as factories from '../__factories__';
 
 describe('QueryStringParser', () => {
@@ -115,6 +115,8 @@ describe('QueryStringParser', () => {
           dataSource.getCollection('cars'),
           context,
         );
+
+        expect(context.throw).not.toHaveBeenCalled();
         expect(projection).toEqual(['id', 'owner:name', 'owner:id']);
       });
     });

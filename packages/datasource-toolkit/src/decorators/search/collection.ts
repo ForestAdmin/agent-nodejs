@@ -1,53 +1,54 @@
-import CollectionDecorator from '../collection-decorator';
+import { DataSource } from '../../interfaces/collection';
+import ConditionTree from '../../interfaces/query/condition-tree/base';
+import { Operator } from '../../interfaces/query/condition-tree/leaf';
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import {
-  Aggregator,
   CollectionSchema,
   ColumnSchema,
-  ConditionTree,
-  DataSource,
   FieldSchema,
   FieldTypes,
-  Filter,
-  Operator,
   PrimitiveTypes,
-} from '../../index';
+} from '../../interfaces/schema';
 import ConditionTreeUtils from '../../utils/condition-tree';
-import TypeGetterUtil from '../../utils/type-checker';
+import TypeGetterUtil from '../../validation/type-checker';
+import CollectionDecorator from '../collection-decorator';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     return { ...subSchema, searchable: true };
   }
 
-  public override refineFilter(filter?: Filter): Filter {
-    if (filter?.search && !this.childCollection.schema.searchable) {
-      let { conditionTree, search } = filter;
-
-      if (SearchCollectionDecorator.checkEmptyString(search)) {
-        return { ...filter, search: null };
-      }
-
-      const searchFields = SearchCollectionDecorator.getSearchFields(
-        this.childCollection.schema,
-        this.childCollection.dataSource,
-        filter.searchExtended,
-      );
-      const conditions = searchFields
-        .map(([field, schema]) => SearchCollectionDecorator.buildCondition(field, schema, search))
-        .filter(Boolean);
-
-      // Note that if not fields are searchable with the provided searchString, the conditions
-      // array might be empty, which will create a condition returning zero records
-      // (this is the desired behavior).
-      const searchFilter = { aggregator: Aggregator.Or, conditions };
-      conditionTree = ConditionTreeUtils.intersect(conditionTree, searchFilter);
-
-      search = null;
-
-      return { ...filter, conditionTree, search };
+  public override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
+    if (!filter?.search || this.childCollection.schema.searchable) {
+      return filter;
     }
 
-    return filter;
+    if (SearchCollectionDecorator.checkEmptyString(filter.search)) {
+      return filter.override({ search: null });
+    }
+
+    const searchableFields = SearchCollectionDecorator.getSearchFields(
+      this.childCollection.schema,
+      this.childCollection.dataSource,
+      filter.searchExtended,
+    );
+
+    const conditions = searchableFields
+      .map(([field, schema]) =>
+        SearchCollectionDecorator.buildCondition(field, schema, filter.search),
+      )
+      .filter(Boolean);
+
+    // Note that if not fields are searchable with the provided searchString, the conditions
+    // array might be empty, which will create a condition returning zero records
+    // (this is the desired behavior).
+    return filter.override({
+      conditionTree: ConditionTreeUtils.intersect(
+        filter.conditionTree,
+        ConditionTreeUtils.union(...conditions),
+      ),
+      search: null,
+    });
   }
 
   private static buildCondition(

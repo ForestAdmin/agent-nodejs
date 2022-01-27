@@ -1,4 +1,4 @@
-import BaseRoute from '../../src/routes/base-route';
+import BaseRoute from '../../dist/routes/base-route';
 import * as factories from '../__factories__';
 
 describe('Base routes', () => {

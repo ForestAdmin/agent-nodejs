@@ -1,7 +1,8 @@
 import { Factory } from 'fishery';
-import { Aggregator, ConditionTreeBranch } from '../../../src/interfaces/query/selection';
+import ConditionTreeBranch, {
+  Aggregator,
+} from '../../../dist/interfaces/query/condition-tree/branch';
 
-export default Factory.define<ConditionTreeBranch>(() => ({
-  aggregator: Aggregator.And,
-  conditions: [],
-}));
+export default Factory.define<ConditionTreeBranch>(
+  () => new ConditionTreeBranch(Aggregator.And, []),
+);

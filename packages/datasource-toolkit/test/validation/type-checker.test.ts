@@ -1,6 +1,6 @@
-import TypeGetterUtil from '../../src/utils/type-checker';
-import { PrimitiveTypes } from '../../src/interfaces/schema';
-import ValidationTypes from '../../src/interfaces/validation';
+import TypeGetterUtil from '../../dist/validation/type-checker';
+import { PrimitiveTypes } from '../../dist/interfaces/schema';
+import ValidationTypes from '../../dist/validation/types';
 
 describe('TypeGetterUtil', () => {
   describe('get', () => {

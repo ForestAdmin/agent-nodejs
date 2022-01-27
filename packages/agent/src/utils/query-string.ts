@@ -1,8 +1,9 @@
 import {
   Collection,
   FieldTypes,
+  Page,
   Projection,
-  ProjectionUtils,
+  ProjectionValidator,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 
@@ -21,11 +22,11 @@ export default class QueryStringParser {
           : `${field}:${context.request.query[`fields[${field}]`]}`;
       });
 
-      ProjectionUtils.validate(collection, explicitRequest);
+      ProjectionValidator.validate(collection, explicitRequest);
 
       // Primary keys are not explicitly listed in the projections that the frontend
       // is sending, but are still required for the frontend to work.
-      return ProjectionUtils.withPks(collection, explicitRequest);
+      return new Projection(...explicitRequest).withPks(collection);
     } catch (e) {
       context.throw(400, `Invalid projection (${e.message})`);
     }
@@ -77,19 +78,19 @@ export default class QueryStringParser {
     return timezone;
   }
 
-  static parsePagination(context: Context): { skip: number; limit: number } {
+  static parsePagination(context: Context): Page {
     const limit = Number.parseInt(context.request.query['page[size]']?.toString(), 10);
     const skip =
       (Number.parseInt(context.request.query['page[number]']?.toString(), 10) - 1) * limit;
 
     if (skip >= 0 && limit > 0) {
-      return { skip, limit };
+      return new Page(skip, limit);
     }
 
     if (Number.isNaN(skip) || Number.isNaN(limit) || limit <= 0 || skip < 0) {
       context.throw(400, `Invalid pagination: "limit: ${limit}, skip: ${skip}"`);
     }
 
-    return { skip: 0, limit: 15 };
+    return new Page(0, 15);
   }
 }

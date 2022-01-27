@@ -1,10 +1,10 @@
-import { Operator } from '../../src/interfaces/query/selection';
-import { PrimitiveTypes } from '../../src/interfaces/schema';
+import { Operator } from '../../dist/interfaces/query/condition-tree/leaf';
+import { PrimitiveTypes } from '../../dist/interfaces/schema';
 import {
   MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE,
   MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER,
   MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE,
-} from '../../src/utils/rules';
+} from '../../dist/validation/rules';
 
 describe('ConditionTreeUtils', () => {
   describe('MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER', () => {

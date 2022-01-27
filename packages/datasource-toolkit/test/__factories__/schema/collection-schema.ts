@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
-import { CollectionSchema } from '../../../src/interfaces/schema';
+import { CollectionSchema } from '../../../dist/interfaces/schema';
 
 export class CollectionSchemaFactory extends Factory<CollectionSchema> {
   unsearchable(): CollectionSchemaFactory {

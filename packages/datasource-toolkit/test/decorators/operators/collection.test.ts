@@ -1,7 +1,9 @@
-import OperatorsDecorator from '../../../src/decorators/condition-tree-operators/collection';
-import { Collection } from '../../../src/interfaces/collection';
-import { Operator } from '../../../src/interfaces/query/selection';
-import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
+import OperatorsDecorator from '../../../dist/decorators/operators-replace/collection';
+import { Collection } from '../../../dist/interfaces/collection';
+import ConditionTreeLeaf, { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
+import PaginatedFilter from '../../../dist/interfaces/query/filter/paginated';
+import Projection from '../../../dist/interfaces/query/projection';
+import { ColumnSchema, PrimitiveTypes } from '../../../dist/interfaces/schema';
 import * as factories from '../../__factories__';
 
 describe('ConditionTreeOperators', () => {
@@ -50,30 +52,38 @@ describe('ConditionTreeOperators', () => {
       expect(schema.fields).toHaveProperty('rel');
     });
 
-    test('list() should not modify supported operators', () => {
-      const tree = { field: 'col', operator: Operator.Equal, value: 'someDate' };
+    test('list() should not modify supported operators', async () => {
+      const tree = new ConditionTreeLeaf({
+        field: 'col',
+        operator: Operator.Equal,
+        value: 'someDate',
+      });
 
-      decorator.list({ conditionTree: tree }, ['col']);
+      await decorator.list(new PaginatedFilter({ conditionTree: tree }), new Projection('col'));
       expect(collectionList).toHaveBeenCalledWith(
         { conditionTree: { field: 'col', operator: Operator.Equal, value: 'someDate' } },
         ['col'],
       );
     });
 
-    test('list() should transform "In -> Equal"', () => {
-      const tree = { field: 'col', operator: Operator.In, value: ['someDate'] };
+    test('list() should transform "In -> Equal"', async () => {
+      const tree = new ConditionTreeLeaf({
+        field: 'col',
+        operator: Operator.In,
+        value: ['someDate'],
+      });
 
-      decorator.list({ conditionTree: tree }, ['col']);
+      await decorator.list(new PaginatedFilter({ conditionTree: tree }), new Projection('col'));
       expect(collectionList).toHaveBeenCalledWith(
         { conditionTree: { field: 'col', operator: Operator.Equal, value: 'someDate' } },
         ['col'],
       );
     });
 
-    test('list() should transform "Blank -> In -> Equal"', () => {
-      const tree = { field: 'col', operator: Operator.Blank };
+    test('list() should transform "Blank -> In -> Equal"', async () => {
+      const tree = new ConditionTreeLeaf({ field: 'col', operator: Operator.Blank });
 
-      decorator.list({ conditionTree: tree }, ['col']);
+      await decorator.list(new PaginatedFilter({ conditionTree: tree }), new Projection('col'));
       expect(collectionList).toHaveBeenCalledWith(
         { conditionTree: { field: 'col', operator: Operator.Equal, value: null } },
         ['col'],

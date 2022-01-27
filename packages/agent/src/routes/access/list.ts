@@ -1,6 +1,6 @@
-import { Context } from 'koa';
+import { PaginatedFilter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
-import { PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
+import { Context } from 'koa';
 import QueryStringParser from '../../utils/query-string';
 import CollectionBaseRoute from '../collection-base-route';
 
@@ -10,14 +10,15 @@ export default class ListRoute extends CollectionBaseRoute {
   }
 
   public async handleList(context: Context) {
-    const paginatedFilter: PaginatedFilter = {
+    const paginatedFilter = new PaginatedFilter({
       search: QueryStringParser.parseSearch(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
       page: QueryStringParser.parsePagination(context),
-    };
-    const projection: Projection = QueryStringParser.parseProjection(this.collection, context);
+    });
+
+    const projection = QueryStringParser.parseProjection(this.collection, context);
 
     try {
       const records = await this.collection.list(paginatedFilter, projection);

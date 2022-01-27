@@ -1,6 +1,6 @@
 import { Operator } from '@forestadmin/datasource-toolkit';
-import { ValidationType } from '../../../src/utils/forest-schema/types';
-import FrontendValidationUtils from '../../../src/utils/forest-schema/validation';
+import { ValidationType } from '../../../dist/utils/forest-schema/types';
+import FrontendValidationUtils from '../../../dist/utils/forest-schema/validation';
 
 describe('FrontendValidationUtils', () => {
   test('shoud work with null validation', () => {

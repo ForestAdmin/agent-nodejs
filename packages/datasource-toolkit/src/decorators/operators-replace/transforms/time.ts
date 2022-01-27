@@ -1,5 +1,5 @@
 import { DateTime, DateTimeUnit } from 'luxon';
-import { Operator } from '../../../interfaces/query/selection';
+import { Operator } from '../../../interfaces/query/condition-tree/leaf';
 import { PrimitiveTypes } from '../../../interfaces/schema';
 import ConditionTreeUtils from '../../../utils/condition-tree';
 import { Alternative } from '../types';
@@ -14,10 +14,10 @@ function compare(operator: Operator, dateFn: DateCallback): Alternative {
   return {
     dependsOn: [operator],
     forTypes: [PrimitiveTypes.Date, PrimitiveTypes.Dateonly],
-    replacer: ({ field, value }, tz) => {
+    replacer: (leaf, tz) => {
       const now = DateTime.utc().setZone(tz);
 
-      return { field, operator, value: format(dateFn(now, value)) };
+      return leaf.override({ operator, value: format(dateFn(now, leaf.value)) });
     },
   };
 }
@@ -26,12 +26,12 @@ function interval(startFn: DateCallback, endFn: DateCallback): Alternative {
   return {
     dependsOn: [Operator.LessThan, Operator.GreaterThan],
     forTypes: [PrimitiveTypes.Date, PrimitiveTypes.Dateonly],
-    replacer: ({ field, value }, tz) => {
+    replacer: (leaf, tz) => {
       const now = DateTime.utc().setZone(tz);
 
       return ConditionTreeUtils.intersect(
-        { field, operator: Operator.GreaterThan, value: format(startFn(now, value)) },
-        { field, operator: Operator.LessThan, value: format(endFn(now, value)) },
+        leaf.override({ operator: Operator.GreaterThan, value: format(startFn(now, leaf.value)) }),
+        leaf.override({ operator: Operator.LessThan, value: format(endFn(now, leaf.value)) }),
       );
     },
   };

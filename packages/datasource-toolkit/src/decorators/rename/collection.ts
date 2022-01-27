@@ -1,11 +1,12 @@
-import { AggregateResult, Aggregation } from '../../interfaces/query/aggregation';
-import { Projection } from '../../interfaces/query/projection';
-import { RecordData } from '../../interfaces/query/record';
-import { Filter, PaginatedFilter } from '../../interfaces/query/selection';
+import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
+import Filter from '../../interfaces/query/filter/unpaginated';
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
+import Projection from '../../interfaces/query/projection';
+import { RecordData } from '../../interfaces/record';
 import { CollectionSchema, FieldTypes, RelationSchema } from '../../interfaces/schema';
-import ConditionTreeUtils from '../../utils/condition-tree';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
+
 /**
  * This decorator renames fields.
  *
@@ -65,28 +66,27 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
     return { ...childSchema, fields };
   }
 
-  protected override refineFilter(filter?: PaginatedFilter): PaginatedFilter {
-    return {
-      ...filter,
-      conditionTree: ConditionTreeUtils.replaceLeafs(filter.conditionTree, leaf => ({
-        ...leaf,
-        field: this.pathToChildCollection(leaf.field),
+  protected override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
+    return filter?.override({
+      conditionTree: filter.conditionTree.replaceFields(f => this.pathToChildCollection(f)),
+      sort: filter.sort?.replaceClauses(ob => ({
+        ...ob,
+        field: this.pathToChildCollection(ob.field),
       })),
-      sort: filter.sort?.map(s => ({ ...s, field: this.pathToChildCollection(s.field) })),
-    };
+    });
   }
 
   override async create(records: RecordData[]): Promise<RecordData[]> {
     const newRecords = await super.create(records.map(r => this.recordToChildCollection(r)));
 
-    return newRecords.map(r => this.recordFromChildCollection(r));
+    return newRecords.map(record => this.recordFromChildCollection(record));
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    const childProjection = projection.map(f => this.pathToChildCollection(f));
+    const childProjection = projection.replace(f => this.pathToChildCollection(f));
     const records = await super.list(filter, childProjection);
 
-    return records.map(r => this.recordFromChildCollection(r));
+    return records.map(record => this.recordFromChildCollection(record));
   }
 
   override async update(filter: Filter, patch: RecordData): Promise<void> {
@@ -97,14 +97,10 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
     filter: PaginatedFilter,
     aggregation: Aggregation,
   ): Promise<AggregateResult[]> {
-    const rows = await super.aggregate(filter, {
-      field: this.pathToChildCollection(aggregation.field),
-      operation: aggregation.operation,
-      groups: aggregation.groups?.map(bucket => ({
-        field: this.pathToChildCollection(bucket.field),
-        operation: bucket.operation,
-      })),
-    });
+    const rows = await super.aggregate(
+      filter,
+      aggregation.replaceFields(f => this.pathToChildCollection(f)),
+    );
 
     return rows.map(row => ({
       value: row.value,

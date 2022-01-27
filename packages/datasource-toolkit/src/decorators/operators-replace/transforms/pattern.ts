@@ -1,16 +1,13 @@
-import { Operator } from '../../../interfaces/query/selection';
+import { Operator } from '../../../interfaces/query/condition-tree/leaf';
 import { PrimitiveTypes } from '../../../interfaces/schema';
 import { Alternative } from '../types';
 
-function likes(getPattern: (string) => string): Alternative {
+function likes(getPattern: (pattern: string) => string): Alternative {
   return {
     dependsOn: [Operator.Like],
     forTypes: [PrimitiveTypes.String],
-    replacer: ({ field, value }) => ({
-      field,
-      operator: Operator.Like,
-      value: getPattern(value),
-    }),
+    replacer: leaf =>
+      leaf.override({ operator: Operator.Like, value: getPattern(leaf.value as string) }),
   };
 }
 

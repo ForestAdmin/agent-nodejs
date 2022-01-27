@@ -1,5 +1,5 @@
 import { CollectionSchema, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import IdUtils from '../../src/utils/id';
+import IdUtils from '../../dist/utils/id';
 import * as factories from '../__factories__';
 
 describe('IdUtils', () => {

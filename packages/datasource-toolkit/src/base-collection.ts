@@ -1,9 +1,10 @@
 import { Action } from './interfaces/action';
 import { Collection, DataSource } from './interfaces/collection';
-import { AggregateResult, Aggregation } from './interfaces/query/aggregation';
-import { Projection } from './interfaces/query/projection';
-import { CompositeId, RecordData } from './interfaces/query/record';
-import { Filter, PaginatedFilter } from './interfaces/query/selection';
+import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
+import Filter from './interfaces/query/filter/unpaginated';
+import PaginatedFilter from './interfaces/query/filter/paginated';
+import Projection from './interfaces/query/projection';
+import { CompositeId, RecordData } from './interfaces/record';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 
 export default abstract class BaseCollection implements Collection {

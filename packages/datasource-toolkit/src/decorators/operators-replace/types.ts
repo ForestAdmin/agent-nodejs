@@ -1,4 +1,5 @@
-import { ConditionTree, ConditionTreeLeaf, Operator } from '../../interfaces/query/selection';
+import ConditionTree from '../../interfaces/query/condition-tree/base';
+import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/leaf';
 import { PrimitiveTypes } from '../../interfaces/schema';
 
 export type Alternative = {

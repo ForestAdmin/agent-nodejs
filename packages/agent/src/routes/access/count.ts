@@ -14,14 +14,15 @@ export default class CountRoute extends CollectionBaseRoute {
   }
 
   public async handleCount(context: Context): Promise<void> {
-    const paginatedFilter: PaginatedFilter = {
+    const paginatedFilter = new PaginatedFilter({
       search: QueryStringParser.parseSearch(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
       page: QueryStringParser.parsePagination(context),
-    };
-    const aggregation: Aggregation = { operation: AggregationOperation.Count };
+    });
+
+    const aggregation = new Aggregation({ operation: AggregationOperation.Count });
 
     try {
       const aggregationResult = await this.collection.aggregate(paginatedFilter, aggregation);

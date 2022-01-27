@@ -1,8 +1,8 @@
-import { PrimitiveTypes } from '../../src/interfaces/schema';
-import FieldUtils from '../../src/utils/field';
+import { PrimitiveTypes } from '../../dist/interfaces/schema';
+import FieldValidator from '../../dist/validation/field';
 import * as factories from '../__factories__';
 
-describe('FieldUtils', () => {
+describe('FieldValidator', () => {
   describe('validate', () => {
     const dataSource = factories.dataSource.buildWithCollections([
       factories.collection.build({
@@ -37,17 +37,29 @@ describe('FieldUtils', () => {
     ]);
 
     test('should not throw if the field exist on the collection', () => {
-      expect(() => FieldUtils.validate(dataSource.getCollection('cars'), 'id')).not.toThrow();
+      expect(() => FieldValidator.validate(dataSource.getCollection('cars'), 'id')).not.toThrow();
+    });
+
+    test('should throw if the field does not exists', () => {
+      expect(() =>
+        FieldValidator.validate(dataSource.getCollection('cars'), '__not_defined'),
+      ).toThrow("Column not found: 'cars.__not_defined'");
+    });
+
+    test('should throw if the relation does not exists', () => {
+      expect(() =>
+        FieldValidator.validate(dataSource.getCollection('cars'), '__not_defined:id'),
+      ).toThrow("Relation not found: 'cars.__not_defined'");
     });
 
     test('should throw if the field is not of column type', () => {
-      expect(() => FieldUtils.validate(dataSource.getCollection('cars'), 'owner')).toThrow(
-        'Unexpected field type: OneToOne for field owner',
+      expect(() => FieldValidator.validate(dataSource.getCollection('cars'), 'owner')).toThrow(
+        "Unexpected field type: 'cars.owner' (found 'OneToOne' expected 'Column')",
       );
     });
 
     test('should throw un-implemented error when using the values argument', () => {
-      expect(() => FieldUtils.validate(dataSource.getCollection('cars'), 'id', [123])).toThrow(
+      expect(() => FieldValidator.validate(dataSource.getCollection('cars'), 'id', [123])).toThrow(
         'Implement me.',
       );
     });
@@ -55,13 +67,15 @@ describe('FieldUtils', () => {
     describe('when validating relationship fields', () => {
       test('should validate fields on other collections', () => {
         expect(() =>
-          FieldUtils.validate(dataSource.getCollection('cars'), 'owner:name'),
+          FieldValidator.validate(dataSource.getCollection('cars'), 'owner:name'),
         ).not.toThrow();
       });
 
       test('should throw when the requested field is of type column', () => {
-        expect(() => FieldUtils.validate(dataSource.getCollection('cars'), 'id:address')).toThrow(
-          'Unexpected field type: Column for field id:address',
+        expect(() =>
+          FieldValidator.validate(dataSource.getCollection('cars'), 'id:address'),
+        ).toThrow(
+          "Unexpected field type: 'cars.id' (found 'Column' expected 'ManyToOne' or 'OneToOne')",
         );
       });
     });

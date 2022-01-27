@@ -1,183 +1,74 @@
-import {
-  Aggregator,
-  ConditionTree,
-  ConditionTreeBranch,
-  ConditionTreeLeaf,
-} from '../interfaces/query/selection';
-
-import { Collection } from '../interfaces/collection';
-import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
-import TypeGetterUtil from './type-checker';
-import CollectionUtils from './collection';
-import {
-  MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE,
-  MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER,
-  MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE,
-} from './rules';
-import ValidationTypes from '../interfaces/validation';
-
-export const CONDITION_TREE_NOT_MATCH_ANY_RESULT = Object.freeze({
-  aggregator: Aggregator.Or,
-  conditions: [],
-});
+import ConditionTree from '../interfaces/query/condition-tree/base';
+import ConditionTreeBranch, { Aggregator } from '../interfaces/query/condition-tree/branch';
+import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/leaf';
+import { CompositeId, RecordData } from '../interfaces/record';
+import { CollectionSchema } from '../interfaces/schema';
+import RecordUtils from './record';
+import SchemaUtils from './schema';
 
 export default class ConditionTreeUtils {
-  static validate(conditionTree: ConditionTree, collection: Collection): void {
-    ConditionTreeUtils.forEachLeaf(
-      conditionTree,
-      collection,
-      (currentCondition: ConditionTreeLeaf): void => {
-        const fieldSchema = CollectionUtils.getFieldSchema(
-          collection,
-          currentCondition.field,
-        ) as ColumnSchema;
+  static EmptySet = new ConditionTreeBranch(Aggregator.Or, []);
 
-        ConditionTreeUtils.throwIfValueNotAllowedWithOperator(currentCondition, fieldSchema);
-        ConditionTreeUtils.throwIfOperatorNotAllowedWithColumnType(currentCondition, fieldSchema);
-        ConditionTreeUtils.throwIfValueNotAllowedWithColumnType(currentCondition, fieldSchema);
-      },
+  static matchRecords(schema: CollectionSchema, records: RecordData[]): ConditionTree {
+    const ids = records.map(r => RecordUtils.getPrimaryKey(schema, r));
+
+    return ConditionTreeUtils.matchIds(schema, ids);
+  }
+
+  static matchIds(schema: CollectionSchema, ids: CompositeId[]): ConditionTree {
+    return ConditionTreeUtils.matchFields(SchemaUtils.getPrimaryKeys(schema), ids);
+  }
+
+  private static matchFields(fields: string[], values: unknown[][]): ConditionTree {
+    if (fields.length === 1) {
+      return new ConditionTreeLeaf(
+        values.length > 1
+          ? { field: fields[0], operator: Operator.In, value: values.map(tuple => tuple[0]) }
+          : { field: fields[0], operator: Operator.Equal, value: values[0][0] },
+      );
+    }
+
+    const [firstField, ...otherFields] = fields;
+    const groups = new Map<unknown, unknown[][]>();
+
+    for (const [firstValue, ...otherValues] of values) {
+      if (groups.has(firstValue)) groups.get(firstValue).push(otherValues);
+      else groups.set(firstValue, [otherValues]);
+    }
+
+    return ConditionTreeUtils.union(
+      ...[...groups.entries()].map<ConditionTree>(([firstValue, subValues]) =>
+        ConditionTreeUtils.intersect(
+          ConditionTreeUtils.matchFields([firstField], [[firstValue]]),
+          ConditionTreeUtils.matchFields(otherFields, subValues),
+        ),
+      ),
     );
   }
 
-  private static forEachLeaf(
-    conditionTree: ConditionTree,
-    collection: Collection,
-    forCurrentLeafFn: (conditionTree: ConditionTreeLeaf) => void,
-  ): void {
-    if (ConditionTreeUtils.isBranch(conditionTree)) {
-      return conditionTree.conditions.forEach(condition =>
-        ConditionTreeUtils.validate(condition, collection),
-      );
-    }
-
-    return forCurrentLeafFn(conditionTree as ConditionTreeLeaf);
+  static union(...trees: ConditionTree[]): ConditionTree {
+    return ConditionTreeUtils.group(Aggregator.Or, trees);
   }
 
-  private static throwIfValueNotAllowedWithOperator(
-    conditionTree: ConditionTreeLeaf,
-    columnSchema: ColumnSchema,
-  ): void {
-    const { value } = conditionTree;
-    const valueType = TypeGetterUtil.get(value, columnSchema.columnType as PrimitiveTypes);
-
-    const allowedTypes = MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[conditionTree.operator];
-
-    if (!allowedTypes.includes(valueType)) {
-      throw new Error(
-        `The given value attribute '${JSON.stringify(
-          value,
-        )} (type: ${valueType})' has an unexpected value ` +
-          `for the given operator '${conditionTree.operator}'.\n` +
-          `${
-            allowedTypes.length === 0
-              ? 'The value attribute must be empty.'
-              : `The allowed types of the field value are: [${allowedTypes}].`
-          }`,
-      );
-    }
+  static intersect(...trees: ConditionTree[]): ConditionTree {
+    return ConditionTreeUtils.group(Aggregator.And, trees);
   }
 
-  private static throwIfOperatorNotAllowedWithColumnType(
-    conditionTree: ConditionTreeLeaf,
-    columnSchema: ColumnSchema,
-  ): void {
-    const allowedOperators =
-      MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE[columnSchema.columnType as PrimitiveTypes];
-
-    if (!allowedOperators.includes(conditionTree.operator)) {
-      throw new Error(
-        `The given operator '${conditionTree.operator}' ` +
-          `is not allowed with the columnType schema: '${columnSchema.columnType}'.\n` +
-          `The allowed types are: [${allowedOperators}]`,
+  private static group(aggregator: Aggregator, trees: ConditionTree[]): ConditionTree {
+    const conditions = trees
+      .filter(Boolean)
+      .reduce(
+        (currentConditions, tree) =>
+          tree instanceof ConditionTreeBranch && tree.aggregator === aggregator
+            ? [...currentConditions, ...tree.conditions]
+            : [...currentConditions, tree],
+        [] as ConditionTree[],
       );
-    }
-  }
-
-  private static throwIfValueNotAllowedWithColumnType(
-    conditionTree: ConditionTreeLeaf,
-    columnSchema: ColumnSchema,
-  ): void {
-    const { value } = conditionTree;
-    const { columnType } = columnSchema;
-    const allowedTypes = MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[columnType as PrimitiveTypes];
-
-    const type = TypeGetterUtil.get(value, columnType as PrimitiveTypes);
-
-    if (!allowedTypes.includes(type)) {
-      throw new Error(
-        `The given value '${JSON.stringify(value)} (type: ${type})' ` +
-          `is not allowed with the columnType schema '${columnType}'.\n` +
-          `The allowed values are [${allowedTypes}].`,
-      );
-    }
-
-    if (columnSchema.columnType === PrimitiveTypes.Enum) {
-      this.throwIfInvalidEnumValue(type, conditionTree, columnSchema);
-    }
-  }
-
-  private static throwIfInvalidEnumValue(
-    type: PrimitiveTypes | ValidationTypes,
-    conditionTree: ConditionTreeLeaf,
-    columnSchema: ColumnSchema,
-  ) {
-    let isEnumAllowed;
-
-    if (type === ValidationTypes.ArrayOfString) {
-      const enumValuesConditionTree = conditionTree.value as Array<string>;
-      isEnumAllowed = enumValuesConditionTree.every(value =>
-        columnSchema.enumValues.includes(value),
-      );
-    } else {
-      isEnumAllowed = columnSchema.enumValues.includes(conditionTree.value as string);
-    }
-
-    if (!isEnumAllowed) {
-      throw new Error(
-        `The given enum value(s) [${conditionTree.value}] is not listed in ` +
-          `[${columnSchema.enumValues}]`,
-      );
-    }
-  }
-
-  static intersect(...conditionTrees: ConditionTree[]): ConditionTree {
-    const conditions = conditionTrees.reduce((currentConditions, condition) => {
-      if (!condition) return currentConditions;
-
-      return ConditionTreeUtils.isBranch(condition) && condition.aggregator === Aggregator.And
-        ? [...currentConditions, ...condition.conditions]
-        : [...currentConditions, condition];
-    }, []);
 
     if (conditions.length === 1) {
       return conditions[0];
     }
 
-    return { aggregator: Aggregator.And, conditions };
-  }
-
-  static isBranch(conditionTree: ConditionTree): conditionTree is ConditionTreeBranch {
-    return (conditionTree as ConditionTreeBranch).aggregator !== undefined;
-  }
-
-  static replaceLeafs(
-    tree: ConditionTree,
-    handler: (leaf: ConditionTreeLeaf) => ConditionTree,
-    bind: unknown = null,
-  ): ConditionTree {
-    if (!tree) {
-      return null;
-    }
-
-    if (ConditionTreeUtils.isBranch(tree)) {
-      return {
-        ...tree,
-        conditions: tree.conditions.map((c: ConditionTree) =>
-          ConditionTreeUtils.replaceLeafs(c, handler, bind),
-        ),
-      };
-    }
-
-    return handler.call(bind, tree);
+    return new ConditionTreeBranch(aggregator, conditions);
   }
 }
