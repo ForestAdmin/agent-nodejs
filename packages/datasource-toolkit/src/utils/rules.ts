@@ -3,10 +3,11 @@ import { Operator } from '../interfaces/query/selection';
 import ValidationTypes from '../interfaces/validation';
 
 const BASE_OPERATORS: Operator[] = [
-  Operator.Present,
   Operator.Blank,
   Operator.Equal,
+  Operator.Missing,
   Operator.NotEqual,
+  Operator.Present,
 ];
 
 const BASE_DATEONLY_OPERATORS: Operator[] = [
@@ -59,7 +60,7 @@ export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
   ],
   [PrimitiveTypes.Timeonly]: [...BASE_OPERATORS, Operator.LessThan, Operator.GreaterThan],
   [PrimitiveTypes.Enum]: [...BASE_OPERATORS, Operator.In, Operator.NotIn],
-  [PrimitiveTypes.Json]: [Operator.Present, Operator.Blank],
+  [PrimitiveTypes.Json]: [Operator.Blank, Operator.Missing, Operator.Present],
   [PrimitiveTypes.Boolean]: BASE_OPERATORS,
   [PrimitiveTypes.Point]: BASE_OPERATORS,
   [PrimitiveTypes.Uuid]: BASE_OPERATORS,
@@ -101,7 +102,6 @@ export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<
   Record<Operator, readonly (ValidationTypes | PrimitiveTypes)[]>
 > = Object.freeze({
   ...computeAllowedTypesForOperators(),
-  [Operator.Present]: NO_TYPES_ALLOWED,
   [Operator.Blank]: NO_TYPES_ALLOWED,
   [Operator.In]: [
     ValidationTypes.ArrayOfNumber,
@@ -113,4 +113,6 @@ export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<
     ValidationTypes.ArrayOfString,
     ValidationTypes.ArrayOfBoolean,
   ],
+  [Operator.Missing]: NO_TYPES_ALLOWED,
+  [Operator.Present]: NO_TYPES_ALLOWED,
 });
