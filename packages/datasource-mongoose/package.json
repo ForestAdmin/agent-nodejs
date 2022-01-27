@@ -11,7 +11,7 @@
     "@forestadmin/datasource-toolkit": "^1.0.0"
   },
   "devDependencies": {
-    "@types/node": "16.11.7",
+    "@types/node": "^16.11.7",
     "mongoose": "6.1.8"
   },
   "peerDependencies": {
