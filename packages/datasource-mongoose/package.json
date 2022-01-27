@@ -1,7 +1,12 @@
 {
   "name": "@forestadmin/datasource-mongoose",
   "version": "1.0.0",
+  "main": "dist/index.js",
   "license": "GPL-3.0",
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
   "dependencies": {
     "@forestadmin/datasource-toolkit": "^1.0.0"
   },
