@@ -5,10 +5,13 @@ import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
   ConditionTreeNot,
+  constants,
   Filter,
   Operator,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
+
+const { QUERY_PAGE_DEFAULT_LIMIT, QUERY_PAGE_DEFAULT_SKIP } = constants;
 
 function makeWhereClause(operator: Operator, value?) {
   if (operator === null) throw new Error('Invalid (null) operator.');
@@ -115,8 +118,8 @@ export function convertPaginatedFilterToSequelize(filter: PaginatedFilter) {
   const sequelizeFilter = convertFilterToSequelize(filter);
 
   // TODO: Get default `page.{limit,skip}` from constants in toolkit.
-  const pageLimit = filter.page?.limit ?? 15;
-  const pageOffset = filter.page?.skip ?? 0;
+  const pageLimit = filter.page?.limit ?? QUERY_PAGE_DEFAULT_LIMIT;
+  const pageOffset = filter.page?.skip ?? QUERY_PAGE_DEFAULT_SKIP;
 
   if (pageLimit !== null) sequelizeFilter.limit = pageLimit;
   if (pageOffset !== null) sequelizeFilter.offset = pageOffset;
