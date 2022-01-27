@@ -1,10 +1,11 @@
+import SegmentCollectionDecorator from '../../../dist/decorators/segment/collection-decorator';
+import ConditionTree from '../../../dist/interfaces/query/condition-tree/base';
+import { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
 import * as factories from '../../__factories__';
-import SegmentCollectionDecorator from '../../../src/decorators/segment/collection-decorator';
-import { Operator } from '../../../src/interfaces/query/selection';
 
 describe('SegmentCollectionDecorator', () => {
-  let segmentDecorator;
-  let conditionTreeGenerator;
+  let segmentDecorator: SegmentCollectionDecorator;
+  let conditionTreeGenerator: () => Promise<ConditionTree>;
 
   beforeEach(() => {
     const collection = factories.collection.build();
@@ -65,7 +66,7 @@ describe('SegmentCollectionDecorator', () => {
           });
           const filter = await segmentDecorator.refineFilter(aFilter);
 
-          expect(filter).toStrictEqual({
+          expect(filter).toEqual({
             segment: null,
             conditionTree: {
               aggregator: 'and',

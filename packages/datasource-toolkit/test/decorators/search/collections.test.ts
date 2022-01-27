@@ -57,11 +57,7 @@ describe('SearchCollectionDecorator', () => {
         const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
         const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
         expect(refinedFilter).toEqual({
-=======
-        expect(refinedFilter).toStrictEqual({
->>>>>>> 4ca1de3 (feat: add segment decorator)
           search: null,
           conditionTree: ConditionTreeUtils.EmptySet,
         });
@@ -93,11 +89,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
           expect(refinedFilter).toEqual({ ...filter, search: null });
-=======
-          expect(refinedFilter).toStrictEqual({ ...filter, search: null });
->>>>>>> 4ca1de3 (feat: add segment decorator)
         });
       });
 
@@ -130,11 +122,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
           expect(refinedFilter).toEqual({
-=======
-          expect(refinedFilter).toStrictEqual({
->>>>>>> 4ca1de3 (feat: add segment decorator)
             search: null,
             conditionTree: {
               aggregator: 'and',
@@ -164,11 +152,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
           expect(refinedFilter).toEqual({
-=======
-          expect(refinedFilter).toStrictEqual({
->>>>>>> 4ca1de3 (feat: add segment decorator)
             search: null,
             conditionTree: { field: 'fieldName', operator: Operator.Contains, value: 'a text' },
           });
@@ -192,11 +176,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
           expect(refinedFilter).toEqual({
-=======
-          expect(refinedFilter).toStrictEqual({
->>>>>>> 4ca1de3 (feat: add segment decorator)
             search: null,
             conditionTree: {
               field: 'fieldName',
@@ -208,11 +188,7 @@ describe('SearchCollectionDecorator', () => {
       });
 
       describe('when the search is a number and the column type is a number', () => {
-<<<<<<< HEAD
         test('returns "equal" condition, "or" aggregator and cast value to Number', async () => {
-=======
-        test('returns "equal" condition, "or" aggregator, cast value to Number', async () => {
->>>>>>> 4ca1de3 (feat: add segment decorator)
           const collection = factories.collection.build({
             schema: factories.collectionSchema.unsearchable().build({
               fields: {
@@ -228,11 +204,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
           expect(refinedFilter).toEqual({
-=======
-          expect(refinedFilter).toStrictEqual({
->>>>>>> 4ca1de3 (feat: add segment decorator)
             search: null,
             conditionTree: { field: 'fieldName', operator: Operator.Equal, value: 1584 },
           });
@@ -257,11 +229,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
           expect(refinedFilter).toEqual({
-=======
-          expect(refinedFilter).toStrictEqual({
->>>>>>> 4ca1de3 (feat: add segment decorator)
             search: null,
             conditionTree: { field: 'fieldName', operator: Operator.Equal, value: 'AEnumValue' },
           });
@@ -285,11 +253,7 @@ describe('SearchCollectionDecorator', () => {
             const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
             const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
             expect(refinedFilter).toEqual({
-=======
-            expect(refinedFilter).toStrictEqual({
->>>>>>> 4ca1de3 (feat: add segment decorator)
               search: null,
               conditionTree: ConditionTreeUtils.EmptySet,
             });
@@ -314,11 +278,7 @@ describe('SearchCollectionDecorator', () => {
             const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
             const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
             expect(refinedFilter).toEqual({
-=======
-            expect(refinedFilter).toStrictEqual({
->>>>>>> 4ca1de3 (feat: add segment decorator)
               search: null,
               conditionTree: ConditionTreeUtils.EmptySet,
             });
@@ -340,11 +300,7 @@ describe('SearchCollectionDecorator', () => {
             const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
             const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
             expect(refinedFilter).toEqual({
-=======
-            expect(refinedFilter).toStrictEqual({
->>>>>>> 4ca1de3 (feat: add segment decorator)
               search: null,
               conditionTree: ConditionTreeUtils.EmptySet,
             });
@@ -369,11 +325,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
           expect(refinedFilter).toEqual({
-=======
-          expect(refinedFilter).toStrictEqual({
->>>>>>> 4ca1de3 (feat: add segment decorator)
             search: null,
             conditionTree: {
               aggregator: 'or',
@@ -446,11 +398,7 @@ describe('SearchCollectionDecorator', () => {
             );
 
             const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-<<<<<<< HEAD
             expect(refinedFilter).toEqual({
-=======
-            expect(refinedFilter).toStrictEqual({
->>>>>>> 4ca1de3 (feat: add segment decorator)
               searchExtended: true,
               search: null,
               conditionTree: {

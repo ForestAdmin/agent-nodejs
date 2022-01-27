@@ -1,20 +1,17 @@
-import CollectionDecorator from '../collection-decorator';
-import { ConditionTree, Filter } from '../../interfaces/query/selection';
+import ConditionTree from '../../interfaces/query/condition-tree/base';
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import { CollectionSchema } from '../../interfaces/schema';
 import ConditionTreeUtils from '../../utils/condition-tree';
+import ConditionTreeValidator from '../../validation/condition-tree';
+import CollectionDecorator from '../collection-decorator';
 
-interface IConditionTreeGenerator {
-  getConditionTree: (timezone: string) => Promise<ConditionTree>;
-}
+type ConditionTreeGenerator = (timezone: string) => Promise<ConditionTree>;
 
 export default class SegmentCollectionDecorator extends CollectionDecorator {
-  private segments: { [name: string]: IConditionTreeGenerator } = {};
+  private segments: { [name: string]: ConditionTreeGenerator } = {};
 
-  registerSegment(
-    segmentName: string,
-    getConditionTree: IConditionTreeGenerator['getConditionTree'],
-  ): void {
-    this.segments[segmentName] = { getConditionTree };
+  registerSegment(segmentName: string, getConditionTree: ConditionTreeGenerator): void {
+    this.segments[segmentName] = getConditionTree;
   }
 
   protected refineSchema(subSchema: CollectionSchema): CollectionSchema {
@@ -24,7 +21,7 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
     };
   }
 
-  public override async refineFilter(filter?: Filter): Promise<Filter> {
+  public override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
     if (!filter) {
       return null;
     }
@@ -32,13 +29,13 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
     let { conditionTree, segment } = filter;
 
     if (segment && this.segments[segment]) {
-      const conditionTreeSegment = await this.segments[segment].getConditionTree(filter.timezone);
-      ConditionTreeUtils.validate(conditionTreeSegment, this);
+      const conditionTreeSegment = await this.segments[segment](filter.timezone);
+      ConditionTreeValidator.validate(conditionTreeSegment, this);
 
       conditionTree = ConditionTreeUtils.intersect(conditionTree, conditionTreeSegment);
       segment = null;
     }
 
-    return { ...filter, conditionTree, segment };
+    return filter.override({ conditionTree, segment });
   }
 }
