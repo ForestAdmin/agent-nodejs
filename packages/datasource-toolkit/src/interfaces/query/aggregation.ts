@@ -15,7 +15,7 @@ export enum DateOperation {
   ToYear = 'Year',
   ToMonth = 'Month',
   ToWeek = 'Week',
-  toDay = 'Day',
+  ToDay = 'Day',
 }
 
 export type AggregateResult = {
@@ -63,23 +63,22 @@ export default class Aggregation implements AggregationComponents {
   }
 
   apply(records: RecordData[], timezone: string): AggregateResult[] {
-    return this.regroup(records, timezone).map(row => {
-      const { count, starCount, sum, group } = row;
+    const rows = this.regroup(records, timezone);
 
-      if (this.operation === AggregationOperation.Count) {
-        return { value: this.field ? count : starCount, group };
-      }
+    if (this.operation === AggregationOperation.Average) {
+      return rows
+        .filter(({ count }) => count)
+        .map(({ sum, count, group }) => ({ value: sum / count, group }));
+    }
 
-      if (this.operation === AggregationOperation.Average) {
-        return { value: sum / count, group };
-      }
+    if (this.operation === AggregationOperation.Sum) {
+      return rows.map(({ sum, group }) => ({ value: sum, group }));
+    }
 
-      if (this.operation === AggregationOperation.Sum) {
-        return { value: sum, group };
-      }
-
-      throw new Error(`Invalid AggregationOperation: ${this.operation}`);
-    });
+    return rows.map(({ count, starCount, group }) => ({
+      value: this.field ? count : starCount,
+      group,
+    }));
   }
 
   private regroup(
@@ -91,13 +90,13 @@ export default class Aggregation implements AggregationComponents {
 
     for (const record of records) {
       // Compute grouping values & key
-      const intermediaryResult = { count: 0, starCount: 0, sum: 0 };
+      const intermediaryResult = { count: 0, starCount: 0, sum: 0, group: {} };
       let uniqueKey = '';
 
       for (const { field, operation } of this.groups ?? []) {
         const baseValue = RecordUtils.getFieldValue(record, field) as string;
         const value = this.applyDateOperation(baseValue, operation, timezone);
-        intermediaryResult[field] = value;
+        intermediaryResult.group[field] = value;
         uniqueKey += `--${value}`;
       }
 
@@ -135,17 +134,15 @@ export default class Aggregation implements AggregationComponents {
         return dateTime.toFormat('yyyy-LL-01');
       }
 
-      if (operation === DateOperation.toDay) {
+      if (operation === DateOperation.ToDay) {
         return dateTime.toFormat('yyyy-LL-dd');
       }
 
       if (operation === DateOperation.ToWeek) {
         return dateTime.startOf('week').toFormat('yyyy-LL-dd');
       }
-
-      throw new Error(`Invalid DateOperation: ${operation}.`);
-    } else {
-      return String(value);
     }
+
+    return String(value);
   }
 }

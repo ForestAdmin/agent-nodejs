@@ -1,6 +1,5 @@
 import ConditionTreeBranch, { Aggregator } from '../../dist/interfaces/query/condition-tree/branch';
 import ConditionTreeLeaf, { Operator } from '../../dist/interfaces/query/condition-tree/leaf';
-import { conditionTreeLeaf } from '../__factories__';
 
 describe('ConditionTree', () => {
   const tree = new ConditionTreeBranch(Aggregator.And, [
