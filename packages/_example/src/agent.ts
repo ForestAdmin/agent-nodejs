@@ -1,36 +1,23 @@
-/* eslint-disable no-console */
+import http from 'http';
 
 import { ForestAdminHttpDriver, ForestAdminHttpDriverOptions } from '@forestadmin/agent';
-import { DummyDataSource } from '@forestadmin/datasource-dummy';
-import {
-  DataSource,
-  DataSourceDecorator,
-  OperatorsEmulateCollectionDecorator,
-  OperatorsReplaceCollectionDecorator,
-  PublicationCollectionDecorator,
-  RenameCollectionDecorator,
-  SearchCollectionDecorator,
-  SegmentCollectionDecorator,
-  SortEmulateCollectionDecorator,
-} from '@forestadmin/datasource-toolkit';
-import http from 'http';
+
+import dummyDataSource from './datasources/dummy-library';
+
+import liveDataSource from './datasources/live-business';
+import loadLiveDataSource from './datasources/live-business-data';
 
 export default async function start(
   serverPort: number,
   serverHost: string,
   options: ForestAdminHttpDriverOptions,
 ) {
-  let dataSource: DataSource;
-  dataSource = new DummyDataSource();
-  dataSource = new DataSourceDecorator(dataSource, OperatorsEmulateCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, OperatorsReplaceCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, SortEmulateCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, SegmentCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, RenameCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, PublicationCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, SearchCollectionDecorator);
+  const driver = new ForestAdminHttpDriver([dummyDataSource, liveDataSource], options);
 
-  const driver = new ForestAdminHttpDriver(dataSource, options);
+  await liveDataSource.syncCollections();
+
+  await loadLiveDataSource(liveDataSource);
+
   await driver.start();
 
   const server = http.createServer(driver.handler);

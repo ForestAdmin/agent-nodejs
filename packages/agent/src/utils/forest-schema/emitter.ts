@@ -31,11 +31,11 @@ export default class SchemaEmitter {
 
   static async getSerializedSchema(
     options: Options,
-    dataSource: DataSource,
+    dataSources: DataSource[],
   ): Promise<SerializedSchema> {
     const schema: RawSchema = options.isProduction
       ? await SchemaEmitter.loadFromDisk(options.schemaPath)
-      : await SchemaEmitter.generate(options.prefix, dataSource);
+      : await SchemaEmitter.generate(options.prefix, dataSources);
 
     if (!options.isProduction) {
       const pretty = stringify(schema, { maxLength: 80 });
@@ -59,12 +59,17 @@ export default class SchemaEmitter {
     }
   }
 
-  private static async generate(prefix: string, dataSource: DataSource): Promise<RawSchema> {
-    const collectionSchemas = dataSource.collections.map(collection =>
-      SchemaGeneratorCollection.buildSchema(prefix, collection),
-    );
+  private static async generate(prefix: string, dataSources: DataSource[]): Promise<RawSchema> {
+    const allCollectionSchemas = [];
 
-    return Promise.all(collectionSchemas);
+    dataSources.forEach(dataSource => {
+      const dataSourceCollectionSchemas = dataSource.collections.map(collection =>
+        SchemaGeneratorCollection.buildSchema(prefix, collection),
+      );
+      allCollectionSchemas.push(...dataSourceCollectionSchemas);
+    });
+
+    return Promise.all(allCollectionSchemas);
   }
 
   private static serialize(schema: RawSchema, hash: string): SerializedSchema {

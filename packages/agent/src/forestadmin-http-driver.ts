@@ -15,7 +15,7 @@ import SchemaEmitter from './utils/forest-schema/emitter';
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
 
 export default class ForestAdminHttpDriver {
-  public readonly dataSource: DataSource;
+  public readonly dataSources: DataSource[];
   public readonly options: ForestAdminHttpDriverOptions;
   public readonly routes: BaseRoute[] = [];
   public readonly services: ForestAdminHttpDriverServices;
@@ -32,8 +32,8 @@ export default class ForestAdminHttpDriver {
     return this.app.callback();
   }
 
-  constructor(dataSource: DataSource, options: ForestAdminHttpDriverOptions) {
-    this.dataSource = dataSource;
+  constructor(dataSource: DataSource | DataSource[], options: ForestAdminHttpDriverOptions) {
+    this.dataSources = Array.isArray(dataSource) ? dataSource : [dataSource];
     this.options = options;
     this.services = makeServices(options);
   }
@@ -62,7 +62,7 @@ export default class ForestAdminHttpDriver {
     this.app.use(router.routes());
 
     // Send schema to forestadmin-server (if relevant).
-    const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSource);
+    const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSources);
     const schemaIsKnown = await this.services.forestHTTPApi.hasSchema(schema.meta.schemaFileHash);
 
     if (!schemaIsKnown) {
@@ -83,16 +83,20 @@ export default class ForestAdminHttpDriver {
   }
 
   private buildRoutes(): void {
-    const { dataSource, options } = this;
+    const { dataSources, options } = this;
 
-    this.routes.push(...RootRoutesCtor.map(Route => new Route(this.services, dataSource, options)));
-
-    dataSource.collections.forEach(collection => {
+    dataSources.forEach(dataSource => {
       this.routes.push(
-        ...CollectionRoutesCtor.map(
-          Route => new Route(this.services, dataSource, options, collection.name),
-        ),
+        ...RootRoutesCtor.map(Route => new Route(this.services, dataSource, options)),
       );
+
+      dataSource.collections.forEach(collection => {
+        this.routes.push(
+          ...CollectionRoutesCtor.map(
+            Route => new Route(this.services, dataSource, options, collection.name),
+          ),
+        );
+      });
     });
   }
 }
