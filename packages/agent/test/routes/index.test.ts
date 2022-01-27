@@ -6,6 +6,7 @@ import HealthCheck from '../../dist/routes/healthcheck';
 import List from '../../dist/routes/access/list';
 import Count from '../../dist/routes/access/count';
 import Get from '../../dist/routes/access/get';
+import Delete from '../../dist/routes/modification/delete';
 
 describe('RoutesCtor', () => {
   describe('RootRoutesCtor', () => {
@@ -20,6 +21,7 @@ describe('RoutesCtor', () => {
       expect(CollectionRoutesCtor).toContain(List);
       expect(CollectionRoutesCtor).toContain(Count);
       expect(CollectionRoutesCtor).toContain(Get);
+      expect(CollectionRoutesCtor).toContain(Delete);
     });
   });
 });

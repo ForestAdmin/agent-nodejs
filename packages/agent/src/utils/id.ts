@@ -22,6 +22,10 @@ export default class IdUtils {
     return pkNames.map(pk => String(record[pk])).join('|');
   }
 
+  static unpackIds(schema: CollectionSchema, packedIds: string[]): CompositeId[] {
+    return packedIds.map(packedId => IdUtils.unpackId(schema, packedId));
+  }
+
   static unpackId(schema: CollectionSchema, packedId: string): CompositeId {
     const pkNames = SchemaUtils.getPrimaryKeys(schema);
     const pkValues = packedId.split('|');
