@@ -1,8 +1,7 @@
-import { RecordData } from '../../record';
 import RecordUtils from '../../../utils/record';
-import ConditionTree from './base';
-import ConditionTreeBranch, { Aggregator } from './branch';
+import { RecordData } from '../../record';
 import Projection from '../projection';
+import ConditionTree from './base';
 
 export enum Operator {
   Blank = 'blank',
@@ -46,7 +45,7 @@ export enum Operator {
 type LeafHandler<R> = (leaf: ConditionTreeLeaf) => R;
 
 export type LeafReplacer = LeafHandler<ConditionTree | LeafComponents>;
-export type AsyncLeafReplacer = LeafHandler<Promise<ConditionTree>>;
+export type AsyncLeafReplacer = LeafHandler<Promise<ConditionTree | LeafComponents>>;
 export type LeafTester = LeafHandler<boolean>;
 export type LeafCallback = LeafHandler<void>;
 export type LeafComponents = { field: string; operator: Operator; value?: unknown };
@@ -80,35 +79,23 @@ export default class ConditionTreeLeaf extends ConditionTree {
   }
 
   inverse(): ConditionTree {
+    const operators = Object.values(Operator) as string[];
+
+    if (operators.includes(`not_${this.operator}`)) {
+      return this.override({ operator: `not_${this.operator}` as Operator });
+    }
+
+    if (this.operator.startsWith('not_')) {
+      return this.override({ operator: this.operator.substring(4) as Operator });
+    }
+
     switch (this.operator) {
-      case Operator.Contains:
-        return this.override({ operator: Operator.NotContains });
-      case Operator.Equal:
-        return this.override({ operator: Operator.NotEqual });
-      case Operator.In:
-        return this.override({ operator: Operator.NotIn });
       case Operator.Blank:
         return this.override({ operator: Operator.Present });
-      case Operator.NotContains:
-        return this.override({ operator: Operator.Contains });
-      case Operator.NotEqual:
-        return this.override({ operator: Operator.Equal });
-      case Operator.NotIn:
-        return this.override({ operator: Operator.In });
       case Operator.Present:
         return this.override({ operator: Operator.Blank });
-      case Operator.LessThan:
-        return new ConditionTreeBranch(Aggregator.Or, [
-          this.override({ operator: Operator.Equal }),
-          this.override({ operator: Operator.GreaterThan }),
-        ]);
-      case Operator.GreaterThan:
-        return new ConditionTreeBranch(Aggregator.Or, [
-          this.override({ operator: Operator.Equal }),
-          this.override({ operator: Operator.LessThan }),
-        ]);
       default:
-        throw new Error('Method not implemented.');
+        throw new Error('Operation cannot be inverted.');
     }
   }
 
@@ -118,8 +105,10 @@ export default class ConditionTreeLeaf extends ConditionTree {
     return result instanceof ConditionTree ? result : new ConditionTreeLeaf(result);
   }
 
-  replaceLeafsAsync(handler: AsyncLeafReplacer, bind?: unknown): Promise<ConditionTree> {
-    return handler.call(bind, this);
+  async replaceLeafsAsync(handler: AsyncLeafReplacer, bind?: unknown): Promise<ConditionTree> {
+    const result = await handler.call(bind, this);
+
+    return result instanceof ConditionTree ? result : new ConditionTreeLeaf(result);
   }
 
   match(record: RecordData): boolean {
@@ -137,8 +126,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case Operator.LessThan:
         return fieldValue < this.value;
       case Operator.Equal:
-        // eslint-disable-next-line eqeqeq
-        return fieldValue == this.value; // do not replace by ===
+        return fieldValue == this.value; // eslint-disable-line eqeqeq
       case Operator.GreaterThan:
         return fieldValue > this.value;
       case Operator.In:
@@ -146,25 +134,16 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case Operator.IncludesAll:
         return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
 
-      case Operator.NotContains:
-      case Operator.NotEqual:
-      case Operator.NotIn:
-      case Operator.Present:
-        return !this.inverse().match(record);
-
       default:
-        throw new Error(`Unsupported operator: ${this.operator}`);
+        try {
+          return !this.inverse().match(record);
+        } catch (e) {
+          throw new Error(`Unsupported operator: '${this.operator}'`);
+        }
     }
   }
 
   override(params: Partial<LeafComponents>): ConditionTreeLeaf {
     return new ConditionTreeLeaf({ ...this, ...params });
-  }
-
-  unnest(): ConditionTreeLeaf {
-    const dotIndex = this.field.indexOf(':');
-    if (dotIndex === -1) throw new Error('Cannot unnest leaf');
-
-    return this.override({ field: this.field.substring(dotIndex + 1) });
   }
 }

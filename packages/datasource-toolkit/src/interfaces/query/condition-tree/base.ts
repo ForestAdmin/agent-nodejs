@@ -23,6 +23,23 @@ export default abstract class ConditionTree {
     return this.replaceLeafs(leaf => leaf.override({ field: `${field}:${leaf.field}` }));
   }
 
+  unnest(): ConditionTree {
+    let prefix = null;
+    this.someLeaf(leaf => {
+      [prefix] = leaf.field.split(':');
+
+      return false;
+    });
+
+    if (!this.everyLeaf(leaf => leaf.field.startsWith(prefix))) {
+      throw new Error('Cannot unnest condition tree.');
+    }
+
+    return this.replaceLeafs(leaf =>
+      leaf.override({ field: leaf.field.substring(prefix.length + 1) }),
+    );
+  }
+
   replaceFields(handler: (field: string) => string): ConditionTree {
     return this.replaceLeafs(leaf => leaf.override({ field: handler(leaf.field) }));
   }

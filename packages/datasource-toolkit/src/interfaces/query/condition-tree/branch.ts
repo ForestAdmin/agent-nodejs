@@ -61,13 +61,8 @@ export default class ConditionTreeBranch extends ConditionTree {
   }
 
   match(record: RecordData): boolean {
-    switch (this.aggregator) {
-      case Aggregator.And:
-        return this.conditions.every(c => c.match(record));
-      case Aggregator.Or:
-        return this.conditions.some(c => c.match(record));
-      default:
-        throw new Error('Invalid aggregator');
-    }
+    return this.aggregator === Aggregator.And
+      ? this.conditions.every(c => c.match(record))
+      : this.conditions.some(c => c.match(record));
   }
 }
