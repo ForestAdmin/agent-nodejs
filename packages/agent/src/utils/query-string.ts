@@ -86,19 +86,20 @@ export default class QueryStringParser {
   }
 
   static parsePagination(context: Context): Page {
-    const limit = Number.parseInt(context.request.query['page[size]']?.toString(), 10);
-    const skip =
-      (Number.parseInt(context.request.query['page[number]']?.toString(), 10) - 1) * limit;
+    const queryLimit = (context.request.query['page[size]'] || 15).toString();
+    const querySkip = (context.request.query['page[number]'] || 1).toString();
 
-    if (skip >= 0 && limit > 0) {
-      return new Page(skip, limit);
-    }
+    const limit = Number.parseInt(queryLimit, 10);
+    let skip = Number.parseInt(querySkip, 10);
 
-    if (Number.isNaN(skip) || Number.isNaN(limit) || limit <= 0 || skip < 0) {
+    if (Number.isNaN(limit) || Number.isNaN(skip) || limit <= 0 || skip <= 0) {
       context.throw(HttpCode.BadRequest, `Invalid pagination: "limit: ${limit}, skip: ${skip}"`);
     }
 
-    return new Page(0, 15);
+    skip -= 1;
+    skip *= limit;
+
+    return new Page(skip, limit);
   }
 
   static parseSort(collection: Collection, context: Context): Sort {
