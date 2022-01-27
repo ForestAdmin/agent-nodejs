@@ -1,0 +1,44 @@
+diff --git a/node_modules/mongoose/index.d.ts b/node_modules/mongoose/index.d.ts
+index 25e3e48..57bf4c1 100644
+--- a/node_modules/mongoose/index.d.ts
++++ b/node_modules/mongoose/index.d.ts
+@@ -3262,9 +3262,13 @@ declare module 'mongoose' {
+     /** String representation of what type this is, like 'ObjectID' or 'Number' */
+     instance: string;
+ 
++    isRequired?: boolean;
++
+     /** The options this SchemaType was instantiated with */
+     options: AnyObject;
+ 
++    path: string;
++
+     /**
+      * Set the model that this path refers to. This is the option that [populate](https://mongoosejs.com/docs/populate.html)
+      * looks at to determine the foreign collection it should query.
+@@ -3298,6 +3302,8 @@ declare module 'mongoose' {
+     /** Declares an unique index. */
+     unique(bool: boolean): this;
+ 
++    validators: { message?: string; type?: string; validator?: Function }[];
++
+     /** Adds validator(s) for this document path. */
+     validate(obj: RegExp | Function | any, errorMsg?: string,
+       type?: string): this;
+diff --git a/node_modules/mongoose/lib/schematype.js b/node_modules/mongoose/lib/schematype.js
+index 6cd76ec..d2796e6 100644
+--- a/node_modules/mongoose/lib/schematype.js
++++ b/node_modules/mongoose/lib/schematype.js
+@@ -128,6 +128,12 @@ function SchemaType(path, options, instance) {
+ 
+ SchemaType.prototype.OptionsConstructor = SchemaTypeOptions;
+ 
++SchemaType.prototype.isRequired;
++
++SchemaType.prototype.path;
++
++SchemaType.prototype.validators;
++
+ /*!
+  * ignore
+  */
