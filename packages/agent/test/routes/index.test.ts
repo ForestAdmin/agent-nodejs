@@ -7,7 +7,11 @@ import Count from '../../dist/routes/access/count';
 import Create from '../../dist/routes/modification/create';
 import Delete from '../../dist/routes/modification/delete';
 import Get from '../../dist/routes/access/get';
+<<<<<<< HEAD
 import List from '../../dist/routes/access/list';
+=======
+import Delete from '../../dist/routes/modification/delete';
+>>>>>>> 3dc2b31 (feat(route): add delete routes)
 
 describe('RoutesCtor', () => {
   describe('RootRoutesCtor', () => {
