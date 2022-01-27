@@ -18,7 +18,7 @@ describe('Page', () => {
   });
 
   describe('with an infinite page', () => {
-    const page = new Page();
+    const page = new Page(0, 100);
 
     test('apply should work', () => {
       const records = [...Array(100).keys()].map(id => ({ id }));
