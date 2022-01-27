@@ -1,4 +1,3 @@
-import { RecordData } from '../../record';
 import ConditionTree from '../condition-tree/base';
 
 export type FilterComponents = {
@@ -22,17 +21,6 @@ export default class Filter {
     this.searchExtended = parts.searchExtended;
     this.segment = parts.segment;
     this.timezone = parts.timezone;
-  }
-
-  apply(records: RecordData[]): RecordData[] {
-    if (this.search || this.segment) {
-      throw new Error('Cannot emulate search or segment');
-    }
-
-    let result = records;
-    if (this.conditionTree) result = this.conditionTree.apply(records);
-
-    return result;
   }
 
   override(fields: FilterComponents): Filter {
