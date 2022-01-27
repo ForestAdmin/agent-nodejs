@@ -1,10 +1,14 @@
 import ConditionTreeBranch, { Aggregator } from '../../dist/interfaces/query/condition-tree/branch';
 import ConditionTreeLeaf, { Operator } from '../../dist/interfaces/query/condition-tree/leaf';
+import ConditionTreeNot from '../../dist/interfaces/query/condition-tree/not';
 
 describe('ConditionTree', () => {
   const tree = new ConditionTreeBranch(Aggregator.And, [
     new ConditionTreeLeaf({ field: 'column1', operator: Operator.Equal, value: true }),
     new ConditionTreeLeaf({ field: 'column2', operator: Operator.Equal, value: true }),
+    new ConditionTreeNot(
+      new ConditionTreeLeaf({ field: 'column2', operator: Operator.Equal, value: false }),
+    ),
   ]);
 
   test('apply() should work', () => {
@@ -18,7 +22,7 @@ describe('ConditionTree', () => {
   });
 
   test('everyLeaf() should work', () => {
-    expect(tree.everyLeaf(leaf => leaf.value === true)).toBe(true);
+    expect(tree.everyLeaf(leaf => leaf.value === true)).toBe(false);
     expect(tree.everyLeaf(leaf => leaf.field === 'column1')).toBe(false);
     expect(tree.everyLeaf(leaf => leaf.field.startsWith('column'))).toBe(true);
   });
@@ -27,9 +31,10 @@ describe('ConditionTree', () => {
     const fn = jest.fn();
 
     tree.forEachLeaf(fn);
-    expect(fn).toHaveBeenCalledTimes(2);
+    expect(fn).toHaveBeenCalledTimes(3);
     expect(fn).toHaveBeenCalledWith(tree.conditions[0]);
     expect(fn).toHaveBeenCalledWith(tree.conditions[1]);
+    expect(fn).toHaveBeenCalledWith((tree.conditions[2] as ConditionTreeNot).condition);
   });
 
   test('inverse() should work', () => {
@@ -38,10 +43,18 @@ describe('ConditionTree', () => {
       conditions: [
         { field: 'column1', operator: Operator.NotEqual, value: true },
         { field: 'column2', operator: Operator.NotEqual, value: true },
+        { field: 'column2', operator: Operator.Equal, value: false },
       ],
     });
 
-    expect(tree.inverse().inverse()).toEqual(tree);
+    expect(tree.inverse().inverse()).toEqual({
+      aggregator: Aggregator.And,
+      conditions: [
+        { field: 'column1', operator: Operator.Equal, value: true },
+        { field: 'column2', operator: Operator.Equal, value: true },
+        { field: 'column2', operator: Operator.NotEqual, value: false },
+      ],
+    });
   });
 
   test('inverse() should work with blank', () => {
@@ -51,10 +64,12 @@ describe('ConditionTree', () => {
     expect(blank.inverse().inverse()).toEqual(blank);
   });
 
-  test('inverse() should throw with unsupported operator', () => {
+  test('inverse() should use not with unsupported operator', () => {
     const today = new ConditionTreeLeaf({ field: 'column1', operator: Operator.Today });
 
-    expect(() => today.inverse()).toThrow('Operation cannot be inverted.');
+    expect(today.inverse()).toEqual({
+      condition: { field: 'column1', operator: Operator.Today },
+    });
   });
 
   test('match() should work', () => {
@@ -97,6 +112,7 @@ describe('ConditionTree', () => {
       conditions: [
         { field: 'prefix:column1', operator: Operator.Equal, value: true },
         { field: 'prefix:column2', operator: Operator.Equal, value: true },
+        { condition: { field: 'prefix:column2', operator: Operator.Equal, value: false } },
       ],
     });
   });
@@ -119,6 +135,7 @@ describe('ConditionTree', () => {
       conditions: [
         { field: 'column1:suffix', operator: Operator.Equal, value: true },
         { field: 'column2:suffix', operator: Operator.Equal, value: true },
+        { condition: { field: 'column2:suffix', operator: Operator.Equal, value: false } },
       ],
     });
   });
@@ -129,6 +146,7 @@ describe('ConditionTree', () => {
       conditions: [
         { field: 'column1', operator: Operator.Equal, value: false },
         { field: 'column2', operator: Operator.Equal, value: false },
+        { condition: { field: 'column2', operator: Operator.Equal, value: true } },
       ],
     });
   });
@@ -139,6 +157,7 @@ describe('ConditionTree', () => {
       conditions: [
         { field: 'column1', operator: Operator.Equal, value: false },
         { field: 'column2', operator: Operator.Equal, value: false },
+        { condition: { field: 'column2', operator: Operator.Equal, value: true } },
       ],
     });
   });
@@ -151,6 +170,7 @@ describe('ConditionTree', () => {
       conditions: [
         { field: 'column1', operator: Operator.Equal, value: false },
         { field: 'column2', operator: Operator.Equal, value: false },
+        { condition: { field: 'column2', operator: Operator.Equal, value: true } },
       ],
     });
   });
@@ -161,6 +181,7 @@ describe('ConditionTree', () => {
       conditions: [
         { field: 'column1', operator: Operator.Equal, value: false },
         { field: 'column2', operator: Operator.Equal, value: false },
+        { condition: { field: 'column2', operator: Operator.Equal, value: true } },
       ],
     });
   });

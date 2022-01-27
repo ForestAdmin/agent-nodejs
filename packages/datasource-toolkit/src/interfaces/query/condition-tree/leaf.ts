@@ -2,6 +2,7 @@ import RecordUtils from '../../../utils/record';
 import { RecordData } from '../../record';
 import Projection from '../projection';
 import ConditionTree from './base';
+import ConditionTreeNot from './not';
 
 export enum Operator {
   Blank = 'blank',
@@ -95,7 +96,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case Operator.Present:
         return this.override({ operator: Operator.Blank });
       default:
-        throw new Error('Operation cannot be inverted.');
+        return new ConditionTreeNot(this);
     }
   }
 
