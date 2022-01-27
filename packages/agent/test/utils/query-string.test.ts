@@ -258,4 +258,45 @@ describe('QueryStringParser', () => {
       });
     });
   });
+
+  describe('parsePagination', () => {
+    test('should return the pagination parameters', () => {
+      const context = createMockContext({
+        customProperties: { query: { 'page[size]': 10, 'page[number]': 3 } },
+      });
+
+      const pagination = QueryStringParser.parsePagination(context);
+
+      expect(pagination.limit).toEqual(10);
+      expect(pagination.skip).toEqual(20);
+    });
+
+    describe('when context does not provide the pagination parameters', () => {
+      test('should return the default limit 15 skip 0', () => {
+        const context = createMockContext({
+          customProperties: { query: {} },
+        });
+
+        const pagination = QueryStringParser.parsePagination(context);
+
+        expect(pagination.limit).toEqual(15);
+        expect(pagination.skip).toEqual(0);
+      });
+    });
+
+    describe('when context provides invalid values', () => {
+      test('should return a HTTP 400 error', () => {
+        const context = createMockContext({
+          customProperties: { query: { 'page[size]': -5, 'page[number]': 'NaN' } },
+        });
+
+        QueryStringParser.parsePagination(context);
+
+        expect(context.throw).toHaveBeenCalledWith(
+          400,
+          'Invalid pagination: "limit: -5, skip: NaN"',
+        );
+      });
+    });
+  });
 });

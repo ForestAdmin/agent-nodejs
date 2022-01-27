@@ -76,4 +76,20 @@ export default class QueryStringParser {
 
     return timezone;
   }
+
+  static parsePagination(context: Context): { skip: number; limit: number } {
+    const limit = Number.parseInt(context.request.query['page[size]']?.toString(), 10);
+    const skip =
+      (Number.parseInt(context.request.query['page[number]']?.toString(), 10) - 1) * limit;
+
+    if (skip >= 0 && limit > 0) {
+      return { skip, limit };
+    }
+
+    if (Number.isNaN(skip) || Number.isNaN(limit) || limit <= 0 || skip < 0) {
+      context.throw(400, `Invalid pagination: "limit: ${limit}, skip: ${skip}"`);
+    }
+
+    return { skip: 0, limit: 15 };
+  }
 }
