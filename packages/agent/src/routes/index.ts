@@ -5,6 +5,7 @@ import Delete from './modification/delete';
 import Get from './access/get';
 import HealthCheck from './healthcheck';
 import List from './access/list';
+import Update from './modification/update';
 
 export const RootRoutesCtor = [Authentication, HealthCheck];
-export const CollectionRoutesCtor = [Count, Create, Delete, Get, List];
+export const CollectionRoutesCtor = [Count, Create, Delete, Get, List, Update];
