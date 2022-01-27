@@ -6,8 +6,10 @@ import {
   ActionResponse,
   ActionResponseType,
   ActionSchemaScope,
+  Aggregation,
   AggregationOperation,
   DataSource,
+  Filter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -206,7 +208,7 @@ describe('SequelizeDataSource > Collection', () => {
 
     it('should delegate work to `sequelize.model.findAll`', async () => {
       const { findAll, recordData, sequelizeCollection } = setup();
-      const filter = {};
+      const filter = new Filter({});
       const projection = Symbol('projection') as unknown as Projection;
 
       const result = await sequelizeCollection.list(filter, projection);
@@ -222,7 +224,7 @@ describe('SequelizeDataSource > Collection', () => {
 
     it('should resolve with plain records', async () => {
       const { record, recordData, sequelizeCollection } = setup();
-      const filter = {};
+      const filter = new Filter({});
 
       const result = await sequelizeCollection.list(filter, null);
 
@@ -251,7 +253,7 @@ describe('SequelizeDataSource > Collection', () => {
     it('should delegate work to `sequelize.model.update`', async () => {
       const { update, sequelizeCollection } = setup();
       const patch = { field: '__value__' };
-      const filter = {};
+      const filter = new Filter({});
 
       await expect(sequelizeCollection.update(filter, patch)).resolves.toBe(null);
 
@@ -280,7 +282,7 @@ describe('SequelizeDataSource > Collection', () => {
 
     it('should delegate work to `sequelize.model.update`', async () => {
       const { destroy, sequelizeCollection } = setup();
-      const filter = {};
+      const filter = new Filter({});
 
       await expect(sequelizeCollection.delete(filter)).resolves.toBe(null);
 
@@ -307,10 +309,10 @@ describe('SequelizeDataSource > Collection', () => {
 
     it('should delegate work to `sequelize.model.findAll` without a field', async () => {
       const { findAll, sequelizeCollection } = setup();
-      const aggregation = {
+      const aggregation = new Aggregation({
         operation: AggregationOperation.Count,
-      };
-      const filter = {};
+      });
+      const filter = new Filter({});
 
       await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
         { group: '*', value: '__aggregate__' },
@@ -321,11 +323,11 @@ describe('SequelizeDataSource > Collection', () => {
 
     it('should delegate work to `sequelize.model.findAll` with a specific field', async () => {
       const { findAll, sequelizeCollection } = setup();
-      const aggregation = {
+      const aggregation = new Aggregation({
         field: '__field__',
         operation: AggregationOperation.Count,
-      };
-      const filter = {};
+      });
+      const filter = new Filter({});
 
       await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
         { group: '__field__', value: '__aggregate__' },

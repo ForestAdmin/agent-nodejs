@@ -3,9 +3,11 @@ import {
   Aggregator,
   ConditionTreeBranch,
   ConditionTreeLeaf,
-  ConditionTreeNot,
   Filter,
   Operator,
+  Page,
+  PaginatedFilter,
+  Sort,
 } from '@forestadmin/datasource-toolkit';
 
 import {
@@ -20,9 +22,9 @@ describe('Utils > FilterConverter', () => {
     });
 
     it.each([
-      ['a missing', {}],
-      ['a null', { conditionTree: null }],
-      ['an undefined', { conditionTree: undefined }],
+      ['a missing', new Filter({})],
+      ['a null', new Filter({ conditionTree: null })],
+      ['an undefined', new Filter({ conditionTree: undefined })],
     ])('should omit the "where" Sequelize clause with %s conditionTree', (message, filter) => {
       const sequelizeFilter = convertFilterToSequelize(filter);
 
@@ -30,11 +32,11 @@ describe('Utils > FilterConverter', () => {
     });
 
     it('should fail with an invalid conditionTree', () => {
-      const filter: Filter = {
+      const filter = new Filter({
         conditionTree: {
           operator: undefined,
         } as unknown as ConditionTreeBranch,
-      };
+      });
 
       expect(() => convertFilterToSequelize(filter)).toThrow('Invalid ConditionTree.');
     });
@@ -42,28 +44,30 @@ describe('Utils > FilterConverter', () => {
     describe('with a condition tree', () => {
       describe('with a ConditionTreeBranch node', () => {
         it('should fail when aggregator is empty', () => {
-          const conditionTree: ConditionTreeBranch = {
-            aggregator: null,
-            conditions: [
-              { operator: Operator.Equal, field: '__field__', value: '__value__' },
-              { operator: Operator.Equal, field: '__field__', value: '__value__' },
-            ],
-          };
-          const filter: Filter = {
+          const conditionTree = new ConditionTreeBranch(null, [
+            new ConditionTreeLeaf({
+              operator: Operator.Equal,
+              field: '__field__',
+              value: '__value__',
+            }),
+            new ConditionTreeLeaf({
+              operator: Operator.Equal,
+              field: '__field__',
+              value: '__value__',
+            }),
+          ]);
+          const filter = new Filter({
             conditionTree,
-          };
+          });
 
           expect(() => convertFilterToSequelize(filter)).toThrow('Invalid (null) aggregator.');
         });
 
         it('should fail when condition list is empty', () => {
-          const conditionTree: ConditionTreeBranch = {
-            aggregator: Aggregator.And,
-            conditions: [],
-          };
-          const filter: Filter = {
+          const conditionTree = new ConditionTreeBranch(Aggregator.And, []);
+          const filter = new Filter({
             conditionTree,
-          };
+          });
 
           expect(() => convertFilterToSequelize(filter)).toThrow(
             'Two or more conditions needed for aggregation.',
@@ -71,19 +75,16 @@ describe('Utils > FilterConverter', () => {
         });
 
         it('should fail when condition list has only one condition', () => {
-          const conditionTree: ConditionTreeBranch = {
-            aggregator: Aggregator.And,
-            conditions: [
-              {
-                operator: Operator.Blank,
-                field: '__field__',
-                value: '__value__',
-              },
-            ],
-          };
-          const filter: Filter = {
+          const conditionTree = new ConditionTreeBranch(Aggregator.And, [
+            new ConditionTreeLeaf({
+              operator: Operator.Blank,
+              field: '__field__',
+              value: '__value__',
+            }),
+          ]);
+          const filter = new Filter({
             conditionTree,
-          };
+          });
 
           expect(() => convertFilterToSequelize(filter)).toThrow(
             'Two or more conditions needed for aggregation.',
@@ -97,24 +98,21 @@ describe('Utils > FilterConverter', () => {
           'should generate a "%s where" Sequelize filter from conditions',
           (message, aggregator, operator) => {
             const conditions = [
-              {
+              new ConditionTreeLeaf({
                 operator: Operator.Equal,
                 field: '__field__',
                 value: '__value__',
-              },
-              {
+              }),
+              new ConditionTreeLeaf({
                 operator: Operator.Equal,
                 field: '__field__',
                 value: '__value__',
-              },
+              }),
             ];
-            const conditionTree: ConditionTreeBranch = {
-              aggregator,
-              conditions,
-            };
-            const filter: Filter = {
+            const conditionTree = new ConditionTreeBranch(aggregator, conditions);
+            const filter = new Filter({
               conditionTree,
-            };
+            });
 
             expect(convertFilterToSequelize(filter)).toEqual({
               where: {
@@ -154,14 +152,14 @@ describe('Utils > FilterConverter', () => {
         ])(
           'should generate a "where" Sequelize filter from a "%s" ConditionTreeLeaf',
           (operator, value, where) => {
-            const conditionTree: ConditionTreeLeaf = {
+            const conditionTree = new ConditionTreeLeaf({
               operator: Operator[operator.split('.')[1]],
               field: '__field__',
               value,
-            };
-            const filter: Filter = {
+            });
+            const filter = new Filter({
               conditionTree,
-            };
+            });
 
             const sequelizeFilter = convertFilterToSequelize(filter);
 
@@ -181,30 +179,38 @@ describe('Utils > FilterConverter', () => {
 
         it('should fail with a null operator', () => {
           expect(() =>
-            convertFilterToSequelize({
-              conditionTree: { operator: null, field: '__field__', value: '__value__' },
-            }),
+            convertFilterToSequelize(
+              new Filter({
+                conditionTree: new ConditionTreeLeaf({
+                  operator: null,
+                  field: '__field__',
+                  value: '__value__',
+                }),
+              }),
+            ),
           ).toThrow('Invalid (null) operator.');
         });
 
         it('should fail with an invalid operator', () => {
           expect(() =>
-            convertFilterToSequelize({
-              conditionTree: {
-                operator: '__invalid__' as Operator,
-                field: '__field__',
-                value: '__value__',
-              },
-            }),
+            convertFilterToSequelize(
+              new Filter({
+                conditionTree: new ConditionTreeLeaf({
+                  operator: '__invalid__' as Operator,
+                  field: '__field__',
+                  value: '__value__',
+                }),
+              }),
+            ),
           ).toThrow('Unsupported operator: "__invalid__".');
         });
       });
 
       describe('with a ConditionTreeNot node', () => {
         it('should fail with an empty condition', () => {
-          const filter: Filter = {
-            conditionTree: { condition: null },
-          };
+          const filter = new Filter({
+            conditionTree: null,
+          });
           expect(() => convertFilterToSequelize(filter)).toThrow('Invalid (null) condition.');
         });
 
@@ -217,9 +223,9 @@ describe('Utils > FilterConverter', () => {
           const conditionTree: ConditionTreeNot = {
             condition,
           };
-          const filter: Filter = {
+          const filter = new Filter({
             conditionTree,
-          };
+          });
 
           expect(convertFilterToSequelize(filter)).toEqual({
             where: {
@@ -238,7 +244,7 @@ describe('Utils > FilterConverter', () => {
     const defaultOffset = 0;
 
     it('should return with defaults when called with a classic Filter', () => {
-      const defaultInputFilter = {};
+      const defaultInputFilter = new PaginatedFilter({});
       const defaultPaginatedFilter = { limit: defaultLimit, offset: defaultOffset };
 
       expect(convertPaginatedFilterToSequelize(defaultInputFilter)).toEqual(defaultPaginatedFilter);
@@ -246,11 +252,9 @@ describe('Utils > FilterConverter', () => {
 
     describe('with paging', () => {
       it('should ignore "limit" when missing', () => {
-        const noLimitFilter = {
-          page: {
-            skip: 42,
-          },
-        };
+        const noLimitFilter = new PaginatedFilter({
+          page: new Page(42),
+        });
 
         expect(convertPaginatedFilterToSequelize(noLimitFilter)).toEqual({
           limit: defaultLimit,
@@ -259,11 +263,9 @@ describe('Utils > FilterConverter', () => {
       });
 
       it('should ignore "skip" when missing', () => {
-        const noSkipFilter = {
-          page: {
-            limit: 42,
-          },
-        };
+        const noSkipFilter = new PaginatedFilter({
+          page: new Page(),
+        });
 
         expect(convertPaginatedFilterToSequelize(noSkipFilter)).toEqual(
           expect.objectContaining({
@@ -274,12 +276,9 @@ describe('Utils > FilterConverter', () => {
       });
 
       it('should honor values from "page"', () => {
-        const filter = {
-          page: {
-            limit: 21,
-            skip: 42,
-          },
-        };
+        const filter = new PaginatedFilter({
+          page: new Page(42, 21),
+        });
 
         expect(convertPaginatedFilterToSequelize(filter)).toEqual(
           expect.objectContaining({
@@ -292,9 +291,9 @@ describe('Utils > FilterConverter', () => {
 
     describe('with sorting', () => {
       it('should omit the "order" clause when condition list is empty', () => {
-        const noOrderConditionFilter = {
-          sort: [],
-        };
+        const noOrderConditionFilter = new PaginatedFilter({
+          sort: new Sort(),
+        });
 
         expect(convertPaginatedFilterToSequelize(noOrderConditionFilter)).toEqual({
           limit: defaultLimit,
@@ -303,12 +302,9 @@ describe('Utils > FilterConverter', () => {
       });
 
       it('should honor values from "sort"', () => {
-        const filter = {
-          sort: [
-            { field: '__a__', ascending: true },
-            { field: '__b__', ascending: false },
-          ],
-        };
+        const filter = new PaginatedFilter({
+          sort: new Sort({ field: '__a__', ascending: true }, { field: '__b__', ascending: false }),
+        });
 
         expect(convertPaginatedFilterToSequelize(filter)).toEqual({
           limit: defaultLimit,
