@@ -6,7 +6,7 @@ export default class Page {
 
   constructor(skip?: number, limit?: number) {
     this.skip = skip ?? 0;
-    this.limit = limit;
+    this.limit = limit ?? 15;
   }
 
   apply(records: RecordData[]): RecordData[] {
