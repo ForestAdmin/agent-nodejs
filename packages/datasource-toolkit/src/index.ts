@@ -1,3 +1,7 @@
+import { constants as PageConstants } from './interfaces/query/page';
+
+export const constants = { ...PageConstants };
+
 export { default as BaseCollection } from './base-collection';
 export { default as BaseDataSource } from './base-datasource';
 
