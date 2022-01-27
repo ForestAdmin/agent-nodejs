@@ -28,7 +28,7 @@ export default class FieldValidator {
       const schema = collection.schema.fields[prefix];
 
       if (!schema) {
-        throw new Error(`Relation not found: '${collection.name}.${field}'`);
+        throw new Error(`Relation not found: '${collection.name}.${prefix}'`);
       }
 
       if (schema.type !== FieldTypes.ManyToOne && schema.type !== FieldTypes.OneToOne) {

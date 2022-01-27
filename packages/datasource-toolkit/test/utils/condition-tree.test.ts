@@ -1,6 +1,7 @@
 import ConditionTreeBranch, { Aggregator } from '../../dist/interfaces/query/condition-tree/branch';
 import ConditionTreeLeaf, { Operator } from '../../dist/interfaces/query/condition-tree/leaf';
 import ConditionTreeUtils from '../../dist/utils/condition-tree';
+import * as factories from '../__factories__';
 
 describe('ConditionTreeUtils', () => {
   describe('intersect', () => {
@@ -12,30 +13,30 @@ describe('ConditionTreeUtils', () => {
     });
 
     test('intersect() should return the parameter when called with only one param', () => {
-      expect(
-        ConditionTreeUtils.intersect(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
-        ),
-      ).toEqual({ field: 'column', operator: Operator.Equal, value: true });
+      const tree = ConditionTreeUtils.intersect(
+        new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
+      );
+
+      expect(tree).toEqual({ field: 'column', operator: Operator.Equal, value: true });
     });
 
     test('intersect() should ignore null params', () => {
-      expect(
-        ConditionTreeUtils.intersect(
-          null,
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
-          null,
-        ),
-      ).toEqual({ field: 'column', operator: Operator.Equal, value: true });
+      const tree = ConditionTreeUtils.intersect(
+        null,
+        new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
+        null,
+      );
+
+      expect(tree).toEqual({ field: 'column', operator: Operator.Equal, value: true });
     });
 
     test('intersect() multiple trees should return the tree', () => {
-      expect(
-        ConditionTreeUtils.intersect(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
-          new ConditionTreeLeaf({ field: 'otherColumn', operator: Operator.Equal, value: true }),
-        ),
-      ).toEqual({
+      const tree = ConditionTreeUtils.intersect(
+        new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
+        new ConditionTreeLeaf({ field: 'otherColumn', operator: Operator.Equal, value: true }),
+      );
+
+      expect(tree).toEqual({
         aggregator: Aggregator.And,
         conditions: [
           { field: 'column', operator: Operator.Equal, value: true },
@@ -45,21 +46,120 @@ describe('ConditionTreeUtils', () => {
     });
 
     test('intersect() should merge And trees', () => {
-      expect(
-        ConditionTreeUtils.intersect(
-          new ConditionTreeBranch(Aggregator.And, [
-            new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
-          ]),
-          new ConditionTreeBranch(Aggregator.And, [
-            new ConditionTreeLeaf({ field: 'otherColumn', operator: Operator.Equal, value: true }),
-          ]),
-        ),
-      ).toEqual({
+      const tree = ConditionTreeUtils.intersect(
+        new ConditionTreeBranch(Aggregator.And, [
+          new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
+        ]),
+        new ConditionTreeBranch(Aggregator.And, [
+          new ConditionTreeLeaf({ field: 'otherColumn', operator: Operator.Equal, value: true }),
+        ]),
+      );
+
+      expect(tree).toEqual({
         aggregator: Aggregator.And,
         conditions: [
           { field: 'column', operator: Operator.Equal, value: true },
           { field: 'otherColumn', operator: Operator.Equal, value: true },
         ],
+      });
+    });
+  });
+
+  describe('matchRecords / matchIds', () => {
+    describe('with a simple pk', () => {
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            col1: factories.columnSchema.build({ isPrimaryKey: true }),
+          },
+        }),
+      });
+
+      test('should generate equal', () => {
+        const condition = ConditionTreeUtils.matchRecords(collection.schema, [{ col1: 1 }]);
+
+        expect(condition).toEqual({ field: 'col1', operator: Operator.Equal, value: 1 });
+      });
+
+      test('should generate in', () => {
+        const condition = ConditionTreeUtils.matchRecords(collection.schema, [
+          { col1: 1 },
+          { col1: 2 },
+        ]);
+
+        expect(condition).toEqual({ field: 'col1', operator: Operator.In, value: [1, 2] });
+      });
+    });
+
+    describe('with a composite pk', () => {
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            col1: factories.columnSchema.build({ isPrimaryKey: true }),
+            col2: factories.columnSchema.build({ isPrimaryKey: true }),
+            col3: factories.columnSchema.build({ isPrimaryKey: true }),
+          },
+        }),
+      });
+
+      test('should generate a simple and', () => {
+        const condition = ConditionTreeUtils.matchRecords(collection.schema, [
+          { col1: 1, col2: 1, col3: 1 },
+        ]);
+
+        expect(condition).toEqual({
+          aggregator: Aggregator.And,
+          conditions: [
+            { field: 'col1', operator: Operator.Equal, value: 1 },
+            { field: 'col2', operator: Operator.Equal, value: 1 },
+            { field: 'col3', operator: Operator.Equal, value: 1 },
+          ],
+        });
+      });
+
+      test('should factorize', () => {
+        const condition = ConditionTreeUtils.matchRecords(collection.schema, [
+          { col1: 1, col2: 1, col3: 1 },
+          { col1: 1, col2: 1, col3: 2 },
+        ]);
+
+        expect(condition).toEqual({
+          aggregator: Aggregator.And,
+          conditions: [
+            { field: 'col1', operator: Operator.Equal, value: 1 },
+            { field: 'col2', operator: Operator.Equal, value: 1 },
+            { field: 'col3', operator: Operator.In, value: [1, 2] },
+          ],
+        });
+      });
+
+      test('should not factorize', () => {
+        const condition = ConditionTreeUtils.matchRecords(collection.schema, [
+          { col1: 1, col2: 1, col3: 1 },
+          { col1: 2, col2: 2, col3: 2 },
+        ]);
+
+        expect(condition).toEqual({
+          aggregator: Aggregator.Or,
+          conditions: [
+            {
+              aggregator: Aggregator.And,
+              conditions: [
+                { field: 'col1', operator: Operator.Equal, value: 1 },
+                { field: 'col2', operator: Operator.Equal, value: 1 },
+                { field: 'col3', operator: Operator.Equal, value: 1 },
+              ],
+            },
+            {
+              aggregator: Aggregator.And,
+              conditions: [
+                { field: 'col1', operator: Operator.Equal, value: 2 },
+                { field: 'col2', operator: Operator.Equal, value: 2 },
+                { field: 'col3', operator: Operator.Equal, value: 2 },
+              ],
+            },
+          ],
+        });
       });
     });
   });
