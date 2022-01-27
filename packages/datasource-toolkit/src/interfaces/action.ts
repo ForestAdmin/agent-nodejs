@@ -1,5 +1,5 @@
-import { Projection } from './query/projection';
-import { RecordData } from './query/record';
+import Projection from './query/projection';
+import { RecordData } from './record';
 
 export interface Action {
   execute(formValues: RecordData, selection?: Selection): Promise<ActionResponse>;

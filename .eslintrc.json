@@ -42,6 +42,7 @@
     "import/no-extraneous-dependencies": ["error", { "devDependencies": ["**/test/**/*.ts"] }],
     "no-underscore-dangle": ["error", { "allowAfterThis": true }],
     // Consistent return is enforced by typescript
-    "consistent-return": "off"
+    "consistent-return": "off",
+    "import/no-cycle": "off"
   }
 }

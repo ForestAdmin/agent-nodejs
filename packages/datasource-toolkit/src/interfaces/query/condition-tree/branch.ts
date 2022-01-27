@@ -1,0 +1,73 @@
+import { RecordData } from '../../record';
+import Projection from '../projection';
+import ConditionTree from './base';
+import { AsyncLeafReplacer, LeafCallback, LeafReplacer, LeafTester } from './leaf';
+
+export enum Aggregator {
+  And = 'and',
+  Or = 'or',
+}
+
+export default class ConditionTreeBranch extends ConditionTree {
+  aggregator: Aggregator;
+  conditions: ConditionTree[];
+
+  get projection(): Projection {
+    return this.conditions.reduce(
+      (memo, condition) => memo.union(condition.projection),
+      new Projection(),
+    );
+  }
+
+  constructor(aggregator: Aggregator, conditions: ConditionTree[]) {
+    super();
+    this.aggregator = aggregator;
+    this.conditions = conditions;
+  }
+
+  forEachLeaf(handler: LeafCallback): void {
+    this.conditions.forEach(c => c.forEachLeaf(handler));
+  }
+
+  everyLeaf(handler: LeafTester): boolean {
+    return this.conditions.every(c => c.everyLeaf(handler));
+  }
+
+  someLeaf(handler: LeafTester): boolean {
+    return this.conditions.some(c => c.someLeaf(handler));
+  }
+
+  inverse(): ConditionTree {
+    const aggregator = this.aggregator === Aggregator.Or ? Aggregator.And : Aggregator.Or;
+
+    return new ConditionTreeBranch(
+      aggregator,
+      this.conditions.map(c => c.inverse()),
+    );
+  }
+
+  replaceLeafs(handler: LeafReplacer, bind?: unknown): ConditionTree {
+    return new ConditionTreeBranch(
+      this.aggregator,
+      this.conditions.map(c => c.replaceLeafs(handler, bind)),
+    );
+  }
+
+  async replaceLeafsAsync(handler: AsyncLeafReplacer, bind?: unknown): Promise<ConditionTree> {
+    return new ConditionTreeBranch(
+      this.aggregator,
+      await Promise.all(this.conditions.map(c => c.replaceLeafsAsync(handler, bind))),
+    );
+  }
+
+  match(record: RecordData): boolean {
+    switch (this.aggregator) {
+      case Aggregator.And:
+        return this.conditions.every(c => c.match(record));
+      case Aggregator.Or:
+        return this.conditions.some(c => c.match(record));
+      default:
+        throw new Error('Invalid aggregator');
+    }
+  }
+}

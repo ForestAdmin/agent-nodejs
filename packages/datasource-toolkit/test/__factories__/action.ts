@@ -4,7 +4,7 @@ import {
   ActionResponse,
   ActionForm,
   ActionResponseType,
-} from '../../src/interfaces/action';
+} from '../../dist/interfaces/action';
 
 class ConcreteAction implements Action {
   async execute(): Promise<ActionResponse> {

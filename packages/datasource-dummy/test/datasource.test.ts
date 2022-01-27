@@ -1,4 +1,4 @@
-import DummyDataSource from '../src/datasource';
+import DummyDataSource from '../dist/datasource';
 
 describe('DummyDataSource', () => {
   it('should instanciate properly', () => {

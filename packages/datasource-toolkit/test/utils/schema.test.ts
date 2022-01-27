@@ -1,4 +1,4 @@
-import SchemaUtils from '../../src/utils/schema';
+import SchemaUtils from '../../dist/utils/schema';
 import * as factories from '../__factories__';
 
 describe('SchemaUtils', () => {

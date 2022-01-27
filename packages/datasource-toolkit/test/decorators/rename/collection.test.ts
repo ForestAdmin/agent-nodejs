@@ -1,14 +1,16 @@
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
-import RenameCollectionDecorator from '../../../src/decorators/rename/collection';
-import { Collection, DataSource } from '../../../src/interfaces/collection';
-import { AggregationOperation } from '../../../src/interfaces/query/aggregation';
-import {
+import DataSourceDecorator from '../../../dist/decorators/datasource-decorator';
+import RenameCollectionDecorator from '../../../dist/decorators/rename/collection';
+import { Collection, DataSource } from '../../../dist/interfaces/collection';
+import Aggregation, { AggregationOperation } from '../../../dist/interfaces/query/aggregation';
+import ConditionTreeBranch, {
   Aggregator,
-  Filter,
-  Operator,
-  PaginatedFilter,
-} from '../../../src/interfaces/query/selection';
-import { FieldTypes, PrimitiveTypes } from '../../../src/interfaces/schema';
+} from '../../../dist/interfaces/query/condition-tree/branch';
+import ConditionTreeLeaf, { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
+import PaginatedFilter from '../../../dist/interfaces/query/filter/paginated';
+import Filter from '../../../dist/interfaces/query/filter/unpaginated';
+import Projection from '../../../dist/interfaces/query/projection';
+import Sort from '../../../dist/interfaces/query/sort';
+import { FieldTypes, PrimitiveTypes } from '../../../dist/interfaces/schema';
 import * as factories from '../../__factories__';
 
 describe('RenameCollectionDecorator', () => {
@@ -108,23 +110,24 @@ describe('RenameCollectionDecorator', () => {
 
   // Build filters for un-decorated persons
   beforeAll(() => {
-    personsFilter = {
-      conditionTree: {
-        aggregator: Aggregator.And,
-        conditions: [
-          { field: 'id', operator: Operator.NotEqual, value: 0 },
-          { field: 'myBookPerson:date', operator: Operator.NotEqual, value: 0 },
-        ],
-      },
-    };
+    personsFilter = new Filter({
+      conditionTree: new ConditionTreeBranch(Aggregator.And, [
+        new ConditionTreeLeaf({ field: 'id', operator: Operator.NotEqual, value: 0 }),
+        new ConditionTreeLeaf({
+          field: 'myBookPerson:date',
+          operator: Operator.NotEqual,
+          value: 0,
+        }),
+      ]),
+    });
 
-    personsPaginatedFilter = {
+    personsPaginatedFilter = new PaginatedFilter({
       ...personsFilter,
-      sort: [
+      sort: new Sort(
         { field: 'id', ascending: false },
         { field: 'myBookPerson:date', ascending: true },
-      ],
-    };
+      ),
+    });
   });
 
   test('should throw when renaming a field which does not exists', () => {
@@ -165,10 +168,12 @@ describe('RenameCollectionDecorator', () => {
 
     test('list should act as a pass-through', async () => {
       const records = [{ id: '1', myBookPerson: { date: 'something' } }];
+      const projection = new Projection('id', 'myBookPerson:date');
+
       personsList.mockResolvedValue(records);
 
-      const result = await newPersons.list(personsPaginatedFilter, ['id', 'myBookPerson:date']);
-      expect(personsList).toHaveBeenCalledWith(personsPaginatedFilter, ['id', 'myBookPerson:date']);
+      const result = await newPersons.list(personsPaginatedFilter, projection);
+      expect(personsList).toHaveBeenCalledWith(personsPaginatedFilter, projection);
       expect(result).toStrictEqual(records);
     });
 
@@ -184,7 +189,7 @@ describe('RenameCollectionDecorator', () => {
 
     test('aggregate should act as a pass-through', async () => {
       const result = [{ value: 34, group: { 'myBookPerson:date': 'abc' } }];
-      const aggregate = { operation: AggregationOperation.Count };
+      const aggregate = new Aggregation({ operation: AggregationOperation.Count });
 
       personsAggregate.mockResolvedValue(result);
 
@@ -208,23 +213,24 @@ describe('RenameCollectionDecorator', () => {
 
     // Build filters for decorated persons
     beforeAll(() => {
-      newPersonsFilter = {
-        conditionTree: {
-          aggregator: Aggregator.And,
-          conditions: [
-            { field: 'primaryKey', operator: Operator.NotEqual, value: 0 },
-            { field: 'myNovelAuthor:createdAt', operator: Operator.NotEqual, value: 0 },
-          ],
-        },
-      };
+      newPersonsFilter = new Filter({
+        conditionTree: new ConditionTreeBranch(Aggregator.And, [
+          new ConditionTreeLeaf({ field: 'primaryKey', operator: Operator.NotEqual, value: 0 }),
+          new ConditionTreeLeaf({
+            field: 'myNovelAuthor:createdAt',
+            operator: Operator.NotEqual,
+            value: 0,
+          }),
+        ]),
+      });
 
-      newPersonsPaginatedFilter = {
+      newPersonsPaginatedFilter = new PaginatedFilter({
         ...newPersonsFilter,
-        sort: [
+        sort: new Sort(
           { field: 'primaryKey', ascending: false },
           { field: 'myNovelAuthor:createdAt', ascending: true },
-        ],
-      };
+        ),
+      });
     });
 
     test('the schemas should be updated', () => {
@@ -246,8 +252,8 @@ describe('RenameCollectionDecorator', () => {
     });
 
     test('list should rewrite the filter, projection and record', async () => {
-      const projection = ['primaryKey', 'myNovelAuthor:createdAt'];
-      const expectedProjection = ['id', 'myBookPerson:date'];
+      const projection = new Projection('primaryKey', 'myNovelAuthor:createdAt');
+      const expectedProjection = new Projection('id', 'myBookPerson:date');
 
       personsList.mockResolvedValue([{ id: '1', myBookPerson: { date: 'something' } }]);
 
@@ -261,7 +267,10 @@ describe('RenameCollectionDecorator', () => {
     test('list should rewrite the record with null relations', async () => {
       personsList.mockResolvedValue([{ id: '1', myBookPerson: null }]);
 
-      const records = await newPersons.list({}, ['primaryKey', 'myNovelAuthor:createdAt']);
+      const records = await newPersons.list(
+        null,
+        new Projection('primaryKey', 'myNovelAuthor:createdAt'),
+      );
       expect(records).toStrictEqual([{ primaryKey: '1', myNovelAuthor: null }]);
     });
 
@@ -278,11 +287,14 @@ describe('RenameCollectionDecorator', () => {
     test('aggregate should rewrite the filter and the result', async () => {
       personsAggregate.mockResolvedValue([{ value: 34, group: { 'myBookPerson:date': 'abc' } }]);
 
-      const result = await newPersons.aggregate(newPersonsPaginatedFilter, {
-        operation: AggregationOperation.Sum,
-        field: 'primaryKey',
-        groups: [{ field: 'myNovelAuthor:createdAt' }],
-      });
+      const result = await newPersons.aggregate(
+        newPersonsPaginatedFilter,
+        new Aggregation({
+          operation: AggregationOperation.Sum,
+          field: 'primaryKey',
+          groups: [{ field: 'myNovelAuthor:createdAt' }],
+        }),
+      );
 
       expect(persons.aggregate).toHaveBeenCalledWith(personsPaginatedFilter, {
         operation: AggregationOperation.Sum,

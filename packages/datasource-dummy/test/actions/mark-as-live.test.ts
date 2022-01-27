@@ -1,5 +1,5 @@
 import { ActionResponseType } from '@forestadmin/datasource-toolkit';
-import MarkAsLiveAction from '../../src/actions/mark-as-live';
+import MarkAsLiveAction from '../../dist/actions/mark-as-live';
 
 describe('DummyDataSource > Actions > MarkAsLiveAction', () => {
   it('should instanciate properly', () => {

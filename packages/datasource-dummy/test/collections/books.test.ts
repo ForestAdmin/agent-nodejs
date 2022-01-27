@@ -1,6 +1,12 @@
-import { AggregationOperation } from '@forestadmin/datasource-toolkit';
-import BookCollection from '../../src/collections/books';
-import DummyDataSource from '../../src/datasource';
+import {
+  Aggregation,
+  AggregationOperation,
+  Page,
+  PaginatedFilter,
+  Projection,
+} from '@forestadmin/datasource-toolkit';
+import BookCollection from '../../dist/collections/books';
+import DummyDataSource from '../../dist/datasource';
 
 const instanciateCollection = () => new BookCollection(new DummyDataSource());
 
@@ -38,7 +44,7 @@ describe('DummyDataSource > Collections > Books', () => {
     it('should return a record with a proper ID and projection', async () => {
       const bookCollection = instanciateCollection();
 
-      expect(await bookCollection.getById([42], ['id', 'title'])).toEqual(
+      expect(await bookCollection.getById([42], new Projection('id', 'title'))).toEqual(
         expect.objectContaining({
           id: expect.toBeNumber(),
           title: expect.toBeString(),
@@ -51,9 +57,9 @@ describe('DummyDataSource > Collections > Books', () => {
         const bookCollection = instanciateCollection();
         const unknownField = '__no_such_field__';
 
-        await expect(() => bookCollection.getById([42], [unknownField])).rejects.toThrow(
-          `No such field "${unknownField}" in schema`,
-        );
+        await expect(() =>
+          bookCollection.getById([42], new Projection(unknownField)),
+        ).rejects.toThrow(`No such field "${unknownField}" in schema`);
       });
     });
   });
@@ -70,8 +76,8 @@ describe('DummyDataSource > Collections > Books', () => {
   describe('list', () => {
     it('should return a default 10 record list', async () => {
       const bookCollection = instanciateCollection();
-      const paginatedFilter = {};
-      const projection = [];
+      const paginatedFilter = new PaginatedFilter({});
+      const projection = new Projection();
 
       expect(await bookCollection.list(paginatedFilter, projection)).toBeArrayOfSize(10);
     });
@@ -79,8 +85,8 @@ describe('DummyDataSource > Collections > Books', () => {
     it('should return a record list of size matching the paginated filter', async () => {
       const bookCollection = instanciateCollection();
       const expectedPageLimit = 42;
-      const paginatedFilter = { page: { limit: expectedPageLimit } };
-      const projection = [];
+      const paginatedFilter = new PaginatedFilter({ page: new Page(0, expectedPageLimit) });
+      const projection = new Projection();
 
       expect(await bookCollection.list(paginatedFilter, projection)).toBeArrayOfSize(
         expectedPageLimit,
@@ -92,7 +98,7 @@ describe('DummyDataSource > Collections > Books', () => {
     it('should do nothing', async () => {
       const bookCollection = instanciateCollection();
 
-      expect(await bookCollection.update({}, {})).toBe(undefined);
+      expect(await bookCollection.update(null, {})).toBe(undefined);
     });
   });
 
@@ -100,7 +106,7 @@ describe('DummyDataSource > Collections > Books', () => {
     it('should do nothing', async () => {
       const bookCollection = instanciateCollection();
 
-      expect(await bookCollection.delete({})).toBe(undefined);
+      expect(await bookCollection.delete(null)).toBe(undefined);
     });
   });
 
@@ -108,11 +114,11 @@ describe('DummyDataSource > Collections > Books', () => {
     it('should return rows matching the paginated filter', async () => {
       const bookCollection = instanciateCollection();
       const expectedPageLimit = 42;
-      const paginatedFilter = { page: { limit: expectedPageLimit } };
-      const aggregation = {
+      const paginatedFilter = new PaginatedFilter({ page: new Page(0, expectedPageLimit) });
+      const aggregation = new Aggregation({
         operation: AggregationOperation.Count,
         groups: [{ field: 'title' }, { field: 'authorId' }],
-      };
+      });
 
       expect(await bookCollection.aggregate(paginatedFilter, aggregation)).toBeArrayOfSize(
         expectedPageLimit,
@@ -121,12 +127,12 @@ describe('DummyDataSource > Collections > Books', () => {
 
     it('should return rows matching the aggregation groups', async () => {
       const bookCollection = instanciateCollection();
-      const aggregation = {
+      const aggregation = new Aggregation({
         operation: AggregationOperation.Count,
         groups: [{ field: 'title' }, { field: 'authorId' }],
-      };
+      });
 
-      const rows = await bookCollection.aggregate({}, aggregation);
+      const rows = await bookCollection.aggregate(null, aggregation);
       rows.map(row => expect(Object.keys(row.group)).toBeArrayOfSize(aggregation.groups.length));
     });
   });

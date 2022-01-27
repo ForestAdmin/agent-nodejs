@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
-import { ForestAdminHttpDriverOptions } from '../../src/types';
+import { ForestAdminHttpDriverOptions } from '../../dist/types';
 
 export default Factory.define<ForestAdminHttpDriverOptions>(() => ({
   prefix: 'prefix',

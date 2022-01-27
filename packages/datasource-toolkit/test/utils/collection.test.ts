@@ -1,6 +1,6 @@
 import * as factories from '../__factories__';
-import CollectionUtils from '../../src/utils/collection';
-import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
+import CollectionUtils from '../../dist/utils/collection';
+import { FieldTypes, PrimitiveTypes } from '../../dist/interfaces/schema';
 
 describe('CollectionUtils', () => {
   describe('When inverse relations is missing', () => {

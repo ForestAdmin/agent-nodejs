@@ -1,16 +1,16 @@
 // eslint-disable-next-line max-classes-per-file
 import { Factory } from 'fishery';
-import CollectionDecorator from '../../src/decorators/collection-decorator';
-import { ActionForm } from '../../src/interfaces/action';
-import { Collection, DataSource } from '../../src/interfaces/collection';
-import { Filter } from '../../src/interfaces/query/selection';
-import { ActionSchema, CollectionSchema } from '../../src/interfaces/schema';
+import CollectionDecorator from '../../dist/decorators/collection-decorator';
+import { ActionForm } from '../../dist/interfaces/action';
+import { Collection, DataSource } from '../../dist/interfaces/collection';
+import PaginatedFilter from '../../dist/interfaces/query/filter/paginated';
+import { ActionSchema, CollectionSchema } from '../../dist/interfaces/schema';
 import collectionSchemaFactory from './schema/collection-schema';
 
 export class DecoratedCollection extends CollectionDecorator {
   public override childCollection: Collection;
 
-  public override refineFilter(filter: Filter): Filter {
+  public override async refineFilter(filter: PaginatedFilter): Promise<PaginatedFilter> {
     return super.refineFilter(filter);
   }
 

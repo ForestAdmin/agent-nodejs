@@ -1,6 +1,6 @@
 import nock from 'nock';
 import superagent from 'superagent';
-import agent from '../src/agent';
+import agent from '../dist/agent';
 
 describe('agent', () => {
   test('should start a server on port 3352', async () => {

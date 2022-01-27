@@ -1,4 +1,4 @@
-import { BaseCollection, BaseDataSource, SchemaUtils } from '../src';
+import { BaseCollection, BaseDataSource, SchemaUtils } from '../dist/index';
 
 describe('exports', () => {
   describe.each([

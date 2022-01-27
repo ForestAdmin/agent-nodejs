@@ -1,6 +1,6 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
-import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
-import { ForestAdminHttpDriverOptions } from '../src/types';
+import ForestAdminHttpDriver from '../dist/forestadmin-http-driver';
+import { ForestAdminHttpDriverOptions } from '../dist/types';
 import {
   dataSource as dataSourceBuilder,
   forestAdminHttpDriverOptions as optionsBuilder,
@@ -8,13 +8,13 @@ import {
 } from './__factories__';
 
 // Mock routes
-jest.mock('../src/routes', () => ({ RootRoutesCtor: [], CollectionRoutesCtor: [] }));
+jest.mock('../dist/routes', () => ({ RootRoutesCtor: [], CollectionRoutesCtor: [] }));
 
 // Mock services
 const hasSchema = jest.fn();
 const uploadSchema = jest.fn();
 jest.mock(
-  '../src/services',
+  '../dist/services',
   () => () => servicesBuilder.build({ forestHTTPApi: { hasSchema, uploadSchema } }),
 );
 

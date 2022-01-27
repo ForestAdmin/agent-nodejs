@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 import { PrimitiveTypes } from '../interfaces/schema';
-import ValidationTypes from '../interfaces/validation';
+import ValidationTypes from './types';
 
 export default class TypeGetterUtil {
   private static readonly REGEX_UUID =

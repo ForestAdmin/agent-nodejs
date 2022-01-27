@@ -1,8 +1,8 @@
-import { Context } from 'koa';
+import { CompositeId, FieldTypes, Projection } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
-import { FieldTypes, Projection } from '@forestadmin/datasource-toolkit';
-import CollectionBaseRoute from '../collection-base-route';
+import { Context } from 'koa';
 import IdUtils from '../../utils/id';
+import CollectionBaseRoute from '../collection-base-route';
 
 export default class GetRoute extends CollectionBaseRoute {
   private static RECORD_NOT_FOUND_ERROR = 'Record does not exist';
@@ -14,7 +14,7 @@ export default class GetRoute extends CollectionBaseRoute {
   public async handleGet(context: Context) {
     const projection = this.buildProjection();
 
-    let id;
+    let id: CompositeId;
 
     try {
       id = IdUtils.unpackId(this.collection.schema, context.params.id);
@@ -46,11 +46,8 @@ export default class GetRoute extends CollectionBaseRoute {
   }
 
   private buildProjection(): Projection {
-    const { fields } = this.collection.schema;
-
-    return Object.keys(fields).reduce((memo, columnName) => {
-      const column = fields[columnName];
-
+    const schemaFields = this.collection.schema.fields;
+    const projectionFields = Object.entries(schemaFields).reduce((memo, [columnName, column]) => {
       if (column.type === FieldTypes.Column) {
         return [...memo, columnName];
       }
@@ -69,5 +66,7 @@ export default class GetRoute extends CollectionBaseRoute {
 
       return memo;
     }, [] as string[]);
+
+    return new Projection(...projectionFields);
   }
 }

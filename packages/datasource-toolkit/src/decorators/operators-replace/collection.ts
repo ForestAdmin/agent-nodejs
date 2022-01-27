@@ -1,4 +1,5 @@
-import { Filter, Operator } from '../../interfaces/query/selection';
+import { Operator } from '../../interfaces/query/condition-tree/leaf';
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -6,7 +7,6 @@ import {
   PrimitiveTypes,
 } from '../../interfaces/schema';
 import CollectionUtils from '../../utils/collection';
-import ConditionTreeUtils from '../../utils/condition-tree';
 import CollectionDecorator from '../collection-decorator';
 import equalityTransforms from './transforms/comparison';
 import patternTransforms from './transforms/pattern';
@@ -39,14 +39,14 @@ export default class OperatorsDecorator extends CollectionDecorator {
     return { ...childSchema, fields };
   }
 
-  protected override refineFilter(filter?: Filter): Filter {
-    const conditionTree = ConditionTreeUtils.replaceLeafs(filter.conditionTree, leaf => {
-      const schema = CollectionUtils.getFieldSchema(this.childCollection, leaf.field);
+  protected override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
+    return filter.override({
+      conditionTree: filter?.conditionTree.replaceLeafs(leaf => {
+        const schema = CollectionUtils.getFieldSchema(this.childCollection, leaf.field);
 
-      return this.getReplacer(leaf.operator, schema as ColumnSchema)(leaf, filter.timezone);
+        return this.getReplacer(leaf.operator, schema as ColumnSchema)(leaf, filter.timezone);
+      }),
     });
-
-    return { ...filter, conditionTree };
   }
 
   /** Find a way to replace an operator by recursively exploring the transforms graph */
@@ -65,24 +65,14 @@ export default class OperatorsDecorator extends CollectionDecorator {
         });
 
         if (dependsReplacers.every(r => !!r)) {
-          return this.chain(replacer, dependsOn, dependsReplacers);
+          return (leaf, timezone) =>
+            replacer(leaf, timezone).replaceLeafs(subLeaf =>
+              dependsReplacers[dependsOn.indexOf(subLeaf.operator)](subLeaf, timezone),
+            );
         }
       }
     }
 
     return null;
-  }
-
-  /** Chain multiple replacers */
-  private chain(replacer: Replacer, dependsOn: string[], dependsReplacers: Replacer[]): Replacer {
-    return (leaf, timezone) => {
-      const tree = replacer(leaf, timezone);
-
-      return ConditionTreeUtils.replaceLeafs(tree, subLeaf => {
-        const subReplacerIndex = dependsOn.indexOf(subLeaf.operator);
-
-        return dependsReplacers[subReplacerIndex](subLeaf, timezone);
-      });
-    };
   }
 }

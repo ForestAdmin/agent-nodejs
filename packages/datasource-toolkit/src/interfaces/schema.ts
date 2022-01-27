@@ -1,4 +1,4 @@
-import { ConditionTreeLeaf, Operator } from './query/selection';
+import { Operator } from './query/condition-tree/leaf';
 
 export enum ActionSchemaScope {
   Single = 'single',
@@ -31,7 +31,7 @@ export type ColumnSchema = {
   isReadOnly?: boolean;
   isSortable?: boolean;
   type: FieldTypes.Column;
-  validation?: Array<Omit<ConditionTreeLeaf, 'field'>>;
+  validation?: Array<{ operator: Operator; value?: unknown }>;
 };
 
 export type ManyToOneSchema = {

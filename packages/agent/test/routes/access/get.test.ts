@@ -1,6 +1,6 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import Get from '../../../src/routes/access/get';
+import Get from '../../../dist/routes/access/get';
 import * as factories from '../../__factories__';
 
 describe('GetRoute', () => {

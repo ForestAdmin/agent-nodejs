@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
-import { AggregateResult } from '../../src/interfaces/query/aggregation';
+import { AggregateResult } from '../../dist/interfaces/query/aggregation';
 
 export default Factory.define<AggregateResult>(() => ({
   value: 10,

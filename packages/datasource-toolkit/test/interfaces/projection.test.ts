@@ -1,51 +1,33 @@
-import { PrimitiveTypes } from '../../src/interfaces/schema';
-import ProjectionUtils from '../../src/utils/projection';
+import Projection from '../../dist/interfaces/query/projection';
+import { PrimitiveTypes } from '../../dist/interfaces/schema';
 import * as factories from '../__factories__';
 
-describe('ProjectionUtils', () => {
-  describe('validate', () => {
-    const collection = factories.collection.build({
-      schema: factories.collectionSchema.build({
-        fields: {
-          id: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid, isPrimaryKey: true }),
-          author: factories.manyToOneSchema.build({
-            foreignCollection: 'persons',
-            foreignKey: 'authorId',
-          }),
-        },
-      }),
-    });
-
-    test('should not throw if the field exist on the collection', () => {
-      expect(() => ProjectionUtils.validate(collection, ['id'])).not.toThrow();
-    });
-
-    test('should throw if the field is not of column type', () => {
-      expect(() => ProjectionUtils.validate(collection, ['author'])).toThrow();
-    });
-  });
-
+describe('Projection', () => {
   describe('withPks', () => {
-    const singlePKCollection = factories.collection.build({
-      schema: factories.collectionSchema.build({
-        fields: {
-          id: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid, isPrimaryKey: true }),
-          name: factories.columnSchema.build(),
-        },
-      }),
-    });
     describe('when the pk is a single field', () => {
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.build({
+              columnType: PrimitiveTypes.Uuid,
+              isPrimaryKey: true,
+            }),
+            name: factories.columnSchema.build(),
+          },
+        }),
+      });
+
       test('should automatically add pks to the provided projection', () => {
-        expect(ProjectionUtils.withPks(singlePKCollection, ['name'])).toEqual(['name', 'id']);
+        expect(new Projection('name').withPks(collection)).toEqual(['name', 'id']);
       });
 
       test('should do nothing when the pks are already provided', () => {
-        expect(ProjectionUtils.withPks(singlePKCollection, ['id', 'name'])).toEqual(['id', 'name']);
+        expect(new Projection('id', 'name').withPks(collection)).toEqual(['id', 'name']);
       });
     });
 
     describe('when the pk is a composite', () => {
-      const compositePKCollection = factories.collection.build({
+      const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
             key1: factories.columnSchema.build({
@@ -62,11 +44,7 @@ describe('ProjectionUtils', () => {
       });
 
       test('should automatically add pks to the provided projection', () => {
-        expect(ProjectionUtils.withPks(compositePKCollection, ['name'])).toEqual([
-          'name',
-          'key1',
-          'key2',
-        ]);
+        expect(new Projection('name').withPks(collection)).toEqual(['name', 'key1', 'key2']);
       });
     });
 
@@ -104,7 +82,7 @@ describe('ProjectionUtils', () => {
 
       test('should automatically add pks for all relations', () => {
         expect(
-          ProjectionUtils.withPks(dataSource.getCollection('cars'), ['name', 'owner:name']),
+          new Projection('name', 'owner:name').withPks(dataSource.getCollection('cars')),
         ).toEqual(['name', 'owner:name', 'id', 'owner:id']);
       });
     });

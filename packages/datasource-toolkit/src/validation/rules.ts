@@ -1,6 +1,6 @@
+import { Operator } from '../interfaces/query/condition-tree/leaf';
 import { PrimitiveTypes } from '../interfaces/schema';
-import { Operator } from '../interfaces/query/selection';
-import ValidationTypes from '../interfaces/validation';
+import ValidationTypes from './types';
 
 const BASE_OPERATORS: Operator[] = [
   Operator.Present,

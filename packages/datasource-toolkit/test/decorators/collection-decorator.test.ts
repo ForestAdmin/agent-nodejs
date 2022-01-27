@@ -162,9 +162,9 @@ describe('CollectionDecorator', () => {
   describe('refineFilter', () => {
     it('should be the identity function', async () => {
       const decoratedCollection = factories.collection.buildDecoratedCollection({});
-      const filter = {};
+      const filter = factories.filter.build();
 
-      expect(decoratedCollection.refineFilter(filter)).toBe(filter);
+      expect(await decoratedCollection.refineFilter(filter)).toBe(filter);
     });
   });
 });

@@ -1,5 +1,5 @@
-import getCollections from '../src';
-import DummyDataSource from '../src/datasource';
+import getCollections from '../dist/index';
+import DummyDataSource from '../dist/datasource';
 
 describe('getCollections', () => {
   it('should return DummyDataSource collections', () => {

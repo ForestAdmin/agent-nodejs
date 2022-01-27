@@ -2,30 +2,35 @@ import { Collection } from '../interfaces/collection';
 import { FieldSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
 
 export default class CollectionUtils {
+  static getRelation(collection: Collection, path: string): Collection {
+    if (path?.length) {
+      const [field, ...subPath] = path.split(':');
+      const schema = collection.schema.fields[field];
+
+      if (!schema)
+        throw new Error(`Relation '${field}' not found on collection '${collection.name}'`);
+
+      if (schema.type !== FieldTypes.ManyToOne && schema.type !== FieldTypes.OneToOne)
+        throw new Error(`Invalid relation type: ${schema.type}`);
+
+      const association = collection.dataSource.getCollection(schema.foreignCollection);
+
+      return CollectionUtils.getRelation(association, subPath.join(':'));
+    }
+
+    return collection;
+  }
+
   static getFieldSchema(collection: Collection, path: string): FieldSchema {
-    const dotIndex = path.indexOf(':');
+    const associationPath = path.split(':');
+    const columnPath = associationPath.pop();
+    const association = CollectionUtils.getRelation(collection, associationPath.join(':'));
 
-    if (dotIndex === -1) {
-      if (!collection.schema.fields[path]) {
-        throw new Error(`Field '${path}' not found on collection '${collection.name}'`);
-      }
-
-      return collection.schema.fields[path];
+    if (!association.schema.fields[columnPath]) {
+      throw new Error(`Field '${columnPath}' not found on collection '${association.name}'`);
     }
 
-    const field = path.substring(0, dotIndex);
-    const schema = collection.schema.fields[field];
-
-    if (!schema) {
-      throw new Error(`Relation '${field}' not found on collection '${collection.name}'`);
-    } else if (schema.type === FieldTypes.ManyToOne || schema.type === FieldTypes.OneToOne) {
-      const target = collection.dataSource.getCollection(schema.foreignCollection);
-      const childField = path.substring(dotIndex + 1);
-
-      return CollectionUtils.getFieldSchema(target, childField);
-    } else {
-      throw new Error(`Invalid relation type: ${schema.type}`);
-    }
+    return association.schema.fields[columnPath];
   }
 
   static getInverseRelation(collection: Collection, relationName: string): string {

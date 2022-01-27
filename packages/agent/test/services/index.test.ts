@@ -1,5 +1,5 @@
 import * as factories from '../__factories__';
-import makeServices from '../../src/services';
+import makeServices from '../../dist/services';
 
 describe('Services', () => {
   const options = factories.forestAdminHttpDriverOptions.build();

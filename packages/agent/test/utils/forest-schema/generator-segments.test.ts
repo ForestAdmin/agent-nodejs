@@ -1,4 +1,4 @@
-import SchemaGeneratorSegments from '../../../src/utils/forest-schema/generator-segments';
+import SchemaGeneratorSegments from '../../../dist/utils/forest-schema/generator-segments';
 import * as factories from '../../__factories__';
 
 describe('SchemaGeneratorSegments', () => {
