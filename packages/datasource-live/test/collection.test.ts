@@ -2,14 +2,24 @@ import { Sequelize } from 'sequelize';
 import sortBy from 'lodash/sortBy';
 
 import {
+  Aggregation,
   AggregationOperation,
   CollectionSchema,
+  ConditionTreeLeaf,
+  constants,
   DataSource,
   FieldTypes,
+  Filter,
   Operator,
+  Page,
+  PaginatedFilter,
   PrimitiveTypes,
+  Projection,
+  Sort,
 } from '@forestadmin/datasource-toolkit';
 import LiveCollection from '../src/collection';
+
+const { QUERY_PAGE_DEFAULT_SKIP } = constants;
 
 const compositeKeyCollectionSchema: CollectionSchema = {
   actions: {},
@@ -210,7 +220,10 @@ describe('LiveDataSource > Collection', () => {
         sequelizeRecords: [expectedRecord],
       } = await preloadLiveCollectionRecords(1, liveCollectionSchema);
 
-      const record = await liveCollection.getById([Number(expectedRecord.get('id'))], ['id']);
+      const record = await liveCollection.getById(
+        [Number(expectedRecord.get('id'))],
+        new Projection('id'),
+      );
 
       expect(record.id).toEqual(expectedRecord.get('id'));
       expect(record.value).toBeUndefined();
@@ -245,7 +258,7 @@ describe('LiveDataSource > Collection', () => {
     it('should reject if collection is not synched first', async () => {
       const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
-      expect(() => liveCollection.list({}, [])).toThrow(
+      expect(() => liveCollection.list(null, null)).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
       );
     });
@@ -256,13 +269,15 @@ describe('LiveDataSource > Collection', () => {
         liveCollectionSchema,
       );
 
-      await expect(liveCollection.list({}, null)).resolves.toBeArrayOfSize(recordCount);
+      await expect(liveCollection.list(new PaginatedFilter({}), null)).resolves.toBeArrayOfSize(
+        recordCount,
+      );
     });
 
     it('should resolve honoring the projection', async () => {
       const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
 
-      const records = await liveCollection.list({}, ['id']);
+      const records = await liveCollection.list(new PaginatedFilter({}), new Projection('id'));
 
       records.forEach(record => {
         expect(record.id).toBeNumber();
@@ -276,7 +291,13 @@ describe('LiveDataSource > Collection', () => {
         const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
 
         const records = await liveCollection.list(
-          { conditionTree: { operator: Operator.Equal, field: 'value', value: 'record_4' } },
+          new PaginatedFilter({
+            conditionTree: new ConditionTreeLeaf({
+              operator: Operator.Equal,
+              field: 'value',
+              value: 'record_4',
+            }),
+          }),
           null,
         );
 
@@ -290,7 +311,7 @@ describe('LiveDataSource > Collection', () => {
         const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
 
         const records = await liveCollection.list(
-          { sort: [{ field: 'value', ascending: true }] },
+          new PaginatedFilter({ sort: new Sort({ field: 'value', ascending: true }) }),
           null,
         );
         const sortedRecords = sortBy(records, 'value');
@@ -304,7 +325,7 @@ describe('LiveDataSource > Collection', () => {
         });
 
         const records = await liveCollection.list(
-          { sort: [{ field: 'value', ascending: false }] },
+          new PaginatedFilter({ sort: new Sort({ field: 'value', ascending: false }) }),
           null,
         );
         const sortedRecords = sortBy(records, 'value').reverse();
@@ -318,7 +339,10 @@ describe('LiveDataSource > Collection', () => {
         const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
         const limit = 2;
 
-        const records = await liveCollection.list({ page: { skip: 0, limit } }, ['id']);
+        const records = await liveCollection.list(
+          new PaginatedFilter({ page: new Page(QUERY_PAGE_DEFAULT_SKIP, limit) }),
+          new Projection('id'),
+        );
 
         expect(records).toBeArrayOfSize(limit);
       });
@@ -331,7 +355,10 @@ describe('LiveDataSource > Collection', () => {
         const offset = 2;
 
         const records = await liveCollection.list(
-          { sort: [{ field: 'value', ascending: true }], page: { skip: offset } },
+          new PaginatedFilter({
+            sort: new Sort({ field: 'value', ascending: true }),
+            page: new Page(offset),
+          }),
           null,
         );
 
@@ -347,16 +374,20 @@ describe('LiveDataSource > Collection', () => {
     it('should reject if collection is not synched first', async () => {
       const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
-      expect(() => liveCollection.update({}, {})).toThrow(
+      expect(() => liveCollection.update(null, {})).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
       );
     });
 
     it('should resolve with `null`', async () => {
       const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
-      const filter = {
-        conditionTree: { operator: Operator.Equal, field: 'id', value: '__unknown__' },
-      };
+      const filter = new Filter({
+        conditionTree: new ConditionTreeLeaf({
+          operator: Operator.Equal,
+          field: 'id',
+          value: '__unknown__',
+        }),
+      });
       const patch = { value: '__new__value__' };
 
       await expect(liveCollection.update(filter, patch)).resolves.toBeNull();
@@ -370,13 +401,13 @@ describe('LiveDataSource > Collection', () => {
         sequelize.model(liveCollection.name).findAll({ where: { value: recordData[4].value } }),
       );
 
-      const filter = {
-        conditionTree: {
+      const filter = new Filter({
+        conditionTree: new ConditionTreeLeaf({
           operator: Operator.Equal,
           field: 'id',
           value: originalRecord.id,
-        },
-      };
+        }),
+      });
       const patch = { value: '__new__value__' };
 
       await liveCollection.update(filter, patch);
@@ -395,16 +426,20 @@ describe('LiveDataSource > Collection', () => {
     it('should reject if collection is not synched first', async () => {
       const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
-      expect(() => liveCollection.delete({})).toThrow(
+      expect(() => liveCollection.delete(null)).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
       );
     });
 
     it('should resolve with `null`', async () => {
       const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
-      const filter = {
-        conditionTree: { operator: Operator.Equal, field: 'id', value: '__unknown__' },
-      };
+      const filter = new Filter({
+        conditionTree: new ConditionTreeLeaf({
+          operator: Operator.Equal,
+          field: 'id',
+          value: '__unknown__',
+        }),
+      });
 
       await expect(liveCollection.delete(filter)).resolves.toBeNull();
     });
@@ -420,13 +455,13 @@ describe('LiveDataSource > Collection', () => {
         sequelize.model(liveCollection.name).findAll({ where: { value: recordData[4].value } }),
       );
 
-      const filter = {
-        conditionTree: {
+      const filter = new Filter({
+        conditionTree: new ConditionTreeLeaf({
           operator: Operator.Equal,
           field: 'id',
           value: originalRecord.id,
-        },
-      };
+        }),
+      });
 
       await liveCollection.delete(filter);
 
@@ -439,11 +474,8 @@ describe('LiveDataSource > Collection', () => {
   describe('aggregate', () => {
     it('should reject if collection is not synched first', async () => {
       const { liveCollection } = instanciateCollection(liveCollectionSchema);
-      const aggregation = {
-        operation: AggregationOperation.Count,
-      };
 
-      expect(() => liveCollection.aggregate({}, aggregation)).toThrow(
+      expect(() => liveCollection.aggregate(null, null)).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
       );
     });
@@ -454,13 +486,13 @@ describe('LiveDataSource > Collection', () => {
         recordCount,
         liveCollectionSchema,
       );
-      const aggregation = {
+      const aggregation = new Aggregation({
         operation: AggregationOperation.Count,
-      };
+      });
 
-      await expect(liveCollection.aggregate({}, aggregation)).resolves.toEqual([
-        { group: '*', value: recordCount },
-      ]);
+      await expect(liveCollection.aggregate(new PaginatedFilter({}), aggregation)).resolves.toEqual(
+        [{ group: '*', value: recordCount }],
+      );
     });
 
     it('should resolve honoring filter', async () => {
@@ -469,21 +501,21 @@ describe('LiveDataSource > Collection', () => {
         recordCount,
         liveCollectionSchema,
       );
-      const aggregation = {
+      const aggregation = new Aggregation({
         operation: AggregationOperation.Count,
-      };
+      });
 
       const [originalRecord] = await plainRecords(
         sequelize.model(liveCollection.name).findAll({ where: { value: recordData[4].value } }),
       );
 
-      const filter = {
-        conditionTree: {
+      const filter = new Filter({
+        conditionTree: new ConditionTreeLeaf({
           operator: Operator.Equal,
           field: 'id',
           value: originalRecord.id,
-        },
-      };
+        }),
+      });
 
       await expect(liveCollection.aggregate(filter, aggregation)).resolves.toEqual([
         { group: '*', value: 1 },
@@ -496,12 +528,12 @@ describe('LiveDataSource > Collection', () => {
         recordCount,
         liveCollectionSchema,
       );
-      const aggregation = {
+      const aggregation = new Aggregation({
         field: 'even',
         operation: AggregationOperation.Count,
-      };
+      });
 
-      await expect(liveCollection.aggregate({}, aggregation)).resolves.toEqual(
+      await expect(liveCollection.aggregate(new PaginatedFilter({}), aggregation)).resolves.toEqual(
         expect.arrayContaining([
           { group: 'true', value: 5 },
           { group: 'false', value: 4 },

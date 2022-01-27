@@ -3,7 +3,6 @@ import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
 import LiveDataSource from '../src/datasource';
 
 const dataSourceWithDummyCollectionSchema: DataSourceSchema = {
-  name: '__dummy_data_source__',
   collections: {
     dummy: {
       actions: {},
@@ -15,7 +14,6 @@ const dataSourceWithDummyCollectionSchema: DataSourceSchema = {
 };
 
 const emptyDataSourceSchema: DataSourceSchema = {
-  name: '__empty_data_source__',
   collections: {},
 };
 

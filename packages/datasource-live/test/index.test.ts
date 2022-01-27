@@ -4,7 +4,6 @@ import getCollections from '../src';
 import LiveDataSource from '../src/datasource';
 
 const emptyDataSourceSchema: DataSourceSchema = {
-  name: '__empty_data_source__',
   collections: {},
 };
 
