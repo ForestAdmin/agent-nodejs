@@ -9,7 +9,7 @@ import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema
 
 export default abstract class BaseCollection implements Collection {
   readonly dataSource: DataSource = null;
-  readonly name = null;
+  readonly name: string = null;
   readonly schema: CollectionSchema = null;
 
   private actions: { [actionName: string]: Action } = {};
