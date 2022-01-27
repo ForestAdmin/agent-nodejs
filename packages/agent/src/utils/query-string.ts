@@ -1,5 +1,6 @@
 import {
   Collection,
+  constants,
   FieldTypes,
   Page,
   Projection,
@@ -10,6 +11,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import { HttpCode } from '../types';
+
+const { QUERY_PAGE_DEFAULT_LIMIT, QUERY_PAGE_DEFAULT_SKIP } = constants;
 
 export default class QueryStringParser {
   static parseProjection(collection: Collection, context: Context): Projection {
@@ -86,8 +89,8 @@ export default class QueryStringParser {
   }
 
   static parsePagination(context: Context): Page {
-    const queryLimit = (context.request.query['page[size]'] || 15).toString();
-    const querySkip = (context.request.query['page[number]'] || 1).toString();
+    const queryLimit = (context.request.query['page[size]'] || QUERY_PAGE_DEFAULT_LIMIT).toString();
+    const querySkip = (context.request.query['page[number]'] || QUERY_PAGE_DEFAULT_SKIP).toString();
 
     const limit = Number.parseInt(queryLimit, 10);
     let skip = Number.parseInt(querySkip, 10);
@@ -96,7 +99,7 @@ export default class QueryStringParser {
       context.throw(HttpCode.BadRequest, `Invalid pagination: "limit: ${limit}, skip: ${skip}"`);
     }
 
-    skip -= 1;
+    skip = Math.max(skip - 1, 0);
     skip *= limit;
 
     return new Page(skip, limit);
