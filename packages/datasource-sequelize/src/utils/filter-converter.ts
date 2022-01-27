@@ -115,7 +115,7 @@ export function convertPaginatedFilterToSequelize(filter: PaginatedFilter) {
   const sequelizeFilter = convertFilterToSequelize(filter);
 
   // TODO: Get default `page.{limit,skip}` from constants in toolkit.
-  const pageLimit = filter.page?.limit ?? 10;
+  const pageLimit = filter.page?.limit ?? 15;
   const pageOffset = filter.page?.skip ?? 0;
 
   if (pageLimit !== null) sequelizeFilter.limit = pageLimit;

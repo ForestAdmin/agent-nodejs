@@ -240,7 +240,7 @@ describe('Utils > FilterConverter', () => {
   });
 
   describe('convertPaginatedFilterToSequelize', () => {
-    const defaultLimit = 10;
+    const defaultLimit = 15;
     const defaultOffset = 0;
 
     it('should return with defaults when called with a classic Filter', () => {
