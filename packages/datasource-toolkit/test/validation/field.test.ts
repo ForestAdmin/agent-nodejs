@@ -42,7 +42,7 @@ describe('FieldValidator', () => {
 
     test('should throw if the field is not of column type', () => {
       expect(() => FieldValidator.validate(dataSource.getCollection('cars'), 'owner')).toThrow(
-        'Unexpected field type: OneToOne for field owner',
+        "Unexpected field type: 'cars.owner' (found 'OneToOne' expected 'Column')",
       );
     });
 
@@ -62,7 +62,9 @@ describe('FieldValidator', () => {
       test('should throw when the requested field is of type column', () => {
         expect(() =>
           FieldValidator.validate(dataSource.getCollection('cars'), 'id:address'),
-        ).toThrow('Unexpected field type: Column for field id:address');
+        ).toThrow(
+          "Unexpected field type: 'cars.id' (found 'Column' expected 'ManyToOne' or 'OneToOne')",
+        );
       });
     });
   });

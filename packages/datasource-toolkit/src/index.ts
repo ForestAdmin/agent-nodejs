@@ -1,8 +1,7 @@
 export { default as BaseCollection } from './base-collection';
 export { default as BaseDataSource } from './base-datasource';
 
-export { default as ComputedCollectionDecorator } from './decorators/computed/collection';
-export { default as OperatosrCollectionDecorator } from './decorators/replace-operators/collection';
+export { default as OperatosrCollectionDecorator } from './decorators/operators-replace/collection';
 export { default as PublicationCollectionDecorator } from './decorators/publication/collection';
 export { default as RenameCollectionDecorator } from './decorators/rename/collection';
 export { default as SearchCollectionDecorator } from './decorators/search/collection';

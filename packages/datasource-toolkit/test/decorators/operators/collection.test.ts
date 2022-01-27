@@ -1,4 +1,4 @@
-import OperatorsDecorator from '../../../dist/decorators/operators/collection';
+import OperatorsDecorator from '../../../dist/decorators/operators-replace/collection';
 import { Collection } from '../../../dist/interfaces/collection';
 import ConditionTreeLeaf, { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
 import PaginatedFilter from '../../../dist/interfaces/query/filter/paginated';

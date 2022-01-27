@@ -33,7 +33,7 @@ export default class FieldValidator {
 
       if (schema.type !== FieldTypes.ManyToOne && schema.type !== FieldTypes.OneToOne) {
         throw new Error(
-          `Unexpected field type: '${collection.name}.${field}'. (found ` +
+          `Unexpected field type: '${collection.name}.${prefix}' (found ` +
             `'${schema.type}' expected '${FieldTypes.ManyToOne}' or '${FieldTypes.OneToOne}')`,
         );
       }

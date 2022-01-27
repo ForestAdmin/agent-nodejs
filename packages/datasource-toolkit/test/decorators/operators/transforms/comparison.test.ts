@@ -1,5 +1,5 @@
 // eslint-disable-next-line max-len
-import alternatives from '../../../../dist/decorators/operators/transforms/comparison';
+import alternatives from '../../../../dist/decorators/operators-replace/transforms/comparison';
 import { Aggregator } from '../../../../dist/interfaces/query/condition-tree/branch';
 import ConditionTreeLeaf, { Operator } from '../../../../dist/interfaces/query/condition-tree/leaf';
 

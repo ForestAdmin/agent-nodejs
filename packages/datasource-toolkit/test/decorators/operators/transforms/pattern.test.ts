@@ -1,4 +1,4 @@
-import alternatives from '../../../../dist/decorators/operators/transforms/pattern';
+import alternatives from '../../../../dist/decorators/operators-replace/transforms/pattern';
 import ConditionTreeLeaf, { Operator } from '../../../../dist/interfaces/query/condition-tree/leaf';
 
 describe('ConditionTreeOperators > Pattern', () => {

@@ -1,4 +1,4 @@
-import alternatives from '../../../../dist/decorators/operators/transforms/time';
+import alternatives from '../../../../dist/decorators/operators-replace/transforms/time';
 import { Aggregator } from '../../../../dist/interfaces/query/condition-tree/branch';
 import ConditionTreeLeaf, { Operator } from '../../../../dist/interfaces/query/condition-tree/leaf';
 
