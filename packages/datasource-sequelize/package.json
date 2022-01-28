@@ -23,6 +23,6 @@
     "sqlite3": "^5.0.2"
   },
   "peerDependencies": {
-    "sequelize": ">= 6.X"
+    "sequelize": ">= 6.12.4"
   }
 }
