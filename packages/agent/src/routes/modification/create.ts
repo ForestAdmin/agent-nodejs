@@ -23,7 +23,7 @@ export default class CreateRoute extends CollectionBaseRoute {
       const [record] = await this.collection.create([rawRecord]);
 
       context.response.body = this.services.serializer.serialize(this.collection, record);
-    } catch {
+    } catch (e) {
       context.throw(
         HttpCode.InternalServerError,
         `Failed to create record on collection "${this.collection.name}"`,
