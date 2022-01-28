@@ -1,19 +1,27 @@
-import Page from '../../dist/interfaces/query/page';
+import Page, { constants } from '../../dist/interfaces/query/page';
+
+const { QUERY_PAGE_DEFAULT_LIMIT, QUERY_PAGE_DEFAULT_SKIP } = constants;
 
 describe('Page', () => {
+  describe('with default behaviour', () => {
+    const page = new Page();
+
+    test('apply should work', () => {
+      const records = [...Array(100).keys()].map(id => ({ id }));
+      const pageRecords = page.apply(records);
+
+      expect(pageRecords).toBeArrayOfSize(QUERY_PAGE_DEFAULT_LIMIT);
+      expect(pageRecords[0]).toEqual(records[QUERY_PAGE_DEFAULT_SKIP]);
+    });
+  });
+
   describe('with a finite page', () => {
-    const page = new Page(10, 5);
+    const page = new Page(7, 3);
 
     test('apply should work', () => {
       const records = [...Array(100).keys()].map(id => ({ id }));
 
-      expect(page.apply(records)).toStrictEqual([
-        { id: 10 },
-        { id: 11 },
-        { id: 12 },
-        { id: 13 },
-        { id: 14 },
-      ]);
+      expect(page.apply(records)).toStrictEqual([{ id: 7 }, { id: 8 }, { id: 9 }]);
     });
   });
 
