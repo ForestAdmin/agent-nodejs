@@ -4,71 +4,70 @@ import FieldValidator from '../../dist/validation/field';
 
 describe('FieldValidator', () => {
   describe('validate', () => {
-    const dataSource = factories.dataSource.buildWithCollections([
-      factories.collection.build({
-        name: 'cars',
-        schema: factories.collectionSchema.build({
-          fields: {
-            id: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            }),
-            name: factories.columnSchema.build(),
-            owner: factories.oneToOneSchema.build({
-              foreignCollection: 'owner',
-              foreignKey: 'id',
-            }),
-          },
-        }),
+    const carsCollection = factories.collection.build({
+      name: 'cars',
+      schema: factories.collectionSchema.build({
+        fields: {
+          id: factories.columnSchema.build({
+            columnType: PrimitiveTypes.Uuid,
+            isPrimaryKey: true,
+          }),
+          owner: factories.oneToOneSchema.build({
+            foreignCollection: 'owner',
+            foreignKey: 'id',
+          }),
+        },
       }),
-      factories.collection.build({
-        name: 'owner',
-        schema: factories.collectionSchema.build({
-          fields: {
-            id: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            }),
-            name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-            address: factories.oneToOneSchema.build({}),
-          },
-        }),
-      }),
-    ]);
+    });
 
     test('should not throw if the field exist on the collection', () => {
-      expect(() => FieldValidator.validate(dataSource.getCollection('cars'), 'id')).not.toThrow();
+      expect(() => FieldValidator.validate(carsCollection, 'id')).not.toThrow();
     });
 
     test('should throw if the field does not exists', () => {
-      expect(() =>
-        FieldValidator.validate(dataSource.getCollection('cars'), '__not_defined'),
-      ).toThrow("Column not found: 'cars.__not_defined'");
+      expect(() => FieldValidator.validate(carsCollection, '__not_defined')).toThrow(
+        "Column not found: 'cars.__not_defined'",
+      );
     });
 
     test('should throw if the relation does not exists', () => {
-      expect(() =>
-        FieldValidator.validate(dataSource.getCollection('cars'), '__not_defined:id'),
-      ).toThrow("Relation not found: 'cars.__not_defined'");
+      expect(() => FieldValidator.validate(carsCollection, '__not_defined:id')).toThrow(
+        "Relation not found: 'cars.__not_defined'",
+      );
     });
 
     test('should throw if the field is not of column type', () => {
-      expect(() => FieldValidator.validate(dataSource.getCollection('cars'), 'owner')).toThrow(
+      expect(() => FieldValidator.validate(carsCollection, 'owner')).toThrow(
         "Unexpected field type: 'cars.owner' (found 'OneToOne' expected 'Column')",
       );
     });
 
     describe('when validating relationship fields', () => {
       test('should validate fields on other collections', () => {
+        const dataSource = factories.dataSource.buildWithCollections([
+          carsCollection,
+          factories.collection.build({
+            name: 'owner',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.build({
+                  columnType: PrimitiveTypes.Uuid,
+                  isPrimaryKey: true,
+                }),
+                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                address: factories.oneToOneSchema.build({}),
+              },
+            }),
+          }),
+        ]);
+
         expect(() =>
           FieldValidator.validate(dataSource.getCollection('cars'), 'owner:name'),
         ).not.toThrow();
       });
 
       test('should throw when the requested field is of type column', () => {
-        expect(() =>
-          FieldValidator.validate(dataSource.getCollection('cars'), 'id:address'),
-        ).toThrow(
+        expect(() => FieldValidator.validate(carsCollection, 'id:address')).toThrow(
           "Unexpected field type: 'cars.id' (found 'Column' expected 'ManyToOne' or 'OneToOne')",
         );
       });
