@@ -1,29 +1,39 @@
 import { DateTime } from 'luxon';
+import { validate as uuidValidate } from 'uuid';
 import { PrimitiveTypes } from '../interfaces/schema';
 import ValidationTypes from './types';
 
-export default class TypeGetterUtil {
-  private static readonly REGEX_UUID =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
+export default class TypeGetter {
   static get(
     value: unknown,
     typeContext?: PrimitiveTypes,
   ): PrimitiveTypes | ValidationTypes | null {
+    if (typeContext && !Object.values(PrimitiveTypes).includes(typeContext)) {
+      throw new Error(`Unexpected schema type: ${typeContext}`);
+    }
+
     if (Array.isArray(value)) {
-      return TypeGetterUtil.getArrayType(value, typeContext);
+      return TypeGetter.getArrayType(value, typeContext);
     }
 
     if (typeof value === 'string') {
-      return TypeGetterUtil.getTypeFromString(value, typeContext);
+      return TypeGetter.getTypeFromString(value, typeContext);
     }
 
     if (typeof value === 'number') {
       return PrimitiveTypes.Number;
     }
 
+    if (value instanceof Date && DateTime.fromJSDate(value).isValid) {
+      return PrimitiveTypes.Date;
+    }
+
     if (typeof value === 'boolean') {
       return PrimitiveTypes.Boolean;
+    }
+
+    if (typeof value === 'object' && PrimitiveTypes.Json === typeContext) {
+      return PrimitiveTypes.Json;
     }
 
     return null;
@@ -37,19 +47,19 @@ export default class TypeGetterUtil {
       return ValidationTypes.EmptyArray;
     }
 
-    if (value.length === 2 && typeContext === PrimitiveTypes.Point) {
-      return PrimitiveTypes.Point;
-    }
-
-    if (value.every(item => TypeGetterUtil.get(item) === PrimitiveTypes.Number)) {
+    if (value.every(item => TypeGetter.get(item) === PrimitiveTypes.Number)) {
       return ValidationTypes.ArrayOfNumber;
     }
 
-    if (value.every(item => TypeGetterUtil.get(item) === PrimitiveTypes.String)) {
-      return ValidationTypes.ArrayOfString;
+    const isArrayOfString = value.every(item => TypeGetter.get(item) === PrimitiveTypes.String);
+
+    if (isArrayOfString) {
+      return typeContext === PrimitiveTypes.Enum
+        ? ValidationTypes.ArrayOfEnum
+        : ValidationTypes.ArrayOfString;
     }
 
-    if (value.every(item => TypeGetterUtil.get(item) === PrimitiveTypes.Boolean)) {
+    if (value.every(item => TypeGetter.get(item) === PrimitiveTypes.Boolean)) {
       return ValidationTypes.ArrayOfBoolean;
     }
 
@@ -69,15 +79,23 @@ export default class TypeGetterUtil {
   }
 
   private static getTypeFromString(value: string, typeContext?: PrimitiveTypes): PrimitiveTypes {
+    if (typeContext === PrimitiveTypes.Enum) {
+      return PrimitiveTypes.Enum;
+    }
+
     if (typeContext === PrimitiveTypes.String) {
       return PrimitiveTypes.String;
     }
 
-    if (value.match(TypeGetterUtil.REGEX_UUID)) {
+    if (uuidValidate(value)) {
       return PrimitiveTypes.Uuid;
     }
 
-    if (!Number.isNaN(Number(value)) && !Number.isNaN(parseFloat(value))) {
+    if (
+      !Number.isNaN(Number(value)) &&
+      !Number.isNaN(parseFloat(value)) &&
+      typeContext !== PrimitiveTypes.Number
+    ) {
       // @see https://stackoverflow.com/questions/175739
       return PrimitiveTypes.Number;
     }
@@ -85,11 +103,19 @@ export default class TypeGetterUtil {
     const dateTime = DateTime.fromISO(value);
 
     if (dateTime.isValid) {
-      return TypeGetterUtil.getDateType(value, dateTime);
+      return TypeGetter.getDateType(value, dateTime);
     }
 
-    if (TypeGetterUtil.isJson(value)) {
+    if (TypeGetter.isJson(value)) {
       return PrimitiveTypes.Json;
+    }
+
+    const potentialPoint = value.split(',');
+
+    if (potentialPoint.length === 2 && typeContext === PrimitiveTypes.Point) {
+      if (TypeGetter.get(potentialPoint) === ValidationTypes.ArrayOfNumber) {
+        return PrimitiveTypes.Point;
+      }
     }
 
     return PrimitiveTypes.String;

@@ -10,7 +10,7 @@ import {
   PrimitiveTypes,
 } from '../../interfaces/schema';
 import ConditionTreeUtils from '../../utils/condition-tree';
-import TypeGetterUtil from '../../validation/type-checker';
+import TypeGetter from '../../validation/type-getter';
 import CollectionDecorator from '../collection-decorator';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
@@ -56,7 +56,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     schema: ColumnSchema,
     searchString: string,
   ): ConditionTree {
-    const searchType = TypeGetterUtil.get(searchString);
+    const searchType = TypeGetter.get(searchString);
     const { columnType, enumValues } = schema;
     let condition = null;
 

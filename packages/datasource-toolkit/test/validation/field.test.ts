@@ -1,7 +1,6 @@
 import { PrimitiveTypes } from '../../dist/interfaces/schema';
-import FieldValidator from '../../dist/validation/field';
 import * as factories from '../__factories__';
-import FieldUtils from '../../dist/utils/field';
+import FieldValidator from '../../dist/validation/field';
 
 describe('FieldValidator', () => {
   describe('validate', () => {
@@ -80,7 +79,7 @@ describe('FieldValidator', () => {
     describe('on field of type boolean', () => {
       test('valid value type should not throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'boolean',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Boolean,
@@ -92,7 +91,7 @@ describe('FieldValidator', () => {
 
       test('invalid value type should throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'boolean',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Boolean,
@@ -106,7 +105,7 @@ describe('FieldValidator', () => {
     describe('on field of type string', () => {
       test('valid value type should not throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'string',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.String,
@@ -118,7 +117,7 @@ describe('FieldValidator', () => {
 
       test('invalid value type should throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'string',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.String,
@@ -132,7 +131,7 @@ describe('FieldValidator', () => {
     describe('on field of type number', () => {
       test('valid value type should not throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'number',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Number,
@@ -144,7 +143,7 @@ describe('FieldValidator', () => {
 
       test('invalid value type should throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'number',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Number,
@@ -158,7 +157,7 @@ describe('FieldValidator', () => {
     describe('on field of type date|dateonly|timeonly', () => {
       test('valid value (string) type should not throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'date',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Date,
@@ -170,7 +169,7 @@ describe('FieldValidator', () => {
 
       test('valid value (js date) type should not throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'date',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Date,
@@ -182,7 +181,7 @@ describe('FieldValidator', () => {
 
       test('invalid value type should throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'date',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Date,
@@ -196,7 +195,7 @@ describe('FieldValidator', () => {
     describe('on field of type enum', () => {
       test('valid value type should not throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'enum',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Enum,
@@ -209,7 +208,7 @@ describe('FieldValidator', () => {
 
       test('invalid value type should throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'enum',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Enum,
@@ -217,14 +216,14 @@ describe('FieldValidator', () => {
             }),
             'd',
           ),
-        ).toThrow('Wrong type for "enum": d. Expects Enum to be in a,b,c');
+        ).toThrow('The given enum value(s) [d] is not listed in [a,b,c]');
       });
     });
 
     describe('on field of type json', () => {
       test('valid (string) value type should not throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'json',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Json,
@@ -236,7 +235,7 @@ describe('FieldValidator', () => {
 
       test('valid (json) value type should not throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'json',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Json,
@@ -248,7 +247,7 @@ describe('FieldValidator', () => {
 
       test('invalid value type should throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'json',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Json,
@@ -262,7 +261,7 @@ describe('FieldValidator', () => {
     describe('on field of type uuid', () => {
       test('valid value (uuid v1) type should not throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'uuid',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Uuid,
@@ -274,7 +273,7 @@ describe('FieldValidator', () => {
 
       test('valid value (uuid v4) type should not throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'uuid',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Uuid,
@@ -286,7 +285,7 @@ describe('FieldValidator', () => {
 
       test('invalid value type should throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'uuid',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Uuid,
@@ -300,7 +299,7 @@ describe('FieldValidator', () => {
     describe('on field of type point', () => {
       test('valid value type should not throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'point',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Point,
@@ -312,7 +311,7 @@ describe('FieldValidator', () => {
 
       test('invalid value type should throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'point',
             factories.columnSchema.build({
               columnType: PrimitiveTypes.Point,
@@ -326,7 +325,7 @@ describe('FieldValidator', () => {
     describe('on field of incorrect primitive type', () => {
       test('invalid value type should throw error', () => {
         expect(() =>
-          FieldUtils.validateValue(
+          FieldValidator.validateValue(
             'something-else',
             factories.columnSchema.build({
               columnType: 'SomethingNotPrimitive' as unknown as PrimitiveTypes,

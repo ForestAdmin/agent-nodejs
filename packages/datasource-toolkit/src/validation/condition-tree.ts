@@ -8,8 +8,8 @@ import {
   MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER,
   MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE,
 } from './rules';
-import TypeGetterUtil from './type-checker';
-import ValidationTypes from './types';
+import TypeGetter from './type-getter';
+import FieldValidator from './field';
 
 export default class ConditionTreeValidator {
   static validate(conditionTree: ConditionTree, collection: Collection): void {
@@ -30,7 +30,7 @@ export default class ConditionTreeValidator {
     columnSchema: ColumnSchema,
   ): void {
     const { value } = conditionTree;
-    const valueType = TypeGetterUtil.get(value, columnSchema.columnType as PrimitiveTypes);
+    const valueType = TypeGetter.get(value, columnSchema.columnType as PrimitiveTypes);
 
     const allowedTypes = MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[conditionTree.operator];
 
@@ -73,7 +73,7 @@ export default class ConditionTreeValidator {
     const { columnType } = columnSchema;
     const allowedTypes = MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[columnType as PrimitiveTypes];
 
-    const type = TypeGetterUtil.get(value, columnType as PrimitiveTypes);
+    const type = TypeGetter.get(value, columnType as PrimitiveTypes);
 
     if (!allowedTypes.includes(type)) {
       throw new Error(
@@ -84,31 +84,7 @@ export default class ConditionTreeValidator {
     }
 
     if (columnSchema.columnType === PrimitiveTypes.Enum) {
-      this.throwIfInvalidEnumValue(type, conditionTree, columnSchema);
-    }
-  }
-
-  private static throwIfInvalidEnumValue(
-    type: PrimitiveTypes | ValidationTypes,
-    conditionTree: ConditionTreeLeaf,
-    columnSchema: ColumnSchema,
-  ) {
-    let isEnumAllowed: boolean;
-
-    if (type === ValidationTypes.ArrayOfString) {
-      const enumValuesConditionTree = conditionTree.value as Array<string>;
-      isEnumAllowed = enumValuesConditionTree.every(value =>
-        columnSchema.enumValues.includes(value),
-      );
-    } else {
-      isEnumAllowed = columnSchema.enumValues.includes(conditionTree.value as string);
-    }
-
-    if (!isEnumAllowed) {
-      throw new Error(
-        `The given enum value(s) [${conditionTree.value}] is not listed in ` +
-          `[${columnSchema.enumValues}]`,
-      );
+      FieldValidator.checkEnumValue(type, columnSchema, value);
     }
   }
 }

@@ -4,7 +4,7 @@ import Projection from '../interfaces/query/projection';
 import { CompositeId, RecordData } from '../interfaces/record';
 import { CollectionSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
 import SchemaUtils from './schema';
-import FieldUtils from './field';
+import FieldValidator from '../validation/field';
 
 export default class RecordUtils {
   static getPrimaryKey(schema: CollectionSchema, record: RecordData): CompositeId {
@@ -65,7 +65,7 @@ export default class RecordUtils {
       if (!schema) {
         throw new Error(`Unknown field "${key}"`);
       } else if (schema.type === FieldTypes.Column) {
-        FieldUtils.validate(collection, key, [recordData[key]]);
+        FieldValidator.validate(collection, key, [recordData[key]]);
       } else if (schema.type === FieldTypes.OneToOne || schema.type === FieldTypes.OneToMany) {
         const value = recordData[key] as RecordData;
 
