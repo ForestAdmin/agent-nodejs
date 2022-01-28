@@ -5,7 +5,7 @@ import { CollectionSchema, ColumnSchema } from '../../interfaces/schema';
 import FieldValidator from '../../validation/field';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
-import rewriteLeaf from './helpers/rewrite-leaf';
+import replaceEmulatedLeafs from './helpers/rewrite-leaf';
 import { OperatorReplacer } from './types';
 
 export default class OperatorsEmulate extends CollectionDecorator {
@@ -14,12 +14,17 @@ export default class OperatorsEmulate extends CollectionDecorator {
   private readonly fields: Map<string, Map<Operator, OperatorReplacer>> = new Map();
 
   /** @internal */
+  hasReplacer(name: string, operator: Operator): boolean {
+    return !!this.fields.get(name)?.has(operator);
+  }
+
+  /** @internal */
   getReplacer(name: string, operator: Operator): OperatorReplacer {
     return this.fields.get(name)?.get(operator);
   }
 
   emulateOperator(name: string, operator: Operator): void {
-    this.implementOperator(name, operator, () => Promise.resolve(null));
+    this.implementOperator(name, operator, null);
   }
 
   implementOperator(name: string, operator: Operator, replaceBy: OperatorReplacer): void {
@@ -70,7 +75,9 @@ export default class OperatorsEmulate extends CollectionDecorator {
 
   protected override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
     return filter?.override({
-      conditionTree: await filter.conditionTree?.replaceLeafsAsync(leaf => rewriteLeaf(this, leaf)),
+      conditionTree: await filter.conditionTree?.replaceLeafsAsync(leaf =>
+        replaceEmulatedLeafs(this, leaf),
+      ),
     });
   }
 }
