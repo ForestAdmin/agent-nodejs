@@ -1,3 +1,4 @@
+import { fn, ModelDefined, Sequelize } from 'sequelize';
 import {
   AggregateResult,
   Aggregation,
@@ -15,10 +16,11 @@ import ModelConverter from './utils/model-to-collection-schema-converter';
 import { convertPaginatedFilterToSequelize } from './utils/filter-converter';
 
 export default class SequelizeCollection extends BaseCollection {
-  protected model = null;
-  protected sequelize = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected model: ModelDefined<any, any> = null;
+  protected sequelize: Sequelize = null;
 
-  constructor(name, datasource: DataSource, sequelize) {
+  constructor(name: string, datasource: DataSource, sequelize: Sequelize) {
     super(name, datasource);
 
     this.sequelize = sequelize;
@@ -49,7 +51,9 @@ export default class SequelizeCollection extends BaseCollection {
   }
 
   create(data: RecordData[]): Promise<RecordData[]> {
-    return this.model.bulkCreate(data);
+    return this.model
+      .bulkCreate(data)
+      .then(records => records.map(record => record.get({ plain: true })));
   }
 
   list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
@@ -74,28 +78,26 @@ export default class SequelizeCollection extends BaseCollection {
     return this.model.destroy({ ...convertPaginatedFilterToSequelize(filter) }).then(() => null);
   }
 
-  aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
+  async aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
     const operation = aggregation.operation.toUpperCase();
     const field = aggregation.field ?? '*';
     const aggregateFieldName = '__aggregate__';
 
-    const attributes: [string | string[]] = [
+    const attributes: (string | (ReturnType<typeof fn> | string)[])[] = [
       [this.sequelize.fn(operation, this.sequelize.col(field)), aggregateFieldName],
     ];
 
     if (aggregation.field) attributes.push(field);
 
-    return this.model
-      .findAll({
-        ...convertPaginatedFilterToSequelize(filter),
-        attributes,
-        group: aggregation.field,
-      })
-      .then(aggregates =>
-        aggregates.map(aggregate => ({
-          value: aggregate.get(aggregateFieldName),
-          group: aggregation.field ? `${aggregate.get(field)}` : field,
-        })),
-      );
+    const aggregates = await this.model.findAll({
+      ...convertPaginatedFilterToSequelize(filter),
+      attributes,
+      group: aggregation.field,
+    });
+
+    return aggregates.map(aggregate => ({
+      value: aggregate.get(aggregateFieldName) as number,
+      group: { [aggregation.field ? `${aggregate.get(field)}` : field]: null },
+    }));
   }
 }

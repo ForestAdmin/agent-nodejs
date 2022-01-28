@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import { DataTypes } from 'sequelize';
+import { DataTypes, ModelDefined, Sequelize } from 'sequelize';
 import {
   Action,
   ActionForm,
@@ -21,7 +21,7 @@ describe('SequelizeDataSource > Collection', () => {
     const dataSource = Symbol('datasource') as unknown as DataSource;
     const name = '__collection__';
     const sequelize = {
-      col: jest.fn(),
+      col: jest.fn(() => ({})),
       define: jest.fn(() => ({})),
       fn: jest.fn(),
       models: {
@@ -29,7 +29,7 @@ describe('SequelizeDataSource > Collection', () => {
           getAttributes: jest.fn(() => ({})),
         },
       },
-    };
+    } as unknown as Sequelize;
 
     return {
       dataSource,
@@ -162,11 +162,14 @@ describe('SequelizeDataSource > Collection', () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
       const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
       const recordData = Symbol('recordData');
-      const bulkCreate = jest.fn().mockResolvedValue(recordData);
+      const record = {
+        get: jest.fn(() => recordData),
+      };
+      const bulkCreate = jest.fn().mockResolvedValue([record]);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         bulkCreate,
-      };
+      } as unknown as ModelDefined<any, any>;
 
       return {
         bulkCreate,
@@ -179,7 +182,7 @@ describe('SequelizeDataSource > Collection', () => {
       const { bulkCreate, recordData, sequelizeCollection } = setup();
       const data = Symbol('data') as unknown as RecordData[];
 
-      await expect(sequelizeCollection.create(data)).resolves.toBe(recordData);
+      await expect(sequelizeCollection.create(data)).resolves.toEqual([recordData]);
       expect(bulkCreate).toHaveBeenCalledWith(data);
     });
   });
@@ -196,7 +199,7 @@ describe('SequelizeDataSource > Collection', () => {
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         findAll,
-      };
+      } as unknown as ModelDefined<any, any>;
 
       return {
         findAll,
@@ -242,7 +245,7 @@ describe('SequelizeDataSource > Collection', () => {
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         update,
-      };
+      } as unknown as ModelDefined<any, any>;
 
       return {
         update,
@@ -272,7 +275,7 @@ describe('SequelizeDataSource > Collection', () => {
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         destroy,
-      };
+      } as unknown as ModelDefined<any, any>;
 
       return {
         destroy,
@@ -298,7 +301,7 @@ describe('SequelizeDataSource > Collection', () => {
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         findAll,
-      };
+      } as unknown as ModelDefined<any, any>;
 
       return {
         findAll,
@@ -315,7 +318,7 @@ describe('SequelizeDataSource > Collection', () => {
       const filter = new Filter({});
 
       await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-        { group: '*', value: '__aggregate__' },
+        { group: { '*': null }, value: '__aggregate__' },
       ]);
 
       expect(findAll).toHaveBeenCalledTimes(1);
@@ -330,7 +333,7 @@ describe('SequelizeDataSource > Collection', () => {
       const filter = new Filter({});
 
       await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-        { group: '__field__', value: '__aggregate__' },
+        { group: { __field__: null }, value: '__aggregate__' },
       ]);
 
       expect(findAll).toHaveBeenCalledTimes(1);
