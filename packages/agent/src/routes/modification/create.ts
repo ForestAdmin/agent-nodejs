@@ -2,6 +2,7 @@ import { RecordData, RecordUtils } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import CollectionBaseRoute from '../collection-base-route';
+import { HttpCode } from '../../types';
 
 export default class CreateRoute extends CollectionBaseRoute {
   override setupPrivateRoutes(router: Router): void {
@@ -15,7 +16,7 @@ export default class CreateRoute extends CollectionBaseRoute {
       rawRecord = this.services.serializer.deserialize(this.collection, context.request.body);
       RecordUtils.validate(this.collection, rawRecord);
     } catch (e) {
-      return context.throw(400, e.message);
+      return context.throw(HttpCode.BadRequest, e.message);
     }
 
     try {
@@ -23,7 +24,10 @@ export default class CreateRoute extends CollectionBaseRoute {
 
       context.response.body = this.services.serializer.serialize(this.collection, record);
     } catch {
-      context.throw(500, `Failed to create record on collection "${this.collection.name}"`);
+      context.throw(
+        HttpCode.InternalServerError,
+        `Failed to create record on collection "${this.collection.name}"`,
+      );
     }
   }
 }

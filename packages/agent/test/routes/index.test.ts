@@ -18,12 +18,10 @@ describe('RoutesCtor', () => {
   });
 
   describe('CollectionRoutesCtor', () => {
-    test('should export the required routes', () => {
-      expect(CollectionRoutesCtor).toContain(List);
-      expect(CollectionRoutesCtor).toContain(Count);
-      expect(CollectionRoutesCtor).toContain(Get);
-      expect(CollectionRoutesCtor).toContain(Delete);
-      expect(CollectionRoutesCtor).toContain(Create);
+    describe.each([Count, Create, Delete, Get, List])('the route', route => {
+      it('should be defined', () => {
+        expect(CollectionRoutesCtor).toContain(route);
+      });
     });
   });
 });
