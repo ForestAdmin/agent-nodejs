@@ -35,47 +35,49 @@ export default class SequelizeCollection extends BaseCollection {
     this.addSegments(modelSchema.segments);
   }
 
-  getById(id: CompositeId, projection: Projection): Promise<RecordData> {
+  async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
     const actualId = {};
 
     SchemaUtils.getPrimaryKeys(this.schema).forEach((field, index) => {
       actualId[field] = id[index];
     });
 
-    return this.model
-      .findOne({
-        where: actualId,
-        attributes: projection,
-      })
-      .then(record => record && record.get({ plain: true }));
+    const record = await this.model.findOne({
+      where: actualId,
+      attributes: projection,
+    });
+
+    return record && record.get({ plain: true });
   }
 
-  create(data: RecordData[]): Promise<RecordData[]> {
-    return this.model
-      .bulkCreate(data)
-      .then(records => records.map(record => record.get({ plain: true })));
+  async create(data: RecordData[]): Promise<RecordData[]> {
+    const records = await this.model.bulkCreate(data);
+
+    return records.map(record => record.get({ plain: true }));
   }
 
-  list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    return this.model
-      .findAll({
-        ...convertPaginatedFilterToSequelize(filter),
-        attributes: projection,
-      })
-      .then(records => records.map(record => record.get({ plain: true })));
+  async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+    const records = await this.model.findAll({
+      ...convertPaginatedFilterToSequelize(filter),
+      attributes: projection,
+    });
+
+    return records.map(record => record.get({ plain: true }));
   }
 
-  update(filter: Filter, patch: RecordData): Promise<void> {
-    return this.model
-      .update(patch, {
-        ...convertPaginatedFilterToSequelize(filter),
-        fields: Object.keys(patch),
-      })
-      .then(() => null);
+  async update(filter: Filter, patch: RecordData): Promise<void> {
+    await this.model.update(patch, {
+      ...convertPaginatedFilterToSequelize(filter),
+      fields: Object.keys(patch),
+    });
+
+    return null;
   }
 
-  delete(filter: Filter): Promise<void> {
-    return this.model.destroy({ ...convertPaginatedFilterToSequelize(filter) }).then(() => null);
+  async delete(filter: Filter): Promise<void> {
+    await this.model.destroy({ ...convertPaginatedFilterToSequelize(filter) });
+
+    return null;
   }
 
   async aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
