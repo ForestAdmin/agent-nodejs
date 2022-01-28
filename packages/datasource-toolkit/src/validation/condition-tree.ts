@@ -19,10 +19,29 @@ export default class ConditionTreeValidator {
         currentCondition.field,
       ) as ColumnSchema;
 
+      ConditionTreeValidator.throwIfOperatorNotAllowedWithColumn(currentCondition, fieldSchema);
       ConditionTreeValidator.throwIfValueNotAllowedWithOperator(currentCondition, fieldSchema);
       ConditionTreeValidator.throwIfOperatorNotAllowedWithColumnType(currentCondition, fieldSchema);
       ConditionTreeValidator.throwIfValueNotAllowedWithColumnType(currentCondition, fieldSchema);
     });
+  }
+
+  private static throwIfOperatorNotAllowedWithColumn(
+    conditionTree: ConditionTreeLeaf,
+    columnSchema: ColumnSchema,
+  ): void {
+    const operators = columnSchema.filterOperators;
+
+    if (!operators?.has(conditionTree.operator)) {
+      throw new Error(
+        `The given operator '${conditionTree.operator}' ` +
+          `is not supported by the column: '${conditionTree.field}'.\n${
+            operators?.size
+              ? `The allowed types are: [${[...operators]}]`
+              : 'the column is not filterable'
+          }`,
+      );
+    }
   }
 
   private static throwIfValueNotAllowedWithOperator(

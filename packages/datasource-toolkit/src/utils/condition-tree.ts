@@ -7,7 +7,8 @@ import RecordUtils from './record';
 import SchemaUtils from './schema';
 
 export default class ConditionTreeUtils {
-  static EmptySet = new ConditionTreeBranch(Aggregator.Or, []);
+  static MatchNone = new ConditionTreeBranch(Aggregator.Or, []);
+  static MatchAll = new ConditionTreeBranch(Aggregator.And, []);
 
   static matchRecords(schema: CollectionSchema, records: RecordData[]): ConditionTree {
     const ids = records.map(r => RecordUtils.getPrimaryKey(schema, r));
@@ -20,6 +21,8 @@ export default class ConditionTreeUtils {
   }
 
   private static matchFields(fields: string[], values: unknown[][]): ConditionTree {
+    if (values.length === 0) return ConditionTreeUtils.MatchNone;
+
     if (fields.length === 1) {
       return new ConditionTreeLeaf(
         values.length > 1
