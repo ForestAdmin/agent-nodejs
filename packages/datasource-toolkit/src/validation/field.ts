@@ -45,14 +45,23 @@ export default class FieldValidator {
     }
   }
 
-  static validateValue(field: string, schema: ColumnSchema, value: unknown): void {
+  static validateValue(
+    field: string,
+    schema: ColumnSchema,
+    value: unknown,
+    allowedTypes?: readonly (PrimitiveTypes | ValidationTypes)[],
+  ): void {
     const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes);
 
-    if ([ValidationTypes.ArrayOfEnum, PrimitiveTypes.Enum].includes(type)) {
+    if (schema.columnType === PrimitiveTypes.Enum) {
       FieldValidator.checkEnumValue(type, schema, value);
     }
 
-    if (type !== schema.columnType) {
+    if (allowedTypes) {
+      if (!allowedTypes.includes(type)) {
+        throw new Error(`Wrong type for "${field}": ${value}. Expects [${allowedTypes}]`);
+      }
+    } else if (type !== schema.columnType) {
       throw new Error(`Wrong type for "${field}": ${value}. Expects ${schema.columnType}`);
     }
   }

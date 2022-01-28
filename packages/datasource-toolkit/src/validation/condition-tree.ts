@@ -69,22 +69,10 @@ export default class ConditionTreeValidator {
     conditionTree: ConditionTreeLeaf,
     columnSchema: ColumnSchema,
   ): void {
-    const { value } = conditionTree;
+    const { value, field } = conditionTree;
     const { columnType } = columnSchema;
     const allowedTypes = MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[columnType as PrimitiveTypes];
 
-    const type = TypeGetter.get(value, columnType as PrimitiveTypes);
-
-    if (!allowedTypes.includes(type)) {
-      throw new Error(
-        `The given value '${JSON.stringify(value)} (type: ${type})' ` +
-          `is not allowed with the columnType schema '${columnType}'.\n` +
-          `The allowed values are [${allowedTypes}].`,
-      );
-    }
-
-    if (columnSchema.columnType === PrimitiveTypes.Enum) {
-      FieldValidator.checkEnumValue(type, columnSchema, value);
-    }
+    FieldValidator.validateValue(field, columnSchema, value, allowedTypes);
   }
 }

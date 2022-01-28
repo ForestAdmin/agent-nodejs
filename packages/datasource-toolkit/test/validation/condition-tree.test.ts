@@ -281,9 +281,7 @@ describe('ConditionTreeValidation', () => {
         });
 
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-          "The given value '[1,2,3] (type: ArrayOfNumber)' " +
-            "is not allowed with the columnType schema 'String'.\n" +
-            'The allowed values are [String,ArrayOfString].',
+          'Wrong type for "target": 1,2,3. Expects [String,ArrayOfString]',
         );
       });
     });
@@ -442,9 +440,7 @@ describe('ConditionTreeValidation', () => {
           });
 
           expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-            'The given value \'"-80, 20, 90" (type: String)\' ' +
-              "is not allowed with the columnType schema 'Point'.\n" +
-              'The allowed values are [Point].',
+            'Wrong type for "pointField": -80, 20, 90. Expects [Point]',
           );
         });
       });
