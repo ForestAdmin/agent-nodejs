@@ -31,8 +31,8 @@ export * from './interfaces/schema';
 export { default as CollectionUtils } from './utils/collection';
 export { default as RecordUtils } from './utils/record';
 export { default as SchemaUtils } from './utils/schema';
-export { default as SortUtils } from './utils/sort';
 
 export { default as ConditionTreeValidator } from './validation/condition-tree';
 export { default as FieldValidator } from './validation/field';
 export { default as ProjectionValidator } from './validation/projection';
+export { default as SortValidator } from './validation/sort';

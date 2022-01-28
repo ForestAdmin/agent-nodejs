@@ -6,7 +6,7 @@ import {
   ProjectionValidator,
   SchemaUtils,
   Sort,
-  SortUtils,
+  SortValidator,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 
@@ -115,7 +115,7 @@ export default class QueryStringParser {
         ascending: !sortString.startsWith('-'),
       });
 
-      SortUtils.validate(collection, sort);
+      SortValidator.validate(collection, sort);
 
       return sort;
     } catch (e) {

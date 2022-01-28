@@ -1,10 +1,10 @@
 import { Collection } from '../interfaces/collection';
-import FieldUtils from '../validation/field';
+import FieldValidator from './field';
 
-export default class SortUtils {
+export default class SortValidator {
   static validate(collection: Collection, sort: { field: string; ascending: boolean }[]): void {
     for (const s of sort ?? []) {
-      FieldUtils.validate(collection, s.field);
+      FieldValidator.validate(collection, s.field);
       if (typeof s.ascending !== 'boolean')
         throw new Error(`Invalid sort.ascending value: ${s.ascending}`);
     }
