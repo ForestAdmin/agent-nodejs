@@ -85,6 +85,12 @@ describe('TypeGetter', () => {
     });
 
     describe('when the value is a date', () => {
+      describe('when it is a js date', () => {
+        it('should return the expected type', () => {
+          expect(TypeGetter.get(new Date(), PrimitiveTypes.Date)).toEqual(PrimitiveTypes.Date);
+        });
+      });
+
       describe('when it is a date without time', () => {
         it('should return the expected type', () => {
           expect(TypeGetter.get('2016-05-25')).toEqual(PrimitiveTypes.Dateonly);
@@ -146,6 +152,10 @@ describe('TypeGetter', () => {
       describe('when it is a number as string', () => {
         it('should return the expected type', () => {
           expect(TypeGetter.get('2258')).toEqual(PrimitiveTypes.Number);
+        });
+
+        it('should not return Number when the given context is a Number', () => {
+          expect(TypeGetter.get('2258', PrimitiveTypes.Number)).not.toEqual(PrimitiveTypes.Number);
         });
       });
 

@@ -150,7 +150,7 @@ describe('RecordUtils', () => {
             name: 'owner',
             schema: factories.collectionSchema.build({
               fields: {
-                name: factories.columnSchema.build(),
+                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
               },
             }),
           }),
@@ -159,7 +159,7 @@ describe('RecordUtils', () => {
           RecordUtils.validate(dataSourceBook.getCollection('book'), {
             relation: { fieldNotExist: 'a name' },
           }),
-        ).toThrow('Unknown field "fieldNotExist"');
+        ).toThrow('Unknown field "fieldNotExist');
       });
     });
 
