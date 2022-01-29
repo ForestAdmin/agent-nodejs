@@ -43,6 +43,15 @@ describe('RecordUtils', () => {
     });
   });
 
+  describe('getFieldValue', () => {
+    test('should extract value', () => {
+      const record = { relation1: { relation2: 'value' } };
+      const value = RecordUtils.getFieldValue(record, 'relation1:relation2');
+
+      expect(value).toStrictEqual('value');
+    });
+  });
+
   describe('unflattenRecord', () => {
     test('should unflatten with nested', () => {
       const flatRecord = { id: 1, 'author:id': 1 };
@@ -56,15 +65,6 @@ describe('RecordUtils', () => {
       const record = RecordUtils.unflattenRecord(books, flatRecord);
 
       expect(record).toStrictEqual({ id: 1, author: null });
-    });
-  });
-
-  describe('getFieldValue', () => {
-    test('should extract value', () => {
-      const record = { relation1: { relation2: 'value' } };
-      const value = RecordUtils.getFieldValue(record, 'relation1:relation2');
-
-      expect(value).toStrictEqual('value');
     });
   });
 
