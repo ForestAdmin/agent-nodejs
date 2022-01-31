@@ -169,7 +169,7 @@ describe('SequelizeDataSource > Collection', () => {
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         bulkCreate,
-      } as unknown as ModelDefined<any, any>;
+      } as unknown as ModelDefined<unknown, unknown>;
 
       return {
         bulkCreate,
@@ -199,7 +199,7 @@ describe('SequelizeDataSource > Collection', () => {
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         findAll,
-      } as unknown as ModelDefined<any, any>;
+      } as unknown as ModelDefined<unknown, unknown>;
 
       return {
         findAll,
@@ -245,7 +245,7 @@ describe('SequelizeDataSource > Collection', () => {
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         update,
-      } as unknown as ModelDefined<any, any>;
+      } as unknown as ModelDefined<unknown, unknown>;
 
       return {
         update,
@@ -275,7 +275,7 @@ describe('SequelizeDataSource > Collection', () => {
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         destroy,
-      } as unknown as ModelDefined<any, any>;
+      } as unknown as ModelDefined<unknown, unknown>;
 
       return {
         destroy,
@@ -301,7 +301,7 @@ describe('SequelizeDataSource > Collection', () => {
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         findAll,
-      } as unknown as ModelDefined<any, any>;
+      } as unknown as ModelDefined<unknown, unknown>;
 
       return {
         findAll,
