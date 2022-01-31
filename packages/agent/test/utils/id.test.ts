@@ -27,6 +27,10 @@ describe('IdUtils', () => {
       },
     });
 
+    test('should pack on several simple numbers id', () => {
+      expect(IdUtils.packIds(numberSchema, [{ id: 34 }, { id: 35 }])).toStrictEqual(['34', '35']);
+    });
+
     test('should pack a simple number id', () => {
       expect(IdUtils.packId(numberSchema, { id: 34 })).toStrictEqual('34');
     });
@@ -34,6 +38,10 @@ describe('IdUtils', () => {
     test('should fail to pack if pks are missing the record', () => {
       const fn = () => IdUtils.packId(numberSchema, { otherId: 23 });
       expect(fn).toThrow(/expected fields: 'id'/);
+    });
+
+    test('should unpack on a several numbers id', () => {
+      expect(IdUtils.unpackIds(numberSchema, ['34', '35'])).toStrictEqual([[34], [35]]);
     });
 
     test('should unpack on a number id', () => {

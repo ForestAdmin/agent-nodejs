@@ -8,6 +8,10 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 export default class IdUtils {
+  static packIds(schema: CollectionSchema, records: RecordData[]): string[] {
+    return records.map(packedId => IdUtils.packId(schema, packedId));
+  }
+
   static packId(schema: CollectionSchema, record: RecordData): string {
     const pkNames = SchemaUtils.getPrimaryKeys(schema);
 
