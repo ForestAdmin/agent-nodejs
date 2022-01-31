@@ -8,6 +8,7 @@ import Create from '../../dist/routes/modification/create';
 import Delete from '../../dist/routes/modification/delete';
 import Get from '../../dist/routes/access/get';
 import List from '../../dist/routes/access/list';
+import Update from '../../dist/routes/modification/update';
 
 describe('RoutesCtor', () => {
   describe('RootRoutesCtor', () => {
@@ -18,7 +19,7 @@ describe('RoutesCtor', () => {
   });
 
   describe('CollectionRoutesCtor', () => {
-    describe.each([Count, Create, Delete, Get, List])('the route', route => {
+    describe.each([Count, Create, Delete, Get, List, Update])('the route', route => {
       it('should be defined', () => {
         expect(CollectionRoutesCtor).toContain(route);
       });
