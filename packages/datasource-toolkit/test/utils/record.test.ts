@@ -161,6 +161,62 @@ describe('RecordUtils', () => {
           }),
         ).toThrow('Unknown field "fieldNotExist');
       });
+
+      test('should throw an error when the relation is an empty object', () => {
+        const dataSourceBook = factories.dataSource.buildWithCollections([
+          factories.collection.build({
+            name: 'book',
+            schema: factories.collectionSchema.build({
+              fields: {
+                relation: factories.oneToOneSchema.build({
+                  foreignCollection: 'owner',
+                }),
+              },
+            }),
+          }),
+          factories.collection.build({
+            name: 'owner',
+            schema: factories.collectionSchema.build({
+              fields: {
+                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              },
+            }),
+          }),
+        ]);
+        expect(() =>
+          RecordUtils.validate(dataSourceBook.getCollection('book'), {
+            relation: {},
+          }),
+        ).toThrow('The record data is empty');
+      });
+
+      test('should throw an error when the relation is null', () => {
+        const dataSourceBook = factories.dataSource.buildWithCollections([
+          factories.collection.build({
+            name: 'book',
+            schema: factories.collectionSchema.build({
+              fields: {
+                relation: factories.oneToOneSchema.build({
+                  foreignCollection: 'owner',
+                }),
+              },
+            }),
+          }),
+          factories.collection.build({
+            name: 'owner',
+            schema: factories.collectionSchema.build({
+              fields: {
+                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              },
+            }),
+          }),
+        ]);
+        expect(() =>
+          RecordUtils.validate(dataSourceBook.getCollection('book'), {
+            relation: null,
+          }),
+        ).toThrow('The record data is empty');
+      });
     });
 
     describe('when the given field is a oneToMany relation', () => {

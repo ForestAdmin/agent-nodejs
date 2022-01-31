@@ -59,6 +59,10 @@ export default class RecordUtils {
   }
 
   static validate(collection: Collection, recordData: RecordData): void {
+    if (!recordData || Object.keys(recordData).length === 0) {
+      throw new Error('The record data is empty');
+    }
+
     for (const key of Object.keys(recordData)) {
       const schema = collection.schema.fields[key];
 
@@ -67,12 +71,10 @@ export default class RecordUtils {
       } else if (schema.type === FieldTypes.Column) {
         FieldValidator.validate(collection, key, [recordData[key]]);
       } else if (schema.type === FieldTypes.OneToOne || schema.type === FieldTypes.OneToMany) {
-        const value = recordData[key] as RecordData;
+        const subRecord = recordData[key] as RecordData;
 
-        if (value !== null) {
-          const association = collection.dataSource.getCollection(schema.foreignCollection);
-          RecordUtils.validate(association, value);
-        }
+        const association = collection.dataSource.getCollection(schema.foreignCollection);
+        RecordUtils.validate(association, subRecord);
       } else {
         throw new Error(`Unexpected schema type '${schema.type}' while traversing record`);
       }
