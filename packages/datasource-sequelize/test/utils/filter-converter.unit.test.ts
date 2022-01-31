@@ -4,7 +4,6 @@ import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
   ConditionTreeNot,
-  constants,
   Filter,
   Operator,
   Page,
@@ -16,8 +15,6 @@ import {
   convertFilterToSequelize,
   convertPaginatedFilterToSequelize,
 } from '../../src/utils/filter-converter';
-
-const { QUERY_PAGE_DEFAULT_LIMIT, QUERY_PAGE_DEFAULT_SKIP } = constants;
 
 describe('Utils > FilterConverter', () => {
   describe('convertFilterToSequelize', () => {
@@ -245,10 +242,7 @@ describe('Utils > FilterConverter', () => {
   describe('convertPaginatedFilterToSequelize', () => {
     it('should return with defaults when called with a classic Filter', () => {
       const defaultInputFilter = new PaginatedFilter({});
-      const defaultPaginatedFilter = {
-        limit: QUERY_PAGE_DEFAULT_LIMIT,
-        offset: QUERY_PAGE_DEFAULT_SKIP,
-      };
+      const defaultPaginatedFilter = {};
 
       expect(convertPaginatedFilterToSequelize(defaultInputFilter)).toEqual(defaultPaginatedFilter);
     });
@@ -260,7 +254,6 @@ describe('Utils > FilterConverter', () => {
         });
 
         expect(convertPaginatedFilterToSequelize(noLimitFilter)).toEqual({
-          limit: QUERY_PAGE_DEFAULT_LIMIT,
           offset: noLimitFilter.page.skip,
         });
       });
@@ -272,8 +265,7 @@ describe('Utils > FilterConverter', () => {
 
         expect(convertPaginatedFilterToSequelize(noSkipFilter)).toEqual(
           expect.objectContaining({
-            limit: noSkipFilter.page.limit,
-            offset: QUERY_PAGE_DEFAULT_SKIP,
+            offset: 0,
           }),
         );
       });
@@ -298,10 +290,7 @@ describe('Utils > FilterConverter', () => {
           sort: new Sort(),
         });
 
-        expect(convertPaginatedFilterToSequelize(noOrderConditionFilter)).toEqual({
-          limit: QUERY_PAGE_DEFAULT_LIMIT,
-          offset: QUERY_PAGE_DEFAULT_SKIP,
-        });
+        expect(convertPaginatedFilterToSequelize(noOrderConditionFilter)).toEqual({});
       });
 
       it('should honor values from "sort"', () => {
@@ -310,8 +299,6 @@ describe('Utils > FilterConverter', () => {
         });
 
         expect(convertPaginatedFilterToSequelize(filter)).toEqual({
-          limit: QUERY_PAGE_DEFAULT_LIMIT,
-          offset: QUERY_PAGE_DEFAULT_SKIP,
           order: [
             ['__a__', 'ASC'],
             ['__b__', 'DESC'],
