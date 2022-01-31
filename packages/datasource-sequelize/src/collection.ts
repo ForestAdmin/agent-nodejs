@@ -91,10 +91,21 @@ export default class SequelizeCollection extends BaseCollection {
 
     if (aggregation.field) attributes.push(field);
 
+    const groups = aggregation.groups?.map(group => {
+      if (group.operation) {
+        return [
+          // TODO: Ensure operation names are the same on all DB engines.
+          [this.sequelize.fn(group.operation?.toUpperCase(), this.sequelize.col(group.field))],
+        ];
+      }
+
+      return group.field;
+    });
+
     const aggregates = await this.model.findAll({
       ...convertPaginatedFilterToSequelize(filter),
       attributes,
-      group: aggregation.field,
+      group: groups,
     });
 
     return aggregates.map(aggregate => ({
