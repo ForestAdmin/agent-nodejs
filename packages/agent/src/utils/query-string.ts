@@ -11,6 +11,9 @@ import {
 import { Context } from 'koa';
 import { HttpCode } from '../types';
 
+const DEFAULT_ITEMS_PER_PAGE = 15;
+const DEFAULT_PAGE_TO_SKIP = 0;
+
 export default class QueryStringParser {
   static parseProjection(collection: Collection, context: Context): Projection {
     try {
@@ -86,19 +89,32 @@ export default class QueryStringParser {
   }
 
   static parsePagination(context: Context): Page {
-    const limit = Number.parseInt(context.request.query['page[size]']?.toString(), 10);
-    const skip =
-      (Number.parseInt(context.request.query['page[number]']?.toString(), 10) - 1) * limit;
+    const queryItemsPerPage = (
+      context.request.query['page[size]'] || DEFAULT_ITEMS_PER_PAGE
+    ).toString();
+    const queryPageToSkip = (
+      context.request.query['page[number]'] || DEFAULT_PAGE_TO_SKIP
+    ).toString();
 
-    if (skip >= 0 && limit > 0) {
-      return new Page(skip, limit);
+    const itemsPerPage = Number.parseInt(queryItemsPerPage, 10);
+    let pageToSkip = Number.parseInt(queryPageToSkip, 10);
+
+    if (
+      Number.isNaN(itemsPerPage) ||
+      Number.isNaN(pageToSkip) ||
+      itemsPerPage <= 0 ||
+      pageToSkip <= 0
+    ) {
+      context.throw(
+        HttpCode.BadRequest,
+        `Invalid pagination: "limit: ${itemsPerPage}, skip: ${pageToSkip}"`,
+      );
     }
 
-    if (Number.isNaN(skip) || Number.isNaN(limit) || limit <= 0 || skip < 0) {
-      context.throw(HttpCode.BadRequest, `Invalid pagination: "limit: ${limit}, skip: ${skip}"`);
-    }
+    pageToSkip = Math.max(pageToSkip - 1, 0);
+    pageToSkip *= itemsPerPage;
 
-    return new Page(0, 15);
+    return new Page(pageToSkip, itemsPerPage);
   }
 
   static parseSort(collection: Collection, context: Context): Sort {
