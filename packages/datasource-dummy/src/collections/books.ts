@@ -1,6 +1,6 @@
 import {
   ActionSchemaScope,
-  AggregateResult,
+  AggregateResultGenerator,
   Aggregation,
   BaseCollection,
   CompositeId,
@@ -12,6 +12,7 @@ import {
   PrimitiveTypes,
   Projection,
   RecordData,
+  RecordDataGenerator,
 } from '@forestadmin/datasource-toolkit';
 import MarkAsLiveAction from '../actions/mark-as-live';
 
@@ -55,7 +56,7 @@ export default class BookCollection extends BaseCollection {
     });
   }
 
-  async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
+  override async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
     void id;
 
     return this.makeRecord(projection);
@@ -65,17 +66,14 @@ export default class BookCollection extends BaseCollection {
     return data;
   }
 
-  async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+  async *list(filter: PaginatedFilter, projection: Projection): RecordDataGenerator {
     void filter;
 
     const numRecords = filter?.page?.limit ?? 10;
-    const records = [];
 
     for (let i = 0; i < numRecords; i += 1) {
-      records.push(this.makeRecord(projection));
+      yield this.makeRecord(projection);
     }
-
-    return records;
   }
 
   async update(filter: Filter, patch: RecordData): Promise<void> {
@@ -87,11 +85,10 @@ export default class BookCollection extends BaseCollection {
     void filter;
   }
 
-  async aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
+  async *aggregate(filter: PaginatedFilter, aggregation: Aggregation): AggregateResultGenerator {
     void filter;
 
     const numRows = filter?.page?.limit ?? 10;
-    const rows = [];
 
     for (let i = 0; i < numRows; i += 1) {
       const row = { value: Math.floor(Math.random() * 1000), group: {} };
@@ -100,10 +97,8 @@ export default class BookCollection extends BaseCollection {
         row.group[field] = this.makeRandomString(6);
       }
 
-      rows.push(row);
+      yield row;
     }
-
-    return rows;
   }
 
   private makeRecord(projection: Projection): RecordData {

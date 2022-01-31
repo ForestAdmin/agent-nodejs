@@ -23,6 +23,8 @@ export type AggregateResult = {
   group: { [field: string]: unknown };
 };
 
+export type AggregateResultGenerator = AsyncGenerator<AggregateResult, void, undefined>;
+
 interface AggregationComponents {
   field?: string;
   operation: AggregationOperation;

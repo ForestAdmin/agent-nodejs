@@ -1,10 +1,12 @@
-// eslint-disable-next-line max-classes-per-file
-import BaseCollection from '../dist/base-collection';
-import { DataSource } from '../dist/interfaces/collection';
-import { AggregateResult } from '../dist/interfaces/query/aggregation';
-import { RecordData } from '../dist/interfaces/record';
-import { ActionSchema, ColumnSchema, FieldSchema } from '../dist/interfaces/schema';
-import * as factories from './__factories__';
+/* eslint-disable require-yield */
+/* eslint-disable max-classes-per-file */
+
+import BaseCollection from '../../dist/collections/base-collection';
+import { DataSource } from '../../dist/interfaces/collection';
+import { AggregateResultGenerator } from '../../dist/interfaces/query/aggregation';
+import { RecordData, RecordDataGenerator } from '../../dist/interfaces/record';
+import { ActionSchema, ColumnSchema, FieldSchema } from '../../dist/interfaces/schema';
+import * as factories from '../__factories__';
 
 class ConcreteCollection extends BaseCollection {
   getById(): Promise<RecordData> {
@@ -15,7 +17,7 @@ class ConcreteCollection extends BaseCollection {
     throw new Error('Method not implemented.');
   }
 
-  list(): Promise<RecordData[]> {
+  async *list(): RecordDataGenerator {
     throw new Error('Method not implemented.');
   }
 
@@ -27,7 +29,7 @@ class ConcreteCollection extends BaseCollection {
     throw new Error('Method not implemented.');
   }
 
-  aggregate(): Promise<AggregateResult[]> {
+  async *aggregate(): AggregateResultGenerator {
     throw new Error('Method not implemented.');
   }
 }
@@ -122,9 +124,7 @@ describe('BaseCollection', () => {
       const collection = new CollectionWithField('__valid__', null);
 
       expect(collection).toBeInstanceOf(CollectionWithField);
-      expect(collection.schema.fields).toMatchObject({
-        __field__: expectedField,
-      });
+      expect(collection.schema.fields).toMatchObject({ __field__: expectedField });
     });
   });
 

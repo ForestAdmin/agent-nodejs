@@ -1,10 +1,10 @@
 import { Action } from '../interfaces/action';
 import { Collection, DataSource } from '../interfaces/collection';
-import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
-import Filter from '../interfaces/query/filter/unpaginated';
+import Aggregation, { AggregateResultGenerator } from '../interfaces/query/aggregation';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
+import Filter from '../interfaces/query/filter/unpaginated';
 import Projection from '../interfaces/query/projection';
-import { CompositeId, RecordData } from '../interfaces/record';
+import { CompositeId, RecordData, RecordDataGenerator } from '../interfaces/record';
 import { CollectionSchema } from '../interfaces/schema';
 
 export default abstract class CollectionDecorator implements Collection {
@@ -36,10 +36,10 @@ export default abstract class CollectionDecorator implements Collection {
     return this.childCollection.create(data);
   }
 
-  async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+  async *list(filter: PaginatedFilter, projection: Projection): RecordDataGenerator {
     const refinedFilter = await this.refineFilter(filter);
 
-    return this.childCollection.list(refinedFilter, projection);
+    yield* this.childCollection.list(refinedFilter, projection);
   }
 
   async update(filter: Filter, patch: RecordData): Promise<void> {
@@ -54,10 +54,10 @@ export default abstract class CollectionDecorator implements Collection {
     return this.childCollection.delete(refinedFilter);
   }
 
-  async aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
+  async *aggregate(filter: PaginatedFilter, aggregation: Aggregation): AggregateResultGenerator {
     const refinedFilter = await this.refineFilter(filter);
 
-    return this.childCollection.aggregate(refinedFilter, aggregation);
+    yield* this.childCollection.aggregate(refinedFilter, aggregation);
   }
 
   protected async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {

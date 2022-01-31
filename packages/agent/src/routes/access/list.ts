@@ -21,7 +21,11 @@ export default class ListRoute extends CollectionBaseRoute {
     const projection = QueryStringParser.parseProjection(this.collection, context);
 
     try {
-      const records = await this.collection.list(paginatedFilter, projection);
+      const records = [];
+
+      for await (const record of this.collection.list(paginatedFilter, projection)) {
+        records.push(record);
+      }
 
       context.response.body = this.services.serializer.serialize(this.collection, records);
     } catch {

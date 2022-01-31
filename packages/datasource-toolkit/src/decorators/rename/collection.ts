@@ -1,8 +1,8 @@
-import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
-import Filter from '../../interfaces/query/filter/unpaginated';
+import Aggregation, { AggregateResultGenerator } from '../../interfaces/query/aggregation';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
+import Filter from '../../interfaces/query/filter/unpaginated';
 import Projection from '../../interfaces/query/projection';
-import { RecordData } from '../../interfaces/record';
+import { RecordData, RecordDataGenerator } from '../../interfaces/record';
 import { CollectionSchema, FieldTypes, RelationSchema } from '../../interfaces/schema';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
@@ -82,33 +82,36 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
     return newRecords.map(record => this.recordFromChildCollection(record));
   }
 
-  override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+  override async *list(filter: PaginatedFilter, projection: Projection): RecordDataGenerator {
     const childProjection = projection.replace(f => this.pathToChildCollection(f));
-    const records = await super.list(filter, childProjection);
 
-    return records.map(record => this.recordFromChildCollection(record));
+    for await (const record of super.list(filter, childProjection)) {
+      yield this.recordFromChildCollection(record);
+    }
   }
 
   override async update(filter: Filter, patch: RecordData): Promise<void> {
     return super.update(filter, this.recordToChildCollection(patch));
   }
 
-  override async aggregate(
+  override async *aggregate(
     filter: PaginatedFilter,
     aggregation: Aggregation,
-  ): Promise<AggregateResult[]> {
-    const rows = await super.aggregate(
+  ): AggregateResultGenerator {
+    const rows = super.aggregate(
       filter,
       aggregation.replaceFields(f => this.pathToChildCollection(f)),
     );
 
-    return rows.map(row => ({
-      value: row.value,
-      group: Object.entries(row.group).reduce(
-        (memo, [path, value]) => ({ ...memo, [this.pathFromChildCollection(path)]: value }),
-        {},
-      ),
-    }));
+    for await (const row of rows) {
+      yield {
+        value: row.value,
+        group: Object.entries(row.group).reduce(
+          (memo, [path, value]) => ({ ...memo, [this.pathFromChildCollection(path)]: value }),
+          {},
+        ),
+      };
+    }
   }
 
   /** Convert field path from child collection to this collection */

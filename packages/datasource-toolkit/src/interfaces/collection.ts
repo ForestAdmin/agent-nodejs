@@ -1,9 +1,9 @@
 import { Action } from './action';
-import Aggregation, { AggregateResult } from './query/aggregation';
-import Filter from './query/filter/unpaginated';
+import Aggregation, { AggregateResultGenerator } from './query/aggregation';
 import PaginatedFilter from './query/filter/paginated';
+import Filter from './query/filter/unpaginated';
 import Projection from './query/projection';
-import { CompositeId, RecordData } from './record';
+import { CompositeId, RecordData, RecordDataGenerator } from './record';
 import { CollectionSchema } from './schema';
 
 export interface DataSource {
@@ -22,11 +22,11 @@ export interface Collection {
 
   create(data: RecordData[]): Promise<RecordData[]>;
 
-  list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]>;
+  list(filter: PaginatedFilter, projection: Projection): RecordDataGenerator;
 
   update(filter: Filter, patch: RecordData): Promise<void>;
 
   delete(filter: Filter): Promise<void>;
 
-  aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]>;
+  aggregate(filter: PaginatedFilter, aggregation: Aggregation): AggregateResultGenerator;
 }

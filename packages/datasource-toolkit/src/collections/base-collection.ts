@@ -1,16 +1,17 @@
-import { Action } from './interfaces/action';
-import { Collection, DataSource } from './interfaces/collection';
-import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
-import Filter from './interfaces/query/filter/unpaginated';
-import PaginatedFilter from './interfaces/query/filter/paginated';
-import Projection from './interfaces/query/projection';
-import { CompositeId, RecordData } from './interfaces/record';
-import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
+import { Action } from '../interfaces/action';
+import { Collection, DataSource } from '../interfaces/collection';
+import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
+import PaginatedFilter from '../interfaces/query/filter/paginated';
+import Filter from '../interfaces/query/filter/unpaginated';
+import Projection from '../interfaces/query/projection';
+import { CompositeId, RecordData } from '../interfaces/record';
+import { ActionSchema, CollectionSchema, FieldSchema } from '../interfaces/schema';
+import ConditionTreeUtils from '../utils/condition-tree';
 
 export default abstract class BaseCollection implements Collection {
-  readonly dataSource: DataSource = null;
-  readonly name: string = null;
-  readonly schema: CollectionSchema = null;
+  readonly dataSource: DataSource;
+  readonly name: string;
+  readonly schema: CollectionSchema;
 
   private actions: { [actionName: string]: Action } = {};
 
@@ -64,15 +65,27 @@ export default abstract class BaseCollection implements Collection {
     this.schema.searchable = true;
   }
 
-  abstract getById(id: CompositeId, projection: Projection): Promise<RecordData>;
+  async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
+    const generator = this.list(
+      new PaginatedFilter({ conditionTree: ConditionTreeUtils.matchIds(this.schema, [id]) }),
+      projection,
+    );
+
+    const item = await generator.next();
+
+    return item.value;
+  }
 
   abstract create(data: RecordData[]): Promise<RecordData[]>;
 
-  abstract list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]>;
+  abstract list(filter: PaginatedFilter, projection: Projection): AsyncGenerator<RecordData>;
 
   abstract update(filter: Filter, patch: RecordData): Promise<void>;
 
   abstract delete(filter: Filter): Promise<void>;
 
-  abstract aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]>;
+  abstract aggregate(
+    filter: PaginatedFilter,
+    aggregation: Aggregation,
+  ): AsyncGenerator<AggregateResult>;
 }

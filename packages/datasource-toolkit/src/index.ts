@@ -1,4 +1,5 @@
-export { default as BaseCollection } from './base-collection';
+export { default as BaseCollection } from './collections/base-collection';
+export { default as BatchCollection } from './collections/batch-collection';
 export { default as BaseDataSource } from './base-datasource';
 
 export { default as OperatorsCollectionDecorator } from './decorators/operators-replace/collection';
