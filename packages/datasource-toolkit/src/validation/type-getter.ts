@@ -9,7 +9,7 @@ export default class TypeGetter {
     typeContext?: PrimitiveTypes,
   ): PrimitiveTypes | ValidationTypes | null {
     if (typeContext && !Object.values(PrimitiveTypes).includes(typeContext)) {
-      throw new Error(`Unexpected schema type: ${typeContext}`);
+      throw new Error(`Unexpected value of type: ${typeContext}`);
     }
 
     if (Array.isArray(value)) {

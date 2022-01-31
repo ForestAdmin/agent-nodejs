@@ -6,7 +6,7 @@ describe('TypeGetter', () => {
   describe('get', () => {
     it('should throw an error when the given typeContext is not a Primitive type', () => {
       expect(() => TypeGetter.get(1, 'SomethingNotPrimitive' as unknown as PrimitiveTypes)).toThrow(
-        'Unexpected schema type: SomethingNotPrimitive',
+        'Unexpected value of type: SomethingNotPrimitive',
       );
     });
 

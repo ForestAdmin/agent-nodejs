@@ -331,7 +331,7 @@ describe('FieldValidator', () => {
             }),
             'something',
           ),
-        ).toThrow('Unexpected schema type: SomethingNotPrimitive');
+        ).toThrow('Unexpected value of type: SomethingNotPrimitive');
       });
     });
   });
