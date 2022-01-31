@@ -25,7 +25,7 @@ describe('Page', () => {
       const pageRecords = page.apply(records);
 
       expect(pageRecords).toBeArrayOfSize(collectionSize - skip);
-      expect(page.apply(records)).toStrictEqual(records.slice(skip));
+      expect(pageRecords).toStrictEqual(records.slice(skip));
     });
   });
 
@@ -38,7 +38,7 @@ describe('Page', () => {
       const pageRecords = page.apply(records);
 
       expect(pageRecords).toBeArrayOfSize(limit);
-      expect(page.apply(records)).toStrictEqual(records.slice(0, limit));
+      expect(pageRecords).toStrictEqual(records.slice(0, limit));
     });
   });
 
@@ -51,7 +51,7 @@ describe('Page', () => {
       const pageRecords = page.apply(records);
 
       expect(pageRecords).toBeArrayOfSize(limit);
-      expect(page.apply(records)).toStrictEqual(records.slice(skip, skip + limit));
+      expect(pageRecords).toStrictEqual(records.slice(skip, skip + limit));
     });
   });
 
