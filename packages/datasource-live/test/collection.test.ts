@@ -6,7 +6,6 @@ import {
   AggregationOperation,
   CollectionSchema,
   ConditionTreeLeaf,
-  constants,
   DataSource,
   FieldTypes,
   Filter,
@@ -18,8 +17,6 @@ import {
   Sort,
 } from '@forestadmin/datasource-toolkit';
 import LiveCollection from '../src/collection';
-
-const { QUERY_PAGE_DEFAULT_SKIP } = constants;
 
 const compositeKeyCollectionSchema: CollectionSchema = {
   actions: {},
@@ -340,7 +337,7 @@ describe('LiveDataSource > Collection', () => {
         const limit = 2;
 
         const records = await liveCollection.list(
-          new PaginatedFilter({ page: new Page(QUERY_PAGE_DEFAULT_SKIP, limit) }),
+          new PaginatedFilter({ page: new Page(null, limit) }),
           new Projection('id'),
         );
 
