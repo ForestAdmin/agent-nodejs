@@ -99,7 +99,7 @@ export default class Serializer {
   }
 
   private stripUndefinedsInPlace(record: unknown): void {
-    if (typeof record !== 'object') {
+    if (record === null || typeof record !== 'object') {
       return;
     }
 
