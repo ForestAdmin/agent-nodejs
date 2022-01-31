@@ -26,8 +26,6 @@ describe('DeleteRoute', () => {
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
 
-      deleteRoute.setupPrivateRoutes(router);
-
       const customProperties = { params: { badParam: '1523|1524' } };
       const context = createMockContext({ customProperties });
 
@@ -53,8 +51,6 @@ describe('DeleteRoute', () => {
       });
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
-
-      deleteRoute.setupPrivateRoutes(router);
 
       const customProperties = { params: { id: '1523' } };
       const context = createMockContext({ customProperties });
@@ -85,8 +81,6 @@ describe('DeleteRoute', () => {
         });
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
-
-        deleteRoute.setupPrivateRoutes(router);
 
         const customProperties = { params: { id: '1523|1524' } };
         const context = createMockContext({ customProperties });
@@ -129,8 +123,6 @@ describe('DeleteRoute', () => {
         });
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
-
-        deleteRoute.setupPrivateRoutes(router);
 
         const customProperties = { params: { id: '1523' } };
         const context = createMockContext({ customProperties });
@@ -177,8 +169,6 @@ describe('DeleteRoute', () => {
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
 
-        deleteRoute.setupPrivateRoutes(router);
-
         const requestBody = { data: { attributes } };
         const context = createMockContext({ requestBody });
         await deleteRoute.handleListDelete(context);
@@ -202,8 +192,6 @@ describe('DeleteRoute', () => {
         });
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
-
-        deleteRoute.setupPrivateRoutes(router);
 
         const requestBody = {
           data: {
@@ -243,8 +231,6 @@ describe('DeleteRoute', () => {
           });
           const dataSource = factories.dataSource.buildWithCollection(bookCollection);
           const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
-
-          deleteRoute.setupPrivateRoutes(router);
 
           const requestBody = {
             data: {
@@ -295,8 +281,6 @@ describe('DeleteRoute', () => {
         });
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
-
-        deleteRoute.setupPrivateRoutes(router);
 
         const requestBody = {
           data: {
@@ -372,8 +356,6 @@ describe('DeleteRoute', () => {
           });
           const dataSource = factories.dataSource.buildWithCollection(bookCollection);
           const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
-
-          deleteRoute.setupPrivateRoutes(router);
 
           const requestBody = {
             data: {
