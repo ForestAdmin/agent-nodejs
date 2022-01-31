@@ -15,10 +15,6 @@ export default class Sort extends Array<SortClause> {
     }, new Sort());
   }
 
-  inverse(): Sort {
-    return this.replaceClauses(({ field, ascending }) => ({ field, ascending: !ascending }));
-  }
-
   nest(prefix: string): Sort {
     return this.map(ob => ({ field: `${prefix}:${ob.field}`, ascending: ob.ascending })) as Sort;
   }
