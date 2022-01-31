@@ -2,6 +2,7 @@ import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import QueryStringParser from '../../dist/utils/query-string';
 import * as factories from '../__factories__';
+import { HttpCode } from '../../dist/types';
 
 describe('QueryStringParser', () => {
   const partialCollection = {
@@ -52,7 +53,7 @@ describe('QueryStringParser', () => {
 
             QueryStringParser.parseProjection(collectionSimple, context);
             expect(context.throw).toHaveBeenCalledWith(
-              400,
+              HttpCode.BadRequest,
               expect.stringContaining('Invalid projection'),
             );
           });
@@ -66,7 +67,7 @@ describe('QueryStringParser', () => {
 
             QueryStringParser.parseProjection(collectionSimple, context);
             expect(context.throw).toHaveBeenCalledWith(
-              400,
+              HttpCode.BadRequest,
               expect.stringContaining('Invalid projection'),
             );
           });
@@ -191,7 +192,7 @@ describe('QueryStringParser', () => {
       QueryStringParser.parseSegment(collectionSimple, context);
 
       expect(context.throw).toHaveBeenCalledWith(
-        400,
+        HttpCode.BadRequest,
         'Invalid segment: "fake-segment-that-dont-exist"',
       );
     });
@@ -213,7 +214,7 @@ describe('QueryStringParser', () => {
 
       QueryStringParser.parseTimezone(context);
 
-      expect(context.throw).toHaveBeenCalledWith(400, 'Missing timezone');
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, 'Missing timezone');
     });
 
     test('should throw a HTTP 400 when the timezone is invalid', () => {
@@ -223,7 +224,10 @@ describe('QueryStringParser', () => {
 
       QueryStringParser.parseTimezone(context);
 
-      expect(context.throw).toHaveBeenCalledWith(400, 'Invalid timezone: "ThisTZ/Donotexist"');
+      expect(context.throw).toHaveBeenCalledWith(
+        HttpCode.BadRequest,
+        'Invalid timezone: "ThisTZ/Donotexist"',
+      );
     });
 
     describe('when timezone are not available in the environment', () => {
@@ -295,7 +299,7 @@ describe('QueryStringParser', () => {
         QueryStringParser.parsePagination(context);
 
         expect(context.throw).toHaveBeenCalledWith(
-          400,
+          HttpCode.BadRequest,
           'Invalid pagination: "limit: -5, skip: NaN"',
         );
       });
@@ -330,7 +334,10 @@ describe('QueryStringParser', () => {
 
       QueryStringParser.parseSort(collectionSimple, context);
 
-      expect(context.throw).toHaveBeenCalledWith(400, 'Invalid sort: -fieldThatDoNotExist');
+      expect(context.throw).toHaveBeenCalledWith(
+        HttpCode.BadRequest,
+        'Invalid sort: -fieldThatDoNotExist',
+      );
     });
   });
 });
