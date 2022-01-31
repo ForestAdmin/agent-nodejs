@@ -112,10 +112,12 @@ export default class TypeGetter {
 
     const potentialPoint = value.split(',');
 
-    if (potentialPoint.length === 2 && typeContext === PrimitiveTypes.Point) {
-      if (TypeGetter.get(potentialPoint) === ValidationTypes.ArrayOfNumber) {
-        return PrimitiveTypes.Point;
-      }
+    if (
+      potentialPoint.length === 2 &&
+      typeContext === PrimitiveTypes.Point &&
+      TypeGetter.get(potentialPoint) === ValidationTypes.ArrayOfNumber
+    ) {
+      return PrimitiveTypes.Point;
     }
 
     return PrimitiveTypes.String;
