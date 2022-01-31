@@ -29,6 +29,7 @@ export * from './interfaces/record';
 export * from './interfaces/schema';
 
 export { default as CollectionUtils } from './utils/collection';
+export { default as ConditionTreeUtils } from './utils/condition-tree';
 export { default as RecordUtils } from './utils/record';
 export { default as SchemaUtils } from './utils/schema';
 

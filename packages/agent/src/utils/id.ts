@@ -8,6 +8,10 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 export default class IdUtils {
+  static packIds(schema: CollectionSchema, records: RecordData[]): string[] {
+    return records.map(packedId => IdUtils.packId(schema, packedId));
+  }
+
   static packId(schema: CollectionSchema, record: RecordData): string {
     const pkNames = SchemaUtils.getPrimaryKeys(schema);
 
@@ -20,6 +24,10 @@ export default class IdUtils {
     }
 
     return pkNames.map(pk => String(record[pk])).join('|');
+  }
+
+  static unpackIds(schema: CollectionSchema, packedIds: string[]): CompositeId[] {
+    return packedIds.map(packedId => IdUtils.unpackId(schema, packedId));
   }
 
   static unpackId(schema: CollectionSchema, packedId: string): CompositeId {
