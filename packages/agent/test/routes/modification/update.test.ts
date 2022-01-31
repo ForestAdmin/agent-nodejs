@@ -9,7 +9,7 @@ describe('UpdateRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
   const router = factories.router.mockAllMethods().build();
 
-  test('should register "/books" private routes', () => {
+  test('should register PUT books/:id private routes', () => {
     const bookCollection = factories.collection.build({ name: 'books' });
     const dataSource = factories.dataSource.buildWithCollections([bookCollection]);
     const updateRoute = new UpdateRoute(services, dataSource, options, 'books');
@@ -59,7 +59,7 @@ describe('UpdateRoute', () => {
       expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
     });
 
-    it('should throw an error when the delete action failed', async () => {
+    it('should throw an error when the update action failed', async () => {
       const bookCollection = factories.collection.build({
         name: 'books',
         update: jest.fn().mockImplementation(() => {
@@ -89,7 +89,7 @@ describe('UpdateRoute', () => {
       expect(context.throw).toHaveBeenCalledWith(HttpCode.InternalServerError, expect.any(String));
     });
 
-    it('should call the update action successfully when providing a right request', async () => {
+    it('should call the update action successfully when providing a valid request', async () => {
       const bookCollection = factories.collection.build({
         name: 'books',
         update: jest.fn(),

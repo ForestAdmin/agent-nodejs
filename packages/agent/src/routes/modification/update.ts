@@ -1,4 +1,10 @@
-import { Filter, ConditionTreeUtils, RecordUtils } from '@forestadmin/datasource-toolkit';
+import {
+  Filter,
+  ConditionTreeUtils,
+  RecordUtils,
+  CompositeId,
+  RecordData,
+} from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import CollectionRoute from '../collection-base-route';
@@ -11,8 +17,8 @@ export default class UpdateRoute extends CollectionRoute {
   }
 
   public async handleUpdate(context: Context): Promise<void> {
-    let id;
-    let record;
+    let id: CompositeId;
+    let record: RecordData;
 
     try {
       id = IdUtils.unpackId(this.collection.schema, context.params.id);
