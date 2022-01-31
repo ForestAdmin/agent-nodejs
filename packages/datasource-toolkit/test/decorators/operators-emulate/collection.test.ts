@@ -4,7 +4,7 @@ import { Collection, DataSource } from '../../../dist/interfaces/collection';
 import ConditionTreeLeaf, { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
 import PaginatedFilter from '../../../dist/interfaces/query/filter/paginated';
 import Projection from '../../../dist/interfaces/query/projection';
-import { PrimitiveTypes } from '../../../dist/interfaces/schema';
+import { ColumnSchema, PrimitiveTypes } from '../../../dist/interfaces/schema';
 import ConditionTreeUtils from '../../../dist/utils/condition-tree';
 import * as factories from '../../__factories__';
 
@@ -27,6 +27,7 @@ describe('OperatorsEmulate', () => {
             id: factories.columnSchema.build({
               isPrimaryKey: true,
               columnType: PrimitiveTypes.Number,
+              filterOperators: new Set(), // note that 'id' does not support filtering
             }),
             title: factories.columnSchema.build(),
           },
@@ -43,7 +44,7 @@ describe('OperatorsEmulate', () => {
     });
 
     test('emulateOperator() should throw on any case', () => {
-      expect(() => newBooks.emulateOperator('id', Operator.Equal)).toThrow(
+      expect(() => newBooks.emulateOperator('title', Operator.GreaterThan)).toThrow(
         "the primary key columns must support 'equal' and 'in' operators",
       );
     });
@@ -137,8 +138,8 @@ describe('OperatorsEmulate', () => {
 
       test('list() should crash', async () => {
         const projection = new Projection('id', 'title');
-        const filter = new PaginatedFilter({
-          conditionTree: new ConditionTreeLeaf({
+        const filter = factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build({
             field: 'title',
             operator: Operator.StartsWith,
             value: 'Found',
@@ -175,8 +176,8 @@ describe('OperatorsEmulate', () => {
 
       test('list() should crash', async () => {
         const projection = new Projection('id', 'title');
-        const filter = new PaginatedFilter({
-          conditionTree: new ConditionTreeLeaf({
+        const filter = factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build({
             field: 'title',
             operator: Operator.StartsWith,
             value: 'Found',
@@ -207,8 +208,8 @@ describe('OperatorsEmulate', () => {
         (books.list as jest.Mock).mockResolvedValueOnce([{ id: 2, title: 'Foundation' }]);
 
         const projection = new Projection('id', 'title');
-        const filter = new PaginatedFilter({
-          conditionTree: new ConditionTreeLeaf({
+        const filter = factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build({
             field: 'author:firstName',
             operator: Operator.Equal,
             value: 'Isaac',
@@ -231,8 +232,8 @@ describe('OperatorsEmulate', () => {
         ]);
 
         const projection = new Projection('id', 'title');
-        const filter = new PaginatedFilter({
-          conditionTree: new ConditionTreeLeaf({
+        const filter = factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build({
             field: 'author:firstName',
             operator: Operator.StartsWith,
             value: 'Isaa',
@@ -273,22 +274,25 @@ describe('OperatorsEmulate', () => {
       });
 
       test('list() should find books where title = Foundation', async () => {
+        // Mock book list() implementation.
         (books.list as jest.Mock).mockImplementation((filter, projection) => {
+          const childRecords = [
+            { id: 1, title: 'Beat the dealer' },
+            { id: 2, title: 'Foundation' },
+            { id: 3, title: 'Papillon' },
+          ];
+
           // Ensure no forbideen operator is used
           const conditionTree = filter?.conditionTree ?? ConditionTreeUtils.MatchAll;
           const usingForbiddenOperator = conditionTree.someLeaf(
             ({ field, operator }) =>
-              field !== 'id' && ![Operator.Equal, Operator.In].includes(operator),
+              field !== 'id' &&
+              !(books.schema.fields.id as ColumnSchema).filterOperators.has(operator),
           );
 
-          if (usingForbiddenOperator) {
-            throw new Error('This operator is unsupported');
-          }
+          expect(usingForbiddenOperator).toBeFalsy();
 
-          return conditionTree.apply([
-            projection.apply({ id: 1, title: 'Beat the dealer' }),
-            projection.apply({ id: 2, title: 'Foundation' }),
-          ]);
+          return conditionTree.apply(childRecords.map(r => projection.apply(r)));
         });
 
         const filter = new PaginatedFilter({
@@ -299,8 +303,8 @@ describe('OperatorsEmulate', () => {
           }),
         });
 
-        const records = await newBooks.list(filter, new Projection('id'));
-        expect(records).toStrictEqual([{ id: 2 }]);
+        const records = await newBooks.list(filter, new Projection('id', 'title'));
+        expect(records).toStrictEqual([{ id: 2, title: 'Foundation' }]);
 
         // Not checking the calls to the underlying collection, as current implementation is quite
         // naive and could be greatly improved if there is a need.
