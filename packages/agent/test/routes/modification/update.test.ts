@@ -35,6 +35,30 @@ describe('UpdateRoute', () => {
       await expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
     });
 
+    it('should throw an error when a given attribute is not valid', async () => {
+      const bookCollection = factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.build({
+              columnType: PrimitiveTypes.Number,
+              isPrimaryKey: true,
+            }),
+          },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollection(bookCollection);
+      const updateRoute = new UpdateRoute(services, dataSource, options, 'books');
+
+      const customProperties = { params: { id: '1523' } };
+      const requestBody = { data: { attributes: { notExistField: 'foo' } } };
+      const context = createMockContext({ customProperties, requestBody });
+
+      await updateRoute.handleUpdate(context);
+
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
+    });
+
     it('should throw an error when the delete action failed', async () => {
       const bookCollection = factories.collection.build({
         name: 'books',
@@ -55,8 +79,6 @@ describe('UpdateRoute', () => {
       });
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const updateRoute = new UpdateRoute(services, dataSource, options, 'books');
-
-      updateRoute.setupPrivateRoutes(router);
 
       const customProperties = { params: { id: '1523' } };
       const requestBody = { data: { attributes: { name: 'foo name' } } };
@@ -85,8 +107,6 @@ describe('UpdateRoute', () => {
       });
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const updateRoute = new UpdateRoute(services, dataSource, options, 'books');
-
-      updateRoute.setupPrivateRoutes(router);
 
       const customProperties = { params: { id: '1523' } };
       const requestBody = { data: { attributes: { name: 'foo name' } } };

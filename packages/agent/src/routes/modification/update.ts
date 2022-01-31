@@ -1,11 +1,11 @@
-import { Filter, ConditionTreeUtils } from '@forestadmin/datasource-toolkit';
+import { Filter, ConditionTreeUtils, RecordUtils } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import CollectionRoute from '../collection-base-route';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 
-export default class DeleteRoute extends CollectionRoute {
+export default class UpdateRoute extends CollectionRoute {
   override setupPrivateRoutes(router: Router): void {
     router.put(`/${this.collection.name}/:id`, this.handleUpdate.bind(this));
   }
@@ -17,6 +17,7 @@ export default class DeleteRoute extends CollectionRoute {
     try {
       id = IdUtils.unpackId(this.collection.schema, context.params.id);
       record = this.services.serializer.deserialize(this.collection, context.request.body);
+      RecordUtils.validate(this.collection, record);
     } catch (e) {
       return context.throw(HttpCode.BadRequest, e.message);
     }
