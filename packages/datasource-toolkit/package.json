@@ -19,6 +19,7 @@
     "fishery": "^2.1.0"
   },
   "dependencies": {
-    "luxon": "^2.3.0"
+    "luxon": "^2.3.0",
+    "uuid": "^8.3.2"
   }
 }

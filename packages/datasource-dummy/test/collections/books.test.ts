@@ -69,7 +69,7 @@ describe('DummyDataSource > Collections > Books', () => {
       const bookCollection = instanciateCollection();
       const data = [{ name: Symbol('name') }];
 
-      expect(await bookCollection.create(data)).toBe(data);
+      expect(await bookCollection.create(data)).toMatchObject(data);
     });
   });
 

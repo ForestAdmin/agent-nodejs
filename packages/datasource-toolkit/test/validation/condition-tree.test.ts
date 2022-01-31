@@ -281,9 +281,7 @@ describe('ConditionTreeValidation', () => {
         });
 
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-          "The given value '[1,2,3] (type: ArrayOfNumber)' " +
-            "is not allowed with the columnType schema 'String'.\n" +
-            'The allowed values are [String,ArrayOfString].',
+          'Wrong type for "target": 1,2,3. Expects [String,ArrayOfString]',
         );
       });
     });
@@ -394,7 +392,7 @@ describe('ConditionTreeValidation', () => {
               conditions: [
                 factories.conditionTreeLeaf.build({
                   operator: Operator.Equal,
-                  value: [-80, 20],
+                  value: '-80,20',
                   field: 'pointField',
                 }),
               ],
@@ -424,7 +422,7 @@ describe('ConditionTreeValidation', () => {
                 conditions: [
                   factories.conditionTreeLeaf.build({
                     operator: Operator.Equal,
-                    value: [-80, 20, 90],
+                    value: '-80, 20, 90',
                     field: 'pointField',
                   }),
                 ],
@@ -442,10 +440,7 @@ describe('ConditionTreeValidation', () => {
           });
 
           expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-            "The given value attribute '[-80,20,90] (type: ArrayOfNumber)' " +
-              "has an unexpected value for the given operator 'equal'.\n" +
-              'The allowed types of the field value are: ' +
-              '[Boolean,Date,Dateonly,Enum,Number,Point,String,Timeonly,Uuid].',
+            'Wrong type for "pointField": -80, 20, 90. Expects [Point]',
           );
         });
       });

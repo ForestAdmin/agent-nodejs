@@ -1,8 +1,10 @@
 import { Collection } from '../interfaces/collection';
+
 import Projection from '../interfaces/query/projection';
 import { CompositeId, RecordData } from '../interfaces/record';
-import { CollectionSchema, RelationSchema } from '../interfaces/schema';
+import { CollectionSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
 import SchemaUtils from './schema';
+import FieldValidator from '../validation/field';
 
 export default class RecordUtils {
   static getPrimaryKey(schema: CollectionSchema, record: RecordData): CompositeId {
@@ -54,5 +56,28 @@ export default class RecordUtils {
     }
 
     return record;
+  }
+
+  static validate(collection: Collection, recordData: RecordData): void {
+    if (!recordData || Object.keys(recordData).length === 0) {
+      throw new Error('The record data is empty');
+    }
+
+    for (const key of Object.keys(recordData)) {
+      const schema = collection.schema.fields[key];
+
+      if (!schema) {
+        throw new Error(`Unknown field "${key}"`);
+      } else if (schema.type === FieldTypes.Column) {
+        FieldValidator.validate(collection, key, [recordData[key]]);
+      } else if (schema.type === FieldTypes.OneToOne || schema.type === FieldTypes.OneToMany) {
+        const subRecord = recordData[key] as RecordData;
+
+        const association = collection.dataSource.getCollection(schema.foreignCollection);
+        RecordUtils.validate(association, subRecord);
+      } else {
+        throw new Error(`Unexpected schema type '${schema.type}' while traversing record`);
+      }
+    }
   }
 }

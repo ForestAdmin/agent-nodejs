@@ -72,7 +72,7 @@ export const MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
   [PrimitiveTypes.String]: [PrimitiveTypes.String, ValidationTypes.ArrayOfString],
   [PrimitiveTypes.Number]: [PrimitiveTypes.Number, ValidationTypes.ArrayOfNumber],
   [PrimitiveTypes.Boolean]: [PrimitiveTypes.Boolean, ValidationTypes.ArrayOfBoolean],
-  [PrimitiveTypes.Enum]: [PrimitiveTypes.String, ValidationTypes.ArrayOfString],
+  [PrimitiveTypes.Enum]: [PrimitiveTypes.Enum, ValidationTypes.ArrayOfEnum],
   [PrimitiveTypes.Date]: [PrimitiveTypes.Date],
   [PrimitiveTypes.Dateonly]: [PrimitiveTypes.Dateonly],
   [PrimitiveTypes.Json]: [PrimitiveTypes.Json],
@@ -104,11 +104,13 @@ export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<
   ...computeAllowedTypesForOperators(),
   [Operator.Blank]: NO_TYPES_ALLOWED,
   [Operator.In]: [
+    ValidationTypes.ArrayOfEnum,
     ValidationTypes.ArrayOfNumber,
     ValidationTypes.ArrayOfString,
     ValidationTypes.ArrayOfBoolean,
   ],
   [Operator.IncludesAll]: [
+    ValidationTypes.ArrayOfEnum,
     ValidationTypes.ArrayOfNumber,
     ValidationTypes.ArrayOfString,
     ValidationTypes.ArrayOfBoolean,

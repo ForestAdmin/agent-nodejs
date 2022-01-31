@@ -1,5 +1,7 @@
 import { Collection } from '../interfaces/collection';
-import { FieldTypes } from '../interfaces/schema';
+import { ColumnSchema, FieldTypes, PrimitiveTypes } from '../interfaces/schema';
+import TypeGetter from './type-getter';
+import ValidationTypes from './types';
 
 export default class FieldValidator {
   static validate(collection: Collection, field: string, values?: unknown[]) {
@@ -20,8 +22,7 @@ export default class FieldValidator {
       }
 
       if (values !== undefined) {
-        // Validate value based on column type
-        throw new Error('Implement me.');
+        values.forEach(value => FieldValidator.validateValue(field, schema, value));
       }
     } else {
       const prefix = field.substring(0, dotIndex);
@@ -41,6 +42,50 @@ export default class FieldValidator {
       const suffix = field.substring(dotIndex + 1);
       const association = collection.dataSource.getCollection(schema.foreignCollection);
       FieldValidator.validate(association, suffix, values);
+    }
+  }
+
+  static validateValue(
+    field: string,
+    schema: ColumnSchema,
+    value: unknown,
+    allowedTypes?: readonly (PrimitiveTypes | ValidationTypes)[],
+  ): void {
+    const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes);
+
+    if (schema.columnType === PrimitiveTypes.Enum) {
+      FieldValidator.checkEnumValue(type, schema, value);
+    }
+
+    if (allowedTypes) {
+      if (!allowedTypes.includes(type)) {
+        throw new Error(`Wrong type for "${field}": ${value}. Expects [${allowedTypes}]`);
+      }
+    } else if (type !== schema.columnType) {
+      throw new Error(`Wrong type for "${field}": ${value}. Expects ${schema.columnType}`);
+    }
+  }
+
+  public static checkEnumValue(
+    type: PrimitiveTypes | ValidationTypes,
+    columnSchema: ColumnSchema,
+    enumValue: unknown,
+  ) {
+    let isEnumAllowed: boolean;
+
+    if (type === ValidationTypes.ArrayOfEnum) {
+      const enumValuesConditionTree = enumValue as Array<string>;
+      isEnumAllowed = enumValuesConditionTree.every(value =>
+        columnSchema.enumValues.includes(value),
+      );
+    } else {
+      isEnumAllowed = columnSchema.enumValues.includes(enumValue as string);
+    }
+
+    if (!isEnumAllowed) {
+      throw new Error(
+        `The given enum value(s) [${enumValue}] is not listed in [${columnSchema.enumValues}]`,
+      );
     }
   }
 }
