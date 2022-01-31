@@ -59,7 +59,7 @@ describe('SearchCollectionDecorator', () => {
         const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
         expect(refinedFilter).toEqual({
           search: null,
-          conditionTree: ConditionTreeUtils.EmptySet,
+          conditionTree: ConditionTreeUtils.MatchNone,
         });
       });
     });
@@ -255,7 +255,7 @@ describe('SearchCollectionDecorator', () => {
             const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
             expect(refinedFilter).toEqual({
               search: null,
-              conditionTree: ConditionTreeUtils.EmptySet,
+              conditionTree: ConditionTreeUtils.MatchNone,
             });
           });
         });
@@ -280,7 +280,7 @@ describe('SearchCollectionDecorator', () => {
             const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
             expect(refinedFilter).toEqual({
               search: null,
-              conditionTree: ConditionTreeUtils.EmptySet,
+              conditionTree: ConditionTreeUtils.MatchNone,
             });
           });
         });
@@ -302,7 +302,7 @@ describe('SearchCollectionDecorator', () => {
             const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
             expect(refinedFilter).toEqual({
               search: null,
-              conditionTree: ConditionTreeUtils.EmptySet,
+              conditionTree: ConditionTreeUtils.MatchNone,
             });
           });
         });

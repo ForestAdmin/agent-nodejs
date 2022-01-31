@@ -120,7 +120,9 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case Operator.Blank:
         return fieldValue === null || fieldValue === '';
       case Operator.Contains:
-        return !!(fieldValue as string)?.toLocaleLowerCase?.()?.includes?.(this.value as string);
+        return !!(fieldValue as string)
+          ?.toLocaleLowerCase?.()
+          ?.includes?.((this.value as string).toLocaleLowerCase?.());
       case Operator.StartsWith:
         return !!(fieldValue as string)?.startsWith(this.value as string);
       case Operator.EndsWith:
@@ -135,6 +137,10 @@ export default class ConditionTreeLeaf extends ConditionTree {
         return !!(this.value as unknown[])?.includes?.(fieldValue);
       case Operator.IncludesAll:
         return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
+      case Operator.ShorterThan:
+        return (fieldValue as string).length < this.value;
+      case Operator.LongerThan:
+        return (fieldValue as string).length > this.value;
 
       default:
         try {

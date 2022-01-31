@@ -95,6 +95,8 @@ describe('ConditionTree', () => {
         operator: Operator.IncludesAll,
         value: ['value'],
       }),
+      new ConditionTreeLeaf({ field: 'string', operator: Operator.LongerThan, value: 0 }),
+      new ConditionTreeLeaf({ field: 'string', operator: Operator.ShorterThan, value: 999 }),
     ]);
 
     expect(allConditions.match({ string: 'value', array: ['value'] })).toBeTruthy();

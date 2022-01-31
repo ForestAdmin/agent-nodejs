@@ -23,6 +23,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               target: factories.columnSchema.build({
                 columnType: PrimitiveTypes.String,
+                filterOperators: new Set(Object.values(Operator)),
               }),
             },
           }),
@@ -44,6 +45,7 @@ describe('ConditionTreeValidation', () => {
                     type: FieldTypes.Column,
                     columnType: PrimitiveTypes.Uuid,
                     isPrimaryKey: true,
+                    filterOperators: new Set(Object.values(Operator)),
                   },
                   author: {
                     type: FieldTypes.ManyToOne,
@@ -53,6 +55,7 @@ describe('ConditionTreeValidation', () => {
                   authorId: {
                     type: FieldTypes.Column,
                     columnType: PrimitiveTypes.Uuid,
+                    filterOperators: new Set(Object.values(Operator)),
                   },
                 },
               }),
@@ -65,6 +68,7 @@ describe('ConditionTreeValidation', () => {
                     type: FieldTypes.Column,
                     columnType: PrimitiveTypes.Uuid,
                     isPrimaryKey: true,
+                    filterOperators: new Set(Object.values(Operator)),
                   },
                 },
               }),
@@ -120,6 +124,7 @@ describe('ConditionTreeValidation', () => {
               fields: {
                 target: factories.columnSchema.build({
                   columnType: PrimitiveTypes.String,
+                  filterOperators: new Set(Object.values(Operator)),
                 }),
               },
             }),
@@ -149,6 +154,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               target: factories.columnSchema.build({
                 columnType: PrimitiveTypes.String,
+                filterOperators: new Set(Object.values(Operator)),
               }),
             },
           }),
@@ -184,6 +190,7 @@ describe('ConditionTreeValidation', () => {
               fields: {
                 target: factories.columnSchema.build({
                   columnType: PrimitiveTypes.String,
+                  filterOperators: new Set(Object.values(Operator)),
                 }),
               },
             }),
@@ -214,6 +221,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               target: factories.columnSchema.build({
                 columnType: PrimitiveTypes.Number,
+                filterOperators: new Set(Object.values(Operator)),
               }),
             },
           }),
@@ -245,6 +253,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               target: factories.columnSchema.build({
                 columnType: PrimitiveTypes.Number,
+                filterOperators: new Set(Object.values(Operator)),
               }),
             },
           }),
@@ -275,6 +284,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               target: factories.columnSchema.build({
                 columnType: PrimitiveTypes.String,
+                filterOperators: new Set(Object.values(Operator)),
               }),
             },
           }),
@@ -309,6 +319,7 @@ describe('ConditionTreeValidation', () => {
               enumField: factories.columnSchema.build({
                 columnType: PrimitiveTypes.Enum,
                 enumValues: ['anAllowedValue'],
+                filterOperators: new Set(Object.values(Operator)),
               }),
             },
           }),
@@ -341,6 +352,7 @@ describe('ConditionTreeValidation', () => {
               enumField: factories.columnSchema.build({
                 columnType: PrimitiveTypes.Enum,
                 enumValues: ['allowedValue'],
+                filterOperators: new Set(Object.values(Operator)),
               }),
             },
           }),
@@ -373,6 +385,7 @@ describe('ConditionTreeValidation', () => {
               enumField: factories.columnSchema.build({
                 columnType: PrimitiveTypes.Enum,
                 enumValues: ['allowedValue', 'otherAllowedValue'],
+                filterOperators: new Set(Object.values(Operator)),
               }),
             },
           }),
@@ -404,6 +417,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               pointField: factories.columnSchema.build({
                 columnType: PrimitiveTypes.Point,
+                filterOperators: new Set(Object.values(Operator)),
               }),
             },
           }),
@@ -434,6 +448,7 @@ describe('ConditionTreeValidation', () => {
               fields: {
                 pointField: factories.columnSchema.build({
                   columnType: PrimitiveTypes.Point,
+                  filterOperators: new Set(Object.values(Operator)),
                 }),
               },
             }),
