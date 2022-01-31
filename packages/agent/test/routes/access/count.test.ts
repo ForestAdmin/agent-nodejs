@@ -52,6 +52,12 @@ describe('CountRoute', () => {
             limit: 15,
             skip: 0,
           },
+          sort: [
+            {
+              ascending: true,
+              field: 'id',
+            },
+          ],
         },
         { operation: AggregationOperation.Count },
       );

@@ -35,3 +35,4 @@ export { default as SchemaUtils } from './utils/schema';
 export { default as ConditionTreeValidator } from './validation/condition-tree';
 export { default as FieldValidator } from './validation/field';
 export { default as ProjectionValidator } from './validation/projection';
+export { default as SortValidator } from './validation/sort';

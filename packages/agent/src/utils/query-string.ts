@@ -4,8 +4,12 @@ import {
   Page,
   Projection,
   ProjectionValidator,
+  SchemaUtils,
+  Sort,
+  SortValidator,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
+import { HttpCode } from '../types';
 
 export default class QueryStringParser {
   static parseProjection(collection: Collection, context: Context): Projection {
@@ -28,7 +32,7 @@ export default class QueryStringParser {
       // is sending, but are still required for the frontend to work.
       return new Projection(...explicitRequest).withPks(collection);
     } catch (e) {
-      context.throw(400, `Invalid projection (${e.message})`);
+      context.throw(HttpCode.BadRequest, `Invalid projection (${e.message})`);
     }
   }
 
@@ -50,7 +54,7 @@ export default class QueryStringParser {
     }
 
     if (!collection.schema.segments.includes(segment)) {
-      context.throw(400, `Invalid segment: "${segment}"`);
+      context.throw(HttpCode.BadRequest, `Invalid segment: "${segment}"`);
     }
 
     return segment;
@@ -60,19 +64,22 @@ export default class QueryStringParser {
     const timezone = context.request.query.timezone?.toString();
 
     if (!timezone) {
-      context.throw(400, 'Missing timezone');
+      context.throw(HttpCode.BadRequest, 'Missing timezone');
     }
 
     // This is a method to validate a timezone using node only
     // @see https://stackoverflow.com/questions/44115681
     if (!Intl || !Intl.DateTimeFormat().resolvedOptions().timeZone) {
-      context.throw(500, 'Time zones are not available in this environment');
+      context.throw(
+        HttpCode.InternalServerError,
+        'Time zones are not available in this environment',
+      );
     }
 
     try {
       Intl.DateTimeFormat(undefined, { timeZone: timezone });
     } catch {
-      context.throw(400, `Invalid timezone: "${timezone}"`);
+      context.throw(HttpCode.BadRequest, `Invalid timezone: "${timezone}"`);
     }
 
     return timezone;
@@ -88,9 +95,35 @@ export default class QueryStringParser {
     }
 
     if (Number.isNaN(skip) || Number.isNaN(limit) || limit <= 0 || skip < 0) {
-      context.throw(400, `Invalid pagination: "limit: ${limit}, skip: ${skip}"`);
+      context.throw(HttpCode.BadRequest, `Invalid pagination: "limit: ${limit}, skip: ${skip}"`);
     }
 
     return new Page(0, 15);
+  }
+
+  static parseSort(collection: Collection, context: Context): Sort {
+    const sortString = context.request.query.sort?.toString();
+
+    try {
+      if (!sortString) {
+        return new Sort(
+          ...SchemaUtils.getPrimaryKeys(collection.schema).map(pk => ({
+            field: pk,
+            ascending: true,
+          })),
+        );
+      }
+
+      const sort = new Sort({
+        field: sortString.replace(/^-/, '').replace('.', ':'),
+        ascending: !sortString.startsWith('-'),
+      });
+
+      SortValidator.validate(collection, sort);
+
+      return sort;
+    } catch {
+      context.throw(HttpCode.BadRequest, `Invalid sort: ${sortString}`);
+    }
   }
 }
