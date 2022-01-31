@@ -66,7 +66,9 @@ export default class TypeGetter {
     return null;
   }
 
-  private static getDateType(value: string, dateTime: DateTime): PrimitiveTypes {
+  private static getDateType(value: string): PrimitiveTypes {
+    const dateTime = DateTime.fromISO(value);
+
     if (dateTime.toISODate() === value) {
       return PrimitiveTypes.Dateonly;
     }
@@ -79,48 +81,59 @@ export default class TypeGetter {
   }
 
   private static getTypeFromString(value: string, typeContext?: PrimitiveTypes): PrimitiveTypes {
-    if (typeContext === PrimitiveTypes.Enum) {
-      return PrimitiveTypes.Enum;
-    }
-
-    if (typeContext === PrimitiveTypes.String) {
-      return PrimitiveTypes.String;
+    if ([PrimitiveTypes.Enum, PrimitiveTypes.String].includes(typeContext)) {
+      return typeContext;
     }
 
     if (uuidValidate(value)) {
       return PrimitiveTypes.Uuid;
     }
 
-    if (
-      !Number.isNaN(Number(value)) &&
-      !Number.isNaN(parseFloat(value)) &&
-      typeContext !== PrimitiveTypes.Number
-    ) {
-      // @see https://stackoverflow.com/questions/175739
+    if (TypeGetter.isNumberAndContextAllowToCast(value, typeContext)) {
       return PrimitiveTypes.Number;
     }
 
-    const dateTime = DateTime.fromISO(value);
-
-    if (dateTime.isValid) {
-      return TypeGetter.getDateType(value, dateTime);
+    if (TypeGetter.isValidDate(value)) {
+      return TypeGetter.getDateType(value);
     }
 
     if (TypeGetter.isJson(value)) {
       return PrimitiveTypes.Json;
     }
 
-    const potentialPoint = value.split(',');
-
-    if (
-      potentialPoint.length === 2 &&
-      typeContext === PrimitiveTypes.Point &&
-      TypeGetter.get(potentialPoint) === ValidationTypes.ArrayOfNumber
-    ) {
+    if (TypeGetter.isPoint(value, typeContext)) {
       return PrimitiveTypes.Point;
     }
 
     return PrimitiveTypes.String;
+  }
+
+  private static isValidDate(value: string): boolean {
+    const dateTime = DateTime.fromISO(value);
+
+    return dateTime.isValid;
+  }
+
+  private static isPoint(value: string, typeContext: PrimitiveTypes): boolean {
+    const potentialPoint = value.split(',');
+
+    return (
+      potentialPoint.length === 2 &&
+      typeContext === PrimitiveTypes.Point &&
+      TypeGetter.get(potentialPoint) === ValidationTypes.ArrayOfNumber
+    );
+  }
+
+  private static isNumberAndContextAllowToCast(
+    value: string,
+    typeContext: PrimitiveTypes,
+  ): boolean {
+    // @see https://stackoverflow.com/questions/175739
+    return (
+      !Number.isNaN(Number(value)) &&
+      !Number.isNaN(parseFloat(value)) &&
+      typeContext !== PrimitiveTypes.Number
+    );
   }
 
   private static isJson(value: string): boolean {
