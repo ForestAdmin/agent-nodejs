@@ -4,7 +4,7 @@ import { BaseDataSource } from '@forestadmin/datasource-toolkit';
 
 import SequelizeCollection from './collection';
 
-export default abstract class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
+export default class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
   protected sequelize: Sequelize = null;
 
   constructor(collections: SequelizeCollection[], sequelize: Sequelize) {
