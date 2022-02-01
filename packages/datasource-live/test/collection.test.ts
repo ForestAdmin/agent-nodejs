@@ -488,7 +488,7 @@ describe('LiveDataSource > Collection', () => {
       });
 
       await expect(liveCollection.aggregate(new PaginatedFilter({}), aggregation)).resolves.toEqual(
-        [{ group: '*', value: recordCount }],
+        [{ group: {}, value: recordCount }],
       );
     });
 
@@ -515,7 +515,7 @@ describe('LiveDataSource > Collection', () => {
       });
 
       await expect(liveCollection.aggregate(filter, aggregation)).resolves.toEqual([
-        { group: '*', value: 1 },
+        { group: {}, value: 1 },
       ]);
     });
 
@@ -527,13 +527,30 @@ describe('LiveDataSource > Collection', () => {
       );
       const aggregation = new Aggregation({
         field: 'even',
+        operation: AggregationOperation.Sum,
+      });
+
+      await expect(liveCollection.aggregate(new PaginatedFilter({}), aggregation)).resolves.toEqual(
+        expect.arrayContaining([{ group: {}, value: 5 }]),
+      );
+    });
+
+    it('should resolve honoring groups', async () => {
+      const recordCount = 9;
+      const { liveCollection } = await preloadLiveCollectionRecords(
+        recordCount,
+        liveCollectionSchema,
+      );
+      const aggregation = new Aggregation({
+        field: 'even',
         operation: AggregationOperation.Count,
+        groups: [{ field: 'even' }],
       });
 
       await expect(liveCollection.aggregate(new PaginatedFilter({}), aggregation)).resolves.toEqual(
         expect.arrayContaining([
-          { group: 'true', value: 5 },
-          { group: 'false', value: 4 },
+          { group: { even: true }, value: 5 },
+          { group: { even: false }, value: 4 },
         ]),
       );
     });
