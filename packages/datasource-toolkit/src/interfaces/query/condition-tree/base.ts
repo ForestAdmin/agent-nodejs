@@ -19,8 +19,10 @@ export default abstract class ConditionTree {
     return records.filter(r => this.match(r));
   }
 
-  nest(field: string): ConditionTree {
-    return this.replaceLeafs(leaf => leaf.override({ field: `${field}:${leaf.field}` }));
+  nest(prefix: string): ConditionTree {
+    return prefix && prefix.length
+      ? this.replaceLeafs(leaf => leaf.override({ field: `${prefix}:${leaf.field}` }))
+      : this;
   }
 
   unnest(): ConditionTree {

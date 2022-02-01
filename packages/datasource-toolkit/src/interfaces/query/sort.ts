@@ -16,7 +16,9 @@ export default class Sort extends Array<SortClause> {
   }
 
   nest(prefix: string): Sort {
-    return this.map(ob => ({ field: `${prefix}:${ob.field}`, ascending: ob.ascending })) as Sort;
+    return prefix && prefix.length
+      ? (this.map(ob => ({ field: `${prefix}:${ob.field}`, ascending: ob.ascending })) as Sort)
+      : this;
   }
 
   unnest(): Sort {

@@ -77,7 +77,7 @@ export default class Projection extends Array<string> {
   }
 
   nest(prefix: string): Projection {
-    return this.map(path => `${prefix}:${path}`) as Projection;
+    return prefix && prefix.length ? (this.map(path => `${prefix}:${path}`) as Projection) : this;
   }
 
   unnest(): Projection {

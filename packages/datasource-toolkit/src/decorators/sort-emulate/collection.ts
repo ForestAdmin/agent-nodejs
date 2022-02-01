@@ -29,7 +29,7 @@ export default class SortEmulate extends CollectionDecorator {
     this.sorts.set(name, null);
   }
 
-  replaceSort(name: string, equivalentSort: Sort): void {
+  implementSort(name: string, equivalentSort: Sort): void {
     FieldValidator.validate(this, name);
 
     const field = this.childCollection.schema.fields[name];
@@ -52,10 +52,11 @@ export default class SortEmulate extends CollectionDecorator {
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    let referenceRecords: RecordData[];
     const childFilter = filter.override({
       sort: filter.sort.replaceClauses(clause => rewriteSort(this, clause)),
     });
+
+    let referenceRecords: RecordData[];
 
     if (childFilter.sort.projection.some(field => this.getSort(field))) {
       // Fetch the whole collection, but only with the fields we need to sort
