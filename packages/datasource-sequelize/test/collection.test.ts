@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import { DataTypes, ModelDefined, Sequelize } from 'sequelize';
+import { DataTypes, ModelDefined, Op, Sequelize } from 'sequelize';
 import {
   Action,
   ActionForm,
@@ -8,8 +8,10 @@ import {
   ActionSchemaScope,
   Aggregation,
   AggregationOperation,
+  ConditionTreeLeaf,
   DataSource,
   Filter,
+  Operator,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -297,7 +299,7 @@ describe('SequelizeDataSource > Collection', () => {
     const setup = () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
       const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
-      const findAll = jest.fn().mockResolvedValue([{ get: jest.fn(attr => `${attr}`) }]);
+      const findAll = jest.fn().mockResolvedValue([{ get: jest.fn(attr => `${attr}:value`) }]);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         findAll,
@@ -318,7 +320,7 @@ describe('SequelizeDataSource > Collection', () => {
       const filter = new Filter({});
 
       await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-        { group: {}, value: '__aggregate__' },
+        { group: {}, value: '__aggregate__:value' },
       ]);
 
       expect(findAll).toHaveBeenCalledTimes(1);
@@ -333,10 +335,64 @@ describe('SequelizeDataSource > Collection', () => {
       const filter = new Filter({});
 
       await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-        { group: {}, value: '__aggregate__' },
+        { group: {}, value: '__aggregate__:value' },
       ]);
 
       expect(findAll).toHaveBeenCalledTimes(1);
+      expect(findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.arrayContaining(['__field__']),
+        }),
+      );
+    });
+
+    it('should delegate work to `sequelize.model.findAll` with a filter', async () => {
+      const { findAll, sequelizeCollection } = setup();
+      const aggregation = new Aggregation({
+        field: '__field__',
+        operation: AggregationOperation.Count,
+      });
+      const filter = new Filter({
+        conditionTree: new ConditionTreeLeaf({
+          operator: Operator.Equal,
+          field: 'id',
+          value: 42,
+        }),
+      });
+
+      await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+        { group: {}, value: '__aggregate__:value' },
+      ]);
+
+      expect(findAll).toHaveBeenCalledTimes(1);
+      expect(findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: { [Op.eq]: 42 },
+          },
+        }),
+      );
+    });
+
+    it('should delegate work to `sequelize.model.findAll` with groups', async () => {
+      const { findAll, sequelizeCollection } = setup();
+      const aggregation = new Aggregation({
+        field: '__field__',
+        operation: AggregationOperation.Count,
+        groups: [{ field: '__group_field__' }],
+      });
+      const filter = new Filter({});
+
+      await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+        { group: { __group_field__: '__group_field__:value' }, value: '__aggregate__:value' },
+      ]);
+
+      expect(findAll).toHaveBeenCalledTimes(1);
+      expect(findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          group: ['__group_field__'],
+        }),
+      );
     });
   });
 });
