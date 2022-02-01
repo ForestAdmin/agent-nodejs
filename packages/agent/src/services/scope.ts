@@ -27,7 +27,7 @@ export default class Scope {
   constructor(forestServerUrl: string, envSecret: string, scopesCacheDurationInSeconds: number) {
     this.forestServerUrl = forestServerUrl;
     this.envSecret = envSecret;
-    this.scopesCacheDurationInSeconds = scopesCacheDurationInSeconds;
+    this.scopesCacheDurationInSeconds = (scopesCacheDurationInSeconds ?? 15 * 60) * 1000;
   }
 
   /** Route called when scopes are modified so that we don't have to wait for expiration. */
