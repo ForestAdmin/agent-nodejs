@@ -1,12 +1,18 @@
 import {
   Aggregation,
   AggregationOperation,
+  CollectionUtils,
+  CompositeId,
+  ManyToManySchema,
+  ManyToOneSchema,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import QueryStringParser from '../../utils/query-string';
 import { RelationRoute } from '../collection-base-route';
+import { HttpCode } from '../../types';
+import IdUtils from '../../utils/id';
 
 export default class CountRelatedRoute extends RelationRoute {
   override setupPrivateRoutes(router: Router): void {
@@ -17,6 +23,14 @@ export default class CountRelatedRoute extends RelationRoute {
   }
 
   public async handleCountRelated(context: Context): Promise<void> {
+    let parentId: CompositeId;
+
+    try {
+      parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
+    } catch (e) {
+      return context.throw(HttpCode.BadRequest, e.message);
+    }
+
     const paginatedFilter = new PaginatedFilter({
       search: QueryStringParser.parseSearch(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
@@ -25,15 +39,24 @@ export default class CountRelatedRoute extends RelationRoute {
       page: QueryStringParser.parsePagination(context),
       sort: QueryStringParser.parseSort(this.collection, context),
     });
-    const aggregation = new Aggregation({ operation: AggregationOperation.Count });
 
     try {
-      const aggregationResult = await this.collection.aggregate(paginatedFilter, aggregation);
+      const aggregationResult = await CollectionUtils.aggregateRelation(
+        paginatedFilter,
+        parentId,
+        this.collection,
+        this.relationName,
+        new Aggregation({ operation: AggregationOperation.Count }),
+        this.dataSource,
+      );
       const count = aggregationResult?.[0]?.value ?? 0;
 
       context.response.body = { count };
     } catch {
-      context.throw(500, `Failed to count collection "${this.collection.name}"`);
+      context.throw(
+        HttpCode.InternalServerError,
+        `Failed to count collection "${this.collection.name}"`,
+      );
     }
   }
 }

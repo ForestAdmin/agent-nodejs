@@ -7,6 +7,7 @@ import Router from '@koa/router';
 import { Context } from 'koa';
 import QueryStringParser from '../../utils/query-string';
 import { CollectionRoute } from '../collection-base-route';
+import { HttpCode } from '../../types';
 
 export default class CountRoute extends CollectionRoute {
   override setupPrivateRoutes(router: Router): void {
@@ -28,7 +29,10 @@ export default class CountRoute extends CollectionRoute {
 
       context.response.body = { count };
     } catch {
-      context.throw(500, `Failed to count collection "${this.collection.name}"`);
+      context.throw(
+        HttpCode.InternalServerError,
+        `Failed to count collection "${this.collection.name}"`,
+      );
     }
   }
 }

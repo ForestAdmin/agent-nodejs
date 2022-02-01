@@ -1,6 +1,8 @@
 import * as factories from '../__factories__';
 import CollectionUtils from '../../src/utils/collection';
 import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
+import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/leaf';
+import ConditionTreeUtils from '../../src/utils/condition-tree';
 
 describe('CollectionUtils', () => {
   describe('When inverse relations is missing', () => {
@@ -168,6 +170,55 @@ describe('CollectionUtils', () => {
           CollectionUtils.getFieldSchema(dataSource.getCollection('books'), 'myBookPersons:bookId'),
         ).toThrow('Invalid relation type: OneToMany');
       });
+    });
+  });
+
+  describe('aggregateRelation', () => {
+    describe('when the relation is a one to many relation', () => {});
+    it('should add the correct filter and aggregate it', async () => {
+      const bookPersons = factories.collection.build({
+        name: 'bookPersons',
+      });
+
+      const books = factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: {
+            myBookPersons: factories.oneToManySchema.build({
+              foreignCollection: 'bookPersons',
+              foreignKey: 'bookId',
+            }),
+          },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollections([bookPersons, books]);
+
+      const aggregation = factories.aggregation.build();
+      const baseFilter = factories.filter.build({
+        conditionTree: factories.conditionTreeLeaf.build(),
+      });
+
+      await CollectionUtils.aggregateRelation(
+        baseFilter,
+        2,
+        books,
+        'myBookPersons',
+        aggregation,
+        dataSource,
+      );
+
+      const expectedCondition = ConditionTreeUtils.intersect(
+        baseFilter.conditionTree,
+        new ConditionTreeLeaf({
+          field: 'bookId',
+          operator: Operator.Equal,
+          value: 2,
+        }),
+      );
+      expect(dataSource.getCollection('bookPersons').aggregate).toHaveBeenCalledWith(
+        baseFilter.override({ conditionTree: expectedCondition }),
+        aggregation,
+      );
     });
   });
 });

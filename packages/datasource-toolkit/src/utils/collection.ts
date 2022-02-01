@@ -1,7 +1,41 @@
-import { Collection } from '../interfaces/collection';
+import { Collection, DataSource } from '../interfaces/collection';
 import { FieldSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
+import PaginatedFilter from '../interfaces/query/filter/paginated';
+import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
+import ConditionTreeUtils from './condition-tree';
+import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/leaf';
 
 export default class CollectionUtils {
+  static async aggregateRelation(
+    paginatedFilter: PaginatedFilter,
+    id: number,
+    collection: Collection,
+    relationName: string,
+    aggregation: Aggregation,
+    datasource: DataSource,
+  ): Promise<AggregateResult[]> {
+    const relationFieldSchema = collection.schema.fields[relationName];
+
+    if (relationFieldSchema.type === FieldTypes.OneToMany) {
+      const conditionToMatchId = new ConditionTreeLeaf({
+        field: relationFieldSchema.foreignKey,
+        operator: Operator.Equal,
+        value: id,
+      });
+
+      const filter = paginatedFilter.override({
+        conditionTree: ConditionTreeUtils.intersect(
+          paginatedFilter.conditionTree,
+          conditionToMatchId,
+        ),
+      });
+
+      return datasource
+        .getCollection(relationFieldSchema.foreignCollection)
+        .aggregate(filter, aggregation);
+    }
+  }
+
   static getRelation(collection: Collection, path: string): Collection {
     if (path?.length) {
       const [field, ...subPath] = path.split(':');
