@@ -31,9 +31,9 @@ export abstract class RelationRoute extends CollectionRoute {
     dataSource: DataSource,
     options: ForestAdminHttpDriverOptions,
     collectionName: string,
-    relation: string,
+    relationName: string,
   ) {
     super(services, dataSource, options, collectionName);
-    this.relationName = relation;
+    this.relationName = relationName;
   }
 }

@@ -5,17 +5,18 @@ import { IncomingMessage, ServerResponse } from 'http';
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import path from 'path';
-import { RootRoutesCtor, CollectionRoutesCtor } from './routes';
+import { RootRoutesCtor, CollectionRoutesCtor, RelatedRoutesCtor } from './routes';
 import BaseRoute from './routes/base-route';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import { ForestAdminHttpDriverOptions } from './types';
 import SchemaEmitter from './utils/forest-schema/emitter';
+import RoutesFactory from './routes/routes-factory';
 
 /** Native NodeJS callback that can be passed to an HTTP Server */
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
 
 export default class ForestAdminHttpDriver {
-  public readonly dataSources: DataSource[];
+  public readonly dataSource: DataSource;
   public readonly options: ForestAdminHttpDriverOptions;
   public readonly routes: BaseRoute[] = [];
   public readonly services: ForestAdminHttpDriverServices;
@@ -32,10 +33,18 @@ export default class ForestAdminHttpDriver {
     return this.app.callback();
   }
 
-  constructor(dataSource: DataSource | DataSource[], options: ForestAdminHttpDriverOptions) {
-    this.dataSources = Array.isArray(dataSource) ? dataSource : [dataSource];
+  constructor(dataSource: DataSource, options: ForestAdminHttpDriverOptions) {
+    this.dataSource = dataSource;
     this.options = options;
     this.services = makeServices(options);
+    this.routes = RoutesFactory.makeRoutes({
+      dataSource,
+      options,
+      services: this.services,
+      rootRoutes: RootRoutesCtor,
+      collectionRoutes: CollectionRoutesCtor,
+      relatedRoutes: RelatedRoutesCtor,
+    });
   }
 
   /**
@@ -51,7 +60,6 @@ export default class ForestAdminHttpDriver {
 
     // Build http application
     const router = new Router({ prefix: path.join('/', this.options.prefix) });
-    this.buildRoutes();
 
     this.routes.forEach(route => route.setupPublicRoutes(router));
     this.routes.forEach(route => route.setupAuthentication(router));
@@ -62,7 +70,7 @@ export default class ForestAdminHttpDriver {
     this.app.use(router.routes());
 
     // Send schema to forestadmin-server (if relevant).
-    const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSources);
+    const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSource);
     const schemaIsKnown = await this.services.forestHTTPApi.hasSchema(schema.meta.schemaFileHash);
 
     if (!schemaIsKnown) {
@@ -80,21 +88,5 @@ export default class ForestAdminHttpDriver {
 
     this.status = 'done';
     await Promise.all(this.routes.map(route => route.tearDown()));
-  }
-
-  private buildRoutes(): void {
-    const { dataSources, options } = this;
-
-    this.routes.push(...RootRoutesCtor.map(Route => new Route(this.services, options)));
-
-    dataSources.forEach(dataSource => {
-      dataSource.collections.forEach(collection => {
-        this.routes.push(
-          ...CollectionRoutesCtor.map(
-            Route => new Route(this.services, dataSource, options, collection.name),
-          ),
-        );
-      });
-    });
   }
 }
