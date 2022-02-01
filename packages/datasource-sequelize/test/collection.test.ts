@@ -10,6 +10,7 @@ import {
   AggregationOperation,
   ConditionTreeLeaf,
   DataSource,
+  DateOperation,
   Filter,
   Operator,
   Projection,
@@ -23,9 +24,9 @@ describe('SequelizeDataSource > Collection', () => {
     const dataSource = Symbol('datasource') as unknown as DataSource;
     const name = '__collection__';
     const sequelize = {
-      col: jest.fn(() => ({})),
+      col: jest.fn(colName => ({ col: colName })),
       define: jest.fn(() => ({})),
-      fn: jest.fn(),
+      fn: jest.fn((fnName, fnCol) => ({ name: fnName, col: fnCol.col })),
       models: {
         [name]: {
           getAttributes: jest.fn(() => ({})),
@@ -374,25 +375,48 @@ describe('SequelizeDataSource > Collection', () => {
       );
     });
 
-    it('should delegate work to `sequelize.model.findAll` with groups', async () => {
-      const { findAll, sequelizeCollection } = setup();
-      const aggregation = new Aggregation({
-        field: '__field__',
-        operation: AggregationOperation.Count,
-        groups: [{ field: '__group_field__' }],
+    describe('with groups', () => {
+      it('should delegate work to `sequelize.model.findAll`', async () => {
+        const { findAll, sequelizeCollection } = setup();
+        const aggregation = new Aggregation({
+          field: '__field__',
+          operation: AggregationOperation.Count,
+          groups: [{ field: '__group_field__' }],
+        });
+        const filter = new Filter({});
+
+        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+          { group: { __group_field__: '__group_field__:value' }, value: '__aggregate__:value' },
+        ]);
+
+        expect(findAll).toHaveBeenCalledTimes(1);
+        expect(findAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            group: ['__group_field__'],
+          }),
+        );
       });
-      const filter = new Filter({});
 
-      await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-        { group: { __group_field__: '__group_field__:value' }, value: '__aggregate__:value' },
-      ]);
+      it('should translate operations', async () => {
+        const { findAll, sequelizeCollection } = setup();
+        const aggregation = new Aggregation({
+          field: '__field__',
+          operation: AggregationOperation.Count,
+          groups: [{ field: '__group_field__', operation: DateOperation.ToYear }],
+        });
+        const filter = new Filter({});
 
-      expect(findAll).toHaveBeenCalledTimes(1);
-      expect(findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          group: ['__group_field__'],
-        }),
-      );
+        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+          { group: { __group_field__: '__group_field__:value' }, value: '__aggregate__:value' },
+        ]);
+
+        expect(findAll).toHaveBeenCalledTimes(1);
+        expect(findAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            group: [[[{ col: '__group_field__', name: DateOperation.ToYear.toUpperCase() }]]],
+          }),
+        );
+      });
     });
   });
 });
