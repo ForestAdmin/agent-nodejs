@@ -14,7 +14,7 @@ import {
 import {
   convertFilterToSequelize,
   convertPaginatedFilterToSequelize,
-} from '../../src/utils/filter-converter';
+} from '../../dist/utils/filter-converter';
 
 describe('Utils > FilterConverter', () => {
   describe('convertFilterToSequelize', () => {

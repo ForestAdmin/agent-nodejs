@@ -2,7 +2,7 @@ import { DataTypes, Sequelize } from 'sequelize';
 import { CollectionSchema, FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 // eslint-disable-next-line max-len
-import ModelToCollectionSchemaConverter from '../../src/utils/model-to-collection-schema-converter';
+import ModelToCollectionSchemaConverter from '../../dist/utils/model-to-collection-schema-converter';
 
 describe('Utils > ModelToCollectionSchemaConverter', () => {
   describe('convert', () => {

@@ -1,4 +1,4 @@
-import { SequelizeCollection, SequelizeDataSource, TypeConverter } from '../src';
+import { SequelizeCollection, SequelizeDataSource, TypeConverter } from '../dist';
 
 describe('exports', () => {
   describe.each([
