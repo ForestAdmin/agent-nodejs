@@ -16,7 +16,8 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-import LiveCollection from '../src/collection';
+
+import LiveCollection from '../dist/collection';
 
 const compositeKeyCollectionSchema: CollectionSchema = {
   actions: {},

@@ -1,7 +1,6 @@
 import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
 
-import getCollections from '../src';
-import LiveDataSource from '../src/datasource';
+import getCollections, { LiveDataSource } from '../dist';
 
 const emptyDataSourceSchema: DataSourceSchema = {
   collections: {},

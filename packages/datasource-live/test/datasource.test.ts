@@ -1,6 +1,6 @@
 import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
 
-import LiveDataSource from '../src/datasource';
+import LiveDataSource from '../dist/datasource';
 
 const dataSourceWithDummyCollectionSchema: DataSourceSchema = {
   collections: {
