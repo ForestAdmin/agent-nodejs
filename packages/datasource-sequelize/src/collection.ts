@@ -115,7 +115,9 @@ export default class SequelizeCollection extends BaseCollection {
       };
 
       if (Array.isArray(groups) && groups.length > 0)
-        aggregateResult.group[field] = aggregate.get(field);
+        aggregation.groups.forEach(group => {
+          aggregateResult.group[group.field] = aggregate.get(group.field);
+        });
 
       return aggregateResult;
     });
