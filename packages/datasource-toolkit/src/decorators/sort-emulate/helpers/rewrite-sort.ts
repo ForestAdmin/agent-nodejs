@@ -16,9 +16,11 @@ export default function rewriteSort(collection: SortEmulate, clause: SortClause)
   }
 
   // Computed field that we own: recursively replace using equivalent sort
-  const equivalentSort = collection.getSort(clause.field);
+  let equivalentSort = collection.getSort(clause.field);
 
   if (equivalentSort) {
+    if (!clause.ascending) equivalentSort = equivalentSort.inverse();
+
     return equivalentSort.replaceClauses(subClause => rewriteSort(collection, subClause));
   }
 

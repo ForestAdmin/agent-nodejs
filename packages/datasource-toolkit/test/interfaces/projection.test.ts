@@ -22,19 +22,23 @@ describe('Projection', () => {
       const projection = new Projection('id', 'name', 'author:name', 'other:id');
 
       expect(
-        projection.apply({
+        projection.apply([
+          {
+            id: 1,
+            name: 'romain',
+            age: 12,
+            author: { name: 'ana', lastname: 'something' },
+            other: null,
+          },
+        ]),
+      ).toStrictEqual([
+        {
           id: 1,
           name: 'romain',
-          age: 12,
-          author: { name: 'ana', lastname: 'something' },
+          author: { name: 'ana' },
           other: null,
-        }),
-      ).toStrictEqual({
-        id: 1,
-        name: 'romain',
-        author: { name: 'ana' },
-        other: null,
-      });
+        },
+      ]);
     });
 
     test('nest should work', () => {

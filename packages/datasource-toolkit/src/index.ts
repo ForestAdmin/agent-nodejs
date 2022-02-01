@@ -5,11 +5,12 @@ export { default as BaseCollection } from './base-collection';
 export { default as BaseDataSource } from './base-datasource';
 export { default as DataSourceDecorator } from './decorators/datasource-decorator';
 
-export { default as OperatorsReplaceCollectionDecorator } from './decorators/operators-replace/collection';
 export { default as OperatorsEmulateCollectionDecorator } from './decorators/operators-emulate/collection';
+export { default as OperatorsReplaceCollectionDecorator } from './decorators/operators-replace/collection';
 export { default as PublicationCollectionDecorator } from './decorators/publication/collection';
 export { default as RenameCollectionDecorator } from './decorators/rename/collection';
 export { default as SearchCollectionDecorator } from './decorators/search/collection';
+export { default as SortEmulateCollectionDecorator } from './decorators/sort-emulate/collection';
 
 export { default as Aggregation } from './interfaces/query/aggregation';
 export { default as ConditionTree } from './interfaces/query/condition-tree/base';

@@ -21,6 +21,10 @@ export default class Sort extends Array<SortClause> {
       : this;
   }
 
+  inverse(): Sort {
+    return this.map(({ field, ascending }) => ({ field, ascending: !ascending })) as Sort;
+  }
+
   unnest(): Sort {
     const [prefix] = this[0].field.split(':');
 

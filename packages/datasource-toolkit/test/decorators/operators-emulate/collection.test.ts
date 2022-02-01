@@ -292,7 +292,7 @@ describe('OperatorsEmulate', () => {
 
           expect(usingForbiddenOperator).toBeFalsy();
 
-          return conditionTree.apply(childRecords.map(r => projection.apply(r)));
+          return conditionTree.apply(projection.apply(childRecords));
         });
 
         const filter = new PaginatedFilter({
