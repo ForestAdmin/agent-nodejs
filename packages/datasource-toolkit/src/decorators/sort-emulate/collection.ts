@@ -1,17 +1,28 @@
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
+import Projection from '../../interfaces/query/projection';
 import Sort from '../../interfaces/query/sort';
+import { RecordData } from '../../interfaces/record';
 import { CollectionSchema } from '../../interfaces/schema';
+import CollectionUtils from '../../utils/collection';
+import ConditionTreeUtils from '../../utils/condition-tree';
+import RecordUtils from '../../utils/record';
 import FieldValidator from '../../validation/field';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
+import rewriteSort from './helpers/rewrite-sort';
 
 export default class SortEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<SortEmulate>;
-
   private readonly sorts: Map<string, Sort> = new Map();
 
   /** @internal */
-  getSort(name: string): Sort {
-    return this.sorts.get(name);
+  getSort(path: string): Sort {
+    const associationPath = path.split(':');
+    const columnPath = associationPath.pop();
+    const association = CollectionUtils.getRelation(this, associationPath.join(':'));
+    const sort = (association as SortEmulate).sorts.get(columnPath);
+
+    return sort ? sort.nest(associationPath.join(':')) : null;
   }
 
   emulateSort(name: string): void {
@@ -40,41 +51,44 @@ export default class SortEmulate extends CollectionDecorator {
     return { ...childSchema, fields };
   }
 
-  // override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-  //   // We may have computed fields left in the sort.
-  //   let forcedIdsOrder: Record<string, number> = null;
+  override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+    let referenceRecords: RecordData[];
+    const childFilter = filter.override({
+      sort: filter.sort.replaceClauses(clause => rewriteSort(this, clause)),
+    });
 
-  //   if (childFilter?.sort.projection.some(field => this.isComputed(field))) {
-  //     // Fetch the whole collection, but only with the fields we need to sort
-  //     let records: RecordData[] = await this.list(
-  //       childFilter.override({ sort: null, page: null }),
-  //       childFilter.sort.projection.withPks(this),
-  //     );
-  //     records = childFilter.sort.apply(records);
-  //     records = childFilter.page.apply(records);
+    if (childFilter.sort.projection.some(field => this.getSort(field))) {
+      // Fetch the whole collection, but only with the fields we need to sort
+      referenceRecords = await this.list(
+        childFilter.override({ sort: null, page: null }),
+        childFilter.sort.projection.withPks(this),
+      );
+      referenceRecords = childFilter.sort.apply(referenceRecords);
+      referenceRecords = childFilter.page.apply(referenceRecords);
 
-  //     // We now have the information we need to sort by the computed field
-  //     childFilter.conditionTree = ConditionTreeUtils.matchRecords(this.schema, records);
-  //     childFilter.sort = null;
+      // We now have the information we need to sort by the computed field
+      childFilter.conditionTree = ConditionTreeUtils.matchRecords(this.schema, referenceRecords);
+      childFilter.sort = null;
+    }
 
-  //     forcedIdsOrder = {};
-  //     records.forEach((record, index) => {
-  //       const packedId = RecordUtils.getPrimaryKey(this.schema, record).join('|');
-  //       forcedIdsOrder[packedId] = index;
-  //     });
-  //   }
+    const records = await this.childCollection.list(childFilter, projection);
 
-  //   const records = await this.childCollection.list(childFilter, childProjection);
+    return referenceRecords ? this.sort(referenceRecords, records) : records;
+  }
 
-  //   if (forcedIdsOrder) {
-  //     records.sort((r1, r2) => {
-  //       const packedId1 = RecordUtils.getPrimaryKey(this.schema, r1).join('|');
-  //       const packedId2 = RecordUtils.getPrimaryKey(this.schema, r2).join('|');
+  private sort(referenceRecords: RecordData[], records: RecordData[]): RecordData[] {
+    const positionById: Record<string, number> = {};
+    const sorted = new Array(records.length);
 
-  //       return forcedIdsOrder[packedId1] < forcedIdsOrder[packedId2] ? -1 : 1;
-  //     });
-  //   }
+    for (const [index, record] of referenceRecords.entries()) {
+      positionById[RecordUtils.getPrimaryKey(this.schema, record).join('|')] = index;
+    }
 
-  //   return computeFields(this, projection, records);
-  // }
+    for (const record of records) {
+      const id = RecordUtils.getPrimaryKey(this.schema, record).join('|');
+      sorted[positionById[id]] = record;
+    }
+
+    return sorted;
+  }
 }
