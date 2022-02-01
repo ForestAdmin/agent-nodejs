@@ -108,9 +108,18 @@ export default class SequelizeCollection extends BaseCollection {
       group: groups,
     });
 
-    return aggregates.map(aggregate => ({
-      value: aggregate.get(aggregateFieldName) as number,
-      group: { [aggregation.field ? `${aggregate.get(field)}` : field]: null },
-    }));
+    const result = aggregates.map(aggregate => {
+      const aggregateResult = {
+        value: aggregate.get(aggregateFieldName) as number,
+        group: {},
+      };
+
+      if (Array.isArray(groups) && groups.length > 0)
+        aggregateResult.group[field] = aggregate.get(field);
+
+      return aggregateResult;
+    });
+
+    return result;
   }
 }
