@@ -318,7 +318,7 @@ describe('SequelizeDataSource > Collection', () => {
       const filter = new Filter({});
 
       await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-        { group: { '*': null }, value: '__aggregate__' },
+        { group: {}, value: '__aggregate__' },
       ]);
 
       expect(findAll).toHaveBeenCalledTimes(1);
@@ -333,7 +333,7 @@ describe('SequelizeDataSource > Collection', () => {
       const filter = new Filter({});
 
       await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-        { group: { __field__: null }, value: '__aggregate__' },
+        { group: {}, value: '__aggregate__' },
       ]);
 
       expect(findAll).toHaveBeenCalledTimes(1);
