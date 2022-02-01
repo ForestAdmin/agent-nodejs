@@ -7,7 +7,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
-import CollectionRoute from '../collection-base-route';
+import { CollectionRoute } from '../collection-base-route';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 

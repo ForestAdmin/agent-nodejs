@@ -3,7 +3,7 @@ import { ForestAdminHttpDriverOptions } from '../types';
 import { ForestAdminHttpDriverServices } from '../services';
 import BaseRoute from './base-route';
 
-export default abstract class CollectionRoute extends BaseRoute {
+export abstract class CollectionRoute extends BaseRoute {
   private readonly collectionName: string;
   protected readonly dataSource: DataSource;
 
@@ -20,5 +20,20 @@ export default abstract class CollectionRoute extends BaseRoute {
     super(services, options);
     this.collectionName = collectionName;
     this.dataSource = dataSource;
+  }
+}
+
+export abstract class RelationRoute extends CollectionRoute {
+  protected readonly relationName: string;
+
+  constructor(
+    services: ForestAdminHttpDriverServices,
+    dataSource: DataSource,
+    options: ForestAdminHttpDriverOptions,
+    collectionName: string,
+    relation: string,
+  ) {
+    super(services, dataSource, options, collectionName);
+    this.relationName = relation;
   }
 }

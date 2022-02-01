@@ -1,9 +1,10 @@
-import { RootRoutesCtor, CollectionRoutesCtor } from '../../src/routes/index';
+import { RootRoutesCtor, CollectionRoutesCtor, RelatedRoutesCtor } from '../../src/routes/index';
 
 import Authentication from '../../src/routes/security/authentication';
 import HealthCheck from '../../src/routes/healthcheck';
 
 import Count from '../../src/routes/access/count';
+import CountRelatedRoute from '../../src/routes/access/count-related';
 import Create from '../../src/routes/modification/create';
 import Delete from '../../src/routes/modification/delete';
 import Get from '../../src/routes/access/get';
@@ -22,6 +23,14 @@ describe('RoutesCtor', () => {
     describe.each([Count, Create, Delete, Get, List, Update])('the route', route => {
       it('should be defined', () => {
         expect(CollectionRoutesCtor).toContain(route);
+      });
+    });
+  });
+
+  describe('RelatedRoutesCtor', () => {
+    describe.each([CountRelatedRoute])('the route', route => {
+      it('should be defined', () => {
+        expect(RelatedRoutesCtor).toContain(route);
       });
     });
   });

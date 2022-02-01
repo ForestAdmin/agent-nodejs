@@ -1,5 +1,6 @@
 import Authentication from './security/authentication';
 import Count from './access/count';
+import CountRelatedRoute from './access/count-related';
 import Create from './modification/create';
 import Delete from './modification/delete';
 import Get from './access/get';
@@ -9,3 +10,4 @@ import Update from './modification/update';
 
 export const RootRoutesCtor = [Authentication, HealthCheck];
 export const CollectionRoutesCtor = [Count, Create, Delete, Get, List, Update];
+export const RelatedRoutesCtor = [CountRelatedRoute];
