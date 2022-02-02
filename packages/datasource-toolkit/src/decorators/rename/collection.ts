@@ -2,7 +2,7 @@ import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation
 import Filter from '../../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
-import { RecordData } from '../../interfaces/record';
+import { CompositeId, RecordData } from '../../interfaces/record';
 import { CollectionSchema, FieldTypes, RelationSchema } from '../../interfaces/schema';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
@@ -68,12 +68,19 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
 
   protected override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
     return filter?.override({
-      conditionTree: filter.conditionTree.replaceFields(f => this.pathToChildCollection(f)),
+      conditionTree: filter.conditionTree?.replaceFields(f => this.pathToChildCollection(f)),
       sort: filter.sort?.replaceClauses(clause => ({
-        ...clause,
         field: this.pathToChildCollection(clause.field),
+        ascending: clause.ascending,
       })),
     });
+  }
+
+  override async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
+    const childProjection = projection.replace(f => this.pathToChildCollection(f));
+    const record = await this.childCollection.getById(id, childProjection);
+
+    return record ? this.recordFromChildCollection(record) : null;
   }
 
   override async create(records: RecordData[]): Promise<RecordData[]> {
