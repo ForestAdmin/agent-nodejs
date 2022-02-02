@@ -38,22 +38,8 @@ export default class Projection extends Array<string> {
     return new Projection(...new Set(fields));
   }
 
-  apply(record: RecordData): RecordData {
-    let result = null;
-
-    if (record) {
-      result = {};
-
-      for (const column of this.columns) {
-        result[column] = record[column];
-      }
-
-      for (const [relation, projection] of Object.entries(this.relations)) {
-        result[relation] = projection.apply(record[relation] as RecordData);
-      }
-    }
-
-    return result;
+  apply(records: RecordData[]): RecordData[] {
+    return records.map(record => this.reproject(record));
   }
 
   withPks(collection: Collection): Projection {
@@ -77,7 +63,7 @@ export default class Projection extends Array<string> {
   }
 
   nest(prefix: string): Projection {
-    return this.map(path => `${prefix}:${path}`) as Projection;
+    return prefix && prefix.length ? (this.map(path => `${prefix}:${path}`) as Projection) : this;
   }
 
   unnest(): Projection {
@@ -88,5 +74,23 @@ export default class Projection extends Array<string> {
     }
 
     return this.map(path => path.substring(prefix.length + 1)) as Projection;
+  }
+
+  private reproject(record: RecordData): RecordData {
+    let result = null;
+
+    if (record) {
+      result = {};
+
+      for (const column of this.columns) {
+        result[column] = record[column];
+      }
+
+      for (const [relation, projection] of Object.entries(this.relations)) {
+        result[relation] = projection.reproject(record[relation] as RecordData);
+      }
+    }
+
+    return result;
   }
 }
