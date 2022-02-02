@@ -1,18 +1,8 @@
 /* eslint-disable no-console */
 
-import { ForestAdminHttpDriver, ForestAdminHttpDriverOptions } from '@forestadmin/agent';
+import { AgentBuilder, ForestAdminHttpDriverOptions } from '@forestadmin/agent';
 import { DummyDataSource } from '@forestadmin/datasource-dummy';
-import {
-  DataSource,
-  DataSourceDecorator,
-  OperatorsEmulateCollectionDecorator,
-  OperatorsReplaceCollectionDecorator,
-  PublicationCollectionDecorator,
-  RenameCollectionDecorator,
-  SearchCollectionDecorator,
-  SegmentCollectionDecorator,
-  SortEmulateCollectionDecorator,
-} from '@forestadmin/datasource-toolkit';
+import { PrimitiveTypes, Projection } from '@forestadmin/datasource-toolkit';
 import http from 'http';
 
 export default async function start(
@@ -20,20 +10,28 @@ export default async function start(
   serverHost: string,
   options: ForestAdminHttpDriverOptions,
 ) {
-  let dataSource: DataSource;
-  dataSource = new DummyDataSource();
-  dataSource = new DataSourceDecorator(dataSource, OperatorsEmulateCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, OperatorsReplaceCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, SortEmulateCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, SegmentCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, RenameCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, PublicationCollectionDecorator);
-  dataSource = new DataSourceDecorator(dataSource, SearchCollectionDecorator);
+  const agentBuilder = new AgentBuilder(options);
+  const dummyDatasource = new DummyDataSource();
 
-  const driver = new ForestAdminHttpDriver(dataSource, options);
-  await driver.start();
+  await agentBuilder
+    .addDatasource(dummyDatasource)
+    .build()
+    .collection('books', collection => {
+      collection.renameField('title', 'referenceTitle').renameField('publication', 'publishedAt');
+    })
+    .collection('persons', collection => {
+      collection
+        .registerComputed('fullName', {
+          dependencies: new Projection('firstName', 'lastName'),
+          columnType: PrimitiveTypes.String,
+          getValues: records => records.map(record => `${record.firstName} ${record.lastName}`),
+        })
+        .emulateSort('fullName');
+    })
+    .start();
 
-  const server = http.createServer(driver.handler);
+  const server = http.createServer(agentBuilder.httpCallback);
+
   await new Promise<void>(resolve => {
     server.listen(serverPort, serverHost, null, () => {
       resolve();

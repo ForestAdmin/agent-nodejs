@@ -1,6 +1,6 @@
 import { Collection, DataSource } from './interfaces/collection';
 
-export default abstract class BaseDataSource<T extends Collection> implements DataSource {
+export default class BaseDataSource<T extends Collection> implements DataSource {
   private _collections: { [collectionName: string]: T } = {};
 
   public get collections(): T[] {
@@ -15,7 +15,11 @@ export default abstract class BaseDataSource<T extends Collection> implements Da
     return collection;
   }
 
-  protected addCollection(collection: T): void {
+  public reset() {
+    this._collections = {};
+  }
+
+  public addCollection(collection: T): void {
     if (this._collections[collection.name] !== undefined)
       throw new Error(`Collection "${collection.name}" already defined in datasource`);
 
