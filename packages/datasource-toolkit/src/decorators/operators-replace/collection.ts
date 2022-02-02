@@ -40,11 +40,12 @@ export default class OperatorsDecorator extends CollectionDecorator {
   }
 
   protected override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
-    return filter.override({
-      conditionTree: filter?.conditionTree.replaceLeafs(leaf => {
+    return filter?.override({
+      conditionTree: filter.conditionTree?.replaceLeafs(leaf => {
         const schema = CollectionUtils.getFieldSchema(this.childCollection, leaf.field);
+        const replacer = this.getReplacer(leaf.operator, schema as ColumnSchema);
 
-        return this.getReplacer(leaf.operator, schema as ColumnSchema)(leaf, filter.timezone);
+        return replacer ? replacer(leaf, filter.timezone) : leaf;
       }),
     });
   }
