@@ -57,6 +57,16 @@ export default class SortEmulate extends CollectionDecorator {
     return records;
   }
 
+  protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
+    const fields = {};
+
+    for (const [name, schema] of Object.entries(childSchema.fields)) {
+      fields[name] = this.sorts.has(name) ? { ...schema, isSortable: true } : schema;
+    }
+
+    return { ...childSchema, fields };
+  }
+
   private sortRecords(referenceRecords: RecordData[], records: RecordData[]): RecordData[] {
     const positionById: Record<string, number> = {};
     const sorted = new Array(records.length);
@@ -71,16 +81,6 @@ export default class SortEmulate extends CollectionDecorator {
     }
 
     return sorted;
-  }
-
-  protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
-    const fields = {};
-
-    for (const [name, schema] of Object.entries(childSchema.fields)) {
-      fields[name] = this.sorts.has(name) ? { ...schema, isSortable: true } : schema;
-    }
-
-    return { ...childSchema, fields };
   }
 
   private rewriteSortClause(clause: SortClause): Sort {
