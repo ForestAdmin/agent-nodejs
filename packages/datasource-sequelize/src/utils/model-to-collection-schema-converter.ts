@@ -1,4 +1,9 @@
-import { ModelDefined } from 'sequelize';
+import {
+  AbstractDataTypeConstructor,
+  ModelAttributeColumnOptions,
+  ModelAttributes,
+  ModelDefined,
+} from 'sequelize';
 
 import {
   CollectionSchema,
@@ -11,9 +16,9 @@ import TypeConverter from './type-converter';
 
 export default class ModelToCollectionSchemaConverter {
   // FIXME: Handle relations.
-  private static convertAttribute(attribute): FieldSchema {
+  private static convertAttribute(attribute: ModelAttributeColumnOptions): FieldSchema {
     const column: ColumnSchema = {
-      columnType: TypeConverter.fromDataType(attribute.type),
+      columnType: TypeConverter.fromDataType(attribute.type as AbstractDataTypeConstructor),
       type: FieldTypes.Column,
     };
 
@@ -25,12 +30,11 @@ export default class ModelToCollectionSchemaConverter {
     return column;
   }
 
-  private static convertAttributes(model): CollectionSchema['fields'] {
-    const attributes = model.getAttributes();
+  private static convertAttributes(attributes: ModelAttributes): CollectionSchema['fields'] {
     const fields: CollectionSchema['fields'] = {};
 
     Object.entries(attributes).forEach(([name, attribute]) => {
-      fields[name] = this.convertAttribute(attribute);
+      fields[name] = this.convertAttribute(attribute as ModelAttributeColumnOptions);
     });
 
     return fields;
@@ -42,7 +46,7 @@ export default class ModelToCollectionSchemaConverter {
 
     return {
       actions: {},
-      fields: this.convertAttributes(model),
+      fields: this.convertAttributes(model.getAttributes()),
       searchable: false,
       segments: [],
     };
