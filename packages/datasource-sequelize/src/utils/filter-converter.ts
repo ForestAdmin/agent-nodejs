@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { FindOptions, Op, Order, OrOperator, WhereOperators, WhereOptions } from 'sequelize';
 import {
   Aggregator,
   ConditionTree,
@@ -10,7 +10,7 @@ import {
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 
-function makeWhereClause(operator: Operator, value?) {
+function makeWhereClause(operator: Operator, value?): WhereOperators | OrOperator {
   if (operator === null) throw new Error('Invalid (null) operator.');
 
   switch (operator) {
@@ -48,7 +48,7 @@ function makeWhereClause(operator: Operator, value?) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function convertConditionTreeToSequelize(conditionTree: ConditionTree): any {
+function convertConditionTreeToSequelize(conditionTree: ConditionTree): WhereOptions {
   const sequelizeWhereClause = {};
 
   if ((conditionTree as ConditionTreeBranch).aggregator !== undefined) {
@@ -64,10 +64,8 @@ function convertConditionTreeToSequelize(conditionTree: ConditionTree): any {
       throw new Error('Two or more conditions needed for aggregation.');
     }
 
-    // FIXME: Update Prettier/Eslint config to remove use of prettier-ignore
-    // prettier-ignore
-    sequelizeWhereClause[sequelizeOperator] = conditions.map(
-      condition => convertConditionTreeToSequelize(condition),
+    sequelizeWhereClause[sequelizeOperator] = conditions.map(condition =>
+      convertConditionTreeToSequelize(condition),
     );
   } else if ((conditionTree as ConditionTreeNot).condition !== undefined) {
     const { condition } = conditionTree as ConditionTreeNot;
@@ -91,7 +89,7 @@ function convertConditionTreeToSequelize(conditionTree: ConditionTree): any {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function convertFilterToSequelize(filter: Filter): any {
+export function convertFilterToSequelize(filter: Filter): FindOptions {
   if (!filter) {
     throw new Error('Invalid (null) filter.');
   }
@@ -111,7 +109,7 @@ export function convertFilterToSequelize(filter: Filter): any {
   return sequelizeFilter;
 }
 
-export function convertPaginatedFilterToSequelize(filter: PaginatedFilter) {
+export function convertPaginatedFilterToSequelize(filter: PaginatedFilter): FindOptions {
   const sequelizeFilter = convertFilterToSequelize(filter);
 
   const pageLimit = filter.page?.limit ?? null;
@@ -120,12 +118,12 @@ export function convertPaginatedFilterToSequelize(filter: PaginatedFilter) {
   if (pageLimit !== null) sequelizeFilter.limit = pageLimit;
   if (pageOffset !== null) sequelizeFilter.offset = pageOffset;
 
-  const order = filter.sort?.map(value => [
+  const order: Order = filter.sort?.map(value => [
     value.field,
     value.ascending === false ? 'DESC' : 'ASC',
   ]);
 
-  if (Array.isArray(order) && order.length > 0) sequelizeFilter.order = new Array(...order);
+  if (Array.isArray(order) && order.length > 0) sequelizeFilter.order = order;
 
   return sequelizeFilter;
 }
