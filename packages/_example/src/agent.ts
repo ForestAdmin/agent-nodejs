@@ -1,20 +1,10 @@
-/* eslint-disable no-console */
-
 import { AgentBuilder, ForestAdminHttpDriverOptions } from '@forestadmin/agent';
 import { DummyDataSource } from '@forestadmin/datasource-dummy';
 import { PrimitiveTypes, Projection } from '@forestadmin/datasource-toolkit';
-import http from 'http';
 
-export default async function start(
-  serverPort: number,
-  serverHost: string,
-  options: ForestAdminHttpDriverOptions,
-) {
-  const agentBuilder = new AgentBuilder(options);
-  const dummyDatasource = new DummyDataSource();
-
-  await agentBuilder
-    .addDatasource(dummyDatasource)
+export default function makeAgent(options: ForestAdminHttpDriverOptions): AgentBuilder {
+  return new AgentBuilder(options)
+    .addDatasource(new DummyDataSource())
     .build()
     .collection('books', collection => {
       collection.renameField('title', 'referenceTitle').renameField('publication', 'publishedAt');
@@ -27,18 +17,5 @@ export default async function start(
           getValues: records => records.map(record => `${record.firstName} ${record.lastName}`),
         })
         .emulateSort('fullName');
-    })
-    .start();
-
-  const server = http.createServer(agentBuilder.httpCallback);
-
-  await new Promise<void>(resolve => {
-    server.listen(serverPort, serverHost, null, () => {
-      resolve();
     });
-  });
-
-  return () => {
-    server.close();
-  };
 }
