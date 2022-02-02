@@ -1,8 +1,6 @@
 import {
   FindAttributeOptions,
-  fn,
   GroupOption,
-  InstanceUpdateOptions,
   ModelDefined,
   Sequelize,
   UpdateOptions,
