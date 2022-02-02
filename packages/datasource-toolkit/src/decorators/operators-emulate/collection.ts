@@ -100,12 +100,11 @@ export default class OperatorsEmulate extends CollectionDecorator {
     const handler = this.fields.get(leaf.field)?.get(leaf.operator);
 
     if (handler) {
-      const replacementId = `${leaf.field}[${leaf.operator}]`;
+      const replacementId = `${this.name}.${leaf.field}[${leaf.operator}]`;
       const subReplacements = [...replacements, replacementId];
 
       if (replacements.includes(replacementId)) {
-        const cycle = subReplacements.join(' -> ');
-        throw new Error(`Operator replacement cycle on collection '${this.name}': ${cycle}`);
+        throw new Error(`Operator replacement cycle: ${subReplacements.join(' -> ')}`);
       }
 
       let equivalentTree = await handler(leaf.value, this.dataSource);
