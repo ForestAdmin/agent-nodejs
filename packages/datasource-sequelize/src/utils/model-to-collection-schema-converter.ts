@@ -1,3 +1,5 @@
+import { ModelDefined } from 'sequelize';
+
 import {
   CollectionSchema,
   ColumnSchema,
@@ -34,7 +36,8 @@ export default class ModelToCollectionSchemaConverter {
     return fields;
   }
 
-  public static convert(model): CollectionSchema {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public static convert(model: ModelDefined<any, any>): CollectionSchema {
     if (!model) throw new Error('Invalid (null) model.');
 
     return {
