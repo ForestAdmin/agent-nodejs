@@ -1,148 +1,86 @@
 import {
-  ActionSchemaScope,
-  AggregateResult,
-  Aggregation,
-  BaseCollection,
-  CompositeId,
   DataSource,
+  FieldSchema,
   FieldTypes,
-  Filter,
-  Operator,
-  PaginatedFilter,
   PrimitiveTypes,
-  Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import MarkAsLiveAction from '../actions/mark-as-live';
+import BaseDummyCollection from './base';
 
-// TODO handle segments
-// const SCHEMA = {
-//   segments: ['Active', 'Inactive'],
-// };
+export default class BooksCollection extends BaseDummyCollection {
+  private static schema: Record<string, FieldSchema> = {
+    id: {
+      type: FieldTypes.Column,
+      columnType: PrimitiveTypes.Number,
+      isPrimaryKey: true,
+    },
+    title: {
+      type: FieldTypes.Column,
+      columnType: PrimitiveTypes.String,
+      defaultValue: 'Le rouge et le noir',
+    },
+    publication: {
+      type: FieldTypes.Column,
+      columnType: PrimitiveTypes.Date,
+    },
+    authorId: {
+      type: FieldTypes.Column,
+      columnType: PrimitiveTypes.Number,
+      defaultValue: 34,
+    },
+    author: {
+      type: FieldTypes.ManyToOne,
+      foreignCollection: 'persons',
+      foreignKey: 'authorId',
+    },
+  };
 
-export default class BookCollection extends BaseCollection {
+  private static records: RecordData[] = [
+    {
+      id: 1,
+      title: 'Beat the dealer',
+      publication: new Date().toISOString(),
+      authorId: 1,
+      author: { id: 1, firstName: 'Edward O.', lastName: 'Thorp' },
+    },
+    {
+      id: 2,
+      title: 'Foundation',
+      publication: new Date().toISOString(),
+      authorId: 2,
+      author: { id: 2, firstName: 'Isaac', lastName: 'Asimov' },
+    },
+    {
+      id: 3,
+      title: 'Gomorrah',
+      publication: new Date().toISOString(),
+      authorId: 3,
+      author: { id: 3, firstName: 'Roberto', lastName: 'Saviano' },
+    },
+    {
+      id: 4,
+      title: 'Misery',
+      authorId: 4,
+      publication: new Date().toISOString(),
+      author: { id: 4, firstName: 'Stephen', lastName: 'King' },
+    },
+    {
+      id: 5,
+      title: 'Chistine',
+      authorId: 4,
+      publication: new Date().toISOString(),
+      author: { id: 4, firstName: 'Stephen', lastName: 'King' },
+    },
+    {
+      id: 6,
+      title: 'Running Man',
+      authorId: 4,
+      publication: new Date().toISOString(),
+      author: { id: 4, firstName: 'Stephen', lastName: 'King' },
+    },
+  ];
+
   constructor(datasource: DataSource) {
-    super('books', datasource);
-
-    this.enableSearch();
-
-    this.addAction('Mark as Live', { scope: ActionSchemaScope.Bulk }, new MarkAsLiveAction());
-
-    this.addFields({
-      id: {
-        type: FieldTypes.Column,
-        columnType: PrimitiveTypes.Number,
-        filterOperators: new Set<Operator>([]),
-        isPrimaryKey: true,
-      },
-      title: {
-        type: FieldTypes.Column,
-        columnType: PrimitiveTypes.String,
-        filterOperators: new Set<Operator>([]),
-        defaultValue: 'Le rouge et le noir',
-      },
-      authorId: {
-        type: FieldTypes.Column,
-        columnType: PrimitiveTypes.Number,
-        filterOperators: new Set<Operator>([]),
-        defaultValue: 34,
-      },
-      publication: {
-        type: FieldTypes.Column,
-        columnType: PrimitiveTypes.Date,
-        filterOperators: new Set([]),
-      },
-    });
-  }
-
-  async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    void id;
-
-    return this.makeRecord(projection);
-  }
-
-  async create(data: RecordData[]): Promise<RecordData[]> {
-    const newData = data.map(d => ({ ...d, id: Math.floor(Math.random() * 10000) }));
-
-    return newData;
-  }
-
-  async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    void filter;
-
-    const numRecords = filter?.page?.limit ?? 10;
-    const records = [];
-
-    for (let i = 0; i < numRecords; i += 1) {
-      records.push(this.makeRecord(projection));
-    }
-
-    return records;
-  }
-
-  async update(filter: Filter, patch: RecordData): Promise<void> {
-    void filter;
-    void patch;
-  }
-
-  async delete(filter: Filter): Promise<void> {
-    void filter;
-  }
-
-  async aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
-    void filter;
-
-    const numRows = filter?.page?.limit ?? 10;
-    const rows = [];
-
-    for (let i = 0; i < numRows; i += 1) {
-      const row = { value: Math.floor(Math.random() * 1000), group: {} };
-
-      for (const { field } of aggregation.groups ?? []) {
-        row.group[field] = this.makeRandomString(6);
-      }
-
-      rows.push(row);
-    }
-
-    return rows;
-  }
-
-  private makeRecord(projection: Projection): RecordData {
-    const record = {};
-
-    for (const field of projection) {
-      const schema = this.schema.fields[field];
-      if (schema === undefined) throw new Error(`No such field "${field}" in schema`);
-
-      if (schema.type === FieldTypes.Column) {
-        if (schema.columnType === PrimitiveTypes.Number) {
-          record[field] = Math.floor(Math.random() * 10000);
-        } else if (schema.columnType === PrimitiveTypes.String) {
-          record[field] = this.makeRandomString(10);
-        } else if (schema.columnType === PrimitiveTypes.Date) {
-          record[field] = new Date().toISOString();
-        } else {
-          throw new Error(`Unsupported primitive: ${schema.columnType}`);
-        }
-      } else {
-        throw new Error(`Unsupported field type: ${schema.type}`);
-      }
-    }
-
-    return record;
-  }
-
-  /** @see https://stackoverflow.com/questions/1349404 */
-  private makeRandomString(length) {
-    let result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const charactersLength = characters.length;
-
-    for (let i = 0; i < length; i += 1) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-
-    return result;
+    super(datasource, 'books', BooksCollection.schema, BooksCollection.records);
   }
 }
