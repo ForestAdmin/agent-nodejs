@@ -1,4 +1,12 @@
-import { fn, ModelDefined, Sequelize } from 'sequelize';
+import {
+  FindAttributeOptions,
+  fn,
+  GroupOption,
+  InstanceUpdateOptions,
+  ModelDefined,
+  Sequelize,
+  UpdateOptions,
+} from 'sequelize';
 import {
   AggregateResult,
   Aggregation,
@@ -67,7 +75,7 @@ export default class SequelizeCollection extends BaseCollection {
 
   async update(filter: Filter, patch: RecordData): Promise<void> {
     await this.model.update(patch, {
-      ...convertPaginatedFilterToSequelize(filter),
+      ...(convertPaginatedFilterToSequelize(filter) as UpdateOptions),
       fields: Object.keys(patch),
     });
 
@@ -85,18 +93,16 @@ export default class SequelizeCollection extends BaseCollection {
     const field = aggregation.field ?? '*';
     const aggregateFieldName = '__aggregate__';
 
-    const attributes: (string | (ReturnType<typeof fn> | string)[])[] = [
+    const attributes: FindAttributeOptions = [
       [this.sequelize.fn(operation, this.sequelize.col(field)), aggregateFieldName],
     ];
 
     if (aggregation.field) attributes.push(field);
 
-    const groups = aggregation.groups?.map(group => {
+    const groups: GroupOption = aggregation.groups?.map(group => {
       if (group.operation) {
-        return [
-          // TODO: Ensure operation names are the same on all DB engines.
-          [this.sequelize.fn(group.operation?.toUpperCase(), this.sequelize.col(group.field))],
-        ];
+        // TODO: Ensure operation names are the same on all DB engines.
+        return this.sequelize.fn(group.operation?.toUpperCase(), this.sequelize.col(group.field));
       }
 
       return group.field;
