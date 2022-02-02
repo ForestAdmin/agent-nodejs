@@ -1,5 +1,5 @@
 import { Collection, DataSource } from '../interfaces/collection';
-import { FieldSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
+import { FieldSchema, FieldTypes, ManyToManySchema, RelationSchema } from '../interfaces/schema';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTreeUtils from './condition-tree';
@@ -15,14 +15,23 @@ export default class CollectionUtils {
     datasource: DataSource,
   ): Promise<AggregateResult[]> {
     const relationFieldSchema = collection.schema.fields[relationName];
+    const isOneToMany = relationFieldSchema.type === FieldTypes.OneToMany;
+    const isManyToMany = relationFieldSchema.type === FieldTypes.ManyToMany;
 
-    if (relationFieldSchema.type === FieldTypes.OneToMany) {
-      const conditionToMatchId = new ConditionTreeLeaf({
-        field: relationFieldSchema.foreignKey,
-        operator: Operator.Equal,
-        value: id,
-      });
+    if (!isOneToMany && !isManyToMany) {
+      throw new Error(
+        'aggregateRelation method can only be used with ' +
+          `${FieldTypes.OneToMany} and ${FieldTypes.ManyToMany} relations`,
+      );
+    }
 
+    const conditionToMatchId = new ConditionTreeLeaf({
+      field: relationFieldSchema.foreignKey,
+      operator: Operator.Equal,
+      value: id,
+    });
+
+    if (isOneToMany) {
       const filter = paginatedFilter.override({
         conditionTree: ConditionTreeUtils.intersect(
           paginatedFilter.conditionTree,
@@ -34,6 +43,40 @@ export default class CollectionUtils {
         .getCollection(relationFieldSchema.foreignCollection)
         .aggregate(filter, aggregation);
     }
+
+    if (isManyToMany) {
+      const filter = paginatedFilter.override({
+        conditionTree: ConditionTreeUtils.intersect(
+          paginatedFilter.conditionTree,
+          conditionToMatchId,
+          paginatedFilter.conditionTree.nest(relationFieldSchema.otherField),
+        ),
+      });
+
+      const aggregateResults = await datasource
+        .getCollection(relationFieldSchema.foreignCollection)
+        .aggregate(filter, aggregation.nest(relationFieldSchema.otherField));
+
+      return CollectionUtils.removePrefixes(aggregateResults, relationFieldSchema);
+    }
+  }
+
+  private static removePrefixes(aggregateResults: AggregateResult[], schema: ManyToManySchema) {
+    return aggregateResults.map(aggregateResult => {
+      const newResult: AggregateResult = {
+        value: aggregateResult.value,
+        group: aggregateResult.group,
+      };
+
+      Object.entries(aggregateResult.group).forEach(([field, result]) => {
+        if (field.startsWith(schema.otherField)) {
+          const suffix = field.substring(schema.otherField.length + ':'.length);
+          newResult[suffix] = result[field];
+        }
+      });
+
+      return newResult;
+    });
   }
 
   static getRelation(collection: Collection, path: string): Collection {

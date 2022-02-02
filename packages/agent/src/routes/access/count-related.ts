@@ -3,8 +3,6 @@ import {
   AggregationOperation,
   CollectionUtils,
   CompositeId,
-  ManyToManySchema,
-  ManyToOneSchema,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
@@ -24,26 +22,26 @@ export default class CountRelatedRoute extends RelationRoute {
 
   public async handleCountRelated(context: Context): Promise<void> {
     let parentId: CompositeId;
+    let paginatedFilter: PaginatedFilter;
 
     try {
       parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
+      paginatedFilter = new PaginatedFilter({
+        search: QueryStringParser.parseSearch(context),
+        searchExtended: QueryStringParser.parseSearchExtended(context),
+        segment: QueryStringParser.parseSegment(this.collection, context),
+        timezone: QueryStringParser.parseTimezone(context),
+        page: QueryStringParser.parsePagination(context),
+        sort: QueryStringParser.parseSort(this.collection, context),
+      });
     } catch (e) {
       return context.throw(HttpCode.BadRequest, e.message);
     }
 
-    const paginatedFilter = new PaginatedFilter({
-      search: QueryStringParser.parseSearch(context),
-      searchExtended: QueryStringParser.parseSearchExtended(context),
-      segment: QueryStringParser.parseSegment(this.collection, context),
-      timezone: QueryStringParser.parseTimezone(context),
-      page: QueryStringParser.parsePagination(context),
-      sort: QueryStringParser.parseSort(this.collection, context),
-    });
-
     try {
       const aggregationResult = await CollectionUtils.aggregateRelation(
         paginatedFilter,
-        parentId,
+        Number(parentId[0]),
         this.collection,
         this.relationName,
         new Aggregation({ operation: AggregationOperation.Count }),
@@ -55,7 +53,7 @@ export default class CountRelatedRoute extends RelationRoute {
     } catch {
       context.throw(
         HttpCode.InternalServerError,
-        `Failed to count collection "${this.collection.name}"`,
+        `Failed to count the collection relation of the "${this.collection.name}"`,
       );
     }
   }

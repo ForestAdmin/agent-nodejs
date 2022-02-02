@@ -103,7 +103,7 @@ export default class QueryStringParser {
       Number.isNaN(itemsPerPage) ||
       Number.isNaN(pageToSkip) ||
       itemsPerPage <= 0 ||
-      pageToSkip <= 0
+      pageToSkip < 0
     ) {
       context.throw(
         HttpCode.BadRequest,

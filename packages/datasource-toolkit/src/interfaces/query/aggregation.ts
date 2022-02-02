@@ -133,6 +133,23 @@ export default class Aggregation implements AggregationComponents {
     };
   }
 
+  nest(prefix: string): Aggregation {
+    let nestedField;
+    let nestedGroups;
+
+    if (this.field) {
+      nestedField = `${prefix}:${this.field}`;
+    }
+
+    if (this.groups)
+      nestedGroups = this.groups.map(bucket => ({
+        field: `${prefix}:${bucket.field}`,
+        operation: bucket.operation,
+      }));
+
+    return new Aggregation({ field: nestedField, operation: this.operation, groups: nestedGroups });
+  }
+
   private updateSummaryInPlace(summary: Summary, record: RecordData): void {
     summary.starCount += 1; // i.e: count(*)
 

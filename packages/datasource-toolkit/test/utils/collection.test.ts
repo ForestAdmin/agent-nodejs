@@ -174,51 +174,140 @@ describe('CollectionUtils', () => {
   });
 
   describe('aggregateRelation', () => {
-    describe('when the relation is a one to many relation', () => {});
-    it('should add the correct filter and aggregate it', async () => {
-      const bookPersons = factories.collection.build({
-        name: 'bookPersons',
+    describe('when the relation is a one to many relation', () => {
+      const setup = () => {
+        const bookPersons = factories.collection.build({
+          name: 'bookPersons',
+        });
+
+        const books = factories.collection.build({
+          name: 'books',
+          schema: factories.collectionSchema.build({
+            fields: {
+              myBookPersons: factories.oneToManySchema.build({
+                foreignCollection: 'bookPersons',
+                foreignKey: 'bookId',
+              }),
+            },
+          }),
+        });
+
+        const aggregation = factories.aggregation.build();
+
+        return {
+          aggregation,
+          dataSource: factories.dataSource.buildWithCollections([bookPersons, books]),
+        };
+      };
+
+      it('should add the correct filter and aggregate it', async () => {
+        const { aggregation, dataSource } = setup();
+
+        const baseFilter = factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build(),
+        });
+
+        const oneToManyRelationName = 'myBookPersons';
+        await CollectionUtils.aggregateRelation(
+          baseFilter,
+          2,
+          dataSource.getCollection('books'),
+          oneToManyRelationName,
+          aggregation,
+          dataSource,
+        );
+
+        const expectedCondition = ConditionTreeUtils.intersect(
+          baseFilter.conditionTree,
+          new ConditionTreeLeaf({
+            field: 'bookId',
+            operator: Operator.Equal,
+            value: 2,
+          }),
+        );
+        expect(dataSource.getCollection('bookPersons').aggregate).toHaveBeenCalledWith(
+          baseFilter.override({ conditionTree: expectedCondition }),
+          aggregation,
+        );
       });
+    });
 
-      const books = factories.collection.build({
-        name: 'books',
-        schema: factories.collectionSchema.build({
-          fields: {
-            myBookPersons: factories.oneToManySchema.build({
-              foreignCollection: 'bookPersons',
-              foreignKey: 'bookId',
-            }),
-          },
-        }),
+    describe('when the relation is a many to many relation', () => {
+      const setup = () => {
+        const persons = factories.collection.build({
+          name: 'persons',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.isPrimaryKey().build(),
+            },
+          }),
+        });
+
+        const books = factories.collection.build({
+          name: 'books',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.isPrimaryKey().build(),
+              myPersons: factories.manyToManySchema.build({
+                foreignCollection: 'persons',
+                foreignKey: 'personId',
+                otherField: 'bookId',
+              }),
+            },
+          }),
+        });
+        const aggregation = factories.aggregation.build();
+
+        return {
+          aggregation,
+          dataSource: factories.dataSource.buildWithCollections([persons, books]),
+        };
+      };
+
+      it('should add the correct filter and aggregate it', async () => {
+        const { aggregation, dataSource } = setup();
+
+        const baseFilter = factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build({
+            operator: Operator.Equal,
+            value: 1,
+            field: 'id',
+          }),
+        });
+
+        (dataSource.getCollection('persons').aggregate as jest.Mock).mockResolvedValue(() => {
+          throw new Error('okk');
+        });
+
+        const manyToManyRelationName = 'myPersons';
+        await CollectionUtils.aggregateRelation(
+          baseFilter,
+          2,
+          dataSource.getCollection('books'),
+          manyToManyRelationName,
+          aggregation,
+          dataSource,
+        );
+
+        const expectedCondition = ConditionTreeUtils.intersect(
+          baseFilter.conditionTree,
+          new ConditionTreeLeaf({
+            field: 'personId',
+            operator: Operator.Equal,
+            value: 2,
+          }),
+          new ConditionTreeLeaf({
+            field: 'bookId:id',
+            operator: Operator.Equal,
+            value: 1,
+          }),
+        );
+
+        expect(dataSource.getCollection('persons').aggregate).toHaveBeenCalledWith(
+          baseFilter.override({ conditionTree: expectedCondition }),
+          aggregation,
+        );
       });
-      const dataSource = factories.dataSource.buildWithCollections([bookPersons, books]);
-
-      const aggregation = factories.aggregation.build();
-      const baseFilter = factories.filter.build({
-        conditionTree: factories.conditionTreeLeaf.build(),
-      });
-
-      await CollectionUtils.aggregateRelation(
-        baseFilter,
-        2,
-        books,
-        'myBookPersons',
-        aggregation,
-        dataSource,
-      );
-
-      const expectedCondition = ConditionTreeUtils.intersect(
-        baseFilter.conditionTree,
-        new ConditionTreeLeaf({
-          field: 'bookId',
-          operator: Operator.Equal,
-          value: 2,
-        }),
-      );
-      expect(dataSource.getCollection('bookPersons').aggregate).toHaveBeenCalledWith(
-        baseFilter.override({ conditionTree: expectedCondition }),
-        aggregation,
-      );
     });
   });
 });

@@ -291,6 +291,7 @@ describe('QueryStringParser', () => {
         expect(context.throw).not.toBeCalled();
         expect(pagination.limit).toEqual(15);
         expect(pagination.skip).toEqual(0);
+        expect(context.throw).toHaveBeenCalledTimes(0);
       });
     });
 
