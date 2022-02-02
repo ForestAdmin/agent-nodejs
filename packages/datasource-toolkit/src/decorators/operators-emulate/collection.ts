@@ -1,27 +1,18 @@
-import { SchemaUtils } from '../..';
-import { Operator } from '../../interfaces/query/condition-tree/leaf';
+import ConditionTree from '../../interfaces/query/condition-tree/base';
+import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/leaf';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
-import { CollectionSchema, ColumnSchema } from '../../interfaces/schema';
+import { CollectionSchema, ColumnSchema, RelationSchema } from '../../interfaces/schema';
+import ConditionTreeUtils from '../../utils/condition-tree';
+import SchemaUtils from '../../utils/schema';
+import ConditionTreeValidator from '../../validation/condition-tree';
 import FieldValidator from '../../validation/field';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
-import replaceEmulatedLeafs from './helpers/rewrite-leaf';
 import { OperatorReplacer } from './types';
 
 export default class OperatorsEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<OperatorsEmulate>;
-
   private readonly fields: Map<string, Map<Operator, OperatorReplacer>> = new Map();
-
-  /** @internal */
-  hasReplacer(name: string, operator: Operator): boolean {
-    return !!this.fields.get(name)?.has(operator);
-  }
-
-  /** @internal */
-  getReplacer(name: string, operator: Operator): OperatorReplacer {
-    return this.fields.get(name)?.get(operator);
-  }
 
   emulateOperator(name: string, operator: Operator): void {
     this.implementOperator(name, operator, null);
@@ -76,8 +67,64 @@ export default class OperatorsEmulate extends CollectionDecorator {
   protected override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
     return filter?.override({
       conditionTree: await filter.conditionTree?.replaceLeafsAsync(leaf =>
-        replaceEmulatedLeafs(this, leaf),
+        this.replaceLeaf(leaf, []),
       ),
     });
+  }
+
+  private async replaceLeaf(
+    leaf: ConditionTreeLeaf,
+    replacements: string[],
+  ): Promise<ConditionTree> {
+    // ConditionTree is targeting a field on another collection => recurse.
+    if (leaf.field.includes(':')) {
+      const [prefix] = leaf.field.split(':');
+      const schema = this.schema.fields[prefix] as RelationSchema;
+      const association = this.dataSource.getCollection(schema.foreignCollection);
+      const associationLeaf = await leaf
+        .unnest()
+        .replaceLeafsAsync(subLeaf => association.replaceLeaf(subLeaf, replacements));
+
+      return associationLeaf.nest(prefix);
+    }
+
+    return this.fields.get(leaf.field)?.has(leaf.operator)
+      ? this.computeEquivalent(leaf, replacements)
+      : leaf;
+  }
+
+  private async computeEquivalent(
+    leaf: ConditionTreeLeaf,
+    replacements: string[],
+  ): Promise<ConditionTree> {
+    const handler = this.fields.get(leaf.field)?.get(leaf.operator);
+
+    if (handler) {
+      const replacementId = `${leaf.field}[${leaf.operator}]`;
+      const subReplacements = [...replacements, replacementId];
+
+      if (replacements.includes(replacementId)) {
+        const cycle = subReplacements.join(' -> ');
+        throw new Error(`Operator replacement cycle on collection '${this.name}': ${cycle}`);
+      }
+
+      let equivalentTree = await handler(leaf.value, this.dataSource);
+
+      if (equivalentTree) {
+        equivalentTree = await equivalentTree.replaceLeafsAsync(subLeaf =>
+          this.replaceLeaf(subLeaf, subReplacements),
+        );
+
+        ConditionTreeValidator.validate(equivalentTree, this);
+
+        return equivalentTree;
+      }
+    }
+
+    // Query all records on the dataSource and emulate the filter.
+    return ConditionTreeUtils.matchRecords(
+      this.schema,
+      leaf.apply(await this.list(null, leaf.projection.withPks(this))),
+    );
   }
 }
