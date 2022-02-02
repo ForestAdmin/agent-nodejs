@@ -185,7 +185,7 @@ describe('OperatorsEmulate', () => {
         });
 
         await expect(newBooks.list(filter, projection)).rejects.toThrow(
-          "Operator replacement cycle detected on collection 'books': " +
+          "Operator replacement cycle on collection 'books': " +
             'title[starts_with] -> title[like] -> title[starts_with]',
         );
         expect(books.list).not.toHaveBeenCalled();
