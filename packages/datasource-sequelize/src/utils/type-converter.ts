@@ -1,5 +1,5 @@
-import { DataTypes } from 'sequelize';
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { AbstractDataTypeConstructor, DataTypes } from 'sequelize';
+import { ColumnType, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export default class TypeConverter {
   // TODO: Allow to differentiate NUMBER and INTEGER.
@@ -63,11 +63,10 @@ export default class TypeConverter {
     VIRTUAL: null,
   };
 
-  public static fromDataType(dataType) {
+  public static fromDataType(dataType: AbstractDataTypeConstructor): ColumnType {
     const dataTypeName = dataType?.key;
 
-    if (!dataTypeName) throw new Error(`Unable to get data type from: "${dataType}".`);
-
+    // FIXME: Remove ARRAY from types in dataTypeToColumnType and handle test here.
     const columnType = TypeConverter.dataTypeToColumnType[dataTypeName];
 
     if (!columnType) throw new Error(`Unsupported data type: "${dataType}".`);
