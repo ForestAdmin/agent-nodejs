@@ -1,4 +1,3 @@
-import { PrimitiveTypes } from '../../dist/interfaces/schema';
 import ProjectionValidator from '../../dist/validation/projection';
 import * as factories from '../__factories__';
 
@@ -7,7 +6,7 @@ describe('ProjectionValidator', () => {
     const collection = factories.collection.build({
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid, isPrimaryKey: true }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
             foreignKey: 'authorId',

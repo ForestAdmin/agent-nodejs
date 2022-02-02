@@ -20,9 +20,8 @@ describe('IdUtils', () => {
   describe('with a schema with an integer id field', () => {
     const numberSchema = factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.build({
+        id: factories.columnSchema.isPrimaryKey().build({
           columnType: PrimitiveTypes.Number,
-          isPrimaryKey: true,
         }),
       },
     });
@@ -57,9 +56,8 @@ describe('IdUtils', () => {
   describe('with a schema with a string id field', () => {
     const stringSchema = factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.build({
+        id: factories.columnSchema.isPrimaryKey().build({
           columnType: PrimitiveTypes.String,
-          isPrimaryKey: true,
         }),
       },
     });
@@ -81,13 +79,11 @@ describe('IdUtils', () => {
   describe('with a schema with a composite id field', () => {
     const compositeSchema = factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.build({
+        id: factories.columnSchema.isPrimaryKey().build({
           columnType: PrimitiveTypes.Number,
-          isPrimaryKey: true,
         }),
-        otherId: factories.columnSchema.build({
+        otherId: factories.columnSchema.isPrimaryKey().build({
           columnType: PrimitiveTypes.String,
-          isPrimaryKey: true,
         }),
       },
     });

@@ -159,9 +159,7 @@ describe('SchemaGeneratorActions', () => {
         name: 'authors',
         schema: factories.collectionSchema.build({
           fields: {
-            primaryId: factories.columnSchema.build({
-              isPrimaryKey: true,
-            }),
+            primaryId: factories.columnSchema.isPrimaryKey().build(),
           },
         }),
       }),
@@ -177,7 +175,7 @@ describe('SchemaGeneratorActions', () => {
         position: 0,
         reference: 'authors.primaryId',
         widget: 'belongsto select', // only for relations
-        type: 'String', // type of the pk
+        type: 'Uuid', // type of the pk
       });
 
       // File

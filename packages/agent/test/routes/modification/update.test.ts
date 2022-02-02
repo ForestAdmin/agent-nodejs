@@ -40,9 +40,8 @@ describe('UpdateRoute', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
+            id: factories.columnSchema.isPrimaryKey().build({
               columnType: PrimitiveTypes.Number,
-              isPrimaryKey: true,
             }),
           },
         }),
@@ -67,9 +66,8 @@ describe('UpdateRoute', () => {
         }),
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
+            id: factories.columnSchema.isPrimaryKey().build({
               columnType: PrimitiveTypes.Number,
-              isPrimaryKey: true,
             }),
             name: factories.columnSchema.build({
               columnType: PrimitiveTypes.String,
@@ -95,9 +93,8 @@ describe('UpdateRoute', () => {
         update: jest.fn(),
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
+            id: factories.columnSchema.isPrimaryKey().build({
               columnType: PrimitiveTypes.Number,
-              isPrimaryKey: true,
             }),
             name: factories.columnSchema.build({
               columnType: PrimitiveTypes.String,

@@ -5,9 +5,9 @@ describe('SchemaUtils', () => {
   describe('getPrimaryKeys', () => {
     const schema = factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.build({ isPrimaryKey: true }),
+        id: factories.columnSchema.isPrimaryKey().build(),
         notId: factories.columnSchema.build({ isPrimaryKey: false }),
-        otherId: factories.columnSchema.build({ isPrimaryKey: true }),
+        otherId: factories.columnSchema.isPrimaryKey().build(),
       },
     });
 
@@ -22,7 +22,7 @@ describe('SchemaUtils', () => {
     const schema = factories.collectionSchema.build({
       fields: {
         // pk + used in relation
-        id: factories.columnSchema.build({ isPrimaryKey: true }),
+        id: factories.columnSchema.isPrimaryKey().build(),
 
         // used in relation
         bookId: factories.columnSchema.build({}),

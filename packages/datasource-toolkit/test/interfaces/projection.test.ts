@@ -1,5 +1,4 @@
 import Projection from '../../dist/interfaces/query/projection';
-import { PrimitiveTypes } from '../../dist/interfaces/schema';
 import * as factories from '../__factories__';
 
 describe('Projection', () => {
@@ -82,10 +81,7 @@ describe('Projection', () => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            }),
+            id: factories.columnSchema.isPrimaryKey().build(),
             name: factories.columnSchema.build(),
           },
         }),
@@ -104,14 +100,8 @@ describe('Projection', () => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
-            key1: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            }),
-            key2: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            }),
+            key1: factories.columnSchema.isPrimaryKey().build(),
+            key2: factories.columnSchema.isPrimaryKey().build(),
             name: factories.columnSchema.build(),
           },
         }),
@@ -128,10 +118,7 @@ describe('Projection', () => {
           name: 'cars',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Uuid,
-                isPrimaryKey: true,
-              }),
+              id: factories.columnSchema.isPrimaryKey().build(),
               name: factories.columnSchema.build(),
               owner: factories.oneToOneSchema.build({
                 foreignCollection: 'owner',
@@ -144,10 +131,7 @@ describe('Projection', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Uuid,
-                isPrimaryKey: true,
-              }),
+              id: factories.columnSchema.isPrimaryKey().build(),
               name: factories.columnSchema.build(),
             },
           }),

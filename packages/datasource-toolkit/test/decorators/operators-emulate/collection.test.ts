@@ -24,8 +24,7 @@ describe('OperatorsEmulate', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
-              isPrimaryKey: true,
+            id: factories.columnSchema.isPrimaryKey().build({
               columnType: PrimitiveTypes.Number,
               filterOperators: new Set(), // note that 'id' does not support filtering
             }),
@@ -67,8 +66,7 @@ describe('OperatorsEmulate', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
-              isPrimaryKey: true,
+            id: factories.columnSchema.isPrimaryKey().build({
               columnType: PrimitiveTypes.Number,
               filterOperators: new Set([Operator.Equal, Operator.In]),
             }),
@@ -86,8 +84,7 @@ describe('OperatorsEmulate', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
-              isPrimaryKey: true,
+            id: factories.columnSchema.isPrimaryKey().build({
               columnType: PrimitiveTypes.Number,
               filterOperators: new Set([Operator.Equal, Operator.In]),
             }),

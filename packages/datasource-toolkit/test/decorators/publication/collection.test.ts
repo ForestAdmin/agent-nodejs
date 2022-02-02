@@ -24,7 +24,7 @@ describe('PublicationCollectionDecorator', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({ isPrimaryKey: true }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           myBookPerson: factories.oneToOneSchema.build({
             foreignCollection: 'bookPersons',
             foreignKey: 'personId',
@@ -37,7 +37,7 @@ describe('PublicationCollectionDecorator', () => {
       name: 'bookPersons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({ isPrimaryKey: true }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           bookId: factories.columnSchema.build(),
           personId: factories.columnSchema.build(),
           myBook: factories.manyToOneSchema.build({
@@ -57,7 +57,7 @@ describe('PublicationCollectionDecorator', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({ isPrimaryKey: true }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           myPersons: factories.manyToManySchema.build({
             foreignCollection: 'persons',
             foreignKey: 'personId',
