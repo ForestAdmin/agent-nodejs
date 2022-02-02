@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, WhereAttributeHash } from 'sequelize';
 import {
   Aggregator,
   ConditionTreeBranch,
@@ -172,7 +172,7 @@ describe('Utils > FilterConverter', () => {
               }),
             );
 
-            const { __field__: fieldClause } = sequelizeFilter.where;
+            const { __field__: fieldClause } = sequelizeFilter.where as WhereAttributeHash;
 
             expect(fieldClause).toEqual(where);
           },

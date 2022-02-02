@@ -413,7 +413,7 @@ describe('SequelizeDataSource > Collection', () => {
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
           expect.objectContaining({
-            group: [[[{ col: '__group_field__', name: DateOperation.ToYear.toUpperCase() }]]],
+            group: [{ col: '__group_field__', name: DateOperation.ToYear.toUpperCase() }],
           }),
         );
       });
