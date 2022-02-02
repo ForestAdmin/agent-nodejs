@@ -11,6 +11,7 @@ export { default as PublicationCollectionDecorator } from './decorators/publicat
 export { default as RenameCollectionDecorator } from './decorators/rename/collection';
 export { default as SearchCollectionDecorator } from './decorators/search/collection';
 export { default as SortEmulateCollectionDecorator } from './decorators/sort-emulate/collection';
+export { default as SegmentCollectionDecorator } from './decorators/segment/collection';
 
 export { default as Aggregation } from './interfaces/query/aggregation';
 export { default as ConditionTree } from './interfaces/query/condition-tree/base';
