@@ -8,10 +8,7 @@ describe('FieldValidator', () => {
       name: 'cars',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Uuid,
-            isPrimaryKey: true,
-          }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           owner: factories.oneToOneSchema.build({
             foreignCollection: 'owner',
             foreignKey: 'id',
@@ -50,10 +47,7 @@ describe('FieldValidator', () => {
             name: 'owner',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Uuid,
-                  isPrimaryKey: true,
-                }),
+                id: factories.columnSchema.isPrimaryKey().build(),
                 name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
                 address: factories.oneToOneSchema.build({}),
               },

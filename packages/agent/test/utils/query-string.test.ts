@@ -1,4 +1,3 @@
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import QueryStringParser from '../../dist/utils/query-string';
 import * as factories from '../__factories__';
@@ -9,10 +8,7 @@ describe('QueryStringParser', () => {
     name: 'books',
     schema: factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.build({
-          columnType: PrimitiveTypes.Uuid,
-          isPrimaryKey: true,
-        }),
+        id: factories.columnSchema.isPrimaryKey().build(),
         name: factories.columnSchema.build(),
       },
       segments: ['fake-segment'],
@@ -81,10 +77,7 @@ describe('QueryStringParser', () => {
           name: 'cars',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Uuid,
-                isPrimaryKey: true,
-              }),
+              id: factories.columnSchema.isPrimaryKey().build(),
               name: factories.columnSchema.build(),
               owner: factories.oneToOneSchema.build({
                 foreignCollection: 'owner',
@@ -97,10 +90,7 @@ describe('QueryStringParser', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Uuid,
-                isPrimaryKey: true,
-              }),
+              id: factories.columnSchema.isPrimaryKey().build(),
               name: factories.columnSchema.build(),
             },
           }),

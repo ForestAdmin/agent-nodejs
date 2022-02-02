@@ -40,10 +40,7 @@ describe('CreateRoute', () => {
         ]),
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Number,
-              isPrimaryKey: true,
-            }),
+            id: factories.columnSchema.isPrimaryKey().build(),
             name: factories.columnSchema.build({
               columnType: PrimitiveTypes.String,
             }),

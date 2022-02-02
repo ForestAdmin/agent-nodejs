@@ -8,7 +8,7 @@ describe('SchemaGeneratorCollection', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid, isPrimaryKey: true }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           authorId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
@@ -24,9 +24,7 @@ describe('SchemaGeneratorCollection', () => {
           'Make as Live': { scope: ActionSchemaScope.Single },
         },
         fields: {
-          id: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Uuid,
-            isPrimaryKey: true,
+          id: factories.columnSchema.isPrimaryKey().build({
             isReadOnly: true,
           }),
         },

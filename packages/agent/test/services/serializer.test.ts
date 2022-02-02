@@ -9,9 +9,9 @@ describe('Serializer', () => {
       name: 'person',
       schema: factories.collectionSchema.build({
         fields: {
-          birthdate: factories.columnSchema.build({ isPrimaryKey: true }),
+          birthdate: factories.columnSchema.isPrimaryKey().build(),
           firstName: factories.columnSchema.build(),
-          lastName: factories.columnSchema.build({ isPrimaryKey: true }),
+          lastName: factories.columnSchema.isPrimaryKey().build(),
         },
       }),
     });
@@ -43,7 +43,7 @@ describe('Serializer', () => {
         name: 'book',
         schema: factories.collectionSchema.build({
           fields: {
-            isbn: factories.columnSchema.build({ isPrimaryKey: true }),
+            isbn: factories.columnSchema.isPrimaryKey().build(),
             authorId: factories.columnSchema.build(),
             author: factories.manyToOneSchema.build({
               foreignCollection: 'person',
@@ -56,7 +56,7 @@ describe('Serializer', () => {
         name: 'person',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({ isPrimaryKey: true }),
+            id: factories.columnSchema.isPrimaryKey().build(),
             name: factories.columnSchema.build(),
             books: factories.oneToManySchema.build({
               foreignCollection: 'book',

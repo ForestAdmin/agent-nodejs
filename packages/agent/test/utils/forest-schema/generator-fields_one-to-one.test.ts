@@ -8,7 +8,7 @@ describe('SchemaGeneratorFields > One to One', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid, isPrimaryKey: true }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           authorId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
@@ -21,7 +21,7 @@ describe('SchemaGeneratorFields > One to One', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid, isPrimaryKey: true }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           book: factories.oneToOneSchema.build({
             foreignCollection: 'books',
             foreignKey: 'authorId',

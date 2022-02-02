@@ -1,4 +1,3 @@
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import List from '../../../dist/routes/access/list';
 import * as factories from '../../__factories__';
@@ -10,10 +9,7 @@ describe('ListRoute', () => {
     list: jest.fn(),
     schema: factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.build({
-          columnType: PrimitiveTypes.Uuid,
-          isPrimaryKey: true,
-        }),
+        id: factories.columnSchema.isPrimaryKey().build(),
       },
     }),
   };

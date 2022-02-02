@@ -42,10 +42,7 @@ describe('DeleteRoute', () => {
         }),
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Number,
-              isPrimaryKey: true,
-            }),
+            id: factories.columnSchema.isPrimaryKey().build(),
           },
         }),
       });
@@ -65,13 +62,11 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              idField1: factories.columnSchema.build({
+              idField1: factories.columnSchema.isPrimaryKey().build({
                 columnType: PrimitiveTypes.Number,
-                isPrimaryKey: true,
               }),
-              idField2: factories.columnSchema.build({
+              idField2: factories.columnSchema.isPrimaryKey().build({
                 columnType: PrimitiveTypes.Number,
-                isPrimaryKey: true,
               }),
               notIdField: factories.columnSchema.build({
                 columnType: PrimitiveTypes.Number,
@@ -114,9 +109,8 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.build({
+              id: factories.columnSchema.isPrimaryKey().build({
                 columnType: PrimitiveTypes.Number,
-                isPrimaryKey: true,
               }),
             },
           }),
@@ -159,9 +153,8 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.build({
+              id: factories.columnSchema.isPrimaryKey().build({
                 columnType: PrimitiveTypes.Number,
-                isPrimaryKey: true,
               }),
             },
           }),
@@ -183,9 +176,8 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.build({
+              id: factories.columnSchema.isPrimaryKey().build({
                 columnType: PrimitiveTypes.Number,
-                isPrimaryKey: true,
               }),
             },
           }),
@@ -222,9 +214,8 @@ describe('DeleteRoute', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.build({
+                id: factories.columnSchema.isPrimaryKey().build({
                   columnType: PrimitiveTypes.Number,
-                  isPrimaryKey: true,
                 }),
               },
             }),
@@ -265,13 +256,11 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              idField1: factories.columnSchema.build({
+              idField1: factories.columnSchema.isPrimaryKey().build({
                 columnType: PrimitiveTypes.Number,
-                isPrimaryKey: true,
               }),
-              idField2: factories.columnSchema.build({
+              idField2: factories.columnSchema.isPrimaryKey().build({
                 columnType: PrimitiveTypes.Number,
-                isPrimaryKey: true,
               }),
               notIdField: factories.columnSchema.build({
                 columnType: PrimitiveTypes.Number,
@@ -340,13 +329,11 @@ describe('DeleteRoute', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                idField1: factories.columnSchema.build({
+                idField1: factories.columnSchema.isPrimaryKey().build({
                   columnType: PrimitiveTypes.Number,
-                  isPrimaryKey: true,
                 }),
-                idField2: factories.columnSchema.build({
+                idField2: factories.columnSchema.isPrimaryKey().build({
                   columnType: PrimitiveTypes.Number,
-                  isPrimaryKey: true,
                 }),
                 notIdField: factories.columnSchema.build({
                   columnType: PrimitiveTypes.Number,

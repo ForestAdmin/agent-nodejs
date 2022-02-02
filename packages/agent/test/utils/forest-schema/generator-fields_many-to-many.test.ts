@@ -1,4 +1,3 @@
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import SchemaGeneratorFields from '../../../dist/utils/forest-schema/generator-fields';
 import * as factories from '../../__factories__';
 
@@ -8,10 +7,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Uuid,
-            isPrimaryKey: true,
-          }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           reviewers: factories.manyToManySchema.build({
             foreignCollection: 'persons',
             foreignKey: 'personId',
@@ -25,14 +21,8 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       name: 'bookPersons',
       schema: factories.collectionSchema.build({
         fields: {
-          bookId: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Uuid,
-            isPrimaryKey: true,
-          }),
-          personId: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Uuid,
-            isPrimaryKey: true,
-          }),
+          bookId: factories.columnSchema.isPrimaryKey().build(),
+          personId: factories.columnSchema.isPrimaryKey().build(),
         },
       }),
     }),
@@ -40,10 +30,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Uuid,
-            isPrimaryKey: true,
-          }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           books: factories.manyToManySchema.build({
             foreignCollection: 'books',
             foreignKey: 'bookId',

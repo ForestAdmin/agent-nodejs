@@ -70,7 +70,7 @@ describe('ConditionTreeUtils', () => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
-            col1: factories.columnSchema.build({ isPrimaryKey: true }),
+            col1: factories.columnSchema.isPrimaryKey().build(),
           },
         }),
       });
@@ -95,9 +95,9 @@ describe('ConditionTreeUtils', () => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
-            col1: factories.columnSchema.build({ isPrimaryKey: true }),
-            col2: factories.columnSchema.build({ isPrimaryKey: true }),
-            col3: factories.columnSchema.build({ isPrimaryKey: true }),
+            col1: factories.columnSchema.isPrimaryKey().build(),
+            col2: factories.columnSchema.isPrimaryKey().build(),
+            col3: factories.columnSchema.isPrimaryKey().build(),
           },
         }),
       });

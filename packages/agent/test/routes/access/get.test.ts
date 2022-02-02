@@ -10,10 +10,7 @@ describe('GetRoute', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Uuid,
-            isPrimaryKey: true,
-          }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           name: factories.columnSchema.build({
             columnType: PrimitiveTypes.String,
           }),
@@ -28,10 +25,7 @@ describe('GetRoute', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Uuid,
-            isPrimaryKey: true,
-          }),
+          id: factories.columnSchema.isPrimaryKey().build(),
           bookId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
         },
       }),

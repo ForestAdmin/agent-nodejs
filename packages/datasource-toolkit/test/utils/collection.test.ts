@@ -9,10 +9,7 @@ describe('CollectionUtils', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            }),
+            id: factories.columnSchema.isPrimaryKey().build(),
             author: factories.manyToOneSchema.build({
               foreignCollection: 'persons',
               foreignKey: 'authorId',
@@ -27,10 +24,7 @@ describe('CollectionUtils', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
-              isPrimaryKey: true,
-            }),
+            id: factories.columnSchema.isPrimaryKey().build(),
           },
         }),
       }),
@@ -85,7 +79,7 @@ describe('CollectionUtils', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({ isPrimaryKey: true }),
+            id: factories.columnSchema.isPrimaryKey().build(),
             myPersons: factories.manyToManySchema.build({
               foreignCollection: 'persons',
               foreignKey: 'personId',
@@ -103,8 +97,8 @@ describe('CollectionUtils', () => {
         name: 'bookPersons',
         schema: factories.collectionSchema.build({
           fields: {
-            bookId: factories.columnSchema.build({ isPrimaryKey: true }),
-            personId: factories.columnSchema.build({ isPrimaryKey: true }),
+            bookId: factories.columnSchema.isPrimaryKey().build(),
+            personId: factories.columnSchema.isPrimaryKey().build(),
             myBook: factories.manyToOneSchema.build({
               foreignCollection: 'books',
               foreignKey: 'bookId',
@@ -120,7 +114,7 @@ describe('CollectionUtils', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({ isPrimaryKey: true }),
+            id: factories.columnSchema.isPrimaryKey().build(),
             myBookPerson: factories.oneToOneSchema.build({
               foreignCollection: 'bookPersons',
               foreignKey: 'personId',

@@ -344,10 +344,7 @@ describe('SearchCollectionDecorator', () => {
                 name: 'books',
                 schema: factories.collectionSchema.unsearchable().build({
                   fields: {
-                    id: factories.columnSchema.build({
-                      columnType: PrimitiveTypes.Uuid,
-                      isPrimaryKey: true,
-                    }),
+                    id: factories.columnSchema.isPrimaryKey().build(),
                     myPersons: factories.oneToOneSchema.build({
                       foreignCollection: 'persons',
                       foreignKey: 'personId',
@@ -363,14 +360,8 @@ describe('SearchCollectionDecorator', () => {
                 name: 'bookPersons',
                 schema: factories.collectionSchema.unsearchable().build({
                   fields: {
-                    bookId: factories.columnSchema.build({
-                      columnType: PrimitiveTypes.Uuid,
-                      isPrimaryKey: true,
-                    }),
-                    personId: factories.columnSchema.build({
-                      columnType: PrimitiveTypes.Uuid,
-                      isPrimaryKey: true,
-                    }),
+                    bookId: factories.columnSchema.isPrimaryKey().build(),
+                    personId: factories.columnSchema.isPrimaryKey().build(),
                   },
                 }),
               }),
@@ -378,10 +369,7 @@ describe('SearchCollectionDecorator', () => {
                 name: 'persons',
                 schema: factories.collectionSchema.unsearchable().build({
                   fields: {
-                    id: factories.columnSchema.build({
-                      columnType: PrimitiveTypes.Uuid,
-                      isPrimaryKey: true,
-                    }),
+                    id: factories.columnSchema.isPrimaryKey().build(),
                   },
                 }),
               }),
