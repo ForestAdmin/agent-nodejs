@@ -5,6 +5,7 @@ import PaginatedFilter from '../../../dist/interfaces/query/filter/paginated';
 import Page from '../../../dist/interfaces/query/page';
 import Projection from '../../../dist/interfaces/query/projection';
 import Sort from '../../../dist/interfaces/query/sort';
+import { ColumnSchema } from '../../../dist/interfaces/schema';
 import * as factories from '../../__factories__';
 
 describe('SortEmulationDecoratorCollection', () => {
@@ -51,7 +52,7 @@ describe('SortEmulationDecoratorCollection', () => {
             foreignCollection: 'persons',
             foreignKey: 'authorId',
           }),
-          title: factories.columnSchema.build(),
+          title: factories.columnSchema.build({ isSortable: false }),
         },
       }),
       list: jest.fn().mockImplementation((filter, projection) => {
@@ -69,7 +70,7 @@ describe('SortEmulationDecoratorCollection', () => {
         fields: {
           id: factories.columnSchema.build({ isPrimaryKey: true }),
           firstName: factories.columnSchema.build(),
-          lastName: factories.columnSchema.build(),
+          lastName: factories.columnSchema.build({ isSortable: false }),
         },
       }),
     });
@@ -99,13 +100,18 @@ describe('SortEmulationDecoratorCollection', () => {
 
   test('emulateSort() should throw if the field is in a relation', () => {
     expect(() => newBooks.emulateSort('author:firstName')).toThrow(
-      'Cannot replace operator for relation',
+      'Cannot replace sort on relation',
     );
   });
 
   describe('when emulating sort on book.title (no relations)', () => {
     beforeEach(() => {
       newBooks.emulateSort('title');
+    });
+
+    test('schema should be updated', () => {
+      const schema = newBooks.schema.fields.title as ColumnSchema;
+      expect(schema.isSortable).toBeTruthy();
     });
 
     test('should work in ascending order', async () => {
@@ -152,6 +158,11 @@ describe('SortEmulationDecoratorCollection', () => {
       newPersons.emulateSort('lastName');
     });
 
+    test('schema should be updated', () => {
+      const schema = newPersons.schema.fields.lastName as ColumnSchema;
+      expect(schema.isSortable).toBeTruthy();
+    });
+
     test('should work in ascending order', async () => {
       const records = await newBooks.list(
         new PaginatedFilter({ sort: new Sort({ field: 'author:lastName', ascending: true }) }),
@@ -182,6 +193,11 @@ describe('SortEmulationDecoratorCollection', () => {
   describe('when telling that sort(book.title) = sort(book.author.lastName)', () => {
     beforeEach(() => {
       newBooks.implementSort('title', new Sort({ field: 'author:lastName', ascending: true }));
+    });
+
+    test('schema should be updated', () => {
+      const schema = newBooks.schema.fields.title as ColumnSchema;
+      expect(schema.isSortable).toBeTruthy();
     });
 
     test('should work in ascending order', async () => {
