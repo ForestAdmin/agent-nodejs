@@ -2,30 +2,24 @@ import { Sequelize } from 'sequelize';
 
 import { SequelizeCollection, SequelizeDataSource } from '../dist';
 
-class ConcreteSequelizeDataSource extends SequelizeDataSource {}
-
 describe('SequelizeDataSource', () => {
   it('should instanciate properly when extended', () => {
-    expect(
-      new ConcreteSequelizeDataSource([], Symbol('sequelize') as unknown as Sequelize),
-    ).toBeDefined();
+    expect(new SequelizeDataSource([], Symbol('sequelize') as unknown as Sequelize)).toBeDefined();
   });
 
   it('should fail to instanciate without a Sequelize instance', () => {
-    expect(() => new ConcreteSequelizeDataSource([], null)).toThrow(
-      'Invalid (null) Sequelize instance.',
-    );
+    expect(() => new SequelizeDataSource([], null)).toThrow('Invalid (null) Sequelize instance.');
   });
 
   it('should have no predefined collection', () => {
     expect(
-      new ConcreteSequelizeDataSource([], Symbol('sequelize') as unknown as Sequelize).collections,
+      new SequelizeDataSource([], Symbol('sequelize') as unknown as Sequelize).collections,
     ).toBeArrayOfSize(0);
   });
 
   describe('getCollection', () => {
     it('should return null for unknown collection name', () => {
-      const sequelizeDataSource = new ConcreteSequelizeDataSource(
+      const sequelizeDataSource = new SequelizeDataSource(
         [],
         Symbol('sequelize') as unknown as Sequelize,
       );
@@ -37,7 +31,7 @@ describe('SequelizeDataSource', () => {
 
     it('should return known collection when given its name', () => {
       const collections = [{ name: 'dummy' }] as SequelizeCollection[];
-      const sequelizeDataSource = new ConcreteSequelizeDataSource(
+      const sequelizeDataSource = new SequelizeDataSource(
         collections,
         Symbol('sequelize') as unknown as Sequelize,
       );
