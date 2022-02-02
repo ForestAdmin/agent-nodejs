@@ -1,3 +1,4 @@
+import hashRecord from 'object-hash';
 import { DateTime } from 'luxon';
 import RecordUtils from '../../utils/record';
 import { RecordData } from '../record';
@@ -19,8 +20,17 @@ export enum DateOperation {
 }
 
 export type AggregateResult = {
-  value: number;
+  value: unknown;
   group: { [field: string]: unknown };
+};
+
+type Summary = {
+  group: Record<string, unknown>;
+  starCount: number;
+  [AggregationOperation.Count]: number;
+  [AggregationOperation.Sum]: number;
+  [AggregationOperation.Max]: unknown;
+  [AggregationOperation.Min]: unknown;
 };
 
 interface AggregationComponents {
@@ -63,73 +73,86 @@ export default class Aggregation implements AggregationComponents {
   }
 
   apply(records: RecordData[], timezone: string): AggregateResult[] {
-    const rows = this.regroup(records, timezone);
-
-    if (this.operation === AggregationOperation.Average) {
-      return rows
-        .filter(({ count }) => count)
-        .map(({ sum, count, group }) => ({ value: sum / count, group }));
-    }
-
-    if (this.operation === AggregationOperation.Sum) {
-      return rows.map(({ sum, group }) => ({ value: sum, group }));
-    }
-
-    return rows.map(({ count, starCount, group }) => ({
-      value: this.field ? count : starCount,
-      group,
-    }));
+    return this.formatSummaries(this.createSummaries(records, timezone));
   }
 
-  private regroup(
-    records: RecordData[],
-    timezone: string,
-  ): Array<{ sum: number; count: number; starCount: number; group: Record<string, unknown> }> {
-    // Group records according to buckets.
-    const groupingMap: Record<
-      string,
-      { sum: number; count: number; starCount: number; group: Record<string, unknown> }
-    > = {};
+  private createSummaries(records: RecordData[], timezone: string): Array<Summary> {
+    const groupingMap: Record<string, Summary> = {};
 
     for (const record of records) {
-      // Compute grouping values & key
-      const intermediaryResult: {
-        sum: number;
-        count: number;
-        starCount: number;
-        group: Record<string, unknown>;
-      } = { count: 0, starCount: 0, sum: 0, group: {} };
-      let uniqueKey = '';
+      const group = this.createGroup(record, timezone);
+      const uniqueKey = hashRecord(group);
+      const summary = groupingMap[uniqueKey] ?? this.createSummary(group);
 
-      for (const { field, operation } of this.groups ?? []) {
-        const baseValue = RecordUtils.getFieldValue(record, field) as string;
-        const value = this.applyDateOperation(baseValue, operation, timezone);
-        intermediaryResult.group[field] = value;
-        uniqueKey += `--${value}`;
-      }
+      this.updateSummaryInPlace(summary, record);
 
-      // First match => store result
-      if (!groupingMap[uniqueKey]) {
-        groupingMap[uniqueKey] = intermediaryResult;
-      }
-
-      // Increment counters
-      groupingMap[uniqueKey].starCount += 1; // i.e: count(*)
-
-      if (this.field) {
-        const aggregateValue = RecordUtils.getFieldValue(record, this.field);
-
-        if (aggregateValue !== undefined && aggregateValue !== null) {
-          groupingMap[uniqueKey].count += 1; // i.e: count(column)
-          groupingMap[uniqueKey].sum += aggregateValue as number;
-        }
-      }
+      groupingMap[uniqueKey] = summary;
     }
 
     return Object.values(groupingMap);
   }
 
-  /** Used for aggregation emulation layer */
+  private formatSummaries(summaries: Summary[]): AggregateResult[] {
+    const { operation } = this;
+
+    return operation === AggregationOperation.Average
+      ? summaries
+          .filter(summary => summary[AggregationOperation.Count])
+          .map(summary => ({
+            group: summary.group,
+            value: summary[AggregationOperation.Sum] / summary[AggregationOperation.Count],
+          }))
+      : summaries.map(summary => ({
+          group: summary.group,
+          value:
+            operation === AggregationOperation.Count && !this.field
+              ? summary.starCount
+              : summary[operation],
+        }));
+  }
+
+  private createGroup(record: RecordData, timezone: string): RecordData {
+    const group: RecordData = {};
+
+    for (const { field, operation } of this.groups ?? []) {
+      const groupValue = RecordUtils.getFieldValue(record, field) as string;
+      group[field] = this.applyDateOperation(groupValue, operation, timezone);
+    }
+
+    return group;
+  }
+
+  private createSummary(group: RecordData): Summary {
+    return {
+      group,
+      starCount: 0,
+      [AggregationOperation.Count]: 0,
+      [AggregationOperation.Sum]: 0,
+      [AggregationOperation.Min]: undefined,
+      [AggregationOperation.Max]: undefined,
+    };
+  }
+
+  private updateSummaryInPlace(summary: Summary, record: RecordData): void {
+    summary.starCount += 1; // i.e: count(*)
+
+    if (this.field) {
+      const value = RecordUtils.getFieldValue(record, this.field);
+
+      if (value !== undefined && value !== null) {
+        const { [AggregationOperation.Min]: min, [AggregationOperation.Max]: max } = summary;
+
+        summary[AggregationOperation.Count] += 1; // i.e: count(column)
+        if (min === undefined || value < min) summary[AggregationOperation.Min] = value;
+        if (max === undefined || value > max) summary[AggregationOperation.Max] = value;
+      }
+
+      if (typeof value === 'number' && !Number.isNaN(value)) {
+        summary[AggregationOperation.Sum] += value;
+      }
+    }
+  }
+
   private applyDateOperation(value: string, operation: DateOperation, timezone: string): string {
     if (operation) {
       const dateTime = DateTime.fromISO(value).setZone(timezone);
