@@ -50,6 +50,9 @@ describe('ComputedDecorator', () => {
         },
       }),
       list: jest.fn().mockImplementation((_, projection: Projection) => projection.apply(records)),
+      getById: jest
+        .fn()
+        .mockImplementation((_, projection: Projection) => projection.apply(records)[0]),
       aggregate: jest
         .fn()
         .mockImplementation((_, aggregate: Aggregation) =>
@@ -132,6 +135,16 @@ describe('ComputedDecorator', () => {
       });
     });
 
+    test('getById() result should contain the proxy', async () => {
+      const record = await newBooks.getById([1], new Projection('title', 'authorFullName'));
+
+      expect(record).toStrictEqual({ title: 'Foundation', authorFullName: 'Isaac Asimov' });
+      expect(books.getById).toHaveBeenCalledWith(
+        [1],
+        ['title', 'author:firstName', 'author:lastName'],
+      );
+    });
+
     test('list() result should contain the proxy', async () => {
       const records = await newBooks.list(null, new Projection('title', 'authorFullName'));
 
@@ -148,6 +161,7 @@ describe('ComputedDecorator', () => {
         'author:lastName',
       ]);
     });
+
     test('list() result should contain the computed', async () => {
       const records = await newBooks.list(null, new Projection('title', 'author:fullName'));
 

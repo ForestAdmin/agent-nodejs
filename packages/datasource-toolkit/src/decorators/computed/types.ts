@@ -8,8 +8,8 @@ export type ComputedContext = {
 };
 
 export interface ComputedDefinition {
-  readonly columnType?: ColumnType;
-  readonly dependencies?: Projection;
+  readonly columnType: ColumnType;
+  readonly dependencies: Projection;
   readonly isRequired?: boolean;
   readonly defaultValue?: unknown;
   readonly enumValues?: string[];
