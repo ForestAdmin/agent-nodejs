@@ -101,13 +101,13 @@ describe('Utils > FilterConverter', () => {
             const conditions = [
               new ConditionTreeLeaf({
                 operator: Operator.Equal,
-                field: '__field__',
-                value: '__value__',
+                field: '__field_1__',
+                value: '__value_1__',
               }),
               new ConditionTreeLeaf({
                 operator: Operator.Equal,
-                field: '__field__',
-                value: '__value__',
+                field: '__field_2__',
+                value: '__value_2__',
               }),
             ];
             const conditionTree = new ConditionTreeBranch(aggregator, conditions);
