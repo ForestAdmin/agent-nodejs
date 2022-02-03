@@ -59,12 +59,13 @@ function convertConditionTreeToSequelize(conditionTree: ConditionTree): WhereOpt
   let sequelizeWhereClause: WhereOptions = null;
 
   if (conditionTree instanceof ConditionTreeBranch) {
-    const sequelizeOperator = conditionTree.aggregator === Aggregator.And ? Op.and : Op.or;
     const { aggregator, conditions } = conditionTree;
 
     if (aggregator === null) {
       throw new Error('Invalid (null) aggregator.');
     }
+
+    const sequelizeOperator = conditionTree.aggregator === Aggregator.And ? Op.and : Op.or;
 
     if (!Array.isArray(conditions) || conditions.length < 2) {
       throw new Error('Two or more conditions needed for aggregation.');
