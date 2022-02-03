@@ -12,7 +12,7 @@ import { Context } from 'koa';
 import { HttpCode } from '../types';
 
 const DEFAULT_ITEMS_PER_PAGE = 15;
-const DEFAULT_PAGE_TO_SKIP = 0;
+const DEFAULT_PAGE_TO_SKIP = 1;
 
 export default class QueryStringParser {
   static parseProjection(collection: Collection, context: Context): Projection {
