@@ -18,7 +18,12 @@ import CollectionSchemaConverter from './utils/collection-schema-to-model-attrib
 export default class LiveCollection extends SequelizeCollection {
   private synched = false;
 
-  constructor(name: string, dataSource: DataSource, sequelize: Sequelize, schema?: CollectionSchema) {
+  constructor(
+    name: string,
+    dataSource: DataSource,
+    sequelize: Sequelize,
+    schema?: CollectionSchema,
+  ) {
     super(
       name,
       dataSource,

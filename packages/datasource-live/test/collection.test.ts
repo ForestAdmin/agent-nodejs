@@ -97,6 +97,7 @@ const preloadRecords = async (recordCount, schema, options) => {
   }
 
   await liveCollection.sync();
+
   const sequelizeRecords = await sequelize
     .model(liveCollection.name)
     .bulkCreate(recordData, { returning: true });
