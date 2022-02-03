@@ -28,8 +28,10 @@ export default class LiveDataSource extends SequelizeDataSource {
   }
 
   async syncCollections(): Promise<boolean> {
-    return Promise.all(
+    await Promise.all(
       this.collections.map(collection => (collection as LiveCollection).sync()),
-    ).then(() => true);
+    );
+
+    return true;
   }
 }
