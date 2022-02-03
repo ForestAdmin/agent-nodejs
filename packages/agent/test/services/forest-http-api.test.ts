@@ -280,7 +280,14 @@ describe('ForestHttpApi', () => {
     });
 
     describe('when the call fails', () => {
-      test('should throw an error if a known error code is dispatched', async () => {
+      test('should throw an error if an error with no status code is dispatched', async () => {
+        superagentMock.set.mockRejectedValue({ response: { status: 0 } });
+
+        const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
+        await expect(service.uploadSchema({})).rejects.toThrow(/Are you online/);
+      });
+
+      test('should throw an error if an error with 404 status is dispatched', async () => {
         superagentMock.set.mockRejectedValue({ response: { status: 404 } });
 
         const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
@@ -289,7 +296,16 @@ describe('ForestHttpApi', () => {
         );
       });
 
-      test('should throw an error if a unexpected error', async () => {
+      test('should throw an error if an error with 503 status is dispatched', async () => {
+        superagentMock.set.mockRejectedValue({ response: { status: 503 } });
+
+        const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
+        await expect(service.uploadSchema({})).rejects.toThrow(
+          /Forest is in maintenance for a few minutes/,
+        );
+      });
+
+      test('should throw an error if a unexpected error is dispatched', async () => {
         superagentMock.set.mockRejectedValue(new Error());
 
         const service = new ForestHttpApi('http://api.url', 'myEnvSecret');
