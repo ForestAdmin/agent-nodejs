@@ -1,6 +1,6 @@
 import nock from 'nock';
 import superagent from 'superagent';
-import agent from '../dist/agent';
+import start from '../dist/index';
 
 describe('agent', () => {
   test('should start a server on port 3352', async () => {
@@ -14,7 +14,7 @@ describe('agent', () => {
 
     nock('https://fake-registration-endpoint.org').post('/').reply(201, { client_id: 'xx' });
 
-    const stop = await agent(3352, 'localhost', {
+    const stop = await start(3352, 'localhost', {
       prefix: '/forest',
       authSecret: 'xxx',
       envSecret: 'yyy',
