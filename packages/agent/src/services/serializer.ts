@@ -73,10 +73,10 @@ export default class Serializer {
     });
   }
 
-  private buildRelationshipsConfiguration(collection: Collection): {
-    [key: string]: JsonApiSerializer.RelationshipOptions;
-  } {
-    const relationships = {};
+  private buildRelationshipsConfiguration(
+    collection: Collection,
+  ): Record<string, JsonApiSerializer.RelationshipOptions> {
+    const relationships: Record<string, JsonApiSerializer.RelationshipOptions> = {};
     const urlPrefix = `${this.prefix}/${collection.name}`;
 
     for (const [name, field] of Object.entries(collection.schema.fields)) {
@@ -105,11 +105,13 @@ export default class Serializer {
       return;
     }
 
-    for (const key of Object.keys(record)) {
-      if (record[key] === undefined) {
-        delete record[key];
+    const indexable = record as Record<string, unknown>;
+
+    for (const key of Object.keys(indexable)) {
+      if (indexable[key] === undefined) {
+        delete indexable[key];
       } else {
-        this.stripUndefinedsInPlace(record[key]);
+        this.stripUndefinedsInPlace(indexable[key]);
       }
     }
   }

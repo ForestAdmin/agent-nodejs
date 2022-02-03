@@ -86,11 +86,19 @@ export default class Aggregation implements AggregationComponents {
     timezone: string,
   ): Array<{ sum: number; count: number; starCount: number; group: Record<string, unknown> }> {
     // Group records according to buckets.
-    const groupingMap = {};
+    const groupingMap: Record<
+      string,
+      { sum: number; count: number; starCount: number; group: Record<string, unknown> }
+    > = {};
 
     for (const record of records) {
       // Compute grouping values & key
-      const intermediaryResult = { count: 0, starCount: 0, sum: 0, group: {} };
+      const intermediaryResult: {
+        sum: number;
+        count: number;
+        starCount: number;
+        group: Record<string, unknown>;
+      } = { count: 0, starCount: 0, sum: 0, group: {} };
       let uniqueKey = '';
 
       for (const { field, operation } of this.groups ?? []) {
@@ -113,7 +121,7 @@ export default class Aggregation implements AggregationComponents {
 
         if (aggregateValue !== undefined && aggregateValue !== null) {
           groupingMap[uniqueKey].count += 1; // i.e: count(column)
-          groupingMap[uniqueKey].sum += aggregateValue;
+          groupingMap[uniqueKey].sum += aggregateValue as number;
         }
       }
     }

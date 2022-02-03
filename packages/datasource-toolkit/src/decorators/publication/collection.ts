@@ -1,4 +1,4 @@
-import { CollectionSchema, FieldTypes } from '../../interfaces/schema';
+import { CollectionSchema, FieldSchema, FieldTypes } from '../../interfaces/schema';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 
@@ -24,7 +24,7 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
   }
 
   protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
-    const fields = {};
+    const fields: Record<string, FieldSchema> = {};
 
     for (const [name, field] of Object.entries(childSchema.fields)) {
       if (this.isPublished(name)) {

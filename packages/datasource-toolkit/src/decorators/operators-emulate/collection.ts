@@ -1,7 +1,12 @@
 import ConditionTree from '../../interfaces/query/condition-tree/base';
 import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/leaf';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
-import { CollectionSchema, ColumnSchema, RelationSchema } from '../../interfaces/schema';
+import {
+  CollectionSchema,
+  ColumnSchema,
+  FieldSchema,
+  RelationSchema,
+} from '../../interfaces/schema';
 import ConditionTreeUtils from '../../utils/condition-tree';
 import SchemaUtils from '../../utils/schema';
 import ConditionTreeValidator from '../../validation/condition-tree';
@@ -44,7 +49,7 @@ export default class OperatorsEmulate extends CollectionDecorator {
   }
 
   protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
-    const fields = {};
+    const fields: Record<string, FieldSchema> = {};
 
     for (const [name, schema] of Object.entries(childSchema.fields)) {
       if (this.fields.has(name)) {

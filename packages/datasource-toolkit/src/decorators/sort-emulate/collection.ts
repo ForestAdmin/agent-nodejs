@@ -2,7 +2,13 @@ import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
 import Sort, { SortClause } from '../../interfaces/query/sort';
 import { RecordData } from '../../interfaces/record';
-import { CollectionSchema, ColumnSchema, RelationSchema } from '../../interfaces/schema';
+import {
+  CollectionSchema,
+  ColumnSchema,
+  FieldSchema,
+  FieldTypes,
+  RelationSchema,
+} from '../../interfaces/schema';
 import CollectionUtils from '../../utils/collection';
 import ConditionTreeUtils from '../../utils/condition-tree';
 import RecordUtils from '../../utils/record';
@@ -58,10 +64,13 @@ export default class SortEmulate extends CollectionDecorator {
   }
 
   protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
-    const fields = {};
+    const fields: Record<string, FieldSchema> = {};
 
     for (const [name, schema] of Object.entries(childSchema.fields)) {
-      fields[name] = this.sorts.has(name) ? { ...schema, isSortable: true } : schema;
+      fields[name] =
+        this.sorts.has(name) && schema.type === FieldTypes.Column
+          ? { ...schema, isSortable: true }
+          : schema;
     }
 
     return { ...childSchema, fields };
