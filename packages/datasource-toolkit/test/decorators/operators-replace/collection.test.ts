@@ -52,6 +52,11 @@ describe('ConditionTreeOperators', () => {
       expect(schema.fields).toHaveProperty('rel');
     });
 
+    test('list() should work with a null condition tree', async () => {
+      await decorator.list(new PaginatedFilter({}), new Projection('col'));
+      expect(collectionList).toHaveBeenCalledWith({}, ['col']);
+    });
+
     test('list() should not modify supported operators', async () => {
       const tree = new ConditionTreeLeaf({
         field: 'col',
