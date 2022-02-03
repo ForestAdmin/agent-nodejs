@@ -31,16 +31,18 @@ export default class Serializer {
   }
 
   private getSerializer(collection: Collection): JsonApiSerializer {
-    if (!this.serializers.has(collection.schema)) {
-      const serializer = new JsonApiSerializer();
-
-      for (const sibling of collection.dataSource.collections) {
-        this.registerCollection(sibling, serializer);
-        this.serializers.set(sibling.schema, serializer);
-      }
+    if (this.serializers.has(collection.schema)) {
+      return this.serializers.get(collection.schema);
     }
 
-    return this.serializers.get(collection.schema);
+    const serializer = new JsonApiSerializer();
+
+    for (const sibling of collection.dataSource.collections) {
+      this.registerCollection(sibling, serializer);
+      this.serializers.set(sibling.schema, serializer);
+    }
+
+    return serializer;
   }
 
   private registerCollection(collection: Collection, serializer: JsonApiSerializer): void {

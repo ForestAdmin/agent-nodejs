@@ -2,7 +2,9 @@ import Serializer from '../../dist/services/serializer';
 import * as factories from '../__factories__';
 
 describe('Serializer', () => {
-  const serializer = new Serializer('/forest');
+  const setupSerializer = (): Serializer => {
+    return new Serializer('/forest');
+  };
 
   describe('With composite pk', () => {
     const dataSource = factories.dataSource.buildWithCollection({
@@ -27,12 +29,21 @@ describe('Serializer', () => {
     };
 
     test('should serialize', () => {
-      const result = serializer.serialize(dataSource.collections[0], person);
+      const result = setupSerializer().serialize(dataSource.collections[0], person);
       expect(result).toStrictEqual(serializedPerson);
     });
 
     test('should deserialize', () => {
+      const result = setupSerializer().deserialize(dataSource.collections[0], serializedPerson);
+      expect(result).toStrictEqual(person);
+    });
+
+    test('should use the serializer cache when a collection schema is already passed', () => {
+      const serializer = setupSerializer();
+      serializer.deserialize(dataSource.collections[0], serializedPerson);
+
       const result = serializer.deserialize(dataSource.collections[0], serializedPerson);
+
       expect(result).toStrictEqual(person);
     });
   });
@@ -95,12 +106,12 @@ describe('Serializer', () => {
     };
 
     test('should serialize a record with relations', () => {
-      const result = serializer.serialize(dataSource.collections[0], record);
+      const result = setupSerializer().serialize(dataSource.collections[0], record);
       expect(result).toStrictEqual(serializedRecord);
     });
 
     test('should deserialize a json api into a record', () => {
-      const result = serializer.deserialize(dataSource.collections[0], serializedRecord);
+      const result = setupSerializer().deserialize(dataSource.collections[0], serializedRecord);
 
       expect(result).toStrictEqual(record);
     });
