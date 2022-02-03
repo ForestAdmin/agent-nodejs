@@ -1,3 +1,5 @@
+import { Sequelize } from 'sequelize';
+
 import {
   CollectionSchema,
   FieldTypes,
@@ -25,9 +27,9 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
           searchable: false,
           segments: [],
         };
-        const sequelize = {
+        const sequelize: Sequelize = {
           model: jest.fn(),
-        };
+        } as unknown as Sequelize;
 
         const relations = CollectionSchemaToModelRelationsConverter.convert(
           '__name__',
@@ -63,7 +65,7 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
         const model = { belongsTo, belongsToMany, hasMany, hasOne };
         const sequelize = {
           model: jest.fn(() => model),
-        };
+        } as unknown as Sequelize;
 
         return {
           belongsTo,
@@ -138,7 +140,7 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
           expect(belongsTo).toHaveBeenCalledTimes(1);
           expect(belongsTo).toHaveBeenCalledWith(model, { targetKey: schema.fields.a.foreignKey });
           expect(hasOne).toHaveBeenCalledTimes(1);
-          expect(hasOne).toHaveBeenCalledWith(model, {});
+          expect(hasOne).toHaveBeenCalledWith(model);
         });
       });
 
@@ -171,9 +173,9 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
           expect(relations[1]).toBe(belongsToRelation);
           expect(sequelize.model).toHaveBeenCalledTimes(2);
           expect(belongsTo).toHaveBeenCalledTimes(1);
-          expect(belongsTo).toHaveBeenCalledWith(model, {});
+          expect(belongsTo).toHaveBeenCalledWith(model);
           expect(hasMany).toHaveBeenCalledTimes(1);
-          expect(hasMany).toHaveBeenCalledWith(model, { targetKey: schema.fields.a.foreignKey });
+          expect(hasMany).toHaveBeenCalledWith(model, { foreignKey: schema.fields.a.foreignKey });
         });
       });
 
@@ -199,9 +201,9 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
           expect(relations[1]).toBe(belongsToRelation);
           expect(sequelize.model).toHaveBeenCalledTimes(2);
           expect(belongsTo).toHaveBeenCalledTimes(1);
-          expect(belongsTo).toHaveBeenCalledWith(model, {});
+          expect(belongsTo).toHaveBeenCalledWith(model);
           expect(hasOne).toHaveBeenCalledTimes(1);
-          expect(hasOne).toHaveBeenCalledWith(model, { targetKey: schema.fields.a.foreignKey });
+          expect(hasOne).toHaveBeenCalledWith(model, { foreignKey: schema.fields.a.foreignKey });
         });
       });
     });

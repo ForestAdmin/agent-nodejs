@@ -27,17 +27,17 @@ export default class CollectionSchemaToModelRelationsConverter {
       } else if (field.type === FieldTypes.ManyToOne) {
         relations.push(
           sourceModel.belongsTo(targetModel, { targetKey: field.foreignKey }),
-          targetModel.hasOne(sourceModel, {}),
+          targetModel.hasOne(sourceModel),
         );
       } else if (field.type === FieldTypes.OneToMany) {
         relations.push(
-          sourceModel.hasMany(targetModel, { targetKey: field.foreignKey }),
-          targetModel.belongsTo(sourceModel, {}),
+          sourceModel.hasMany(targetModel, { foreignKey: field.foreignKey }),
+          targetModel.belongsTo(sourceModel),
         );
       } else if (field.type === FieldTypes.OneToOne) {
         relations.push(
-          sourceModel.hasOne(targetModel, { targetKey: field.foreignKey }),
-          targetModel.belongsTo(sourceModel, {}),
+          sourceModel.hasOne(targetModel, { foreignKey: field.foreignKey }),
+          targetModel.belongsTo(sourceModel),
         );
       }
     });
