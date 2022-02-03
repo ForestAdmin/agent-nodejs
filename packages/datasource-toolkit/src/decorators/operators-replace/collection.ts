@@ -43,9 +43,8 @@ export default class OperatorsDecorator extends CollectionDecorator {
     return filter?.override({
       conditionTree: filter.conditionTree?.replaceLeafs(leaf => {
         const schema = CollectionUtils.getFieldSchema(this.childCollection, leaf.field);
-        const replacer = this.getReplacer(leaf.operator, schema as ColumnSchema);
 
-        return replacer ? replacer(leaf, filter.timezone) : leaf;
+        return this.getReplacer(leaf.operator, schema as ColumnSchema)(leaf, filter.timezone);
       }),
     });
   }
