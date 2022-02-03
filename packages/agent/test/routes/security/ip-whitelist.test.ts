@@ -72,10 +72,11 @@ describe('IpWhitelist', () => {
     describe('when the feature is enabled', () => {
       const setupServiceWith = (
         ipWhitelistService: IpWhitelist,
-        values: { isFeatureEnabled: any; ipRules: any },
+        values: { isFeatureEnabled: boolean; ipRules: unknown[] },
       ) => {
-        const { isFeatureEnabled, ipRules } = values;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { services } = ipWhitelistService as any;
+        const { isFeatureEnabled, ipRules } = values;
         services.forestHTTPApi.getIpWhitelist = jest.fn().mockResolvedValue({
           isFeatureEnabled,
           ipRules,
