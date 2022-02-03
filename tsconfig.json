@@ -10,7 +10,7 @@
     "inlineSourceMap": true,
     "noImplicitOverride": true,
     "stripInternal": true,
-    "noImplicitAny": true
+    "noImplicitAny": false
   },
   "files": ["global.d.ts"]
 }
