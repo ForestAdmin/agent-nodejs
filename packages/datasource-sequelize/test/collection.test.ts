@@ -261,7 +261,7 @@ describe('SequelizeDataSource > Collection', () => {
       const patch = { field: '__value__' };
       const filter = new Filter({});
 
-      await expect(sequelizeCollection.update(filter, patch)).resolves.toBe(null);
+      await expect(sequelizeCollection.update(filter, patch)).resolves.not.toThrow();
 
       expect(update).toHaveBeenCalledWith(
         patch,
@@ -290,7 +290,7 @@ describe('SequelizeDataSource > Collection', () => {
       const { destroy, sequelizeCollection } = setup();
       const filter = new Filter({});
 
-      await expect(sequelizeCollection.delete(filter)).resolves.toBe(null);
+      await expect(sequelizeCollection.delete(filter)).resolves.not.toThrow();
 
       expect(destroy).toHaveBeenCalledTimes(1);
     });
