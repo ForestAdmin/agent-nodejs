@@ -1,15 +1,9 @@
-import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
+import { LiveDataSource } from '../dist';
 
-import getCollections, { LiveDataSource } from '../dist';
-
-const emptyDataSourceSchema: DataSourceSchema = {
-  collections: {},
-};
-
-describe('getCollections', () => {
-  it('should return LiveDataSource collections', () => {
-    const liveDataSource = new LiveDataSource(emptyDataSourceSchema);
-
-    expect(getCollections(emptyDataSourceSchema)).toEqual(liveDataSource.collections);
+describe('exports', () => {
+  describe.each([['LiveDataSource', LiveDataSource]])('class %s', (message, type) => {
+    it('should be defined', () => {
+      expect(type).toBeDefined();
+    });
   });
 });
