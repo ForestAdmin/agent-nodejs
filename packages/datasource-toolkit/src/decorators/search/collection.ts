@@ -1,6 +1,9 @@
 import { DataSource } from '../../interfaces/collection';
 import ConditionTree from '../../interfaces/query/condition-tree/base';
-import { Operator } from '../../interfaces/query/condition-tree/leaf';
+import ConditionTreeLeaf, {
+  LeafComponents,
+  Operator,
+} from '../../interfaces/query/condition-tree/leaf';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import {
   CollectionSchema,
@@ -58,7 +61,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   ): ConditionTree {
     const searchType = TypeGetter.get(searchString);
     const { columnType, enumValues } = schema;
-    let condition = null;
+    let condition: LeafComponents = null;
 
     if (
       PrimitiveTypes.Enum === columnType &&
@@ -77,7 +80,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       condition = { field, operator: Operator.Contains, value: searchString };
     }
 
-    return condition;
+    return condition ? new ConditionTreeLeaf(condition) : null;
   }
 
   private static getEnumValue(enumValues: string[], searchString: string): string {
