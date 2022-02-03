@@ -8,8 +8,7 @@ export default class CollectionSchemaToModelRelationsConverter {
 
     const sourceModel = sequelize.model(name);
 
-    // FIXME: use values
-    Object.entries(schema.fields).forEach(([, field]) => {
+    Object.values(schema.fields).forEach(field => {
       if (field.type === FieldTypes.Column) return;
 
       const targetModel = sequelize.model(field.foreignCollection);
