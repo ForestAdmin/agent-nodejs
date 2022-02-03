@@ -82,7 +82,7 @@ describe('SequelizeDataSource > Collection', () => {
     }
 
     class CollectionWithAction extends SequelizeCollection {
-      constructor(name, datasource: DataSource, sequelize) {
+      constructor(name: string, datasource: DataSource, sequelize: Sequelize) {
         super(name, datasource, sequelize);
 
         this.addAction('__action__', { scope: ActionSchemaScope.Single }, new TestAction());

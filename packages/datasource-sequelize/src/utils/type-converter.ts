@@ -3,7 +3,10 @@ import { ColumnType, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export default class TypeConverter {
   // TODO: Allow to differentiate NUMBER and INTEGER.
-  private static readonly columnTypeToDataType = {
+  private static readonly columnTypeToDataType: Record<
+    PrimitiveTypes,
+    AbstractDataTypeConstructor
+  > = {
     [PrimitiveTypes.Boolean]: DataTypes.BOOLEAN,
     [PrimitiveTypes.Date]: DataTypes.DATE,
     [PrimitiveTypes.Dateonly]: DataTypes.DATEONLY,
@@ -25,7 +28,7 @@ export default class TypeConverter {
     return dataType;
   }
 
-  private static readonly dataTypeToColumnType = {
+  private static readonly dataTypeToColumnType: Record<string, PrimitiveTypes> = {
     ARRAY: null,
     BIGINT: PrimitiveTypes.Number,
     BLOB: null,

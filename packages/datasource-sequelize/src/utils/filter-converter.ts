@@ -10,7 +10,8 @@ import {
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 
-function makeWhereClause(operator: Operator, value?): WhereOperators | OrOperator {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makeWhereClause(operator: Operator, value?: any): WhereOperators | OrOperator {
   if (operator === null) throw new Error('Invalid (null) operator.');
 
   switch (operator) {
@@ -48,38 +49,48 @@ function makeWhereClause(operator: Operator, value?): WhereOperators | OrOperato
 }
 
 function convertConditionTreeToSequelize(conditionTree: ConditionTree): WhereOptions {
-  const sequelizeWhereClause = {};
+  // @fixme
+  // According to sequelize typing files, the 'not' handling in this function is not legal.
 
-  if ((conditionTree as ConditionTreeBranch).aggregator !== undefined) {
-    const { aggregator, conditions } = conditionTree as ConditionTreeBranch;
+  // I'm disabling the compiler, but we should either open a PR on sequelize, or fix this
+  // Good  { fieldName: { [Op.not]: { [Op.eq]: 1 } } }
+  // Bad   { [Op.not]: { fieldName: { [Op.eq]: 1 } } }
+
+  let sequelizeWhereClause: WhereOptions = null;
+
+  if (conditionTree instanceof ConditionTreeBranch) {
+    const sequelizeOperator = conditionTree.aggregator === Aggregator.And ? Op.and : Op.or;
+    const { aggregator, conditions } = conditionTree;
 
     if (aggregator === null) {
       throw new Error('Invalid (null) aggregator.');
     }
 
-    const sequelizeOperator = aggregator === Aggregator.And ? Op.and : Op.or;
-
     if (!Array.isArray(conditions) || conditions.length < 2) {
       throw new Error('Two or more conditions needed for aggregation.');
     }
 
-    sequelizeWhereClause[sequelizeOperator] = conditions.map(condition =>
-      convertConditionTreeToSequelize(condition),
-    );
-  } else if ((conditionTree as ConditionTreeNot).condition !== undefined) {
-    const { condition } = conditionTree as ConditionTreeNot;
+    sequelizeWhereClause = {
+      [sequelizeOperator]: conditions.map(condition => convertConditionTreeToSequelize(condition)),
+    };
+  } else if (conditionTree instanceof ConditionTreeNot) {
+    const { condition } = conditionTree;
 
     if (condition === null) {
       throw new Error('Invalid (null) condition.');
     }
 
-    sequelizeWhereClause[Op.not] = convertConditionTreeToSequelize(
-      (conditionTree as ConditionTreeNot).condition,
-    );
-  } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
-    const { field, operator, value } = conditionTree as ConditionTreeLeaf;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    sequelizeWhereClause = {
+      [Op.not]: convertConditionTreeToSequelize(condition),
+    };
+  } else if (conditionTree instanceof ConditionTreeLeaf) {
+    const { field, operator, value } = conditionTree;
 
-    sequelizeWhereClause[field] = makeWhereClause(operator, value);
+    sequelizeWhereClause = {
+      [field]: makeWhereClause(operator, value as number | string),
+    };
   } else {
     throw new Error('Invalid ConditionTree.');
   }

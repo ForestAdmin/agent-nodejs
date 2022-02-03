@@ -1,4 +1,3 @@
-import { Op } from 'sequelize';
 import {
   Aggregator,
   ConditionTreeBranch,
@@ -10,7 +9,7 @@ import {
   PaginatedFilter,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-
+import { Op } from 'sequelize';
 import {
   convertFilterToSequelize,
   convertPaginatedFilterToSequelize,
@@ -154,7 +153,7 @@ describe('Utils > FilterConverter', () => {
           'should generate a "where" Sequelize filter from a "%s" ConditionTreeLeaf',
           (operator, value, where) => {
             const conditionTree = new ConditionTreeLeaf({
-              operator: Operator[operator.split('.')[1]],
+              operator: Operator[operator.split('.')[1] as keyof typeof Operator],
               field: '__field__',
               value,
             });

@@ -42,7 +42,7 @@ export default class SequelizeCollection extends BaseCollection {
   }
 
   override async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    const actualId = {};
+    const actualId: Record<string, CompositeId[number]> = {};
 
     SchemaUtils.getPrimaryKeys(this.schema).forEach((field, index) => {
       actualId[field] = id[index];
@@ -109,7 +109,7 @@ export default class SequelizeCollection extends BaseCollection {
     });
 
     const result = aggregates.map(aggregate => {
-      const aggregateResult = {
+      const aggregateResult: AggregateResult = {
         value: aggregate.get(aggregateFieldName) as number,
         group: {},
       };
