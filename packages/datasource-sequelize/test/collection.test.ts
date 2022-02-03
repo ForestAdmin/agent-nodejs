@@ -140,7 +140,7 @@ describe('SequelizeDataSource > Collection', () => {
     it('should delegate work to `sequelize.model.findOne`', async () => {
       const { findOne, recordData, sequelizeCollection } = setup();
       const compositeId = [42];
-      const projection: Projection = Symbol('projection') as unknown as Projection;
+      const projection = new Projection();
 
       await expect(sequelizeCollection.getById(compositeId, projection)).resolves.toBe(recordData);
       expect(findOne).toHaveBeenCalledWith({
@@ -215,7 +215,7 @@ describe('SequelizeDataSource > Collection', () => {
     it('should delegate work to `sequelize.model.findAll`', async () => {
       const { findAll, recordData, sequelizeCollection } = setup();
       const filter = new Filter({});
-      const projection = Symbol('projection') as unknown as Projection;
+      const projection = new Projection();
 
       const result = await sequelizeCollection.list(filter, projection);
 

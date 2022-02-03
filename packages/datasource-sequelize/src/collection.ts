@@ -41,7 +41,7 @@ export default class SequelizeCollection extends BaseCollection {
     this.addSegments(modelSchema.segments);
   }
 
-  async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
+  override async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
     const actualId = {};
 
     SchemaUtils.getPrimaryKeys(this.schema).forEach((field, index) => {
