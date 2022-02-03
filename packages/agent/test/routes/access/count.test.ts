@@ -43,6 +43,7 @@ describe('CountRoute', () => {
       expect(context.throw).not.toHaveBeenCalled();
       expect(aggregateSpy).toHaveBeenCalledWith(
         {
+          conditionTree: null,
           search: null,
           searchExtended: false,
           segment: null,

@@ -11,6 +11,7 @@ export default class ListRoute extends CollectionBaseRoute {
 
   public async handleList(context: Context) {
     const paginatedFilter = new PaginatedFilter({
+      conditionTree: QueryStringParser.parseConditionTree(this.collection, context),
       search: QueryStringParser.parseSearch(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.collection, context),
