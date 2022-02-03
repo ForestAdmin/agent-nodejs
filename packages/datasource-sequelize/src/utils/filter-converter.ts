@@ -47,7 +47,6 @@ function makeWhereClause(operator: Operator, value?): WhereOperators | OrOperato
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function convertConditionTreeToSequelize(conditionTree: ConditionTree): WhereOptions {
   const sequelizeWhereClause = {};
 
@@ -88,14 +87,12 @@ function convertConditionTreeToSequelize(conditionTree: ConditionTree): WhereOpt
   return sequelizeWhereClause;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function convertFilterToSequelize(filter: Filter): FindOptions {
   if (!filter) {
     throw new Error('Invalid (null) filter.');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sequelizeFilter: any = {};
+  const sequelizeFilter: FindOptions = {};
 
   if (filter.conditionTree) {
     sequelizeFilter.where = convertConditionTreeToSequelize(filter.conditionTree);
