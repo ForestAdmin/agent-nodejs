@@ -12,8 +12,9 @@ describe('Authentication', () => {
 
   jest.mock('openid-client', () => ({ Issuer: {} }));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const createAuthenticationRoutesUsingIssuerClientMock = async (mock: any) => {
+  const createAuthenticationRoutesUsingIssuerClientMock = async (
+    mock: Record<string, jest.Mock>,
+  ) => {
     const authentication = new Authentication(services, dataSource, options);
     openidClient.Issuer = jest.fn().mockImplementation(() => ({
       Client: {
