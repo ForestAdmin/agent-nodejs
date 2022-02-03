@@ -25,6 +25,8 @@ describe('QueryStringParser', () => {
           });
 
           const projection = QueryStringParser.parseProjection(collectionSimple, context);
+
+          expect(context.throw).not.toBeCalled();
           expect(projection).toEqual(['id']);
         });
 
@@ -35,6 +37,8 @@ describe('QueryStringParser', () => {
             });
 
             const projection = QueryStringParser.parseProjection(collectionSimple, context);
+
+            expect(context.throw).not.toBeCalled();
             expect(projection).toEqual(['name', 'id']);
           });
         });
@@ -48,6 +52,7 @@ describe('QueryStringParser', () => {
             });
 
             QueryStringParser.parseProjection(collectionSimple, context);
+
             expect(context.throw).toHaveBeenCalledWith(
               HttpCode.BadRequest,
               expect.stringContaining('Invalid projection'),
@@ -62,6 +67,7 @@ describe('QueryStringParser', () => {
             });
 
             QueryStringParser.parseProjection(collectionSimple, context);
+
             expect(context.throw).toHaveBeenCalledWith(
               HttpCode.BadRequest,
               expect.stringContaining('Invalid projection'),
@@ -119,6 +125,7 @@ describe('QueryStringParser', () => {
         customProperties: { query: { search: 'searched argument' } },
       });
 
+      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSearch(context)).toEqual('searched argument');
     });
 
@@ -127,6 +134,7 @@ describe('QueryStringParser', () => {
         customProperties: { query: { search: 1234 } },
       });
 
+      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSearch(context)).toEqual('1234');
     });
   });
@@ -137,6 +145,7 @@ describe('QueryStringParser', () => {
         customProperties: { query: { searchExtended: true } },
       });
 
+      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSearchExtended(context)).toEqual(true);
     });
 
@@ -145,6 +154,7 @@ describe('QueryStringParser', () => {
         customProperties: { query: { searchExtended: '0' } },
       });
 
+      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSearchExtended(context)).toEqual(false);
     });
 
@@ -153,6 +163,7 @@ describe('QueryStringParser', () => {
         customProperties: { query: { searchExtended: 'false' } },
       });
 
+      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSearchExtended(context)).toEqual(false);
     });
   });
@@ -163,6 +174,7 @@ describe('QueryStringParser', () => {
         customProperties: { query: {} },
       });
 
+      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSegment(collectionSimple, context)).toEqual(null);
     });
 
@@ -171,6 +183,7 @@ describe('QueryStringParser', () => {
         customProperties: { query: { segment: 'fake-segment' } },
       });
 
+      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSegment(collectionSimple, context)).toEqual('fake-segment');
     });
 
@@ -194,6 +207,7 @@ describe('QueryStringParser', () => {
         customProperties: { query: { timezone: 'America/Los_Angeles' } },
       });
 
+      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseTimezone(context)).toEqual('America/Los_Angeles');
     });
 
@@ -263,6 +277,7 @@ describe('QueryStringParser', () => {
 
       const pagination = QueryStringParser.parsePagination(context);
 
+      expect(context.throw).not.toBeCalled();
       expect(pagination.limit).toEqual(10);
       expect(pagination.skip).toEqual(20);
     });
@@ -275,6 +290,7 @@ describe('QueryStringParser', () => {
 
         const pagination = QueryStringParser.parsePagination(context);
 
+        expect(context.throw).not.toBeCalled();
         expect(pagination.limit).toEqual(15);
         expect(pagination.skip).toEqual(0);
       });
@@ -304,6 +320,7 @@ describe('QueryStringParser', () => {
 
       const sort = QueryStringParser.parseSort(collectionSimple, context);
 
+      expect(context.throw).not.toBeCalled();
       expect(sort).toEqual([{ field: 'id', ascending: true }]);
     });
 
@@ -314,6 +331,7 @@ describe('QueryStringParser', () => {
 
       const sort = QueryStringParser.parseSort(collectionSimple, context);
 
+      expect(context.throw).not.toBeCalled();
       expect(sort).toEqual([{ field: 'name', ascending: false }]);
     });
 
