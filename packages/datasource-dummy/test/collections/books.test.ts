@@ -44,23 +44,12 @@ describe('DummyDataSource > Collections > Books', () => {
     it('should return a record with a proper ID and projection', async () => {
       const bookCollection = instanciateCollection();
 
-      expect(await bookCollection.getById([42], new Projection('id', 'title'))).toEqual(
+      expect(await bookCollection.getById([2], new Projection('id', 'title'))).toEqual(
         expect.objectContaining({
           id: expect.toBeNumber(),
           title: expect.toBeString(),
         }),
       );
-    });
-
-    describe('with an invalid projection', () => {
-      it('should throw an error with an unknown field', async () => {
-        const bookCollection = instanciateCollection();
-        const unknownField = '__no_such_field__';
-
-        await expect(() =>
-          bookCollection.getById([42], new Projection(unknownField)),
-        ).rejects.toThrow(`No such field "${unknownField}" in schema`);
-      });
     });
   });
 
@@ -74,17 +63,17 @@ describe('DummyDataSource > Collections > Books', () => {
   });
 
   describe('list', () => {
-    it('should return a default 10 record list', async () => {
+    it('should return all records', async () => {
       const bookCollection = instanciateCollection();
       const paginatedFilter = new PaginatedFilter({});
       const projection = new Projection();
 
-      expect(await bookCollection.list(paginatedFilter, projection)).toBeArrayOfSize(10);
+      expect(await bookCollection.list(paginatedFilter, projection)).toBeArrayOfSize(6);
     });
 
     it('should return a record list of size matching the paginated filter', async () => {
       const bookCollection = instanciateCollection();
-      const expectedPageLimit = 42;
+      const expectedPageLimit = 3;
       const paginatedFilter = new PaginatedFilter({ page: new Page(0, expectedPageLimit) });
       const projection = new Projection();
 
@@ -113,7 +102,7 @@ describe('DummyDataSource > Collections > Books', () => {
   describe('aggregate', () => {
     it('should return rows matching the paginated filter', async () => {
       const bookCollection = instanciateCollection();
-      const expectedPageLimit = 42;
+      const expectedPageLimit = 3;
       const paginatedFilter = new PaginatedFilter({ page: new Page(0, expectedPageLimit) });
       const aggregation = new Aggregation({
         operation: AggregationOperation.Count,
@@ -132,7 +121,10 @@ describe('DummyDataSource > Collections > Books', () => {
         groups: [{ field: 'title' }, { field: 'authorId' }],
       });
 
-      const rows = await bookCollection.aggregate(null, aggregation);
+      const rows = await bookCollection.aggregate(
+        new PaginatedFilter({ timezone: 'Europe/Paris' }),
+        aggregation,
+      );
       rows.map(row => expect(Object.keys(row.group)).toBeArrayOfSize(aggregation.groups.length));
     });
   });

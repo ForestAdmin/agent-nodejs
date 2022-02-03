@@ -7,10 +7,6 @@ import { ActionSchema, ColumnSchema, FieldSchema } from '../dist/interfaces/sche
 import * as factories from './__factories__';
 
 class ConcreteCollection extends BaseCollection {
-  getById(): Promise<RecordData> {
-    throw new Error('Method not implemented.');
-  }
-
   create(): Promise<RecordData[]> {
     throw new Error('Method not implemented.');
   }
