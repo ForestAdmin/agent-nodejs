@@ -3,6 +3,7 @@
 import { ForestAdminHttpDriver, ForestAdminHttpDriverOptions } from '@forestadmin/agent';
 import { DummyDataSource } from '@forestadmin/datasource-dummy';
 import {
+  DataSource,
   DataSourceDecorator,
   OperatorsEmulateCollectionDecorator,
   OperatorsReplaceCollectionDecorator,
@@ -19,7 +20,8 @@ export default async function start(
   serverHost: string,
   options: ForestAdminHttpDriverOptions,
 ) {
-  let dataSource = new DummyDataSource();
+  let dataSource: DataSource;
+  dataSource = new DummyDataSource();
   dataSource = new DataSourceDecorator(dataSource, OperatorsEmulateCollectionDecorator);
   dataSource = new DataSourceDecorator(dataSource, OperatorsReplaceCollectionDecorator);
   dataSource = new DataSourceDecorator(dataSource, SortEmulateCollectionDecorator);
