@@ -8,7 +8,7 @@ import {
 import Router from '@koa/router';
 import { Context } from 'koa';
 import QueryStringParser from '../../utils/query-string';
-import { RelationRoute } from '../collection-base-route';
+import RelationRoute from '../relation-route';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 

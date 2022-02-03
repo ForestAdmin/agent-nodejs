@@ -6,7 +6,7 @@ import {
 import Router from '@koa/router';
 import { Context } from 'koa';
 import QueryStringParser from '../../utils/query-string';
-import { CollectionRoute } from '../collection-base-route';
+import CollectionRoute from '../collection-base-route';
 import { HttpCode } from '../../types';
 
 export default class CountRoute extends CollectionRoute {

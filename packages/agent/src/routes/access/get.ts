@@ -2,7 +2,7 @@ import { CompositeId, FieldTypes, Projection } from '@forestadmin/datasource-too
 import Router from '@koa/router';
 import { Context } from 'koa';
 import IdUtils from '../../utils/id';
-import { CollectionRoute } from '../collection-base-route';
+import CollectionRoute from '../collection-base-route';
 
 export default class GetRoute extends CollectionRoute {
   private static RECORD_NOT_FOUND_ERROR = 'Record does not exist';
