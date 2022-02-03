@@ -76,14 +76,10 @@ export default class SequelizeCollection extends BaseCollection {
       ...(convertPaginatedFilterToSequelize(filter) as UpdateOptions),
       fields: Object.keys(patch),
     });
-
-    return null;
   }
 
   async delete(filter: Filter): Promise<void> {
     await this.model.destroy({ ...convertPaginatedFilterToSequelize(filter) });
-
-    return null;
   }
 
   async aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
