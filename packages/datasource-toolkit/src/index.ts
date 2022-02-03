@@ -5,6 +5,7 @@ export { default as BaseCollection } from './base-collection';
 export { default as BaseDataSource } from './base-datasource';
 export { default as DataSourceDecorator } from './decorators/datasource-decorator';
 
+export { default as ComputedCollectionDecorator } from './decorators/computed/collection';
 export { default as OperatorsEmulateCollectionDecorator } from './decorators/operators-emulate/collection';
 export { default as OperatorsReplaceCollectionDecorator } from './decorators/operators-replace/collection';
 export { default as PublicationCollectionDecorator } from './decorators/publication/collection';
