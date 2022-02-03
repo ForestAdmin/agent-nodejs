@@ -377,7 +377,7 @@ describe('LiveDataSource > Collection', () => {
       );
     });
 
-    it('should resolve with `null`', async () => {
+    it('should resolve', async () => {
       const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
       const filter = new Filter({
         conditionTree: new ConditionTreeLeaf({
@@ -388,7 +388,7 @@ describe('LiveDataSource > Collection', () => {
       });
       const patch = { value: '__new__value__' };
 
-      await expect(liveCollection.update(filter, patch)).resolves.toBeNull();
+      await expect(liveCollection.update(filter, patch)).resolves.not.toThrow();
     });
 
     it('should update records honoring filter and patch', async () => {
@@ -429,7 +429,7 @@ describe('LiveDataSource > Collection', () => {
       );
     });
 
-    it('should resolve with `null`', async () => {
+    it('should resolve', async () => {
       const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
       const filter = new Filter({
         conditionTree: new ConditionTreeLeaf({
@@ -439,7 +439,7 @@ describe('LiveDataSource > Collection', () => {
         }),
       });
 
-      await expect(liveCollection.delete(filter)).resolves.toBeNull();
+      await expect(liveCollection.delete(filter)).resolves.not.toThrow();
     });
 
     it('should delete records honoring filter', async () => {
