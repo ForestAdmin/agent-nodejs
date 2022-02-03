@@ -6,7 +6,7 @@ import TypeConverter from '../../dist/utils/type-converter';
 describe('Utils > TypeConverter', () => {
   describe('fromColumnType', () => {
     it('should throw with an unknown column type', () => {
-      expect(() => TypeConverter.fromColumnType('__unknown__')).toThrow(
+      expect(() => TypeConverter.fromColumnType('__unknown__' as PrimitiveTypes)).toThrow(
         'Unsupported column type: "__unknown__".',
       );
     });
