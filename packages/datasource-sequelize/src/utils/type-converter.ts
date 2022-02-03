@@ -16,6 +16,7 @@ export default class TypeConverter {
     [PrimitiveTypes.Uuid]: DataTypes.UUID,
   };
 
+  // TODO: Handle all ColumnTypes, not only PrimitiveTypes?
   public static fromColumnType(columnType: PrimitiveTypes): AbstractDataTypeConstructor {
     const dataType = TypeConverter.columnTypeToDataType[columnType];
 

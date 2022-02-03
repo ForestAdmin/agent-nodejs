@@ -24,7 +24,7 @@ export default class CollectionSchemaToModelAttributesConverter {
   private static convertColumn(field: ColumnSchema) {
     const attribute = {
       primaryKey: Boolean(field.isPrimaryKey),
-      type: TypeConverter.fromColumnType(field.columnType),
+      type: TypeConverter.fromColumnType(field.columnType as PrimitiveTypes),
       autoIncrement: false,
     };
 
