@@ -1,4 +1,4 @@
-import { Op, WhereAttributeHash } from 'sequelize';
+import { Op } from 'sequelize';
 import {
   Aggregator,
   ConditionTreeBranch,
