@@ -71,7 +71,7 @@ export default class CollectionUtils {
       Object.entries(aggregateResult.group).forEach(([field, result]) => {
         if (field.startsWith(schema.otherField)) {
           const suffix = field.substring(schema.otherField.length + ':'.length);
-          newResult[suffix] = result[field];
+          newResult.group[suffix] = result;
         }
       });
 
