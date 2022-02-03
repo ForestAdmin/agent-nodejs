@@ -167,14 +167,10 @@ describe('Utils > FilterConverter', () => {
             expect(sequelizeFilter).toEqual(
               expect.objectContaining({
                 where: expect.objectContaining({
-                  __field__: expect.anything(),
+                  __field__: where,
                 }),
               }),
             );
-
-            const { __field__: fieldClause } = sequelizeFilter.where as WhereAttributeHash;
-
-            expect(fieldClause).toEqual(where);
           },
         );
 
