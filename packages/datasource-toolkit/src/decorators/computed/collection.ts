@@ -44,11 +44,12 @@ export default class ComputedCollection extends CollectionDecorator {
 
   override async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
     const childProjection = projection.replace(path => rewriteField(this, path));
-    let records: RecordData[];
-    records = [await this.childCollection.getById(id, childProjection)];
-    records = await computeFromRecords(this, childProjection, projection, records);
+    const childRecord = await this.childCollection.getById(id, childProjection);
+    if (!childRecord) return null;
 
-    return records.length ? records[0] : null;
+    const records = await computeFromRecords(this, childProjection, projection, [childRecord]);
+
+    return records[0];
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
