@@ -7,6 +7,7 @@ import SequelizeCollection from './collection';
 export default class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
   protected sequelize: Sequelize = null;
 
+  // TODO: Remove `collections` as it is always passed as `[]`.
   constructor(collections: SequelizeCollection[], sequelize: Sequelize) {
     super();
 
