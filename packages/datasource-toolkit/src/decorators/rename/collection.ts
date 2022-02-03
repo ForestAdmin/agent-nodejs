@@ -68,7 +68,9 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
 
   protected override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
     return filter?.override({
-      conditionTree: filter.conditionTree?.replaceFields(f => this.pathToChildCollection(f)),
+      conditionTree: filter.conditionTree?.replaceFields(field =>
+        this.pathToChildCollection(field),
+      ),
       sort: filter.sort?.replaceClauses(clause => ({
         field: this.pathToChildCollection(clause.field),
         ascending: clause.ascending,
@@ -77,20 +79,22 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
   }
 
   override async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    const childProjection = projection.replace(f => this.pathToChildCollection(f));
+    const childProjection = projection.replace(field => this.pathToChildCollection(field));
     const record = await this.childCollection.getById(id, childProjection);
 
     return record ? this.recordFromChildCollection(record) : null;
   }
 
   override async create(records: RecordData[]): Promise<RecordData[]> {
-    const newRecords = await super.create(records.map(r => this.recordToChildCollection(r)));
+    const newRecords = await super.create(
+      records.map(record => this.recordToChildCollection(record)),
+    );
 
     return newRecords.map(record => this.recordFromChildCollection(record));
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    const childProjection = projection.replace(f => this.pathToChildCollection(f));
+    const childProjection = projection.replace(field => this.pathToChildCollection(field));
     const records = await super.list(filter, childProjection);
 
     return records.map(record => this.recordFromChildCollection(record));
