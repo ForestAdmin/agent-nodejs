@@ -1,7 +1,9 @@
+import { Sequelize } from 'sequelize';
+
 import { CollectionSchema, FieldTypes } from '@forestadmin/datasource-toolkit';
 
 export default class CollectionSchemaToModelRelationsConverter {
-  public static convert(name: string, schema: CollectionSchema, sequelize) {
+  public static convert(name: string, schema: CollectionSchema, sequelize: Sequelize) {
     const relations = [];
 
     const sourceModel = sequelize.model(name);

@@ -1,4 +1,4 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, ModelAttributeColumnOptions, ModelAttributes } from 'sequelize';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -9,8 +9,8 @@ import {
 import { TypeConverter } from '@forestadmin/datasource-sequelize';
 
 export default class CollectionSchemaToModelAttributesConverter {
-  public static convert(schema: CollectionSchema) {
-    const attributes = {};
+  public static convert(schema: CollectionSchema): ModelAttributes {
+    const attributes: ModelAttributes = {};
 
     Object.entries(schema.fields).forEach(([name, field]) => {
       if (field.type !== FieldTypes.Column) return;
@@ -21,8 +21,8 @@ export default class CollectionSchemaToModelAttributesConverter {
     return attributes;
   }
 
-  private static convertColumn(field: ColumnSchema) {
-    const attribute = {
+  private static convertColumn(field: ColumnSchema): ModelAttributeColumnOptions {
+    const attribute: ModelAttributeColumnOptions = {
       primaryKey: Boolean(field.isPrimaryKey),
       type: TypeConverter.fromColumnType(field.columnType as PrimitiveTypes),
       autoIncrement: false,
