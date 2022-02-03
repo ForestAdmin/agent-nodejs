@@ -1,3 +1,5 @@
+import { Sequelize } from 'sequelize';
+
 import {
   AggregateResult,
   Aggregation,
@@ -16,7 +18,7 @@ import CollectionSchemaConverter from './utils/collection-schema-to-model-attrib
 export default class LiveCollection extends SequelizeCollection {
   private synched = false;
 
-  constructor(name, dataSource: DataSource, sequelize, schema?: CollectionSchema) {
+  constructor(name: string, dataSource: DataSource, sequelize: Sequelize, schema?: CollectionSchema) {
     super(
       name,
       dataSource,
@@ -39,12 +41,10 @@ export default class LiveCollection extends SequelizeCollection {
   async sync(): Promise<boolean> {
     this.synched = false;
 
-    return this.model
-      .sync({ force: true })
-      .then(() => {
-        this.synched = true;
-      })
-      .then(() => true);
+    await this.model.sync({ force: true });
+    this.synched = true;
+
+    return true;
   }
 
   override getById(id: CompositeId, projection: Projection): Promise<RecordData> {
