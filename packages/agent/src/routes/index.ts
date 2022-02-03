@@ -7,7 +7,8 @@ import Get from './access/get';
 import HealthCheck from './healthcheck';
 import List from './access/list';
 import Update from './modification/update';
+import { RouteCtor } from './routes-factory';
 
-export const RootRoutesCtor = [Authentication, HealthCheck];
-export const CollectionRoutesCtor = [Count, Create, Delete, Get, List, Update];
-export const RelatedRoutesCtor = [CountRelatedRoute];
+export const RootRoutesCtor: RouteCtor[] = [Authentication, HealthCheck];
+export const CollectionRoutesCtor: RouteCtor[] = [Count, Create, Delete, Get, List, Update];
+export const RelatedRoutesCtor: RouteCtor[] = [CountRelatedRoute];

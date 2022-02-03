@@ -201,17 +201,58 @@ describe('CollectionUtils', () => {
 
   describe('aggregateRelation', () => {
     describe('when the relation is a one to many relation', () => {
+      const setupWithNotSupportedRelation = () => {
+        const books = factories.collection.build({
+          name: 'books',
+          schema: factories.collectionSchema.build({
+            fields: {
+              aNonSupportedRelation: factories.oneToOneSchema.build(),
+            },
+          }),
+        });
+
+        const aggregation = factories.aggregation.build();
+
+        return {
+          aggregation,
+          dataSource: factories.dataSource.buildWithCollections([books]),
+        };
+      };
+
+      it('should throw an error', async () => {
+        const { aggregation, dataSource } = setupWithNotSupportedRelation();
+
+        const baseFilter = factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build(),
+        });
+
+        await expect(() =>
+          CollectionUtils.aggregateRelation(
+            baseFilter,
+            2,
+            dataSource.getCollection('books'),
+            'aNonSupportedRelation',
+            aggregation,
+            dataSource,
+          ),
+        ).rejects.toThrowError(
+          'aggregateRelation method can only be used with OneToMany and ManyToMany relations',
+        );
+      });
+    });
+
+    describe('when the relation is a one to many relation', () => {
       const setupWithOneToManyRelation = () => {
-        const bookPersons = factories.collection.build({
-          name: 'bookPersons',
+        const reviews = factories.collection.build({
+          name: 'reviews',
         });
 
         const books = factories.collection.build({
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              myBookPersons: factories.oneToManySchema.build({
-                foreignCollection: 'bookPersons',
+              oneToManyRelation: factories.oneToManySchema.build({
+                foreignCollection: 'reviews',
                 foreignKey: 'bookId',
               }),
             },
@@ -222,7 +263,7 @@ describe('CollectionUtils', () => {
 
         return {
           aggregation,
-          dataSource: factories.dataSource.buildWithCollections([bookPersons, books]),
+          dataSource: factories.dataSource.buildWithCollections([reviews, books]),
         };
       };
 
@@ -233,12 +274,11 @@ describe('CollectionUtils', () => {
           conditionTree: factories.conditionTreeLeaf.build(),
         });
 
-        const oneToManyRelationName = 'myBookPersons';
         await CollectionUtils.aggregateRelation(
           baseFilter,
           2,
           dataSource.getCollection('books'),
-          oneToManyRelationName,
+          'oneToManyRelation',
           aggregation,
           dataSource,
         );
@@ -251,7 +291,7 @@ describe('CollectionUtils', () => {
             value: 2,
           }),
         );
-        expect(dataSource.getCollection('bookPersons').aggregate).toHaveBeenCalledWith(
+        expect(dataSource.getCollection('reviews').aggregate).toHaveBeenCalledWith(
           baseFilter.override({ conditionTree: expectedCondition }),
           aggregation,
         );
@@ -274,7 +314,7 @@ describe('CollectionUtils', () => {
           schema: factories.collectionSchema.build({
             fields: {
               id: factories.columnSchema.isPrimaryKey().build(),
-              myPersons: factories.manyToManySchema.build({
+              manyToManyRelation: factories.manyToManySchema.build({
                 foreignCollection: 'persons',
                 foreignKey: 'personId',
                 otherField: 'bookId',
@@ -305,12 +345,11 @@ describe('CollectionUtils', () => {
           .spyOn(dataSource.getCollection('persons'), 'aggregate')
           .mockResolvedValue([{ value: 34, group: { 'bookId:myPersons': 'abc' } }]);
 
-        const manyToManyRelationName = 'myPersons';
         const aggregateResults = await CollectionUtils.aggregateRelation(
           baseFilter,
           2,
           dataSource.getCollection('books'),
-          manyToManyRelationName,
+          'manyToManyRelation',
           aggregation,
           dataSource,
         );

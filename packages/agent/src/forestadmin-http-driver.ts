@@ -16,7 +16,7 @@ import RoutesFactory from './routes/routes-factory';
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
 
 export default class ForestAdminHttpDriver {
-  public readonly dataSource: DataSource;
+  public readonly dataSources: DataSource[];
   public readonly options: ForestAdminHttpDriverOptions;
   public readonly routes: BaseRoute[] = [];
   public readonly services: ForestAdminHttpDriverServices;
@@ -33,12 +33,12 @@ export default class ForestAdminHttpDriver {
     return this.app.callback();
   }
 
-  constructor(dataSource: DataSource, options: ForestAdminHttpDriverOptions) {
-    this.dataSource = dataSource;
+  constructor(dataSource: DataSource | DataSource[], options: ForestAdminHttpDriverOptions) {
+    this.dataSources = Array.isArray(dataSource) ? dataSource : [dataSource];
     this.options = options;
     this.services = makeServices(options);
     this.routes = RoutesFactory.makeRoutes({
-      dataSource,
+      dataSources: this.dataSources,
       options,
       services: this.services,
       rootRoutes: RootRoutesCtor,
@@ -70,7 +70,7 @@ export default class ForestAdminHttpDriver {
     this.app.use(router.routes());
 
     // Send schema to forestadmin-server (if relevant).
-    const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSource);
+    const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSources);
     const schemaIsKnown = await this.services.forestHTTPApi.hasSchema(schema.meta.schemaFileHash);
 
     if (!schemaIsKnown) {
