@@ -32,7 +32,7 @@ describe('UpdateRoute', () => {
 
       await updateRoute.handleUpdate(context);
 
-      await expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
     });
 
     it('should throw an error when a given attribute is not valid', async () => {
@@ -111,6 +111,7 @@ describe('UpdateRoute', () => {
 
       await updateRoute.handleUpdate(context);
 
+      expect(context.throw).not.toHaveBeenCalled();
       expect(bookCollection.update).toHaveBeenCalledWith(
         factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({

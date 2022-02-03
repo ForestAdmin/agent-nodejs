@@ -19,8 +19,6 @@ export default class CountRoute extends CollectionBaseRoute {
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
-      page: QueryStringParser.parsePagination(context),
-      sort: QueryStringParser.parseSort(this.collection, context),
     });
     const aggregation = new Aggregation({ operation: AggregationOperation.Count });
 

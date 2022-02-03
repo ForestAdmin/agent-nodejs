@@ -26,12 +26,16 @@ describe('DeleteRoute', () => {
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
 
-      const customProperties = { params: { badParam: '1523|1524' } };
-      const context = createMockContext({ customProperties });
+      const context = createMockContext({
+        customProperties: {
+          params: { badParam: '1523|1524' },
+          query: { timezone: 'Europe/Paris' },
+        },
+      });
 
       await deleteRoute.handleDelete(context);
 
-      await expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
     });
 
     it('should throw an error when the delete action failed', async () => {
@@ -49,8 +53,12 @@ describe('DeleteRoute', () => {
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
 
-      const customProperties = { params: { id: '1523' } };
-      const context = createMockContext({ customProperties });
+      const context = createMockContext({
+        customProperties: {
+          params: { id: '1523' },
+          query: { timezone: 'Europe/Paris' },
+        },
+      });
       await deleteRoute.handleDelete(context);
 
       expect(context.throw).toHaveBeenCalledWith(HttpCode.InternalServerError, expect.any(String));
@@ -77,10 +85,15 @@ describe('DeleteRoute', () => {
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
 
-        const customProperties = { params: { id: '1523|1524' } };
-        const context = createMockContext({ customProperties });
+        const context = createMockContext({
+          customProperties: {
+            params: { id: '1523|1524' },
+            query: { timezone: 'Europe/Paris' },
+          },
+        });
         await deleteRoute.handleDelete(context);
 
+        expect(context.throw).not.toHaveBeenCalled();
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
@@ -98,6 +111,8 @@ describe('DeleteRoute', () => {
                 }),
               ],
             }),
+            segment: null,
+            timezone: 'Europe/Paris',
           }),
         );
       });
@@ -118,10 +133,15 @@ describe('DeleteRoute', () => {
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
 
-        const customProperties = { params: { id: '1523' } };
-        const context = createMockContext({ customProperties });
+        const context = createMockContext({
+          customProperties: {
+            params: { id: '1523' },
+            query: { timezone: 'Europe/Paris' },
+          },
+        });
         await deleteRoute.handleDelete(context);
 
+        expect(context.throw).not.toHaveBeenCalled();
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
@@ -129,6 +149,8 @@ describe('DeleteRoute', () => {
               value: 1523,
               field: 'id',
             }),
+            segment: null,
+            timezone: 'Europe/Paris',
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -162,8 +184,10 @@ describe('DeleteRoute', () => {
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
 
-        const requestBody = { data: { attributes } };
-        const context = createMockContext({ requestBody });
+        const context = createMockContext({
+          customProperties: { query: { timezone: 'Europe/Paris' } },
+          requestBody: { data: { attributes } },
+        });
         await deleteRoute.handleListDelete(context);
 
         expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
@@ -185,17 +209,17 @@ describe('DeleteRoute', () => {
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
 
-        const requestBody = {
-          data: {
-            attributes: {
-              ids: ['1523', '5684'],
-              all_records: false,
+        const context = createMockContext({
+          customProperties: { query: { timezone: 'Europe/Paris' } },
+          requestBody: {
+            data: {
+              attributes: { ids: ['1523', '5684'], all_records: false },
             },
           },
-        };
-        const context = createMockContext({ requestBody });
+        });
         await deleteRoute.handleListDelete(context);
 
+        expect(context.throw).not.toHaveBeenCalled();
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
@@ -203,6 +227,8 @@ describe('DeleteRoute', () => {
               value: [1523, 5684],
               field: 'id',
             }),
+            segment: null,
+            timezone: 'Europe/Paris',
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -223,19 +249,22 @@ describe('DeleteRoute', () => {
           const dataSource = factories.dataSource.buildWithCollection(bookCollection);
           const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
 
-          const requestBody = {
-            data: {
-              attributes: {
-                ids: ['1523', '5684'],
+          const context = createMockContext({
+            customProperties: { query: { timezone: 'Europe/Paris' } },
+            requestBody: {
+              data: {
                 // excluded mode
-                all_records: true,
-                all_records_ids_excluded: ['1523'],
+                attributes: {
+                  ids: ['1523', '5684'],
+                  all_records: true,
+                  all_records_ids_excluded: ['1523'],
+                },
               },
             },
-          };
-          const context = createMockContext({ requestBody });
+          });
           await deleteRoute.handleListDelete(context);
 
+          expect(context.throw).not.toHaveBeenCalled();
           expect(bookCollection.delete).toHaveBeenCalledWith(
             factories.filter.build({
               conditionTree: factories.conditionTreeLeaf.build({
@@ -243,6 +272,8 @@ describe('DeleteRoute', () => {
                 value: 1523,
                 field: 'id',
               }),
+              segment: null,
+              timezone: 'Europe/Paris',
             }),
           );
           expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -271,17 +302,17 @@ describe('DeleteRoute', () => {
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
 
-        const requestBody = {
-          data: {
-            attributes: {
-              ids: ['1523|1524', '1523|5688', '9999|7894'],
-              all_records: false,
+        const context = createMockContext({
+          customProperties: { query: { timezone: 'Europe/Paris' } },
+          requestBody: {
+            data: {
+              attributes: { ids: ['1523|1524', '1523|5688', '9999|7894'], all_records: false },
             },
           },
-        };
-        const context = createMockContext({ requestBody });
+        });
         await deleteRoute.handleListDelete(context);
 
+        expect(context.throw).not.toHaveBeenCalled();
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
@@ -319,6 +350,8 @@ describe('DeleteRoute', () => {
                 }),
               ],
             }),
+            segment: null,
+            timezone: 'Europe/Paris',
           }),
         );
       });
@@ -344,19 +377,22 @@ describe('DeleteRoute', () => {
           const dataSource = factories.dataSource.buildWithCollection(bookCollection);
           const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
 
-          const requestBody = {
-            data: {
-              attributes: {
-                ids: ['1523|1524', '1523|5688', '9999|7894'],
-                // excluded mode
-                all_records: true,
-                all_records_ids_excluded: ['1523|1524', '1523|5688'],
+          const context = createMockContext({
+            customProperties: { query: { timezone: 'Europe/Paris' } },
+            requestBody: {
+              data: {
+                attributes: {
+                  ids: ['1523|1524', '1523|5688', '9999|7894'],
+                  // excluded mode
+                  all_records: true,
+                  all_records_ids_excluded: ['1523|1524', '1523|5688'],
+                },
               },
             },
-          };
-          const context = createMockContext({ requestBody });
+          });
           await deleteRoute.handleListDelete(context);
 
+          expect(context.throw).not.toHaveBeenCalled();
           expect(bookCollection.delete).toHaveBeenCalledWith(
             factories.filter.build({
               conditionTree: factories.conditionTreeBranch.build({
@@ -374,6 +410,8 @@ describe('DeleteRoute', () => {
                   }),
                 ],
               }),
+              segment: null,
+              timezone: 'Europe/Paris',
             }),
           );
         });

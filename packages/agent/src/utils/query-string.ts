@@ -40,7 +40,7 @@ export default class QueryStringParser {
   }
 
   static parseSearch(context: Context): string {
-    return context.request.query.search?.toString();
+    return context.request.query.search?.toString() ?? null;
   }
 
   static parseSearchExtended(context: Context): boolean {
@@ -80,7 +80,7 @@ export default class QueryStringParser {
     }
 
     try {
-      Intl.DateTimeFormat(undefined, { timeZone: timezone });
+      Intl.DateTimeFormat('en-US', { timeZone: timezone });
     } catch {
       context.throw(HttpCode.BadRequest, `Invalid timezone: "${timezone}"`);
     }

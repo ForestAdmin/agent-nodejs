@@ -58,6 +58,7 @@ describe('GetRoute', () => {
 
       await get.handleGet(context);
 
+      expect(context.throw).not.toHaveBeenCalled();
       expect(dataSource.getCollection('books').getById).toHaveBeenCalledWith(
         ['1'],
         ['id', 'name', 'author:id', 'author:bookId'],

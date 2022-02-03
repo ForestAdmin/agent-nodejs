@@ -37,10 +37,12 @@ describe('ListRoute', () => {
       });
 
       await list.handleList(context);
+
+      expect(context.throw).not.toHaveBeenCalled();
       expect(services.serializer.serialize).toHaveBeenCalled();
       expect(partialCollection.list).toHaveBeenCalledWith(
         {
-          search: undefined,
+          search: null,
           searchExtended: false,
           segment: null,
           timezone: 'Europe/Paris',

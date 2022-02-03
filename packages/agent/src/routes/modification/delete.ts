@@ -1,9 +1,10 @@
-import { CompositeId, Filter, ConditionTreeUtils } from '@forestadmin/datasource-toolkit';
+import { CompositeId, ConditionTreeUtils, Filter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
-import CollectionRoute from '../collection-base-route';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
+import QueryStringParser from '../../utils/query-string';
+import CollectionRoute from '../collection-base-route';
 
 export default class DeleteRoute extends CollectionRoute {
   override setupPrivateRoutes(router: Router): void {
@@ -12,7 +13,7 @@ export default class DeleteRoute extends CollectionRoute {
   }
 
   public async handleDelete(context: Context): Promise<void> {
-    let id;
+    let id: CompositeId;
 
     try {
       id = IdUtils.unpackId(this.collection.schema, context.params.id);
@@ -24,8 +25,8 @@ export default class DeleteRoute extends CollectionRoute {
   }
 
   public async handleListDelete(context: Context): Promise<void> {
-    let unpackedIds;
-    let excludedRecordMode;
+    let unpackedIds: CompositeId[];
+    let excludedRecordMode: boolean;
 
     try {
       const { ids, all_records_ids_excluded: excludedIds } = context.request.body.data.attributes;
@@ -48,10 +49,15 @@ export default class DeleteRoute extends CollectionRoute {
     ids: CompositeId[],
     isRemoveAllRecords = false,
   ): Promise<void> {
+    const condition = ConditionTreeUtils.matchIds(this.collection.schema, ids);
+    const filter = new Filter({
+      conditionTree: isRemoveAllRecords ? condition.inverse() : condition,
+      segment: QueryStringParser.parseSegment(this.collection, context),
+      timezone: QueryStringParser.parseTimezone(context),
+    });
+
     try {
-      const condition = ConditionTreeUtils.matchIds(this.collection.schema, ids);
-      const conditionTree = isRemoveAllRecords ? condition.inverse() : condition;
-      await this.collection.delete(new Filter({ conditionTree }));
+      await this.collection.delete(filter);
 
       context.response.status = HttpCode.NoContent;
     } catch {
