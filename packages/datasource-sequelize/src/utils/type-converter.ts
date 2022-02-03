@@ -16,7 +16,7 @@ export default class TypeConverter {
     [PrimitiveTypes.Uuid]: DataTypes.UUID,
   };
 
-  public static fromColumnType(columnType: PrimitiveTypes) {
+  public static fromColumnType(columnType: PrimitiveTypes): AbstractDataTypeConstructor {
     const dataType = TypeConverter.columnTypeToDataType[columnType];
 
     if (!dataType) throw new Error(`Unsupported column type: "${columnType}".`);
