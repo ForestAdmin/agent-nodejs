@@ -96,7 +96,7 @@ function computeAllowedTypesForOperators(): Record<Operator, PrimitiveTypes[]> {
   }, {} as Record<Operator, PrimitiveTypes[]>);
 }
 
-const NO_TYPES_ALLOWED = [];
+const NO_TYPES_ALLOWED: ValidationTypes[] = [];
 
 export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<
   Record<Operator, readonly (ValidationTypes | PrimitiveTypes)[]>

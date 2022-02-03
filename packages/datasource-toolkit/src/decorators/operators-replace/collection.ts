@@ -3,6 +3,7 @@ import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import {
   CollectionSchema,
   ColumnSchema,
+  FieldSchema,
   FieldTypes,
   PrimitiveTypes,
 } from '../../interfaces/schema';
@@ -24,7 +25,7 @@ export default class OperatorsDecorator extends CollectionDecorator {
   };
 
   protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
-    const fields = {};
+    const fields: Record<string, FieldSchema> = {};
 
     for (const [name, schema] of Object.entries(childSchema.fields)) {
       if (schema.type === FieldTypes.Column) {

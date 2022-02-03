@@ -9,7 +9,7 @@ export default class Projection extends Array<string> {
   }
 
   get relations(): Record<string, Projection> {
-    return this.reduce((memo, path) => {
+    return this.reduce<Record<string, Projection>>((memo, path) => {
       const index = path.indexOf(':');
 
       if (index !== -1) {
@@ -77,7 +77,7 @@ export default class Projection extends Array<string> {
   }
 
   private reproject(record: RecordData): RecordData {
-    let result = null;
+    let result: RecordData = null;
 
     if (record) {
       result = {};

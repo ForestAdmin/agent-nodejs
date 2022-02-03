@@ -4,7 +4,7 @@ import * as factories from '../__factories__';
 import { HttpCode } from '../../dist/types';
 
 describe('QueryStringParser', () => {
-  const partialCollection = {
+  const collectionSimple = factories.collection.build({
     name: 'books',
     schema: factories.collectionSchema.build({
       fields: {
@@ -13,8 +13,7 @@ describe('QueryStringParser', () => {
       },
       segments: ['fake-segment'],
     }),
-  };
-  const collectionSimple = factories.collection.build(partialCollection);
+  });
 
   describe('parseProjection', () => {
     describe('on a flat collection', () => {
@@ -235,19 +234,18 @@ describe('QueryStringParser', () => {
     });
 
     describe('when timezone are not available in the environment', () => {
-      let intlDateTimeFormatSpy;
+      let intlDateTimeFormatSpy: jest.SpyInstance;
       beforeEach(() => {
-        intlDateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(
-          () =>
-            ({
-              resolvedOptions: () => ({
-                timeZone: null,
-                locale: null,
-                calendar: null,
-                numberingSystem: null,
-              }),
-            } as unknown as Intl.DateTimeFormat),
-        );
+        intlDateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockReturnValue({
+          format: null,
+          formatToParts: null,
+          resolvedOptions: (): Intl.ResolvedDateTimeFormatOptions => ({
+            timeZone: null,
+            locale: null,
+            calendar: null,
+            numberingSystem: null,
+          }),
+        });
       });
 
       afterEach(() => {

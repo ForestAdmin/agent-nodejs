@@ -39,7 +39,7 @@ export default class RecordUtils {
       return null;
     }
 
-    const record = {};
+    const record: RecordData = {};
     const projection = new Projection(...Object.keys(flatRecord));
 
     for (const field of projection.columns) {
@@ -49,7 +49,7 @@ export default class RecordUtils {
     for (const [relation, childProjection] of Object.entries(projection.relations)) {
       const schema = collection.schema.fields[relation] as RelationSchema;
       const association = collection.dataSource.getCollection(schema.foreignCollection);
-      const subRecord = {};
+      const subRecord: RecordData = {};
       for (const path of childProjection) subRecord[path] = flatRecord[`${relation}:${path}`];
 
       record[relation] = RecordUtils.unflattenRecord(association, subRecord);

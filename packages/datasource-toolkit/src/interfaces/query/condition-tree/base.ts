@@ -26,7 +26,7 @@ export default abstract class ConditionTree {
   }
 
   unnest(): ConditionTree {
-    let prefix = null;
+    let prefix: string = null;
     this.someLeaf(leaf => {
       [prefix] = leaf.field.split(':');
 

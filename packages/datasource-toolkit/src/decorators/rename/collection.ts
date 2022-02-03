@@ -1,9 +1,9 @@
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
-import Filter from '../../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
+import Filter from '../../interfaces/query/filter/unpaginated';
 import Projection from '../../interfaces/query/projection';
 import { CompositeId, RecordData } from '../../interfaces/record';
-import { CollectionSchema, FieldTypes, RelationSchema } from '../../interfaces/schema';
+import { CollectionSchema, FieldSchema, FieldTypes, RelationSchema } from '../../interfaces/schema';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 
@@ -44,7 +44,7 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
   }
 
   protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
-    const fields = {};
+    const fields: Record<string, FieldSchema> = {};
 
     for (const [oldName, oldSchema] of Object.entries(childSchema.fields)) {
       const schema = { ...oldSchema };
@@ -158,7 +158,7 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
 
   /** Convert record from this collection to the child collection */
   private recordToChildCollection(thisRecord: RecordData): RecordData {
-    const childRecord = {};
+    const childRecord: RecordData = {};
 
     for (const [thisField, value] of Object.entries(thisRecord)) {
       childRecord[this.toChildCollection[thisField] ?? thisField] = value;
@@ -170,7 +170,7 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
   /** Convert record from the child collection to this collection */
   private recordFromChildCollection(childRecord: RecordData): RecordData {
     const { schema } = this;
-    const thisRecord = {};
+    const thisRecord: RecordData = {};
 
     for (const [childField, value] of Object.entries(childRecord)) {
       const thisField = this.fromChildCollection[childField] ?? childField;

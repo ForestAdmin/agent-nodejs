@@ -1,14 +1,14 @@
 import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export default class FrontendFilterableUtils {
-  private static readonly baseOperators = [
+  private static readonly baseOperators: Operator[] = [
     Operator.Equal,
     Operator.NotEqual,
     Operator.Present,
     Operator.Blank,
   ];
 
-  private static readonly dateOperators = [
+  private static readonly dateOperators: Operator[] = [
     ...FrontendFilterableUtils.baseOperators,
     Operator.LessThan,
     Operator.GreaterThan,
@@ -30,7 +30,7 @@ export default class FrontendFilterableUtils {
     Operator.AfterXHoursAgo,
   ];
 
-  private static readonly operatorByType = {
+  private static readonly operatorByType: Partial<Record<PrimitiveTypes, Operator[]>> = {
     [PrimitiveTypes.Boolean]: FrontendFilterableUtils.baseOperators,
     [PrimitiveTypes.Date]: FrontendFilterableUtils.dateOperators,
     [PrimitiveTypes.Dateonly]: FrontendFilterableUtils.dateOperators,

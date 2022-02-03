@@ -12,7 +12,9 @@ describe('Authentication', () => {
 
   jest.mock('openid-client', () => ({ Issuer: {} }));
 
-  const createAuthenticationRoutesUsingIssuerClientMock = async mock => {
+  const createAuthenticationRoutesUsingIssuerClientMock = async (
+    mock: Record<string, jest.Mock>,
+  ) => {
     const authentication = new Authentication(services, dataSource, options);
     openidClient.Issuer = jest.fn().mockImplementation(() => ({
       Client: {

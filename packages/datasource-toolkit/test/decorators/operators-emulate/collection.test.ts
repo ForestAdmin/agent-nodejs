@@ -272,25 +272,27 @@ describe('OperatorsEmulate', () => {
 
       test('list() should find books where title = Foundation', async () => {
         // Mock book list() implementation.
-        (books.list as jest.Mock).mockImplementation((filter, projection) => {
-          const childRecords = [
-            { id: 1, title: 'Beat the dealer' },
-            { id: 2, title: 'Foundation' },
-            { id: 3, title: 'Papillon' },
-          ];
+        (books.list as jest.Mock).mockImplementation(
+          (filter: PaginatedFilter, projection: Projection) => {
+            const childRecords = [
+              { id: 1, title: 'Beat the dealer' },
+              { id: 2, title: 'Foundation' },
+              { id: 3, title: 'Papillon' },
+            ];
 
-          // Ensure no forbideen operator is used
-          const conditionTree = filter?.conditionTree ?? ConditionTreeUtils.MatchAll;
-          const usingForbiddenOperator = conditionTree.someLeaf(
-            ({ field, operator }) =>
-              field !== 'id' &&
-              !(books.schema.fields.id as ColumnSchema).filterOperators.has(operator),
-          );
+            // Ensure no forbideen operator is used
+            const conditionTree = filter?.conditionTree ?? ConditionTreeUtils.MatchAll;
+            const usingForbiddenOperator = conditionTree.someLeaf(
+              ({ field, operator }) =>
+                field !== 'id' &&
+                !(books.schema.fields.id as ColumnSchema).filterOperators.has(operator),
+            );
 
-          expect(usingForbiddenOperator).toBeFalsy();
+            expect(usingForbiddenOperator).toBeFalsy();
 
-          return conditionTree.apply(projection.apply(childRecords));
-        });
+            return conditionTree.apply(projection.apply(childRecords));
+          },
+        );
 
         const filter = new PaginatedFilter({
           conditionTree: new ConditionTreeLeaf({

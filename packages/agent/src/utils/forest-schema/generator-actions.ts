@@ -16,7 +16,7 @@ export default class SchemaGeneratorActions {
    * 'fields' sent to forestadmin-server when we want to generate the form on demand.
    * This works around a bug in frontend which won't call the server if no fields are defined.
    */
-  private static defaultFields = [
+  private static defaultFields: ForestServerActionField[] = [
     {
       field: 'Loading...',
       type: PrimitiveTypes.String,

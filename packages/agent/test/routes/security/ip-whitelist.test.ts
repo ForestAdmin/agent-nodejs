@@ -3,6 +3,7 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 import IpWhitelist from '../../../dist/routes/security/ip-whitelist';
 import * as factories from '../../__factories__';
 import { HttpCode } from '../../../dist/types';
+import { ForestAdminHttpDriverServices } from '../../../dist/services';
 
 describe('IpWhitelist', () => {
   describe('setupAuthentication', () => {
@@ -70,9 +71,13 @@ describe('IpWhitelist', () => {
     });
 
     describe('when the feature is enabled', () => {
-      const setupServiceWith = (ipWhitelistService, values) => {
+      const setupIpWhitelistService = (
+        services: ForestAdminHttpDriverServices,
+        ipWhitelistService: IpWhitelist,
+        values: { isFeatureEnabled: boolean; ipRules: unknown[] },
+      ) => {
         const { isFeatureEnabled, ipRules } = values;
-        ipWhitelistService.services.forestHTTPApi.getIpWhitelist = jest.fn().mockResolvedValue({
+        services.forestHTTPApi.getIpWhitelist = jest.fn().mockResolvedValue({
           isFeatureEnabled,
           ipRules,
         });
@@ -95,7 +100,10 @@ describe('IpWhitelist', () => {
               ip: '10.20.15.10',
             },
           ];
-          await setupServiceWith(ipWhitelistService, { isFeatureEnabled, ipRules });
+          await setupIpWhitelistService(services, ipWhitelistService, {
+            isFeatureEnabled,
+            ipRules,
+          });
 
           // The ip property of the koa context is not supposed to be changed
           // Thus, forging a manual context is the only way of testing this function
@@ -125,7 +133,10 @@ describe('IpWhitelist', () => {
               ip: '10.20.15.10',
             },
           ];
-          await setupServiceWith(ipWhitelistService, { isFeatureEnabled, ipRules });
+          await setupIpWhitelistService(services, ipWhitelistService, {
+            isFeatureEnabled,
+            ipRules,
+          });
 
           const notAllowedIp = '10.20.15.1';
 
@@ -159,7 +170,10 @@ describe('IpWhitelist', () => {
               ip: '10.20.15.10',
             },
           ];
-          await setupServiceWith(ipWhitelistService, { isFeatureEnabled, ipRules });
+          await setupIpWhitelistService(services, ipWhitelistService, {
+            isFeatureEnabled,
+            ipRules,
+          });
 
           const allowedIp = '10.20.15.10';
           const context = createMockContext({

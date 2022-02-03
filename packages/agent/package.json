@@ -31,10 +31,12 @@
   "devDependencies": {
     "@shopify/jest-koa-mocks": "^3.1.0",
     "@types/json-api-serializer": "^2.6.3",
+    "@types/jsonwebtoken": "^8.5.8",
     "@types/koa": "^2.13.4",
     "@types/koa-bodyparser": "^4.3.5",
     "@types/koa__cors": "^3.1.1",
     "@types/koa__router": "^8.0.11",
+    "@types/superagent": "^4.1.15",
     "fishery": "^2.1.0"
   }
 }
