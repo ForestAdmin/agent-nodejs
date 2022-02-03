@@ -28,9 +28,7 @@ export default class LiveDataSource extends SequelizeDataSource {
   }
 
   async syncCollections(): Promise<boolean> {
-    await Promise.all(
-      this.collections.map(collection => (collection as LiveCollection).sync()),
-    );
+    await Promise.all(this.collections.map(collection => (collection as LiveCollection).sync()));
 
     return true;
   }
