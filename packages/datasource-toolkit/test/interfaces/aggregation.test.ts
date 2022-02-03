@@ -73,9 +73,9 @@ describe('Aggregation', () => {
     test('apply should work', () => {
       const records = [
         { id: 1, discriminant: 'blue' },
-        { id: 2, discriminant: 'blue' },
-        { id: 3, discriminant: 'blue' },
-        { id: 4, discriminant: 'red' },
+        { id: 1, discriminant: 'blue' },
+        { id: 1, discriminant: 'blue' },
+        { id: 1, discriminant: 'red' },
         { id: null, discriminant: 'red' },
       ];
 

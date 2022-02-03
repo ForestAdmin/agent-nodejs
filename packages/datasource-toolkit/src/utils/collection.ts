@@ -1,5 +1,11 @@
 import { Collection, DataSource } from '../interfaces/collection';
-import { FieldSchema, FieldTypes, ManyToManySchema, RelationSchema } from '../interfaces/schema';
+import {
+  FieldSchema,
+  FieldTypes,
+  ManyToManySchema,
+  OneToManySchema,
+  RelationSchema,
+} from '../interfaces/schema';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTreeUtils from './condition-tree';
@@ -25,43 +31,61 @@ export default class CollectionUtils {
       );
     }
 
+    const foreignCollection = await datasource.getCollection(relationFieldSchema.foreignCollection);
+
+    if (isOneToMany) {
+      const filter = CollectionUtils.buildFilterOneToMany(relationFieldSchema, id, paginatedFilter);
+
+      return foreignCollection.aggregate(filter, aggregation);
+    }
+
+    const filter = CollectionUtils.buildFilterManyToMany(paginatedFilter, relationFieldSchema, id);
+    const aggregateResults = await foreignCollection.aggregate(
+      filter,
+      aggregation.nest(relationFieldSchema.otherField),
+    );
+
+    return CollectionUtils.removePrefixes(aggregateResults, relationFieldSchema);
+  }
+
+  private static buildFilterManyToMany(
+    paginatedFilter: PaginatedFilter,
+    relationFieldSchema: ManyToManySchema,
+    id: number,
+  ): PaginatedFilter {
+    const filter = this.buildFilterOneToMany(relationFieldSchema, id, paginatedFilter);
+
+    return filter.override({
+      conditionTree: ConditionTreeUtils.intersect(
+        filter.conditionTree,
+        paginatedFilter.conditionTree.nest(relationFieldSchema.otherField),
+      ),
+    });
+  }
+
+  private static buildFilterOneToMany(
+    relationFieldSchema: ManyToManySchema | OneToManySchema,
+    id: number,
+    paginatedFilter: PaginatedFilter,
+  ): PaginatedFilter {
     const conditionToMatchId = new ConditionTreeLeaf({
       field: relationFieldSchema.foreignKey,
       operator: Operator.Equal,
       value: id,
     });
 
-    if (isOneToMany) {
-      const filter = paginatedFilter.override({
-        conditionTree: ConditionTreeUtils.intersect(
-          paginatedFilter.conditionTree,
-          conditionToMatchId,
-        ),
-      });
-
-      return datasource
-        .getCollection(relationFieldSchema.foreignCollection)
-        .aggregate(filter, aggregation);
-    }
-
-    if (isManyToMany) {
-      const filter = paginatedFilter.override({
-        conditionTree: ConditionTreeUtils.intersect(
-          paginatedFilter.conditionTree,
-          conditionToMatchId,
-          paginatedFilter.conditionTree.nest(relationFieldSchema.otherField),
-        ),
-      });
-
-      const aggregateResults = await datasource
-        .getCollection(relationFieldSchema.foreignCollection)
-        .aggregate(filter, aggregation.nest(relationFieldSchema.otherField));
-
-      return CollectionUtils.removePrefixes(aggregateResults, relationFieldSchema);
-    }
+    return paginatedFilter.override({
+      conditionTree: ConditionTreeUtils.intersect(
+        paginatedFilter.conditionTree,
+        conditionToMatchId,
+      ),
+    });
   }
 
-  private static removePrefixes(aggregateResults: AggregateResult[], schema: ManyToManySchema) {
+  private static removePrefixes(
+    aggregateResults: AggregateResult[],
+    schema: ManyToManySchema,
+  ): AggregateResult[] {
     return aggregateResults.map(aggregateResult => {
       const newResult: AggregateResult = {
         value: aggregateResult.value,
