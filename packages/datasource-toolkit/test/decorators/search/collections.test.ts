@@ -22,12 +22,10 @@ describe('SearchCollectionDecorator', () => {
     describe('when the given filter is null', () => {
       test('should return the given filter to return all records', async () => {
         const collection = factories.collection.build();
-        const filter = null;
-
         const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-        const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
-        expect(refinedFilter).toStrictEqual(filter);
+        const refinedFilter = await searchCollectionDecorator.refineFilter(null);
+        expect(refinedFilter).toStrictEqual(null);
       });
     });
 

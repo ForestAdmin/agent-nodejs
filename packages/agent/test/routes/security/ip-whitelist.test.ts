@@ -70,9 +70,13 @@ describe('IpWhitelist', () => {
     });
 
     describe('when the feature is enabled', () => {
-      const setupServiceWith = (ipWhitelistService, values) => {
+      const setupServiceWith = (
+        ipWhitelistService: IpWhitelist,
+        values: { isFeatureEnabled: any; ipRules: any },
+      ) => {
         const { isFeatureEnabled, ipRules } = values;
-        ipWhitelistService.services.forestHTTPApi.getIpWhitelist = jest.fn().mockResolvedValue({
+        const { services } = ipWhitelistService as any;
+        services.forestHTTPApi.getIpWhitelist = jest.fn().mockResolvedValue({
           isFeatureEnabled,
           ipRules,
         });

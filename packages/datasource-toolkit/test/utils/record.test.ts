@@ -1,6 +1,7 @@
+import { RecordData } from '../../dist/interfaces/record';
+import { FieldTypes, PrimitiveTypes } from '../../dist/interfaces/schema';
 import RecordUtils from '../../dist/utils/record';
 import * as factories from '../__factories__';
-import { ColumnSchema, PrimitiveTypes } from '../../dist';
 
 describe('RecordUtils', () => {
   const dataSource = factories.dataSource.buildWithCollections([
@@ -61,7 +62,7 @@ describe('RecordUtils', () => {
     });
 
     test('should unflatten with undefined nested', () => {
-      const flatRecord = { id: 1, 'author:id': null };
+      const flatRecord: RecordData = { id: 1, 'author:id': null };
       const record = RecordUtils.unflattenRecord(books, flatRecord);
 
       expect(record).toStrictEqual({ id: 1, author: null });
@@ -256,9 +257,7 @@ describe('RecordUtils', () => {
             name: 'book',
             schema: factories.collectionSchema.build({
               fields: {
-                id: {
-                  type: 'failTypeColumn',
-                } as unknown as ColumnSchema,
+                id: factories.columnSchema.build({ type: 'failTypeColumn' as FieldTypes.Column }),
               },
             }),
           }),
