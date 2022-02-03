@@ -1,4 +1,4 @@
-import SegmentCollectionDecorator from '../../../dist/decorators/segment/collection-decorator';
+import SegmentCollectionDecorator from '../../../dist/decorators/segment/collection';
 import ConditionTree from '../../../dist/interfaces/query/condition-tree/base';
 import { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
 import * as factories from '../../__factories__';
