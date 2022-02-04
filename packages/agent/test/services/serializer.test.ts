@@ -78,42 +78,59 @@ describe('Serializer', () => {
       }),
     ]);
 
-    const record = {
-      isbn: '9780345317988',
-      title: 'Foundation',
-      authorId: 'asim00',
-      author: { id: 'asim00', name: 'Asimov' },
-    };
+    test('serialize should serialize all relations which are provided', () => {
+      const result = setupSerializer().serialize(dataSource.collections[0], {
+        isbn: '9780345317988',
+        title: 'Foundation',
+        author: { id: 'asim00', name: 'Asimov' },
+      });
 
-    const serializedRecord = {
-      data: {
-        type: 'book',
-        id: '9780345317988',
-        attributes: { isbn: '9780345317988', title: 'Foundation' },
-        relationships: { author: { data: { type: 'person', id: 'asim00' } } },
-      },
-      included: [
-        {
-          type: 'person',
-          id: 'asim00',
-          attributes: { id: 'asim00', name: 'Asimov' },
-          relationships: {
-            books: { links: { related: '/forest/person/asim00/relationships/books' } },
-          },
+      expect(result).toStrictEqual({
+        data: {
+          type: 'book',
+          id: '9780345317988',
+          attributes: { isbn: '9780345317988', title: 'Foundation' },
+          relationships: { author: { data: { type: 'person', id: 'asim00' } } },
         },
-      ],
-      jsonapi: { version: '1.0' },
-    };
-
-    test('should serialize a record with relations', () => {
-      const result = setupSerializer().serialize(dataSource.collections[0], record);
-      expect(result).toStrictEqual(serializedRecord);
+        included: [
+          {
+            type: 'person',
+            id: 'asim00',
+            attributes: { id: 'asim00', name: 'Asimov' },
+            relationships: {
+              books: { links: { related: '/forest/person/asim00/relationships/books' } },
+            },
+          },
+        ],
+        jsonapi: { version: '1.0' },
+      });
     });
 
-    test('should deserialize a json api into a record', () => {
-      const result = setupSerializer().deserialize(dataSource.collections[0], serializedRecord);
+    test('deserialize should ignore relations provided relations', () => {
+      const result = setupSerializer().deserialize(dataSource.collections[0], {
+        data: {
+          type: 'book',
+          id: '9780345317988',
+          attributes: { isbn: '9780345317988', title: 'Foundation' },
+          relationships: { author: { data: { type: 'person', id: 'asim00' } } },
+        },
+        included: [
+          {
+            type: 'person',
+            id: 'asim00',
+            attributes: { id: 'asim00', name: 'Asimov' },
+            relationships: {
+              books: { links: { related: '/forest/person/asim00/relationships/books' } },
+            },
+          },
+        ],
+        jsonapi: { version: '1.0' },
+      });
 
-      expect(result).toStrictEqual(record);
+      expect(result).toStrictEqual({
+        isbn: '9780345317988',
+        title: 'Foundation',
+      });
     });
   });
 });
