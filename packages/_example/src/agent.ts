@@ -6,13 +6,17 @@ import dummyDataSource from './datasources/dummy-library';
 
 import liveDataSource from './datasources/live-business';
 import loadLiveDataSource from './datasources/live-business-data';
+import sequelizeDataSource from './datasources/sequelize-example';
 
 export default async function start(
   serverPort: number,
   serverHost: string,
   options: ForestAdminHttpDriverOptions,
 ) {
-  const driver = new ForestAdminHttpDriver([dummyDataSource, liveDataSource], options);
+  const driver = new ForestAdminHttpDriver(
+    [dummyDataSource, liveDataSource, sequelizeDataSource],
+    options,
+  );
 
   await liveDataSource.syncCollections();
 

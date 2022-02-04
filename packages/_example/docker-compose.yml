@@ -1,0 +1,17 @@
+version: '2'
+services:
+  postgres:
+    image: postgres:12.7
+    container_name: forest_agent_example_postgres
+    ports:
+      - "5442:5432"
+    environment:
+      - POSTGRES_DB=example
+      - POSTGRES_USER=example
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker-init/postgresql:/docker-entrypoint-initdb.d
+volumes:
+  postgres-data:
+    driver: local
