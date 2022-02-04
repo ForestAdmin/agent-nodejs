@@ -78,9 +78,7 @@ const instanciateCollection = schema => {
   const sequelize = new Sequelize('sqlite::memory:', { logging: false });
 
   return {
-    liveCollection:
-      // eslint-disable-next-line implicit-arrow-linebreak
-      new LiveCollection('__name__', dataSource, sequelize, schema),
+    liveCollection: new LiveCollection('__name__', dataSource, sequelize, schema),
     sequelize,
   };
 };
