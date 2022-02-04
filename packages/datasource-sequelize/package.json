@@ -18,14 +18,14 @@
     "test": "jest"
   },
   "devDependencies_comments": {
-    "sequelize": "~6.14.0 => compilation error with 6.15.0, remove constraint when possible"
+    "sequelize": "~6.14.1 => compilation error with 6.15.0, remove constraint when possible"
   },
   "devDependencies": {
     "fishery": "^2.1.0",
-    "sequelize": "~6.14.0",
+    "sequelize": "~6.14.1",
     "sqlite3": "^5.0.2"
   },
   "peerDependencies": {
-    "sequelize": ">= 6.14.0"
+    "sequelize": ">= 6.14.1"
   }
 }
