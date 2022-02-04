@@ -5,5 +5,5 @@ export default {
   ...jestConfig,
 
   // Allow generation of coverage for this specific package
-  collectCoverageFrom: ['src/**/*.ts'],
+  collectCoverageFrom: ['dist/**/*.ts'],
 };
