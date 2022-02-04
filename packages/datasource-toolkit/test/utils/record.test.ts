@@ -1,4 +1,3 @@
-import { RecordData } from '../../dist/interfaces/record';
 import { FieldTypes, PrimitiveTypes } from '../../dist/interfaces/schema';
 import RecordUtils from '../../dist/utils/record';
 import * as factories from '../__factories__';
@@ -50,22 +49,6 @@ describe('RecordUtils', () => {
       const value = RecordUtils.getFieldValue(record, 'relation1:relation2');
 
       expect(value).toStrictEqual('value');
-    });
-  });
-
-  describe('unflattenRecord', () => {
-    test('should unflatten with nested', () => {
-      const flatRecord = { id: 1, 'author:id': 1 };
-      const record = RecordUtils.unflattenRecord(books, flatRecord);
-
-      expect(record).toStrictEqual({ id: 1, author: { id: 1 } });
-    });
-
-    test('should unflatten with undefined nested', () => {
-      const flatRecord: RecordData = { id: 1, 'author:id': null };
-      const record = RecordUtils.unflattenRecord(books, flatRecord);
-
-      expect(record).toStrictEqual({ id: 1, author: null });
     });
   });
 
