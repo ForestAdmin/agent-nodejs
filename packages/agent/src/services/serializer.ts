@@ -26,8 +26,15 @@ export default class Serializer {
     return result;
   }
 
-  deserialize(collection: Collection, data: unknown): RecordData {
-    return this.getSerializer(collection).deserialize(collection.name, data);
+  deserialize(collection: Collection, body: unknown): RecordData {
+    let jsonApiBody = body as JsonApiSerializer.JSONAPIDocument;
+    jsonApiBody = { data: { ...jsonApiBody.data } };
+
+    if ('relationships' in jsonApiBody.data) {
+      delete jsonApiBody.data.relationships;
+    }
+
+    return this.getSerializer(collection).deserialize(collection.name, jsonApiBody);
   }
 
   private getSerializer(collection: Collection): JsonApiSerializer {
