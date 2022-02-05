@@ -1,6 +1,6 @@
 import { Sequelize } from 'sequelize';
 
-import { SequelizeDataSource } from '../dist';
+import { SequelizeDataSource } from '../src';
 
 describe('SequelizeDataSource', () => {
   it('should fail to instanciate without a Sequelize instance', () => {

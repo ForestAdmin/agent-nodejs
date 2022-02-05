@@ -17,7 +17,7 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import { SequelizeCollection } from '../dist';
+import { SequelizeCollection } from '../src';
 
 describe('SequelizeDataSource > Collection', () => {
   const makeConstructorParams = () => {
