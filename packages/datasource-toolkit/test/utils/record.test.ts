@@ -1,5 +1,5 @@
-import { FieldTypes, PrimitiveTypes } from '../../dist/interfaces/schema';
-import RecordUtils from '../../dist/utils/record';
+import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
+import RecordUtils from '../../src/utils/record';
 import * as factories from '../__factories__';
 
 describe('RecordUtils', () => {

@@ -1,6 +1,6 @@
 import { AggregationOperation } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import Count from '../../../dist/routes/access/count';
+import Count from '../../../src/routes/access/count';
 import * as factories from '../../__factories__';
 
 describe('CountRoute', () => {

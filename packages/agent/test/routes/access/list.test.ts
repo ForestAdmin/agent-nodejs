@@ -1,5 +1,5 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import List from '../../../dist/routes/access/list';
+import List from '../../../src/routes/access/list';
 import * as factories from '../../__factories__';
 
 describe('ListRoute', () => {

@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
-import Aggregation, { AggregationOperation } from '../../dist/interfaces/query/aggregation';
+import Aggregation, { AggregationOperation } from '../../src/interfaces/query/aggregation';
 
 export default Factory.define<Aggregation>(
   () =>

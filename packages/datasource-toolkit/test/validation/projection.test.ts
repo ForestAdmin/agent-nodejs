@@ -1,4 +1,4 @@
-import ProjectionValidator from '../../dist/validation/projection';
+import ProjectionValidator from '../../src/validation/projection';
 import * as factories from '../__factories__';
 
 describe('ProjectionValidator', () => {

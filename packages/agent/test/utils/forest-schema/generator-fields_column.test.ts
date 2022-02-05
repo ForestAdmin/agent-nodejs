@@ -1,6 +1,6 @@
 import { FieldTypes, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import SchemaGeneratorFields from '../../../dist/utils/forest-schema/generator-fields';
-import { ValidationType } from '../../../dist/utils/forest-schema/types';
+import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
+import { ValidationType } from '../../../src/utils/forest-schema/types';
 import * as factories from '../../__factories__';
 
 describe('SchemaGeneratorFields > Column', () => {

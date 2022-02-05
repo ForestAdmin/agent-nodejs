@@ -1,9 +1,9 @@
-import OperatorsDecorator from '../../../dist/decorators/operators-replace/collection';
-import { Collection } from '../../../dist/interfaces/collection';
-import ConditionTreeLeaf, { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
-import PaginatedFilter from '../../../dist/interfaces/query/filter/paginated';
-import Projection from '../../../dist/interfaces/query/projection';
-import { ColumnSchema, PrimitiveTypes } from '../../../dist/interfaces/schema';
+import OperatorsDecorator from '../../../src/decorators/operators-replace/collection';
+import { Collection } from '../../../src/interfaces/collection';
+import ConditionTreeLeaf, { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
+import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
+import Projection from '../../../src/interfaces/query/projection';
+import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
 import * as factories from '../../__factories__';
 
 describe('ConditionTreeOperators', () => {

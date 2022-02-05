@@ -1,9 +1,9 @@
 import { Context, Next } from 'koa';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import IpWhitelist from '../../../dist/routes/security/ip-whitelist';
+import IpWhitelist from '../../../src/routes/security/ip-whitelist';
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../dist/types';
-import { ForestAdminHttpDriverServices } from '../../../dist/services';
+import { HttpCode } from '../../../src/types';
+import { ForestAdminHttpDriverServices } from '../../../src/services';
 
 describe('IpWhitelist', () => {
   describe('setupAuthentication', () => {

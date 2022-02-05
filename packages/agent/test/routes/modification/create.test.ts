@@ -1,8 +1,8 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import CreateRoute from '../../../dist/routes/modification/create';
+import CreateRoute from '../../../src/routes/modification/create';
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../dist/types';
+import { HttpCode } from '../../../src/types';
 
 describe('CreateRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();

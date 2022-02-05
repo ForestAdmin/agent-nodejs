@@ -1,5 +1,5 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import SchemaGeneratorFields from '../../../dist/utils/forest-schema/generator-fields';
+import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
 import * as factories from '../../__factories__';
 
 describe('SchemaGeneratorFields > One to One', () => {

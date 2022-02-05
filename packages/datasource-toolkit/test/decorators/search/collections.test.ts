@@ -1,8 +1,8 @@
-import SearchCollectionDecorator from '../../../dist/decorators/search/collection';
-import { Aggregator } from '../../../dist/interfaces/query/condition-tree/branch';
-import { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
-import { PrimitiveTypes } from '../../../dist/interfaces/schema';
-import ConditionTreeUtils from '../../../dist/utils/condition-tree';
+import SearchCollectionDecorator from '../../../src/decorators/search/collection';
+import { Aggregator } from '../../../src/interfaces/query/condition-tree/branch';
+import { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
+import { PrimitiveTypes } from '../../../src/interfaces/schema';
+import ConditionTreeUtils from '../../../src/utils/condition-tree';
 import * as factories from '../../__factories__';
 
 describe('SearchCollectionDecorator', () => {

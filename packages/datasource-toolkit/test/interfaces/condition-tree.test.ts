@@ -1,6 +1,6 @@
-import ConditionTreeBranch, { Aggregator } from '../../dist/interfaces/query/condition-tree/branch';
-import ConditionTreeLeaf, { Operator } from '../../dist/interfaces/query/condition-tree/leaf';
-import ConditionTreeNot from '../../dist/interfaces/query/condition-tree/not';
+import ConditionTreeBranch, { Aggregator } from '../../src/interfaces/query/condition-tree/branch';
+import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/leaf';
+import ConditionTreeNot from '../../src/interfaces/query/condition-tree/not';
 
 describe('ConditionTree', () => {
   const tree = new ConditionTreeBranch(Aggregator.And, [

@@ -1,8 +1,8 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import { PrimitiveTypes, Operator } from '@forestadmin/datasource-toolkit';
-import UpdateRoute from '../../../dist/routes/modification/update';
+import UpdateRoute from '../../../src/routes/modification/update';
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../dist/types';
+import { HttpCode } from '../../../src/types';
 
 describe('UpdateRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();

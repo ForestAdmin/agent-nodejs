@@ -8,7 +8,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 // eslint-disable-next-line max-len
-import CollectionSchemaToModelRelationsConverter from '../../dist/utils/collection-schema-to-model-relations-converter';
+import CollectionSchemaToModelRelationsConverter from '../../src/utils/collection-schema-to-model-relations-converter';
 
 describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
   describe('convert', () => {

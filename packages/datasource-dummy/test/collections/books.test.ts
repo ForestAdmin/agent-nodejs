@@ -5,8 +5,8 @@ import {
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
-import BookCollection from '../../dist/collections/books';
-import DummyDataSource from '../../dist/datasource';
+import BookCollection from '../../src/collections/books';
+import DummyDataSource from '../../src/datasource';
 
 const instanciateCollection = () => new BookCollection(new DummyDataSource());
 

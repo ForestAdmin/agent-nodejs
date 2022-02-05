@@ -1,7 +1,7 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import QueryStringParser from '../../dist/utils/query-string';
+import QueryStringParser from '../../src/utils/query-string';
 import * as factories from '../__factories__';
-import { HttpCode } from '../../dist/types';
+import { HttpCode } from '../../src/types';
 
 describe('QueryStringParser', () => {
   const collectionSimple = factories.collection.build({

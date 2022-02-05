@@ -1,5 +1,5 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import HealthCheck from '../../dist/routes/healthcheck';
+import HealthCheck from '../../src/routes/healthcheck';
 import * as factories from '../__factories__';
 
 describe('Healthcheck', () => {

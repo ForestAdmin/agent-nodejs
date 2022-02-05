@@ -1,4 +1,4 @@
-import Serializer from '../../dist/services/serializer';
+import Serializer from '../../src/services/serializer';
 import * as factories from '../__factories__';
 
 describe('Serializer', () => {

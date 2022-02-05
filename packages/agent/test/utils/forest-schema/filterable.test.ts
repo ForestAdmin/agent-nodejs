@@ -1,5 +1,5 @@
 import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import FilterableUtils from '../../../dist/utils/forest-schema/filterable';
+import FilterableUtils from '../../../src/utils/forest-schema/filterable';
 
 describe('FrontendFilterableUtils', () => {
   describe('Normal types need to have defined minimum operators', () => {

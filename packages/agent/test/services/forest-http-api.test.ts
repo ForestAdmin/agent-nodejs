@@ -1,4 +1,4 @@
-import ForestHttpApi from '../../dist/services/forest-http-api';
+import ForestHttpApi from '../../src/services/forest-http-api';
 import * as factories from '../__factories__';
 
 describe('ForestHttpApi', () => {

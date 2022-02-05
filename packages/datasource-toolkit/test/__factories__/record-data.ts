@@ -1,4 +1,4 @@
 import { Factory } from 'fishery';
-import { RecordData } from '../../dist/interfaces/record';
+import { RecordData } from '../../src/interfaces/record';
 
 export default Factory.define<RecordData>(() => ({}));

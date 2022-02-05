@@ -1,11 +1,11 @@
-import DataSourceDecorator from '../../../dist/decorators/datasource-decorator';
-import OperatorEmulationDecorator from '../../../dist/decorators/operators-emulate/collection';
-import { Collection, DataSource } from '../../../dist/interfaces/collection';
-import ConditionTreeLeaf, { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
-import PaginatedFilter from '../../../dist/interfaces/query/filter/paginated';
-import Projection from '../../../dist/interfaces/query/projection';
-import { ColumnSchema, PrimitiveTypes } from '../../../dist/interfaces/schema';
-import ConditionTreeUtils from '../../../dist/utils/condition-tree';
+import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
+import OperatorEmulationDecorator from '../../../src/decorators/operators-emulate/collection';
+import { Collection, DataSource } from '../../../src/interfaces/collection';
+import ConditionTreeLeaf, { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
+import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
+import Projection from '../../../src/interfaces/query/projection';
+import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
+import ConditionTreeUtils from '../../../src/utils/condition-tree';
 import * as factories from '../../__factories__';
 
 describe('OperatorsEmulate', () => {
