@@ -27,7 +27,7 @@ describe('SchemaEmitter', () => {
     const options = { ...baseOptions, isProduction: false };
 
     test('it should return a fresh schema and save it to disk', async () => {
-      const schema = await SchemaEmitter.getSerializedSchema(options, dataSource);
+      const schema = await SchemaEmitter.getSerializedSchema(options, [dataSource]);
       expect(schema.meta).toHaveProperty('schemaFileHash');
       expect(schema).toMatchObject({
         meta: { liana: 'forest-nodejs-agent' },
@@ -41,7 +41,7 @@ describe('SchemaEmitter', () => {
 
     describe('with no schema file', () => {
       test('it should throw', async () => {
-        const result = SchemaEmitter.getSerializedSchema(options, dataSource);
+        const result = SchemaEmitter.getSerializedSchema(options, [dataSource]);
 
         await expect(result).rejects.toThrow('Providing a schema is mandatory');
       });
@@ -56,7 +56,7 @@ describe('SchemaEmitter', () => {
       });
 
       test('it should return the schema from the file', async () => {
-        const schema = await SchemaEmitter.getSerializedSchema(options, dataSource);
+        const schema = await SchemaEmitter.getSerializedSchema(options, [dataSource]);
 
         expect(schema.meta).toHaveProperty('schemaFileHash');
         expect(schema).toMatchObject({

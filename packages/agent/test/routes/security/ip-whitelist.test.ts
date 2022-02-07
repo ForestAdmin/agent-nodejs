@@ -9,10 +9,9 @@ describe('IpWhitelist', () => {
   describe('setupAuthentication', () => {
     test('should attach the checkIp method to the router', () => {
       const services = factories.forestAdminHttpDriverServices.build();
-      const dataSource = factories.dataSource.build();
       const options = factories.forestAdminHttpDriverOptions.build();
 
-      const ipWhitelistService = new IpWhitelist(services, dataSource, options);
+      const ipWhitelistService = new IpWhitelist(services, options);
 
       const router = factories.router.build();
       router.use = jest.fn();
@@ -27,7 +26,6 @@ describe('IpWhitelist', () => {
     describe('when the http call succeeds', () => {
       test('should not throw an error ', async () => {
         const services = factories.forestAdminHttpDriverServices.build();
-        const dataSource = factories.dataSource.build();
         const options = factories.forestAdminHttpDriverOptions.build();
 
         services.forestHTTPApi.getIpWhitelist = jest.fn().mockResolvedValue({
@@ -35,7 +33,7 @@ describe('IpWhitelist', () => {
           ipRules: [],
         });
 
-        const ipWhitelistService = new IpWhitelist(services, dataSource, options);
+        const ipWhitelistService = new IpWhitelist(services, options);
         await expect(ipWhitelistService.bootstrap()).resolves.not.toThrowError();
       });
     });
@@ -43,12 +41,11 @@ describe('IpWhitelist', () => {
     describe('when the http call fails', () => {
       test('should throw an error', async () => {
         const services = factories.forestAdminHttpDriverServices.build();
-        const dataSource = factories.dataSource.build();
         const options = factories.forestAdminHttpDriverOptions.build();
 
         services.forestHTTPApi.getIpWhitelist = jest.fn().mockRejectedValue(new Error());
 
-        const ipWhitelistService = new IpWhitelist(services, dataSource, options);
+        const ipWhitelistService = new IpWhitelist(services, options);
 
         await expect(ipWhitelistService.bootstrap()).rejects.toThrowError();
       });
@@ -58,10 +55,9 @@ describe('IpWhitelist', () => {
   describe('checkIp', () => {
     test('should call the next callback', async () => {
       const services = factories.forestAdminHttpDriverServices.build();
-      const dataSource = factories.dataSource.build();
       const options = factories.forestAdminHttpDriverOptions.build();
 
-      const ipWhitelistService = new IpWhitelist(services, dataSource, options);
+      const ipWhitelistService = new IpWhitelist(services, options);
 
       const context = createMockContext();
       const next = jest.fn() as Next;
@@ -89,10 +85,9 @@ describe('IpWhitelist', () => {
       describe('when x-forwarded-for is missing', () => {
         test('should take the ip from the request', async () => {
           const services = factories.forestAdminHttpDriverServices.build();
-          const dataSource = factories.dataSource.build();
           const options = factories.forestAdminHttpDriverOptions.build();
 
-          const ipWhitelistService = new IpWhitelist(services, dataSource, options);
+          const ipWhitelistService = new IpWhitelist(services, options);
 
           const isFeatureEnabled = true;
           const ipRules = [
@@ -122,10 +117,9 @@ describe('IpWhitelist', () => {
       describe('when the ip is not allowed', () => {
         test('should throw error when the ip is not allowed and not call next', async () => {
           const services = factories.forestAdminHttpDriverServices.build();
-          const dataSource = factories.dataSource.build();
           const options = factories.forestAdminHttpDriverOptions.build();
 
-          const ipWhitelistService = new IpWhitelist(services, dataSource, options);
+          const ipWhitelistService = new IpWhitelist(services, options);
 
           const isFeatureEnabled = true;
           const ipRules = [
@@ -159,10 +153,9 @@ describe('IpWhitelist', () => {
       describe('when the ip is allowed', () => {
         test('should call next', async () => {
           const services = factories.forestAdminHttpDriverServices.build();
-          const dataSource = factories.dataSource.build();
           const options = factories.forestAdminHttpDriverOptions.build();
 
-          const ipWhitelistService = new IpWhitelist(services, dataSource, options);
+          const ipWhitelistService = new IpWhitelist(services, options);
 
           const isFeatureEnabled = true;
           const ipRules = [

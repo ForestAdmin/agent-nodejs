@@ -6,7 +6,6 @@ import { HttpCode } from '../../../src/types';
 
 describe('Authentication', () => {
   const services = factories.forestAdminHttpDriverServices.build();
-  const dataSource = factories.dataSource.build();
   const router = factories.router.mockAllMethods().build();
   const options = factories.forestAdminHttpDriverOptions.build();
 
@@ -15,7 +14,7 @@ describe('Authentication', () => {
   const createAuthenticationRoutesUsingIssuerClientMock = async (
     mock: Record<string, jest.Mock>,
   ) => {
-    const authentication = new Authentication(services, dataSource, options);
+    const authentication = new Authentication(services, options);
     openidClient.Issuer = jest.fn().mockImplementation(() => ({
       Client: {
         register: jest.fn().mockReturnValue(mock),
@@ -37,7 +36,7 @@ describe('Authentication', () => {
         services.forestHTTPApi.getOpenIdConfiguration = jest.fn().mockImplementation(() => {
           throw new Error('Failed');
         });
-        const authentication = new Authentication(services, dataSource, options);
+        const authentication = new Authentication(services, options);
 
         await expect(authentication.bootstrap()).rejects.toThrow(
           'Failed to fetch openid-configuration.',
@@ -63,7 +62,7 @@ describe('Authentication', () => {
               register: clientRegisterSpy,
             },
           })) as unknown as typeof Issuer;
-          const authentication = new Authentication(services, dataSource, options);
+          const authentication = new Authentication(services, options);
 
           await expect(authentication.bootstrap()).rejects.toThrow(
             'Failed to create the openid client.',
@@ -81,7 +80,7 @@ describe('Authentication', () => {
             },
           })) as unknown as typeof Issuer;
 
-          const authentication = new Authentication(services, dataSource, options);
+          const authentication = new Authentication(services, options);
 
           await expect(authentication.bootstrap()).resolves.not.toThrow();
           expect(clientRegisterSpy).toHaveBeenCalledTimes(1);
@@ -105,7 +104,7 @@ describe('Authentication', () => {
             Client: clientConstructorSpy,
           })) as unknown as typeof Issuer;
           const optionsOverride = { ...options, clientId: 'xx' };
-          const authentication = new Authentication(services, dataSource, optionsOverride);
+          const authentication = new Authentication(services, optionsOverride);
 
           await expect(authentication.bootstrap()).rejects.toThrow(
             'Failed to create the openid client.',
@@ -121,7 +120,7 @@ describe('Authentication', () => {
             Client: clientConstructorSpy,
           })) as unknown as typeof Issuer;
           const optionsOverride = { ...options, clientId: 'xx' };
-          const authentication = new Authentication(services, dataSource, optionsOverride);
+          const authentication = new Authentication(services, optionsOverride);
 
           await expect(authentication.bootstrap()).resolves.not.toThrow();
           expect(clientConstructorSpy).toHaveBeenCalledTimes(1);
@@ -131,7 +130,7 @@ describe('Authentication', () => {
 
     describe('setupPublicRoutes', () => {
       test('should register authentication related public routes', async () => {
-        const authentication = new Authentication(services, dataSource, options);
+        const authentication = new Authentication(services, options);
         authentication.setupPublicRoutes(router);
 
         expect(router.post).toHaveBeenCalledWith('/authentication', expect.any(Function));
@@ -275,7 +274,7 @@ describe('Authentication', () => {
 
   describe('handleAuthenticationLogout', () => {
     test('should return a 204', async () => {
-      const authentication = new Authentication(services, dataSource, options);
+      const authentication = new Authentication(services, options);
 
       const context = createMockContext();
 
