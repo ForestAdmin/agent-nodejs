@@ -1,6 +1,3 @@
-import { Sequelize } from 'sequelize';
-import sortBy from 'lodash/sortBy';
-
 import {
   Aggregation,
   AggregationOperation,
@@ -16,7 +13,8 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-
+import sortBy from 'lodash/sortBy';
+import { Sequelize } from 'sequelize';
 import LiveCollection from '../src/collection';
 
 const compositeKeyCollectionSchema: CollectionSchema = {
@@ -73,7 +71,7 @@ const liveCollectionSchema: CollectionSchema = {
   segments: [],
 };
 
-const instanciateCollection = schema => {
+const instanciateCollection = (schema: CollectionSchema) => {
   const dataSource = Symbol('datasource') as unknown as DataSource;
   const sequelize = new Sequelize('sqlite::memory:', { logging: false });
 
@@ -83,7 +81,7 @@ const instanciateCollection = schema => {
   };
 };
 
-const preloadRecords = async (recordCount, schema, options) => {
+const preloadRecords = async (recordCount: number, schema: CollectionSchema, options) => {
   const { liveCollection, sequelize } = instanciateCollection(schema);
   const recordData = new Array(recordCount).fill(0).map((_, i) => options.recordBuilder(i));
 
