@@ -19,7 +19,10 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import ModelConverter from './utils/model-to-collection-schema-converter';
-import { convertPaginatedFilterToSequelize } from './utils/filter-converter';
+import {
+  convertFilterToSequelize,
+  convertPaginatedFilterToSequelize,
+} from './utils/filter-converter';
 
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,8 +105,10 @@ export default class SequelizeCollection extends BaseCollection {
       return group.field;
     });
 
+    // TODO: Use convertPaginatedFilterToSequelize,
+    //       keep "sort" directives only if present in "groups".
     const aggregates = await this.model.findAll({
-      ...convertPaginatedFilterToSequelize(filter),
+      ...convertFilterToSequelize(filter),
       attributes,
       group: groups,
     });
