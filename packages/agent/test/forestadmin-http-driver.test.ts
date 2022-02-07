@@ -1,7 +1,14 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
+
 import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
+import { CollectionRoutesCtor, RootRoutesCtor } from '../src/routes';
+import CountRoute from '../src/routes/access/count';
+import HealthCheck from '../src/routes/healthcheck';
 import { ForestAdminHttpDriverOptions } from '../src/types';
+
 import {
+  collectionSchema as collectionSchemaBuilder,
+  columnSchema as columnSchemaBuilder,
   dataSource as dataSourceBuilder,
   forestAdminHttpDriverOptions as optionsBuilder,
   forestAdminHttpDriverServices as servicesBuilder,
@@ -9,6 +16,9 @@ import {
 
 // Mock routes
 jest.mock('../src/routes', () => ({ RootRoutesCtor: [], CollectionRoutesCtor: [] }));
+
+CollectionRoutesCtor.push(CountRoute);
+RootRoutesCtor.push(HealthCheck);
 
 // Mock services
 const hasSchema = jest.fn();
@@ -23,7 +33,16 @@ describe('ForestAdminHttpDriver', () => {
   let options: ForestAdminHttpDriverOptions;
 
   beforeEach(() => {
-    dataSource = dataSourceBuilder.build();
+    dataSource = dataSourceBuilder.buildWithCollection({
+      name: 'person',
+      schema: collectionSchemaBuilder.build({
+        fields: {
+          birthdate: columnSchemaBuilder.isPrimaryKey().build(),
+          firstName: columnSchemaBuilder.build(),
+          lastName: columnSchemaBuilder.isPrimaryKey().build(),
+        },
+      }),
+    });
     options = optionsBuilder.build();
 
     hasSchema.mockReset();
@@ -35,6 +54,22 @@ describe('ForestAdminHttpDriver', () => {
     // Otherwise forestadmin-server's in app integration can't be started.
     const httpDriver = new ForestAdminHttpDriver(dataSource, options);
     expect(httpDriver.handler).toBeTruthy();
+  });
+
+  describe('start', () => {
+    it('shoud start with one database', async () => {
+      const httpDriver = new ForestAdminHttpDriver(dataSource, options);
+      await httpDriver.start();
+
+      expect(hasSchema).toHaveBeenCalled();
+    });
+
+    it('shoud start with multiple databases', async () => {
+      const httpDriver = new ForestAdminHttpDriver([dataSource, dataSource], options);
+      await httpDriver.start();
+
+      expect(hasSchema).toHaveBeenCalled();
+    });
   });
 
   describe('if forestadmin-server already has the schema', () => {
