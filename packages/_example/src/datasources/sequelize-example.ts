@@ -24,11 +24,13 @@ const prepareDatabase = async (): Promise<Sequelize> => {
 };
 
 const prepareDataSource = async (): Promise<SequelizeDataSource> => {
+  const sequelize = await prepareDatabase();
+
   // NOTICE: First call to ensure DB is ready to function.
   //         This is a hack to prevent open handle with Jest.
-  (await prepareDatabase()).sync().then(connection => connection.close());
-
-  const sequelize = await prepareDatabase();
+  if (process.env.NODE_ENV !== 'test') {
+    await sequelize.sync();
+  }
 
   const dataSource = new SequelizeDataSource([], sequelize);
   const exampleCollection = new SequelizeCollection('example', dataSource, sequelize);
