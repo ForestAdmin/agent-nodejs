@@ -32,7 +32,7 @@ class SchemaFieldsGenerator {
       case 'Mixed':
         return PrimitiveTypes.Json;
       default:
-        throw new Error(`Unhandled column type ${instance}`);
+        throw new Error(`Unhandled column type "${instance}"`);
     }
   }
 
@@ -74,7 +74,7 @@ class SchemaFieldsGenerator {
       ]);
     }
 
-    throw new Error(`Unhandled array column ${field.path}`);
+    throw new Error(`Unhandled array column "${field.path}"`);
   }
 
   private static buildNestedPathSchema(

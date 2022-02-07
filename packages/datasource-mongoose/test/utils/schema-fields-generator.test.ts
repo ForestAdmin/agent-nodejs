@@ -1,5 +1,5 @@
 import { FieldTypes, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import { Schema, model } from 'mongoose';
+import { Schema, model, SchemaType } from 'mongoose';
 
 import SchemaFieldsGenerator from '../../src/utils/schema-fields-generator';
 import FilterOperatorBuilder from '../../src/utils/filter-operator-builder';
@@ -611,6 +611,28 @@ describe('MongooseCollection', () => {
           type: FieldTypes.Column,
         },
       });
+    });
+  });
+
+  describe('when column is not recognized', () => {
+    it('should throw an error on simple type', () => {
+      const simpleErrorSchema = {
+        error: { instance: 'unrecognized', options: {} } as SchemaType,
+      };
+
+      expect(() => SchemaFieldsGenerator.buildSchemaFields(simpleErrorSchema)).toThrow(
+        'Unhandled column type "unrecognized"',
+      );
+    });
+
+    it('should throw an error on simple type', () => {
+      const arrayErrorSchema = {
+        errors: { instance: 'Array', caster: {}, path: 'errors' } as Schema.Types.Array,
+      };
+
+      expect(() => SchemaFieldsGenerator.buildSchemaFields(arrayErrorSchema)).toThrow(
+        'Unhandled array column "errors"',
+      );
     });
   });
 });
