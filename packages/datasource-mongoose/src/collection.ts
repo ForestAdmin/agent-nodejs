@@ -18,7 +18,7 @@ export default class MongooseCollection extends BaseCollection {
     this.addFields(SchemaFieldsGenerator.buildSchemaFields(model.schema.paths));
   }
 
-  getById(): Promise<RecordData> {
+  override getById(): Promise<RecordData> {
     throw new Error('Method not implemented.');
   }
 
