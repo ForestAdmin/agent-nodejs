@@ -1,4 +1,4 @@
-import Projection from '../../dist/interfaces/query/projection';
+import Projection from '../../src/interfaces/query/projection';
 import * as factories from '../__factories__';
 
 describe('Projection', () => {

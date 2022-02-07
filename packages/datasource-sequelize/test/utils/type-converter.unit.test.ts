@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
-import TypeConverter from '../../dist/utils/type-converter';
+import TypeConverter from '../../src/utils/type-converter';
 
 describe('Utils > TypeConverter', () => {
   describe('fromColumnType', () => {

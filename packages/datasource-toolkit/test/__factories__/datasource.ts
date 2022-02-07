@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
-import { Collection, DataSource } from '../../dist/interfaces/collection';
+import { Collection, DataSource } from '../../src/interfaces/collection';
 import factoryCollection from './collection';
 
 export class DataSourceFactory extends Factory<DataSource> {

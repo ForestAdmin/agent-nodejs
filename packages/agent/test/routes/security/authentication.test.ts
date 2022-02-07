@@ -1,8 +1,8 @@
 import openidClient, { Issuer } from 'openid-client';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import * as factories from '../../__factories__';
-import Authentication from '../../../dist/routes/security/authentication';
-import { HttpCode } from '../../../dist/types';
+import Authentication from '../../../src/routes/security/authentication';
+import { HttpCode } from '../../../src/types';
 
 describe('Authentication', () => {
   const services = factories.forestAdminHttpDriverServices.build();

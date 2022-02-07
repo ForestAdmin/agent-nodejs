@@ -1,11 +1,11 @@
-import DataSourceDecorator from '../../../dist/decorators/datasource-decorator';
-import SortEmulationDecorator from '../../../dist/decorators/sort-emulate/collection';
-import { Collection, DataSource } from '../../../dist/interfaces/collection';
-import PaginatedFilter from '../../../dist/interfaces/query/filter/paginated';
-import Page from '../../../dist/interfaces/query/page';
-import Projection from '../../../dist/interfaces/query/projection';
-import Sort from '../../../dist/interfaces/query/sort';
-import { ColumnSchema } from '../../../dist/interfaces/schema';
+import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
+import SortEmulationDecorator from '../../../src/decorators/sort-emulate/collection';
+import { Collection, DataSource } from '../../../src/interfaces/collection';
+import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
+import Page from '../../../src/interfaces/query/page';
+import Projection from '../../../src/interfaces/query/projection';
+import Sort from '../../../src/interfaces/query/sort';
+import { ColumnSchema } from '../../../src/interfaces/schema';
 import * as factories from '../../__factories__';
 
 describe('SortEmulationDecoratorCollection', () => {

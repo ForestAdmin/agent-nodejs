@@ -1,5 +1,5 @@
-import alternatives from '../../../../dist/decorators/operators-replace/transforms/pattern';
-import ConditionTreeLeaf, { Operator } from '../../../../dist/interfaces/query/condition-tree/leaf';
+import alternatives from '../../../../src/decorators/operators-replace/transforms/pattern';
+import ConditionTreeLeaf, { Operator } from '../../../../src/interfaces/query/condition-tree/leaf';
 
 describe('ConditionTreeOperators > Pattern', () => {
   describe('Operator.Contains', () => {

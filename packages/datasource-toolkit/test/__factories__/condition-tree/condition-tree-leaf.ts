@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
-import ConditionTreeLeaf, { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
+import ConditionTreeLeaf, { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
 
 export default Factory.define<ConditionTreeLeaf>(
   () =>

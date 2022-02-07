@@ -1,6 +1,6 @@
 import { Factory } from 'fishery';
-import { ColumnSchema, FieldTypes, PrimitiveTypes } from '../../../dist/interfaces/schema';
-import { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
+import { ColumnSchema, FieldTypes, PrimitiveTypes } from '../../../src/interfaces/schema';
+import { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
 
 export class ColumnSchemaFactory extends Factory<ColumnSchema> {
   isPrimaryKey(): ColumnSchemaFactory {

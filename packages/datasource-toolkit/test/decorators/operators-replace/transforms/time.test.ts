@@ -1,6 +1,6 @@
-import alternatives from '../../../../dist/decorators/operators-replace/transforms/time';
-import { Aggregator } from '../../../../dist/interfaces/query/condition-tree/branch';
-import ConditionTreeLeaf, { Operator } from '../../../../dist/interfaces/query/condition-tree/leaf';
+import alternatives from '../../../../src/decorators/operators-replace/transforms/time';
+import { Aggregator } from '../../../../src/interfaces/query/condition-tree/branch';
+import ConditionTreeLeaf, { Operator } from '../../../../src/interfaces/query/condition-tree/leaf';
 
 describe('ConditionTreeOperators > Time', () => {
   beforeAll(() => {

@@ -1,6 +1,6 @@
-import { PrimitiveTypes } from '../../dist/interfaces/schema';
+import { PrimitiveTypes } from '../../src/interfaces/schema';
 import * as factories from '../__factories__';
-import FieldValidator from '../../dist/validation/field';
+import FieldValidator from '../../src/validation/field';
 
 describe('FieldValidator', () => {
   describe('validate', () => {

@@ -1,8 +1,8 @@
-import ConditionTreeLeaf, { Operator } from '../../dist/interfaces/query/condition-tree/leaf';
-import PaginatedFilter from '../../dist/interfaces/query/filter/paginated';
-import Filter from '../../dist/interfaces/query/filter/unpaginated';
-import Page from '../../dist/interfaces/query/page';
-import Sort from '../../dist/interfaces/query/sort';
+import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/leaf';
+import PaginatedFilter from '../../src/interfaces/query/filter/paginated';
+import Filter from '../../src/interfaces/query/filter/unpaginated';
+import Page from '../../src/interfaces/query/page';
+import Sort from '../../src/interfaces/query/sort';
 
 describe('Filter', () => {
   const leaf = new ConditionTreeLeaf({

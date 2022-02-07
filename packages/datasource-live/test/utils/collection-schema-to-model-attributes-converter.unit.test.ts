@@ -7,7 +7,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 // eslint-disable-next-line max-len
-import CollectionSchemaToModelAttributesConverter from '../../dist/utils/collection-schema-to-model-attributes-converter';
+import CollectionSchemaToModelAttributesConverter from '../../src/utils/collection-schema-to-model-attributes-converter';
 
 describe('Utils > CollectionSchemaToModelAttributesConverter', () => {
   describe('convert', () => {

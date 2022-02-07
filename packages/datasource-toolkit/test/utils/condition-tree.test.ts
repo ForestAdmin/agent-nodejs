@@ -1,6 +1,6 @@
-import ConditionTreeBranch, { Aggregator } from '../../dist/interfaces/query/condition-tree/branch';
-import ConditionTreeLeaf, { Operator } from '../../dist/interfaces/query/condition-tree/leaf';
-import ConditionTreeUtils from '../../dist/utils/condition-tree';
+import ConditionTreeBranch, { Aggregator } from '../../src/interfaces/query/condition-tree/branch';
+import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/leaf';
+import ConditionTreeUtils from '../../src/utils/condition-tree';
 import * as factories from '../__factories__';
 
 describe('ConditionTreeUtils', () => {

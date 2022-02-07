@@ -1,4 +1,4 @@
-import Page from '../../dist/interfaces/query/page';
+import Page from '../../src/interfaces/query/page';
 
 describe('Page', () => {
   const collectionSize = 42;

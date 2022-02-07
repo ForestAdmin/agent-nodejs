@@ -1,4 +1,4 @@
-import Sort from '../../dist/interfaces/query/sort';
+import Sort from '../../src/interfaces/query/sort';
 
 describe('Sort', () => {
   const sort = new Sort(

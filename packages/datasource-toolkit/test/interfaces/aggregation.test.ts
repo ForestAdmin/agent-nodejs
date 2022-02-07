@@ -1,7 +1,7 @@
 import Aggregation, {
   AggregationOperation,
   DateOperation,
-} from '../../dist/interfaces/query/aggregation';
+} from '../../src/interfaces/query/aggregation';
 
 describe('Aggregation', () => {
   describe('count(*) with no grouping', () => {

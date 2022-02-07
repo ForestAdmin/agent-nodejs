@@ -1,16 +1,16 @@
-import DataSourceDecorator from '../../../dist/decorators/datasource-decorator';
-import RenameCollectionDecorator from '../../../dist/decorators/rename/collection';
-import { Collection, DataSource } from '../../../dist/interfaces/collection';
-import Aggregation, { AggregationOperation } from '../../../dist/interfaces/query/aggregation';
+import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
+import RenameCollectionDecorator from '../../../src/decorators/rename/collection';
+import { Collection, DataSource } from '../../../src/interfaces/collection';
+import Aggregation, { AggregationOperation } from '../../../src/interfaces/query/aggregation';
 import ConditionTreeBranch, {
   Aggregator,
-} from '../../../dist/interfaces/query/condition-tree/branch';
-import ConditionTreeLeaf, { Operator } from '../../../dist/interfaces/query/condition-tree/leaf';
-import PaginatedFilter from '../../../dist/interfaces/query/filter/paginated';
-import Filter from '../../../dist/interfaces/query/filter/unpaginated';
-import Projection from '../../../dist/interfaces/query/projection';
-import Sort from '../../../dist/interfaces/query/sort';
-import { FieldTypes, PrimitiveTypes } from '../../../dist/interfaces/schema';
+} from '../../../src/interfaces/query/condition-tree/branch';
+import ConditionTreeLeaf, { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
+import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
+import Filter from '../../../src/interfaces/query/filter/unpaginated';
+import Projection from '../../../src/interfaces/query/projection';
+import Sort from '../../../src/interfaces/query/sort';
+import { FieldTypes, PrimitiveTypes } from '../../../src/interfaces/schema';
 import * as factories from '../../__factories__';
 
 describe('RenameCollectionDecorator', () => {
