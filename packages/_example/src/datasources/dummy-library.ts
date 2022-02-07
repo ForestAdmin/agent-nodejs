@@ -10,7 +10,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { DummyDataSource } from '@forestadmin/datasource-dummy';
 
-const prepareDataSource = (): DummyDataSource => {
+const prepareDataSource = async (): Promise<DummyDataSource> => {
   let dataSource = new DummyDataSource();
   dataSource = new DataSourceDecorator(dataSource, OperatorsEmulateCollectionDecorator);
   dataSource = new DataSourceDecorator(dataSource, OperatorsReplaceCollectionDecorator);
@@ -23,6 +23,4 @@ const prepareDataSource = (): DummyDataSource => {
   return dataSource;
 };
 
-const dataSource = prepareDataSource();
-
-export default dataSource;
+export default prepareDataSource;

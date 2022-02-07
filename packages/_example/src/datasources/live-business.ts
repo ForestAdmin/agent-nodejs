@@ -7,6 +7,8 @@ import {
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
 
+import loadLiveDataSource from './live-business-data';
+
 const companyCollection: CollectionSchema = {
   actions: {},
   fields: {
@@ -91,6 +93,14 @@ const dataSourceSchema: DataSourceSchema = {
     users: userCollection,
   },
 };
-const dataSource = new LiveDataSource(dataSourceSchema);
 
-export default dataSource;
+const prepareDataSource = async (): Promise<LiveDataSource> => {
+  const dataSource = new LiveDataSource(dataSourceSchema);
+
+  await dataSource.syncCollections();
+  await loadLiveDataSource(dataSource);
+
+  return dataSource;
+};
+
+export default prepareDataSource;

@@ -2,7 +2,7 @@ import { DataTypes, Sequelize } from 'sequelize';
 
 import { SequelizeCollection, SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
-const prepareDataSource = (): SequelizeDataSource => {
+const prepareDataSource = async (): Promise<SequelizeDataSource> => {
   const sequelize = new Sequelize('postgres://example:password@localhost:5442/example');
 
   sequelize.define(
@@ -20,13 +20,14 @@ const prepareDataSource = (): SequelizeDataSource => {
     },
   );
 
+  await sequelize.sync();
+
   const dataSource = new SequelizeDataSource([], sequelize);
   const exampleCollection = new SequelizeCollection('example', dataSource, sequelize);
+
   dataSource.addCollection(exampleCollection);
 
   return dataSource;
 };
 
-const dataSource = prepareDataSource();
-
-export default dataSource;
+export default prepareDataSource;
