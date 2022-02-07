@@ -85,11 +85,9 @@ export default class ForestAdminHttpDriver {
   private buildRoutes(): void {
     const { dataSources, options } = this;
 
-    dataSources.forEach(dataSource => {
-      this.routes.push(
-        ...RootRoutesCtor.map(Route => new Route(this.services, dataSource, options)),
-      );
+    this.routes.push(...RootRoutesCtor.map(Route => new Route(this.services, options)));
 
+    dataSources.forEach(dataSource => {
       dataSource.collections.forEach(collection => {
         this.routes.push(
           ...CollectionRoutesCtor.map(
