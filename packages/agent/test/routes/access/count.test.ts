@@ -39,22 +39,14 @@ describe('CountRoute', () => {
       });
 
       await count.handleCount(context);
+
+      expect(context.throw).not.toHaveBeenCalled();
       expect(aggregateSpy).toHaveBeenCalledWith(
         {
-          search: undefined,
+          search: null,
           searchExtended: false,
           segment: null,
           timezone: 'Europe/Paris',
-          page: {
-            limit: 15,
-            skip: 0,
-          },
-          sort: [
-            {
-              ascending: true,
-              field: 'id',
-            },
-          ],
         },
         { operation: AggregationOperation.Count },
       );

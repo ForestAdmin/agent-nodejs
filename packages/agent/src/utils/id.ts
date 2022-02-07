@@ -27,10 +27,18 @@ export default class IdUtils {
   }
 
   static unpackIds(schema: CollectionSchema, packedIds: string[]): CompositeId[] {
+    if (!Array.isArray(packedIds)) {
+      throw new Error(`Expected array, received: ${typeof packedIds}`);
+    }
+
     return packedIds.map(packedId => IdUtils.unpackId(schema, packedId));
   }
 
   static unpackId(schema: CollectionSchema, packedId: string): CompositeId {
+    if (typeof packedId !== 'string') {
+      throw new Error(`Expected string, received: ${typeof packedId}`);
+    }
+
     const pkNames = SchemaUtils.getPrimaryKeys(schema);
     const pkValues = packedId.split('|');
 

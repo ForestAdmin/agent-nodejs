@@ -66,6 +66,7 @@ describe('CreateRoute', () => {
       const context = createMockContext({ requestBody });
 
       await create.handleCreate(context);
+      expect(context.throw).not.toHaveBeenCalled();
       expect(collection.create).toHaveBeenCalledWith([requestBody.data.attributes]);
 
       expect(context.response.body).toEqual({
