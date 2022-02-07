@@ -10,7 +10,7 @@ import BaseRoute from './routes/base-route';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverOptionsWithDefaults } from './types';
 import SchemaEmitter from './utils/forest-schema/emitter';
-import OptionsValidator from './utils/validation/options';
+import OptionsUtils from './utils/options';
 
 /** Native NodeJS callback that can be passed to an HTTP Server */
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
@@ -35,18 +35,10 @@ export default class ForestAdminHttpDriver {
 
   constructor(dataSource: DataSource | DataSource[], options: ForestAdminHttpDriverOptions) {
     this.dataSources = Array.isArray(dataSource) ? dataSource : [dataSource];
-    this.options = {
-      clientId: null,
-      forestServerUrl: 'https://api.forestadmin.com',
-      logger: console.error, // eslint-disable-line no-console
-      prefix: '/forest',
-      schemaPath: '.forestadmin-schema.json',
-      ...options,
-    };
-
-    OptionsValidator.validate(this.options);
-
+    this.options = OptionsUtils.withDefaults(options);
     this.services = makeServices(this.options);
+
+    OptionsUtils.validate(this.options);
   }
 
   /**

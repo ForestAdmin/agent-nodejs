@@ -1,13 +1,30 @@
-import { ForestAdminHttpDriverOptions, LoggerLevel } from '../../types';
+import {
+  ForestAdminHttpDriverOptions,
+  ForestAdminHttpDriverOptionsWithDefaults,
+  LoggerLevel,
+} from '../types';
 
-export default class OptionsValidator {
-  static validate(options: ForestAdminHttpDriverOptions): void {
-    OptionsValidator.checkForestServerOptions(options);
-    OptionsValidator.checkAuthOptions(options);
-    OptionsValidator.checkOtherOptions(options);
+export default class OptionsUtils {
+  static withDefaults(
+    options: ForestAdminHttpDriverOptions,
+  ): ForestAdminHttpDriverOptionsWithDefaults {
+    return {
+      clientId: null,
+      forestServerUrl: 'https://api.forestadmin.com',
+      logger: console.error, // eslint-disable-line no-console
+      prefix: '/forest',
+      schemaPath: '.forestadmin-schema.json',
+      ...options,
+    };
   }
 
-  private static checkForestServerOptions(options: ForestAdminHttpDriverOptions): void {
+  static validate(options: ForestAdminHttpDriverOptionsWithDefaults): void {
+    OptionsUtils.checkForestServerOptions(options);
+    OptionsUtils.checkAuthOptions(options);
+    OptionsUtils.checkOtherOptions(options);
+  }
+
+  private static checkForestServerOptions(options: ForestAdminHttpDriverOptionsWithDefaults): void {
     if (typeof options.envSecret === 'string' && /^[0-9a-f]{16}$/.test(options.envSecret)) {
       throw new Error(
         'options.envSecret is invalid. You can retrieve its value from ' +
@@ -15,14 +32,14 @@ export default class OptionsValidator {
       );
     }
 
-    if (!OptionsValidator.isUrl(options.forestServerUrl)) {
+    if (!OptionsUtils.isUrl(options.forestServerUrl)) {
       throw new Error(
         'options.forestServerUrl is invalid. It should contain an URL ' +
           '(i.e. "https://api.forestadmin.com")',
       );
     }
 
-    if (!OptionsValidator.isExistingPath(options.schemaPath)) {
+    if (!OptionsUtils.isExistingPath(options.schemaPath)) {
       throw new Error(
         'options.schemaPath is invalid. It should contain a relative filepath ' +
           'where the schema should be loaded/updated (i.e. ".forestadmin-schema.json")',
@@ -30,8 +47,8 @@ export default class OptionsValidator {
     }
   }
 
-  private static checkAuthOptions(options: ForestAdminHttpDriverOptions): void {
-    if (!OptionsValidator.isUrl(options.agentUrl)) {
+  private static checkAuthOptions(options: ForestAdminHttpDriverOptionsWithDefaults): void {
+    if (!OptionsUtils.isUrl(options.agentUrl)) {
       throw new Error(
         'options.agentUrl is invalid. It should contain an url where your agent is reachable ' +
           '(i.e. "https://api-forestadmin.mycompany.com")',
@@ -54,7 +71,7 @@ export default class OptionsValidator {
     }
   }
 
-  private static checkOtherOptions(options: ForestAdminHttpDriverOptions): void {
+  private static checkOtherOptions(options: ForestAdminHttpDriverOptionsWithDefaults): void {
     if (typeof options.prefix !== 'string' || !/[-/a-z+]/.test(options.prefix)) {
       throw new Error(
         'options.prefix is invalid. It should contain the prefix on which ' +
