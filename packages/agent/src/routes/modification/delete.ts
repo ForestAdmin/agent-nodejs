@@ -25,18 +25,16 @@ export default class DeleteRoute extends CollectionRoute {
   }
 
   public async handleListDelete(context: Context): Promise<void> {
+    const attributes = context.request.body?.data?.attributes;
     let unpackedIds: CompositeId[];
     let excludedRecordMode: boolean;
 
     try {
-      const { ids, all_records_ids_excluded: excludedIds } = context.request.body.data.attributes;
-      excludedRecordMode = context.request.body.data.attributes.all_records;
-
-      if (excludedRecordMode) {
-        unpackedIds = IdUtils.unpackIds(this.collection.schema, excludedIds);
-      } else {
-        unpackedIds = IdUtils.unpackIds(this.collection.schema, ids);
-      }
+      excludedRecordMode = attributes?.all_records;
+      unpackedIds = IdUtils.unpackIds(
+        this.collection.schema,
+        excludedRecordMode ? attributes?.all_records_ids_excluded : attributes?.ids,
+      );
     } catch (e) {
       return context.throw(HttpCode.BadRequest, e.message);
     }
