@@ -47,9 +47,21 @@ describe('IdUtils', () => {
       expect(IdUtils.unpackId(numberSchema, '34')).toStrictEqual([34]);
     });
 
-    test('should fail if a number id cannot be properly casted', () => {
+    test('should fail to unpack if parameters violate the expected type', () => {
+      expect(() => IdUtils.unpackId(numberSchema, new Date() as unknown as string)).toThrow(
+        'Expected string, received: object',
+      );
+    });
+
+    test('should fail to unpack if a number id cannot be properly casted', () => {
       const fn = () => IdUtils.unpackId(numberSchema, 'something');
       expect(fn).toThrow(/Failed to parse number/);
+    });
+
+    test('should fail to unpack if parameter violate expected type', () => {
+      expect(() => IdUtils.unpackIds(numberSchema, 'some data' as unknown as string[])).toThrow(
+        'Expected array, received: string',
+      );
     });
   });
 
