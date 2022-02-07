@@ -1,6 +1,6 @@
 import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
-import { ForestAdminHttpDriverOptions } from '../types';
 import { ForestAdminHttpDriverServices } from '../services';
+import { ForestAdminHttpDriverOptionsWithDefaults } from '../types';
 import BaseRoute from './base-route';
 
 export default abstract class CollectionRoute extends BaseRoute {
@@ -14,7 +14,7 @@ export default abstract class CollectionRoute extends BaseRoute {
   constructor(
     services: ForestAdminHttpDriverServices,
     dataSource: DataSource,
-    options: ForestAdminHttpDriverOptions,
+    options: ForestAdminHttpDriverOptionsWithDefaults,
     collectionName: string,
   ) {
     super(services, options);

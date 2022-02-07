@@ -3,7 +3,7 @@ import * as factories from '../__factories__';
 
 describe('Serializer', () => {
   const setupSerializer = (): Serializer => {
-    return new Serializer('/forest');
+    return new Serializer({ prefix: '/forest' });
   };
 
   describe('With composite pk', () => {

@@ -22,6 +22,7 @@ describe('agent', () => {
       agentUrl: 'http://localhost:3352',
       isProduction: false,
       schemaPath: '/tmp/.testschema.json',
+      logger: () => {},
     });
     const response = await superagent.get('http://localhost:3352/forest/');
 

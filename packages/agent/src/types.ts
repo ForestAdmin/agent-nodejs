@@ -9,17 +9,20 @@ export enum LoggerLevel {
 export type Logger = (level: LoggerLevel, message: string) => void;
 
 /** Options to configure behavior of an agent's forestadmin driver */
-export interface ForestAdminHttpDriverOptions {
+export type ForestAdminHttpDriverOptions = {
   agentUrl: string;
   authSecret: string;
   clientId?: string;
   envSecret: string;
-  forestServerUrl: string;
+  forestServerUrl?: string;
   logger?: Logger;
-  prefix: string;
+  prefix?: string;
   isProduction: boolean;
-  schemaPath: string;
-}
+  schemaPath?: string;
+  scopesCacheDurationInSeconds?: number;
+};
+
+export type ForestAdminHttpDriverOptionsWithDefaults = Required<ForestAdminHttpDriverOptions>;
 
 export enum HttpCode {
   Forbidden = 403,
