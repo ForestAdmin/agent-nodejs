@@ -1,5 +1,5 @@
 import { Collection } from '../interfaces/collection';
-import { FieldSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
+import { FieldSchema, FieldTypes, ManyToOneSchema, RelationSchema } from '../interfaces/schema';
 
 export default class CollectionUtils {
   static getRelation(collection: Collection, path: string): Collection {
@@ -41,9 +41,7 @@ export default class CollectionUtils {
         const isManyToManyInverse =
           field.type === FieldTypes.ManyToMany &&
           relation.type === FieldTypes.ManyToMany &&
-          field.otherField === relation.foreignKey &&
-          field.throughCollection === relation.throughCollection &&
-          field.foreignKey === relation.otherField;
+          field.targetRelation === relation.originRelation;
 
         const isManyToOneInverse =
           field.type === FieldTypes.ManyToOne &&

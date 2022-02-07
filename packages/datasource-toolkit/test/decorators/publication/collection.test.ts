@@ -60,8 +60,8 @@ describe('PublicationCollectionDecorator', () => {
           id: factories.columnSchema.isPrimaryKey().build(),
           myPersons: factories.manyToManySchema.build({
             foreignCollection: 'persons',
-            foreignKey: 'personId',
-            otherField: 'bookId',
+            originRelation: 'myPerson',
+            targetRelation: 'myBook',
             throughCollection: 'bookPersons',
           }),
           myBookPersons: factories.oneToManySchema.build({

@@ -81,10 +81,10 @@ describe('CollectionUtils', () => {
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
             myPersons: factories.manyToManySchema.build({
-              foreignCollection: 'persons',
-              foreignKey: 'personId',
-              otherField: 'bookId',
+              originRelation: 'myBook',
+              targetRelation: 'myPerson',
               throughCollection: 'bookPersons',
+              foreignCollection: 'persons',
             }),
             myBookPersons: factories.oneToManySchema.build({
               foreignCollection: 'bookPersons',
@@ -120,10 +120,10 @@ describe('CollectionUtils', () => {
               foreignKey: 'personId',
             }),
             myBooks: factories.manyToManySchema.build({
-              foreignCollection: 'books',
-              foreignKey: 'bookId',
-              otherField: 'personId',
+              originRelation: 'myPerson',
+              targetRelation: 'myBook',
               throughCollection: 'bookPersons',
+              foreignCollection: 'books',
             }),
           },
         }),

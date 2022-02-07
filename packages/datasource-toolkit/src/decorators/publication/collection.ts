@@ -48,8 +48,10 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
           this.dataSource.getCollection(field.foreignCollection).isPublished(field.foreignKey)) ||
         // Many to many relations depend on both foreignKey and otherField to be published
         (field.type === FieldTypes.ManyToMany &&
-          this.dataSource.getCollection(field.throughCollection).isPublished(field.foreignKey) &&
-          this.dataSource.getCollection(field.throughCollection).isPublished(field.otherField)))
+          this.dataSource
+            .getCollection(field.throughCollection)
+            .isPublished(field.originRelation) &&
+          this.dataSource.getCollection(field.throughCollection).isPublished(field.targetRelation)))
     );
   }
 }

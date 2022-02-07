@@ -80,8 +80,8 @@ describe('RenameCollectionDecorator', () => {
           id: factories.columnSchema.isPrimaryKey().build(),
           myPersons: factories.manyToManySchema.build({
             foreignCollection: 'persons',
-            foreignKey: 'personId',
-            otherField: 'bookId',
+            originRelation: 'myPerson',
+            targetRelation: 'myBook',
             throughCollection: 'bookPersons',
           }),
           myBookPersons: factories.oneToManySchema.build({
@@ -349,7 +349,14 @@ describe('RenameCollectionDecorator', () => {
       const bookPersonFields = newBookPersons.schema.fields;
       const personFields = newPersons.schema.fields;
 
-      expect(bookFields.myPersons).toMatchObject({ foreignKey: 'authorId', otherField: 'novelId' });
+      // the many to many relation does not change
+      expect(bookFields.myPersons).toMatchObject({
+        type: 'ManyToMany',
+        foreignCollection: 'persons',
+        originRelation: 'myPerson',
+        targetRelation: 'myBook',
+        throughCollection: 'bookPersons',
+      });
       expect(bookFields.myBookPersons).toMatchObject({ foreignKey: 'novelId' });
       expect(bookPersonFields.myBook).toMatchObject({ foreignKey: 'novelId' });
       expect(bookPersonFields.myPerson).toMatchObject({ foreignKey: 'authorId' });

@@ -88,8 +88,8 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
 
           schema.fields.a = {
             foreignCollection: '__collection__',
-            foreignKey: '__key__',
-            otherField: '__other_field__',
+            originRelation: '__key__',
+            targetRelation: '__other_field__',
             throughCollection: '__through__collection__',
             type: FieldTypes.ManyToMany,
           };

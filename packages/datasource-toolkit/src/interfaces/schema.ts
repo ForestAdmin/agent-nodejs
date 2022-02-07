@@ -57,9 +57,9 @@ export type OneToOneSchema = {
 };
 
 export type ManyToManySchema = {
+  originRelation: string;
+  targetRelation: string;
   foreignCollection: string;
-  foreignKey: string;
-  otherField: string;
   throughCollection: string;
   type: FieldTypes.ManyToMany;
 };

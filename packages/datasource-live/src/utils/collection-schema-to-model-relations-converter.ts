@@ -21,7 +21,7 @@ export default class CollectionSchemaToModelRelationsConverter {
           }),
           targetModel.belongsToMany(sourceModel, {
             through: field.throughCollection,
-            foreignKey: field.foreignKey,
+            foreignKey: field.foreignKey, // schema[originCollection].foreignKey
           }),
         );
       } else if (field.type === FieldTypes.ManyToOne) {
