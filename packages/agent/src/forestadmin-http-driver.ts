@@ -41,7 +41,6 @@ export default class ForestAdminHttpDriver {
       logger: console.error, // eslint-disable-line no-console
       prefix: '/forest',
       schemaPath: '.forestadmin-schema.json',
-      scopesCacheDurationInSeconds: 15 * 60,
       ...options,
     };
 
