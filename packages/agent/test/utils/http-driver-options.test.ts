@@ -1,4 +1,4 @@
-import OptionsUtils from '../../src/utils/options';
+import OptionsUtils from '../../src/utils/http-driver-options';
 
 describe('OptionsUtils', () => {
   const mandatoryOptions = {

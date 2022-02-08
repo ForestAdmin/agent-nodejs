@@ -10,7 +10,7 @@ import BaseRoute from './routes/base-route';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverOptionsWithDefaults } from './types';
 import SchemaEmitter from './utils/forest-schema/emitter';
-import OptionsUtils from './utils/options';
+import OptionsUtils from './utils/http-driver-options';
 
 /** Native NodeJS callback that can be passed to an HTTP Server */
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
