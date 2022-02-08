@@ -32,7 +32,7 @@ const prepareDataSource = async (): Promise<SequelizeDataSource> => {
     await sequelize.sync();
   }
 
-  const dataSource = new SequelizeDataSource([], sequelize);
+  const dataSource = new SequelizeDataSource(sequelize);
   const exampleCollection = new SequelizeCollection('example', dataSource, sequelize);
 
   dataSource.addCollection(exampleCollection);
