@@ -22,31 +22,29 @@ export default class CountRelatedRoute extends RelationRoute {
 
   public async handleCountRelated(context: Context): Promise<void> {
     let parentId: CompositeId;
-    let paginatedFilter: PaginatedFilter;
 
     try {
       parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-      paginatedFilter = new PaginatedFilter({
-        search: QueryStringParser.parseSearch(context),
-        searchExtended: QueryStringParser.parseSearchExtended(context),
-        segment: QueryStringParser.parseSegment(this.collection, context),
-        timezone: QueryStringParser.parseTimezone(context),
-      });
     } catch (e) {
       return context.throw(HttpCode.BadRequest, e.message);
     }
 
+    const paginatedFilter = new PaginatedFilter({
+      search: QueryStringParser.parseSearch(context),
+      searchExtended: QueryStringParser.parseSearchExtended(context),
+      segment: QueryStringParser.parseSegment(this.collection, context),
+      timezone: QueryStringParser.parseTimezone(context),
+    });
+
     try {
       const aggregationResult = await CollectionUtils.aggregateRelation(
-        paginatedFilter,
-        Number(parentId[0]),
         this.collection,
+        parentId,
         this.relationName,
+        paginatedFilter,
         new Aggregation({ operation: AggregationOperation.Count }),
-        this.dataSource,
       );
-      const countValue = aggregationResult?.[0]?.value;
-      const count = countValue ?? 0;
+      const count = aggregationResult?.[0]?.value ?? 0;
 
       context.response.body = { count };
     } catch (e) {

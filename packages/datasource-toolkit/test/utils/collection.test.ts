@@ -201,7 +201,7 @@ describe('CollectionUtils', () => {
   });
 
   describe('aggregateRelation', () => {
-    describe('when the relation is a one to many relation', () => {
+    describe('when the relation is not supported', () => {
       const setupWithNotSupportedRelation = () => {
         const books = factories.collection.build({
           name: 'books',
@@ -229,12 +229,11 @@ describe('CollectionUtils', () => {
 
         await expect(() =>
           CollectionUtils.aggregateRelation(
-            baseFilter,
-            2,
             dataSource.getCollection('books'),
+            [2],
             'aNonSupportedRelationField',
+            baseFilter,
             aggregation,
-            dataSource,
           ),
         ).rejects.toThrowError(
           'aggregateRelation method can only be used with OneToMany and ManyToMany relations',
@@ -276,12 +275,11 @@ describe('CollectionUtils', () => {
         });
 
         await CollectionUtils.aggregateRelation(
-          baseFilter,
-          2,
           dataSource.getCollection('books'),
+          [2],
           'oneToManyRelationField',
+          baseFilter,
           aggregation,
-          dataSource,
         );
 
         const expectedCondition = ConditionTreeUtils.intersect(
@@ -357,15 +355,14 @@ describe('CollectionUtils', () => {
 
         jest
           .spyOn(dataSource.getCollection('librariesBooks'), 'aggregate')
-          .mockResolvedValue([{ value: 34, group: { 'myBook:id': 1, bookId: 1 } }]);
+          .mockResolvedValue([{ value: 34, group: { 'myBook:id': 1, 'myBook:aField': '1' } }]);
 
         const aggregateResults = await CollectionUtils.aggregateRelation(
-          baseFilter,
-          2,
           dataSource.getCollection('books'),
+          [2],
           'manyToManyRelationField',
+          baseFilter,
           aggregation,
-          dataSource,
         );
 
         const expectedCondition = ConditionTreeUtils.intersect(
@@ -376,17 +373,40 @@ describe('CollectionUtils', () => {
             value: 2,
           }),
         );
-        const expectedAggregation = new Aggregation({
-          operation: AggregationOperation.Max,
-          field: 'myBook:aField',
-        });
 
         expect(dataSource.getCollection('librariesBooks').aggregate).toHaveBeenCalledWith(
           baseFilter.override({ conditionTree: expectedCondition }),
-          expectedAggregation,
+          new Aggregation({
+            operation: AggregationOperation.Max,
+            field: 'myBook:aField',
+          }),
         );
 
-        expect(aggregateResults).toEqual([{ group: { id: 1, bookId: 1 }, value: 34 }]);
+        expect(aggregateResults).toEqual([{ group: { id: 1, aField: '1' }, value: 34 }]);
+      });
+
+      describe('when any aggregate results has not the right prefix', () => {
+        test('should throw an error', async () => {
+          const { dataSource } = setupWithManyToManyRelation();
+
+          jest
+            .spyOn(dataSource.getCollection('librariesBooks'), 'aggregate')
+            .mockResolvedValue([
+              { value: 34, group: { 'myBook:id': 1, 'BAD_PREFIX:aField': '1' } },
+            ]);
+
+          await expect(() =>
+            CollectionUtils.aggregateRelation(
+              dataSource.getCollection('books'),
+              [2],
+              'manyToManyRelationField',
+              factories.filter.build(),
+              factories.aggregation.build(),
+            ),
+          ).rejects.toThrowError(
+            'This field BAD_PREFIX:aField does not have the right expected prefix: myBook',
+          );
+        });
       });
     });
   });

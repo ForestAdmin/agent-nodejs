@@ -1,10 +1,11 @@
-import { Collection, DataSource } from '../interfaces/collection';
+import { Collection } from '../interfaces/collection';
 import { FieldSchema, FieldTypes, ManyToManySchema, RelationSchema } from '../interfaces/schema';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTreeUtils from './condition-tree';
 import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/leaf';
 import ConditionTree from '../interfaces/query/condition-tree/base';
+import { CompositeId } from '../interfaces/record';
 
 export default class CollectionUtils {
   static getRelation(collection: Collection, path: string): Collection {
@@ -71,12 +72,11 @@ export default class CollectionUtils {
   }
 
   static async aggregateRelation(
-    paginatedFilter: PaginatedFilter,
-    id: number,
     collection: Collection,
+    id: CompositeId,
     relationName: string,
+    paginatedFilter: PaginatedFilter,
     aggregation: Aggregation,
-    datasource: DataSource,
   ): Promise<AggregateResult[]> {
     const relationFieldSchema = collection.schema.fields[relationName];
     const isOneToMany = relationFieldSchema.type === FieldTypes.OneToMany;
@@ -90,7 +90,7 @@ export default class CollectionUtils {
     }
 
     if (isOneToMany) {
-      const foreignCollection = await datasource.getCollection(
+      const foreignCollection = collection.dataSource.getCollection(
         relationFieldSchema.foreignCollection,
       );
       const conditionTree = CollectionUtils.buildConditionTree(
@@ -103,28 +103,30 @@ export default class CollectionUtils {
     }
 
     return CollectionUtils.getAggregateResultsForManyToMany(
-      datasource,
-      relationFieldSchema,
+      collection,
       id,
+      relationFieldSchema,
       paginatedFilter,
       aggregation,
     );
   }
 
   private static async getAggregateResultsForManyToMany(
-    datasource: DataSource,
+    collection: Collection,
+    id: CompositeId,
     relationFieldSchema: ManyToManySchema,
-    id: number,
     paginatedFilter: PaginatedFilter,
     aggregation: Aggregation,
   ): Promise<AggregateResult[]> {
-    const foreignCollection = await datasource.getCollection(relationFieldSchema.throughCollection);
+    const throughCollection = collection.dataSource.getCollection(
+      relationFieldSchema.throughCollection,
+    );
     const conditionTree = CollectionUtils.buildConditionTree(
       relationFieldSchema.otherField,
       id,
       paginatedFilter.conditionTree?.nest(relationFieldSchema.originRelation),
     );
-    const aggregateResults = await foreignCollection.aggregate(
+    const aggregateResults = await throughCollection.aggregate(
       paginatedFilter.override({ conditionTree }),
       aggregation.nest(relationFieldSchema.originRelation),
     );
@@ -134,13 +136,13 @@ export default class CollectionUtils {
 
   private static buildConditionTree(
     foreignKey: string,
-    id: number,
+    id: CompositeId,
     conditionTree: ConditionTree,
   ): ConditionTree {
     const conditionToMatchId = new ConditionTreeLeaf({
       field: foreignKey,
       operator: Operator.Equal,
-      value: id,
+      value: id[0],
     });
 
     return ConditionTreeUtils.intersect(conditionTree, conditionToMatchId);
@@ -161,7 +163,9 @@ export default class CollectionUtils {
           const suffix = field.substring(schema.originRelation.length + ':'.length);
           newResult.group[suffix] = result;
         } else {
-          newResult.group[field] = result;
+          throw new Error(
+            `This field ${field} does not have the right expected prefix: ${schema.originRelation}`,
+          );
         }
       });
 
