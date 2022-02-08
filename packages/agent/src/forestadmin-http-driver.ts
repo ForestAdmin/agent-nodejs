@@ -5,18 +5,19 @@ import { IncomingMessage, ServerResponse } from 'http';
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import path from 'path';
-import { RootRoutesCtor, CollectionRoutesCtor } from './routes';
+import { CollectionRoutesCtor, RootRoutesCtor } from './routes';
 import BaseRoute from './routes/base-route';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
-import { ForestAdminHttpDriverOptions } from './types';
+import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverOptionsWithDefaults } from './types';
 import SchemaEmitter from './utils/forest-schema/emitter';
+import OptionsUtils from './utils/http-driver-options';
 
 /** Native NodeJS callback that can be passed to an HTTP Server */
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
 
 export default class ForestAdminHttpDriver {
   public readonly dataSources: DataSource[];
-  public readonly options: ForestAdminHttpDriverOptions;
+  public readonly options: ForestAdminHttpDriverOptionsWithDefaults;
   public readonly routes: BaseRoute[] = [];
   public readonly services: ForestAdminHttpDriverServices;
 
@@ -34,8 +35,10 @@ export default class ForestAdminHttpDriver {
 
   constructor(dataSource: DataSource | DataSource[], options: ForestAdminHttpDriverOptions) {
     this.dataSources = Array.isArray(dataSource) ? dataSource : [dataSource];
-    this.options = options;
-    this.services = makeServices(options);
+    this.options = OptionsUtils.withDefaults(options);
+    this.services = makeServices(this.options);
+
+    OptionsUtils.validate(this.options);
   }
 
   /**

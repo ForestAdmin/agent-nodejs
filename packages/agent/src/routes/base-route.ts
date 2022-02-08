@@ -1,12 +1,15 @@
 import Router from '@koa/router';
 import { ForestAdminHttpDriverServices } from '../services';
-import { ForestAdminHttpDriverOptions } from '../types';
+import { ForestAdminHttpDriverOptionsWithDefaults } from '../types';
 
 export default abstract class BaseRoute {
   protected readonly services: ForestAdminHttpDriverServices;
-  protected readonly options: ForestAdminHttpDriverOptions;
+  protected readonly options: ForestAdminHttpDriverOptionsWithDefaults;
 
-  constructor(services: ForestAdminHttpDriverServices, options: ForestAdminHttpDriverOptions) {
+  constructor(
+    services: ForestAdminHttpDriverServices,
+    options: ForestAdminHttpDriverOptionsWithDefaults,
+  ) {
     this.services = services;
     this.options = options;
   }

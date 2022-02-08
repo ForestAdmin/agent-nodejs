@@ -17,11 +17,12 @@ describe('agent', () => {
     const stop = await agent(3352, 'localhost', {
       prefix: '/forest',
       authSecret: 'xxx',
-      envSecret: 'yyy',
+      envSecret: '61a31971206f285c3e8eb8f3ee420175eb004bfa9fa24846dde6d5dd438e3991',
       forestServerUrl: 'https://api.development.forestadmin.com',
       agentUrl: 'http://localhost:3352',
       isProduction: false,
       schemaPath: '/tmp/.testschema.json',
+      logger: () => {},
     });
     const response = await superagent.get('http://localhost:3352/forest/');
 

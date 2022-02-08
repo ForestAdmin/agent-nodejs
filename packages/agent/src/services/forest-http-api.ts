@@ -1,6 +1,7 @@
 import JSONAPISerializer from 'json-api-serializer';
 import { IssuerMetadata } from 'openid-client';
 import superagent, { Response, ResponseError } from 'superagent';
+import { ForestAdminHttpDriverOptionsWithDefaults } from '../types';
 
 export type IpRule = {
   type: number;
@@ -10,19 +11,18 @@ export type IpRule = {
   range?: string;
 };
 
+type ForestHttpApiOptions = Pick<
+  ForestAdminHttpDriverOptionsWithDefaults,
+  'forestServerUrl' | 'envSecret'
+>;
+
 export default class ForestHttpApi {
   private readonly forestServerUrl: string;
   private readonly envSecret: string;
 
-  constructor(forestServerUrl: string, envSecret: string) {
-    if (!forestServerUrl || !envSecret) {
-      throw new Error(
-        `forestServerUrl: ${forestServerUrl} and envSecret: ${envSecret} must be present.`,
-      );
-    }
-
-    this.forestServerUrl = forestServerUrl;
-    this.envSecret = envSecret;
+  constructor(options: ForestHttpApiOptions) {
+    this.forestServerUrl = options.forestServerUrl;
+    this.envSecret = options.envSecret;
   }
 
   async getIpWhitelist(): Promise<{

@@ -6,17 +6,19 @@ import {
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import JsonApiSerializer from 'json-api-serializer';
+import { ForestAdminHttpDriverOptionsWithDefaults } from '../types';
 import IdUtils from '../utils/id';
 
 type SerializedRecord = { forestId: string };
+type SerializerOptions = Pick<ForestAdminHttpDriverOptionsWithDefaults, 'prefix'>;
 
 export default class Serializer {
   // No need to keep references to serializers for outdated schemas => weakmap.
   private readonly serializers: WeakMap<CollectionSchema, JsonApiSerializer> = new WeakMap();
   private prefix: string;
 
-  constructor(prefix: string) {
-    this.prefix = prefix;
+  constructor(options: SerializerOptions) {
+    this.prefix = options.prefix;
   }
 
   serialize(collection: Collection, record: RecordData | RecordData[]): unknown {
