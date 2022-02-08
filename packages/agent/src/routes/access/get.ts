@@ -3,6 +3,7 @@ import Router from '@koa/router';
 import { Context } from 'koa';
 import IdUtils from '../../utils/id';
 import CollectionRoute from '../collection-base-route';
+import { HttpCode } from '../../types';
 
 export default class GetRoute extends CollectionRoute {
   private static RECORD_NOT_FOUND_ERROR = 'Record does not exist';
@@ -18,8 +19,8 @@ export default class GetRoute extends CollectionRoute {
 
     try {
       id = IdUtils.unpackId(this.collection.schema, context.params.id);
-    } catch (error) {
-      context.throw(404, `Failed to get record using id ${context.params.id}, ${error.message}`);
+    } catch (e) {
+      context.throw(HttpCode.BadRequest, e.message);
     }
 
     try {
@@ -33,12 +34,12 @@ export default class GetRoute extends CollectionRoute {
     } catch (error) {
       if (error.message === GetRoute.RECORD_NOT_FOUND_ERROR) {
         context.throw(
-          404,
+          HttpCode.NotFound,
           `Record id ${id} does not exist on collection "${this.collection.name}"`,
         );
       } else {
         context.throw(
-          500,
+          HttpCode.InternalServerError,
           `Failed to get record using id ${id} on collection "${this.collection.name}"`,
         );
       }

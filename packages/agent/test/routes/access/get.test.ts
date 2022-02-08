@@ -2,6 +2,7 @@ import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import Get from '../../../src/routes/access/get';
 import * as factories from '../../__factories__';
+import { HttpCode } from '../../../dist/types';
 
 describe('GetRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
@@ -80,7 +81,7 @@ describe('GetRoute', () => {
           await get.handleGet(context);
 
           expect(context.throw).toHaveBeenCalledWith(
-            404,
+            HttpCode.NotFound,
             'Record id 1 does not exist on collection "books"',
           );
           expect(context.throw).toHaveBeenCalledTimes(1);
@@ -88,7 +89,7 @@ describe('GetRoute', () => {
       });
 
       describe('when the provided id does not match the schema definition', () => {
-        test('should return an HTTP 404 response', async () => {
+        test('should return an HTTP 400 response', async () => {
           const get = new Get(services, options, dataSource, 'books');
           // In the schema above, ID is a classic primary key
           // Asking for a composite PK will throw
@@ -99,8 +100,8 @@ describe('GetRoute', () => {
           await get.handleGet(context);
 
           expect(context.throw).toHaveBeenCalledWith(
-            404,
-            'Failed to get record using id 1|2, Expected 1 values, found 2',
+            HttpCode.BadRequest,
+            'Expected 1 values, found 2',
           );
         });
       });
@@ -121,7 +122,7 @@ describe('GetRoute', () => {
           await get.handleGet(context);
 
           expect(context.throw).toHaveBeenCalledWith(
-            500,
+            HttpCode.InternalServerError,
             'Failed to get record using id 1 on collection "books"',
           );
         });
