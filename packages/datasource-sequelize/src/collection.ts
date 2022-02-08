@@ -2,6 +2,7 @@ import {
   FindAttributeOptions,
   GroupOption,
   ModelDefined,
+  OrderItem,
   Sequelize,
   UpdateOptions,
 } from 'sequelize';
@@ -105,10 +106,16 @@ export default class SequelizeCollection extends BaseCollection {
       return group.field;
     });
 
-    // TODO: Use convertPaginatedFilterToSequelize,
-    //       keep "sort" directives only if present in "groups".
+    const sequelizeFilter = convertPaginatedFilterToSequelize(filter);
+
+    if (sequelizeFilter.order) {
+      sequelizeFilter.order = (sequelizeFilter.order as OrderItem[]).filter(
+        orderClause => groups && aggregation.groups?.find(group => group.field === orderClause[0]),
+      );
+    }
+
     const aggregates = await this.model.findAll({
-      ...convertFilterToSequelize(filter),
+      ...sequelizeFilter,
       attributes,
       group: groups,
     });
