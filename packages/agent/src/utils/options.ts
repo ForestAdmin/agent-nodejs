@@ -1,3 +1,5 @@
+import { existsSync } from 'fs';
+import { parse as parsePath } from 'path';
 import {
   ForestAdminHttpDriverOptions,
   ForestAdminHttpDriverOptionsWithDefaults,
@@ -8,14 +10,14 @@ export default class OptionsUtils {
   static withDefaults(
     options: ForestAdminHttpDriverOptions,
   ): ForestAdminHttpDriverOptionsWithDefaults {
-    return {
+    return Object.freeze({
       clientId: null,
       forestServerUrl: 'https://api.forestadmin.com',
       logger: console.error, // eslint-disable-line no-console
       prefix: '/forest',
       schemaPath: '.forestadmin-schema.json',
       ...options,
-    };
+    });
   }
 
   static validate(options: ForestAdminHttpDriverOptionsWithDefaults): void {
@@ -25,7 +27,7 @@ export default class OptionsUtils {
   }
 
   private static checkForestServerOptions(options: ForestAdminHttpDriverOptionsWithDefaults): void {
-    if (typeof options.envSecret === 'string' && /^[0-9a-f]{16}$/.test(options.envSecret)) {
+    if (typeof options.envSecret !== 'string' || !/^[0-9a-f]{64}$/.test(options.envSecret)) {
       throw new Error(
         'options.envSecret is invalid. You can retrieve its value from ' +
           'https://www.forestadmin.com',
@@ -42,7 +44,7 @@ export default class OptionsUtils {
     if (!OptionsUtils.isExistingPath(options.schemaPath)) {
       throw new Error(
         'options.schemaPath is invalid. It should contain a relative filepath ' +
-          'where the schema should be loaded/updated (i.e. ".forestadmin-schema.json")',
+          'where the schema should be loaded/updated (i.e. "./.forestadmin-schema.json")',
       );
     }
   }
@@ -62,12 +64,14 @@ export default class OptionsUtils {
       );
     }
 
-    if (!options.clientId) {
+    if (options.clientId === null) {
       options.logger?.(
         LoggerLevel.Warn,
         'options.clientId was not provided. Using NodeJS cluster mode, ' +
           'or multiple instances of the agent  will break authentication',
       );
+    } else if (typeof options.clientId !== 'string') {
+      throw new Error('options.clientId is invalid.');
     }
   }
 
@@ -81,9 +85,13 @@ export default class OptionsUtils {
   }
 
   private static isExistingPath(string: unknown): boolean {
-    void string;
+    if (typeof string !== 'string') {
+      return false;
+    }
 
-    return true;
+    const parsed = parsePath(string);
+
+    return parsed.dir.length ? existsSync(parsed.dir) : true;
   }
 
   private static isUrl(string: unknown): boolean {

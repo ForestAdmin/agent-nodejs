@@ -21,7 +21,9 @@ export type ForestAdminHttpDriverOptions = {
   schemaPath?: string;
 };
 
-export type ForestAdminHttpDriverOptionsWithDefaults = Required<ForestAdminHttpDriverOptions>;
+export type ForestAdminHttpDriverOptionsWithDefaults = Readonly<
+  Required<ForestAdminHttpDriverOptions>
+>;
 
 export enum HttpCode {
   Forbidden = 403,
