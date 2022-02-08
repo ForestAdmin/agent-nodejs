@@ -1,6 +1,7 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 
 import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
+import RoutesFactory from '../src/routes/routes-factory';
 import { ForestAdminHttpDriverOptions } from '../src/types';
 import * as factories from './__factories__';
 
@@ -11,6 +12,7 @@ jest.mock('../src/routes', () => ({
 }));
 
 // Mock services
+let makeRoutes: jest.SpyInstance;
 const hasSchema = jest.fn();
 const uploadSchema = jest.fn();
 jest.mock(
@@ -24,6 +26,8 @@ describe('ForestAdminHttpDriver', () => {
   let options: ForestAdminHttpDriverOptions;
 
   beforeEach(() => {
+    makeRoutes = jest.spyOn(RoutesFactory, 'makeRoutes').mockReturnValue([]);
+
     dataSource = factories.dataSource.buildWithCollection({
       name: 'person',
       schema: factories.collectionSchema.build({
@@ -48,18 +52,20 @@ describe('ForestAdminHttpDriver', () => {
   });
 
   describe('start', () => {
-    it('shoud start with one database', async () => {
+    it('should start with one database', async () => {
       const httpDriver = new ForestAdminHttpDriver(dataSource, options);
       await httpDriver.start();
 
       expect(hasSchema).toHaveBeenCalled();
+      expect(makeRoutes).toHaveBeenCalled();
     });
 
-    it('shoud start with multiple databases', async () => {
+    it('should start with multiple databases', async () => {
       const httpDriver = new ForestAdminHttpDriver([dataSource, dataSource], options);
       await httpDriver.start();
 
       expect(hasSchema).toHaveBeenCalled();
+      expect(makeRoutes).toHaveBeenCalled();
     });
   });
 

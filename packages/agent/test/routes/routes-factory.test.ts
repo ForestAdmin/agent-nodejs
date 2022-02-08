@@ -1,11 +1,10 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import * as factories from '../__factories__';
-import ForestAdminHttpDriver from '../../src/forestadmin-http-driver';
 import RoutesFactory from '../../src/routes/routes-factory';
 import { RootRoutesCtor, CollectionRoutesCtor, RelatedRoutesCtor } from '../../src/routes';
 
 describe('RoutesFactory', () => {
-  test('should instantiate all the routes', async () => {
+  const setupDataSources = () => {
     const books = factories.collection.build({
       name: 'books',
       schema: factories.collectionSchema.build({
@@ -31,28 +30,39 @@ describe('RoutesFactory', () => {
       }),
     });
 
-    const options = factories.forestAdminHttpDriverOptions.build();
-    const dataSource = factories.dataSource.buildWithCollections([persons, books]);
-    const httpDriver = new ForestAdminHttpDriver(dataSource, options);
-    const services = factories.forestAdminHttpDriverServices.build();
+    const dataSourceWithRelation = factories.dataSource.buildWithCollections([persons, books]);
+    const dataSourceWithoutRelation = factories.dataSource.buildWithCollections([
+      factories.collection.build({ name: 'collectionA' }),
+      factories.collection.build({ name: 'collectionB' }),
+    ]);
 
-    RoutesFactory.makeRoutes({
-      dataSources: [dataSource],
-      options,
-      services,
+    return {
+      dataSourceWithRelation,
+      dataSourceWithoutRelation,
+    };
+  };
+
+  test('should instantiate all the routes', async () => {
+    const { dataSourceWithRelation, dataSourceWithoutRelation } = setupDataSources();
+
+    const routes = RoutesFactory.makeRoutes({
+      dataSources: [dataSourceWithRelation, dataSourceWithoutRelation],
+      options: factories.forestAdminHttpDriverOptions.build(),
+      services: factories.forestAdminHttpDriverServices.build(),
       rootRoutes: RootRoutesCtor,
       collectionRoutes: CollectionRoutesCtor,
       relatedRoutes: RelatedRoutesCtor,
     });
 
-    const countCollection = dataSource.collections.length;
-
     const booksCollectionNoRelation = 1;
     const countRelationRoutes =
-      RelatedRoutesCtor.length * countCollection - booksCollectionNoRelation;
-    const countCollectionRoutes = CollectionRoutesCtor.length * countCollection;
+      RelatedRoutesCtor.length * dataSourceWithRelation.collections.length -
+      booksCollectionNoRelation;
+    const countCollectionRoutes =
+      CollectionRoutesCtor.length * dataSourceWithRelation.collections.length +
+      CollectionRoutesCtor.length * dataSourceWithoutRelation.collections.length;
 
-    expect(httpDriver.routes.length).toEqual(
+    expect(routes.length).toEqual(
       RootRoutesCtor.length + countCollectionRoutes + countRelationRoutes,
     );
   });
