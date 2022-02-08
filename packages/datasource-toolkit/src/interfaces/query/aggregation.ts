@@ -36,13 +36,18 @@ type Summary = {
 interface AggregationComponents {
   field?: string;
   operation: AggregationOperation;
-  groups?: Array<{ field: string; operation?: DateOperation }>;
+  groups?: AggregationGroup[];
+}
+
+interface AggregationGroup {
+  field: string;
+  operation?: DateOperation;
 }
 
 export default class Aggregation implements AggregationComponents {
   field?: string;
   operation: AggregationOperation;
-  groups?: { field: string; operation?: DateOperation }[];
+  groups?: AggregationGroup[];
 
   get projection(): Projection {
     const { field, groups } = this;
@@ -55,6 +60,31 @@ export default class Aggregation implements AggregationComponents {
     this.field = components.field;
     this.operation = components.operation;
     this.groups = components.groups;
+  }
+
+  apply(records: RecordData[], timezone: string): AggregateResult[] {
+    return this.formatSummaries(this.createSummaries(records, timezone));
+  }
+
+  nest(prefix: string): Aggregation {
+    if (!prefix || prefix.length === 0) {
+      return this;
+    }
+
+    let nestedField: string;
+    let nestedGroups: AggregationGroup[];
+
+    if (this.field) {
+      nestedField = `${prefix}:${this.field}`;
+    }
+
+    if (this.groups)
+      nestedGroups = this.groups.map(bucket => ({
+        field: `${prefix}:${bucket.field}`,
+        operation: bucket.operation,
+      }));
+
+    return new Aggregation({ field: nestedField, operation: this.operation, groups: nestedGroups });
   }
 
   replaceFields(handler: (field: string) => string): Aggregation {
@@ -70,10 +100,6 @@ export default class Aggregation implements AggregationComponents {
     }));
 
     return result;
-  }
-
-  apply(records: RecordData[], timezone: string): AggregateResult[] {
-    return this.formatSummaries(this.createSummaries(records, timezone));
   }
 
   private createSummaries(records: RecordData[], timezone: string): Array<Summary> {

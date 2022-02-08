@@ -2,28 +2,24 @@ import { AggregationOperation } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import Count from '../../../src/routes/access/count';
 import * as factories from '../../__factories__';
+import { HttpCode } from '../../../src/types';
 
 describe('CountRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
-  const partialCollection = {
+  const collection = factories.collection.build({
     name: 'books',
-    aggregate: jest.fn(),
     schema: factories.collectionSchema.build({
       fields: {
         id: factories.columnSchema.isPrimaryKey().build(),
       },
     }),
-  };
-  const dataSource = factories.dataSource.buildWithCollection(partialCollection);
+  });
+  const dataSource = factories.dataSource.buildWithCollection(collection);
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
 
-  beforeEach(() => {
-    (router.get as jest.Mock).mockClear();
-  });
-
   test('should register "/books/count" private routes', () => {
-    const list = new Count(services, dataSource, options, partialCollection.name);
+    const list = new Count(services, options, dataSource, collection.name);
     list.setupPrivateRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith('/books/count', expect.any(Function));
@@ -33,7 +29,7 @@ describe('CountRoute', () => {
     test('should the aggregate implementation', async () => {
       const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
       dataSource.getCollection('books').aggregate = aggregateSpy;
-      const count = new Count(services, dataSource, options, partialCollection.name);
+      const count = new Count(services, options, dataSource, collection.name);
       const context = createMockContext({
         customProperties: { query: { timezone: 'Europe/Paris' } },
       });
@@ -54,16 +50,19 @@ describe('CountRoute', () => {
     });
 
     describe('when an error happens', () => {
-      test('should return an HTTP 400 response', async () => {
+      test('should return an HTTP 500 response', async () => {
         dataSource.getCollection('books').aggregate = jest.fn().mockImplementation(() => {
           throw new Error();
         });
 
-        const count = new Count(services, dataSource, options, partialCollection.name);
+        const count = new Count(services, options, dataSource, collection.name);
         const context = createMockContext();
 
         await count.handleCount(context);
-        expect(context.throw).toHaveBeenCalledWith(500, 'Failed to count collection "books"');
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.InternalServerError,
+          'Failed to count collection "books"',
+        );
       });
     });
   });

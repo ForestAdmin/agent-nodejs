@@ -92,6 +92,8 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
             otherField: '__other_field__',
             throughCollection: '__through__collection__',
             type: FieldTypes.ManyToMany,
+            originRelation: '__key_NOT_USED__',
+            targetRelation: '__key_NOT_USED__',
           };
 
           const relations = CollectionSchemaToModelRelationsConverter.convert(

@@ -13,8 +13,8 @@ export default abstract class CollectionRoute extends BaseRoute {
 
   constructor(
     services: ForestAdminHttpDriverServices,
-    dataSource: DataSource,
     options: ForestAdminHttpDriverOptionsWithDefaults,
+    dataSource: DataSource,
     collectionName: string,
   ) {
     super(services, options);

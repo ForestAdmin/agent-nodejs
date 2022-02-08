@@ -81,6 +81,8 @@ describe('Utils > CollectionSchemaToModelAttributesConverter', () => {
               otherField: '__none__',
               throughCollection: '__none__',
               type: FieldTypes.ManyToMany,
+              originRelation: '__key_NOT_USED__',
+              targetRelation: '__key_NOT_USED__',
             },
           },
           searchable: false,

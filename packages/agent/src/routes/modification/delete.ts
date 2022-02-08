@@ -1,10 +1,10 @@
 import { CompositeId, ConditionTreeUtils, Filter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
+import CollectionRoute from '../collection-base-route';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
-import CollectionRoute from '../collection-base-route';
 
 export default class DeleteRoute extends CollectionRoute {
   override setupPrivateRoutes(router: Router): void {
