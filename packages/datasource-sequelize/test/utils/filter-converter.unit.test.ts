@@ -233,6 +233,51 @@ describe('Utils > FilterConverter', () => {
         });
       });
     });
+
+    describe('with array operator', () => {
+      const makeFilter = (operator, value) => {
+        const conditionTree = new ConditionTreeLeaf({
+          operator,
+          field: '__field__',
+          value,
+        });
+        const filter = new Filter({
+          conditionTree,
+        });
+
+        return filter;
+      };
+
+      describe.each([
+        ['In', Operator.In, Op.in],
+        ['IncludesAll', Operator.IncludesAll, Op.contains],
+        ['NotIn', Operator.NotIn, Op.notIn],
+      ])('"%s"', (message, schemaOperator, sequelizeOperator) => {
+        it('should handle atomic values', () => {
+          const value = 42;
+          const filter = makeFilter(schemaOperator, value);
+          const sequelizeFilter = convertFilterToSequelize(filter);
+
+          expect(sequelizeFilter).toEqual(
+            expect.objectContaining({
+              where: { __field__: { [sequelizeOperator]: [value] } },
+            }),
+          );
+        });
+
+        it('should handle array values', () => {
+          const value = [42];
+          const filter = makeFilter(schemaOperator, value);
+          const sequelizeFilter = convertFilterToSequelize(filter);
+
+          expect(sequelizeFilter).toEqual(
+            expect.objectContaining({
+              where: { __field__: { [sequelizeOperator]: value } },
+            }),
+          );
+        });
+      });
+    });
   });
 
   describe('convertPaginatedFilterToSequelize', () => {
