@@ -1,10 +1,10 @@
 import { RecordData, RecordUtils } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
-import CollectionBaseRoute from '../collection-base-route';
+import CollectionRoute from '../collection-base-route';
 import { HttpCode } from '../../types';
 
-export default class CreateRoute extends CollectionBaseRoute {
+export default class CreateRoute extends CollectionRoute {
   override setupPrivateRoutes(router: Router): void {
     router.post(`/${this.collection.name}`, this.handleCreate.bind(this));
   }

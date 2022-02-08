@@ -57,11 +57,13 @@ export type OneToOneSchema = {
 };
 
 export type ManyToManySchema = {
+  throughCollection: string;
   foreignCollection: string;
   foreignKey: string;
   otherField: string;
-  throughCollection: string;
   type: FieldTypes.ManyToMany;
+  originRelation: string;
+  targetRelation: string;
 };
 
 export type ColumnType = PrimitiveTypes | { [key: string]: ColumnType } | [ColumnType];

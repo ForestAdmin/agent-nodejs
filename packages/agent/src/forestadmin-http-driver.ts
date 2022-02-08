@@ -5,7 +5,7 @@ import { IncomingMessage, ServerResponse } from 'http';
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import path from 'path';
-import { CollectionRoutesCtor, RootRoutesCtor } from './routes';
+import makeRoutes from './routes';
 import BaseRoute from './routes/base-route';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverOptionsWithDefaults } from './types';
@@ -38,6 +38,7 @@ export default class ForestAdminHttpDriver {
     this.dataSources = Array.isArray(dataSource) ? dataSource : [dataSource];
     this.options = OptionsUtils.withDefaults(options);
     this.services = makeServices(this.options);
+    this.routes = makeRoutes(this.dataSources, this.options, this.services);
 
     OptionsUtils.validate(this.options);
   }
@@ -55,7 +56,6 @@ export default class ForestAdminHttpDriver {
 
     // Build http application
     const router = new Router({ prefix: path.join('/', this.options.prefix) });
-    this.buildRoutes();
 
     this.routes.forEach(route => route.setupPublicRoutes(router));
     this.routes.forEach(route => route.setupAuthentication(router));
@@ -84,21 +84,5 @@ export default class ForestAdminHttpDriver {
 
     this.status = 'done';
     await Promise.all(this.routes.map(route => route.tearDown()));
-  }
-
-  private buildRoutes(): void {
-    const { dataSources, options } = this;
-
-    this.routes.push(...RootRoutesCtor.map(Route => new Route(this.services, options)));
-
-    dataSources.forEach(dataSource => {
-      dataSource.collections.forEach(collection => {
-        this.routes.push(
-          ...CollectionRoutesCtor.map(
-            Route => new Route(this.services, dataSource, options, collection.name),
-          ),
-        );
-      });
-    });
   }
 }

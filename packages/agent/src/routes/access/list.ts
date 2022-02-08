@@ -2,9 +2,9 @@ import { PaginatedFilter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import QueryStringParser from '../../utils/query-string';
-import CollectionBaseRoute from '../collection-base-route';
+import CollectionRoute from '../collection-base-route';
 
-export default class ListRoute extends CollectionBaseRoute {
+export default class ListRoute extends CollectionRoute {
   override setupPrivateRoutes(router: Router): void {
     router.get(`/${this.collection.name}`, this.handleList.bind(this));
   }

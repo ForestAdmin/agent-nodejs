@@ -39,7 +39,7 @@ describe('GetRoute', () => {
   });
 
   test('should register "/books/:id" private routes', () => {
-    const get = new Get(services, dataSource, options, 'books');
+    const get = new Get(services, options, dataSource, 'books');
     get.setupPrivateRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith('/books/:id', expect.any(Function));
@@ -51,7 +51,7 @@ describe('GetRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'getById')
         .mockImplementation(async () => ({ title: 'test ' }));
       services.serializer.serialize = jest.fn().mockReturnValue('test');
-      const get = new Get(services, dataSource, options, 'books');
+      const get = new Get(services, options, dataSource, 'books');
       const context = createMockContext({
         customProperties: { params: { id: '1' } },
       });
@@ -72,7 +72,7 @@ describe('GetRoute', () => {
       describe('when getById returns null', () => {
         test('should return an HTTP 404 response', async () => {
           jest.spyOn(dataSource.getCollection('books'), 'getById').mockImplementation(() => null);
-          const get = new Get(services, dataSource, options, 'books');
+          const get = new Get(services, options, dataSource, 'books');
           const context = createMockContext({
             customProperties: { params: { id: '1' } },
           });
@@ -89,7 +89,7 @@ describe('GetRoute', () => {
 
       describe('when the provided id does not match the schema definition', () => {
         test('should return an HTTP 404 response', async () => {
-          const get = new Get(services, dataSource, options, 'books');
+          const get = new Get(services, options, dataSource, 'books');
           // In the schema above, ID is a classic primary key
           // Asking for a composite PK will throw
           const context = createMockContext({
@@ -113,7 +113,7 @@ describe('GetRoute', () => {
           services.serializer.serialize = jest.fn().mockImplementation(() => {
             throw new Error();
           });
-          const get = new Get(services, dataSource, options, 'books');
+          const get = new Get(services, options, dataSource, 'books');
           const context = createMockContext({
             customProperties: { params: { id: '1' } },
           });

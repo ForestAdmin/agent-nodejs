@@ -22,7 +22,7 @@ describe('ListRoute', () => {
   });
 
   test('should register "/books" private routes', () => {
-    const list = new List(services, dataSource, options, partialCollection.name);
+    const list = new List(services, options, dataSource, partialCollection.name);
     list.setupPrivateRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith('/books', expect.any(Function));
@@ -31,7 +31,7 @@ describe('ListRoute', () => {
   describe('handleList', () => {
     test('should call the serializer using the list implementation', async () => {
       services.serializer.serialize = jest.fn().mockReturnValue('test');
-      const list = new List(services, dataSource, options, partialCollection.name);
+      const list = new List(services, options, dataSource, partialCollection.name);
       const context = createMockContext({
         customProperties: { query: { 'fields[books]': 'id', timezone: 'Europe/Paris' } },
       });
@@ -69,7 +69,7 @@ describe('ListRoute', () => {
           throw new Error();
         });
 
-        const list = new List(services, dataSource, options, partialCollection.name);
+        const list = new List(services, options, dataSource, partialCollection.name);
         const context = createMockContext({
           customProperties: { query: { 'fields[books]': 'id' } },
         });
