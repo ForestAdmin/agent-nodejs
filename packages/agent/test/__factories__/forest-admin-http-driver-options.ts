@@ -11,5 +11,4 @@ export default Factory.define<ForestAdminHttpDriverOptionsWithDefaults>(() => ({
   schemaPath: '/tmp/.testschema.json',
   clientId: null,
   logger: () => {},
-  scopesCacheDurationInSeconds: 15 * 30,
 }));
