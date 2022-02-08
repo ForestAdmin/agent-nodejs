@@ -13,8 +13,10 @@ import {
   DateOperation,
   Filter,
   Operator,
+  PaginatedFilter,
   Projection,
   RecordData,
+  Sort,
 } from '@forestadmin/datasource-toolkit';
 
 import { SequelizeCollection } from '../src';
@@ -392,6 +394,7 @@ describe('SequelizeDataSource > Collection', () => {
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
           expect.objectContaining({
+            attributes: [[{ col: '__field__', name: 'COUNT' }, '__aggregate__'], '__field__'],
             group: ['__group_field__'],
           }),
         );
@@ -414,6 +417,33 @@ describe('SequelizeDataSource > Collection', () => {
         expect(findAll).toHaveBeenCalledWith(
           expect.objectContaining({
             group: [{ col: '__group_field__', name: DateOperation.ToYear.toUpperCase() }],
+          }),
+        );
+      });
+
+      it('should only sort by groups', async () => {
+        const { findAll, sequelizeCollection } = setup();
+        const aggregation = new Aggregation({
+          field: '__field__',
+          operation: AggregationOperation.Count,
+          groups: [{ field: '__group_field__', operation: DateOperation.ToYear }],
+        });
+        const filter = new PaginatedFilter({
+          sort: new Sort(
+            { field: '__group_field__', ascending: false },
+            { field: '__non_group_field__', ascending: false },
+          ),
+        });
+
+        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+          { group: { __group_field__: '__group_field__:value' }, value: '__aggregate__:value' },
+        ]);
+
+        expect(findAll).toHaveBeenCalledTimes(1);
+        expect(findAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            group: [{ col: '__group_field__', name: DateOperation.ToYear.toUpperCase() }],
+            order: [['__group_field__', 'DESC']],
           }),
         );
       });
