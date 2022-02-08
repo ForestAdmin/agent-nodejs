@@ -13,8 +13,8 @@ export default async function start(
 ) {
   const dataSources = await Promise.all([
     prepareDummyDataSource(),
-    prepareLiveDataSource(),
-    prepareSequelizeDataSource(),
+    // prepareLiveDataSource(),
+    // prepareSequelizeDataSource(),
   ]);
 
   const driver = new ForestAdminHttpDriver(dataSources, options);

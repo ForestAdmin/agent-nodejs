@@ -5,7 +5,8 @@ import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTreeUtils from './condition-tree';
 import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/leaf';
 import ConditionTree from '../interfaces/query/condition-tree/base';
-import { CompositeId } from '../interfaces/record';
+import { CompositeId, RecordData } from '../interfaces/record';
+import Projection from '../interfaces/query/projection';
 
 export default class CollectionUtils {
   static getRelation(collection: Collection, path: string): Collection {
@@ -71,6 +72,30 @@ export default class CollectionUtils {
     return inverse ? inverse[0] : null;
   }
 
+  static async listRelation(
+    collection: Collection,
+    id: CompositeId,
+    relationName: string,
+    paginatedFilter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
+    const relationFieldSchema = collection.schema.fields[relationName];
+    CollectionUtils.throwIfRelationIsNotAllowed(relationFieldSchema);
+
+    if (relationFieldSchema.type === FieldTypes.OneToMany) {
+      const foreignCollection = await collection.dataSource.getCollection(
+        relationFieldSchema.foreignCollection,
+      );
+      const conditionTree = CollectionUtils.buildConditionTree(
+        relationFieldSchema.foreignKey,
+        id,
+        paginatedFilter.conditionTree,
+      );
+
+      return foreignCollection.list(paginatedFilter.override({ conditionTree }), projection);
+    }
+  }
+
   static async aggregateRelation(
     collection: Collection,
     id: CompositeId,
@@ -79,18 +104,10 @@ export default class CollectionUtils {
     aggregation: Aggregation,
   ): Promise<AggregateResult[]> {
     const relationFieldSchema = collection.schema.fields[relationName];
-    const isOneToMany = relationFieldSchema.type === FieldTypes.OneToMany;
-    const isManyToMany = relationFieldSchema.type === FieldTypes.ManyToMany;
+    CollectionUtils.throwIfRelationIsNotAllowed(relationFieldSchema);
 
-    if (!isOneToMany && !isManyToMany) {
-      throw new Error(
-        'aggregateRelation method can only be used with ' +
-          `${FieldTypes.OneToMany} and ${FieldTypes.ManyToMany} relations`,
-      );
-    }
-
-    if (isOneToMany) {
-      const foreignCollection = collection.dataSource.getCollection(
+    if (relationFieldSchema.type === FieldTypes.OneToMany) {
+      const foreignCollection = await collection.dataSource.getCollection(
         relationFieldSchema.foreignCollection,
       );
       const conditionTree = CollectionUtils.buildConditionTree(
@@ -105,10 +122,22 @@ export default class CollectionUtils {
     return CollectionUtils.getAggregateResultsForManyToMany(
       collection,
       id,
-      relationFieldSchema,
+      relationFieldSchema as ManyToManySchema,
       paginatedFilter,
       aggregation,
     );
+  }
+
+  private static throwIfRelationIsNotAllowed(relationFieldSchema: FieldSchema): void {
+    const isOneToMany = relationFieldSchema.type === FieldTypes.OneToMany;
+    const isManyToMany = relationFieldSchema.type === FieldTypes.ManyToMany;
+
+    if (!isOneToMany && !isManyToMany) {
+      throw new Error(
+        'aggregateRelation method can only be used with ' +
+          `${FieldTypes.OneToMany} and ${FieldTypes.ManyToMany} relations`,
+      );
+    }
   }
 
   private static async getAggregateResultsForManyToMany(
