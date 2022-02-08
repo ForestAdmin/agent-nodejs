@@ -4,6 +4,11 @@ import IpWhitelist from '../../../src/routes/security/ip-whitelist';
 import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
 import { ForestAdminHttpDriverServices } from '../../../src/services';
+import ForestHttpApi from '../../../src/utils/forest-http-api';
+
+jest.mock('../../../src/utils/forest-http-api', () => ({
+  getIpWhitelistConfiguration: jest.fn(),
+}));
 
 describe('IpWhitelist', () => {
   describe('setupAuthentication', () => {
@@ -28,7 +33,7 @@ describe('IpWhitelist', () => {
         const services = factories.forestAdminHttpDriverServices.build();
         const options = factories.forestAdminHttpDriverOptions.build();
 
-        services.forestHTTPApi.getIpWhitelist = jest.fn().mockResolvedValue({
+        (ForestHttpApi.getIpWhitelistConfiguration as jest.Mock).mockResolvedValue({
           isFeatureEnabled: true,
           ipRules: [],
         });
@@ -43,7 +48,7 @@ describe('IpWhitelist', () => {
         const services = factories.forestAdminHttpDriverServices.build();
         const options = factories.forestAdminHttpDriverOptions.build();
 
-        services.forestHTTPApi.getIpWhitelist = jest.fn().mockRejectedValue(new Error());
+        (ForestHttpApi.getIpWhitelistConfiguration as jest.Mock).mockRejectedValue(new Error());
 
         const ipWhitelistService = new IpWhitelist(services, options);
 
@@ -74,7 +79,7 @@ describe('IpWhitelist', () => {
         values: { isFeatureEnabled: boolean; ipRules: unknown[] },
       ) => {
         const { isFeatureEnabled, ipRules } = values;
-        services.forestHTTPApi.getIpWhitelist = jest.fn().mockResolvedValue({
+        (ForestHttpApi.getIpWhitelistConfiguration as jest.Mock).mockResolvedValue({
           isFeatureEnabled,
           ipRules,
         });

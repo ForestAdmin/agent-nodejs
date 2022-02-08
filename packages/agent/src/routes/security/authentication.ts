@@ -6,6 +6,7 @@ import { Client, ClientAuthMethod, Issuer } from 'openid-client';
 import path from 'path';
 import BaseRoute from '../base-route';
 import { HttpCode } from '../../types';
+import ForestHttpApi, { UserInfo } from '../../utils/forest-http-api';
 
 export default class Authentication extends BaseRoute {
   private client: Client;
@@ -23,8 +24,8 @@ export default class Authentication extends BaseRoute {
     let issuer: Issuer = null;
 
     try {
-      const response = await this.services.forestHTTPApi.getOpenIdConfiguration();
-      issuer = new Issuer(response);
+      const metadata = await ForestHttpApi.getOpenIdIssuerMetadata(this.options);
+      issuer = new Issuer(metadata);
     } catch {
       throw new Error('Failed to fetch openid-configuration.');
     }
@@ -78,14 +79,14 @@ export default class Authentication extends BaseRoute {
     }
   }
 
-  public async handleAuthenticationCallback(context: Context) {
+  public async handleAuthenticationCallback(context: Context): Promise<void> {
     // Retrieve tokenset
     const state = context.request.query.state.toString();
     const tokenSet = await this.client.callback(this.redirectUrl, context.request.query, {
       state,
     });
 
-    let renderingId;
+    let renderingId: string;
 
     try {
       // Load User from forestadmin-server
@@ -95,10 +96,11 @@ export default class Authentication extends BaseRoute {
       context.throw(HttpCode.BadRequest, 'Failed to parse renderingId.');
     }
 
-    let user;
+    let user: UserInfo;
 
     try {
-      user = await this.services.forestHTTPApi.getUserAuthorizationInformations(
+      user = await ForestHttpApi.getUserInformation(
+        this.options,
         renderingId,
         tokenSet.access_token,
       );
