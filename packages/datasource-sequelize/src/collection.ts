@@ -20,10 +20,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import ModelConverter from './utils/model-to-collection-schema-converter';
-import {
-  convertFilterToSequelize,
-  convertPaginatedFilterToSequelize,
-} from './utils/filter-converter';
+import { convertPaginatedFilterToSequelize } from './utils/filter-converter';
 
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
