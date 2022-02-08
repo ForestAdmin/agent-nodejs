@@ -1,7 +1,7 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 import { Operator } from '../../../interfaces/query/condition-tree/leaf';
 import { PrimitiveTypes } from '../../../interfaces/schema';
-import ConditionTreeUtils from '../../../utils/condition-tree';
+import ConditionTreeFactory from '../../../interfaces/query/condition-tree/factory';
 import { Alternative } from '../types';
 
 type DateCallback = (now: DateTime, value: unknown) => DateTime;
@@ -29,7 +29,7 @@ function interval(startFn: DateCallback, endFn: DateCallback): Alternative {
     replacer: (leaf, tz) => {
       const now = DateTime.utc().setZone(tz);
 
-      return ConditionTreeUtils.intersect(
+      return ConditionTreeFactory.intersect(
         leaf.override({ operator: Operator.GreaterThan, value: format(startFn(now, leaf.value)) }),
         leaf.override({ operator: Operator.LessThan, value: format(endFn(now, leaf.value)) }),
       );

@@ -1,6 +1,6 @@
 import {
   Filter,
-  ConditionTreeUtils,
+  ConditionTreeFactory,
   RecordUtils,
   CompositeId,
   RecordData,
@@ -29,7 +29,7 @@ export default class UpdateRoute extends CollectionRoute {
     }
 
     try {
-      const conditionTree = ConditionTreeUtils.matchIds(this.collection.schema, [id]);
+      const conditionTree = ConditionTreeFactory.matchIds(this.collection.schema, [id]);
       await this.collection.update(new Filter({ conditionTree }), record);
 
       context.response.status = HttpCode.NoContent;

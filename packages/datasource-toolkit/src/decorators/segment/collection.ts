@@ -1,7 +1,7 @@
 import ConditionTree from '../../interfaces/query/condition-tree/base';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import { CollectionSchema } from '../../interfaces/schema';
-import ConditionTreeUtils from '../../utils/condition-tree';
+import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import ConditionTreeValidator from '../../validation/condition-tree';
 import CollectionDecorator from '../collection-decorator';
 
@@ -32,7 +32,7 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
       const conditionTreeSegment = await this.segments[segment](filter.timezone);
       ConditionTreeValidator.validate(conditionTreeSegment, this);
 
-      conditionTree = ConditionTreeUtils.intersect(conditionTree, conditionTreeSegment);
+      conditionTree = ConditionTreeFactory.intersect(conditionTree, conditionTreeSegment);
       segment = null;
     }
 

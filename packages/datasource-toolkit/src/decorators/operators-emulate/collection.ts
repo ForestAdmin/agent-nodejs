@@ -7,7 +7,7 @@ import {
   FieldSchema,
   RelationSchema,
 } from '../../interfaces/schema';
-import ConditionTreeUtils from '../../utils/condition-tree';
+import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import SchemaUtils from '../../utils/schema';
 import ConditionTreeValidator from '../../validation/condition-tree';
 import FieldValidator from '../../validation/field';
@@ -126,7 +126,7 @@ export default class OperatorsEmulate extends CollectionDecorator {
     }
 
     // Query all records on the dataSource and emulate the filter.
-    return ConditionTreeUtils.matchRecords(
+    return ConditionTreeFactory.matchRecords(
       this.schema,
       leaf.apply(await this.list(null, leaf.projection.withPks(this))),
     );

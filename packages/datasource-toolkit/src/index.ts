@@ -17,6 +17,7 @@ export { default as SegmentCollectionDecorator } from './decorators/segment/coll
 export { default as Aggregation } from './interfaces/query/aggregation';
 export { default as ConditionTree } from './interfaces/query/condition-tree/base';
 export { default as ConditionTreeBranch } from './interfaces/query/condition-tree/branch';
+export { default as ConditionTreeFactory } from './interfaces/query/condition-tree/factory';
 export { default as ConditionTreeLeaf } from './interfaces/query/condition-tree/leaf';
 export { default as ConditionTreeNot } from './interfaces/query/condition-tree/not';
 export { default as Filter } from './interfaces/query/filter/unpaginated';
@@ -37,7 +38,6 @@ export * from './interfaces/record';
 export * from './interfaces/schema';
 
 export { default as CollectionUtils } from './utils/collection';
-export { default as ConditionTreeUtils } from './utils/condition-tree';
 export { default as RecordUtils } from './utils/record';
 export { default as SchemaUtils } from './utils/schema';
 

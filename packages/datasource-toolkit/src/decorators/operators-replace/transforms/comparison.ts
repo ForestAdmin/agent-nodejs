@@ -1,7 +1,7 @@
 import ConditionTree from '../../../interfaces/query/condition-tree/base';
 import { Operator } from '../../../interfaces/query/condition-tree/leaf';
 import { PrimitiveTypes } from '../../../interfaces/schema';
-import ConditionTreeUtils from '../../../utils/condition-tree';
+import ConditionTreeFactory from '../../../interfaces/query/condition-tree/factory';
 import { Alternative } from '../types';
 
 const alternatives: Partial<Record<Operator, Alternative[]>> = {
@@ -37,7 +37,7 @@ const alternatives: Partial<Record<Operator, Alternative[]>> = {
     {
       dependsOn: [Operator.Equal],
       replacer: leaf =>
-        ConditionTreeUtils.union(
+        ConditionTreeFactory.union(
           ...(leaf.value as unknown[]).map<ConditionTree>(item =>
             leaf.override({ operator: Operator.Equal, value: item }),
           ),
@@ -54,7 +54,7 @@ const alternatives: Partial<Record<Operator, Alternative[]>> = {
     {
       dependsOn: [Operator.NotEqual],
       replacer: leaf =>
-        ConditionTreeUtils.intersect(
+        ConditionTreeFactory.intersect(
           ...(leaf.value as unknown[]).map<ConditionTree>(item =>
             leaf.override({ operator: Operator.NotEqual, value: item }),
           ),

@@ -1,11 +1,11 @@
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import OperatorEmulationDecorator from '../../../src/decorators/operators-emulate/collection';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
+import ConditionTreeFactory from '../../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf, { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Projection from '../../../src/interfaces/query/projection';
 import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
-import ConditionTreeUtils from '../../../src/utils/condition-tree';
 import * as factories from '../../__factories__';
 
 describe('OperatorsEmulate', () => {
@@ -252,7 +252,7 @@ describe('OperatorsEmulate', () => {
 
         // Define 'Equal(x)' to be 'Contains(x) && ShorterThan(x.length + 1)'
         newBooks.implementOperator('title', Operator.Equal, async value =>
-          ConditionTreeUtils.intersect(
+          ConditionTreeFactory.intersect(
             new ConditionTreeLeaf('title', Operator.Contains, value),
             new ConditionTreeLeaf('title', Operator.ShorterThan, (value as string).length + 1),
           ),
@@ -270,7 +270,7 @@ describe('OperatorsEmulate', () => {
             ];
 
             // Ensure no forbideen operator is used
-            const conditionTree = filter?.conditionTree ?? ConditionTreeUtils.MatchAll;
+            const conditionTree = filter?.conditionTree ?? ConditionTreeFactory.MatchAll;
             const usingForbiddenOperator = conditionTree.someLeaf(
               ({ field, operator }) =>
                 field !== 'id' &&

@@ -1,7 +1,7 @@
 import {
   Collection,
   ConditionTree,
-  ConditionTreeUtils,
+  ConditionTreeFactory,
   ConditionTreeValidator,
   FieldTypes,
   Page,
@@ -24,7 +24,7 @@ export default class QueryStringParser {
       if (!string) return null;
 
       const json = JSON.parse(string);
-      const conditionTree = ConditionTreeUtils.fromJson(json);
+      const conditionTree = ConditionTreeFactory.fromJson(json);
       ConditionTreeValidator.validate(conditionTree, collection);
 
       return conditionTree;

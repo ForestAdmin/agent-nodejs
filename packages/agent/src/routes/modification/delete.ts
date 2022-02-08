@@ -1,4 +1,4 @@
-import { CompositeId, ConditionTreeUtils, Filter } from '@forestadmin/datasource-toolkit';
+import { CompositeId, ConditionTreeFactory, Filter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import { HttpCode } from '../../types';
@@ -47,9 +47,9 @@ export default class DeleteRoute extends CollectionRoute {
     ids: CompositeId[],
     isRemoveAllRecords = false,
   ): Promise<void> {
-    const condition = ConditionTreeUtils.matchIds(this.collection.schema, ids);
+    const condition = ConditionTreeFactory.matchIds(this.collection.schema, ids);
     const filter = new Filter({
-      conditionTree: ConditionTreeUtils.intersect(
+      conditionTree: ConditionTreeFactory.intersect(
         isRemoveAllRecords ? condition.inverse() : condition,
         QueryStringParser.parseConditionTree(this.collection, context),
       ),
