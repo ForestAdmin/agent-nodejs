@@ -10,6 +10,12 @@ import {
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 
+function asArray(value) {
+  if (!Array.isArray(value)) return [value];
+
+  return value;
+}
+
 function makeWhereClause(operator: Operator, value?): WhereOperators | OrOperator {
   if (operator === null) throw new Error('Invalid (null) operator.');
 
@@ -25,9 +31,9 @@ function makeWhereClause(operator: Operator, value?): WhereOperators | OrOperato
     case Operator.GreaterThan:
       return { [Op.gt]: value };
     case Operator.In:
-      return { [Op.in]: value };
+      return { [Op.in]: asArray(value) };
     case Operator.IncludesAll:
-      return { [Op.contains]: value };
+      return { [Op.contains]: asArray(value) };
     case Operator.LessThan:
       return { [Op.lt]: value };
     case Operator.Missing:
@@ -37,7 +43,7 @@ function makeWhereClause(operator: Operator, value?): WhereOperators | OrOperato
     case Operator.NotEqual:
       return { [Op.ne]: value };
     case Operator.NotIn:
-      return { [Op.notIn]: value };
+      return { [Op.notIn]: asArray(value) };
     case Operator.Present:
       return { [Op.not]: { [Op.is]: null } };
     case Operator.StartsWith:
