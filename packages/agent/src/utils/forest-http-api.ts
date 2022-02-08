@@ -1,4 +1,3 @@
-import { ConditionTree } from '@forestadmin/datasource-toolkit';
 import { JSONAPIDocument } from 'json-api-serializer';
 import { IssuerMetadata } from 'openid-client';
 import superagent, { Response, ResponseError } from 'superagent';
