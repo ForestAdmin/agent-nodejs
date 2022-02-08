@@ -1,11 +1,9 @@
 import {
   Collection,
   ConditionTree,
-  ConditionTreeBranch,
-  ConditionTreeLeaf,
+  ConditionTreeUtils,
   ConditionTreeValidator,
   FieldTypes,
-  LeafComponents,
   Page,
   Projection,
   ProjectionValidator,
@@ -26,7 +24,7 @@ export default class QueryStringParser {
       if (!string) return null;
 
       const json = JSON.parse(string);
-      const conditionTree = QueryStringParser.parseConditionTreeRec(json);
+      const conditionTree = ConditionTreeUtils.fromJson(json);
       ConditionTreeValidator.validate(conditionTree, collection);
 
       return conditionTree;
@@ -161,17 +159,5 @@ export default class QueryStringParser {
     } catch {
       context.throw(HttpCode.BadRequest, `Invalid sort: ${sortString}`);
     }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private static parseConditionTreeRec(json: any): ConditionTree {
-    const { aggregator, conditions } = json;
-
-    return aggregator
-      ? new ConditionTreeBranch(
-          aggregator,
-          conditions.map(condition => QueryStringParser.parseConditionTreeRec(condition)),
-        )
-      : new ConditionTreeLeaf(json as LeafComponents);
   }
 }

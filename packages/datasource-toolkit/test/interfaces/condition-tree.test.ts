@@ -4,11 +4,9 @@ import ConditionTreeNot from '../../src/interfaces/query/condition-tree/not';
 
 describe('ConditionTree', () => {
   const tree = new ConditionTreeBranch(Aggregator.And, [
-    new ConditionTreeLeaf({ field: 'column1', operator: Operator.Equal, value: true }),
-    new ConditionTreeLeaf({ field: 'column2', operator: Operator.Equal, value: true }),
-    new ConditionTreeNot(
-      new ConditionTreeLeaf({ field: 'column2', operator: Operator.Equal, value: false }),
-    ),
+    new ConditionTreeLeaf('column1', Operator.Equal, true),
+    new ConditionTreeLeaf('column2', Operator.Equal, true),
+    new ConditionTreeNot(new ConditionTreeLeaf('column2', Operator.Equal, false)),
   ]);
 
   test('apply() should work', () => {
@@ -58,14 +56,14 @@ describe('ConditionTree', () => {
   });
 
   test('inverse() should work with blank', () => {
-    const blank = new ConditionTreeLeaf({ field: 'column1', operator: Operator.Blank });
+    const blank = new ConditionTreeLeaf('column1', Operator.Blank);
 
     expect(blank.inverse()).toEqual({ field: 'column1', operator: Operator.Present });
     expect(blank.inverse().inverse()).toEqual(blank);
   });
 
   test('inverse() should use not with unsupported operator', () => {
-    const today = new ConditionTreeLeaf({ field: 'column1', operator: Operator.Today });
+    const today = new ConditionTreeLeaf('column1', Operator.Today);
 
     expect(today.inverse()).toEqual({
       condition: { field: 'column1', operator: Operator.Today },
@@ -82,28 +80,24 @@ describe('ConditionTree', () => {
 
   test('match() should work with many operators', () => {
     const allConditions = new ConditionTreeBranch(Aggregator.And, [
-      new ConditionTreeLeaf({ field: 'string', operator: Operator.Present }),
-      new ConditionTreeLeaf({ field: 'string', operator: Operator.Contains, value: 'value' }),
-      new ConditionTreeLeaf({ field: 'string', operator: Operator.StartsWith, value: 'value' }),
-      new ConditionTreeLeaf({ field: 'string', operator: Operator.EndsWith, value: 'value' }),
-      new ConditionTreeLeaf({ field: 'string', operator: Operator.LessThan, value: 'valuf' }),
-      new ConditionTreeLeaf({ field: 'string', operator: Operator.Equal, value: 'value' }),
-      new ConditionTreeLeaf({ field: 'string', operator: Operator.GreaterThan, value: 'valud' }),
-      new ConditionTreeLeaf({ field: 'string', operator: Operator.In, value: ['value'] }),
-      new ConditionTreeLeaf({
-        field: 'array',
-        operator: Operator.IncludesAll,
-        value: ['value'],
-      }),
-      new ConditionTreeLeaf({ field: 'string', operator: Operator.LongerThan, value: 0 }),
-      new ConditionTreeLeaf({ field: 'string', operator: Operator.ShorterThan, value: 999 }),
+      new ConditionTreeLeaf('string', Operator.Present),
+      new ConditionTreeLeaf('string', Operator.Contains, 'value'),
+      new ConditionTreeLeaf('string', Operator.StartsWith, 'value'),
+      new ConditionTreeLeaf('string', Operator.EndsWith, 'value'),
+      new ConditionTreeLeaf('string', Operator.LessThan, 'valuf'),
+      new ConditionTreeLeaf('string', Operator.Equal, 'value'),
+      new ConditionTreeLeaf('string', Operator.GreaterThan, 'valud'),
+      new ConditionTreeLeaf('string', Operator.In, ['value']),
+      new ConditionTreeLeaf('array', Operator.IncludesAll, ['value']),
+      new ConditionTreeLeaf('string', Operator.LongerThan, 0),
+      new ConditionTreeLeaf('string', Operator.ShorterThan, 999),
     ]);
 
     expect(allConditions.match({ string: 'value', array: ['value'] })).toBeTruthy();
   });
 
   test('match() should crash with unsupported operators', () => {
-    const today = new ConditionTreeLeaf({ field: 'column', operator: Operator.Today });
+    const today = new ConditionTreeLeaf('column', Operator.Today);
 
     expect(() => today.match({})).toThrow("Unsupported operator: 'today'");
   });

@@ -13,11 +13,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.Before][0].replacer(
-          new ConditionTreeLeaf({
-            field: 'column',
-            operator: Operator.Before,
-            value: '2010-01-01T00:00:00Z',
-          }),
+          new ConditionTreeLeaf('column', Operator.Before, '2010-01-01T00:00:00Z'),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -32,11 +28,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.After][0].replacer(
-          new ConditionTreeLeaf({
-            field: 'column',
-            operator: Operator.After,
-            value: '2010-01-01T00:00:00Z',
-          }),
+          new ConditionTreeLeaf('column', Operator.After, '2010-01-01T00:00:00Z'),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -51,7 +43,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.Past][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.Past }),
+          new ConditionTreeLeaf('column', Operator.Past),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -66,7 +58,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.Future][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.Future }),
+          new ConditionTreeLeaf('column', Operator.Future),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -81,7 +73,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.BeforeXHoursAgo][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.BeforeXHoursAgo, value: 24 }),
+          new ConditionTreeLeaf('column', Operator.BeforeXHoursAgo, 24),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -96,7 +88,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.AfterXHoursAgo][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.AfterXHoursAgo, value: 24 }),
+          new ConditionTreeLeaf('column', Operator.AfterXHoursAgo, 24),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -111,7 +103,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.PreviousMonthToDate][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.PreviousMonthToDate }),
+          new ConditionTreeLeaf('column', Operator.PreviousMonthToDate),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -128,7 +120,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.PreviousMonth][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.PreviousMonth }),
+          new ConditionTreeLeaf('column', Operator.PreviousMonth),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -145,7 +137,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.PreviousQuarterToDate][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.PreviousQuarterToDate }),
+          new ConditionTreeLeaf('column', Operator.PreviousQuarterToDate),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -162,7 +154,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.PreviousQuarter][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.PreviousQuarter }),
+          new ConditionTreeLeaf('column', Operator.PreviousQuarter),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -179,7 +171,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.PreviousWeekToDate][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.PreviousWeekToDate }),
+          new ConditionTreeLeaf('column', Operator.PreviousWeekToDate),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -199,7 +191,7 @@ describe('ConditionTreeOperators > Time', () => {
 
       expect(
         alternatives[Operator.PreviousWeek][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.PreviousWeek }),
+          new ConditionTreeLeaf('column', Operator.PreviousWeek),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -216,11 +208,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.PreviousXDaysToDate][0].replacer(
-          new ConditionTreeLeaf({
-            field: 'column',
-            operator: Operator.PreviousXDaysToDate,
-            value: 14,
-          }),
+          new ConditionTreeLeaf('column', Operator.PreviousXDaysToDate, 14),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -237,7 +225,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.PreviousXDays][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.PreviousXDays, value: 14 }),
+          new ConditionTreeLeaf('column', Operator.PreviousXDays, 14),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -254,7 +242,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.PreviousYearToDate][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.PreviousYearToDate }),
+          new ConditionTreeLeaf('column', Operator.PreviousYearToDate),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -273,7 +261,7 @@ describe('ConditionTreeOperators > Time', () => {
 
       expect(
         alternatives[Operator.PreviousYear][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.PreviousYear }),
+          new ConditionTreeLeaf('column', Operator.PreviousYear),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -290,7 +278,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.Today][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.Today }),
+          new ConditionTreeLeaf('column', Operator.Today),
           'America/Los_Angeles',
         ),
       ).toEqual({
@@ -307,7 +295,7 @@ describe('ConditionTreeOperators > Time', () => {
     test('should rewrite', () => {
       expect(
         alternatives[Operator.Yesterday][0].replacer(
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.Yesterday }),
+          new ConditionTreeLeaf('column', Operator.Yesterday),
           'America/Los_Angeles',
         ),
       ).toEqual({

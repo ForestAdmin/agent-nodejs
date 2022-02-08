@@ -114,12 +114,8 @@ describe('RenameCollectionDecorator', () => {
   beforeAll(() => {
     personsFilter = new Filter({
       conditionTree: new ConditionTreeBranch(Aggregator.And, [
-        new ConditionTreeLeaf({ field: 'id', operator: Operator.NotEqual, value: 0 }),
-        new ConditionTreeLeaf({
-          field: 'myBookPerson:date',
-          operator: Operator.NotEqual,
-          value: 0,
-        }),
+        new ConditionTreeLeaf('id', Operator.NotEqual, 0),
+        new ConditionTreeLeaf('myBookPerson:date', Operator.NotEqual, 0),
       ]),
     });
 
@@ -228,12 +224,8 @@ describe('RenameCollectionDecorator', () => {
     beforeAll(() => {
       newPersonsFilter = new Filter({
         conditionTree: new ConditionTreeBranch(Aggregator.And, [
-          new ConditionTreeLeaf({ field: 'primaryKey', operator: Operator.NotEqual, value: 0 }),
-          new ConditionTreeLeaf({
-            field: 'myNovelAuthor:createdAt',
-            operator: Operator.NotEqual,
-            value: 0,
-          }),
+          new ConditionTreeLeaf('primaryKey', Operator.NotEqual, 0),
+          new ConditionTreeLeaf('myNovelAuthor:createdAt', Operator.NotEqual, 0),
         ]),
       });
 

@@ -1,6 +1,12 @@
 import ConditionTree from '../interfaces/query/condition-tree/base';
-import ConditionTreeBranch, { Aggregator } from '../interfaces/query/condition-tree/branch';
-import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/leaf';
+import ConditionTreeBranch, {
+  Aggregator,
+  BranchComponents,
+} from '../interfaces/query/condition-tree/branch';
+import ConditionTreeLeaf, {
+  LeafComponents,
+  Operator,
+} from '../interfaces/query/condition-tree/leaf';
 import { CompositeId, RecordData } from '../interfaces/record';
 import { CollectionSchema } from '../interfaces/schema';
 import RecordUtils from './record';
@@ -24,11 +30,11 @@ export default class ConditionTreeUtils {
     if (values.length === 0) return ConditionTreeUtils.MatchNone;
 
     if (fields.length === 1) {
-      return new ConditionTreeLeaf(
-        values.length > 1
-          ? { field: fields[0], operator: Operator.In, value: values.map(tuple => tuple[0]) }
-          : { field: fields[0], operator: Operator.Equal, value: values[0][0] },
-      );
+      const fieldValues = values.map(tuple => tuple[0]);
+
+      return fieldValues.length > 1
+        ? new ConditionTreeLeaf(fields[0], Operator.In, fieldValues)
+        : new ConditionTreeLeaf(fields[0], Operator.Equal, fieldValues[0]);
     }
 
     const [firstField, ...otherFields] = fields;
@@ -73,5 +79,28 @@ export default class ConditionTreeUtils {
     }
 
     return new ConditionTreeBranch(aggregator, conditions);
+  }
+
+  static fromJson(json: unknown): ConditionTree {
+    if (ConditionTreeUtils.isLeaf(json)) {
+      return new ConditionTreeLeaf(json.field, json.operator, json.value);
+    }
+
+    if (ConditionTreeUtils.isBranch(json)) {
+      return new ConditionTreeBranch(
+        json.aggregator,
+        json.conditions.map(subTree => ConditionTreeUtils.fromJson(subTree)),
+      );
+    }
+
+    throw new Error('Failed to instanciate condition tree from json');
+  }
+
+  private static isLeaf(raw: unknown): raw is LeafComponents {
+    return typeof raw === 'object' && 'field' in raw && 'operator' in raw;
+  }
+
+  private static isBranch(raw: unknown): raw is BranchComponents {
+    return typeof raw === 'object' && 'aggregation' in raw && 'conditions' in raw;
   }
 }

@@ -6,11 +6,7 @@ describe('ConditionTreeOperators > Pattern', () => {
     test('should be rewritten', () => {
       expect(
         alternatives[Operator.Contains][0].replacer(
-          new ConditionTreeLeaf({
-            field: 'column',
-            operator: Operator.Contains,
-            value: 'something',
-          }),
+          new ConditionTreeLeaf('column', Operator.Contains, 'something'),
           'Europe/Paris',
         ),
       ).toEqual({ field: 'column', operator: Operator.Like, value: '%something%' });
@@ -21,11 +17,7 @@ describe('ConditionTreeOperators > Pattern', () => {
     test('should be rewritten', () => {
       expect(
         alternatives[Operator.StartsWith][0].replacer(
-          new ConditionTreeLeaf({
-            field: 'column',
-            operator: Operator.StartsWith,
-            value: 'something',
-          }),
+          new ConditionTreeLeaf('column', Operator.StartsWith, 'something'),
           'Europe/Paris',
         ),
       ).toEqual({ field: 'column', operator: Operator.Like, value: 'something%' });
@@ -36,11 +28,7 @@ describe('ConditionTreeOperators > Pattern', () => {
     test('should be rewritten', () => {
       expect(
         alternatives[Operator.EndsWith][0].replacer(
-          new ConditionTreeLeaf({
-            field: 'column',
-            operator: Operator.EndsWith,
-            value: 'something',
-          }),
+          new ConditionTreeLeaf('column', Operator.EndsWith, 'something'),
           'Europe/Paris',
         ),
       ).toEqual({ field: 'column', operator: Operator.Like, value: '%something' });

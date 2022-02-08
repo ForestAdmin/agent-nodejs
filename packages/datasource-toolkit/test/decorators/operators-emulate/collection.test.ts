@@ -128,8 +128,7 @@ describe('OperatorsEmulate', () => {
         newBooks.implementOperator(
           'title',
           Operator.StartsWith,
-          async value =>
-            new ConditionTreeLeaf({ field: 'title', operator: Operator.Like, value: `${value}%` }),
+          async value => new ConditionTreeLeaf('title', Operator.Like, `${value}%`),
         );
       });
 
@@ -155,19 +154,13 @@ describe('OperatorsEmulate', () => {
         newBooks.implementOperator(
           'title',
           Operator.StartsWith,
-          async value =>
-            new ConditionTreeLeaf({ field: 'title', operator: Operator.Like, value: `${value}%` }),
+          async value => new ConditionTreeLeaf('title', Operator.Like, `${value}%`),
         );
 
         newBooks.implementOperator(
           'title',
           Operator.Like,
-          async value =>
-            new ConditionTreeLeaf({
-              field: 'title',
-              operator: Operator.StartsWith,
-              value: `${value}%`,
-            }),
+          async value => new ConditionTreeLeaf('title', Operator.StartsWith, `${value}%`),
         );
       });
 
@@ -260,12 +253,8 @@ describe('OperatorsEmulate', () => {
         // Define 'Equal(x)' to be 'Contains(x) && ShorterThan(x.length + 1)'
         newBooks.implementOperator('title', Operator.Equal, async value =>
           ConditionTreeUtils.intersect(
-            new ConditionTreeLeaf({ field: 'title', operator: Operator.Contains, value }),
-            new ConditionTreeLeaf({
-              field: 'title',
-              operator: Operator.ShorterThan,
-              value: (value as string).length + 1,
-            }),
+            new ConditionTreeLeaf('title', Operator.Contains, value),
+            new ConditionTreeLeaf('title', Operator.ShorterThan, (value as string).length + 1),
           ),
         );
       });
@@ -295,11 +284,7 @@ describe('OperatorsEmulate', () => {
         );
 
         const filter = new PaginatedFilter({
-          conditionTree: new ConditionTreeLeaf({
-            field: 'title',
-            operator: Operator.Equal,
-            value: 'Foundation',
-          }),
+          conditionTree: new ConditionTreeLeaf('title', Operator.Equal, 'Foundation'),
         });
 
         const records = await newBooks.list(filter, new Projection('id', 'title'));

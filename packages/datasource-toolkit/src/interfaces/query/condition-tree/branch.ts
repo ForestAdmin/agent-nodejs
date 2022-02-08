@@ -1,12 +1,17 @@
 import { RecordData } from '../../record';
 import Projection from '../projection';
 import ConditionTree from './base';
-import { AsyncLeafReplacer, LeafCallback, LeafReplacer, LeafTester } from './leaf';
+import { AsyncLeafReplacer, LeafCallback, LeafComponents, LeafReplacer, LeafTester } from './leaf';
 
 export enum Aggregator {
   And = 'and',
   Or = 'or',
 }
+
+export type BranchComponents = {
+  aggregator: Aggregator;
+  conditions: Array<BranchComponents | LeafComponents>;
+};
 
 export default class ConditionTreeBranch extends ConditionTree {
   aggregator: Aggregator;

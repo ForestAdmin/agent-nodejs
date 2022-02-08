@@ -14,7 +14,7 @@ describe('ConditionTreeUtils', () => {
 
     test('intersect() should return the parameter when called with only one param', () => {
       const tree = ConditionTreeUtils.intersect(
-        new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
+        new ConditionTreeLeaf('column', Operator.Equal, true),
       );
 
       expect(tree).toEqual({ field: 'column', operator: Operator.Equal, value: true });
@@ -23,7 +23,7 @@ describe('ConditionTreeUtils', () => {
     test('intersect() should ignore null params', () => {
       const tree = ConditionTreeUtils.intersect(
         null,
-        new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
+        new ConditionTreeLeaf('column', Operator.Equal, true),
         null,
       );
 
@@ -32,8 +32,8 @@ describe('ConditionTreeUtils', () => {
 
     test('intersect() multiple trees should return the tree', () => {
       const tree = ConditionTreeUtils.intersect(
-        new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
-        new ConditionTreeLeaf({ field: 'otherColumn', operator: Operator.Equal, value: true }),
+        new ConditionTreeLeaf('column', Operator.Equal, true),
+        new ConditionTreeLeaf('otherColumn', Operator.Equal, true),
       );
 
       expect(tree).toEqual({
@@ -48,10 +48,10 @@ describe('ConditionTreeUtils', () => {
     test('intersect() should merge And trees', () => {
       const tree = ConditionTreeUtils.intersect(
         new ConditionTreeBranch(Aggregator.And, [
-          new ConditionTreeLeaf({ field: 'column', operator: Operator.Equal, value: true }),
+          new ConditionTreeLeaf('column', Operator.Equal, true),
         ]),
         new ConditionTreeBranch(Aggregator.And, [
-          new ConditionTreeLeaf({ field: 'otherColumn', operator: Operator.Equal, value: true }),
+          new ConditionTreeLeaf('otherColumn', Operator.Equal, true),
         ]),
       );
 

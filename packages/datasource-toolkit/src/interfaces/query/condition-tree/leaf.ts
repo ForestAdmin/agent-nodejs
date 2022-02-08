@@ -55,17 +55,17 @@ export type LeafComponents = { field: string; operator: Operator; value?: unknow
 export default class ConditionTreeLeaf extends ConditionTree {
   field: string;
   operator: Operator;
-  value: unknown;
+  value?: unknown;
 
   get projection(): Projection {
     return new Projection(this.field);
   }
 
-  constructor(components: LeafComponents) {
+  constructor(field: string, operator: Operator, value?: unknown) {
     super();
-    this.field = components.field;
-    this.operator = components.operator;
-    this.value = components.value;
+    this.field = field;
+    this.operator = operator;
+    this.value = value;
   }
 
   forEachLeaf(handler: LeafCallback): void {
@@ -102,15 +102,19 @@ export default class ConditionTreeLeaf extends ConditionTree {
   }
 
   replaceLeafs(handler: LeafReplacer, bind?: unknown): ConditionTree {
-    const result = handler.call(bind, this);
+    const result: ConditionTree | LeafComponents = handler.call(bind, this);
 
-    return result instanceof ConditionTree ? result : new ConditionTreeLeaf(result);
+    return result instanceof ConditionTree
+      ? result
+      : new ConditionTreeLeaf(result.field, result.operator, result.value);
   }
 
   async replaceLeafsAsync(handler: AsyncLeafReplacer, bind?: unknown): Promise<ConditionTree> {
-    const result = await handler.call(bind, this);
+    const result: ConditionTree | LeafComponents = await handler.call(bind, this);
 
-    return result instanceof ConditionTree ? result : new ConditionTreeLeaf(result);
+    return result instanceof ConditionTree
+      ? result
+      : new ConditionTreeLeaf(result.field, result.operator, result.value);
   }
 
   match(record: RecordData): boolean {
@@ -152,6 +156,8 @@ export default class ConditionTreeLeaf extends ConditionTree {
   }
 
   override(params: Partial<LeafComponents>): ConditionTreeLeaf {
-    return new ConditionTreeLeaf({ ...this, ...params });
+    const merged = { ...this, ...params };
+
+    return new ConditionTreeLeaf(merged.field, merged.operator, merged.value);
   }
 }
