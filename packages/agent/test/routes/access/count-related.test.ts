@@ -1,8 +1,14 @@
-import { CollectionUtils } from '@forestadmin/datasource-toolkit';
+import {
+  Aggregation,
+  AggregationOperation,
+  CollectionUtils,
+  PaginatedFilter,
+} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import CountRelatedRoute from '../../../src/routes/access/count-related';
 import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
+import QueryStringParser from '../../../src/utils/query-string';
 
 describe('CountRelatedRoute', () => {
   const setup = () => {
@@ -84,6 +90,22 @@ describe('CountRelatedRoute', () => {
         const context = setupContext();
         await count.handleCountRelated(context);
 
+        expect(CollectionUtils.aggregateRelation).toHaveBeenCalledWith(
+          dataSource.getCollection('books'),
+          ['1523'],
+          'myBookPersons',
+          new PaginatedFilter({
+            search: QueryStringParser.parseSearch(context),
+            searchExtended: QueryStringParser.parseSearchExtended(context),
+            timezone: QueryStringParser.parseTimezone(context),
+            segment: QueryStringParser.parseSegment(dataSource.getCollection('persons'), context),
+            conditionTree: QueryStringParser.parseConditionTree(
+              dataSource.getCollection('persons'),
+              context,
+            ),
+          }),
+          new Aggregation({ operation: AggregationOperation.Count }),
+        );
         expect(context.throw).not.toHaveBeenCalled();
         expect(context.response.body).toEqual({ count: 1568 });
       });
@@ -115,7 +137,7 @@ describe('CountRelatedRoute', () => {
     });
 
     describe('when an error happens', () => {
-      test('should return an HTTP 400 response when the request is malformed ', async () => {
+      test('should return an HTTP 400 response when the request is malformed', async () => {
         const { services, dataSource, options } = setup();
 
         const oneToManyRelationName = 'myBookPersons';
