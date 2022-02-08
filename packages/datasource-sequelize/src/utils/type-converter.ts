@@ -1,4 +1,5 @@
-import { AbstractDataTypeConstructor, DataTypes } from 'sequelize';
+import { AbstractDataTypeConstructor, ArrayDataType, DataTypes } from 'sequelize';
+
 import { ColumnType, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export default class TypeConverter {
@@ -26,7 +27,6 @@ export default class TypeConverter {
   }
 
   private static readonly dataTypeToColumnType = {
-    ARRAY: null,
     BIGINT: PrimitiveTypes.Number,
     BLOB: null,
     BOOLEAN: PrimitiveTypes.Boolean,
@@ -64,10 +64,17 @@ export default class TypeConverter {
     VIRTUAL: null,
   };
 
-  public static fromDataType(dataType: AbstractDataTypeConstructor): ColumnType {
+  public static fromDataType(
+    dataType: AbstractDataTypeConstructor | ArrayDataType<AbstractDataTypeConstructor>,
+  ): ColumnType {
     const dataTypeName = dataType?.key;
 
-    // FIXME: Remove ARRAY from types in dataTypeToColumnType and handle test here.
+    if (dataTypeName === 'ARRAY') {
+      const arrayDataType = dataType as ArrayDataType<AbstractDataTypeConstructor>;
+
+      return [this.fromDataType(arrayDataType.options.type)];
+    }
+
     const columnType = TypeConverter.dataTypeToColumnType[dataTypeName];
 
     if (!columnType) throw new Error(`Unsupported data type: "${dataType}".`);
