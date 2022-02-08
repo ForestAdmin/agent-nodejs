@@ -51,6 +51,11 @@ export default class FieldValidator {
     value: unknown,
     allowedTypes?: readonly (PrimitiveTypes | ValidationTypes)[],
   ): void {
+    // FIXME: handle complex type from ColumnType
+    if (typeof schema.columnType !== 'string') {
+      return;
+    }
+
     const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes);
 
     if (schema.columnType === PrimitiveTypes.Enum) {
