@@ -1,10 +1,10 @@
-import ConditionTree from './base';
-import ConditionTreeBranch, { Aggregator, BranchComponents } from './branch';
-import ConditionTreeLeaf, { LeafComponents, Operator } from './leaf';
-import { CompositeId, RecordData } from '../../record';
-import { CollectionSchema } from '../../schema';
 import RecordUtils from '../../../utils/record';
 import SchemaUtils from '../../../utils/schema';
+import { CompositeId, RecordData } from '../../record';
+import { CollectionSchema } from '../../schema';
+import ConditionTree from './nodes/base';
+import ConditionTreeBranch, { Aggregator, BranchComponents } from './nodes/branch';
+import ConditionTreeLeaf, { LeafComponents, Operator } from './nodes/leaf';
 
 export default class ConditionTreeFactory {
   static MatchNone = new ConditionTreeBranch(Aggregator.Or, []);

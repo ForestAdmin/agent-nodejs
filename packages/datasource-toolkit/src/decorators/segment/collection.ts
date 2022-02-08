@@ -1,4 +1,4 @@
-import ConditionTree from '../../interfaces/query/condition-tree/base';
+import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import { CollectionSchema } from '../../interfaces/schema';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';

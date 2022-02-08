@@ -1,4 +1,4 @@
-import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/leaf';
+import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../../src/interfaces/query/filter/paginated';
 import Filter from '../../src/interfaces/query/filter/unpaginated';
 import Page from '../../src/interfaces/query/page';

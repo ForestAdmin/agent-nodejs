@@ -1,7 +1,9 @@
-import ConditionTreeBranch, { Aggregator } from '../../src/interfaces/query/condition-tree/branch';
+import ConditionTreeBranch, {
+  Aggregator,
+} from '../../src/interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
-import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/leaf';
-import ConditionTreeNot from '../../src/interfaces/query/condition-tree/not';
+import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeNot from '../../src/interfaces/query/condition-tree/nodes/not';
 import * as factories from '../__factories__';
 
 describe('ConditionTree', () => {

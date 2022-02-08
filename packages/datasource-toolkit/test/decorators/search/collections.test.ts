@@ -1,7 +1,7 @@
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
-import { Aggregator } from '../../../src/interfaces/query/condition-tree/branch';
+import { Aggregator } from '../../../src/interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeFactory from '../../../src/interfaces/query/condition-tree/factory';
-import { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
+import { Operator } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import { PrimitiveTypes } from '../../../src/interfaces/schema';
 import * as factories from '../../__factories__';
 

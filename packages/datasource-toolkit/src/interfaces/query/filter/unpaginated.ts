@@ -1,4 +1,4 @@
-import ConditionTree from '../condition-tree/base';
+import ConditionTree from '../condition-tree/nodes/base';
 
 export type FilterComponents = {
   conditionTree?: ConditionTree;

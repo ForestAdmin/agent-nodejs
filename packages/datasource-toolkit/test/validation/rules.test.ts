@@ -1,4 +1,4 @@
-import { Operator } from '../../src/interfaces/query/condition-tree/leaf';
+import { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import { PrimitiveTypes } from '../../src/interfaces/schema';
 import {
   MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE,

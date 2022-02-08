@@ -1,25 +1,34 @@
-import RecordUtils from '../../../utils/record';
-import { RecordData } from '../../record';
-import Projection from '../projection';
+import RecordUtils from '../../../../utils/record';
+import { RecordData } from '../../../record';
+import Projection from '../../projection';
+import ConditionTreeFactory from '../factory';
 import ConditionTree from './base';
 import ConditionTreeNot from './not';
 
 export enum Operator {
+  // All types
+  Present = 'present',
   Blank = 'blank',
-  Contains = 'contains',
-  EndsWith = 'ends_with',
+  Missing = 'missing',
+
+  // All types besides arrays
   Equal = 'equal',
+  NotEqual = 'not_equal',
+  LessThan = 'less_than',
   GreaterThan = 'greater_than',
   In = 'in',
-  IncludesAll = 'includes_all',
-  LessThan = 'less_than',
-  Missing = 'missing',
-  NotContains = 'not_contains',
-  NotEqual = 'not_equal',
   NotIn = 'not_in',
-  Present = 'present',
-  StartsWith = 'starts_with',
 
+  // Strings
+  Like = 'like',
+  StartsWith = 'starts_with',
+  EndsWith = 'ends_with',
+  Contains = 'contains',
+  NotContains = 'not_contains',
+  LongerThan = 'longer_than',
+  ShorterThan = 'shorter_than',
+
+  // Dates
   Before = 'before',
   After = 'after',
   AfterXHoursAgo = 'after_x_hours_ago',
@@ -39,9 +48,8 @@ export enum Operator {
   Today = 'today',
   Yesterday = 'yesterday',
 
-  LongerThan = 'longer_than',
-  ShorterThan = 'shorter_than',
-  Like = 'like',
+  // Arrays
+  IncludesAll = 'includes_all',
 }
 
 type LeafHandler<R> = (leaf: ConditionTreeLeaf) => R;

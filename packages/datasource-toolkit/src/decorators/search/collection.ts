@@ -1,6 +1,6 @@
 import { DataSource } from '../../interfaces/collection';
-import ConditionTree from '../../interfaces/query/condition-tree/base';
-import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/leaf';
+import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
+import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import {
   CollectionSchema,

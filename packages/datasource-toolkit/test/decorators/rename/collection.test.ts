@@ -4,8 +4,10 @@ import { Collection, DataSource } from '../../../src/interfaces/collection';
 import Aggregation, { AggregationOperation } from '../../../src/interfaces/query/aggregation';
 import ConditionTreeBranch, {
   Aggregator,
-} from '../../../src/interfaces/query/condition-tree/branch';
-import ConditionTreeLeaf, { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
+} from '../../../src/interfaces/query/condition-tree/nodes/branch';
+import ConditionTreeLeaf, {
+  Operator,
+} from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Filter from '../../../src/interfaces/query/filter/unpaginated';
 import Projection from '../../../src/interfaces/query/projection';

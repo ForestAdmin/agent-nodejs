@@ -1,8 +1,8 @@
-import ConditionTree from '../../../interfaces/query/condition-tree/base';
-import { Operator } from '../../../interfaces/query/condition-tree/leaf';
-import { PrimitiveTypes } from '../../../interfaces/schema';
-import ConditionTreeFactory from '../../../interfaces/query/condition-tree/factory';
-import { Alternative } from '../types';
+import { PrimitiveTypes } from '../../../schema';
+import { Alternative } from '../equivalence';
+import ConditionTreeFactory from '../factory';
+import ConditionTree from '../nodes/base';
+import { Operator } from '../nodes/leaf';
 
 const alternatives: Partial<Record<Operator, Alternative[]>> = {
   [Operator.Blank]: [

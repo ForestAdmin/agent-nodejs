@@ -2,7 +2,9 @@ import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import OperatorEmulationDecorator from '../../../src/decorators/operators-emulate/collection';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
 import ConditionTreeFactory from '../../../src/interfaces/query/condition-tree/factory';
-import ConditionTreeLeaf, { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
+import ConditionTreeLeaf, {
+  Operator,
+} from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Projection from '../../../src/interfaces/query/projection';
 import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';

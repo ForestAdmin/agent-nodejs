@@ -15,11 +15,11 @@ export { default as SortEmulateCollectionDecorator } from './decorators/sort-emu
 export { default as SegmentCollectionDecorator } from './decorators/segment/collection';
 
 export { default as Aggregation } from './interfaces/query/aggregation';
-export { default as ConditionTree } from './interfaces/query/condition-tree/base';
-export { default as ConditionTreeBranch } from './interfaces/query/condition-tree/branch';
+export { default as ConditionTree } from './interfaces/query/condition-tree/nodes/base';
+export { default as ConditionTreeBranch } from './interfaces/query/condition-tree/nodes/branch';
 export { default as ConditionTreeFactory } from './interfaces/query/condition-tree/factory';
-export { default as ConditionTreeLeaf } from './interfaces/query/condition-tree/leaf';
-export { default as ConditionTreeNot } from './interfaces/query/condition-tree/not';
+export { default as ConditionTreeLeaf } from './interfaces/query/condition-tree/nodes/leaf';
+export { default as ConditionTreeNot } from './interfaces/query/condition-tree/nodes/not';
 export { default as Filter } from './interfaces/query/filter/unpaginated';
 export { default as Page } from './interfaces/query/page';
 export { default as PaginatedFilter } from './interfaces/query/filter/paginated';
@@ -29,8 +29,8 @@ export { default as Sort } from './interfaces/query/sort';
 export * from './interfaces/action';
 export * from './interfaces/collection';
 export * from './interfaces/query/aggregation';
-export * from './interfaces/query/condition-tree/branch';
-export * from './interfaces/query/condition-tree/leaf';
+export * from './interfaces/query/condition-tree/nodes/branch';
+export * from './interfaces/query/condition-tree/nodes/leaf';
 export * from './interfaces/query/filter/paginated';
 export * from './interfaces/query/filter/unpaginated';
 export * from './interfaces/query/sort';

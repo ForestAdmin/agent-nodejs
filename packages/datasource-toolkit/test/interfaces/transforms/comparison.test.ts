@@ -1,7 +1,8 @@
-// eslint-disable-next-line max-len
-import alternatives from '../../../../src/decorators/operators-replace/transforms/comparison';
-import { Aggregator } from '../../../../src/interfaces/query/condition-tree/branch';
-import ConditionTreeLeaf, { Operator } from '../../../../src/interfaces/query/condition-tree/leaf';
+import { Aggregator } from '../../../src/interfaces/query/condition-tree/nodes/branch';
+import ConditionTreeLeaf, {
+  Operator,
+} from '../../../src/interfaces/query/condition-tree/nodes/leaf';
+import alternatives from '../../../src/interfaces/query/condition-tree/transforms/comparison';
 
 describe('ConditionTreeOperators > Comparison', () => {
   describe('Operator.Blank', () => {

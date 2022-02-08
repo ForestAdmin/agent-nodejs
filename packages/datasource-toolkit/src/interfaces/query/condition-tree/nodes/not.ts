@@ -1,5 +1,5 @@
-import { RecordData } from '../../record';
-import Projection from '../projection';
+import { RecordData } from '../../../record';
+import Projection from '../../projection';
 import ConditionTree from './base';
 import { AsyncLeafReplacer, LeafCallback, LeafReplacer, LeafTester } from './leaf';
 
