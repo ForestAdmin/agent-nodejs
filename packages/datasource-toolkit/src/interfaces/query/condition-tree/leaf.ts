@@ -104,17 +104,13 @@ export default class ConditionTreeLeaf extends ConditionTree {
   replaceLeafs(handler: LeafReplacer, bind?: unknown): ConditionTree {
     const result: ConditionTree | LeafComponents = handler.call(bind, this);
 
-    return result instanceof ConditionTree
-      ? result
-      : new ConditionTreeLeaf(result.field, result.operator, result.value);
+    return result instanceof ConditionTree ? result : ConditionTreeFactory.fromJson(result);
   }
 
   async replaceLeafsAsync(handler: AsyncLeafReplacer, bind?: unknown): Promise<ConditionTree> {
     const result: ConditionTree | LeafComponents = await handler.call(bind, this);
 
-    return result instanceof ConditionTree
-      ? result
-      : new ConditionTreeLeaf(result.field, result.operator, result.value);
+    return result instanceof ConditionTree ? result : ConditionTreeFactory.fromJson(result);
   }
 
   match(record: RecordData): boolean {
@@ -156,8 +152,6 @@ export default class ConditionTreeLeaf extends ConditionTree {
   }
 
   override(params: Partial<LeafComponents>): ConditionTreeLeaf {
-    const merged = { ...this, ...params };
-
-    return new ConditionTreeLeaf(merged.field, merged.operator, merged.value);
+    return ConditionTreeFactory.fromJson({ ...this, ...params }) as ConditionTreeLeaf;
   }
 }
