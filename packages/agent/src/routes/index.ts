@@ -1,6 +1,6 @@
 import { DataSource, FieldTypes } from '@forestadmin/datasource-toolkit';
 import { ForestAdminHttpDriverServices as Services } from '../services';
-import { ForestAdminHttpDriverOptions as Options } from '../types';
+import { ForestAdminHttpDriverOptionsWithDefaults as Options } from '../types';
 import Count from './access/count';
 import CountRelatedRoute from './access/count-related';
 import Get from './access/get';
