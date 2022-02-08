@@ -4,13 +4,19 @@ import ConditionTreeFactory from '../factory';
 import ConditionTree from '../nodes/base';
 import { Operator } from '../nodes/leaf';
 
-const alternatives: Partial<Record<Operator, Alternative[]>> = {
+export default (): Partial<Record<Operator, Alternative[]>> => ({
   [Operator.Blank]: [
     {
       dependsOn: [Operator.In],
       forTypes: [PrimitiveTypes.String],
       replacer: leaf => leaf.override({ operator: Operator.In, value: [null, ''] }),
     },
+    {
+      dependsOn: [Operator.Missing],
+      replacer: leaf => leaf.override({ operator: Operator.Missing }),
+    },
+  ],
+  [Operator.Missing]: [
     {
       dependsOn: [Operator.Equal],
       replacer: leaf => leaf.override({ operator: Operator.Equal, value: null }),
@@ -61,6 +67,4 @@ const alternatives: Partial<Record<Operator, Alternative[]>> = {
         ),
     },
   ],
-};
-
-export default alternatives;
+});

@@ -281,7 +281,7 @@ describe('OperatorsEmulate', () => {
 
             expect(usingForbiddenOperator).toBeFalsy();
 
-            return conditionTree.apply(projection.apply(childRecords));
+            return conditionTree.apply(projection.apply(childRecords), books, 'Europe/Paris');
           },
         );
 

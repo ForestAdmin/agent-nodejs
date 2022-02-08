@@ -1,3 +1,4 @@
+import { Collection } from '../../../collection';
 import { RecordData } from '../../../record';
 import Projection from '../../projection';
 import { AsyncLeafReplacer, LeafCallback, LeafReplacer, LeafTester } from './leaf';
@@ -7,7 +8,7 @@ export default abstract class ConditionTree {
   abstract replaceLeafs(handler: LeafReplacer, bind?: unknown): ConditionTree;
   abstract replaceLeafsAsync(handler: AsyncLeafReplacer, bind?: unknown): Promise<ConditionTree>;
 
-  abstract match(record: RecordData): boolean;
+  abstract match(record: RecordData, collection: Collection, timezone: string): boolean;
 
   abstract forEachLeaf(handler: LeafCallback): void;
   abstract everyLeaf(handler: LeafTester): boolean;
@@ -15,8 +16,8 @@ export default abstract class ConditionTree {
 
   abstract get projection(): Projection;
 
-  apply(records: RecordData[]): RecordData[] {
-    return records.filter(r => this.match(r));
+  apply(records: RecordData[], collection: Collection, timezone: string): RecordData[] {
+    return records.filter(record => this.match(record, collection, timezone));
   }
 
   nest(prefix: string): ConditionTree {

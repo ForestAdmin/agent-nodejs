@@ -61,7 +61,7 @@ export default class BaseDummyCollection extends BaseCollection {
 
   async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
     let result: RecordData[] = this.records.slice();
-    if (filter?.conditionTree) result = filter.conditionTree.apply(result);
+    if (filter?.conditionTree) result = filter.conditionTree.apply(result, this, filter.timezone);
     if (filter?.sort) result = filter.sort.apply(result);
     if (filter?.page) result = filter.page.apply(result);
     result = projection.apply(result);

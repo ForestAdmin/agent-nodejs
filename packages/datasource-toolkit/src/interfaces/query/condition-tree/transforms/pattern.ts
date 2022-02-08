@@ -11,10 +11,8 @@ function likes(getPattern: (pattern: string) => string): Alternative {
   };
 }
 
-const alternatives: Partial<Record<Operator, Alternative[]>> = {
+export default (): Partial<Record<Operator, Alternative[]>> => ({
   [Operator.Contains]: [likes(value => `%${value}%`)],
   [Operator.StartsWith]: [likes(value => `${value}%`)],
   [Operator.EndsWith]: [likes(value => `%${value}`)],
-};
-
-export default alternatives;
+});

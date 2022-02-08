@@ -14,11 +14,7 @@ export type Alternative = {
 };
 
 export default class ConditionTreeEquivalent {
-  private static alternatives: Partial<Record<Operator, Alternative[]>> = {
-    ...equalityTransforms,
-    ...patternTransforms,
-    ...timeTransforms,
-  };
+  private static alternatives: Partial<Record<Operator, Alternative[]>> = null;
 
   static getEquivalentTree(
     leaf: ConditionTreeLeaf,
@@ -52,7 +48,7 @@ export default class ConditionTreeEquivalent {
   ): Replacer {
     if (filterOperators.has(op)) return leaf => leaf;
 
-    for (const alt of ConditionTreeEquivalent.alternatives[op] ?? []) {
+    for (const alt of ConditionTreeEquivalent.getAlternatives(op) ?? []) {
       const { replacer, dependsOn } = alt;
       const valid = !alt.forTypes || alt.forTypes.includes(columnType as PrimitiveTypes);
 
@@ -71,5 +67,18 @@ export default class ConditionTreeEquivalent {
     }
 
     return null;
+  }
+
+  private static getAlternatives(operator: Operator): Alternative[] {
+    // Init cache at first call to work around cyclic dependencies
+    if (!ConditionTreeEquivalent.alternatives) {
+      ConditionTreeEquivalent.alternatives = {
+        ...equalityTransforms(),
+        ...patternTransforms(),
+        ...timeTransforms(),
+      };
+    }
+
+    return ConditionTreeEquivalent.alternatives[operator];
   }
 }

@@ -2,9 +2,11 @@ import { Aggregator } from '../../../src/interfaces/query/condition-tree/nodes/b
 import ConditionTreeLeaf, {
   Operator,
 } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
-import alternatives from '../../../src/interfaces/query/condition-tree/transforms/comparison';
+import makeAlternatives from '../../../src/interfaces/query/condition-tree/transforms/comparison';
 
 describe('ConditionTreeOperators > Comparison', () => {
+  const alternatives = makeAlternatives();
+
   describe('Operator.Blank', () => {
     test('should be rewritten for strings', () => {
       expect(
@@ -19,6 +21,17 @@ describe('ConditionTreeOperators > Comparison', () => {
       expect(
         alternatives[Operator.Blank][1].replacer(
           new ConditionTreeLeaf('column', Operator.Blank),
+          'Europe/Paris',
+        ),
+      ).toEqual({ field: 'column', operator: Operator.Missing });
+    });
+  });
+
+  describe('Operator.Missing', () => {
+    test('should be rewritten', () => {
+      expect(
+        alternatives[Operator.Missing][0].replacer(
+          new ConditionTreeLeaf('column', Operator.Missing),
           'Europe/Paris',
         ),
       ).toEqual({ field: 'column', operator: Operator.Equal, value: null });

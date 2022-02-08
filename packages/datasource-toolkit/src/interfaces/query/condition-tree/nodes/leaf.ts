@@ -1,6 +1,10 @@
+import CollectionUtils from '../../../../utils/collection';
 import RecordUtils from '../../../../utils/record';
+import { Collection } from '../../../collection';
 import { RecordData } from '../../../record';
+import { ColumnSchema } from '../../../schema';
 import Projection from '../../projection';
+import ConditionTreeEquivalent from '../equivalence';
 import ConditionTreeFactory from '../factory';
 import ConditionTree from './base';
 import ConditionTreeNot from './not';
@@ -51,6 +55,19 @@ export enum Operator {
   // Arrays
   IncludesAll = 'includes_all',
 }
+
+// This set of operators is enough to implement them all with replacements
+const uniqueOperators = new Set([
+  Operator.Equal,
+  Operator.NotEqual,
+  Operator.LessThan,
+  Operator.GreaterThan,
+  Operator.Like,
+  Operator.NotContains,
+  Operator.LongerThan,
+  Operator.ShorterThan,
+  Operator.IncludesAll,
+]);
 
 type LeafHandler<R> = (leaf: ConditionTreeLeaf) => R;
 
@@ -121,45 +138,54 @@ export default class ConditionTreeLeaf extends ConditionTree {
     return result instanceof ConditionTree ? result : ConditionTreeFactory.fromJson(result);
   }
 
-  match(record: RecordData): boolean {
+  match(record: RecordData, collection: Collection, timezone: string): boolean {
     const fieldValue = RecordUtils.getFieldValue(record, this.field);
+    const { columnType } = CollectionUtils.getFieldSchema(collection, this.field) as ColumnSchema;
 
     switch (this.operator) {
-      case Operator.Blank:
-        return fieldValue === null || fieldValue === '';
-      case Operator.Contains:
-        return !!(fieldValue as string)
-          ?.toLocaleLowerCase?.()
-          ?.includes?.((this.value as string).toLocaleLowerCase?.());
-      case Operator.StartsWith:
-        return !!(fieldValue as string)?.startsWith(this.value as string);
-      case Operator.EndsWith:
-        return !!(fieldValue as string)?.endsWith(this.value as string);
-      case Operator.LessThan:
-        return fieldValue < this.value;
       case Operator.Equal:
         return fieldValue == this.value; // eslint-disable-line eqeqeq
+      case Operator.LessThan:
+        return fieldValue < this.value;
       case Operator.GreaterThan:
         return fieldValue > this.value;
-      case Operator.In:
-        return !!(this.value as unknown[])?.includes?.(fieldValue);
-      case Operator.IncludesAll:
-        return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
-      case Operator.ShorterThan:
-        return (fieldValue as string).length < this.value;
+      case Operator.Like:
+        return this.like(fieldValue as string, this.value as string);
       case Operator.LongerThan:
         return (fieldValue as string).length > this.value;
+      case Operator.ShorterThan:
+        return (fieldValue as string).length < this.value;
+      case Operator.IncludesAll:
+        return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
+
+      case Operator.NotEqual:
+      case Operator.NotContains:
+        return !this.inverse().match(record, collection, timezone);
 
       default:
-        try {
-          return !this.inverse().match(record);
-        } catch (e) {
-          throw new Error(`Unsupported operator: '${this.operator}'`);
-        }
+        return ConditionTreeEquivalent.getEquivalentTree(
+          this,
+          uniqueOperators,
+          columnType,
+          timezone,
+        ).match(record, collection, timezone);
     }
   }
 
   override(params: Partial<LeafComponents>): ConditionTreeLeaf {
     return ConditionTreeFactory.fromJson({ ...this, ...params }) as ConditionTreeLeaf;
+  }
+
+  /** @see https://stackoverflow.com/a/18418386/1897495 */
+  private like(value: string, pattern: string): boolean {
+    if (!value) return false;
+
+    let regexp = pattern;
+
+    // eslint-disable-next-line no-useless-escape
+    regexp = regexp.replace(/([\.\\\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:\-])/g, '\\$1');
+    regexp = regexp.replace(/%/g, '.*').replace(/_/g, '.');
+
+    return RegExp(`^${regexp}$`, 'gi').test(value);
   }
 }

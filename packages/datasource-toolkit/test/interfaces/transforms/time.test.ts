@@ -2,9 +2,11 @@ import { Aggregator } from '../../../src/interfaces/query/condition-tree/nodes/b
 import ConditionTreeLeaf, {
   Operator,
 } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
-import alternatives from '../../../src/interfaces/query/condition-tree/transforms/time';
+import makeAlternatives from '../../../src/interfaces/query/condition-tree/transforms/time';
 
 describe('ConditionTreeOperators > Time', () => {
+  const alternatives = makeAlternatives();
+
   beforeAll(() => {
     // https://static.wikia.nocookie.net/bttf/images/d/d5/Time_Circuits_BTTF.png
     const date = new Date('1985-10-26T01:22:00-08:00');

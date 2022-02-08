@@ -1,3 +1,4 @@
+import { Collection } from '../../../collection';
 import { RecordData } from '../../../record';
 import Projection from '../../projection';
 import ConditionTree from './base';
@@ -39,7 +40,7 @@ export default class ConditionTreeNot extends ConditionTree {
     return new ConditionTreeNot(await this.condition.replaceLeafsAsync(handler, bind));
   }
 
-  match(record: RecordData): boolean {
-    return !this.condition.match(record);
+  match(record: RecordData, collection: Collection, timezone: string): boolean {
+    return !this.condition.match(record, collection, timezone);
   }
 }

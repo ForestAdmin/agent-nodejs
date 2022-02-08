@@ -51,7 +51,7 @@ function previousIntervalToDate(duration: DateTimeUnit): Alternative {
   );
 }
 
-const alternatives: Partial<Record<Operator, Alternative[]>> = {
+export default (): Partial<Record<Operator, Alternative[]>> => ({
   [Operator.Before]: [compare(Operator.LessThan, (_, value) => DateTime.fromISO(value as string))],
   [Operator.After]: [
     compare(Operator.GreaterThan, (_, value) => DateTime.fromISO(value as string)),
@@ -97,6 +97,4 @@ const alternatives: Partial<Record<Operator, Alternative[]>> = {
       now => now.plus({ day: 1 }).startOf('day'),
     ),
   ],
-};
-
-export default alternatives;
+});

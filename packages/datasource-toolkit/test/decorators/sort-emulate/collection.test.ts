@@ -5,6 +5,7 @@ import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Page from '../../../src/interfaces/query/page';
 import Projection from '../../../src/interfaces/query/projection';
 import Sort from '../../../src/interfaces/query/sort';
+import { RecordData } from '../../../src/interfaces/record';
 import { ColumnSchema } from '../../../src/interfaces/schema';
 import * as factories from '../../__factories__';
 
@@ -21,7 +22,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
   // Build datasource
   beforeEach(() => {
-    const records = [
+    const records: RecordData[] = [
       {
         id: 1,
         authorId: 1,
@@ -55,9 +56,9 @@ describe('SortEmulationDecoratorCollection', () => {
           title: factories.columnSchema.build({ isSortable: false }),
         },
       }),
-      list: jest.fn().mockImplementation((filter, projection) => {
+      list: jest.fn().mockImplementation((filter: PaginatedFilter, projection: Projection) => {
         let rows = records.slice();
-        if (filter.conditionTree) rows = filter.conditionTree.apply(rows);
+        if (filter.conditionTree) rows = filter.conditionTree.apply(rows, books, 'Europe/Paris');
         if (filter.sort) rows = filter.sort.apply(rows);
 
         return projection.apply(rows);

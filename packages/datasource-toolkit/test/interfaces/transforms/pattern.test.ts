@@ -1,9 +1,11 @@
 import ConditionTreeLeaf, {
   Operator,
 } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
-import alternatives from '../../../src/interfaces/query/condition-tree/transforms/pattern';
+import makeAlternatives from '../../../src/interfaces/query/condition-tree/transforms/pattern';
 
 describe('ConditionTreeOperators > Pattern', () => {
+  const alternatives = makeAlternatives();
+
   describe('Operator.Contains', () => {
     test('should be rewritten', () => {
       expect(

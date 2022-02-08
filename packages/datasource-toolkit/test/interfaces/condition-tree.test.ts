@@ -5,6 +5,7 @@ import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/fact
 import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import ConditionTreeNot from '../../src/interfaces/query/condition-tree/nodes/not';
 import * as factories from '../__factories__';
+import { PrimitiveTypes } from '../../src/interfaces/schema';
 
 describe('ConditionTree', () => {
   describe('Factory', () => {
@@ -177,13 +178,24 @@ describe('ConditionTree', () => {
     ]);
 
     test('apply() should work', () => {
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            column1: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
+            column2: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
+          },
+        }),
+      });
+
       const records = [
         { id: 1, column1: true, column2: true },
         { id: 2, column1: false, column2: true },
         { id: 3, column1: true, column2: false },
       ];
 
-      expect(tree.apply(records)).toStrictEqual([{ id: 1, column1: true, column2: true }]);
+      expect(tree.apply(records, collection, 'Europe/Paris')).toStrictEqual([
+        { id: 1, column1: true, column2: true },
+      ]);
     });
 
     test('everyLeaf() should work', () => {
@@ -238,14 +250,35 @@ describe('ConditionTree', () => {
     });
 
     test('match() should work', () => {
-      expect(tree.match({ column1: true, column2: true })).toBeTruthy();
-      expect(tree.match({ column1: false, column2: true })).toBeFalsy();
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            column1: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
+            column2: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
+          },
+        }),
+      });
 
-      expect(tree.inverse().match({ column1: true, column2: true })).toBeFalsy();
-      expect(tree.inverse().match({ column1: false, column2: true })).toBeTruthy();
+      expect(tree.match({ column1: true, column2: true }, collection, 'Europe/Paris')).toBeTruthy();
+      expect(tree.match({ column1: false, column2: true }, collection, 'Europe/Paris')).toBeFalsy();
+      expect(
+        tree.inverse().match({ column1: true, column2: true }, collection, 'Europe/Paris'),
+      ).toBeFalsy();
+
+      expect(
+        tree.inverse().match({ column1: false, column2: true }, collection, 'Europe/Paris'),
+      ).toBeTruthy();
     });
 
     test('match() should work with many operators', () => {
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            string: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+            array: factories.columnSchema.build({ columnType: [PrimitiveTypes.String] }),
+          },
+        }),
+      });
       const allConditions = new ConditionTreeBranch(Aggregator.And, [
         new ConditionTreeLeaf('string', Operator.Present),
         new ConditionTreeLeaf('string', Operator.Contains, 'value'),
@@ -260,13 +293,9 @@ describe('ConditionTree', () => {
         new ConditionTreeLeaf('string', Operator.ShorterThan, 999),
       ]);
 
-      expect(allConditions.match({ string: 'value', array: ['value'] })).toBeTruthy();
-    });
-
-    test('match() should crash with unsupported operators', () => {
-      const today = new ConditionTreeLeaf('column', Operator.Today);
-
-      expect(() => today.match({})).toThrow("Unsupported operator: 'today'");
+      expect(
+        allConditions.match({ string: 'value', array: ['value'] }, collection, 'Europe/Paris'),
+      ).toBeTruthy();
     });
 
     test('nest() should work', () => {
