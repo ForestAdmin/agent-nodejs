@@ -5,12 +5,11 @@ import { IncomingMessage, ServerResponse } from 'http';
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import path from 'path';
-import { RootRoutesCtor, CollectionRoutesCtor, RelatedRoutesCtor } from './routes';
+import makeRoutes from './routes';
 import BaseRoute from './routes/base-route';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import { ForestAdminHttpDriverOptions } from './types';
 import SchemaEmitter from './utils/forest-schema/emitter';
-import RoutesFactory from './routes/routes-factory';
 
 /** Native NodeJS callback that can be passed to an HTTP Server */
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
@@ -37,14 +36,7 @@ export default class ForestAdminHttpDriver {
     this.dataSources = Array.isArray(dataSource) ? dataSource : [dataSource];
     this.options = options;
     this.services = makeServices(options);
-    this.routes = RoutesFactory.makeRoutes({
-      dataSources: this.dataSources,
-      options,
-      services: this.services,
-      rootRoutes: RootRoutesCtor,
-      collectionRoutes: CollectionRoutesCtor,
-      relatedRoutes: RelatedRoutesCtor,
-    });
+    this.routes = makeRoutes(this.dataSources, this.options, this.services);
   }
 
   /**

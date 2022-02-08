@@ -1,18 +1,15 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
-
 import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
-import RoutesFactory from '../src/routes/routes-factory';
 import { ForestAdminHttpDriverOptions } from '../src/types';
 import * as factories from './__factories__';
+import makeRoutes from '../src/routes';
 
 jest.mock('../src/routes', () => ({
-  RootRoutesCtor: [],
-  CollectionRoutesCtor: [],
-  RelatedRoutesCtor: [],
+  __esModule: true,
+  default: jest.fn().mockReturnValue([]),
 }));
 
 // Mock services
-let makeRoutes: jest.SpyInstance;
 const hasSchema = jest.fn();
 const uploadSchema = jest.fn();
 jest.mock(
@@ -26,8 +23,6 @@ describe('ForestAdminHttpDriver', () => {
   let options: ForestAdminHttpDriverOptions;
 
   beforeEach(() => {
-    makeRoutes = jest.spyOn(RoutesFactory, 'makeRoutes').mockReturnValue([]);
-
     dataSource = factories.dataSource.buildWithCollection({
       name: 'person',
       schema: factories.collectionSchema.build({
