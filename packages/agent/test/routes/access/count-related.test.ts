@@ -1,8 +1,8 @@
 import { CollectionUtils } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import CountRelatedRoute from '../../../dist/routes/access/count-related';
+import CountRelatedRoute from '../../../src/routes/access/count-related';
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../dist/types';
+import { HttpCode } from '../../../src/types';
 
 describe('CountRelatedRoute', () => {
   const setup = () => {
@@ -50,8 +50,8 @@ describe('CountRelatedRoute', () => {
     const oneToManyRelationName = 'myBookPersons';
     const count = new CountRelatedRoute(
       services,
-      dataSource,
       options,
+      dataSource,
       dataSource.getCollection('books').name,
       oneToManyRelationName,
     );
@@ -71,8 +71,8 @@ describe('CountRelatedRoute', () => {
         const oneToManyRelationName = 'myBookPersons';
         const count = new CountRelatedRoute(
           services,
-          dataSource,
           options,
+          dataSource,
           dataSource.getCollection('books').name,
           oneToManyRelationName,
         );
@@ -84,6 +84,7 @@ describe('CountRelatedRoute', () => {
         const context = setupContext();
         await count.handleCountRelated(context);
 
+        expect(context.throw).not.toHaveBeenCalled();
         expect(context.response.body).toEqual({ count: 1568 });
       });
 
@@ -94,8 +95,8 @@ describe('CountRelatedRoute', () => {
           const oneToManyRelationName = 'myBookPersons';
           const count = new CountRelatedRoute(
             services,
-            dataSource,
             options,
+            dataSource,
             dataSource.getCollection('books').name,
             oneToManyRelationName,
           );
@@ -107,6 +108,7 @@ describe('CountRelatedRoute', () => {
 
           await count.handleCountRelated(context);
 
+          expect(context.throw).not.toHaveBeenCalled();
           expect(context.response.body).toEqual({ count: 0 });
         });
       });
@@ -119,8 +121,8 @@ describe('CountRelatedRoute', () => {
         const oneToManyRelationName = 'myBookPersons';
         const count = new CountRelatedRoute(
           services,
-          dataSource,
           options,
+          dataSource,
           dataSource.getCollection('books').name,
           oneToManyRelationName,
         );
@@ -141,8 +143,8 @@ describe('CountRelatedRoute', () => {
         const oneToManyRelationName = 'myBookPersons';
         const count = new CountRelatedRoute(
           services,
-          dataSource,
           options,
+          dataSource,
           dataSource.getCollection('books').name,
           oneToManyRelationName,
         );

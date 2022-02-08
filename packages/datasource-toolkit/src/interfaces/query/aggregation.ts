@@ -39,10 +39,12 @@ interface AggregationComponents {
   groups?: Array<{ field: string; operation?: DateOperation }>;
 }
 
+type GroupsAggregation = { field: string; operation?: DateOperation }[];
+
 export default class Aggregation implements AggregationComponents {
   field?: string;
   operation: AggregationOperation;
-  groups?: { field: string; operation?: DateOperation }[];
+  groups?: GroupsAggregation;
 
   get projection(): Projection {
     const { field, groups } = this;
@@ -134,8 +136,8 @@ export default class Aggregation implements AggregationComponents {
   }
 
   nest(prefix: string): Aggregation {
-    let nestedField;
-    let nestedGroups;
+    let nestedField: string;
+    let nestedGroups: GroupsAggregation;
 
     if (this.field) {
       nestedField = `${prefix}:${this.field}`;

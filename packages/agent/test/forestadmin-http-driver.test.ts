@@ -1,31 +1,22 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 
 import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
-import { CollectionRoutesCtor, RootRoutesCtor } from '../src/routes';
-import CountRoute from '../src/routes/access/count';
-import HealthCheck from '../src/routes/healthcheck';
 import { ForestAdminHttpDriverOptions } from '../src/types';
+import * as factories from './__factories__';
 
-import {
-  collectionSchema as collectionSchemaBuilder,
-  columnSchema as columnSchemaBuilder,
-  dataSource as dataSourceBuilder,
-  forestAdminHttpDriverOptions as optionsBuilder,
-  forestAdminHttpDriverServices as servicesBuilder,
-} from './__factories__';
-
-// Mock routes
-jest.mock('../src/routes', () => ({ RootRoutesCtor: [], CollectionRoutesCtor: [] }));
-
-CollectionRoutesCtor.push(CountRoute);
-RootRoutesCtor.push(HealthCheck);
+jest.mock('../src/routes', () => ({
+  RootRoutesCtor: [],
+  CollectionRoutesCtor: [],
+  RelatedRoutesCtor: [],
+}));
 
 // Mock services
 const hasSchema = jest.fn();
 const uploadSchema = jest.fn();
 jest.mock(
   '../src/services',
-  () => () => servicesBuilder.build({ forestHTTPApi: { hasSchema, uploadSchema } }),
+  () => () =>
+    factories.forestAdminHttpDriverServices.build({ forestHTTPApi: { hasSchema, uploadSchema } }),
 );
 
 describe('ForestAdminHttpDriver', () => {
@@ -33,17 +24,17 @@ describe('ForestAdminHttpDriver', () => {
   let options: ForestAdminHttpDriverOptions;
 
   beforeEach(() => {
-    dataSource = dataSourceBuilder.buildWithCollection({
+    dataSource = factories.dataSource.buildWithCollection({
       name: 'person',
-      schema: collectionSchemaBuilder.build({
+      schema: factories.collectionSchema.build({
         fields: {
-          birthdate: columnSchemaBuilder.isPrimaryKey().build(),
-          firstName: columnSchemaBuilder.build(),
-          lastName: columnSchemaBuilder.isPrimaryKey().build(),
+          birthdate: factories.columnSchema.isPrimaryKey().build(),
+          firstName: factories.columnSchema.build(),
+          lastName: factories.columnSchema.isPrimaryKey().build(),
         },
       }),
     });
-    options = optionsBuilder.build();
+    options = factories.forestAdminHttpDriverOptions.build();
 
     hasSchema.mockReset();
     uploadSchema.mockReset();

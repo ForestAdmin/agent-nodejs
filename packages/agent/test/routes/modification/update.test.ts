@@ -12,7 +12,7 @@ describe('UpdateRoute', () => {
   test('should register PUT books/:id private routes', () => {
     const bookCollection = factories.collection.build({ name: 'books' });
     const dataSource = factories.dataSource.buildWithCollections([bookCollection]);
-    const updateRoute = new UpdateRoute(services, dataSource, options, 'books');
+    const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
     updateRoute.setupPrivateRoutes(router);
 
@@ -23,7 +23,7 @@ describe('UpdateRoute', () => {
     it('should throw an error when the id attribute is not provided', async () => {
       const bookCollection = factories.collection.build({ name: 'books' });
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-      const updateRoute = new UpdateRoute(services, dataSource, options, 'books');
+      const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
       updateRoute.setupPrivateRoutes(router);
 
@@ -47,7 +47,7 @@ describe('UpdateRoute', () => {
         }),
       });
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-      const updateRoute = new UpdateRoute(services, dataSource, options, 'books');
+      const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
       const customProperties = { params: { id: '1523' } };
       const requestBody = { data: { attributes: { notExistField: 'foo' } } };
@@ -76,7 +76,7 @@ describe('UpdateRoute', () => {
         }),
       });
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-      const updateRoute = new UpdateRoute(services, dataSource, options, 'books');
+      const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
       const customProperties = { params: { id: '1523' } };
       const requestBody = { data: { attributes: { name: 'foo name' } } };
@@ -103,7 +103,7 @@ describe('UpdateRoute', () => {
         }),
       });
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-      const updateRoute = new UpdateRoute(services, dataSource, options, 'books');
+      const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
       const customProperties = { params: { id: '1523' } };
       const requestBody = { data: { attributes: { name: 'foo name' } } };

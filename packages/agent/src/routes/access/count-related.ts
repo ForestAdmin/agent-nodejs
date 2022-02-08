@@ -31,8 +31,6 @@ export default class CountRelatedRoute extends RelationRoute {
         searchExtended: QueryStringParser.parseSearchExtended(context),
         segment: QueryStringParser.parseSegment(this.collection, context),
         timezone: QueryStringParser.parseTimezone(context),
-        page: QueryStringParser.parsePagination(context),
-        sort: QueryStringParser.parseSort(this.collection, context),
       });
     } catch (e) {
       return context.throw(HttpCode.BadRequest, e.message);
@@ -47,10 +45,11 @@ export default class CountRelatedRoute extends RelationRoute {
         new Aggregation({ operation: AggregationOperation.Count }),
         this.dataSource,
       );
-      const count = aggregationResult?.[0]?.value ?? 0;
+      const countValue = aggregationResult?.[0]?.value;
+      const count = countValue ?? 0;
 
       context.response.body = { count };
-    } catch {
+    } catch (e) {
       context.throw(
         HttpCode.InternalServerError,
         `Failed to count the collection relation of the "${this.collection.name}"`,

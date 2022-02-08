@@ -6,5 +6,7 @@ export default Factory.define<ManyToManySchema>(() => ({
   otherField: 'bookId',
   throughCollection: 'bookReviews',
   foreignKey: 'reviewId',
+  originRelation: 'myBook',
+  targetRelation: 'myLibrary',
   foreignCollection: 'review',
 }));

@@ -1,15 +1,10 @@
 import { Collection, DataSource } from '../interfaces/collection';
-import {
-  FieldSchema,
-  FieldTypes,
-  ManyToManySchema,
-  OneToManySchema,
-  RelationSchema,
-} from '../interfaces/schema';
+import { FieldSchema, FieldTypes, ManyToManySchema, RelationSchema } from '../interfaces/schema';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTreeUtils from './condition-tree';
 import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/leaf';
+import ConditionTree from '../interfaces/query/condition-tree/base';
 
 export default class CollectionUtils {
   static async aggregateRelation(
@@ -31,55 +26,61 @@ export default class CollectionUtils {
       );
     }
 
-    const foreignCollection = await datasource.getCollection(relationFieldSchema.foreignCollection);
-
     if (isOneToMany) {
-      const filter = CollectionUtils.buildFilterOneToMany(relationFieldSchema, id, paginatedFilter);
+      const foreignCollection = await datasource.getCollection(
+        relationFieldSchema.foreignCollection,
+      );
+      const conditionTree = CollectionUtils.buildConditionTree(
+        relationFieldSchema.foreignKey,
+        id,
+        paginatedFilter.conditionTree,
+      );
 
-      return foreignCollection.aggregate(filter, aggregation);
+      return foreignCollection.aggregate(paginatedFilter.override({ conditionTree }), aggregation);
     }
 
-    const filter = CollectionUtils.buildFilterManyToMany(paginatedFilter, relationFieldSchema, id);
+    return CollectionUtils.getManyToManyRelation(
+      datasource,
+      relationFieldSchema,
+      id,
+      paginatedFilter,
+      aggregation,
+    );
+  }
+
+  private static async getManyToManyRelation(
+    datasource: DataSource,
+    relationFieldSchema: ManyToManySchema,
+    id: number,
+    paginatedFilter: PaginatedFilter,
+    aggregation: Aggregation,
+  ) {
+    const foreignCollection = await datasource.getCollection(relationFieldSchema.throughCollection);
+    const conditionTree = CollectionUtils.buildConditionTree(
+      relationFieldSchema.otherField,
+      id,
+      paginatedFilter.conditionTree?.nest(relationFieldSchema.originRelation),
+    );
     const aggregateResults = await foreignCollection.aggregate(
-      filter,
-      aggregation.nest(relationFieldSchema.otherField),
+      paginatedFilter.override({ conditionTree }),
+      aggregation.nest(relationFieldSchema.originRelation),
     );
 
     return CollectionUtils.removePrefixes(aggregateResults, relationFieldSchema);
   }
 
-  private static buildFilterManyToMany(
-    paginatedFilter: PaginatedFilter,
-    relationFieldSchema: ManyToManySchema,
+  private static buildConditionTree(
+    foreignKey: string,
     id: number,
-  ): PaginatedFilter {
-    const filter = this.buildFilterOneToMany(relationFieldSchema, id, paginatedFilter);
-
-    return filter.override({
-      conditionTree: ConditionTreeUtils.intersect(
-        filter.conditionTree,
-        paginatedFilter.conditionTree.nest(relationFieldSchema.otherField),
-      ),
-    });
-  }
-
-  private static buildFilterOneToMany(
-    relationFieldSchema: ManyToManySchema | OneToManySchema,
-    id: number,
-    paginatedFilter: PaginatedFilter,
-  ): PaginatedFilter {
+    conditionTree: ConditionTree,
+  ): ConditionTree {
     const conditionToMatchId = new ConditionTreeLeaf({
-      field: relationFieldSchema.foreignKey,
+      field: foreignKey,
       operator: Operator.Equal,
       value: id,
     });
 
-    return paginatedFilter.override({
-      conditionTree: ConditionTreeUtils.intersect(
-        paginatedFilter.conditionTree,
-        conditionToMatchId,
-      ),
-    });
+    return ConditionTreeUtils.intersect(conditionTree, conditionToMatchId);
   }
 
   private static removePrefixes(
@@ -89,13 +90,15 @@ export default class CollectionUtils {
     return aggregateResults.map(aggregateResult => {
       const newResult: AggregateResult = {
         value: aggregateResult.value,
-        group: aggregateResult.group,
+        group: {},
       };
 
       Object.entries(aggregateResult.group).forEach(([field, result]) => {
-        if (field.startsWith(schema.otherField)) {
-          const suffix = field.substring(schema.otherField.length + ':'.length);
+        if (field.startsWith(schema.originRelation)) {
+          const suffix = field.substring(schema.originRelation.length + ':'.length);
           newResult.group[suffix] = result;
+        } else {
+          newResult.group[field] = result;
         }
       });
 

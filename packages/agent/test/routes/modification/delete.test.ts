@@ -12,7 +12,7 @@ describe('DeleteRoute', () => {
   test('should register "/books" private routes', () => {
     const bookCollection = factories.collection.build({ name: 'books' });
     const dataSource = factories.dataSource.buildWithCollections([bookCollection]);
-    const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
+    const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
     deleteRoute.setupPrivateRoutes(router);
 
@@ -24,7 +24,7 @@ describe('DeleteRoute', () => {
     test('should throw an error when the id attribute is not provided', async () => {
       const bookCollection = factories.collection.build({ name: 'books' });
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-      const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
+      const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
       const context = createMockContext({
         customProperties: {
@@ -51,7 +51,7 @@ describe('DeleteRoute', () => {
         }),
       });
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-      const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
+      const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
       const context = createMockContext({
         customProperties: {
@@ -83,7 +83,7 @@ describe('DeleteRoute', () => {
           }),
         });
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-        const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
+        const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
         const context = createMockContext({
           customProperties: {
@@ -131,7 +131,7 @@ describe('DeleteRoute', () => {
           }),
         });
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-        const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
+        const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
         const context = createMockContext({
           customProperties: {
@@ -220,7 +220,7 @@ describe('DeleteRoute', () => {
           }),
         });
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-        const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
+        const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
         const context = createMockContext({
           customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -245,7 +245,7 @@ describe('DeleteRoute', () => {
           }),
         });
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-        const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
+        const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
         const context = createMockContext({
           customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -285,7 +285,7 @@ describe('DeleteRoute', () => {
             }),
           });
           const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-          const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
+          const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
           const context = createMockContext({
             customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -338,7 +338,7 @@ describe('DeleteRoute', () => {
           }),
         });
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-        const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
+        const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
         const context = createMockContext({
           customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -413,7 +413,7 @@ describe('DeleteRoute', () => {
             }),
           });
           const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-          const deleteRoute = new DeleteRoute(services, dataSource, options, 'books');
+          const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
           const context = createMockContext({
             customProperties: { query: { timezone: 'Europe/Paris' } },

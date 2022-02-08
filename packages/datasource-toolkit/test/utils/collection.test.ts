@@ -3,6 +3,7 @@ import CollectionUtils from '../../src/utils/collection';
 import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
 import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/leaf';
 import ConditionTreeUtils from '../../src/utils/condition-tree';
+import Aggregation, { AggregationOperation } from '../../src/interfaces/query/aggregation';
 
 describe('CollectionUtils', () => {
   describe('When inverse relations is missing', () => {
@@ -206,7 +207,7 @@ describe('CollectionUtils', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              aNonSupportedRelation: factories.oneToOneSchema.build(),
+              aNonSupportedRelationField: factories.oneToOneSchema.build(),
             },
           }),
         });
@@ -219,7 +220,7 @@ describe('CollectionUtils', () => {
         };
       };
 
-      it('should throw an error', async () => {
+      test('should throw an error', async () => {
         const { aggregation, dataSource } = setupWithNotSupportedRelation();
 
         const baseFilter = factories.filter.build({
@@ -231,7 +232,7 @@ describe('CollectionUtils', () => {
             baseFilter,
             2,
             dataSource.getCollection('books'),
-            'aNonSupportedRelation',
+            'aNonSupportedRelationField',
             aggregation,
             dataSource,
           ),
@@ -251,7 +252,7 @@ describe('CollectionUtils', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              oneToManyRelation: factories.oneToManySchema.build({
+              oneToManyRelationField: factories.oneToManySchema.build({
                 foreignCollection: 'reviews',
                 foreignKey: 'bookId',
               }),
@@ -267,7 +268,7 @@ describe('CollectionUtils', () => {
         };
       };
 
-      it('should add the correct filter and aggregate it', async () => {
+      test('should add the correct filter and aggregate it', async () => {
         const { aggregation, dataSource } = setupWithOneToManyRelation();
 
         const baseFilter = factories.filter.build({
@@ -278,7 +279,7 @@ describe('CollectionUtils', () => {
           baseFilter,
           2,
           dataSource.getCollection('books'),
-          'oneToManyRelation',
+          'oneToManyRelationField',
           aggregation,
           dataSource,
         );
@@ -300,11 +301,20 @@ describe('CollectionUtils', () => {
 
     describe('when the relation is a many to many relation', () => {
       const setupWithManyToManyRelation = () => {
-        const persons = factories.collection.build({
-          name: 'persons',
+        const librariesBooks = factories.collection.build({
+          name: 'librariesBooks',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              bookId: factories.columnSchema.isPrimaryKey().build(),
+              libraryId: factories.columnSchema.isPrimaryKey().build(),
+              myBook: factories.manyToOneSchema.build({
+                foreignCollection: 'books',
+                foreignKey: 'bookId',
+              }),
+              myLibrary: factories.manyToOneSchema.build({
+                foreignCollection: 'libraries',
+                foreignKey: 'libraryId',
+              }),
             },
           }),
         });
@@ -314,68 +324,69 @@ describe('CollectionUtils', () => {
           schema: factories.collectionSchema.build({
             fields: {
               id: factories.columnSchema.isPrimaryKey().build(),
-              manyToManyRelation: factories.manyToManySchema.build({
-                foreignCollection: 'persons',
-                foreignKey: 'personId',
-                otherField: 'bookId',
+              name: factories.columnSchema.build(),
+              manyToManyRelationField: factories.manyToManySchema.build({
+                throughCollection: 'librariesBooks',
+                originRelation: 'myBook',
+                targetRelation: 'myLibrary',
               }),
             },
           }),
         });
-        const aggregation = factories.aggregation.build();
 
         return {
-          aggregation,
-          dataSource: factories.dataSource.buildWithCollections([persons, books]),
+          dataSource: factories.dataSource.buildWithCollections([librariesBooks, books]),
         };
       };
 
-      it('should add the correct filter and aggregate it', async () => {
-        const { aggregation, dataSource } = setupWithManyToManyRelation();
+      test('should add the correct filter and aggregate it', async () => {
+        const { dataSource } = setupWithManyToManyRelation();
+
+        const aggregation = new Aggregation({
+          operation: AggregationOperation.Max,
+          field: 'aField',
+        });
 
         const baseFilter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({
             operator: Operator.Equal,
-            value: 1,
-            field: 'id',
+            value: 'foo',
+            field: 'name',
           }),
         });
 
         jest
-          .spyOn(dataSource.getCollection('persons'), 'aggregate')
-          .mockResolvedValue([{ value: 34, group: { 'bookId:myPersons': 'abc' } }]);
+          .spyOn(dataSource.getCollection('librariesBooks'), 'aggregate')
+          .mockResolvedValue([{ value: 34, group: { 'myBook:id': 1, bookId: 1 } }]);
 
         const aggregateResults = await CollectionUtils.aggregateRelation(
           baseFilter,
           2,
           dataSource.getCollection('books'),
-          'manyToManyRelation',
+          'manyToManyRelationField',
           aggregation,
           dataSource,
         );
 
         const expectedCondition = ConditionTreeUtils.intersect(
-          baseFilter.conditionTree,
+          baseFilter.conditionTree.nest('myBook'),
           new ConditionTreeLeaf({
-            field: 'personId',
+            field: 'bookId',
             operator: Operator.Equal,
             value: 2,
           }),
-          new ConditionTreeLeaf({
-            field: 'bookId:id',
-            operator: Operator.Equal,
-            value: 1,
-          }),
         );
+        const expectedAggregation = new Aggregation({
+          operation: AggregationOperation.Max,
+          field: 'myBook:aField',
+        });
 
-        expect(dataSource.getCollection('persons').aggregate).toHaveBeenCalledWith(
+        expect(dataSource.getCollection('librariesBooks').aggregate).toHaveBeenCalledWith(
           baseFilter.override({ conditionTree: expectedCondition }),
-          aggregation,
+          expectedAggregation,
         );
 
-        expect(aggregateResults).toEqual([
-          { group: { 'bookId:myPersons': 'abc', myPersons: 'abc' }, value: 34 },
-        ]);
+        expect(aggregateResults).toEqual([{ group: { id: 1, bookId: 1 }, value: 34 }]);
       });
     });
   });

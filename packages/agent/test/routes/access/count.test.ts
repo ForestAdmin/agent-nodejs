@@ -19,7 +19,7 @@ describe('CountRoute', () => {
   const router = factories.router.mockAllMethods().build();
 
   test('should register "/books/count" private routes', () => {
-    const list = new Count(services, dataSource, options, collection.name);
+    const list = new Count(services, options, dataSource, collection.name);
     list.setupPrivateRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith('/books/count', expect.any(Function));
@@ -29,7 +29,7 @@ describe('CountRoute', () => {
     test('should the aggregate implementation', async () => {
       const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
       dataSource.getCollection('books').aggregate = aggregateSpy;
-      const count = new Count(services, dataSource, options, collection.name);
+      const count = new Count(services, options, dataSource, collection.name);
       const context = createMockContext({
         customProperties: { query: { timezone: 'Europe/Paris' } },
       });
@@ -55,7 +55,7 @@ describe('CountRoute', () => {
           throw new Error();
         });
 
-        const count = new Count(services, dataSource, options, collection.name);
+        const count = new Count(services, options, dataSource, collection.name);
         const context = createMockContext();
 
         await count.handleCount(context);
