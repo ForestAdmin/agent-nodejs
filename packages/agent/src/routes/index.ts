@@ -16,11 +16,11 @@ export const RootRoutesCtor = [Authentication, HealthCheck];
 export const CollectionRoutesCtor = [Count, Create, Delete, Get, List, Update];
 export const RelatedRoutesCtor = [CountRelatedRoute];
 
-function getRoot(options: Options, services: Services): BaseRoute[] {
+function getRootRoutes(options: Options, services: Services): BaseRoute[] {
   return RootRoutesCtor.map(Route => new Route(services, options));
 }
 
-function getCrud(dataSource: DataSource, options: Options, services: Services): BaseRoute[] {
+function getCrudRoutes(dataSource: DataSource, options: Options, services: Services): BaseRoute[] {
   const routes: BaseRoute[] = [];
 
   dataSource.collections.forEach(collection => {
@@ -34,7 +34,11 @@ function getCrud(dataSource: DataSource, options: Options, services: Services): 
   return routes;
 }
 
-function getRelatedCrud(dataSource: DataSource, options: Options, services: Services): BaseRoute[] {
+function getRelatedRoutes(
+  dataSource: DataSource,
+  options: Options,
+  services: Services,
+): BaseRoute[] {
   const routes: BaseRoute[] = [];
 
   dataSource.collections.forEach(collection => {
@@ -60,8 +64,8 @@ export default function makeRoutes(
   services: Services,
 ): BaseRoute[] {
   return [
-    ...getRoot(options, services),
-    ...dataSources.map(dataSource => getCrud(dataSource, options, services)).flat(),
-    ...dataSources.map(dataSource => getRelatedCrud(dataSource, options, services)).flat(),
+    ...getRootRoutes(options, services),
+    ...dataSources.map(dataSource => getCrudRoutes(dataSource, options, services)).flat(),
+    ...dataSources.map(dataSource => getRelatedRoutes(dataSource, options, services)).flat(),
   ];
 }
