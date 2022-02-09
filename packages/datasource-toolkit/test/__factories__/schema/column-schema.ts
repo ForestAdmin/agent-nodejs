@@ -8,6 +8,7 @@ export class ColumnSchemaFactory extends Factory<ColumnSchema> {
       isPrimaryKey: true,
       type: FieldTypes.Column,
       columnType: PrimitiveTypes.Uuid,
+      filterOperators: new Set([Operator.Equal, Operator.In]),
     });
   }
 }

@@ -47,18 +47,23 @@ export default class DeleteRoute extends CollectionRoute {
     ids: CompositeId[],
     isRemoveAllRecords = false,
   ): Promise<void> {
-    const condition = ConditionTreeFactory.matchIds(this.collection.schema, ids);
     const filter = new Filter({
-      conditionTree: ConditionTreeFactory.intersect(
-        isRemoveAllRecords ? condition.inverse() : condition,
-        QueryStringParser.parseConditionTree(this.collection, context),
-      ),
+      conditionTree: QueryStringParser.parseConditionTree(this.collection, context),
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
     });
 
     try {
-      await this.collection.delete(filter);
+      const condition = ConditionTreeFactory.matchIds(this.collection.schema, ids);
+
+      await this.collection.delete(
+        filter.override({
+          conditionTree: ConditionTreeFactory.intersect(
+            filter.conditionTree,
+            isRemoveAllRecords ? condition.inverse() : condition,
+          ),
+        }),
+      );
 
       context.response.status = HttpCode.NoContent;
     } catch {

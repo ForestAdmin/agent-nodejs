@@ -1,7 +1,7 @@
 import RecordUtils from '../../../utils/record';
 import SchemaUtils from '../../../utils/schema';
 import { CompositeId, RecordData } from '../../record';
-import { CollectionSchema } from '../../schema';
+import { CollectionSchema, ColumnSchema } from '../../schema';
 import ConditionTree from './nodes/base';
 import ConditionTreeBranch, { Aggregator, BranchComponents } from './nodes/branch';
 import ConditionTreeLeaf, { LeafComponents, Operator } from './nodes/leaf';
@@ -17,7 +17,21 @@ export default class ConditionTreeFactory {
   }
 
   static matchIds(schema: CollectionSchema, ids: CompositeId[]): ConditionTree {
-    return ConditionTreeFactory.matchFields(SchemaUtils.getPrimaryKeys(schema), ids);
+    const primaryKeyNames = SchemaUtils.getPrimaryKeys(schema);
+
+    if (primaryKeyNames.length === 0) {
+      throw new Error('Collection must have at least one primary key');
+    }
+
+    for (const name of primaryKeyNames) {
+      const operators = (schema.fields[name] as ColumnSchema).filterOperators;
+
+      if (!operators.has(Operator.Equal) || !operators.has(Operator.In)) {
+        throw new Error(`Field '${name}' must support operators: ['equal', 'in']`);
+      }
+    }
+
+    return ConditionTreeFactory.matchFields(primaryKeyNames, ids);
   }
 
   static union(...trees: ConditionTree[]): ConditionTree {
