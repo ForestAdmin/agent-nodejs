@@ -29,9 +29,8 @@ export default class LiveCollection extends SequelizeCollection {
       dataSource,
       // Make Sequelize believe model was previously defined to use it in Collection.
       // Only if not defined previously at DataSource level.
-      (sequelize.models[name] ||
-        (schema && sequelize.define(name, CollectionSchemaConverter.convert(schema)))) &&
-        sequelize,
+      sequelize.model(name) ||
+        (schema && sequelize.define(name, CollectionSchemaConverter.convert(schema))),
     );
 
     if (schema?.searchable) this.enableSearch();
