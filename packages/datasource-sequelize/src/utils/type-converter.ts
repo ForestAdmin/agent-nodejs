@@ -184,6 +184,16 @@ export default class TypeConverter {
           Operator.NotEqual,
           Operator.Present,
         ]);
+      case 'JSON':
+      case 'JSONB':
+        return new Set<Operator>([
+          Operator.Blank,
+          Operator.Equal,
+          Operator.Missing,
+          Operator.NotEqual,
+          Operator.Present,
+        ]);
+      // Unsupported types.
       case 'BLOB':
       case 'CIDR':
       case 'GEOGRAPHY':
@@ -194,16 +204,6 @@ export default class TypeConverter {
       case 'RANGE':
       case 'TSVECTOR':
       case 'VIRTUAL':
-        return new Set<Operator>([]);
-      case 'JSON':
-      case 'JSONB':
-        return new Set<Operator>([
-          Operator.Blank,
-          Operator.Equal,
-          Operator.Missing,
-          Operator.NotEqual,
-          Operator.Present,
-        ]);
       default:
         return new Set<Operator>();
     }
