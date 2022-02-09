@@ -18,6 +18,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import LiveCollection from '../src/collection';
+// eslint-disable-next-line max-len
+import CollectionAttributesConverter from '../src/utils/collection-schema-to-model-attributes-converter';
 
 const compositeKeyCollectionSchema: CollectionSchema = {
   actions: {},
@@ -75,10 +77,13 @@ const liveCollectionSchema: CollectionSchema = {
 
 const instanciateCollection = schema => {
   const dataSource = Symbol('datasource') as unknown as DataSource;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+  const model = sequelize.define('__name__', CollectionAttributesConverter.convert(schema));
 
   return {
-    liveCollection: new LiveCollection('__name__', dataSource, sequelize, schema),
+    liveCollection: new LiveCollection('__name__', dataSource, model, schema),
+    model,
     sequelize,
   };
 };
