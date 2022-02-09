@@ -33,7 +33,11 @@ const prepareDataSource = async (): Promise<SequelizeDataSource> => {
   }
 
   const dataSource = new SequelizeDataSource(sequelize);
-  const exampleCollection = new SequelizeCollection('example', dataSource, sequelize);
+  const exampleCollection = new SequelizeCollection(
+    'example',
+    dataSource,
+    sequelize.model('example'),
+  );
 
   dataSource.addCollection(exampleCollection);
 
