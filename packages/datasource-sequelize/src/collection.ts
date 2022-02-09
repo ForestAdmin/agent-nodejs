@@ -1,5 +1,7 @@
 import {
+  col as Col,
   FindAttributeOptions,
+  fn as Fn,
   GroupOption,
   ModelDefined,
   OrderItem,
@@ -27,14 +29,13 @@ export default class SequelizeCollection extends BaseCollection {
   protected model: ModelDefined<any, any> = null;
   protected sequelize: Sequelize = null;
 
-  constructor(name: string, datasource: DataSource, sequelize: Sequelize) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(name: string, datasource: DataSource, model: ModelDefined<any, any>) {
     super(name, datasource);
 
-    this.sequelize = sequelize;
-    this.model = sequelize?.models?.[name];
+    if (!model) throw new Error('Invalid (null) model instance.');
 
-    if (!sequelize) throw new Error('Invalid (null) Sequelize instance.');
-    if (!this.model) throw new Error(`Could not get model for "${name}".`);
+    this.model = model;
 
     const modelSchema = ModelConverter.convert(this.model);
 
@@ -88,16 +89,14 @@ export default class SequelizeCollection extends BaseCollection {
     const field = aggregation.field ?? '*';
     const aggregateFieldName = '__aggregate__';
 
-    const attributes: FindAttributeOptions = [
-      [this.sequelize.fn(operation, this.sequelize.col(field)), aggregateFieldName],
-    ];
+    const attributes: FindAttributeOptions = [[Fn(operation, Col(field)), aggregateFieldName]];
 
     if (aggregation.field) attributes.push(field);
 
     const groups: GroupOption = aggregation.groups?.map(group => {
       if (group.operation) {
         // TODO: Ensure operation names are the same on all DB engines.
-        return this.sequelize.fn(group.operation?.toUpperCase(), this.sequelize.col(group.field));
+        return Fn(group.operation?.toUpperCase(), Col(group.field));
       }
 
       return group.field;
