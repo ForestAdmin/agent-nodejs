@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import { ModelDefined } from 'sequelize';
 
 import {
   AggregateResult,
@@ -13,25 +13,17 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { SequelizeCollection } from '@forestadmin/datasource-sequelize';
 
-import CollectionSchemaConverter from './utils/collection-schema-to-model-attributes-converter';
-
 export default class LiveCollection extends SequelizeCollection {
   private synched = false;
 
   constructor(
     name: string,
     dataSource: DataSource,
-    sequelize: Sequelize,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    model: ModelDefined<any, any>,
     schema?: CollectionSchema,
   ) {
-    super(
-      name,
-      dataSource,
-      // Make Sequelize believe model was previously defined to use it in Collection.
-      // Only if not defined previously at DataSource level.
-      sequelize.model(name) ||
-        (schema && sequelize.define(name, CollectionSchemaConverter.convert(schema))),
-    );
+    super(name, dataSource, model);
 
     if (schema?.searchable) this.enableSearch();
   }
