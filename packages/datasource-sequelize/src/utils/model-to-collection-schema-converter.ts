@@ -17,8 +17,12 @@ import TypeConverter from './type-converter';
 export default class ModelToCollectionSchemaConverter {
   // FIXME: Handle relations.
   private static convertAttribute(attribute: ModelAttributeColumnOptions): FieldSchema {
+    const sequelizeColumnType = attribute.type as AbstractDataTypeConstructor;
+    const columnType = TypeConverter.fromDataType(sequelizeColumnType);
+    const filterOperators = TypeConverter.operatorsForDataType(sequelizeColumnType);
     const column: ColumnSchema = {
-      columnType: TypeConverter.fromDataType(attribute.type as AbstractDataTypeConstructor),
+      columnType,
+      filterOperators,
       type: FieldTypes.Column,
     };
 
