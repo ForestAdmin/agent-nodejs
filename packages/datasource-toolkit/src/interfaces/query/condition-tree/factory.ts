@@ -26,7 +26,7 @@ export default class ConditionTreeFactory {
     for (const name of primaryKeyNames) {
       const operators = (schema.fields[name] as ColumnSchema).filterOperators;
 
-      if (!operators.has(Operator.Equal) || !operators.has(Operator.In)) {
+      if (!operators?.has(Operator.Equal) || !operators?.has(Operator.In)) {
         throw new Error(`Field '${name}' must support operators: ['equal', 'in']`);
       }
     }

@@ -71,6 +71,39 @@ describe('ConditionTree', () => {
     });
 
     describe('matchRecords / matchIds', () => {
+      describe('with a collection with no pk', () => {
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              col1: factories.columnSchema.build({}),
+            },
+          }),
+        });
+
+        test('should raise error', () => {
+          const fn = () => ConditionTreeFactory.matchIds(collection.schema, [[]]);
+          expect(fn).toThrow('Collection must have at least one primary key');
+        });
+      });
+
+      describe('with a collection which does not support equal and in', () => {
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              col1: factories.columnSchema.isPrimaryKey().build({
+                filterOperators: null,
+              }),
+            },
+          }),
+        });
+
+        test('should raise error', () => {
+          const fn = () => ConditionTreeFactory.matchRecords(collection.schema, [{ col1: 1 }]);
+
+          expect(fn).toThrow("Field 'col1' must support operators: ['equal', 'in']");
+        });
+      });
+
       describe('with a simple pk', () => {
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
@@ -93,6 +126,12 @@ describe('ConditionTree', () => {
           ]);
 
           expect(condition).toEqual({ field: 'col1', operator: Operator.In, value: [1, 2] });
+        });
+
+        test('should generate matchNone', () => {
+          expect(ConditionTreeFactory.matchIds(collection.schema, [])).toBe(
+            ConditionTreeFactory.MatchNone,
+          );
         });
       });
 
@@ -166,6 +205,49 @@ describe('ConditionTree', () => {
             ],
           });
         });
+      });
+    });
+
+    describe('fromJson', () => {
+      test('should crash when calling with badly formatted json', () => {
+        const fn = () => ConditionTreeFactory.fromJson('this is not json');
+        expect(fn).toThrow('Failed to instanciate condition tree from json');
+      });
+
+      test('should work with a simple case', () => {
+        const tree = ConditionTreeFactory.fromJson({
+          field: 'field',
+          operator: 'equal',
+          value: 'something',
+        });
+
+        expect(tree).toStrictEqual(new ConditionTreeLeaf('field', Operator.Equal, 'something'));
+      });
+
+      test('should remove useless aggregators from the frontend', () => {
+        const tree = ConditionTreeFactory.fromJson({
+          aggregator: 'and',
+          conditions: [{ field: 'field', operator: 'equal', value: 'something' }],
+        });
+
+        expect(tree).toStrictEqual(new ConditionTreeLeaf('field', Operator.Equal, 'something'));
+      });
+
+      test('should work with an aggregator', () => {
+        const tree = ConditionTreeFactory.fromJson({
+          aggregator: 'and',
+          conditions: [
+            { field: 'field', operator: 'equal', value: 'something' },
+            { field: 'field', operator: 'equal', value: 'something' },
+          ],
+        });
+
+        expect(tree).toStrictEqual(
+          new ConditionTreeBranch(Aggregator.And, [
+            new ConditionTreeLeaf('field', Operator.Equal, 'something'),
+            new ConditionTreeLeaf('field', Operator.Equal, 'something'),
+          ]),
+        );
       });
     });
   });
