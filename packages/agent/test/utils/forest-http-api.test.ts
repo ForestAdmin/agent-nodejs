@@ -1,7 +1,12 @@
-import ForestHttpApi from '../../src/services/forest-http-api';
+import ForestHttpApi from '../../src/utils/forest-http-api';
 import * as factories from '../__factories__';
 
 describe('ForestHttpApi', () => {
+  const options = factories.forestAdminHttpDriverOptions.build({
+    forestServerUrl: 'https://api.url',
+    envSecret: 'myEnvSecret',
+  });
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let superagentMock: any;
 
@@ -35,11 +40,7 @@ describe('ForestHttpApi', () => {
           },
         });
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'https://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        const result = await service.getIpWhitelist();
+        const result = await ForestHttpApi.getIpWhitelistConfiguration(options);
 
         expect(result).toStrictEqual({ isFeatureEnabled, ipRules });
       });
@@ -57,11 +58,7 @@ describe('ForestHttpApi', () => {
         },
       });
 
-      const service = new ForestHttpApi({
-        forestServerUrl: 'https://api.url',
-        envSecret: 'myEnvSecret',
-      });
-      await service.getIpWhitelist();
+      await ForestHttpApi.getIpWhitelistConfiguration(options);
 
       expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
       expect(superagentMock.get).toHaveBeenCalledWith(
@@ -85,11 +82,7 @@ describe('ForestHttpApi', () => {
           },
         });
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'https://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        const result = await service.getIpWhitelist();
+        const result = await ForestHttpApi.getIpWhitelistConfiguration(options);
 
         expect(result).toStrictEqual({ isFeatureEnabled, ipRules });
       });
@@ -99,32 +92,25 @@ describe('ForestHttpApi', () => {
       test('should throw an error', async () => {
         superagentMock.set.mockRejectedValue();
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'https://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        await expect(service.getIpWhitelist()).rejects.toThrow(
+        const result = ForestHttpApi.getIpWhitelistConfiguration(options);
+        await expect(result).rejects.toThrow(
           'An error occurred while retrieving your IP whitelist.',
         );
       });
     });
   });
 
-  describe('getOpenIdConfiguration', () => {
+  describe('getOpenIdIssuerMetadata', () => {
     test('should fetch the correct end point with the env secret', async () => {
       superagentMock.set.mockResolvedValue({
         body: {},
       });
 
-      const service = new ForestHttpApi({
-        forestServerUrl: 'http://api.url',
-        envSecret: 'myEnvSecret',
-      });
-      await service.getOpenIdConfiguration();
+      await ForestHttpApi.getOpenIdIssuerMetadata(options);
 
       expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
       expect(superagentMock.get).toHaveBeenCalledWith(
-        'http://api.url/oidc/.well-known/openid-configuration',
+        'https://api.url/oidc/.well-known/openid-configuration',
       );
     });
 
@@ -137,11 +123,7 @@ describe('ForestHttpApi', () => {
           body: openidConfiguration,
         });
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'http://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        const result = await service.getOpenIdConfiguration();
+        const result = await ForestHttpApi.getOpenIdIssuerMetadata(options);
 
         expect(result).toStrictEqual(openidConfiguration);
       });
@@ -153,13 +135,8 @@ describe('ForestHttpApi', () => {
           throw new Error();
         });
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'http://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        await expect(service.getOpenIdConfiguration()).rejects.toThrow(
-          'Failed to fetch openid-configuration',
-        );
+        const result = ForestHttpApi.getOpenIdIssuerMetadata(options);
+        await expect(result).rejects.toThrow('Failed to fetch open-id issuer metadata');
       });
     });
   });
@@ -190,16 +167,12 @@ describe('ForestHttpApi', () => {
       }));
       superagentMock.set = secondSetSpy;
 
-      const service = new ForestHttpApi({
-        forestServerUrl: 'http://api.url',
-        envSecret: 'myEnvSecret',
-      });
-      await service.getUserAuthorizationInformations('1', 'tokenset');
+      await ForestHttpApi.getUserInformation(options, '1', 'tokenset');
 
       expect(firstSetSpy).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
       expect(secondSetSpy).toHaveBeenCalledWith('forest-token', 'tokenset');
       expect(superagentMock.get).toHaveBeenCalledWith(
-        'http://api.url/liana/v2/renderings/1/authorization',
+        'https://api.url/liana/v2/renderings/1/authorization',
       );
     });
 
@@ -207,11 +180,7 @@ describe('ForestHttpApi', () => {
       test('should return the openid configuration', async () => {
         superagentMock.set.mockReturnValue({ ...body, set: () => body });
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'http://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        const result = await service.getUserAuthorizationInformations('1', 'tokenset');
+        const result = await ForestHttpApi.getUserInformation(options, '1', 'tokenset');
 
         expect(result).toStrictEqual({
           id: user.id,
@@ -234,13 +203,8 @@ describe('ForestHttpApi', () => {
           },
         }));
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'http://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        await expect(service.getUserAuthorizationInformations('1', 'tokenset')).rejects.toThrow(
-          'Failed to retrieve authorization informations.',
-        );
+        const result = ForestHttpApi.getUserInformation(options, '1', 'tokenset');
+        await expect(result).rejects.toThrow('Failed to retrieve authorization informations.');
       });
     });
   });
@@ -249,26 +213,18 @@ describe('ForestHttpApi', () => {
     test('should fetch the correct end point with the env secret', async () => {
       superagentMock.set.mockResolvedValue({ body: {} });
 
-      const service = new ForestHttpApi({
-        forestServerUrl: 'http://api.url',
-        envSecret: 'myEnvSecret',
-      });
-      await service.hasSchema('123456abcdef');
+      await ForestHttpApi.hasSchema(options, '123456abcdef');
 
       expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
       expect(superagentMock.send).toHaveBeenCalledWith({ schemaFileHash: '123456abcdef' });
-      expect(superagentMock.post).toHaveBeenCalledWith('http://api.url/forest/apimaps/hashcheck');
+      expect(superagentMock.post).toHaveBeenCalledWith('https://api.url/forest/apimaps/hashcheck');
     });
 
     describe('when the call succeeds', () => {
       test('should return the correct value', async () => {
         superagentMock.set.mockResolvedValue({ body: { sendSchema: true } });
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'http://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        const result = await service.hasSchema('myHash');
+        const result = await ForestHttpApi.hasSchema(options, 'myHash');
 
         expect(result).toStrictEqual(false);
       });
@@ -278,11 +234,7 @@ describe('ForestHttpApi', () => {
       test('should throw an error', async () => {
         superagentMock.set.mockRejectedValue(new Error());
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'http://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        await expect(service.hasSchema('myHash')).rejects.toThrow();
+        await expect(ForestHttpApi.hasSchema(options, 'myHash')).rejects.toThrow();
       });
     });
   });
@@ -291,26 +243,18 @@ describe('ForestHttpApi', () => {
     test('should fetch the correct end point with the env secret', async () => {
       superagentMock.set.mockResolvedValue({ body: {} });
 
-      const service = new ForestHttpApi({
-        forestServerUrl: 'http://api.url',
-        envSecret: 'myEnvSecret',
-      });
-      await service.uploadSchema({ meta: { info: 'i am a schema!' } });
+      await ForestHttpApi.uploadSchema(options, { meta: { info: 'i am a schema!' } });
 
       expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
       expect(superagentMock.send).toHaveBeenCalledWith({ meta: { info: 'i am a schema!' } });
-      expect(superagentMock.post).toHaveBeenCalledWith('http://api.url/forest/apimaps');
+      expect(superagentMock.post).toHaveBeenCalledWith('https://api.url/forest/apimaps');
     });
 
     describe('when the call succeeds', () => {
       test('should neither crash and nor print a warning', async () => {
         superagentMock.set.mockResolvedValue({ body: {} });
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'http://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        await expect(service.uploadSchema({})).resolves.not.toThrowError();
+        await expect(ForestHttpApi.uploadSchema(options, {})).resolves.not.toThrowError();
       });
     });
 
@@ -318,21 +262,13 @@ describe('ForestHttpApi', () => {
       test('should throw an error if an error with no status code is dispatched', async () => {
         superagentMock.set.mockRejectedValue({ response: { status: 0 } });
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'http://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        await expect(service.uploadSchema({})).rejects.toThrow(/Are you online/);
+        await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(/Are you online/);
       });
 
       test('should throw an error if an error with 404 status is dispatched', async () => {
         superagentMock.set.mockRejectedValue({ response: { status: 404 } });
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'http://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        await expect(service.uploadSchema({})).rejects.toThrow(
+        await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(
           /Cannot find the project related to the envSecret you configured/,
         );
       });
@@ -340,11 +276,7 @@ describe('ForestHttpApi', () => {
       test('should throw an error if an error with 503 status is dispatched', async () => {
         superagentMock.set.mockRejectedValue({ response: { status: 503 } });
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'http://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        await expect(service.uploadSchema({})).rejects.toThrow(
+        await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(
           /Forest is in maintenance for a few minutes/,
         );
       });
@@ -352,11 +284,7 @@ describe('ForestHttpApi', () => {
       test('should throw an error if a unexpected error is dispatched', async () => {
         superagentMock.set.mockRejectedValue(new Error());
 
-        const service = new ForestHttpApi({
-          forestServerUrl: 'http://api.url',
-          envSecret: 'myEnvSecret',
-        });
-        await expect(service.uploadSchema({})).rejects.toThrow(
+        await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(
           /Please contact support@forestadmin.com/,
         );
       });

@@ -3,11 +3,10 @@ import IpUtil from 'forest-ip-utils';
 import { Context, Next } from 'koa';
 import BaseRoute from '../base-route';
 import { HttpCode } from '../../types';
-import { IpRule } from '../../services/forest-http-api';
+import ForestHttpApi, { IpWhitelistConfiguration } from '../../utils/forest-http-api';
 
 export default class IpWhitelist extends BaseRoute {
-  private isFeatureEnabled: boolean;
-  private ipRules: Array<IpRule>;
+  private configuration: IpWhitelistConfiguration;
 
   override setupAuthentication(router: Router): void {
     router.use(this.checkIp.bind(this));
@@ -15,20 +14,14 @@ export default class IpWhitelist extends BaseRoute {
 
   /** Load whitelist */
   override async bootstrap(): Promise<void> {
-    const { isFeatureEnabled, ipRules } = await this.services.forestHTTPApi.getIpWhitelist();
-
-    this.isFeatureEnabled = isFeatureEnabled;
-
-    if (this.isFeatureEnabled) {
-      this.ipRules = ipRules;
-    }
+    this.configuration = await ForestHttpApi.getIpWhitelistConfiguration(this.options);
   }
 
   async checkIp(context: Context, next: Next): Promise<boolean> {
-    if (this.isFeatureEnabled) {
+    if (this.configuration.isFeatureEnabled) {
+      const { ipRules } = this.configuration;
       const currentIp = context.request.headers['x-forwarded-for'] ?? context.request.ip;
-
-      const allowed = this.ipRules.some(ipRule => IpUtil.isIpMatchesRule(currentIp, ipRule));
+      const allowed = ipRules.some(ipRule => IpUtil.isIpMatchesRule(currentIp, ipRule));
 
       if (!allowed) {
         return context.throw(HttpCode.Forbidden, `IP address rejected (${currentIp})`);

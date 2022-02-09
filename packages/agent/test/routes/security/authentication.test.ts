@@ -1,30 +1,34 @@
-import openidClient, { Issuer } from 'openid-client';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import * as factories from '../../__factories__';
+import openidClient, { Issuer } from 'openid-client';
 import Authentication from '../../../src/routes/security/authentication';
 import { HttpCode } from '../../../src/types';
+import ForestHttpApi from '../../../src/utils/forest-http-api';
+import * as factories from '../../__factories__';
+
+jest.mock('openid-client', () => ({ Issuer: jest.fn() }));
+jest.mock('../../../src/utils/forest-http-api', () => ({
+  getOpenIdIssuerMetadata: jest.fn(),
+  getUserInformation: jest.fn(),
+}));
 
 describe('Authentication', () => {
   const services = factories.forestAdminHttpDriverServices.build();
   const router = factories.router.mockAllMethods().build();
   const options = factories.forestAdminHttpDriverOptions.build();
 
-  jest.mock('openid-client', () => ({ Issuer: {} }));
-
-  const createAuthenticationRoutesUsingIssuerClientMock = async (
-    mock: Record<string, jest.Mock>,
-  ) => {
+  async function createAuthenticationRoutesUsingIssuerClientMock(mock: Record<string, jest.Mock>) {
     const authentication = new Authentication(services, options);
-    openidClient.Issuer = jest.fn().mockImplementation(() => ({
+
+    (openidClient.Issuer as unknown as jest.Mock).mockImplementation(() => ({
       Client: {
         register: jest.fn().mockReturnValue(mock),
       },
-    })) as unknown as typeof Issuer;
+    }));
 
     await authentication.bootstrap();
 
     return authentication;
-  };
+  }
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -33,9 +37,8 @@ describe('Authentication', () => {
   describe('bootstrap', () => {
     describe('when the openid configuration cannot be fetched', () => {
       test('should throw an error', async () => {
-        services.forestHTTPApi.getOpenIdConfiguration = jest.fn().mockImplementation(() => {
-          throw new Error('Failed');
-        });
+        (ForestHttpApi.getOpenIdIssuerMetadata as jest.Mock).mockRejectedValue(new Error('Failed'));
+
         const authentication = new Authentication(services, options);
 
         await expect(authentication.bootstrap()).rejects.toThrow(
@@ -46,9 +49,9 @@ describe('Authentication', () => {
 
     describe('without a client id', () => {
       beforeEach(() => {
-        services.forestHTTPApi.getOpenIdConfiguration = jest.fn().mockImplementation(() => ({
+        (ForestHttpApi.getOpenIdIssuerMetadata as jest.Mock).mockResolvedValue({
           registration_endpoint: 'http://fake-registration-endpoint',
-        }));
+        });
       });
 
       describe('when the openid client cannot be created', () => {
@@ -90,9 +93,9 @@ describe('Authentication', () => {
 
     describe('with a client id', () => {
       beforeEach(() => {
-        services.forestHTTPApi.getOpenIdConfiguration = jest.fn().mockImplementation(() => ({
+        (ForestHttpApi.getOpenIdIssuerMetadata as jest.Mock).mockResolvedValue({
           registration_endpoint: 'http://fake-registration-endpoint',
-        }));
+        });
       });
 
       describe('when the openid client cannot be created', () => {
@@ -191,7 +194,7 @@ describe('Authentication', () => {
           team: 'admin',
           renderingId: '1',
         };
-        services.forestHTTPApi.getUserAuthorizationInformations = jest.fn().mockReturnValue(user);
+        (ForestHttpApi.getUserInformation as jest.Mock).mockReturnValue(user);
         const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
           callback: jest.fn().mockReturnValue({}),
         });
@@ -228,11 +231,8 @@ describe('Authentication', () => {
 
       describe('when the fetch of user informations failed', () => {
         it('should respond with an error', async () => {
-          services.forestHTTPApi.getUserAuthorizationInformations = jest
-            .fn()
-            .mockImplementation(() => {
-              throw new Error('Failed !');
-            });
+          (ForestHttpApi.getUserInformation as jest.Mock).mockRejectedValue(new Error('Failed !'));
+
           const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
             callback: jest.fn().mockReturnValue({}),
           });
@@ -251,9 +251,8 @@ describe('Authentication', () => {
 
       describe('when the provided user does not allow to sign a token', () => {
         it('should respond with an error', async () => {
-          services.forestHTTPApi.getUserAuthorizationInformations = jest
-            .fn()
-            .mockResolvedValue(null);
+          (ForestHttpApi.getUserInformation as jest.Mock) = jest.fn().mockResolvedValue(null);
+
           const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
             callback: jest.fn().mockReturnValue({}),
           });

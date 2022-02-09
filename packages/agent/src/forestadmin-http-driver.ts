@@ -9,6 +9,7 @@ import { CollectionRoutesCtor, RootRoutesCtor } from './routes';
 import BaseRoute from './routes/base-route';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverOptionsWithDefaults } from './types';
+import ForestHttpApi from './utils/forest-http-api';
 import SchemaEmitter from './utils/forest-schema/emitter';
 import OptionsUtils from './utils/http-driver-options';
 
@@ -66,10 +67,10 @@ export default class ForestAdminHttpDriver {
 
     // Send schema to forestadmin-server (if relevant).
     const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSources);
-    const schemaIsKnown = await this.services.forestHTTPApi.hasSchema(schema.meta.schemaFileHash);
+    const schemaIsKnown = await ForestHttpApi.hasSchema(this.options, schema.meta.schemaFileHash);
 
     if (!schemaIsKnown) {
-      await this.services.forestHTTPApi.uploadSchema(schema);
+      await ForestHttpApi.uploadSchema(this.options, schema);
     }
   }
 

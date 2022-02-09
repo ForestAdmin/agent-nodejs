@@ -1,52 +1,41 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
-
 import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
 import { CollectionRoutesCtor, RootRoutesCtor } from '../src/routes';
 import CountRoute from '../src/routes/access/count';
 import HealthCheck from '../src/routes/healthcheck';
-import { ForestAdminHttpDriverOptions } from '../src/types';
+import { ForestAdminHttpDriverOptionsWithDefaults } from '../src/types';
+import ForestHttpApi from '../src/utils/forest-http-api';
+import * as factories from './__factories__';
 
-import {
-  collectionSchema as collectionSchemaBuilder,
-  columnSchema as columnSchemaBuilder,
-  dataSource as dataSourceBuilder,
-  forestAdminHttpDriverOptions as optionsBuilder,
-  forestAdminHttpDriverServices as servicesBuilder,
-} from './__factories__';
-
-// Mock routes
+// Mock dependencies
 jest.mock('../src/routes', () => ({ RootRoutesCtor: [], CollectionRoutesCtor: [] }));
-
 CollectionRoutesCtor.push(CountRoute);
 RootRoutesCtor.push(HealthCheck);
 
-// Mock services
-const hasSchema = jest.fn();
-const uploadSchema = jest.fn();
-jest.mock(
-  '../src/services',
-  () => () => servicesBuilder.build({ forestHTTPApi: { hasSchema, uploadSchema } }),
-);
+jest.mock('../src/utils/forest-http-api', () => ({
+  hasSchema: jest.fn(),
+  uploadSchema: jest.fn(),
+}));
 
 describe('ForestAdminHttpDriver', () => {
   let dataSource: DataSource;
-  let options: ForestAdminHttpDriverOptions;
+  let options: ForestAdminHttpDriverOptionsWithDefaults;
 
   beforeEach(() => {
-    dataSource = dataSourceBuilder.buildWithCollection({
+    dataSource = factories.dataSource.buildWithCollection({
       name: 'person',
-      schema: collectionSchemaBuilder.build({
+      schema: factories.collectionSchema.build({
         fields: {
-          birthdate: columnSchemaBuilder.isPrimaryKey().build(),
-          firstName: columnSchemaBuilder.build(),
-          lastName: columnSchemaBuilder.isPrimaryKey().build(),
+          birthdate: factories.columnSchema.isPrimaryKey().build(),
+          firstName: factories.columnSchema.build(),
+          lastName: factories.columnSchema.isPrimaryKey().build(),
         },
       }),
     });
-    options = optionsBuilder.build();
+    options = factories.forestAdminHttpDriverOptions.build();
 
-    hasSchema.mockReset();
-    uploadSchema.mockReset();
+    (ForestHttpApi.hasSchema as jest.Mock).mockReset();
+    (ForestHttpApi.uploadSchema as jest.Mock).mockReset();
   });
 
   test('should allow access to the request handler before being started', () => {
@@ -61,20 +50,20 @@ describe('ForestAdminHttpDriver', () => {
       const httpDriver = new ForestAdminHttpDriver(dataSource, options);
       await httpDriver.start();
 
-      expect(hasSchema).toHaveBeenCalled();
+      expect(ForestHttpApi.hasSchema).toHaveBeenCalled();
     });
 
     it('shoud start with multiple databases', async () => {
       const httpDriver = new ForestAdminHttpDriver([dataSource, dataSource], options);
       await httpDriver.start();
 
-      expect(hasSchema).toHaveBeenCalled();
+      expect(ForestHttpApi.hasSchema).toHaveBeenCalled();
     });
   });
 
   describe('if forestadmin-server already has the schema', () => {
     beforeEach(() => {
-      hasSchema.mockResolvedValue(true);
+      (ForestHttpApi.hasSchema as jest.Mock).mockResolvedValue(true);
     });
 
     test('should not allow to start multiple times', async () => {
@@ -100,22 +89,22 @@ describe('ForestAdminHttpDriver', () => {
       const httpDriver = new ForestAdminHttpDriver(dataSource, options);
       await httpDriver.start();
 
-      expect(hasSchema).toHaveBeenCalled();
-      expect(uploadSchema).not.toHaveBeenCalled();
+      expect(ForestHttpApi.hasSchema).toHaveBeenCalled();
+      expect(ForestHttpApi.uploadSchema).not.toHaveBeenCalled();
     });
   });
 
   describe('if forestadmin-server does not have the schema', () => {
     beforeEach(() => {
-      hasSchema.mockResolvedValue(false);
+      (ForestHttpApi.hasSchema as jest.Mock).mockResolvedValue(false);
     });
 
     test('start() should upload the schema', async () => {
       const httpDriver = new ForestAdminHttpDriver(dataSource, options);
       await httpDriver.start();
 
-      expect(hasSchema).toHaveBeenCalled();
-      expect(uploadSchema).toHaveBeenCalled();
+      expect(ForestHttpApi.hasSchema).toHaveBeenCalled();
+      expect(ForestHttpApi.uploadSchema).toHaveBeenCalled();
     });
   });
 });
