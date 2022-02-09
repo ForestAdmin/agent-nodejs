@@ -1,6 +1,6 @@
 import { Factory } from 'fishery';
 import { ColumnSchema, FieldTypes, PrimitiveTypes } from '../../../src/interfaces/schema';
-import { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
+import { Operator } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 
 export class ColumnSchemaFactory extends Factory<ColumnSchema> {
   isPrimaryKey(): ColumnSchemaFactory {
@@ -8,6 +8,7 @@ export class ColumnSchemaFactory extends Factory<ColumnSchema> {
       isPrimaryKey: true,
       type: FieldTypes.Column,
       columnType: PrimitiveTypes.Uuid,
+      filterOperators: new Set([Operator.Equal, Operator.In]),
     });
   }
 }

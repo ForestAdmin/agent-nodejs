@@ -10,7 +10,7 @@ import {
   RelationSchema,
 } from '../../interfaces/schema';
 import CollectionUtils from '../../utils/collection';
-import ConditionTreeUtils from '../../utils/condition-tree';
+import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import RecordUtils from '../../utils/record';
 import FieldValidator from '../../validation/field';
 import CollectionDecorator from '../collection-decorator';
@@ -52,7 +52,7 @@ export default class SortEmulate extends CollectionDecorator {
     if (childFilter.page) referenceRecords = childFilter.page.apply(referenceRecords);
 
     // We now have the information we need to sort by the field
-    childFilter.conditionTree = ConditionTreeUtils.matchRecords(this.schema, referenceRecords);
+    childFilter.conditionTree = ConditionTreeFactory.matchRecords(this.schema, referenceRecords);
     childFilter.sort = null;
 
     let records: RecordData[];

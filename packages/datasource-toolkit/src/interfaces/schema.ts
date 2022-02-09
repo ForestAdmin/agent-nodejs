@@ -1,4 +1,4 @@
-import { Operator } from './query/condition-tree/leaf';
+import { Operator } from './query/condition-tree/nodes/leaf';
 
 export enum ActionSchemaScope {
   Single = 'single',

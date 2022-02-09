@@ -1,5 +1,8 @@
 import {
   Collection,
+  ConditionTree,
+  ConditionTreeFactory,
+  ConditionTreeValidator,
   FieldTypes,
   Page,
   Projection,
@@ -15,6 +18,21 @@ const DEFAULT_ITEMS_PER_PAGE = 15;
 const DEFAULT_PAGE_TO_SKIP = 1;
 
 export default class QueryStringParser {
+  static parseConditionTree(collection: Collection, context: Context): ConditionTree {
+    try {
+      const string = context.request.query?.filters || context.request.body?.filters;
+      if (!string) return null;
+
+      const json = JSON.parse(string);
+      const conditionTree = ConditionTreeFactory.fromPlainObject(json);
+      ConditionTreeValidator.validate(conditionTree, collection);
+
+      return conditionTree;
+    } catch (e) {
+      context.throw(HttpCode.BadRequest, `Invalid filters (${e.message})`);
+    }
+  }
+
   static parseProjection(collection: Collection, context: Context): Projection {
     try {
       let rootFields = context.request.query[`fields[${collection.name}]`];

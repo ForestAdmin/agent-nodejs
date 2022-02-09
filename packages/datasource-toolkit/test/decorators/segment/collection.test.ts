@@ -1,6 +1,6 @@
 import SegmentCollectionDecorator from '../../../src/decorators/segment/collection';
-import ConditionTree from '../../../src/interfaces/query/condition-tree/base';
-import { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
+import ConditionTree from '../../../src/interfaces/query/condition-tree/nodes/base';
+import { Operator } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import * as factories from '../../__factories__';
 
 describe('SegmentCollectionDecorator', () => {

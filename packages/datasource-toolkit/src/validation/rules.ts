@@ -1,4 +1,4 @@
-import { Operator } from '../interfaces/query/condition-tree/leaf';
+import { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
 import { PrimitiveTypes } from '../interfaces/schema';
 import ValidationTypes from './types';
 

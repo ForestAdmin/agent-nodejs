@@ -1,11 +1,13 @@
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import OperatorEmulationDecorator from '../../../src/decorators/operators-emulate/collection';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
-import ConditionTreeLeaf, { Operator } from '../../../src/interfaces/query/condition-tree/leaf';
+import ConditionTreeFactory from '../../../src/interfaces/query/condition-tree/factory';
+import ConditionTreeLeaf, {
+  Operator,
+} from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Projection from '../../../src/interfaces/query/projection';
 import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
-import ConditionTreeUtils from '../../../src/utils/condition-tree';
 import * as factories from '../../__factories__';
 
 describe('OperatorsEmulate', () => {
@@ -128,8 +130,7 @@ describe('OperatorsEmulate', () => {
         newBooks.implementOperator(
           'title',
           Operator.StartsWith,
-          async value =>
-            new ConditionTreeLeaf({ field: 'title', operator: Operator.Like, value: `${value}%` }),
+          async value => new ConditionTreeLeaf('title', Operator.Like, `${value}%`),
         );
       });
 
@@ -155,19 +156,13 @@ describe('OperatorsEmulate', () => {
         newBooks.implementOperator(
           'title',
           Operator.StartsWith,
-          async value =>
-            new ConditionTreeLeaf({ field: 'title', operator: Operator.Like, value: `${value}%` }),
+          async value => new ConditionTreeLeaf('title', Operator.Like, `${value}%`),
         );
 
         newBooks.implementOperator(
           'title',
           Operator.Like,
-          async value =>
-            new ConditionTreeLeaf({
-              field: 'title',
-              operator: Operator.StartsWith,
-              value: `${value}%`,
-            }),
+          async value => new ConditionTreeLeaf('title', Operator.StartsWith, `${value}%`),
         );
       });
 
@@ -259,13 +254,9 @@ describe('OperatorsEmulate', () => {
 
         // Define 'Equal(x)' to be 'Contains(x) && ShorterThan(x.length + 1)'
         newBooks.implementOperator('title', Operator.Equal, async value =>
-          ConditionTreeUtils.intersect(
-            new ConditionTreeLeaf({ field: 'title', operator: Operator.Contains, value }),
-            new ConditionTreeLeaf({
-              field: 'title',
-              operator: Operator.ShorterThan,
-              value: (value as string).length + 1,
-            }),
+          ConditionTreeFactory.intersect(
+            new ConditionTreeLeaf('title', Operator.Contains, value),
+            new ConditionTreeLeaf('title', Operator.ShorterThan, (value as string).length + 1),
           ),
         );
       });
@@ -281,7 +272,7 @@ describe('OperatorsEmulate', () => {
             ];
 
             // Ensure no forbideen operator is used
-            const conditionTree = filter?.conditionTree ?? ConditionTreeUtils.MatchAll;
+            const conditionTree = filter?.conditionTree ?? ConditionTreeFactory.MatchAll;
             const usingForbiddenOperator = conditionTree.someLeaf(
               ({ field, operator }) =>
                 field !== 'id' &&
@@ -290,16 +281,12 @@ describe('OperatorsEmulate', () => {
 
             expect(usingForbiddenOperator).toBeFalsy();
 
-            return conditionTree.apply(projection.apply(childRecords));
+            return conditionTree.apply(projection.apply(childRecords), books, 'Europe/Paris');
           },
         );
 
         const filter = new PaginatedFilter({
-          conditionTree: new ConditionTreeLeaf({
-            field: 'title',
-            operator: Operator.Equal,
-            value: 'Foundation',
-          }),
+          conditionTree: new ConditionTreeLeaf('title', Operator.Equal, 'Foundation'),
         });
 
         const records = await newBooks.list(filter, new Projection('id', 'title'));

@@ -1,6 +1,6 @@
 import { Collection } from '../interfaces/collection';
-import ConditionTree from '../interfaces/query/condition-tree/base';
-import ConditionTreeLeaf from '../interfaces/query/condition-tree/leaf';
+import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
+import ConditionTreeLeaf from '../interfaces/query/condition-tree/nodes/leaf';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 import CollectionUtils from '../utils/collection';
 import {

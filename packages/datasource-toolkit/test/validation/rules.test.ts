@@ -1,4 +1,4 @@
-import { Operator } from '../../src/interfaces/query/condition-tree/leaf';
+import { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import { PrimitiveTypes } from '../../src/interfaces/schema';
 import {
   MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE,
@@ -6,7 +6,7 @@ import {
   MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE,
 } from '../../src/validation/rules';
 
-describe('ConditionTreeUtils', () => {
+describe('ConditionTreeFactory', () => {
   describe('MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER', () => {
     it.each(Object.values(Operator))(`should implement %s operator`, async operator => {
       expect(MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[operator]).toBeDefined();

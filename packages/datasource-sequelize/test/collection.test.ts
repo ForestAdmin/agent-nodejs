@@ -353,11 +353,7 @@ describe('SequelizeDataSource > Collection', () => {
         operation: AggregationOperation.Count,
       });
       const filter = new Filter({
-        conditionTree: new ConditionTreeLeaf({
-          operator: Operator.Equal,
-          field: 'id',
-          value: 42,
-        }),
+        conditionTree: new ConditionTreeLeaf('id', Operator.Equal, 42),
       });
 
       await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([

@@ -1,16 +1,22 @@
-import ConditionTree from '../../../interfaces/query/condition-tree/base';
-import { Operator } from '../../../interfaces/query/condition-tree/leaf';
-import { PrimitiveTypes } from '../../../interfaces/schema';
-import ConditionTreeUtils from '../../../utils/condition-tree';
-import { Alternative } from '../types';
+import { PrimitiveTypes } from '../../../schema';
+import { Alternative } from '../equivalence';
+import ConditionTreeFactory from '../factory';
+import ConditionTree from '../nodes/base';
+import { Operator } from '../nodes/leaf';
 
-const alternatives: Partial<Record<Operator, Alternative[]>> = {
+export default (): Partial<Record<Operator, Alternative[]>> => ({
   [Operator.Blank]: [
     {
       dependsOn: [Operator.In],
       forTypes: [PrimitiveTypes.String],
       replacer: leaf => leaf.override({ operator: Operator.In, value: [null, ''] }),
     },
+    {
+      dependsOn: [Operator.Missing],
+      replacer: leaf => leaf.override({ operator: Operator.Missing }),
+    },
+  ],
+  [Operator.Missing]: [
     {
       dependsOn: [Operator.Equal],
       replacer: leaf => leaf.override({ operator: Operator.Equal, value: null }),
@@ -37,7 +43,7 @@ const alternatives: Partial<Record<Operator, Alternative[]>> = {
     {
       dependsOn: [Operator.Equal],
       replacer: leaf =>
-        ConditionTreeUtils.union(
+        ConditionTreeFactory.union(
           ...(leaf.value as unknown[]).map<ConditionTree>(item =>
             leaf.override({ operator: Operator.Equal, value: item }),
           ),
@@ -54,13 +60,11 @@ const alternatives: Partial<Record<Operator, Alternative[]>> = {
     {
       dependsOn: [Operator.NotEqual],
       replacer: leaf =>
-        ConditionTreeUtils.intersect(
+        ConditionTreeFactory.intersect(
           ...(leaf.value as unknown[]).map<ConditionTree>(item =>
             leaf.override({ operator: Operator.NotEqual, value: item }),
           ),
         ),
     },
   ],
-};
-
-export default alternatives;
+});

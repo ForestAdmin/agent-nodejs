@@ -42,6 +42,7 @@ describe('ListRoute', () => {
       expect(services.serializer.serialize).toHaveBeenCalled();
       expect(partialCollection.list).toHaveBeenCalledWith(
         {
+          conditionTree: null,
           search: null,
           searchExtended: false,
           segment: null,

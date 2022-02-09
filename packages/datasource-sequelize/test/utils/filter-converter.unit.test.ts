@@ -47,16 +47,8 @@ describe('Utils > FilterConverter', () => {
       describe('with a ConditionTreeBranch node', () => {
         it('should fail when aggregator is empty', () => {
           const conditionTree = new ConditionTreeBranch(null, [
-            new ConditionTreeLeaf({
-              operator: Operator.Equal,
-              field: '__field__',
-              value: '__value__',
-            }),
-            new ConditionTreeLeaf({
-              operator: Operator.Equal,
-              field: '__field__',
-              value: '__value__',
-            }),
+            new ConditionTreeLeaf('__field__', Operator.Equal, '__value__'),
+            new ConditionTreeLeaf('__field__', Operator.Equal, '__value__'),
           ]);
           const filter = new Filter({
             conditionTree,
@@ -80,11 +72,7 @@ describe('Utils > FilterConverter', () => {
 
         it('should fail when condition list has only one condition', () => {
           const conditionTree = new ConditionTreeBranch(Aggregator.And, [
-            new ConditionTreeLeaf({
-              operator: Operator.Blank,
-              field: '__field__',
-              value: '__value__',
-            }),
+            new ConditionTreeLeaf('__field__', Operator.Blank),
           ]);
           const filter = new Filter({
             conditionTree,
@@ -102,16 +90,8 @@ describe('Utils > FilterConverter', () => {
           'should generate a "%s where" Sequelize filter from conditions',
           (message, aggregator, operator) => {
             const conditions = [
-              new ConditionTreeLeaf({
-                operator: Operator.Equal,
-                field: '__field_1__',
-                value: '__value_1__',
-              }),
-              new ConditionTreeLeaf({
-                operator: Operator.Equal,
-                field: '__field_2__',
-                value: '__value_2__',
-              }),
+              new ConditionTreeLeaf('__field_1__', Operator.Equal, '__value_1__'),
+              new ConditionTreeLeaf('__field_2__', Operator.Equal, '__value_2__'),
             ];
             const conditionTree = new ConditionTreeBranch(aggregator, conditions);
             const filter = new Filter({
@@ -156,11 +136,11 @@ describe('Utils > FilterConverter', () => {
         ])(
           'should generate a "where" Sequelize filter from a "%s" ConditionTreeLeaf',
           (operator, value, where) => {
-            const conditionTree = new ConditionTreeLeaf({
-              operator: Operator[operator.split('.')[1]],
-              field: '__field__',
+            const conditionTree = new ConditionTreeLeaf(
+              '__field__',
+              Operator[operator.split('.')[1]],
               value,
-            });
+            );
             const filter = new Filter({
               conditionTree,
             });
@@ -181,11 +161,7 @@ describe('Utils > FilterConverter', () => {
           expect(() =>
             FilterConverter.convertFilterToSequelize(
               new Filter({
-                conditionTree: new ConditionTreeLeaf({
-                  operator: null,
-                  field: '__field__',
-                  value: '__value__',
-                }),
+                conditionTree: new ConditionTreeLeaf('__field__', null, '__value__'),
               }),
             ),
           ).toThrow('Invalid (null) operator.');
@@ -195,11 +171,11 @@ describe('Utils > FilterConverter', () => {
           expect(() =>
             FilterConverter.convertFilterToSequelize(
               new Filter({
-                conditionTree: new ConditionTreeLeaf({
-                  operator: '__invalid__' as Operator,
-                  field: '__field__',
-                  value: '__value__',
-                }),
+                conditionTree: new ConditionTreeLeaf(
+                  '__field__',
+                  '__invalid__' as Operator,
+                  '__value__',
+                ),
               }),
             ),
           ).toThrow('Unsupported operator: "__invalid__".');
@@ -218,15 +194,9 @@ describe('Utils > FilterConverter', () => {
         });
 
         it('should generate a "where" Sequelize filter from a ConditionTreeNot', () => {
-          const condition = new ConditionTreeLeaf({
-            operator: Operator.Equal,
-            field: '__field__',
-            value: '__value__',
-          });
+          const condition = new ConditionTreeLeaf('__field__', Operator.Equal, '__value__');
           const conditionTree = new ConditionTreeNot(condition);
-          const filter = new Filter({
-            conditionTree,
-          });
+          const filter = new Filter({ conditionTree });
 
           expect(FilterConverter.convertFilterToSequelize(filter)).toEqual({
             where: {
@@ -241,14 +211,8 @@ describe('Utils > FilterConverter', () => {
 
     describe('with array operator', () => {
       const makeFilter = (operator, value) => {
-        const conditionTree = new ConditionTreeLeaf({
-          operator,
-          field: '__field__',
-          value,
-        });
-        const filter = new Filter({
-          conditionTree,
-        });
+        const conditionTree = new ConditionTreeLeaf('__field__', operator, value);
+        const filter = new Filter({ conditionTree });
 
         return filter;
       };

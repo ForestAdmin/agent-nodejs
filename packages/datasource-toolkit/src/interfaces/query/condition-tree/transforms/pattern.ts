@@ -1,6 +1,6 @@
-import { Operator } from '../../../interfaces/query/condition-tree/leaf';
-import { PrimitiveTypes } from '../../../interfaces/schema';
-import { Alternative } from '../types';
+import { PrimitiveTypes } from '../../../schema';
+import { Alternative } from '../equivalence';
+import { Operator } from '../nodes/leaf';
 
 function likes(getPattern: (pattern: string) => string): Alternative {
   return {
@@ -11,10 +11,8 @@ function likes(getPattern: (pattern: string) => string): Alternative {
   };
 }
 
-const alternatives: Partial<Record<Operator, Alternative[]>> = {
+export default (): Partial<Record<Operator, Alternative[]>> => ({
   [Operator.Contains]: [likes(value => `%${value}%`)],
   [Operator.StartsWith]: [likes(value => `${value}%`)],
   [Operator.EndsWith]: [likes(value => `%${value}`)],
-};
-
-export default alternatives;
+});

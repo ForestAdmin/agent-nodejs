@@ -1,5 +1,5 @@
-import { Aggregator } from '../../src/interfaces/query/condition-tree/branch';
-import { Operator } from '../../src/interfaces/query/condition-tree/leaf';
+import { Aggregator } from '../../src/interfaces/query/condition-tree/nodes/branch';
+import { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
 import ConditionTreeValidator from '../../src/validation/condition-tree';
 import * as factories from '../__factories__';

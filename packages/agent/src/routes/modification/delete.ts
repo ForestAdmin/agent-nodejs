@@ -1,4 +1,4 @@
-import { CompositeId, ConditionTreeUtils, Filter } from '@forestadmin/datasource-toolkit';
+import { CompositeId, ConditionTreeFactory, Filter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import { HttpCode } from '../../types';
@@ -47,15 +47,23 @@ export default class DeleteRoute extends CollectionRoute {
     ids: CompositeId[],
     isRemoveAllRecords = false,
   ): Promise<void> {
-    const condition = ConditionTreeUtils.matchIds(this.collection.schema, ids);
     const filter = new Filter({
-      conditionTree: isRemoveAllRecords ? condition.inverse() : condition,
+      conditionTree: QueryStringParser.parseConditionTree(this.collection, context),
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
     });
 
     try {
-      await this.collection.delete(filter);
+      const condition = ConditionTreeFactory.matchIds(this.collection.schema, ids);
+
+      await this.collection.delete(
+        filter.override({
+          conditionTree: ConditionTreeFactory.intersect(
+            filter.conditionTree,
+            isRemoveAllRecords ? condition.inverse() : condition,
+          ),
+        }),
+      );
 
       context.response.status = HttpCode.NoContent;
     } catch {

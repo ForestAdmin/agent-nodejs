@@ -1,12 +1,18 @@
-import { RecordData } from '../../record';
-import Projection from '../projection';
+import { Collection } from '../../../collection';
+import { RecordData } from '../../../record';
+import Projection from '../../projection';
 import ConditionTree from './base';
-import { AsyncLeafReplacer, LeafCallback, LeafReplacer, LeafTester } from './leaf';
+import { AsyncLeafReplacer, LeafCallback, LeafComponents, LeafReplacer, LeafTester } from './leaf';
 
 export enum Aggregator {
   And = 'and',
   Or = 'or',
 }
+
+export type BranchComponents = {
+  aggregator: Aggregator;
+  conditions: Array<BranchComponents | LeafComponents>;
+};
 
 export default class ConditionTreeBranch extends ConditionTree {
   aggregator: Aggregator;
@@ -60,9 +66,9 @@ export default class ConditionTreeBranch extends ConditionTree {
     );
   }
 
-  match(record: RecordData): boolean {
+  match(record: RecordData, collection: Collection, timezone: string): boolean {
     return this.aggregator === Aggregator.And
-      ? this.conditions.every(c => c.match(record))
-      : this.conditions.some(c => c.match(record));
+      ? this.conditions.every(c => c.match(record, collection, timezone))
+      : this.conditions.some(c => c.match(record, collection, timezone));
   }
 }

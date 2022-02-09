@@ -1,9 +1,6 @@
 import { DataSource } from '../../interfaces/collection';
-import ConditionTree from '../../interfaces/query/condition-tree/base';
-import ConditionTreeLeaf, {
-  LeafComponents,
-  Operator,
-} from '../../interfaces/query/condition-tree/leaf';
+import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
+import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import {
   CollectionSchema,
@@ -12,7 +9,7 @@ import {
   FieldTypes,
   PrimitiveTypes,
 } from '../../interfaces/schema';
-import ConditionTreeUtils from '../../utils/condition-tree';
+import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import TypeGetter from '../../validation/type-getter';
 import CollectionDecorator from '../collection-decorator';
 
@@ -46,9 +43,9 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     // array might be empty, which will create a condition returning zero records
     // (this is the desired behavior).
     return filter.override({
-      conditionTree: ConditionTreeUtils.intersect(
+      conditionTree: ConditionTreeFactory.intersect(
         filter.conditionTree,
-        ConditionTreeUtils.union(...conditions),
+        ConditionTreeFactory.union(...conditions),
       ),
       search: null,
     });
@@ -61,26 +58,26 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   ): ConditionTree {
     const searchType = TypeGetter.get(searchString);
     const { columnType, enumValues } = schema;
-    let condition: LeafComponents = null;
+    let condition: ConditionTree = null;
 
     if (
       PrimitiveTypes.Enum === columnType &&
       SearchCollectionDecorator.getEnumValue(enumValues, searchString)
     ) {
-      condition = {
+      condition = new ConditionTreeLeaf(
         field,
-        operator: Operator.Equal,
-        value: SearchCollectionDecorator.getEnumValue(enumValues, searchString),
-      };
+        Operator.Equal,
+        SearchCollectionDecorator.getEnumValue(enumValues, searchString),
+      );
     } else if (PrimitiveTypes.Number === columnType && searchType === PrimitiveTypes.Number) {
-      condition = { field, operator: Operator.Equal, value: Number(searchString) };
+      condition = new ConditionTreeLeaf(field, Operator.Equal, Number(searchString));
     } else if (PrimitiveTypes.Uuid === columnType && searchType === PrimitiveTypes.Uuid) {
-      condition = { field, operator: Operator.Equal, value: searchString };
+      condition = new ConditionTreeLeaf(field, Operator.Equal, searchString);
     } else if (PrimitiveTypes.String === columnType && searchType === PrimitiveTypes.String) {
-      condition = { field, operator: Operator.Contains, value: searchString };
+      condition = new ConditionTreeLeaf(field, Operator.Contains, searchString);
     }
 
-    return condition ? new ConditionTreeLeaf(condition) : null;
+    return condition;
   }
 
   private static getEnumValue(enumValues: string[], searchString: string): string {
