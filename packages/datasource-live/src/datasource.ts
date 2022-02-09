@@ -8,7 +8,7 @@ import CollectionRelationsConverter from './utils/collection-schema-to-model-rel
 
 export default class LiveDataSource extends SequelizeDataSource {
   constructor(dataSourceSchema: DataSourceSchema) {
-    super([], new Sequelize('sqlite::memory:', { logging: false }));
+    super(new Sequelize('sqlite::memory:', { logging: false }));
     const collections = Object.entries(dataSourceSchema.collections);
 
     // Convert all collections to Sequelize models, only with plain attributes.
