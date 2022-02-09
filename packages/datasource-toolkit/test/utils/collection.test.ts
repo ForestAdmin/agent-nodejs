@@ -1,9 +1,9 @@
-import * as factories from '../__factories__';
-import CollectionUtils from '../../src/utils/collection';
-import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
-import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/leaf';
-import ConditionTreeUtils from '../../src/utils/condition-tree';
 import Aggregation, { AggregationOperation } from '../../src/interfaces/query/aggregation';
+import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
+import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
+import CollectionUtils from '../../src/utils/collection';
+import * as factories from '../__factories__';
 
 describe('CollectionUtils', () => {
   describe('When inverse relations is missing', () => {
@@ -282,13 +282,9 @@ describe('CollectionUtils', () => {
           aggregation,
         );
 
-        const expectedCondition = ConditionTreeUtils.intersect(
+        const expectedCondition = ConditionTreeFactory.intersect(
           baseFilter.conditionTree,
-          new ConditionTreeLeaf({
-            field: 'bookId',
-            operator: Operator.Equal,
-            value: 2,
-          }),
+          new ConditionTreeLeaf('bookId', Operator.Equal, 2),
         );
         expect(dataSource.getCollection('reviews').aggregate).toHaveBeenCalledWith(
           baseFilter.override({ conditionTree: expectedCondition }),
@@ -365,13 +361,9 @@ describe('CollectionUtils', () => {
           aggregation,
         );
 
-        const expectedCondition = ConditionTreeUtils.intersect(
+        const expectedCondition = ConditionTreeFactory.intersect(
           baseFilter.conditionTree.nest('myBook'),
-          new ConditionTreeLeaf({
-            field: 'bookId',
-            operator: Operator.Equal,
-            value: 2,
-          }),
+          new ConditionTreeLeaf('bookId', Operator.Equal, 2),
         );
 
         expect(dataSource.getCollection('librariesBooks').aggregate).toHaveBeenCalledWith(

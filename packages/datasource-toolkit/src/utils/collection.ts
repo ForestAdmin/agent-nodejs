@@ -1,11 +1,10 @@
 import { Collection } from '../interfaces/collection';
-import { FieldSchema, FieldTypes, ManyToManySchema, RelationSchema } from '../interfaces/schema';
-import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
-import ConditionTreeUtils from './condition-tree';
-import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/leaf';
-import ConditionTree from '../interfaces/query/condition-tree/base';
+import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
+import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
+import PaginatedFilter from '../interfaces/query/filter/paginated';
 import { CompositeId } from '../interfaces/record';
+import { FieldSchema, FieldTypes, ManyToManySchema, RelationSchema } from '../interfaces/schema';
 
 export default class CollectionUtils {
   static getRelation(collection: Collection, path: string): Collection {
@@ -93,10 +92,9 @@ export default class CollectionUtils {
       const foreignCollection = collection.dataSource.getCollection(
         relationFieldSchema.foreignCollection,
       );
-      const conditionTree = CollectionUtils.buildConditionTree(
-        relationFieldSchema.foreignKey,
-        id,
+      const conditionTree = ConditionTreeFactory.intersect(
         paginatedFilter.conditionTree,
+        new ConditionTreeLeaf(relationFieldSchema.foreignKey, Operator.Equal, id[0]),
       );
 
       return foreignCollection.aggregate(paginatedFilter.override({ conditionTree }), aggregation);
@@ -121,31 +119,17 @@ export default class CollectionUtils {
     const throughCollection = collection.dataSource.getCollection(
       relationFieldSchema.throughCollection,
     );
-    const conditionTree = CollectionUtils.buildConditionTree(
-      relationFieldSchema.otherField,
-      id,
+    const conditionTree = ConditionTreeFactory.intersect(
       paginatedFilter.conditionTree?.nest(relationFieldSchema.originRelation),
+      new ConditionTreeLeaf(relationFieldSchema.otherField, Operator.Equal, id[0]),
     );
+
     const aggregateResults = await throughCollection.aggregate(
       paginatedFilter.override({ conditionTree }),
       aggregation.nest(relationFieldSchema.originRelation),
     );
 
     return CollectionUtils.removePrefixesInResults(aggregateResults, relationFieldSchema);
-  }
-
-  private static buildConditionTree(
-    foreignKey: string,
-    id: CompositeId,
-    conditionTree: ConditionTree,
-  ): ConditionTree {
-    const conditionToMatchId = new ConditionTreeLeaf({
-      field: foreignKey,
-      operator: Operator.Equal,
-      value: id[0],
-    });
-
-    return ConditionTreeUtils.intersect(conditionTree, conditionToMatchId);
   }
 
   private static removePrefixesInResults(
