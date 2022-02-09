@@ -139,7 +139,7 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
 
   /** Convert field path from this collection to child collection */
   private pathToChildCollection(thisPath: string): string {
-    if (thisPath && thisPath.includes(':')) {
+    if (thisPath.includes(':')) {
       const dotIndex = thisPath.indexOf(':');
       const thisField = thisPath.substring(0, dotIndex);
       const schema = this.schema.fields[thisField] as RelationSchema;
@@ -149,11 +149,7 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
       return `${childField}:${relation.pathToChildCollection(thisPath.substring(dotIndex + 1))}`;
     }
 
-    if (thisPath) {
-      return this.toChildCollection[thisPath] ?? thisPath;
-    }
-
-    return thisPath;
+    return this.toChildCollection[thisPath] ?? thisPath;
   }
 
   /** Convert record from this collection to the child collection */

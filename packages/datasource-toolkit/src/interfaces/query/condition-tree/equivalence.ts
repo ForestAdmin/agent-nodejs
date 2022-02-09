@@ -18,25 +18,21 @@ export default class ConditionTreeEquivalent {
 
   static getEquivalentTree(
     leaf: ConditionTreeLeaf,
-    filterOperators: Set<Operator>,
+    operators: Set<Operator>,
     columnType: ColumnType,
     timezone: string,
   ): ConditionTree {
-    const replacer = ConditionTreeEquivalent.getReplacer(
-      leaf.operator,
-      filterOperators,
-      columnType,
-    );
-    if (replacer) return replacer(leaf, timezone);
-    throw new Error('No equivalent was found');
+    const { operator } = leaf;
+
+    return ConditionTreeEquivalent.getReplacer(operator, operators, columnType)(leaf, timezone);
   }
 
   static hasEquivalentTree(
     operator: Operator,
-    filterOperators: Set<Operator>,
+    operators: Set<Operator>,
     columnType: ColumnType,
   ): boolean {
-    return !!ConditionTreeEquivalent.getReplacer(operator, filterOperators, columnType);
+    return !!ConditionTreeEquivalent.getReplacer(operator, operators, columnType);
   }
 
   /** Find a way to replace an operator by recursively exploring the transforms graph */

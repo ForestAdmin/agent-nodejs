@@ -1,7 +1,7 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
+import { HttpCode } from '../../src/types';
 import QueryStringParser from '../../src/utils/query-string';
 import * as factories from '../__factories__';
-import { HttpCode } from '../../src/types';
 
 describe('QueryStringParser', () => {
   const collectionSimple = factories.collection.build({
@@ -13,6 +13,76 @@ describe('QueryStringParser', () => {
       },
       segments: ['fake-segment'],
     }),
+  });
+
+  describe('parseConditionTree', () => {
+    test('should return null when not provided', () => {
+      const context = createMockContext({});
+
+      expect(context.throw).not.toBeCalled();
+      expect(QueryStringParser.parseConditionTree(collectionSimple, context)).toBeNull();
+    });
+
+    test('should work when passed in the querystring', () => {
+      const context = createMockContext({
+        customProperties: {
+          query: {
+            filters: JSON.stringify({
+              aggregator: 'and',
+              conditions: [
+                { field: 'id', operator: 'equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+              ],
+            }),
+          },
+        },
+      });
+
+      const conditionTree = QueryStringParser.parseConditionTree(collectionSimple, context);
+
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(conditionTree).toEqual({
+        field: 'id',
+        operator: 'equal',
+        value: '123e4567-e89b-12d3-a456-426614174000',
+      });
+    });
+
+    test('should work when passed in the body', () => {
+      const context = createMockContext({
+        requestBody: {
+          filters: JSON.stringify({
+            field: 'id',
+            operator: 'equal',
+            value: '123e4567-e89b-12d3-a456-426614174000',
+          }),
+        },
+      });
+
+      const conditionTree = QueryStringParser.parseConditionTree(collectionSimple, context);
+
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(conditionTree).toEqual({
+        field: 'id',
+        operator: 'equal',
+        value: '123e4567-e89b-12d3-a456-426614174000',
+      });
+    });
+
+    test('should crash when the collection does not supports the requested operators', () => {
+      const context = createMockContext({
+        requestBody: {
+          filters: JSON.stringify({
+            field: 'id',
+            operator: 'greater_than',
+            value: '123e4567-e89b-12d3-a456-426614174000',
+          }),
+        },
+      });
+
+      QueryStringParser.parseConditionTree(collectionSimple, context);
+
+      expect(context.throw).toHaveBeenCalled();
+    });
   });
 
   describe('parseProjection', () => {
@@ -119,6 +189,13 @@ describe('QueryStringParser', () => {
   });
 
   describe('parseSearch', () => {
+    test('should return null when not provided', () => {
+      const context = createMockContext({});
+
+      expect(context.throw).not.toBeCalled();
+      expect(QueryStringParser.parseSearch(context)).toBeNull();
+    });
+
     test('should return the query search parameter', () => {
       const context = createMockContext({
         customProperties: { query: { search: 'searched argument' } },

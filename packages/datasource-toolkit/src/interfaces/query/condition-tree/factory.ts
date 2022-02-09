@@ -48,10 +48,12 @@ export default class ConditionTreeFactory {
     }
 
     if (ConditionTreeFactory.isBranch(json)) {
-      return new ConditionTreeBranch(
+      const branch = new ConditionTreeBranch(
         json.aggregator,
         json.conditions.map(subTree => ConditionTreeFactory.fromJson(subTree)),
       );
+
+      return branch.conditions.length !== 1 ? branch : branch.conditions[0];
     }
 
     throw new Error('Failed to instanciate condition tree from json');
@@ -109,6 +111,6 @@ export default class ConditionTreeFactory {
   }
 
   private static isBranch(raw: unknown): raw is BranchComponents {
-    return typeof raw === 'object' && 'aggregation' in raw && 'conditions' in raw;
+    return typeof raw === 'object' && 'aggregator' in raw && 'conditions' in raw;
   }
 }
