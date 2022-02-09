@@ -91,8 +91,8 @@ export default class TypeConverter {
       return new Set<Operator>([Operator.In, Operator.IncludesAll, Operator.NotIn]);
     }
 
-    switch (dataType) {
-      case DataTypes.BOOLEAN:
+    switch (dataTypeName) {
+      case 'BOOLEAN':
         return new Set<Operator>([
           Operator.Blank,
           Operator.Equal,
@@ -100,9 +100,9 @@ export default class TypeConverter {
           Operator.NotEqual,
           Operator.Present,
         ]);
-      case DataTypes.UUID:
-      case DataTypes.UUIDV1:
-      case DataTypes.UUIDV4:
+      case 'UUID':
+      case 'UUIDV1':
+      case 'UUIDV4':
         return new Set<Operator>([
           Operator.Blank,
           Operator.Equal,
@@ -110,15 +110,15 @@ export default class TypeConverter {
           Operator.NotEqual,
           Operator.Present,
         ]);
-      case DataTypes.BIGINT:
-      case DataTypes.DECIMAL:
-      case DataTypes.DOUBLE:
-      case DataTypes.FLOAT:
-      case DataTypes.INTEGER:
-      case DataTypes.MEDIUMINT:
-      case DataTypes.REAL:
-      case DataTypes.SMALLINT:
-      case DataTypes.TINYINT:
+      case 'BIGINT':
+      case 'DECIMAL':
+      case 'DOUBLE':
+      case 'FLOAT':
+      case 'INTEGER':
+      case 'MEDIUMINT':
+      case 'REAL':
+      case 'SMALLINT':
+      case 'TINYINT':
         return new Set<Operator>([
           Operator.Blank,
           Operator.Equal,
@@ -128,10 +128,10 @@ export default class TypeConverter {
           Operator.NotEqual,
           Operator.Present,
         ]);
-      case DataTypes.CHAR:
-      case DataTypes.CITEXT:
-      case DataTypes.STRING:
-      case DataTypes.TEXT:
+      case 'CHAR':
+      case 'CITEXT':
+      case 'STRING':
+      case 'TEXT':
         return new Set<Operator>([
           Operator.Blank,
           Operator.Contains,
@@ -146,10 +146,10 @@ export default class TypeConverter {
           Operator.ShorterThan,
           Operator.StartsWith,
         ]);
-      case DataTypes.DATE:
-      case DataTypes.DATEONLY:
-      case DataTypes.NOW:
-      case DataTypes.TIME:
+      case 'DATE':
+      case 'DATEONLY':
+      case 'NOW':
+      case 'TIME':
         return new Set<Operator>([
           Operator.Blank,
           Operator.Equal,
@@ -176,7 +176,7 @@ export default class TypeConverter {
           Operator.Today,
           Operator.Yesterday,
         ]);
-      case DataTypes.ENUM:
+      case 'ENUM':
         return new Set<Operator>([
           Operator.Blank,
           Operator.Equal,
@@ -184,19 +184,19 @@ export default class TypeConverter {
           Operator.NotEqual,
           Operator.Present,
         ]);
-      case DataTypes.BLOB:
-      case DataTypes.CIDR:
-      case DataTypes.GEOGRAPHY:
-      case DataTypes.GEOMETRY:
-      case DataTypes.HSTORE:
-      case DataTypes.INET:
-      case DataTypes.MACADDR:
-      case DataTypes.RANGE:
-      case DataTypes.TSVECTOR:
-      case DataTypes.VIRTUAL:
+      case 'BLOB':
+      case 'CIDR':
+      case 'GEOGRAPHY':
+      case 'GEOMETRY':
+      case 'HSTORE':
+      case 'INET':
+      case 'MACADDR':
+      case 'RANGE':
+      case 'TSVECTOR':
+      case 'VIRTUAL':
         return new Set<Operator>([]);
-      case DataTypes.JSON:
-      case DataTypes.JSONB:
+      case 'JSON':
+      case 'JSONB':
         return new Set<Operator>([
           Operator.Blank,
           Operator.Equal,
