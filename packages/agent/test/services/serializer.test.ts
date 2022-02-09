@@ -98,7 +98,7 @@ describe('Serializer', () => {
             id: 'asim00',
             attributes: { id: 'asim00', name: 'Asimov' },
             relationships: {
-              books: { links: { href: '/forest/person/asim00/relationships/books' } },
+              books: { links: { related: { href: '/forest/person/asim00/relationships/books' } } },
             },
           },
         ],
@@ -120,7 +120,7 @@ describe('Serializer', () => {
             id: 'asim00',
             attributes: { id: 'asim00', name: 'Asimov' },
             relationships: {
-              books: { links: { href: '/forest/person/asim00/relationships/books' } },
+              books: { links: { related: { href: '/forest/person/asim00/relationships/books' } } },
             },
           },
         ],

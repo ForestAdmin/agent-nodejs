@@ -1,9 +1,4 @@
-import {
-  CollectionUtils,
-  CompositeId,
-  PaginatedFilter,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
+import { CollectionUtils, CompositeId, PaginatedFilter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import QueryStringParser from '../../utils/query-string';
@@ -21,10 +16,8 @@ export default class ListRelatedRoute extends RelationRoute {
 
   public async handleListRelated(context: Context): Promise<void> {
     let parentId: CompositeId;
-    let paginatedFilter: PaginatedFilter;
-    let projection: Projection;
 
-    paginatedFilter = new PaginatedFilter({
+    const paginatedFilter = new PaginatedFilter({
       search: QueryStringParser.parseSearch(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.collection, context),
@@ -33,10 +26,11 @@ export default class ListRelatedRoute extends RelationRoute {
       sort: QueryStringParser.parseSort(this.collection, context),
     });
 
+    const relationCollection = this.collection.dataSource.getCollection(this.relationName);
+    const projection = QueryStringParser.parseProjection(relationCollection, context);
+
     try {
       parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-
-      projection = QueryStringParser.parseProjection(this.collection, context);
     } catch (e) {
       return context.throw(HttpCode.BadRequest, e.message);
     }
@@ -50,11 +44,11 @@ export default class ListRelatedRoute extends RelationRoute {
         projection,
       );
 
-      context.response.body = this.services.serializer.serialize(this.collection, records);
-    } catch {
+      context.response.body = this.services.serializer.serialize(relationCollection, records);
+    } catch (e) {
       context.throw(
         HttpCode.InternalServerError,
-        `Failed to list collection "${this.collection.name}"`,
+        `Failed to get the collection relation of the "${this.collection.name}"`,
       );
     }
   }

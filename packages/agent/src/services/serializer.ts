@@ -100,7 +100,9 @@ export default class Serializer {
         relationships[name] = {
           type: field.foreignCollection,
           links: (data: SerializedRecord) => ({
-            href: `${urlPrefix}/${data.forestId}/relationships/${name}`,
+            related: {
+              href: `${urlPrefix}/${data.forestId}/relationships/${name}`,
+            },
           }),
         };
       }

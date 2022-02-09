@@ -1,5 +1,11 @@
 import { Collection } from '../interfaces/collection';
-import { FieldSchema, FieldTypes, ManyToManySchema, RelationSchema } from '../interfaces/schema';
+import {
+  FieldSchema,
+  FieldTypes,
+  ManyToManySchema,
+  OneToManySchema,
+  RelationSchema,
+} from '../interfaces/schema';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTreeUtils from './condition-tree';
@@ -7,6 +13,7 @@ import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/
 import ConditionTree from '../interfaces/query/condition-tree/base';
 import { CompositeId, RecordData } from '../interfaces/record';
 import Projection from '../interfaces/query/projection';
+import RecordUtils from './record';
 
 export default class CollectionUtils {
   static getRelation(collection: Collection, path: string): Collection {
@@ -79,21 +86,27 @@ export default class CollectionUtils {
     paginatedFilter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    const relationFieldSchema = collection.schema.fields[relationName];
-    CollectionUtils.throwIfRelationIsNotAllowed(relationFieldSchema);
+    const relation = CollectionUtils.getRelationOrThrowError(collection, relationName);
+    const relationCollection = CollectionUtils.getCollectionFromRelation(collection, relation);
+    const conditionTree = CollectionUtils.buildConditionTreeFromRelation(
+      relation,
+      id,
+      paginatedFilter.conditionTree,
+    );
 
-    if (relationFieldSchema.type === FieldTypes.OneToMany) {
-      const foreignCollection = await collection.dataSource.getCollection(
-        relationFieldSchema.foreignCollection,
-      );
-      const conditionTree = CollectionUtils.buildConditionTree(
-        relationFieldSchema.foreignKey,
-        id,
-        paginatedFilter.conditionTree,
-      );
-
-      return foreignCollection.list(paginatedFilter.override({ conditionTree }), projection);
+    if (relation.type === FieldTypes.OneToMany) {
+      return relationCollection.list(paginatedFilter.override({ conditionTree }), projection);
     }
+
+    const records = await relationCollection.list(
+      paginatedFilter.override({
+        conditionTree,
+        sort: paginatedFilter.sort.nest(relation.originRelation),
+      }),
+      projection.nest(relation.originRelation),
+    );
+
+    return records;
   }
 
   static async aggregateRelation(
@@ -103,78 +116,73 @@ export default class CollectionUtils {
     paginatedFilter: PaginatedFilter,
     aggregation: Aggregation,
   ): Promise<AggregateResult[]> {
-    const relationFieldSchema = collection.schema.fields[relationName];
-    CollectionUtils.throwIfRelationIsNotAllowed(relationFieldSchema);
+    const relation = CollectionUtils.getRelationOrThrowError(collection, relationName);
+    const relationCollection = CollectionUtils.getCollectionFromRelation(collection, relation);
+    const conditionTree = CollectionUtils.buildConditionTreeFromRelation(
+      relation,
+      id,
+      paginatedFilter.conditionTree,
+    );
 
-    if (relationFieldSchema.type === FieldTypes.OneToMany) {
-      const foreignCollection = await collection.dataSource.getCollection(
-        relationFieldSchema.foreignCollection,
-      );
-      const conditionTree = CollectionUtils.buildConditionTree(
-        relationFieldSchema.foreignKey,
-        id,
-        paginatedFilter.conditionTree,
-      );
-
-      return foreignCollection.aggregate(paginatedFilter.override({ conditionTree }), aggregation);
+    if (relation.type === FieldTypes.OneToMany) {
+      return relationCollection.aggregate(paginatedFilter.override({ conditionTree }), aggregation);
     }
 
-    return CollectionUtils.getAggregateResultsForManyToMany(
-      collection,
-      id,
-      relationFieldSchema as ManyToManySchema,
-      paginatedFilter,
-      aggregation,
+    const aggregateResults = await relationCollection.aggregate(
+      paginatedFilter.override({ conditionTree }),
+      aggregation.nest(relation.originRelation),
     );
+
+    return CollectionUtils.removePrefixesInResults(aggregateResults, relation);
   }
 
-  private static throwIfRelationIsNotAllowed(relationFieldSchema: FieldSchema): void {
-    const isOneToMany = relationFieldSchema.type === FieldTypes.OneToMany;
-    const isManyToMany = relationFieldSchema.type === FieldTypes.ManyToMany;
+  private static getCollectionFromRelation(
+    collection: Collection,
+    relation: ManyToManySchema | OneToManySchema,
+  ): Collection {
+    if (relation.type === FieldTypes.OneToMany) {
+      return collection.dataSource.getCollection(relation.foreignCollection);
+    }
 
-    if (!isOneToMany && !isManyToMany) {
+    return collection.dataSource.getCollection(relation.throughCollection);
+  }
+
+  private static getRelationOrThrowError(
+    collection: Collection,
+    relationName: string,
+  ): ManyToManySchema | OneToManySchema {
+    const relationFieldSchema = collection.schema.fields[relationName];
+
+    if (
+      relationFieldSchema.type !== FieldTypes.OneToMany &&
+      relationFieldSchema.type !== FieldTypes.ManyToMany
+    ) {
       throw new Error(
         'aggregateRelation method can only be used with ' +
           `${FieldTypes.OneToMany} and ${FieldTypes.ManyToMany} relations`,
       );
     }
+
+    return collection.schema.fields[relationName] as ManyToManySchema | OneToManySchema;
   }
 
-  private static async getAggregateResultsForManyToMany(
-    collection: Collection,
-    id: CompositeId,
-    relationFieldSchema: ManyToManySchema,
-    paginatedFilter: PaginatedFilter,
-    aggregation: Aggregation,
-  ): Promise<AggregateResult[]> {
-    const throughCollection = collection.dataSource.getCollection(
-      relationFieldSchema.throughCollection,
-    );
-    const conditionTree = CollectionUtils.buildConditionTree(
-      relationFieldSchema.otherField,
-      id,
-      paginatedFilter.conditionTree?.nest(relationFieldSchema.originRelation),
-    );
-    const aggregateResults = await throughCollection.aggregate(
-      paginatedFilter.override({ conditionTree }),
-      aggregation.nest(relationFieldSchema.originRelation),
-    );
-
-    return CollectionUtils.removePrefixesInResults(aggregateResults, relationFieldSchema);
-  }
-
-  private static buildConditionTree(
-    foreignKey: string,
+  private static buildConditionTreeFromRelation(
+    relation: ManyToManySchema | OneToManySchema,
     id: CompositeId,
     conditionTree: ConditionTree,
   ): ConditionTree {
+    const isOneToMany = relation.type === FieldTypes.OneToMany;
     const conditionToMatchId = new ConditionTreeLeaf({
-      field: foreignKey,
+      field: isOneToMany ? relation.foreignKey : relation.otherField,
       operator: Operator.Equal,
       value: id[0],
     });
 
-    return ConditionTreeUtils.intersect(conditionTree, conditionToMatchId);
+    const computedConditionTree = isOneToMany
+      ? conditionTree
+      : conditionTree?.nest(relation.originRelation);
+
+    return ConditionTreeUtils.intersect(computedConditionTree, conditionToMatchId);
   }
 
   private static removePrefixesInResults(

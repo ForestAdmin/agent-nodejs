@@ -12,10 +12,11 @@ import Get from './access/get';
 import HealthCheck from './healthcheck';
 import List from './access/list';
 import Update from './modification/update';
+import ListRelatedRoute from './access/list-related';
 
 export const RootRoutesCtor = [Authentication, HealthCheck];
 export const CollectionRoutesCtor = [Count, Create, Delete, Get, List, Update];
-export const RelatedRoutesCtor = [CountRelatedRoute];
+export const RelatedRoutesCtor = [CountRelatedRoute, ListRelatedRoute];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {
   return RootRoutesCtor.map(Route => new Route(services, options));

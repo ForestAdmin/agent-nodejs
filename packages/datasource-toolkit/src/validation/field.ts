@@ -32,7 +32,11 @@ export default class FieldValidator {
         throw new Error(`Relation not found: '${collection.name}.${prefix}'`);
       }
 
-      if (schema.type !== FieldTypes.ManyToOne && schema.type !== FieldTypes.OneToOne) {
+      if (
+        schema.type !== FieldTypes.ManyToOne &&
+        schema.type !== FieldTypes.OneToOne &&
+        schema.type !== FieldTypes.OneToMany
+      ) {
         throw new Error(
           `Unexpected field type: '${collection.name}.${prefix}' (found ` +
             `'${schema.type}' expected '${FieldTypes.ManyToOne}' or '${FieldTypes.OneToOne}')`,
