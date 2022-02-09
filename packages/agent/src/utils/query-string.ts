@@ -24,7 +24,7 @@ export default class QueryStringParser {
       if (!string) return null;
 
       const json = JSON.parse(string);
-      const conditionTree = ConditionTreeFactory.fromJson(json);
+      const conditionTree = ConditionTreeFactory.fromPlainObject(json);
       ConditionTreeValidator.validate(conditionTree, collection);
 
       return conditionTree;

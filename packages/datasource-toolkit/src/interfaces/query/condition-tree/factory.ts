@@ -42,7 +42,7 @@ export default class ConditionTreeFactory {
     return ConditionTreeFactory.group(Aggregator.And, trees);
   }
 
-  static fromJson(json: unknown): ConditionTree {
+  static fromPlainObject(json: unknown): ConditionTree {
     if (ConditionTreeFactory.isLeaf(json)) {
       return new ConditionTreeLeaf(json.field, json.operator, json.value);
     }
@@ -50,7 +50,7 @@ export default class ConditionTreeFactory {
     if (ConditionTreeFactory.isBranch(json)) {
       const branch = new ConditionTreeBranch(
         json.aggregator,
-        json.conditions.map(subTree => ConditionTreeFactory.fromJson(subTree)),
+        json.conditions.map(subTree => ConditionTreeFactory.fromPlainObject(subTree)),
       );
 
       return branch.conditions.length !== 1 ? branch : branch.conditions[0];

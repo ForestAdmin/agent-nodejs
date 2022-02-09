@@ -208,14 +208,14 @@ describe('ConditionTree', () => {
       });
     });
 
-    describe('fromJson', () => {
+    describe('fromPlainObject', () => {
       test('should crash when calling with badly formatted json', () => {
-        const fn = () => ConditionTreeFactory.fromJson('this is not json');
+        const fn = () => ConditionTreeFactory.fromPlainObject('this is not json');
         expect(fn).toThrow('Failed to instanciate condition tree from json');
       });
 
       test('should work with a simple case', () => {
-        const tree = ConditionTreeFactory.fromJson({
+        const tree = ConditionTreeFactory.fromPlainObject({
           field: 'field',
           operator: 'equal',
           value: 'something',
@@ -225,7 +225,7 @@ describe('ConditionTree', () => {
       });
 
       test('should remove useless aggregators from the frontend', () => {
-        const tree = ConditionTreeFactory.fromJson({
+        const tree = ConditionTreeFactory.fromPlainObject({
           aggregator: 'and',
           conditions: [{ field: 'field', operator: 'equal', value: 'something' }],
         });
@@ -234,7 +234,7 @@ describe('ConditionTree', () => {
       });
 
       test('should work with an aggregator', () => {
-        const tree = ConditionTreeFactory.fromJson({
+        const tree = ConditionTreeFactory.fromPlainObject({
           aggregator: 'and',
           conditions: [
             { field: 'field', operator: 'equal', value: 'something' },
