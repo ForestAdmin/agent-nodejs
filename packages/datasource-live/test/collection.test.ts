@@ -77,7 +77,6 @@ const liveCollectionSchema: CollectionSchema = {
 
 const instanciateCollection = schema => {
   const dataSource = Symbol('datasource') as unknown as DataSource;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sequelize = new Sequelize('sqlite::memory:', { logging: false });
   const model = sequelize.define('__name__', CollectionAttributesConverter.convert(schema));
 

@@ -5,7 +5,6 @@ import {
   GroupOption,
   ModelDefined,
   OrderItem,
-  Sequelize,
   UpdateOptions,
 } from 'sequelize';
 import {
@@ -27,7 +26,6 @@ import FilterConverter from './utils/filter-converter';
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected model: ModelDefined<any, any> = null;
-  protected sequelize: Sequelize = null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(name: string, datasource: DataSource, model: ModelDefined<any, any>) {
