@@ -1,6 +1,6 @@
-import { AbstractDataTypeConstructor, ArrayDataType, DataTypes } from 'sequelize';
+import { AbstractDataType, AbstractDataTypeConstructor, ArrayDataType, DataTypes } from 'sequelize';
 
-import { ColumnType, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export default class TypeConverter {
   // TODO: Allow to differentiate NUMBER and INTEGER.
@@ -67,7 +67,7 @@ export default class TypeConverter {
   public static fromDataType(
     dataType: AbstractDataTypeConstructor | ArrayDataType<AbstractDataTypeConstructor>,
   ): ColumnType {
-    const dataTypeName = dataType?.key;
+    const dataTypeName = (dataType as AbstractDataType).key;
 
     if (dataTypeName === 'ARRAY') {
       const arrayDataType = dataType as ArrayDataType<AbstractDataTypeConstructor>;
@@ -80,5 +80,132 @@ export default class TypeConverter {
     if (!columnType) throw new Error(`Unsupported data type: "${dataType}".`);
 
     return columnType;
+  }
+
+  public static operatorsForDataType(
+    dataType: AbstractDataTypeConstructor | ArrayDataType<AbstractDataTypeConstructor>,
+  ): Set<Operator> {
+    const dataTypeName = dataType?.key;
+
+    if (dataTypeName === 'ARRAY') {
+      return new Set<Operator>([Operator.In, Operator.IncludesAll, Operator.NotIn]);
+    }
+
+    switch (dataType) {
+      case DataTypes.BOOLEAN:
+        return new Set<Operator>([
+          Operator.Blank,
+          Operator.Equal,
+          Operator.Missing,
+          Operator.NotEqual,
+          Operator.Present,
+        ]);
+      case DataTypes.UUID:
+      case DataTypes.UUIDV1:
+      case DataTypes.UUIDV4:
+        return new Set<Operator>([
+          Operator.Blank,
+          Operator.Equal,
+          Operator.Missing,
+          Operator.NotEqual,
+          Operator.Present,
+        ]);
+      case DataTypes.BIGINT:
+      case DataTypes.DECIMAL:
+      case DataTypes.DOUBLE:
+      case DataTypes.FLOAT:
+      case DataTypes.INTEGER:
+      case DataTypes.MEDIUMINT:
+      case DataTypes.REAL:
+      case DataTypes.SMALLINT:
+      case DataTypes.TINYINT:
+        return new Set<Operator>([
+          Operator.Blank,
+          Operator.Equal,
+          Operator.GreaterThan,
+          Operator.LessThan,
+          Operator.Missing,
+          Operator.NotEqual,
+          Operator.Present,
+        ]);
+      case DataTypes.CHAR:
+      case DataTypes.CITEXT:
+      case DataTypes.STRING:
+      case DataTypes.TEXT:
+        return new Set<Operator>([
+          Operator.Blank,
+          Operator.Contains,
+          Operator.EndsWith,
+          Operator.Equal,
+          Operator.Like,
+          Operator.LongerThan,
+          Operator.Missing,
+          Operator.NotContains,
+          Operator.NotEqual,
+          Operator.Present,
+          Operator.ShorterThan,
+          Operator.StartsWith,
+        ]);
+      case DataTypes.DATE:
+      case DataTypes.DATEONLY:
+      case DataTypes.NOW:
+      case DataTypes.TIME:
+        return new Set<Operator>([
+          Operator.Blank,
+          Operator.Equal,
+          Operator.Missing,
+          Operator.NotEqual,
+          Operator.Present,
+          Operator.Before,
+          // Date operators
+          Operator.After,
+          Operator.AfterXHoursAgo,
+          Operator.BeforeXHoursAgo,
+          Operator.Future,
+          Operator.Past,
+          Operator.PreviousMonthToDate,
+          Operator.PreviousMonth,
+          Operator.PreviousQuarterToDate,
+          Operator.PreviousQuarter,
+          Operator.PreviousWeekToDate,
+          Operator.PreviousWeek,
+          Operator.PreviousXDaysToDate,
+          Operator.PreviousXDays,
+          Operator.PreviousYearToDate,
+          Operator.PreviousYear,
+          Operator.Today,
+          Operator.Yesterday,
+        ]);
+      case DataTypes.ENUM:
+        return new Set<Operator>([
+          Operator.Blank,
+          Operator.Equal,
+          Operator.Missing,
+          Operator.NotEqual,
+          Operator.Present,
+        ]);
+      case DataTypes.BLOB:
+      case DataTypes.CIDR:
+      case DataTypes.GEOGRAPHY:
+      case DataTypes.GEOMETRY:
+      case DataTypes.HSTORE:
+      case DataTypes.INET:
+      case DataTypes.MACADDR:
+      case DataTypes.RANGE:
+      case DataTypes.TSVECTOR:
+      case DataTypes.VIRTUAL:
+        return new Set<Operator>([]);
+      case DataTypes.JSON:
+      case DataTypes.JSONB:
+        return new Set<Operator>([
+          Operator.Blank,
+          Operator.Equal,
+          Operator.Missing,
+          Operator.NotEqual,
+          Operator.Present,
+        ]);
+      default:
+        return new Set<Operator>();
+    }
   }
 }
