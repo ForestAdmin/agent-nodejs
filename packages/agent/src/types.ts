@@ -26,9 +26,10 @@ export type ForestAdminHttpDriverOptionsWithDefaults = Readonly<
 >;
 
 export enum HttpCode {
-  Forbidden = 403,
   BadRequest = 400,
+  Forbidden = 403,
   InternalServerError = 500,
   NoContent = 204,
+  NotFound = 404,
   Ok = 200,
 }

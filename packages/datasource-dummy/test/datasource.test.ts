@@ -9,10 +9,12 @@ describe('DummyDataSource', () => {
     it('should only hold the book collection', () => {
       const dummyDataSource = new DummyDataSource();
 
-      expect(dummyDataSource.collections).toBeArrayOfSize(2);
+      expect(dummyDataSource.collections).toBeArrayOfSize(4);
       expect(dummyDataSource.collections).toEqual([
         expect.objectContaining({ name: 'books' }),
         expect.objectContaining({ name: 'persons' }),
+        expect.objectContaining({ name: 'libraries' }),
+        expect.objectContaining({ name: 'librariesBooks' }),
       ]);
     });
   });

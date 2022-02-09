@@ -13,7 +13,7 @@ describe('CreateRoute', () => {
     const dataSource = factories.dataSource.buildWithCollection(
       factories.collection.build({ name: 'books' }),
     );
-    const create = new CreateRoute(services, dataSource, options, 'books');
+    const create = new CreateRoute(services, options, dataSource, 'books');
 
     create.setupPrivateRoutes(router);
 
@@ -55,7 +55,7 @@ describe('CreateRoute', () => {
       });
       const dataSource = factories.dataSource.buildWithCollections([collection]);
 
-      const create = new CreateRoute(services, dataSource, options, collection.name);
+      const create = new CreateRoute(services, options, dataSource, collection.name);
 
       const requestBody = {
         data: {
@@ -101,7 +101,7 @@ describe('CreateRoute', () => {
           });
           const dataSource = factories.dataSource.buildWithCollections([collection]);
 
-          const create = new CreateRoute(services, dataSource, options, collection.name);
+          const create = new CreateRoute(services, options, dataSource, collection.name);
 
           const requestBody = {
             data: {
@@ -140,7 +140,7 @@ describe('CreateRoute', () => {
 
           const dataSource = factories.dataSource.buildWithCollections([collection]);
 
-          const create = new CreateRoute(services, dataSource, options, 'books');
+          const create = new CreateRoute(services, options, dataSource, 'books');
 
           const requestBody = {
             data: {

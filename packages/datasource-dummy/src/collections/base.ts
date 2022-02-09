@@ -64,9 +64,8 @@ export default class BaseDummyCollection extends BaseCollection {
     if (filter?.conditionTree) result = filter.conditionTree.apply(result, this, filter.timezone);
     if (filter?.sort) result = filter.sort.apply(result);
     if (filter?.page) result = filter.page.apply(result);
-    result = projection.apply(result);
 
-    return result;
+    return projection.apply(result);
   }
 
   async update(filter: Filter, patch: RecordData): Promise<void> {

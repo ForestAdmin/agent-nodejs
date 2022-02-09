@@ -52,6 +52,20 @@ describe('Aggregation', () => {
         { value: 1, group: { discriminant: 'red' } },
       ]);
     });
+
+    test('nest() should nest the field and the group fields by adding a prefix', () => {
+      expect(aggregation.nest('prefix')).toEqual(
+        new Aggregation({
+          operation: AggregationOperation.Count,
+          field: 'prefix:id',
+          groups: [{ field: 'prefix:discriminant' }],
+        }),
+      );
+    });
+
+    test('nest(null) should do nothing', () => {
+      expect(aggregation.nest(null)).toEqual(aggregation);
+    });
   });
 
   describe('count(*) with simple grouping', () => {
