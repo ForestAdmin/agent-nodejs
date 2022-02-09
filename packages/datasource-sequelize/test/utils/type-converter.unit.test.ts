@@ -26,5 +26,11 @@ describe('Utils > TypeConverter', () => {
     it('should return a column type when known', () => {
       expect(TypeConverter.fromDataType(DataTypes.BOOLEAN)).toBe(PrimitiveTypes.Boolean);
     });
+
+    it('should return an array column type when needed', () => {
+      expect(TypeConverter.fromDataType(DataTypes.ARRAY(DataTypes.BOOLEAN))).toStrictEqual([
+        PrimitiveTypes.Boolean,
+      ]);
+    });
   });
 });
