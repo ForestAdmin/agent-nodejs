@@ -26,9 +26,7 @@ describe('SequelizeDataSource > Collection', () => {
     const dataSource = Symbol('datasource') as unknown as DataSource;
     const name = '__collection__';
     const sequelize = {
-      col: jest.fn(colName => ({ col: colName })),
       define: jest.fn(() => ({})),
-      fn: jest.fn((fnName, fnCol) => ({ name: fnName, col: fnCol.col })),
       models: {
         [name]: {
           getAttributes: jest.fn(() => ({})),
@@ -45,27 +43,19 @@ describe('SequelizeDataSource > Collection', () => {
 
   it('should instanciate properly', () => {
     const { dataSource, name, sequelize } = makeConstructorParams();
-    const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
+    const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
 
     expect(sequelizeCollection).toBeDefined();
     expect(sequelizeCollection.name).toBe(name);
     expect(sequelizeCollection.dataSource).toBe(dataSource);
     // eslint-disable-next-line @typescript-eslint/dot-notation
-    expect(sequelizeCollection['sequelize']).toBe(sequelize);
+    expect(sequelizeCollection['model']).toBe(sequelize.models[name]);
   });
 
-  it('should fail to instanciate without a Sequelize instance', () => {
+  it('should fail to instanciate without a Sequelize model instance', () => {
     const { dataSource, name } = makeConstructorParams();
     expect(() => new SequelizeCollection(name, dataSource, null)).toThrow(
-      'Invalid (null) Sequelize instance.',
-    );
-  });
-
-  it('should fail to instanciate if model is not found within Sequelize instance', () => {
-    const { dataSource, sequelize } = makeConstructorParams();
-
-    expect(() => new SequelizeCollection('__unknown_name__', dataSource, sequelize)).toThrow(
-      'Could not get model for "__unknown_name__".',
+      'Invalid (null) model instance.',
     );
   });
 
@@ -93,14 +83,22 @@ describe('SequelizeDataSource > Collection', () => {
 
     it('should return a known action', () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
-      const collectionWithAction = new CollectionWithAction(name, dataSource, sequelize);
+      const collectionWithAction = new CollectionWithAction(
+        name,
+        dataSource,
+        sequelize.models[name],
+      );
 
       expect(collectionWithAction.getAction('__action__')).toBeInstanceOf(TestAction);
     });
 
     it('should throw with an unknown action name', () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
-      const collectionWithAction = new CollectionWithAction(name, dataSource, sequelize);
+      const collectionWithAction = new CollectionWithAction(
+        name,
+        dataSource,
+        sequelize.models[name],
+      );
 
       expect(() => collectionWithAction.getAction('__no_such_action__')).toThrow(
         'Action "__no_such_action__" not found.',
@@ -112,7 +110,6 @@ describe('SequelizeDataSource > Collection', () => {
     const setup = () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
 
-      // eslint-disable-next-line @typescript-eslint/dot-notation,prefer-destructuring
       const model = sequelize.models[name];
 
       model.getAttributes = () => ({
@@ -122,7 +119,7 @@ describe('SequelizeDataSource > Collection', () => {
         },
       });
 
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
       const recordData = Symbol('recordData');
       const record = {
         get: jest.fn(() => recordData),
@@ -165,7 +162,7 @@ describe('SequelizeDataSource > Collection', () => {
   describe('create', () => {
     const setup = () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
       const recordData = Symbol('recordData');
       const record = {
         get: jest.fn(() => recordData),
@@ -195,7 +192,7 @@ describe('SequelizeDataSource > Collection', () => {
   describe('list', () => {
     const setup = () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
       const recordData = Symbol('recordData');
       const record = {
         get: jest.fn(() => recordData),
@@ -245,7 +242,7 @@ describe('SequelizeDataSource > Collection', () => {
   describe('update', () => {
     const setup = () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
       const update = jest.fn().mockResolvedValue([]);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
@@ -275,7 +272,7 @@ describe('SequelizeDataSource > Collection', () => {
   describe('delete', () => {
     const setup = () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
       const destroy = jest.fn().mockResolvedValue(0);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
@@ -301,7 +298,7 @@ describe('SequelizeDataSource > Collection', () => {
   describe('aggregate', () => {
     const setup = () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize);
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
       const findAll = jest.fn().mockResolvedValue([{ get: jest.fn(attr => `${attr}:value`) }]);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
@@ -394,7 +391,10 @@ describe('SequelizeDataSource > Collection', () => {
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
           expect.objectContaining({
-            attributes: [[{ col: '__field__', name: 'COUNT' }, '__aggregate__'], '__field__'],
+            attributes: [
+              [{ args: [{ col: '__field__' }], fn: 'COUNT' }, '__aggregate__'],
+              '__field__',
+            ],
             group: ['__group_field__'],
           }),
         );
@@ -416,7 +416,7 @@ describe('SequelizeDataSource > Collection', () => {
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
           expect.objectContaining({
-            group: [{ col: '__group_field__', name: DateOperation.ToYear.toUpperCase() }],
+            group: [{ args: [{ col: '__group_field__' }], fn: DateOperation.ToYear.toUpperCase() }],
           }),
         );
       });
@@ -442,7 +442,7 @@ describe('SequelizeDataSource > Collection', () => {
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
           expect.objectContaining({
-            group: [{ col: '__group_field__', name: DateOperation.ToYear.toUpperCase() }],
+            group: [{ args: [{ col: '__group_field__' }], fn: DateOperation.ToYear.toUpperCase() }],
             order: [['__group_field__', 'DESC']],
           }),
         );
