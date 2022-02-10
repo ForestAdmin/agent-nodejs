@@ -1,6 +1,6 @@
 import { Collection } from '../interfaces/collection';
-import FieldValidator from './field';
 import { SortClause } from '../interfaces/query/sort';
+import FieldValidator from './field';
 
 export default class SortValidator {
   static validate(collection: Collection, sort: SortClause[]): void {

@@ -1,6 +1,6 @@
-import { Sequelize } from 'sequelize';
-import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
+import { Sequelize } from 'sequelize';
 
 import LiveCollection from './collection';
 import CollectionAttributesConverter from './utils/collection-schema-to-model-attributes-converter';

@@ -1,4 +1,3 @@
-import { FindOptions, Op, Order, OrOperator, WhereOperators, WhereOptions } from 'sequelize';
 import {
   Aggregator,
   ConditionTree,
@@ -9,6 +8,7 @@ import {
   Operator,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
+import { FindOptions, Op, Order, OrOperator, WhereOperators, WhereOptions } from 'sequelize';
 
 export default class FilterConverter {
   private static asArray(value) {

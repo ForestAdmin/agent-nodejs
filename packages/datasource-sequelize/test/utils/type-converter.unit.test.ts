@@ -1,5 +1,5 @@
-import { DataTypes } from 'sequelize';
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { DataTypes } from 'sequelize';
 
 import TypeConverter from '../../src/utils/type-converter';
 

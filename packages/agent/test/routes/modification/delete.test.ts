@@ -1,8 +1,9 @@
-import { createMockContext } from '@shopify/jest-koa-mocks';
 import { Aggregator, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { createMockContext } from '@shopify/jest-koa-mocks';
+
 import DeleteRoute from '../../../src/routes/modification/delete';
-import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
+import * as factories from '../../__factories__';
 
 describe('DeleteRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();

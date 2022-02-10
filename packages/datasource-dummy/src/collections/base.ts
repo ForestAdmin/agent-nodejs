@@ -12,6 +12,7 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+
 import MarkAsLiveAction from '../actions/mark-as-live';
 
 export default class BaseDummyCollection extends BaseCollection {

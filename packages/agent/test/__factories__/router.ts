@@ -1,5 +1,5 @@
-import { Factory } from 'fishery';
 import Router from '@koa/router';
+import { Factory } from 'fishery';
 
 export class RouterFactory extends Factory<Router> {
   mockAllMethods() {

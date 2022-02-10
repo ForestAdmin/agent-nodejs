@@ -4,9 +4,10 @@ import { Context } from 'koa';
 import jwt from 'koa-jwt';
 import { Client, ClientAuthMethod, Issuer } from 'openid-client';
 import path from 'path';
-import BaseRoute from '../base-route';
+
 import { HttpCode } from '../../types';
 import ForestHttpApi, { UserInfo } from '../../utils/forest-http-api';
+import BaseRoute from '../base-route';
 
 export default class Authentication extends BaseRoute {
   private client: Client;

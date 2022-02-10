@@ -1,3 +1,4 @@
+import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
@@ -7,7 +8,6 @@ import {
   FieldSchema,
   RelationSchema,
 } from '../../interfaces/schema';
-import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import SchemaUtils from '../../utils/schema';
 import ConditionTreeValidator from '../../validation/condition-tree';
 import FieldValidator from '../../validation/field';

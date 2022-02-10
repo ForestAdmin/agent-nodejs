@@ -1,4 +1,5 @@
 import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+
 import FilterableUtils from '../../../src/utils/forest-schema/filterable';
 
 describe('FrontendFilterableUtils', () => {

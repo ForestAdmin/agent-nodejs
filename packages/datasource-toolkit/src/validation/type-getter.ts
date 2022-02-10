@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
 import { validate as uuidValidate } from 'uuid';
+
 import { PrimitiveTypes } from '../interfaces/schema';
 import ValidationTypes from './types';
 

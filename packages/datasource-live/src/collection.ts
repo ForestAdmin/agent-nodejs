@@ -1,5 +1,4 @@
-import { ModelDefined } from 'sequelize';
-
+import { SequelizeCollection } from '@forestadmin/datasource-sequelize';
 import {
   AggregateResult,
   Aggregation,
@@ -11,7 +10,7 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { SequelizeCollection } from '@forestadmin/datasource-sequelize';
+import { ModelDefined } from 'sequelize';
 
 export default class LiveCollection extends SequelizeCollection {
   private synched = false;

@@ -1,6 +1,5 @@
-import { Sequelize } from 'sequelize';
-
 import { BaseDataSource } from '@forestadmin/datasource-toolkit';
+import { Sequelize } from 'sequelize';
 
 import SequelizeCollection from './collection';
 

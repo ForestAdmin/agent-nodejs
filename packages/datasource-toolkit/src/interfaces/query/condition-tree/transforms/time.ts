@@ -1,4 +1,5 @@
 import { DateTime, DateTimeUnit } from 'luxon';
+
 import { PrimitiveTypes } from '../../../schema';
 import { Alternative } from '../equivalence';
 import ConditionTreeFactory from '../factory';

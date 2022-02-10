@@ -1,5 +1,5 @@
-import getCollections from '../src/index';
 import DummyDataSource from '../src/datasource';
+import getCollections from '../src/index';
 
 describe('getCollections', () => {
   it('should return DummyDataSource collections', () => {

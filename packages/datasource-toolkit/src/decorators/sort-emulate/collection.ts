@@ -1,3 +1,4 @@
+import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
 import Sort, { SortClause } from '../../interfaces/query/sort';
@@ -10,7 +11,6 @@ import {
   RelationSchema,
 } from '../../interfaces/schema';
 import CollectionUtils from '../../utils/collection';
-import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import RecordUtils from '../../utils/record';
 import FieldValidator from '../../validation/field';
 import CollectionDecorator from '../collection-decorator';

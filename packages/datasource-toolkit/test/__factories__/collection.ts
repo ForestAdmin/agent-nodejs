@@ -1,5 +1,6 @@
 // eslint-disable-next-line max-classes-per-file
 import { Factory } from 'fishery';
+
 import CollectionDecorator from '../../src/decorators/collection-decorator';
 import { ActionForm } from '../../src/interfaces/action';
 import { Collection, DataSource } from '../../src/interfaces/collection';

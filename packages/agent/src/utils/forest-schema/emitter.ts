@@ -5,6 +5,7 @@ import { readFile, writeFile } from 'fs/promises';
 import JSONAPISerializer from 'json-api-serializer';
 import stringify from 'json-stringify-pretty-compact';
 import { resolve } from 'path';
+
 import { ForestAdminHttpDriverOptions } from '../../types';
 import SchemaGeneratorCollection from './generator-collection';
 import { ForestServerCollection } from './types';

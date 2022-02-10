@@ -1,8 +1,8 @@
 import { Action } from '../interfaces/action';
 import { Collection, DataSource } from '../interfaces/collection';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
-import Filter from '../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
+import Filter from '../interfaces/query/filter/unpaginated';
 import Projection from '../interfaces/query/projection';
 import { CompositeId, RecordData } from '../interfaces/record';
 import { CollectionSchema } from '../interfaces/schema';

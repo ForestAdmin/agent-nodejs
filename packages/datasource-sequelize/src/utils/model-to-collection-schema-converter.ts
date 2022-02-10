@@ -1,16 +1,15 @@
 import {
-  AbstractDataTypeConstructor,
-  ModelAttributeColumnOptions,
-  ModelAttributes,
-  ModelDefined,
-} from 'sequelize';
-
-import {
   CollectionSchema,
   ColumnSchema,
   FieldSchema,
   FieldTypes,
 } from '@forestadmin/datasource-toolkit';
+import {
+  AbstractDataTypeConstructor,
+  ModelAttributeColumnOptions,
+  ModelAttributes,
+  ModelDefined,
+} from 'sequelize';
 
 import TypeConverter from './type-converter';
 

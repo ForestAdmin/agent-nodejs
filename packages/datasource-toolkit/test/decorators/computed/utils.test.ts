@@ -1,5 +1,5 @@
-import { flatten, unflatten } from '../../../src/decorators/computed/utils/flattener';
 import transformUniqueValues from '../../../src/decorators/computed/utils/deduplication';
+import { flatten, unflatten } from '../../../src/decorators/computed/utils/flattener';
 
 describe('flattener', () => {
   test('unflatten', () => {

@@ -1,6 +1,5 @@
-import { DataTypes, Sequelize } from 'sequelize';
-
 import { SequelizeCollection, SequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import { DataTypes, Sequelize } from 'sequelize';
 
 const prepareDatabase = async (): Promise<Sequelize> => {
   const sequelize = new Sequelize('postgres://example:password@localhost:5442/example');

@@ -5,6 +5,7 @@ import {
   PrimitiveTypes,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+
 import BaseDummyCollection from './base';
 
 export default class LibrariesBooksCollection extends BaseDummyCollection {

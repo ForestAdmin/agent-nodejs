@@ -1,5 +1,6 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import openidClient, { Issuer } from 'openid-client';
+
 import Authentication from '../../../src/routes/security/authentication';
 import { HttpCode } from '../../../src/types';
 import ForestHttpApi from '../../../src/utils/forest-http-api';

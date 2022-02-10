@@ -1,17 +1,17 @@
 import { DataSource, FieldTypes } from '@forestadmin/datasource-toolkit';
+
 import { ForestAdminHttpDriverServices as Services } from '../services';
 import { ForestAdminHttpDriverOptionsWithDefaults as Options } from '../types';
-
-import Authentication from './security/authentication';
-import BaseRoute from './base-route';
 import Count from './access/count';
 import CountRelatedRoute from './access/count-related';
+import Get from './access/get';
+import List from './access/list';
+import BaseRoute from './base-route';
+import HealthCheck from './healthcheck';
 import Create from './modification/create';
 import Delete from './modification/delete';
-import Get from './access/get';
-import HealthCheck from './healthcheck';
-import List from './access/list';
 import Update from './modification/update';
+import Authentication from './security/authentication';
 
 export const RootRoutesCtor = [Authentication, HealthCheck];
 export const CollectionRoutesCtor = [Count, Create, Delete, Get, List, Update];

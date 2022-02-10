@@ -1,6 +1,3 @@
-import { Sequelize } from 'sequelize';
-import sortBy from 'lodash/sortBy';
-
 import {
   Aggregation,
   AggregationOperation,
@@ -16,6 +13,8 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
+import sortBy from 'lodash/sortBy';
+import { Sequelize } from 'sequelize';
 
 import LiveCollection from '../src/collection';
 // eslint-disable-next-line max-len

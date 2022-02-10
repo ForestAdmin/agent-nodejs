@@ -1,4 +1,5 @@
 import { Collection, FieldTypes, SchemaUtils } from '@forestadmin/datasource-toolkit';
+
 import SchemaGeneratorActions from './generator-actions';
 import SchemaGeneratorFields from './generator-fields';
 import SchemaGeneratorSegments from './generator-segments';

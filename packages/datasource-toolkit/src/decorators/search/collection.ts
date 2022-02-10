@@ -1,4 +1,5 @@
 import { DataSource } from '../../interfaces/collection';
+import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
@@ -9,7 +10,6 @@ import {
   FieldTypes,
   PrimitiveTypes,
 } from '../../interfaces/schema';
-import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import TypeGetter from '../../validation/type-getter';
 import CollectionDecorator from '../collection-decorator';
 

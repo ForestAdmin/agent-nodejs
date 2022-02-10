@@ -1,7 +1,7 @@
 import { Action } from './action';
 import Aggregation, { AggregateResult } from './query/aggregation';
-import Filter from './query/filter/unpaginated';
 import PaginatedFilter from './query/filter/paginated';
+import Filter from './query/filter/unpaginated';
 import Projection from './query/projection';
 import { CompositeId, RecordData } from './record';
 import { CollectionSchema } from './schema';

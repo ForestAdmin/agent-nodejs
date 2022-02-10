@@ -1,4 +1,5 @@
 import { Collection, DataSource, RelationSchema } from '@forestadmin/datasource-toolkit';
+
 import { ForestAdminHttpDriverServices } from '../services';
 import { ForestAdminHttpDriverOptionsWithDefaults } from '../types';
 import CollectionRoute from './collection-base-route';

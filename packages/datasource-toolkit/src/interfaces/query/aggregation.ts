@@ -1,5 +1,6 @@
-import hashRecord from 'object-hash';
 import { DateTime } from 'luxon';
+import hashRecord from 'object-hash';
+
 import RecordUtils from '../../utils/record';
 import { RecordData } from '../record';
 import Projection from './projection';

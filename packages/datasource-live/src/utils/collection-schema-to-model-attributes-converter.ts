@@ -1,12 +1,11 @@
-import { DataTypes, ModelAttributeColumnOptions, ModelAttributes } from 'sequelize';
+import { TypeConverter } from '@forestadmin/datasource-sequelize';
 import {
   CollectionSchema,
   ColumnSchema,
   FieldTypes,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
-
-import { TypeConverter } from '@forestadmin/datasource-sequelize';
+import { DataTypes, ModelAttributeColumnOptions, ModelAttributes } from 'sequelize';
 
 export default class CollectionSchemaToModelAttributesConverter {
   public static convert(schema: CollectionSchema): ModelAttributes {

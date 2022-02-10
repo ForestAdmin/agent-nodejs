@@ -1,4 +1,5 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+
 import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
 import * as factories from '../../__factories__';
 

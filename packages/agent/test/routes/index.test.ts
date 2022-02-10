@@ -1,20 +1,19 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+
 import makeRoutes, {
   CollectionRoutesCtor,
   RelatedRoutesCtor,
   RootRoutesCtor,
 } from '../../src/routes';
-
-import Authentication from '../../src/routes/security/authentication';
 import Count from '../../src/routes/access/count';
 import CountRelatedRoute from '../../src/routes/access/count-related';
+import Get from '../../src/routes/access/get';
+import List from '../../src/routes/access/list';
+import HealthCheck from '../../src/routes/healthcheck';
 import Create from '../../src/routes/modification/create';
 import Delete from '../../src/routes/modification/delete';
-import Get from '../../src/routes/access/get';
-import HealthCheck from '../../src/routes/healthcheck';
-import List from '../../src/routes/access/list';
 import Update from '../../src/routes/modification/update';
-
+import Authentication from '../../src/routes/security/authentication';
 import * as factories from '../__factories__';
 
 describe('Route index', () => {
