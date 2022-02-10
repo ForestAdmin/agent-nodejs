@@ -1,20 +1,22 @@
-import { CompositeId, FieldTypes, Projection } from '@forestadmin/datasource-toolkit';
+import {
+  CompositeId,
+  ConditionTreeFactory,
+  FieldTypes,
+  PaginatedFilter,
+  Projection,
+} from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
-import { Context } from 'koa';
+import { Context, HttpError } from 'koa';
 import IdUtils from '../../utils/id';
 import CollectionRoute from '../collection-base-route';
 import { HttpCode } from '../../types';
 
 export default class GetRoute extends CollectionRoute {
-  private static RECORD_NOT_FOUND_ERROR = 'Record does not exist';
-
   override setupPrivateRoutes(router: Router): void {
     router.get(`/${this.collection.name}/:id`, this.handleGet.bind(this));
   }
 
   public async handleGet(context: Context) {
-    const projection = this.buildProjection();
-
     let id: CompositeId;
 
     try {
@@ -24,25 +26,29 @@ export default class GetRoute extends CollectionRoute {
     }
 
     try {
-      const record = await this.collection.getById(id, projection);
+      const filter = new PaginatedFilter({
+        conditionTree: ConditionTreeFactory.intersect(
+          ConditionTreeFactory.matchIds(this.collection.schema, [id]),
+          await this.services.scope.getConditionTree(this.collection, context),
+        ),
+      });
 
-      if (!record) {
-        throw new Error(GetRoute.RECORD_NOT_FOUND_ERROR);
-      }
+      const records = await this.collection.list(filter, this.buildProjection());
 
-      context.response.body = this.services.serializer.serialize(this.collection, record);
-    } catch (error) {
-      if (error.message === GetRoute.RECORD_NOT_FOUND_ERROR) {
+      if (!records.length) {
         context.throw(
           HttpCode.NotFound,
           `Record id ${id} does not exist on collection "${this.collection.name}"`,
         );
-      } else {
-        context.throw(
-          HttpCode.InternalServerError,
-          `Failed to get record using id ${id} on collection "${this.collection.name}"`,
-        );
       }
+
+      context.response.body = this.services.serializer.serialize(this.collection, records[0]);
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      context.throw(
+        HttpCode.InternalServerError,
+        `Failed to get record using id ${id} on collection "${this.collection.name}"`,
+      );
     }
   }
 

@@ -3,6 +3,7 @@ import {
   AggregationOperation,
   CollectionUtils,
   CompositeId,
+  ConditionTreeFactory,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
@@ -30,7 +31,10 @@ export default class CountRelatedRoute extends RelationRoute {
     }
 
     const paginatedFilter = new PaginatedFilter({
-      conditionTree: QueryStringParser.parseConditionTree(this.foreignCollection, context),
+      conditionTree: ConditionTreeFactory.intersect(
+        QueryStringParser.parseConditionTree(this.foreignCollection, context),
+        await this.services.scope.getConditionTree(this.foreignCollection, context),
+      ),
       search: QueryStringParser.parseSearch(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.foreignCollection, context),

@@ -10,11 +10,8 @@ import { PrimitiveTypes } from '../../src/interfaces/schema';
 describe('ConditionTree', () => {
   describe('Factory', () => {
     describe('intersect', () => {
-      test('intersect() an empty list should return an empty And', () => {
-        expect(ConditionTreeFactory.intersect()).toEqual({
-          aggregator: Aggregator.And,
-          conditions: [],
-        });
+      test('intersect() an empty list should return null', () => {
+        expect(ConditionTreeFactory.intersect()).toBe(null);
       });
 
       test('intersect() should return the parameter when called with only one param', () => {

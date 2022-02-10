@@ -29,7 +29,10 @@ export default class UpdateRoute extends CollectionRoute {
     }
 
     try {
-      const conditionTree = ConditionTreeFactory.matchIds(this.collection.schema, [id]);
+      const conditionTree = ConditionTreeFactory.intersect(
+        ConditionTreeFactory.matchIds(this.collection.schema, [id]),
+        await this.services.scope.getConditionTree(this.collection, context),
+      );
       await this.collection.update(new Filter({ conditionTree }), record);
 
       context.response.status = HttpCode.NoContent;

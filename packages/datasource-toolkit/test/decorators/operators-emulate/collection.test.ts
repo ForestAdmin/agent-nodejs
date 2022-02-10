@@ -7,6 +7,7 @@ import ConditionTreeLeaf, {
 } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Projection from '../../../src/interfaces/query/projection';
+import { RecordData } from '../../../src/interfaces/record';
 import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
 import * as factories from '../../__factories__';
 
@@ -265,15 +266,8 @@ describe('OperatorsEmulate', () => {
         // Mock book list() implementation.
         (books.list as jest.Mock).mockImplementation(
           (filter: PaginatedFilter, projection: Projection) => {
-            const childRecords = [
-              { id: 1, title: 'Beat the dealer' },
-              { id: 2, title: 'Foundation' },
-              { id: 3, title: 'Papillon' },
-            ];
-
             // Ensure no forbideen operator is used
-            const conditionTree = filter?.conditionTree ?? ConditionTreeFactory.MatchAll;
-            const usingForbiddenOperator = conditionTree.someLeaf(
+            const usingForbiddenOperator = filter?.conditionTree?.someLeaf(
               ({ field, operator }) =>
                 field !== 'id' &&
                 !(books.schema.fields.id as ColumnSchema).filterOperators.has(operator),
@@ -281,7 +275,18 @@ describe('OperatorsEmulate', () => {
 
             expect(usingForbiddenOperator).toBeFalsy();
 
-            return conditionTree.apply(projection.apply(childRecords), books, 'Europe/Paris');
+            // Perform request
+            let childRecords: RecordData[] = [
+              { id: 1, title: 'Beat the dealer' },
+              { id: 2, title: 'Foundation' },
+              { id: 3, title: 'Papillon' },
+            ];
+
+            if (filter?.conditionTree) {
+              childRecords = filter.conditionTree.apply(childRecords, books, 'Europe/Paris');
+            }
+
+            return projection.apply(childRecords);
           },
         );
 

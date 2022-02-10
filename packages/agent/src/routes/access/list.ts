@@ -1,4 +1,4 @@
-import { PaginatedFilter } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, PaginatedFilter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import QueryStringParser from '../../utils/query-string';
@@ -11,7 +11,10 @@ export default class ListRoute extends CollectionRoute {
 
   public async handleList(context: Context) {
     const paginatedFilter = new PaginatedFilter({
-      conditionTree: QueryStringParser.parseConditionTree(this.collection, context),
+      conditionTree: ConditionTreeFactory.intersect(
+        QueryStringParser.parseConditionTree(this.collection, context),
+        await this.services.scope.getConditionTree(this.collection, context),
+      ),
       search: QueryStringParser.parseSearch(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.collection, context),
