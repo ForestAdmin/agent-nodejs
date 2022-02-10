@@ -30,9 +30,10 @@ export default class CountRelatedRoute extends RelationRoute {
     }
 
     const paginatedFilter = new PaginatedFilter({
+      conditionTree: QueryStringParser.parseConditionTree(this.foreignCollection, context),
       search: QueryStringParser.parseSearch(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
-      segment: QueryStringParser.parseSegment(this.collection, context),
+      segment: QueryStringParser.parseSegment(this.foreignCollection, context),
       timezone: QueryStringParser.parseTimezone(context),
     });
 
