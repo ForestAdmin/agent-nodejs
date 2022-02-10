@@ -43,28 +43,16 @@ export default class TypeGetter {
     value: Array<unknown>,
     typeContext?: PrimitiveTypes,
   ): ValidationTypes | PrimitiveTypes | null {
-    if (value.length === 0) {
-      return ValidationTypes.EmptyArray;
-    }
+    if (value.length === 0) return ValidationTypes.EmptyArray;
 
-    if (value.every(item => TypeGetter.get(item) === PrimitiveTypes.Number)) {
-      return ValidationTypes.ArrayOfNumber;
-    }
+    if (TypeGetter.isArrayOf(PrimitiveTypes.Number, value)) return ValidationTypes.ArrayOfNumber;
+    if (TypeGetter.isArrayOf(PrimitiveTypes.Uuid, value)) return ValidationTypes.ArrayOfUuid;
+    if (TypeGetter.isArrayOf(PrimitiveTypes.Boolean, value)) return ValidationTypes.ArrayOfBoolean;
 
-    if (value.every(item => TypeGetter.get(item) === PrimitiveTypes.Uuid)) {
-      return ValidationTypes.ArrayOfUuid;
-    }
-
-    const isArrayOfString = value.every(item => TypeGetter.get(item) === PrimitiveTypes.String);
-
-    if (isArrayOfString) {
+    if (TypeGetter.isArrayOf(PrimitiveTypes.String, value)) {
       return typeContext === PrimitiveTypes.Enum
         ? ValidationTypes.ArrayOfEnum
         : ValidationTypes.ArrayOfString;
-    }
-
-    if (value.every(item => TypeGetter.get(item) === PrimitiveTypes.Boolean)) {
-      return ValidationTypes.ArrayOfBoolean;
     }
 
     return null;
@@ -146,5 +134,9 @@ export default class TypeGetter {
     } catch {
       return false;
     }
+  }
+
+  private static isArrayOf(type: PrimitiveTypes, values: Array<unknown>) {
+    return values.every(item => TypeGetter.get(item) === type);
   }
 }
