@@ -2,7 +2,6 @@ import {
   CollectionSchema,
   DataSourceSchema,
   FieldTypes,
-  Operator,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
 import { LiveDataSource } from '@forestadmin/datasource-live';
