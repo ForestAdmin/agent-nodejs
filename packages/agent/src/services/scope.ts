@@ -8,7 +8,7 @@ type ScopeOptions = Pick<
   'forestServerUrl' | 'envSecret' | 'scopesCacheDurationInSeconds'
 >;
 
-type ScopeCacheEntry = { fetchedAt: Date; scopes: ScopeByCollection };
+type ScopeCacheEntry = { fetchedAt: Date; scopes: Promise<ScopeByCollection> };
 type Scope = ScopeByCollection[string];
 
 export default class ScopeService {
@@ -26,43 +26,64 @@ export default class ScopeService {
 
   /** Adds relevant filters to the concerned requests */
   async getConditionTree(collection: Collection, ctx: Context): Promise<ConditionTree> {
-    const { id: userId, renderingId } = ctx.state.user;
-    const scope = await this.getScope(renderingId, collection.name);
+    const { user } = ctx.state;
+    const scope = await this.getScope(user.renderingId, collection.name);
 
-    if (!scope) return ConditionTreeFactory.MatchAll;
+    if (!scope) {
+      return ConditionTreeFactory.MatchAll;
+    }
 
-    const dynamicUserValues = scope.dynamicScopesValues?.users?.[userId];
+    const dynamicUserValues = scope.dynamicScopesValues?.[user.id] ?? {};
 
-    return scope.conditionTree.replaceLeafs(leaf =>
-      typeof leaf.value === 'string' && leaf.value.startsWith('$currentUser')
-        ? leaf.override({ value: dynamicUserValues[leaf.value] ?? leaf.value })
-        : leaf,
-    );
+    return scope.conditionTree.replaceLeafs(leaf => {
+      if (typeof leaf.value !== 'string' || !leaf.value.startsWith('$currentUser')) {
+        return leaf;
+      }
+
+      const key = leaf.value.substring('$currentUser.'.length);
+
+      // Fallback to searching the information in the JWT token when we fail to get it in the
+      // hashmap sent from the server
+      let value: unknown;
+
+      if (dynamicUserValues[leaf.value]) {
+        value = dynamicUserValues?.[leaf.value];
+      } else if (user[key]) {
+        value = user[key];
+      } else if (key.startsWith('tags.') && user?.tags.find(tag => `tags.${tag.key}` === key)) {
+        value = user?.tags.find(tag => `tags.${tag.key}` === key).value;
+      } else {
+        throw new Error(`Failed to resolve value for replacement string '${leaf.value}'`);
+      }
+
+      return leaf.override({ value });
+    });
   }
 
   /** Get scope definition from forestadmin-server */
   private async getScope(renderingId: number, collectionName: string): Promise<Scope> {
-    const cacheEntry = this.cache[renderingId];
-    let rebuildCache: boolean;
+    // Do not use 'await' in this section to avoid double fetching.
+    // [synchronous section]
+    let shouldRefetch: boolean;
 
-    if (cacheEntry) {
-      const age = new Date().valueOf() - cacheEntry.fetchedAt.valueOf();
+    if (this.cache[renderingId]) {
+      const age = new Date().valueOf() - this.cache[renderingId].fetchedAt.valueOf();
       const expiration = this.options.scopesCacheDurationInSeconds * 1000;
-      rebuildCache = age > expiration;
+      shouldRefetch = age > expiration;
     } else {
-      rebuildCache = true;
+      shouldRefetch = true;
     }
 
-    if (rebuildCache) {
-      try {
-        const scopes = await ForestHttpApi.getScopes(this.options, renderingId);
-
-        this.cache[renderingId] = { fetchedAt: new Date(), scopes };
-      } catch (e) {
-        throw new Error(`Failed to refresh scopes for collection: ${collectionName}`);
-      }
+    if (shouldRefetch) {
+      this.cache[renderingId] = {
+        fetchedAt: new Date(),
+        scopes: ForestHttpApi.getScopes(this.options, renderingId),
+      };
     }
+    // [/synchronous section]
 
-    return this.cache[renderingId]?.scopes?.[collectionName];
+    const scopesByCollection = await this.cache[renderingId].scopes;
+
+    return scopesByCollection?.[collectionName];
   }
 }

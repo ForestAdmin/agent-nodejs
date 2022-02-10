@@ -29,9 +29,7 @@ export type UserInfo = {
 export type ScopeByCollection = {
   [collectionName: string]: {
     conditionTree: ConditionTree;
-    dynamicScopesValues: {
-      users: Record<string, Record<string, unknown>>;
-    };
+    dynamicScopesValues: Record<string, Record<string, unknown>>;
   };
 };
 
@@ -156,7 +154,7 @@ export default class ForestHttpApi {
       for (const [collection, data] of Object.entries<any>(response.body)) {
         result[collection] = {
           conditionTree: ConditionTreeFactory.fromPlainObject(data.scope.filter),
-          dynamicScopeValues: data.scope.dynamicScopeValues,
+          dynamicScopeValues: data.scope.dynamicScopesValues?.users ?? {},
         };
       }
 
