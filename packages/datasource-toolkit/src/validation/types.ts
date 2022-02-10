@@ -1,8 +1,9 @@
 enum ValidationTypes {
-  ArrayOfEnum = 'ArrayOfEnum',
   ArrayOfBoolean = 'ArrayOfBoolean',
+  ArrayOfEnum = 'ArrayOfEnum',
   ArrayOfNumber = 'ArrayOfNumber',
   ArrayOfString = 'ArrayOfString',
+  ArrayOfUuid = 'ArrayOfUuid',
   EmptyArray = 'EmptyArray',
 }
 

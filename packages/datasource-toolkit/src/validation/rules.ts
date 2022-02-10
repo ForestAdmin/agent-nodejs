@@ -63,7 +63,7 @@ export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
   [PrimitiveTypes.Json]: [Operator.Blank, Operator.Missing, Operator.Present],
   [PrimitiveTypes.Boolean]: BASE_OPERATORS,
   [PrimitiveTypes.Point]: BASE_OPERATORS,
-  [PrimitiveTypes.Uuid]: BASE_OPERATORS,
+  [PrimitiveTypes.Uuid]: [...BASE_OPERATORS, Operator.In],
 });
 
 export const MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
@@ -78,7 +78,7 @@ export const MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
   [PrimitiveTypes.Json]: [PrimitiveTypes.Json],
   [PrimitiveTypes.Point]: [PrimitiveTypes.Point],
   [PrimitiveTypes.Timeonly]: [PrimitiveTypes.Timeonly],
-  [PrimitiveTypes.Uuid]: [PrimitiveTypes.Uuid],
+  [PrimitiveTypes.Uuid]: [PrimitiveTypes.Uuid, ValidationTypes.ArrayOfUuid],
 });
 
 function computeAllowedTypesForOperators(): Record<Operator, PrimitiveTypes[]> {
@@ -104,16 +104,17 @@ export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<
   ...computeAllowedTypesForOperators(),
   [Operator.Blank]: NO_TYPES_ALLOWED,
   [Operator.In]: [
+    ValidationTypes.ArrayOfBoolean,
     ValidationTypes.ArrayOfEnum,
     ValidationTypes.ArrayOfNumber,
     ValidationTypes.ArrayOfString,
-    ValidationTypes.ArrayOfBoolean,
+    ValidationTypes.ArrayOfUuid,
   ],
   [Operator.IncludesAll]: [
+    ValidationTypes.ArrayOfBoolean,
     ValidationTypes.ArrayOfEnum,
     ValidationTypes.ArrayOfNumber,
     ValidationTypes.ArrayOfString,
-    ValidationTypes.ArrayOfBoolean,
   ],
   [Operator.Missing]: NO_TYPES_ALLOWED,
   [Operator.Present]: NO_TYPES_ALLOWED,

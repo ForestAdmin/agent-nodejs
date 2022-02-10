@@ -51,6 +51,10 @@ export default class TypeGetter {
       return ValidationTypes.ArrayOfNumber;
     }
 
+    if (value.every(item => TypeGetter.get(item) === PrimitiveTypes.Uuid)) {
+      return ValidationTypes.ArrayOfUuid;
+    }
+
     const isArrayOfString = value.every(item => TypeGetter.get(item) === PrimitiveTypes.String);
 
     if (isArrayOfString) {
