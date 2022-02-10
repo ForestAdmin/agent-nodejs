@@ -34,11 +34,11 @@ export default class SortEmulate extends CollectionDecorator {
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    const childFilter = filter?.override({
-      sort: filter?.sort.replaceClauses(clause => this.rewriteSortClause(clause)),
+    const childFilter = filter.override({
+      sort: filter.sort?.replaceClauses(clause => this.rewriteSortClause(clause)),
     });
 
-    if (!childFilter?.sort?.some(({ field }) => this.isEmulated(field))) {
+    if (!childFilter.sort?.some(({ field }) => this.isEmulated(field))) {
       return this.childCollection.list(childFilter, projection);
     }
 
