@@ -1,10 +1,5 @@
 import { DataTypes, Sequelize } from 'sequelize';
-import {
-  CollectionSchema,
-  FieldTypes,
-  Operator,
-  PrimitiveTypes,
-} from '@forestadmin/datasource-toolkit';
+import { CollectionSchema, FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 // eslint-disable-next-line max-len
 import ModelToCollectionSchemaConverter from '../../src/utils/model-to-collection-schema-converter';

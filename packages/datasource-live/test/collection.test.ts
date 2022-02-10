@@ -5,6 +5,7 @@ import {
   Aggregation,
   AggregationOperation,
   CollectionSchema,
+  ColumnSchema,
   ConditionTreeLeaf,
   DataSource,
   FieldTypes,
@@ -38,8 +39,12 @@ const compositeKeyCollectionSchema: CollectionSchema = {
     },
     value: {
       columnType: PrimitiveTypes.String,
-      filterOperators: new Set<Operator>(),
       type: FieldTypes.Column,
+    },
+    link: {
+      type: FieldTypes.OneToMany,
+      foreignCollection: '__another__',
+      foreignKey: 'id',
     },
   },
   searchable: false,
@@ -151,6 +156,16 @@ describe('LiveDataSource > Collection', () => {
     const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
     expect(liveCollection).toBeDefined();
+  });
+
+  it('should set FilterOperators where not predefined', () => {
+    const { liveCollection } = instanciateCollection(liveCollectionSchema);
+
+    const valueFieldOperators = (liveCollection.schema.fields.value as ColumnSchema)
+      .filterOperators;
+
+    expect(valueFieldOperators).toBeInstanceOf(Set);
+    expect(valueFieldOperators.has(Operator.In)).toBe(true);
   });
 
   describe('sync', () => {

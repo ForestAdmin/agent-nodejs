@@ -57,11 +57,12 @@ describe('Utils > TypeConverter', () => {
         ],
         [
           'Numerical',
-          [DataTypes.INTEGER],
+          [DataTypes.BIGINT],
           [
             Operator.Blank,
             Operator.Equal,
             Operator.GreaterThan,
+            Operator.In,
             Operator.LessThan,
             Operator.Missing,
             Operator.NotEqual,
@@ -70,12 +71,13 @@ describe('Utils > TypeConverter', () => {
         ],
         [
           'Textual',
-          [DataTypes.STRING],
+          [DataTypes.CHAR],
           [
             Operator.Blank,
             Operator.Contains,
             Operator.EndsWith,
             Operator.Equal,
+            Operator.In,
             Operator.Like,
             Operator.LongerThan,
             Operator.Missing,
@@ -101,6 +103,8 @@ describe('Utils > TypeConverter', () => {
             Operator.AfterXHoursAgo,
             Operator.BeforeXHoursAgo,
             Operator.Future,
+            Operator.GreaterThan,
+            Operator.LessThan,
             Operator.Past,
             Operator.PreviousMonthToDate,
             Operator.PreviousMonth,
@@ -126,6 +130,7 @@ describe('Utils > TypeConverter', () => {
           [DataTypes.JSON],
           [Operator.Blank, Operator.Equal, Operator.Missing, Operator.NotEqual, Operator.Present],
         ],
+        ['Unsupported', [DataTypes.BLOB], []],
       ])('with "%s" types', (message, dataTypes, operatorList) => {
         it.each([dataTypes])(
           'should return the matching set of operators for type "%s"',
