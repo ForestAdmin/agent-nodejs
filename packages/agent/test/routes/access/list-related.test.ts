@@ -52,7 +52,7 @@ describe('ListRelatedRoute', () => {
     return createMockContext({ customProperties });
   };
 
-  test('should register the relation private routes', () => {
+  test('should register the relation private route', () => {
     const { services, dataSource, options, router } = setup();
 
     const count = new ListRelatedRoute(
@@ -132,9 +132,9 @@ describe('ListRelatedRoute', () => {
           'myPersons',
         );
 
-        const projectionParamsMalformed = { 'fields[persons]': 'id,BAD_ATTRIBUTE' };
+        const malformedProjectionParams = { 'fields[persons]': 'id,BAD_ATTRIBUTE' };
         const customProperties = {
-          query: { ...projectionParamsMalformed, timezone: 'Europe/Paris' },
+          query: { ...malformedProjectionParams, timezone: 'Europe/Paris' },
           params: { parentId: '1523' },
         };
         const context = createMockContext({ customProperties });
