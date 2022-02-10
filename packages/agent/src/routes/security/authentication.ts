@@ -86,7 +86,7 @@ export default class Authentication extends BaseRoute {
       state,
     });
 
-    let renderingId: string;
+    let renderingId: number;
 
     try {
       // Load User from forestadmin-server

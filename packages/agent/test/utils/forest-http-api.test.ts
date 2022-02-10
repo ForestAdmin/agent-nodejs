@@ -167,7 +167,7 @@ describe('ForestHttpApi', () => {
       }));
       superagentMock.set = secondSetSpy;
 
-      await ForestHttpApi.getUserInformation(options, '1', 'tokenset');
+      await ForestHttpApi.getUserInformation(options, 1, 'tokenset');
 
       expect(firstSetSpy).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
       expect(secondSetSpy).toHaveBeenCalledWith('forest-token', 'tokenset');
@@ -180,7 +180,7 @@ describe('ForestHttpApi', () => {
       test('should return the openid configuration', async () => {
         superagentMock.set.mockReturnValue({ ...body, set: () => body });
 
-        const result = await ForestHttpApi.getUserInformation(options, '1', 'tokenset');
+        const result = await ForestHttpApi.getUserInformation(options, 1, 'tokenset');
 
         expect(result).toStrictEqual({
           id: user.id,
@@ -190,7 +190,7 @@ describe('ForestHttpApi', () => {
           team: user.teams[0],
           role: user.role,
           tags: user.tags,
-          renderingId: '1',
+          renderingId: 1,
         });
       });
     });
@@ -203,7 +203,7 @@ describe('ForestHttpApi', () => {
           },
         }));
 
-        const result = ForestHttpApi.getUserInformation(options, '1', 'tokenset');
+        const result = ForestHttpApi.getUserInformation(options, 1, 'tokenset');
         await expect(result).rejects.toThrow('Failed to retrieve authorization informations.');
       });
     });
