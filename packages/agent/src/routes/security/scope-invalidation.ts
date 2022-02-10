@@ -9,10 +9,15 @@ export default class ScopeInvalidation extends BaseRoute {
   }
 
   /** Route called when scopes are modified so that we don't have to wait for expiration. */
-  private async invalidateCache(ctx: Context): Promise<void> {
-    const { renderingId } = ctx.request.body;
+  private async invalidateCache(context: Context): Promise<void> {
+    const renderingId = Number(context.request.body?.renderingId);
+
+    if (Number.isNaN(renderingId)) {
+      context.throw(HttpCode.BadRequest, 'Malformed body');
+    }
+
     this.services.scope.invalidateCache(renderingId);
 
-    ctx.response.status = HttpCode.NoContent;
+    context.response.status = HttpCode.NoContent;
   }
 }
