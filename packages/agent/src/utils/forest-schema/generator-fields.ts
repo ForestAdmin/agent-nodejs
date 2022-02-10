@@ -65,16 +65,27 @@ export default class SchemaGeneratorFields {
     const [primaryKey] = SchemaUtils.getPrimaryKeys(foreignCollection.schema);
     const primaryKeySchema = foreignCollection.schema.fields[primaryKey] as ColumnSchema;
 
+    // Not sure what is meant by knowing if a relation is filterable or not.
+    // => let's say that the relation is filterable if at least one field in the target can
+    // be filtered for many to one / one to one.
+    const isFilterable =
+      (relation.type === FieldTypes.ManyToOne || relation.type === FieldTypes.OneToOne) &&
+      Object.values(foreignCollection.schema.fields).some(
+        field =>
+          field.type === FieldTypes.Column &&
+          FrontendFilterableUtils.isFilterable(field.columnType, field.filterOperators),
+      );
+
     return {
       defaultValue: null,
       enums: null,
       field: name,
       integration: null,
       inverseOf: CollectionUtils.getInverseRelation(collection, name),
-      isFilterable: false,
+      isFilterable,
       isPrimaryKey: false,
       isReadOnly: false,
-      isRequired: false,
+      isRequired: false, // @fixme for many to one / one to one we need to check the fk
       isSortable: false,
       isVirtual: false,
       reference: `${foreignCollection.name}.${primaryKey}`,
