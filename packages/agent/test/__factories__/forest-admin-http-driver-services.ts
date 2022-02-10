@@ -5,5 +5,5 @@ import factoryScope from './scope';
 
 export default Factory.define<ForestAdminHttpDriverServices>(() => ({
   serializer: factorySerializer.build(),
-  scope: factoryScope.build(),
+  scope: factoryScope.mockAllMethods().build(),
 }));

@@ -9,6 +9,7 @@ export class SuperAgentFactory extends Factory<any> {
       superagentInstance.get = jest.fn().mockReturnThis();
       superagentInstance.send = jest.fn().mockReturnThis();
       superagentInstance.post = jest.fn().mockReturnThis();
+      superagentInstance.query = jest.fn().mockReturnThis();
     });
   }
 }

@@ -85,7 +85,7 @@ export default class ForestHttpApi {
       const { attributes } = response.body.data;
 
       return {
-        id: attributes.id,
+        id: response.body.id,
         email: attributes.email,
         firstName: attributes.first_name,
         lastName: attributes.last_name,
@@ -143,7 +143,7 @@ export default class ForestHttpApi {
     }
   }
 
-  static async getScopes(options: HttpOptions, renderingId: string): Promise<ScopeByCollection> {
+  static async getScopes(options: HttpOptions, renderingId: number): Promise<ScopeByCollection> {
     try {
       const response = await superagent
         .get(`${options.forestServerUrl}/liana/scopes`)

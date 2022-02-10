@@ -41,7 +41,7 @@ export default class ScopeService {
   }
 
   /** Get scope definition from forestadmin-server */
-  private async getScope(renderingId: string, collectionName: string): Promise<Scope> {
+  private async getScope(renderingId: number, collectionName: string): Promise<Scope> {
     const cacheEntry = this.cache[renderingId];
     let rebuildCache: boolean;
 

@@ -1,3 +1,4 @@
+import { ConditionTreeLeaf, Operator } from '@forestadmin/datasource-toolkit';
 import ForestHttpApi from '../../src/utils/forest-http-api';
 import * as factories from '../__factories__';
 
@@ -154,9 +155,9 @@ describe('ForestHttpApi', () => {
 
     const body = {
       body: {
+        id: '1',
         data: {
           attributes: user,
-          id: '1',
         },
       },
     };
@@ -287,6 +288,50 @@ describe('ForestHttpApi', () => {
         await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(
           /Please contact support@forestadmin.com/,
         );
+      });
+    });
+  });
+
+  describe('getScopes', () => {
+    test('should fetch the correct end point with the env secret', async () => {
+      superagentMock.query.mockResolvedValue({ body: {} });
+
+      await ForestHttpApi.getScopes(options, 1);
+
+      expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
+      expect(superagentMock.query).toHaveBeenCalledWith('renderingId=1');
+      expect(superagentMock.get).toHaveBeenCalledWith('https://api.url/liana/scopes');
+    });
+
+    describe('when the call succeeds', () => {
+      test('should return the correct value', async () => {
+        superagentMock.query.mockResolvedValue({
+          body: {
+            books: {
+              scope: {
+                filter: { field: 'something', operator: 'equal', value: 32 },
+                dynamicScopeValues: {},
+              },
+            },
+          },
+        });
+
+        const result = await ForestHttpApi.getScopes(options, 1);
+
+        expect(result).toStrictEqual({
+          books: {
+            conditionTree: new ConditionTreeLeaf('something', Operator.Equal, 32),
+            dynamicScopeValues: {},
+          },
+        });
+      });
+    });
+
+    describe('when the call fails', () => {
+      test('should throw an error', async () => {
+        superagentMock.query.mockRejectedValue(new Error());
+
+        await expect(ForestHttpApi.getScopes(options, 1)).rejects.toThrow();
       });
     });
   });
