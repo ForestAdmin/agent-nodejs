@@ -8,15 +8,10 @@ describe('ConditionTreeValidation', () => {
   describe('validate', () => {
     describe('when the field(s) does not exist in the schema', () => {
       it('should throw an error', () => {
-        const conditionTree = factories.conditionTreeBranch.build({
-          aggregator: Aggregator.Or,
-          conditions: [
-            factories.conditionTreeLeaf.build({
-              operator: Operator.Equal,
-              value: 'targetValue',
-              field: 'fieldDoesNotExistInSchema',
-            }),
-          ],
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.Equal,
+          value: 'targetValue',
+          field: 'fieldDoesNotExistInSchema',
         });
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
@@ -75,20 +70,10 @@ describe('ConditionTreeValidation', () => {
             }),
           ]);
 
-          const conditionTree = factories.conditionTreeBranch.build({
-            aggregator: Aggregator.Or,
-            conditions: [
-              factories.conditionTreeBranch.build({
-                aggregator: Aggregator.Or,
-                conditions: [
-                  factories.conditionTreeLeaf.build({
-                    operator: Operator.Equal,
-                    value: '2d162303-78bf-599e-b197-93590ac3d315',
-                    field: 'author:id',
-                  }),
-                ],
-              }),
-            ],
+          const conditionTree = factories.conditionTreeLeaf.build({
+            operator: Operator.Equal,
+            value: '2d162303-78bf-599e-b197-93590ac3d315',
+            field: 'author:id',
           });
 
           expect(() =>
@@ -102,20 +87,15 @@ describe('ConditionTreeValidation', () => {
           const conditionTree = factories.conditionTreeBranch.build({
             aggregator: Aggregator.Or,
             conditions: [
-              factories.conditionTreeBranch.build({
-                aggregator: Aggregator.Or,
-                conditions: [
-                  factories.conditionTreeLeaf.build({
-                    operator: Operator.Equal,
-                    value: 'targetValue',
-                    field: 'target',
-                  }),
-                  factories.conditionTreeLeaf.build({
-                    operator: Operator.Equal,
-                    value: 'targetValue',
-                    field: 'fieldDoesNotExistInSchema',
-                  }),
-                ],
+              factories.conditionTreeLeaf.build({
+                operator: Operator.Equal,
+                value: 'targetValue',
+                field: 'target',
+              }),
+              factories.conditionTreeLeaf.build({
+                operator: Operator.Equal,
+                value: 'targetValue',
+                field: 'fieldDoesNotExistInSchema',
               }),
             ],
           });
@@ -139,15 +119,10 @@ describe('ConditionTreeValidation', () => {
 
     describe('when the field(s) exist', () => {
       it('should not throw an error', () => {
-        const conditionTree = factories.conditionTreeBranch.build({
-          aggregator: Aggregator.Or,
-          conditions: [
-            factories.conditionTreeLeaf.build({
-              operator: Operator.Equal,
-              value: 'targetValue',
-              field: 'target',
-            }),
-          ],
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.Equal,
+          value: 'targetValue',
+          field: 'target',
         });
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
@@ -168,20 +143,15 @@ describe('ConditionTreeValidation', () => {
           const conditionTree = factories.conditionTreeBranch.build({
             aggregator: Aggregator.Or,
             conditions: [
-              factories.conditionTreeBranch.build({
-                aggregator: Aggregator.Or,
-                conditions: [
-                  factories.conditionTreeLeaf.build({
-                    operator: Operator.Equal,
-                    value: 'targetValue',
-                    field: 'target',
-                  }),
-                  factories.conditionTreeLeaf.build({
-                    operator: Operator.Equal,
-                    value: 'targetValue',
-                    field: 'target',
-                  }),
-                ],
+              factories.conditionTreeLeaf.build({
+                operator: Operator.Equal,
+                value: 'targetValue',
+                field: 'target',
+              }),
+              factories.conditionTreeLeaf.build({
+                operator: Operator.Equal,
+                value: 'targetValue',
+                field: 'target',
               }),
             ],
           });
@@ -205,15 +175,10 @@ describe('ConditionTreeValidation', () => {
 
     describe('when the field has an operator incompatible with the schema type', () => {
       it('should throw an error', () => {
-        const conditionTree = factories.conditionTreeBranch.build({
-          aggregator: Aggregator.Or,
-          conditions: [
-            factories.conditionTreeLeaf.build({
-              operator: Operator.Contains,
-              field: 'target',
-              value: 'subValue',
-            }),
-          ],
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.Contains,
+          field: 'target',
+          value: 'subValue',
         });
 
         const collection = factories.collection.build({
@@ -237,15 +202,10 @@ describe('ConditionTreeValidation', () => {
 
     describe('when the operator is incompatible with the given value', () => {
       it('should throw an error', () => {
-        const conditionTree = factories.conditionTreeBranch.build({
-          aggregator: Aggregator.Or,
-          conditions: [
-            factories.conditionTreeLeaf.build({
-              operator: Operator.GreaterThan,
-              field: 'target',
-              value: null,
-            }),
-          ],
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.GreaterThan,
+          field: 'target',
+          value: null,
         });
 
         const collection = factories.collection.build({
@@ -269,15 +229,10 @@ describe('ConditionTreeValidation', () => {
 
     describe('when the value is not compatible with the column type', () => {
       it('should throw an error', () => {
-        const conditionTree = factories.conditionTreeBranch.build({
-          aggregator: Aggregator.Or,
-          conditions: [
-            factories.conditionTreeLeaf.build({
-              operator: Operator.In,
-              value: [1, 2, 3],
-              field: 'target',
-            }),
-          ],
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.In,
+          value: [1, 2, 3],
+          field: 'target',
         });
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
@@ -296,22 +251,57 @@ describe('ConditionTreeValidation', () => {
       });
     });
 
+    describe('when the field is an UUID', () => {
+      it('should not throw an error when a list of uuid is given', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.In,
+          value: ['2d162303-78bf-599e-b197-93590ac3d315', '2d162303-78bf-599e-b197-93590ac3d315'],
+          field: 'uuidField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              uuidField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Uuid,
+                filterOperators: new Set(Object.values(Operator)),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+      });
+
+      it('should throw an error when at least one uuid is malformed', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.In,
+          value: [
+            '2d162303-78bf-599e-b197-93590ac3d315',
+            'malformed-2d162303-78bf-599e-b197-93590ac3d315',
+          ],
+          field: 'uuidField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              uuidField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Uuid,
+                filterOperators: new Set(Object.values(Operator)),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow();
+      });
+    });
+
     describe('when the field is an enum', () => {
       it('should throw an error when the field value is not a valid enum', () => {
-        const conditionTree = factories.conditionTreeBranch.build({
-          aggregator: Aggregator.Or,
-          conditions: [
-            factories.conditionTreeBranch.build({
-              aggregator: Aggregator.Or,
-              conditions: [
-                factories.conditionTreeLeaf.build({
-                  operator: Operator.Equal,
-                  value: 'aRandomValue',
-                  field: 'enumField',
-                }),
-              ],
-            }),
-          ],
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.Equal,
+          value: 'aRandomValue',
+          field: 'enumField',
         });
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
@@ -331,20 +321,10 @@ describe('ConditionTreeValidation', () => {
       });
 
       it('should throw an error when the at least one field value is not a valid enum', () => {
-        const conditionTree = factories.conditionTreeBranch.build({
-          aggregator: Aggregator.Or,
-          conditions: [
-            factories.conditionTreeBranch.build({
-              aggregator: Aggregator.Or,
-              conditions: [
-                factories.conditionTreeLeaf.build({
-                  operator: Operator.In,
-                  value: ['allowedValue', 'aRandomValue'],
-                  field: 'enumField',
-                }),
-              ],
-            }),
-          ],
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.In,
+          value: ['allowedValue', 'aRandomValue'],
+          field: 'enumField',
         });
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
@@ -364,20 +344,10 @@ describe('ConditionTreeValidation', () => {
       });
 
       it('should not throw an error when all enum values are allowed', () => {
-        const conditionTree = factories.conditionTreeBranch.build({
-          aggregator: Aggregator.Or,
-          conditions: [
-            factories.conditionTreeBranch.build({
-              aggregator: Aggregator.Or,
-              conditions: [
-                factories.conditionTreeLeaf.build({
-                  operator: Operator.In,
-                  value: ['allowedValue', 'otherAllowedValue'],
-                  field: 'enumField',
-                }),
-              ],
-            }),
-          ],
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.In,
+          value: ['allowedValue', 'otherAllowedValue'],
+          field: 'enumField',
         });
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
@@ -397,20 +367,10 @@ describe('ConditionTreeValidation', () => {
 
     describe('when the field is a Point', () => {
       it('should not throw an error when the filter value is well formatted', () => {
-        const conditionTree = factories.conditionTreeBranch.build({
-          aggregator: Aggregator.Or,
-          conditions: [
-            factories.conditionTreeBranch.build({
-              aggregator: Aggregator.Or,
-              conditions: [
-                factories.conditionTreeLeaf.build({
-                  operator: Operator.Equal,
-                  value: '-80,20',
-                  field: 'pointField',
-                }),
-              ],
-            }),
-          ],
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.Equal,
+          value: '-80,20',
+          field: 'pointField',
         });
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
@@ -428,20 +388,10 @@ describe('ConditionTreeValidation', () => {
 
       describe('when the field value is not well formatted', () => {
         it('should throw an error', () => {
-          const conditionTree = factories.conditionTreeBranch.build({
-            aggregator: Aggregator.Or,
-            conditions: [
-              factories.conditionTreeBranch.build({
-                aggregator: Aggregator.Or,
-                conditions: [
-                  factories.conditionTreeLeaf.build({
-                    operator: Operator.Equal,
-                    value: '-80, 20, 90',
-                    field: 'pointField',
-                  }),
-                ],
-              }),
-            ],
+          const conditionTree = factories.conditionTreeLeaf.build({
+            operator: Operator.Equal,
+            value: '-80, 20, 90',
+            field: 'pointField',
           });
           const collection = factories.collection.build({
             schema: factories.collectionSchema.build({
