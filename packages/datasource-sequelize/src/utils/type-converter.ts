@@ -82,6 +82,14 @@ export default class TypeConverter {
     return columnType;
   }
 
+  private static readonly baseOperators: Operator[] = [
+    Operator.Blank,
+    Operator.Equal,
+    Operator.Missing,
+    Operator.NotEqual,
+    Operator.Present,
+  ];
+
   public static operatorsForDataType(
     dataType: AbstractDataTypeConstructor | ArrayDataType<AbstractDataTypeConstructor>,
   ): Set<Operator> {
@@ -93,56 +101,39 @@ export default class TypeConverter {
 
     switch (dataTypeName) {
       case 'BOOLEAN':
-        return new Set<Operator>([
-          Operator.Blank,
-          Operator.Equal,
-          Operator.Missing,
-          Operator.NotEqual,
-          Operator.Present,
-        ]);
+        return new Set<Operator>([...this.baseOperators]);
       case 'UUID':
       case 'UUIDV1':
       case 'UUIDV4':
-        return new Set<Operator>([
-          Operator.Blank,
-          Operator.Equal,
-          Operator.Missing,
-          Operator.NotEqual,
-          Operator.Present,
-        ]);
+        return new Set<Operator>([...this.baseOperators]);
       case 'BIGINT':
       case 'DECIMAL':
       case 'DOUBLE':
       case 'FLOAT':
       case 'INTEGER':
       case 'MEDIUMINT':
+      case 'NUMBER':
       case 'REAL':
       case 'SMALLINT':
       case 'TINYINT':
         return new Set<Operator>([
-          Operator.Blank,
-          Operator.Equal,
+          ...this.baseOperators,
           Operator.GreaterThan,
+          Operator.In,
           Operator.LessThan,
-          Operator.Missing,
-          Operator.NotEqual,
-          Operator.Present,
         ]);
       case 'CHAR':
       case 'CITEXT':
       case 'STRING':
       case 'TEXT':
         return new Set<Operator>([
-          Operator.Blank,
+          ...this.baseOperators,
           Operator.Contains,
           Operator.EndsWith,
-          Operator.Equal,
+          Operator.In,
           Operator.Like,
           Operator.LongerThan,
-          Operator.Missing,
           Operator.NotContains,
-          Operator.NotEqual,
-          Operator.Present,
           Operator.ShorterThan,
           Operator.StartsWith,
         ]);
@@ -151,48 +142,34 @@ export default class TypeConverter {
       case 'NOW':
       case 'TIME':
         return new Set<Operator>([
-          Operator.Blank,
-          Operator.Equal,
-          Operator.Missing,
-          Operator.NotEqual,
-          Operator.Present,
-          Operator.Before,
+          ...this.baseOperators,
           // Date operators
           Operator.After,
           Operator.AfterXHoursAgo,
+          Operator.Before,
           Operator.BeforeXHoursAgo,
           Operator.Future,
+          Operator.GreaterThan,
+          Operator.LessThan,
           Operator.Past,
-          Operator.PreviousMonthToDate,
           Operator.PreviousMonth,
-          Operator.PreviousQuarterToDate,
+          Operator.PreviousMonthToDate,
           Operator.PreviousQuarter,
-          Operator.PreviousWeekToDate,
+          Operator.PreviousQuarterToDate,
           Operator.PreviousWeek,
-          Operator.PreviousXDaysToDate,
+          Operator.PreviousWeekToDate,
           Operator.PreviousXDays,
-          Operator.PreviousYearToDate,
+          Operator.PreviousXDaysToDate,
           Operator.PreviousYear,
+          Operator.PreviousYearToDate,
           Operator.Today,
           Operator.Yesterday,
         ]);
       case 'ENUM':
-        return new Set<Operator>([
-          Operator.Blank,
-          Operator.Equal,
-          Operator.Missing,
-          Operator.NotEqual,
-          Operator.Present,
-        ]);
+        return new Set<Operator>([...this.baseOperators]);
       case 'JSON':
       case 'JSONB':
-        return new Set<Operator>([
-          Operator.Blank,
-          Operator.Equal,
-          Operator.Missing,
-          Operator.NotEqual,
-          Operator.Present,
-        ]);
+        return new Set<Operator>([...this.baseOperators]);
       // Unsupported types.
       case 'BLOB':
       case 'CIDR':
