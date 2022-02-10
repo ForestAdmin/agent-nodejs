@@ -129,7 +129,7 @@ export default class CollectionUtils {
 
     const aggregateResults = await relationCollection.aggregate(
       paginatedFilter.override({ conditionTree }),
-      aggregation.nest(relation.originRelation),
+      aggregation.nest(relation.targetRelation),
     );
 
     return CollectionUtils.removePrefixesInResults(aggregateResults, relation);
@@ -179,7 +179,7 @@ export default class CollectionUtils {
 
     const computedConditionTree = isOneToMany
       ? conditionTree
-      : conditionTree?.nest(relation.originRelation);
+      : conditionTree?.nest(relation.targetRelation);
 
     return ConditionTreeFactory.intersect(computedConditionTree, conditionToMatchId);
   }

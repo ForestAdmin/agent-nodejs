@@ -350,7 +350,7 @@ describe('CollectionUtils', () => {
         );
 
         const expectedCondition = ConditionTreeFactory.intersect(
-          baseFilter.conditionTree.nest('myBook'),
+          baseFilter.conditionTree.nest('myLibrary'),
           new ConditionTreeLeaf('bookId', Operator.Equal, 2),
         );
 
@@ -358,7 +358,7 @@ describe('CollectionUtils', () => {
           baseFilter.override({ conditionTree: expectedCondition }),
           new Aggregation({
             operation: AggregationOperation.Max,
-            field: 'myBook:aField',
+            field: 'myLibrary:aField',
           }),
         );
 
@@ -463,7 +463,7 @@ describe('CollectionUtils', () => {
         );
 
         const expectedCondition = ConditionTreeFactory.intersect(
-          paginatedFilter.conditionTree.nest('myBook'),
+          paginatedFilter.conditionTree.nest('myLibrary'),
           new ConditionTreeLeaf('bookId', Operator.Equal, 2),
         );
         expect(dataSource.getCollection('librariesBooks').list).toHaveBeenCalledWith(
@@ -471,7 +471,7 @@ describe('CollectionUtils', () => {
             conditionTree: expectedCondition,
             sort: paginatedFilter.sort,
           }),
-          projection.nest('myLibrary'),
+          projection.nest('myBook'),
         );
 
         expect(listResults).toEqual([{ id: 1, aField: 'aValue' }]);
