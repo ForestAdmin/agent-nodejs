@@ -2,6 +2,7 @@ import { DateTime } from 'luxon';
 import { validate as uuidValidate } from 'uuid';
 
 import { PrimitiveTypes } from '../interfaces/schema';
+import ValidationError from '../errors';
 import ValidationTypes from './types';
 
 export default class TypeGetter {
@@ -10,7 +11,7 @@ export default class TypeGetter {
     typeContext?: PrimitiveTypes,
   ): PrimitiveTypes | ValidationTypes | null {
     if (typeContext && !Object.values(PrimitiveTypes).includes(typeContext)) {
-      throw new Error(`Unexpected value of type: ${typeContext}`);
+      throw new ValidationError(`Unexpected value of type: ${typeContext}`);
     }
 
     if (Array.isArray(value)) return TypeGetter.getArrayType(value, typeContext);

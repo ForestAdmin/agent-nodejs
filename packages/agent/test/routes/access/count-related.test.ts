@@ -5,6 +5,7 @@ import {
   ConditionTreeLeaf,
   Operator,
   PaginatedFilter,
+  ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
@@ -183,9 +184,9 @@ describe('CountRelatedRoute', () => {
           params: { BAD_ATTRIBUTE: '1523' },
         };
         const context = createMockContext({ customProperties });
-        await count.handleCountRelated(context);
+        const result = count.handleCountRelated(context);
 
-        expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
+        expect(result).rejects.toThrowError(ValidationError);
       });
 
       test('should return an HTTP 500 response when the aggregate has a problem', async () => {

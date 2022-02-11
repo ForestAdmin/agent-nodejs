@@ -3,7 +3,7 @@ import { Context } from 'koa';
 import Router from '@koa/router';
 
 import { HttpCode } from '../../types';
-import CollectionRoute from '../collection-base-route';
+import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 
@@ -14,67 +14,43 @@ export default class DeleteRoute extends CollectionRoute {
   }
 
   public async handleDelete(context: Context): Promise<void> {
-    let id: CompositeId;
+    const id = IdUtils.unpackId(this.collection.schema, context.params.id);
+    await this.deleteRecords(context, [id]);
 
-    try {
-      id = IdUtils.unpackId(this.collection.schema, context.params.id);
-    } catch (e) {
-      return context.throw(HttpCode.BadRequest, e.message);
-    }
-
-    await this.delete(context, [id]);
+    context.response.status = HttpCode.NoContent;
   }
 
   public async handleListDelete(context: Context): Promise<void> {
     const attributes = context.request.body?.data?.attributes;
-    let unpackedIds: CompositeId[];
-    let excludedRecordMode: boolean;
+    const excludedRecordMode = Boolean(attributes?.all_records);
+    const unpackedIds = IdUtils.unpackIds(
+      this.collection.schema,
+      excludedRecordMode ? attributes?.all_records_ids_excluded : attributes?.ids,
+    );
 
-    try {
-      excludedRecordMode = attributes?.all_records;
-      unpackedIds = IdUtils.unpackIds(
-        this.collection.schema,
-        excludedRecordMode ? attributes?.all_records_ids_excluded : attributes?.ids,
-      );
-    } catch (e) {
-      return context.throw(HttpCode.BadRequest, e.message);
-    }
+    await this.deleteRecords(context, unpackedIds, excludedRecordMode);
 
-    await this.delete(context, unpackedIds, excludedRecordMode);
+    context.response.status = HttpCode.NoContent;
   }
 
-  private async delete(
+  private async deleteRecords(
     context: Context,
     ids: CompositeId[],
     isRemoveAllRecords = false,
   ): Promise<void> {
+    let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, ids);
+    if (isRemoveAllRecords) selectedIds = selectedIds.inverse();
+
     const filter = new Filter({
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(this.collection, context),
         await this.services.scope.getConditionTree(this.collection, context),
+        selectedIds,
       ),
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
     });
 
-    try {
-      const condition = ConditionTreeFactory.matchIds(this.collection.schema, ids);
-
-      await this.collection.delete(
-        filter.override({
-          conditionTree: ConditionTreeFactory.intersect(
-            filter.conditionTree,
-            isRemoveAllRecords ? condition.inverse() : condition,
-          ),
-        }),
-      );
-
-      context.response.status = HttpCode.NoContent;
-    } catch {
-      context.throw(
-        HttpCode.InternalServerError,
-        `Failed to delete the record(s) on the collection "${this.collection.name}"`,
-      );
-    }
+    await this.collection.delete(filter);
   }
 }

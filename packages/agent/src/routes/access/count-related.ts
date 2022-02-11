@@ -2,14 +2,12 @@ import {
   Aggregation,
   AggregationOperation,
   CollectionUtils,
-  CompositeId,
   ConditionTreeFactory,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';
@@ -23,13 +21,7 @@ export default class CountRelatedRoute extends RelationRoute {
   }
 
   public async handleCountRelated(context: Context): Promise<void> {
-    let parentId: CompositeId;
-
-    try {
-      parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-    } catch (e) {
-      return context.throw(HttpCode.BadRequest, e.message);
-    }
+    const parentId = IdUtils.unpackId(this.collection.schema, context.params.id);
 
     const paginatedFilter = new PaginatedFilter({
       conditionTree: ConditionTreeFactory.intersect(
@@ -43,22 +35,14 @@ export default class CountRelatedRoute extends RelationRoute {
       timezone: QueryStringParser.parseTimezone(context),
     });
 
-    try {
-      const aggregationResult = await CollectionUtils.aggregateRelation(
-        this.collection,
-        parentId,
-        this.relationName,
-        paginatedFilter,
-        new Aggregation({ operation: AggregationOperation.Count }),
-      );
-      const count = aggregationResult?.[0]?.value ?? 0;
+    const aggregationResult = await CollectionUtils.aggregateRelation(
+      this.collection,
+      parentId,
+      this.relationName,
+      paginatedFilter,
+      new Aggregation({ operation: AggregationOperation.Count }),
+    );
 
-      context.response.body = { count };
-    } catch (e) {
-      context.throw(
-        HttpCode.InternalServerError,
-        `Failed to count the collection relation of the "${this.collection.name}"`,
-      );
-    }
+    context.response.body = { count: aggregationResult?.[0]?.value ?? 0 };
   }
 }

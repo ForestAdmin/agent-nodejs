@@ -1,9 +1,8 @@
 import { Context } from 'koa';
-import { RecordData, RecordUtils } from '@forestadmin/datasource-toolkit';
+import { RecordValidator } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 
-import { HttpCode } from '../../types';
-import CollectionRoute from '../collection-base-route';
+import CollectionRoute from '../collection-route';
 
 export default class CreateRoute extends CollectionRoute {
   override setupPrivateRoutes(router: Router): void {
@@ -11,24 +10,11 @@ export default class CreateRoute extends CollectionRoute {
   }
 
   public async handleCreate(context: Context) {
-    let rawRecord: RecordData;
+    const rawRecord = this.services.serializer.deserialize(this.collection, context.request.body);
+    RecordValidator.validate(this.collection, rawRecord);
 
-    try {
-      rawRecord = this.services.serializer.deserialize(this.collection, context.request.body);
-      RecordUtils.validate(this.collection, rawRecord);
-    } catch (e) {
-      return context.throw(HttpCode.BadRequest, e.message);
-    }
+    const [record] = await this.collection.create([rawRecord]);
 
-    try {
-      const [record] = await this.collection.create([rawRecord]);
-
-      context.response.body = this.services.serializer.serialize(this.collection, record);
-    } catch {
-      context.throw(
-        HttpCode.InternalServerError,
-        `Failed to create record on collection "${this.collection.name}"`,
-      );
-    }
+    context.response.body = this.services.serializer.serialize(this.collection, record);
   }
 }

@@ -1,3 +1,4 @@
+import ValidationError from '../errors';
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, FieldTypes, PrimitiveTypes } from '../interfaces/schema';
 import TypeGetter from './type-getter';
@@ -11,11 +12,11 @@ export default class FieldValidator {
       const schema = collection.schema.fields[field];
 
       if (!schema) {
-        throw new Error(`Column not found: '${collection.name}.${field}'`);
+        throw new ValidationError(`Column not found: '${collection.name}.${field}'`);
       }
 
       if (schema.type !== FieldTypes.Column) {
-        throw new Error(
+        throw new ValidationError(
           `Unexpected field type: '${collection.name}.${field}' ` +
             `(found '${schema.type}' expected '${FieldTypes.Column}')`,
         );
@@ -29,11 +30,11 @@ export default class FieldValidator {
       const schema = collection.schema.fields[prefix];
 
       if (!schema) {
-        throw new Error(`Relation not found: '${collection.name}.${prefix}'`);
+        throw new ValidationError(`Relation not found: '${collection.name}.${prefix}'`);
       }
 
       if (schema.type !== FieldTypes.ManyToOne && schema.type !== FieldTypes.OneToOne) {
-        throw new Error(
+        throw new ValidationError(
           `Unexpected field type: '${collection.name}.${prefix}' (found ` +
             `'${schema.type}' expected '${FieldTypes.ManyToOne}' or '${FieldTypes.OneToOne}')`,
         );
@@ -64,10 +65,12 @@ export default class FieldValidator {
 
     if (allowedTypes) {
       if (!allowedTypes.includes(type)) {
-        throw new Error(`Wrong type for "${field}": ${value}. Expects [${allowedTypes}]`);
+        throw new ValidationError(`Wrong type for "${field}": ${value}. Expects [${allowedTypes}]`);
       }
     } else if (type !== schema.columnType) {
-      throw new Error(`Wrong type for "${field}": ${value}. Expects ${schema.columnType}`);
+      throw new ValidationError(
+        `Wrong type for "${field}": ${value}. Expects ${schema.columnType}`,
+      );
     }
   }
 
@@ -88,7 +91,7 @@ export default class FieldValidator {
     }
 
     if (!isEnumAllowed) {
-      throw new Error(
+      throw new ValidationError(
         `The given enum value(s) [${enumValue}] is not listed in [${columnSchema.enumValues}]`,
       );
     }

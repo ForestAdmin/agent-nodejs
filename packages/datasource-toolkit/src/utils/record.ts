@@ -1,7 +1,5 @@
-import { Collection } from '../interfaces/collection';
-import { CollectionSchema, FieldTypes } from '../interfaces/schema';
+import { CollectionSchema } from '../interfaces/schema';
 import { CompositeId, RecordData } from '../interfaces/record';
-import FieldValidator from '../validation/field';
 import SchemaUtils from './schema';
 
 export default class RecordUtils {
@@ -25,28 +23,5 @@ export default class RecordUtils {
     }
 
     return path.length === 0 ? current : undefined;
-  }
-
-  static validate(collection: Collection, recordData: RecordData): void {
-    if (!recordData || Object.keys(recordData).length === 0) {
-      throw new Error('The record data is empty');
-    }
-
-    for (const key of Object.keys(recordData)) {
-      const schema = collection.schema.fields[key];
-
-      if (!schema) {
-        throw new Error(`Unknown field "${key}"`);
-      } else if (schema.type === FieldTypes.Column) {
-        FieldValidator.validate(collection, key, [recordData[key]]);
-      } else if (schema.type === FieldTypes.OneToOne || schema.type === FieldTypes.OneToMany) {
-        const subRecord = recordData[key] as RecordData;
-
-        const association = collection.dataSource.getCollection(schema.foreignCollection);
-        RecordUtils.validate(association, subRecord);
-      } else {
-        throw new Error(`Unexpected schema type '${schema.type}' while traversing record`);
-      }
-    }
   }
 }

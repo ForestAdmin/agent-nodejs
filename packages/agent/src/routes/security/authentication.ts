@@ -1,35 +1,29 @@
 import { Client, ClientAuthMethod, Issuer } from 'openid-client';
-import { Context } from 'koa';
+import { ValidationError } from '@forestadmin/datasource-toolkit';
+import { join } from 'path';
 import Router from '@koa/router';
 import jsonwebtoken from 'jsonwebtoken';
 import jwt from 'koa-jwt';
-import path from 'path';
 
+import { Context } from 'koa';
 import { HttpCode } from '../../types';
 import BaseRoute from '../base-route';
-import ForestHttpApi, { UserInfo } from '../../utils/forest-http-api';
+import ForestHttpApi from '../../utils/forest-http-api';
 
 export default class Authentication extends BaseRoute {
   private client: Client;
 
   private get redirectUrl(): string {
-    return new URL(
-      path.join(this.options.prefix, '/authentication/callback'),
-      this.options.agentUrl,
-    ).toString();
+    const base = this.options.agentUrl;
+    const path = join(this.options.prefix, '/authentication/callback');
+
+    return new URL(path, base).toString();
   }
 
   override async bootstrap(): Promise<void> {
     // Retrieve OpenId Issuer from forestadmin-server
     // We can't use 'Issuer.discover' because the oidc config is behind an auth-wall.
-    let issuer: Issuer = null;
-
-    try {
-      const metadata = await ForestHttpApi.getOpenIdIssuerMetadata(this.options);
-      issuer = new Issuer(metadata);
-    } catch {
-      throw new Error('Failed to fetch openid-configuration.');
-    }
+    const issuer = new Issuer(await ForestHttpApi.getOpenIdIssuerMetadata(this.options));
 
     // Either instanciate or create a new oidc client.
     const registration = {
@@ -38,17 +32,9 @@ export default class Authentication extends BaseRoute {
       redirect_uris: [this.redirectUrl],
     };
 
-    try {
-      if (registration.client_id) {
-        this.client = new issuer.Client(registration);
-      } else {
-        this.client = await issuer.Client.register(registration, {
-          initialAccessToken: this.options.envSecret,
-        });
-      }
-    } catch {
-      throw new Error('Failed to create the openid client.');
-    }
+    this.client = registration.client_id
+      ? new issuer.Client(registration)
+      : await issuer.Client.register(registration, { initialAccessToken: this.options.envSecret });
   }
 
   override setupAuthentication(router: Router): void {
@@ -62,69 +48,51 @@ export default class Authentication extends BaseRoute {
   }
 
   public async handleAuthentication(context: Context): Promise<void> {
-    const renderingId = Number(context.request.body.renderingId);
+    const renderingId = Number(context.request.body?.renderingId);
+    this.checkRenderingId(renderingId);
 
-    try {
-      if (Number.isNaN(renderingId)) {
-        throw new Error('Rendering id is invalid');
-      }
+    const authorizationUrl = this.client.authorizationUrl({
+      scope: 'openid email profile',
+      state: JSON.stringify({ renderingId }),
+    });
 
-      const authorizationUrl = this.client.authorizationUrl({
-        scope: 'openid email profile',
-        state: JSON.stringify({ renderingId }),
-      });
-
-      context.response.body = { authorizationUrl };
-    } catch (error) {
-      context.throw(HttpCode.BadRequest, 'Failed to retrieve authorization url.');
-    }
+    context.response.body = { authorizationUrl };
   }
 
   public async handleAuthenticationCallback(context: Context): Promise<void> {
-    // Retrieve tokenset
-    const state = context.request.query.state.toString();
-    const tokenSet = await this.client.callback(this.redirectUrl, context.request.query, {
-      state,
-    });
-
+    // Retrieve renderingId
+    const { query } = context.request;
+    const state = query.state.toString();
     let renderingId: number;
 
     try {
-      // Load User from forestadmin-server
-      // The request is in JSON API format, but we parse it manually here
       renderingId = JSON.parse(state).renderingId;
+      this.checkRenderingId(renderingId);
     } catch {
-      context.throw(HttpCode.BadRequest, 'Failed to parse renderingId.');
+      throw new ValidationError('Failed to retrieve renderingId from query[state]');
     }
 
-    let user: UserInfo;
+    // Retrieve user
+    const tokenSet = await this.client.callback(this.redirectUrl, query, { state });
+    const accessToken = tokenSet.access_token;
+    const user = await ForestHttpApi.getUserInformation(this.options, renderingId, accessToken);
 
-    try {
-      user = await ForestHttpApi.getUserInformation(
-        this.options,
-        renderingId,
-        tokenSet.access_token,
-      );
-    } catch {
-      context.throw(HttpCode.InternalServerError, 'Failed to fetch user informations.');
-    }
+    // Generate final token.
+    const token = jsonwebtoken.sign(user, this.options.authSecret, { expiresIn: '1 hours' });
 
-    try {
-      // Generate final token.
-      const token = jsonwebtoken.sign(user, this.options.authSecret, {
-        expiresIn: '1 hours',
-      });
-
-      context.response.body = {
-        token,
-        tokenData: jsonwebtoken.decode(token),
-      };
-    } catch (error) {
-      context.throw(HttpCode.BadRequest, 'Failed to create token with forestadmin-server.');
-    }
+    context.response.body = {
+      token,
+      tokenData: jsonwebtoken.decode(token),
+    };
   }
 
   public async handleAuthenticationLogout(context: Context) {
     context.response.status = HttpCode.NoContent;
+  }
+
+  private checkRenderingId(renderingId: number): void {
+    if (Number.isNaN(renderingId)) {
+      throw new ValidationError('Rendering id must be a number');
+    }
   }
 }

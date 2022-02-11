@@ -1,12 +1,17 @@
-import { DataSource } from '@forestadmin/datasource-toolkit';
+import { DataSource, ValidationError } from '@forestadmin/datasource-toolkit';
 import { IncomingMessage, ServerResponse } from 'http';
-import Koa from 'koa';
+import Koa, { Context, HttpError, Next } from 'koa';
 import Router from '@koa/router';
 import bodyParser from 'koa-bodyparser';
 import cors from '@koa/cors';
 import path from 'path';
 
-import { ForestAdminHttpDriverOptions, ForestAdminHttpDriverOptionsWithDefaults } from './types';
+import {
+  ForestAdminHttpDriverOptions,
+  ForestAdminHttpDriverOptionsWithDefaults,
+  HttpCode,
+  LoggerLevel,
+} from './types';
 import BaseRoute from './routes/base-route';
 import ForestHttpApi from './utils/forest-http-api';
 import OptionsUtils from './utils/http-driver-options';
@@ -63,8 +68,11 @@ export default class ForestAdminHttpDriver {
     this.routes.forEach(route => route.setupPrivateRoutes(router));
     await Promise.all(this.routes.map(route => route.bootstrap()));
 
-    this.app.use(cors({ credentials: true, maxAge: 24 * 3600 })).use(bodyParser());
-    this.app.use(router.routes());
+    this.app
+      .use(this.errorHandler.bind(this))
+      .use(cors({ credentials: true, maxAge: 24 * 3600 }))
+      .use(bodyParser())
+      .use(router.routes());
 
     // Send schema to forestadmin-server (if relevant).
     const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSources);
@@ -85,5 +93,25 @@ export default class ForestAdminHttpDriver {
 
     this.status = 'done';
     await Promise.all(this.routes.map(route => route.tearDown()));
+  }
+
+  async errorHandler(context: Context, next: Next): Promise<void> {
+    try {
+      await next();
+    } catch (e) {
+      if (e instanceof HttpError) throw e;
+      if (e instanceof ValidationError) context.throw(HttpCode.BadRequest, e.message);
+
+      this.options?.logger(
+        LoggerLevel.Error,
+        `Unexpected error on ${context.path}\n${e.stack}\n\n`,
+      );
+
+      context.response.status = HttpCode.InternalServerError;
+      context.response.body = {
+        error: true,
+        message: `Failed to perform request for an unexpected reason.`,
+      };
+    }
   }
 }
