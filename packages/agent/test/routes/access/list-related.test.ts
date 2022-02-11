@@ -1,12 +1,19 @@
-import { CollectionUtils, PaginatedFilter, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import {
+  CollectionUtils,
+  PaginatedFilter,
+  PrimitiveTypes,
+  Sort,
+  Page,
+  ConditionTreeLeaf,
+  Operator,
+} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import ListRelatedRoute from '../../../src/routes/access/list-related';
 import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
-import QueryStringParser from '../../../src/utils/query-string';
 
 describe('ListRelatedRoute', () => {
-  const setup = () => {
+  const setupWithOneToManyRelation = () => {
     const services = factories.forestAdminHttpDriverServices.build();
     const options = factories.forestAdminHttpDriverOptions.build();
     const router = factories.router.mockAllMethods().build();
@@ -43,9 +50,8 @@ describe('ListRelatedRoute', () => {
   };
 
   const setupContext = () => {
-    const projectionParams = { 'fields[persons]': 'id,name' };
     const customProperties = {
-      query: { ...projectionParams, timezone: 'Europe/Paris' },
+      query: { timezone: 'Europe/Paris' },
       params: { parentId: '1523' },
     };
 
@@ -53,7 +59,7 @@ describe('ListRelatedRoute', () => {
   };
 
   test('should register the relation private route', () => {
-    const { services, dataSource, options, router } = setup();
+    const { services, dataSource, options, router } = setupWithOneToManyRelation();
 
     const count = new ListRelatedRoute(
       services,
@@ -73,7 +79,8 @@ describe('ListRelatedRoute', () => {
   describe('handleListRelated', () => {
     describe('when the request is correct', () => {
       test('should return the record result', async () => {
-        const { services, dataSource, options } = setup();
+        const { services, dataSource, options } = setupWithOneToManyRelation();
+        dataSource.getCollection('persons').schema.segments = ['a-valid-segment'];
 
         const count = new ListRelatedRoute(
           services,
@@ -88,7 +95,28 @@ describe('ListRelatedRoute', () => {
           { id: 2, name: 'aName2' },
         ]);
 
-        const context = setupContext();
+        const searchParams = { search: 'searched argument' };
+        const filtersParams = {
+          filters: JSON.stringify({
+            aggregator: 'and',
+            conditions: [
+              { field: 'id', operator: 'equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+            ],
+          }),
+        };
+        const segmentParams = { segment: 'a-valid-segment' };
+        const projectionParams = { 'fields[persons]': 'id,name' };
+        const customProperties = {
+          query: {
+            ...searchParams,
+            ...filtersParams,
+            ...segmentParams,
+            ...projectionParams,
+            timezone: 'Europe/Paris',
+          },
+          params: { parentId: '1523' },
+        };
+        const context = createMockContext({ customProperties });
         await count.handleListRelated(context);
 
         expect(CollectionUtils.listRelation).toHaveBeenCalledWith(
@@ -96,15 +124,16 @@ describe('ListRelatedRoute', () => {
           ['1523'],
           'myPersons',
           new PaginatedFilter({
-            search: QueryStringParser.parseSearch(context),
-            searchExtended: QueryStringParser.parseSearchExtended(context),
-            timezone: QueryStringParser.parseTimezone(context),
-            page: QueryStringParser.parsePagination(context),
-            sort: QueryStringParser.parseSort(dataSource.getCollection('persons'), context),
-            segment: QueryStringParser.parseSegment(dataSource.getCollection('persons'), context),
-            conditionTree: QueryStringParser.parseConditionTree(
-              dataSource.getCollection('persons'),
-              context,
+            search: 'searched argument',
+            searchExtended: false,
+            timezone: 'Europe/Paris',
+            page: new Page(0, 15),
+            sort: new Sort({ field: 'id', ascending: true }),
+            segment: 'a-valid-segment',
+            conditionTree: new ConditionTreeLeaf(
+              'id',
+              Operator.Equal,
+              '123e4567-e89b-12d3-a456-426614174000',
             ),
           }),
           ['id', 'name'],
@@ -122,7 +151,7 @@ describe('ListRelatedRoute', () => {
 
     describe('when an error happens', () => {
       test('should return an HTTP 400 response when the projection is malformed', async () => {
-        const { services, dataSource, options } = setup();
+        const { services, dataSource, options } = setupWithOneToManyRelation();
 
         const count = new ListRelatedRoute(
           services,
@@ -147,7 +176,7 @@ describe('ListRelatedRoute', () => {
       });
 
       test('should return an HTTP 400 response when the parent id is malformed', async () => {
-        const { services, dataSource, options } = setup();
+        const { services, dataSource, options } = setupWithOneToManyRelation();
 
         const count = new ListRelatedRoute(
           services,
@@ -171,7 +200,7 @@ describe('ListRelatedRoute', () => {
       });
 
       test('should return an HTTP 500 response when the list has a problem', async () => {
-        const { services, dataSource, options } = setup();
+        const { services, dataSource, options } = setupWithOneToManyRelation();
 
         const count = new ListRelatedRoute(
           services,

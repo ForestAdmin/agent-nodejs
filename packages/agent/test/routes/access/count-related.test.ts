@@ -2,22 +2,28 @@ import {
   Aggregation,
   AggregationOperation,
   CollectionUtils,
+  ConditionTreeLeaf,
+  Operator,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import CountRelatedRoute from '../../../src/routes/access/count-related';
 import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
-import QueryStringParser from '../../../src/utils/query-string';
 
 describe('CountRelatedRoute', () => {
-  const setup = () => {
+  const setupWithOneToManyRelation = () => {
     const services = factories.forestAdminHttpDriverServices.build();
     const options = factories.forestAdminHttpDriverOptions.build();
     const router = factories.router.mockAllMethods().build();
 
     const bookPersons = factories.collection.build({
       name: 'bookPersons',
+      schema: factories.collectionSchema.build({
+        fields: {
+          id: factories.columnSchema.isPrimaryKey().build(),
+        },
+      }),
     });
 
     const books = factories.collection.build({
@@ -51,7 +57,7 @@ describe('CountRelatedRoute', () => {
   };
 
   test('should register "/books/count" private routes', () => {
-    const { services, dataSource, options, router } = setup();
+    const { services, dataSource, options, router } = setupWithOneToManyRelation();
 
     const oneToManyRelationName = 'myBookPersons';
     const count = new CountRelatedRoute(
@@ -72,7 +78,8 @@ describe('CountRelatedRoute', () => {
   describe('handleCountRelated', () => {
     describe('when the request is correct', () => {
       test('should aggregate the relation and return the result', async () => {
-        const { services, dataSource, options } = setup();
+        const { services, dataSource, options } = setupWithOneToManyRelation();
+        dataSource.getCollection('bookPersons').schema.segments = ['a-valid-segment'];
 
         const oneToManyRelationName = 'myBookPersons';
         const count = new CountRelatedRoute(
@@ -87,7 +94,26 @@ describe('CountRelatedRoute', () => {
           .spyOn(CollectionUtils, 'aggregateRelation')
           .mockResolvedValue([{ value: 1568, group: {} }]);
 
-        const context = setupContext();
+        const searchParams = { search: 'searched argument' };
+        const filtersParams = {
+          filters: JSON.stringify({
+            aggregator: 'and',
+            conditions: [
+              { field: 'id', operator: 'equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+            ],
+          }),
+        };
+        const segmentParams = { segment: 'a-valid-segment' };
+        const customProperties = {
+          query: {
+            ...searchParams,
+            ...filtersParams,
+            ...segmentParams,
+            timezone: 'Europe/Paris',
+          },
+          params: { parentId: '1523' },
+        };
+        const context = createMockContext({ customProperties });
         await count.handleCountRelated(context);
 
         expect(CollectionUtils.aggregateRelation).toHaveBeenCalledWith(
@@ -95,24 +121,26 @@ describe('CountRelatedRoute', () => {
           ['1523'],
           'myBookPersons',
           new PaginatedFilter({
-            search: QueryStringParser.parseSearch(context),
-            searchExtended: QueryStringParser.parseSearchExtended(context),
-            timezone: QueryStringParser.parseTimezone(context),
-            segment: QueryStringParser.parseSegment(dataSource.getCollection('persons'), context),
-            conditionTree: QueryStringParser.parseConditionTree(
-              dataSource.getCollection('persons'),
-              context,
+            search: 'searched argument',
+            searchExtended: false,
+            timezone: 'Europe/Paris',
+            segment: 'a-valid-segment',
+            conditionTree: new ConditionTreeLeaf(
+              'id',
+              Operator.Equal,
+              '123e4567-e89b-12d3-a456-426614174000',
             ),
           }),
           new Aggregation({ operation: AggregationOperation.Count }),
         );
+
         expect(context.throw).not.toHaveBeenCalled();
         expect(context.response.body).toEqual({ count: 1568 });
       });
 
       describe('when there is empty aggregate result', () => {
         test('should return 0 ', async () => {
-          const { services, dataSource, options } = setup();
+          const { services, dataSource, options } = setupWithOneToManyRelation();
 
           const oneToManyRelationName = 'myBookPersons';
           const count = new CountRelatedRoute(
@@ -138,7 +166,7 @@ describe('CountRelatedRoute', () => {
 
     describe('when an error happens', () => {
       test('should return an HTTP 400 response when the request is malformed', async () => {
-        const { services, dataSource, options } = setup();
+        const { services, dataSource, options } = setupWithOneToManyRelation();
 
         const oneToManyRelationName = 'myBookPersons';
         const count = new CountRelatedRoute(
@@ -160,7 +188,7 @@ describe('CountRelatedRoute', () => {
       });
 
       test('should return an HTTP 500 response when the aggregate has a problem', async () => {
-        const { services, dataSource, options } = setup();
+        const { services, dataSource, options } = setupWithOneToManyRelation();
 
         const oneToManyRelationName = 'myBookPersons';
         const count = new CountRelatedRoute(

@@ -1,4 +1,9 @@
-import { CollectionUtils, CompositeId, PaginatedFilter } from '@forestadmin/datasource-toolkit';
+import {
+  CollectionUtils,
+  CompositeId,
+  ConditionTreeFactory,
+  PaginatedFilter,
+} from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import QueryStringParser from '../../utils/query-string';
@@ -18,7 +23,10 @@ export default class ListRelatedRoute extends RelationRoute {
     let parentId: CompositeId;
     const paginatedFilter = new PaginatedFilter({
       search: QueryStringParser.parseSearch(context),
-      conditionTree: QueryStringParser.parseConditionTree(this.foreignCollection, context),
+      conditionTree: ConditionTreeFactory.intersect(
+        QueryStringParser.parseConditionTree(this.foreignCollection, context),
+        await this.services.scope.getConditionTree(this.foreignCollection, context),
+      ),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       timezone: QueryStringParser.parseTimezone(context),
       page: QueryStringParser.parsePagination(context),
