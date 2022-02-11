@@ -19,6 +19,7 @@ export type ForestAdminHttpDriverOptions = {
   prefix?: string;
   isProduction: boolean;
   schemaPath?: string;
+  scopesCacheDurationInSeconds?: number;
 };
 
 export type ForestAdminHttpDriverOptionsWithDefaults = Readonly<

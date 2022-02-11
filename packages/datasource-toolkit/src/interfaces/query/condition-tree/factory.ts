@@ -7,8 +7,8 @@ import ConditionTreeBranch, { Aggregator, BranchComponents } from './nodes/branc
 import ConditionTreeLeaf, { LeafComponents, Operator } from './nodes/leaf';
 
 export default class ConditionTreeFactory {
-  static MatchNone = new ConditionTreeBranch(Aggregator.Or, []);
-  static MatchAll = new ConditionTreeBranch(Aggregator.And, []);
+  static MatchNone: ConditionTree = new ConditionTreeBranch(Aggregator.Or, []);
+  static MatchAll: ConditionTree = null;
 
   static matchRecords(schema: CollectionSchema, records: RecordData[]): ConditionTree {
     const ids = records.map(r => RecordUtils.getPrimaryKey(schema, r));
@@ -39,7 +39,13 @@ export default class ConditionTreeFactory {
   }
 
   static intersect(...trees: ConditionTree[]): ConditionTree {
-    return ConditionTreeFactory.group(Aggregator.And, trees);
+    const result = ConditionTreeFactory.group(Aggregator.And, trees);
+    const isEmptyAnd =
+      result instanceof ConditionTreeBranch &&
+      result.aggregator === Aggregator.And &&
+      result.conditions.length === 0;
+
+    return isEmptyAnd ? null : result;
   }
 
   static fromPlainObject(json: unknown): ConditionTree {

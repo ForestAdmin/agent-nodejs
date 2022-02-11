@@ -16,6 +16,7 @@ export default class OptionsUtils {
       logger: console.error, // eslint-disable-line no-console
       prefix: '/forest',
       schemaPath: '.forestadmin-schema.json',
+      scopesCacheDurationInSeconds: 15 * 60,
       ...options,
     });
   }

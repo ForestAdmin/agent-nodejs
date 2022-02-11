@@ -48,7 +48,10 @@ export default class DeleteRoute extends CollectionRoute {
     isRemoveAllRecords = false,
   ): Promise<void> {
     const filter = new Filter({
-      conditionTree: QueryStringParser.parseConditionTree(this.collection, context),
+      conditionTree: ConditionTreeFactory.intersect(
+        QueryStringParser.parseConditionTree(this.collection, context),
+        await this.services.scope.getConditionTree(this.collection, context),
+      ),
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
     });

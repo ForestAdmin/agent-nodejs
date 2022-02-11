@@ -1,6 +1,7 @@
 import {
   Aggregation,
   AggregationOperation,
+  ConditionTreeFactory,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
@@ -16,7 +17,10 @@ export default class CountRoute extends CollectionRoute {
 
   public async handleCount(context: Context): Promise<void> {
     const paginatedFilter = new PaginatedFilter({
-      conditionTree: QueryStringParser.parseConditionTree(this.collection, context),
+      conditionTree: ConditionTreeFactory.intersect(
+        QueryStringParser.parseConditionTree(this.collection, context),
+        await this.services.scope.getConditionTree(this.collection, context),
+      ),
       search: QueryStringParser.parseSearch(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.collection, context),

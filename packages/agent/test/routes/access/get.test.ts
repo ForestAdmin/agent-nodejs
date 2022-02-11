@@ -48,9 +48,7 @@ describe('GetRoute', () => {
 
   describe('handleGet', () => {
     test('should call the serializer using the getOne implementation', async () => {
-      jest
-        .spyOn(dataSource.getCollection('books'), 'getById')
-        .mockImplementation(async () => ({ title: 'test ' }));
+      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([{ title: 'test ' }]);
       services.serializer.serialize = jest.fn().mockReturnValue('test');
       const get = new Get(services, options, dataSource, 'books');
       const context = createMockContext({
@@ -60,8 +58,8 @@ describe('GetRoute', () => {
       await get.handleGet(context);
 
       expect(context.throw).not.toHaveBeenCalled();
-      expect(dataSource.getCollection('books').getById).toHaveBeenCalledWith(
-        ['1'],
+      expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
+        { conditionTree: { field: 'id', operator: 'equal', value: '1' } },
         ['id', 'name', 'author:id', 'author:bookId'],
       );
       expect(services.serializer.serialize).toHaveBeenCalled();
@@ -72,7 +70,7 @@ describe('GetRoute', () => {
     describe('when an error happens', () => {
       describe('when getById returns null', () => {
         test('should return an HTTP 404 response', async () => {
-          jest.spyOn(dataSource.getCollection('books'), 'getById').mockImplementation(() => null);
+          jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
           const get = new Get(services, options, dataSource, 'books');
           const context = createMockContext({
             customProperties: { params: { id: '1' } },

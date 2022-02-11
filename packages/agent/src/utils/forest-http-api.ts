@@ -1,3 +1,4 @@
+import { ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 import { JSONAPIDocument } from 'json-api-serializer';
 import { IssuerMetadata } from 'openid-client';
 import superagent, { Response, ResponseError } from 'superagent';
@@ -23,6 +24,13 @@ export type UserInfo = {
   renderingId: string;
   role: string;
   tags: { key: string; value: string }[];
+};
+
+export type ScopeByCollection = {
+  [collectionName: string]: {
+    conditionTree: ConditionTree;
+    dynamicScopesValues: Record<string, Record<string, unknown>>;
+  };
 };
 
 type HttpOptions = Pick<ForestAdminHttpDriverOptions, 'forestServerUrl' | 'envSecret'>;
@@ -75,7 +83,7 @@ export default class ForestHttpApi {
       const { attributes } = response.body.data;
 
       return {
-        id: attributes.id,
+        id: response.body.id,
         email: attributes.email,
         firstName: attributes.first_name,
         lastName: attributes.last_name,
@@ -130,6 +138,29 @@ export default class ForestHttpApi {
       }
 
       throw new Error(message);
+    }
+  }
+
+  static async getScopes(options: HttpOptions, renderingId: number): Promise<ScopeByCollection> {
+    try {
+      const response = await superagent
+        .get(`${options.forestServerUrl}/liana/scopes`)
+        .set('forest-secret-key', options.envSecret)
+        .query(`renderingId=${renderingId}`);
+
+      const result = {};
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const [collection, data] of Object.entries<any>(response.body)) {
+        result[collection] = {
+          conditionTree: ConditionTreeFactory.fromPlainObject(data.scope.filter),
+          dynamicScopeValues: data.scope.dynamicScopesValues?.users ?? {},
+        };
+      }
+
+      return result;
+    } catch (e) {
+      throw new Error('Failed to retrieve scopes.');
     }
   }
 }

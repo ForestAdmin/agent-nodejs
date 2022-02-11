@@ -11,9 +11,10 @@ import Delete from './modification/delete';
 import Get from './access/get';
 import HealthCheck from './healthcheck';
 import List from './access/list';
+import ScopeInvalidation from './security/scope-invalidation';
 import Update from './modification/update';
 
-export const RootRoutesCtor = [Authentication, HealthCheck];
+export const RootRoutesCtor = [Authentication, HealthCheck, ScopeInvalidation];
 export const CollectionRoutesCtor = [Count, Create, Delete, Get, List, Update];
 export const RelatedRoutesCtor = [CountRelatedRoute];
 
