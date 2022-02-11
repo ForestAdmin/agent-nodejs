@@ -88,7 +88,7 @@ describe('Route index', () => {
       const booksCollectionNoRelation = 1;
       const countRelationRoutes =
         RelatedRoutesCtor.length * dataSourceWithRelation.collections.length -
-        booksCollectionNoRelation;
+        booksCollectionNoRelation * RelatedRoutesCtor.length;
       const countCollectionRoutes =
         CollectionRoutesCtor.length * dataSourceWithRelation.collections.length +
         CollectionRoutesCtor.length * dataSourceWithoutRelation.collections.length;

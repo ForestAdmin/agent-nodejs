@@ -6,6 +6,82 @@ import CollectionUtils from '../../src/utils/collection';
 import * as factories from '../__factories__';
 
 describe('CollectionUtils', () => {
+  const setupWithUnsupportedRelation = () => {
+    const books = factories.collection.build({
+      name: 'books',
+      schema: factories.collectionSchema.build({
+        fields: {
+          aNonSupportedRelationField: factories.oneToOneSchema.build(),
+        },
+      }),
+    });
+
+    return {
+      dataSource: factories.dataSource.buildWithCollections([books]),
+    };
+  };
+
+  const setupWithOneToManyRelation = () => {
+    const reviews = factories.collection.build({
+      name: 'reviews',
+    });
+
+    const books = factories.collection.build({
+      name: 'books',
+      schema: factories.collectionSchema.build({
+        fields: {
+          oneToManyRelationField: factories.oneToManySchema.build({
+            foreignCollection: 'reviews',
+            foreignKey: 'bookId',
+          }),
+        },
+      }),
+    });
+
+    return {
+      dataSource: factories.dataSource.buildWithCollections([reviews, books]),
+    };
+  };
+
+  const setupWithManyToManyRelation = () => {
+    const librariesBooks = factories.collection.build({
+      name: 'librariesBooks',
+      schema: factories.collectionSchema.build({
+        fields: {
+          bookId: factories.columnSchema.isPrimaryKey().build(),
+          libraryId: factories.columnSchema.isPrimaryKey().build(),
+          myBook: factories.manyToOneSchema.build({
+            foreignCollection: 'books',
+            foreignKey: 'bookId',
+          }),
+          myLibrary: factories.manyToOneSchema.build({
+            foreignCollection: 'libraries',
+            foreignKey: 'libraryId',
+          }),
+        },
+      }),
+    });
+
+    const books = factories.collection.build({
+      name: 'books',
+      schema: factories.collectionSchema.build({
+        fields: {
+          id: factories.columnSchema.isPrimaryKey().build(),
+          name: factories.columnSchema.build(),
+          manyToManyRelationField: factories.manyToManySchema.build({
+            throughCollection: 'librariesBooks',
+            originRelation: 'myBook',
+            targetRelation: 'myLibrary',
+          }),
+        },
+      }),
+    });
+
+    return {
+      dataSource: factories.dataSource.buildWithCollections([librariesBooks, books]),
+    };
+  };
+
   describe('When inverse relations is missing', () => {
     const setupWithInverseRelationMissing = () => {
       const dataSource = factories.dataSource.buildWithCollections([
@@ -202,27 +278,9 @@ describe('CollectionUtils', () => {
 
   describe('aggregateRelation', () => {
     describe('when the relation is not supported', () => {
-      const setupWithNotSupportedRelation = () => {
-        const books = factories.collection.build({
-          name: 'books',
-          schema: factories.collectionSchema.build({
-            fields: {
-              aNonSupportedRelationField: factories.oneToOneSchema.build(),
-            },
-          }),
-        });
-
-        const aggregation = factories.aggregation.build();
-
-        return {
-          aggregation,
-          dataSource: factories.dataSource.buildWithCollections([books]),
-        };
-      };
-
       test('should throw an error', async () => {
-        const { aggregation, dataSource } = setupWithNotSupportedRelation();
-
+        const { dataSource } = setupWithUnsupportedRelation();
+        const aggregation = factories.aggregation.build();
         const baseFilter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build(),
         });
@@ -236,40 +294,15 @@ describe('CollectionUtils', () => {
             aggregation,
           ),
         ).rejects.toThrowError(
-          'aggregateRelation method can only be used with OneToMany and ManyToMany relations',
+          'This method can only be used with OneToMany and ManyToMany relations',
         );
       });
     });
 
     describe('when the relation is a one to many relation', () => {
-      const setupWithOneToManyRelation = () => {
-        const reviews = factories.collection.build({
-          name: 'reviews',
-        });
-
-        const books = factories.collection.build({
-          name: 'books',
-          schema: factories.collectionSchema.build({
-            fields: {
-              oneToManyRelationField: factories.oneToManySchema.build({
-                foreignCollection: 'reviews',
-                foreignKey: 'bookId',
-              }),
-            },
-          }),
-        });
-
+      test('should return the aggregate result of the relation', async () => {
+        const { dataSource } = setupWithOneToManyRelation();
         const aggregation = factories.aggregation.build();
-
-        return {
-          aggregation,
-          dataSource: factories.dataSource.buildWithCollections([reviews, books]),
-        };
-      };
-
-      test('should add the correct filter and aggregate it', async () => {
-        const { aggregation, dataSource } = setupWithOneToManyRelation();
-
         const baseFilter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build(),
         });
@@ -294,59 +327,14 @@ describe('CollectionUtils', () => {
     });
 
     describe('when the relation is a many to many relation', () => {
-      const setupWithManyToManyRelation = () => {
-        const librariesBooks = factories.collection.build({
-          name: 'librariesBooks',
-          schema: factories.collectionSchema.build({
-            fields: {
-              bookId: factories.columnSchema.isPrimaryKey().build(),
-              libraryId: factories.columnSchema.isPrimaryKey().build(),
-              myBook: factories.manyToOneSchema.build({
-                foreignCollection: 'books',
-                foreignKey: 'bookId',
-              }),
-              myLibrary: factories.manyToOneSchema.build({
-                foreignCollection: 'libraries',
-                foreignKey: 'libraryId',
-              }),
-            },
-          }),
-        });
-
-        const books = factories.collection.build({
-          name: 'books',
-          schema: factories.collectionSchema.build({
-            fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
-              name: factories.columnSchema.build(),
-              manyToManyRelationField: factories.manyToManySchema.build({
-                throughCollection: 'librariesBooks',
-                originRelation: 'myBook',
-                targetRelation: 'myLibrary',
-              }),
-            },
-          }),
-        });
-
-        return {
-          dataSource: factories.dataSource.buildWithCollections([librariesBooks, books]),
-        };
-      };
-
-      test('should add the correct filter and aggregate it', async () => {
+      test('should return the aggregate result of the relation', async () => {
         const { dataSource } = setupWithManyToManyRelation();
-
         const aggregation = new Aggregation({
           operation: AggregationOperation.Max,
           field: 'aField',
         });
-
         const baseFilter = factories.filter.build({
-          conditionTree: factories.conditionTreeLeaf.build({
-            operator: Operator.Equal,
-            value: 'foo',
-            field: 'name',
-          }),
+          conditionTree: factories.conditionTreeLeaf.build(),
         });
 
         jest
@@ -362,7 +350,7 @@ describe('CollectionUtils', () => {
         );
 
         const expectedCondition = ConditionTreeFactory.intersect(
-          baseFilter.conditionTree.nest('myBook'),
+          baseFilter.conditionTree.nest('myLibrary'),
           new ConditionTreeLeaf('bookId', Operator.Equal, 2),
         );
 
@@ -370,7 +358,7 @@ describe('CollectionUtils', () => {
           baseFilter.override({ conditionTree: expectedCondition }),
           new Aggregation({
             operation: AggregationOperation.Max,
-            field: 'myBook:aField',
+            field: 'myLibrary:aField',
           }),
         );
 
@@ -399,6 +387,94 @@ describe('CollectionUtils', () => {
             'This field BAD_PREFIX:aField does not have the right expected prefix: myBook',
           );
         });
+      });
+    });
+  });
+
+  describe('listRelation', () => {
+    describe('when the relation is not supported', () => {
+      test('should throw an error', async () => {
+        const { dataSource } = setupWithUnsupportedRelation();
+
+        const baseFilter = factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build(),
+        });
+
+        await expect(() =>
+          CollectionUtils.listRelation(
+            dataSource.getCollection('books'),
+            [2],
+            'aNonSupportedRelationField',
+            baseFilter,
+            factories.projection.build(),
+          ),
+        ).rejects.toThrowError(
+          'This method can only be used with OneToMany and ManyToMany relations',
+        );
+      });
+    });
+
+    describe('when the relation is a one to many relation', () => {
+      test('should return the record list of the relation', async () => {
+        const { dataSource } = setupWithOneToManyRelation();
+
+        const baseFilter = factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build(),
+        });
+        const projection = factories.projection.build();
+
+        await CollectionUtils.listRelation(
+          dataSource.getCollection('books'),
+          [2],
+          'oneToManyRelationField',
+          baseFilter,
+          projection,
+        );
+
+        const expectedCondition = ConditionTreeFactory.intersect(
+          baseFilter.conditionTree,
+          new ConditionTreeLeaf('bookId', Operator.Equal, 2),
+        );
+        expect(dataSource.getCollection('reviews').list).toHaveBeenCalledWith(
+          baseFilter.override({ conditionTree: expectedCondition }),
+          projection,
+        );
+      });
+    });
+
+    describe('when the relation is a many to many relation', () => {
+      test('should return the record list of the relation', async () => {
+        const { dataSource } = setupWithManyToManyRelation();
+        const projection = factories.projection.build();
+        const paginatedFilter = factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build(),
+        });
+
+        jest
+          .spyOn(dataSource.getCollection('librariesBooks'), 'list')
+          .mockResolvedValue([{ myLibrary: { id: 1, aField: 'aValue' } }]);
+
+        const listResults = await CollectionUtils.listRelation(
+          dataSource.getCollection('books'),
+          [2],
+          'manyToManyRelationField',
+          paginatedFilter,
+          projection,
+        );
+
+        const expectedCondition = ConditionTreeFactory.intersect(
+          paginatedFilter.conditionTree.nest('myLibrary'),
+          new ConditionTreeLeaf('bookId', Operator.Equal, 2),
+        );
+        expect(dataSource.getCollection('librariesBooks').list).toHaveBeenCalledWith(
+          paginatedFilter.override({
+            conditionTree: expectedCondition,
+            sort: paginatedFilter.sort,
+          }),
+          projection.nest('myBook'),
+        );
+
+        expect(listResults).toEqual([{ id: 1, aField: 'aValue' }]);
       });
     });
   });

@@ -13,10 +13,11 @@ import HealthCheck from './healthcheck';
 import List from './access/list';
 import ScopeInvalidation from './security/scope-invalidation';
 import Update from './modification/update';
+import ListRelatedRoute from './access/list-related';
 
 export const RootRoutesCtor = [Authentication, HealthCheck, ScopeInvalidation];
 export const CollectionRoutesCtor = [Count, Create, Delete, Get, List, Update];
-export const RelatedRoutesCtor = [CountRelatedRoute];
+export const RelatedRoutesCtor = [CountRelatedRoute, ListRelatedRoute];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {
   return RootRoutesCtor.map(Route => new Route(services, options));

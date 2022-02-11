@@ -1,27 +1,29 @@
 import {
-  Aggregation,
-  AggregationOperation,
   CollectionUtils,
+  PaginatedFilter,
+  PrimitiveTypes,
+  Sort,
+  Page,
   ConditionTreeLeaf,
   Operator,
-  PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import CountRelatedRoute from '../../../src/routes/access/count-related';
+import ListRelatedRoute from '../../../src/routes/access/list-related';
 import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
 
-describe('CountRelatedRoute', () => {
+describe('ListRelatedRoute', () => {
   const setupWithOneToManyRelation = () => {
     const services = factories.forestAdminHttpDriverServices.build();
     const options = factories.forestAdminHttpDriverOptions.build();
     const router = factories.router.mockAllMethods().build();
 
-    const bookPersons = factories.collection.build({
-      name: 'bookPersons',
+    const persons = factories.collection.build({
+      name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
+          name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
         },
       }),
     });
@@ -31,13 +33,13 @@ describe('CountRelatedRoute', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          myBookPersons: factories.oneToManySchema.build({
-            foreignCollection: 'bookPersons',
+          myPersons: factories.oneToManySchema.build({
+            foreignCollection: 'persons',
           }),
         },
       }),
     });
-    const dataSource = factories.dataSource.buildWithCollections([bookPersons, books]);
+    const dataSource = factories.dataSource.buildWithCollections([persons, books]);
 
     return {
       dataSource,
@@ -56,43 +58,42 @@ describe('CountRelatedRoute', () => {
     return createMockContext({ customProperties });
   };
 
-  test('should register "/books/count" private routes', () => {
+  test('should register the relation private route', () => {
     const { services, dataSource, options, router } = setupWithOneToManyRelation();
 
-    const oneToManyRelationName = 'myBookPersons';
-    const count = new CountRelatedRoute(
+    const count = new ListRelatedRoute(
       services,
       options,
       dataSource,
       dataSource.getCollection('books').name,
-      oneToManyRelationName,
+      'myPersons',
     );
     count.setupPrivateRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith(
-      '/books/:parentId/relationships/myBookPersons/count',
+      '/books/:parentId/relationships/myPersons',
       expect.any(Function),
     );
   });
 
-  describe('handleCountRelated', () => {
+  describe('handleListRelated', () => {
     describe('when the request is correct', () => {
-      test('should aggregate the relation and return the result', async () => {
+      test('should return the record result', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
-        dataSource.getCollection('bookPersons').schema.segments = ['a-valid-segment'];
+        dataSource.getCollection('persons').schema.segments = ['a-valid-segment'];
 
-        const oneToManyRelationName = 'myBookPersons';
-        const count = new CountRelatedRoute(
+        const count = new ListRelatedRoute(
           services,
           options,
           dataSource,
           dataSource.getCollection('books').name,
-          oneToManyRelationName,
+          'myPersons',
         );
 
-        jest
-          .spyOn(CollectionUtils, 'aggregateRelation')
-          .mockResolvedValue([{ value: 1568, group: {} }]);
+        jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([
+          { id: 1, name: 'aName' },
+          { id: 2, name: 'aName2' },
+        ]);
 
         const searchParams = { search: 'searched argument' };
         const filtersParams = {
@@ -104,26 +105,30 @@ describe('CountRelatedRoute', () => {
           }),
         };
         const segmentParams = { segment: 'a-valid-segment' };
+        const projectionParams = { 'fields[persons]': 'id,name' };
         const customProperties = {
           query: {
             ...searchParams,
             ...filtersParams,
             ...segmentParams,
+            ...projectionParams,
             timezone: 'Europe/Paris',
           },
           params: { parentId: '1523' },
         };
         const context = createMockContext({ customProperties });
-        await count.handleCountRelated(context);
+        await count.handleListRelated(context);
 
-        expect(CollectionUtils.aggregateRelation).toHaveBeenCalledWith(
+        expect(CollectionUtils.listRelation).toHaveBeenCalledWith(
           dataSource.getCollection('books'),
           ['1523'],
-          'myBookPersons',
+          'myPersons',
           new PaginatedFilter({
             search: 'searched argument',
             searchExtended: false,
             timezone: 'Europe/Paris',
+            page: new Page(0, 15),
+            sort: new Sort({ field: 'id', ascending: true }),
             segment: 'a-valid-segment',
             conditionTree: new ConditionTreeLeaf(
               'id',
@@ -131,84 +136,90 @@ describe('CountRelatedRoute', () => {
               '123e4567-e89b-12d3-a456-426614174000',
             ),
           }),
-          new Aggregation({ operation: AggregationOperation.Count }),
+          ['id', 'name'],
         );
-
         expect(context.throw).not.toHaveBeenCalled();
-        expect(context.response.body).toEqual({ count: 1568 });
-      });
-
-      describe('when there is empty aggregate result', () => {
-        test('should return 0 ', async () => {
-          const { services, dataSource, options } = setupWithOneToManyRelation();
-
-          const oneToManyRelationName = 'myBookPersons';
-          const count = new CountRelatedRoute(
-            services,
-            options,
-            dataSource,
-            dataSource.getCollection('books').name,
-            oneToManyRelationName,
-          );
-
-          jest.spyOn(CollectionUtils, 'aggregateRelation').mockResolvedValue(null);
-
-          const context = setupContext();
-          await count.handleCountRelated(context);
-
-          await count.handleCountRelated(context);
-
-          expect(context.throw).not.toHaveBeenCalled();
-          expect(context.response.body).toEqual({ count: 0 });
+        expect(context.response.body).toEqual({
+          data: [
+            { attributes: { id: 1, name: 'aName' }, id: '1', type: 'persons' },
+            { attributes: { id: 2, name: 'aName2' }, id: '2', type: 'persons' },
+          ],
+          jsonapi: { version: '1.0' },
         });
       });
     });
 
     describe('when an error happens', () => {
-      test('should return an HTTP 400 response when the request is malformed', async () => {
+      test('should return an HTTP 400 response when the projection is malformed', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
 
-        const oneToManyRelationName = 'myBookPersons';
-        const count = new CountRelatedRoute(
+        const count = new ListRelatedRoute(
           services,
           options,
           dataSource,
           dataSource.getCollection('books').name,
-          oneToManyRelationName,
+          'myPersons',
+        );
+
+        const malformedProjectionParams = { 'fields[persons]': 'id,BAD_ATTRIBUTE' };
+        const customProperties = {
+          query: { ...malformedProjectionParams, timezone: 'Europe/Paris' },
+          params: { parentId: '1523' },
+        };
+        const context = createMockContext({ customProperties });
+        await count.handleListRelated(context);
+
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.BadRequest,
+          "Invalid projection (Cannot read property 'type' of undefined)",
+        );
+      });
+
+      test('should return an HTTP 400 response when the parent id is malformed', async () => {
+        const { services, dataSource, options } = setupWithOneToManyRelation();
+
+        const count = new ListRelatedRoute(
+          services,
+          options,
+          dataSource,
+          dataSource.getCollection('books').name,
+          'myPersons',
         );
 
         const customProperties = {
-          query: { timezone: 'Europe/Paris' },
-          params: { BAD_ATTRIBUTE: '1523' },
+          query: { 'fields[persons]': 'id,name', timezone: 'Europe/Paris' },
+          params: { BAD_PARENT_ID: '1523' },
         };
         const context = createMockContext({ customProperties });
-        await count.handleCountRelated(context);
+        await count.handleListRelated(context);
 
-        expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.BadRequest,
+          'Expected string, received: undefined',
+        );
       });
 
-      test('should return an HTTP 500 response when the aggregate has a problem', async () => {
+      test('should return an HTTP 500 response when the list has a problem', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
 
-        const oneToManyRelationName = 'myBookPersons';
-        const count = new CountRelatedRoute(
+        const count = new ListRelatedRoute(
           services,
           options,
           dataSource,
           dataSource.getCollection('books').name,
-          oneToManyRelationName,
+          'myPersons',
         );
 
-        jest.spyOn(CollectionUtils, 'aggregateRelation').mockImplementation(() => {
-          throw new Error('an error');
+        jest.spyOn(CollectionUtils, 'listRelation').mockImplementation(() => {
+          throw new Error();
         });
 
         const context = setupContext();
-        await count.handleCountRelated(context);
+        await count.handleListRelated(context);
 
         expect(context.throw).toHaveBeenCalledWith(
           HttpCode.InternalServerError,
-          'Failed to count the collection relation of the "books"',
+          'Failed to get the collection relation of the "books"',
         );
       });
     });
