@@ -24,7 +24,7 @@ const companyCollection: CollectionSchema = {
       type: FieldTypes.Column,
     },
   },
-  searchable: true,
+  searchable: false,
   segments: [],
 };
 
@@ -53,7 +53,7 @@ const userCollection: CollectionSchema = {
       type: FieldTypes.ManyToOne,
     },
   },
-  searchable: true,
+  searchable: false,
   segments: [],
 };
 
@@ -82,7 +82,7 @@ const itemCollection: CollectionSchema = {
       type: FieldTypes.ManyToOne,
     },
   },
-  searchable: true,
+  searchable: false,
   segments: [],
 };
 

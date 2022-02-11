@@ -193,7 +193,7 @@ describe('QueryStringParser', () => {
       const context = createMockContext({});
 
       expect(context.throw).not.toBeCalled();
-      expect(QueryStringParser.parseSearch(context)).toBeNull();
+      expect(QueryStringParser.parseSearch(collectionSimple, context)).toBeNull();
     });
 
     test('should return the query search parameter', () => {
@@ -202,7 +202,7 @@ describe('QueryStringParser', () => {
       });
 
       expect(context.throw).not.toBeCalled();
-      expect(QueryStringParser.parseSearch(context)).toEqual('searched argument');
+      expect(QueryStringParser.parseSearch(collectionSimple, context)).toEqual('searched argument');
     });
 
     test('should convert the query search parameter as string', () => {
@@ -211,7 +211,7 @@ describe('QueryStringParser', () => {
       });
 
       expect(context.throw).not.toBeCalled();
-      expect(QueryStringParser.parseSearch(context)).toEqual('1234');
+      expect(QueryStringParser.parseSearch(collectionSimple, context)).toEqual('1234');
     });
   });
 

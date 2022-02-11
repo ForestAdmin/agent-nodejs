@@ -98,6 +98,7 @@ describe('SearchCollectionDecorator', () => {
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: PrimitiveTypes.String,
+                  filterOperators: new Set([Operator.Contains]),
                 }),
               },
             }),
@@ -140,6 +141,7 @@ describe('SearchCollectionDecorator', () => {
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: PrimitiveTypes.String,
+                  filterOperators: new Set([Operator.Contains]),
                 }),
               },
             }),
@@ -164,6 +166,7 @@ describe('SearchCollectionDecorator', () => {
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: PrimitiveTypes.Uuid,
+                  filterOperators: new Set([Operator.Equal]),
                 }),
               },
             }),
@@ -192,6 +195,7 @@ describe('SearchCollectionDecorator', () => {
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: PrimitiveTypes.Number,
+                  filterOperators: new Set([Operator.Equal]),
                 }),
               },
             }),
@@ -217,6 +221,7 @@ describe('SearchCollectionDecorator', () => {
                 fieldName: factories.columnSchema.build({
                   columnType: PrimitiveTypes.Enum,
                   enumValues: ['AEnumValue'],
+                  filterOperators: new Set([Operator.Equal]),
                 }),
               },
             }),
@@ -289,6 +294,10 @@ describe('SearchCollectionDecorator', () => {
               schema: factories.collectionSchema.unsearchable().build({
                 fields: {
                   fieldName: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
+                  otherField: factories.columnSchema.build({
+                    columnType: PrimitiveTypes.String,
+                    filterOperators: null,
+                  }),
                 },
               }),
             });
@@ -311,8 +320,14 @@ describe('SearchCollectionDecorator', () => {
           const collection = factories.collection.build({
             schema: factories.collectionSchema.unsearchable().build({
               fields: {
-                numberField1: factories.columnSchema.build({ columnType: PrimitiveTypes.Number }),
-                numberField2: factories.columnSchema.build({ columnType: PrimitiveTypes.Number }),
+                numberField1: factories.columnSchema.build({
+                  columnType: PrimitiveTypes.Number,
+                  filterOperators: new Set([Operator.Equal]),
+                }),
+                numberField2: factories.columnSchema.build({
+                  columnType: PrimitiveTypes.Number,
+                  filterOperators: new Set([Operator.Equal]),
+                }),
                 fieldNotReturned: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
               },
             }),

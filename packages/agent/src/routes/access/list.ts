@@ -15,7 +15,7 @@ export default class ListRoute extends CollectionRoute {
         QueryStringParser.parseConditionTree(this.collection, context),
         await this.services.scope.getConditionTree(this.collection, context),
       ),
-      search: QueryStringParser.parseSearch(context),
+      search: QueryStringParser.parseSearch(this.collection, context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
