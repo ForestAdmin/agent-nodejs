@@ -1,15 +1,15 @@
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
-import OperatorEmulationDecorator from '../../../src/decorators/operators-emulate/collection';
+import * as factories from '../../__factories__';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
+import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
+import { RecordData } from '../../../src/interfaces/record';
 import ConditionTreeFactory from '../../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf, {
   Operator,
 } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
+import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
+import OperatorEmulationDecorator from '../../../src/decorators/operators-emulate/collection';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Projection from '../../../src/interfaces/query/projection';
-import { RecordData } from '../../../src/interfaces/record';
-import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
-import * as factories from '../../__factories__';
 
 describe('OperatorsEmulate', () => {
   describe('when the collection pk does not supports == or in operators', () => {

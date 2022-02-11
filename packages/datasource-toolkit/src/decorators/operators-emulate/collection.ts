@@ -1,19 +1,19 @@
-import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
-import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
-import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import {
   CollectionSchema,
   ColumnSchema,
   FieldSchema,
   RelationSchema,
 } from '../../interfaces/schema';
-import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
-import SchemaUtils from '../../utils/schema';
-import ConditionTreeValidator from '../../validation/condition-tree';
-import FieldValidator from '../../validation/field';
-import CollectionDecorator from '../collection-decorator';
-import DataSourceDecorator from '../datasource-decorator';
 import { OperatorReplacer } from './types';
+import CollectionDecorator from '../collection-decorator';
+import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
+import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
+import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeValidator from '../../validation/condition-tree';
+import DataSourceDecorator from '../datasource-decorator';
+import FieldValidator from '../../validation/field';
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
+import SchemaUtils from '../../utils/schema';
 
 export default class OperatorsEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<OperatorsEmulate>;

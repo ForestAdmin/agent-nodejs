@@ -1,6 +1,6 @@
-import { PrimitiveTypes } from '../../../schema';
 import { Alternative } from '../equivalence';
 import { Operator } from '../nodes/leaf';
+import { PrimitiveTypes } from '../../../schema';
 
 function likes(getPattern: (pattern: string) => string): Alternative {
   return {

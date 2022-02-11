@@ -1,6 +1,7 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import HealthCheck from '../../src/routes/healthcheck';
+
 import * as factories from '../__factories__';
+import HealthCheck from '../../src/routes/healthcheck';
 
 describe('Healthcheck', () => {
   const services = factories.forestAdminHttpDriverServices.build();

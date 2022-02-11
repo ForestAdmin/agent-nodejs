@@ -1,5 +1,4 @@
 /* eslint-disable max-classes-per-file */
-import { DataTypes, ModelDefined, Op, Sequelize } from 'sequelize';
 import {
   Action,
   ActionForm,
@@ -18,6 +17,7 @@ import {
   RecordData,
   Sort,
 } from '@forestadmin/datasource-toolkit';
+import { DataTypes, ModelDefined, Op, Sequelize } from 'sequelize';
 
 import { SequelizeCollection } from '../src';
 

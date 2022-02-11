@@ -1,5 +1,6 @@
 import nock from 'nock';
 import superagent from 'superagent';
+
 import agent from '../src/agent';
 
 describe('agent', () => {

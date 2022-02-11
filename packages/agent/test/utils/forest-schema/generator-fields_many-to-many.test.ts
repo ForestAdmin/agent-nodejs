@@ -1,5 +1,5 @@
-import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
 import * as factories from '../../__factories__';
+import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
 
 describe('SchemaGeneratorFields > Many to Many', () => {
   const dataSource = factories.dataSource.buildWithCollections([

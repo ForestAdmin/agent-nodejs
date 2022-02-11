@@ -1,6 +1,6 @@
 import { DataSource, FieldTypes } from '@forestadmin/datasource-toolkit';
-import { ForestAdminHttpDriverServices as Services } from '../services';
 import { ForestAdminHttpDriverOptionsWithDefaults as Options } from '../types';
+import { ForestAdminHttpDriverServices as Services } from '../services';
 
 import Authentication from './security/authentication';
 import BaseRoute from './base-route';
@@ -11,9 +11,9 @@ import Delete from './modification/delete';
 import Get from './access/get';
 import HealthCheck from './healthcheck';
 import List from './access/list';
+import ListRelatedRoute from './access/list-related';
 import ScopeInvalidation from './security/scope-invalidation';
 import Update from './modification/update';
-import ListRelatedRoute from './access/list-related';
 
 export const RootRoutesCtor = [Authentication, HealthCheck, ScopeInvalidation];
 export const CollectionRoutesCtor = [Count, Create, Delete, Get, List, Update];

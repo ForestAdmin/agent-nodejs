@@ -1,15 +1,15 @@
 import { Collection } from '../interfaces/collection';
-import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
-import ConditionTreeLeaf from '../interfaces/query/condition-tree/nodes/leaf';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
-import CollectionUtils from '../utils/collection';
 import {
   MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE,
   MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER,
   MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE,
 } from './rules';
-import TypeGetter from './type-getter';
+import CollectionUtils from '../utils/collection';
+import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
+import ConditionTreeLeaf from '../interfaces/query/condition-tree/nodes/leaf';
 import FieldValidator from './field';
+import TypeGetter from './type-getter';
 
 export default class ConditionTreeValidator {
   static validate(conditionTree: ConditionTree, collection: Collection): void {

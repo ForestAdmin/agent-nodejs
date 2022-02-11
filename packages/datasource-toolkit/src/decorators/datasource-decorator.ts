@@ -1,5 +1,5 @@
-import BaseDataSource from '../base-datasource';
 import { Collection, DataSource } from '../interfaces/collection';
+import BaseDataSource from '../base-datasource';
 
 type CollectionDecoratorConstructor<CollectionDecorator> = {
   new (c: Collection, d: DataSource): CollectionDecorator;

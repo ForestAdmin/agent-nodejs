@@ -1,11 +1,11 @@
+import * as factories from '../../__factories__';
+import { Collection, DataSource } from '../../../src/interfaces/collection';
+import { FieldTypes, PrimitiveTypes } from '../../../src/interfaces/schema';
+import Aggregation, { AggregationOperation } from '../../../src/interfaces/query/aggregation';
 import ComputedCollection from '../../../src/decorators/computed/collection';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
-import { Collection, DataSource } from '../../../src/interfaces/collection';
-import Aggregation, { AggregationOperation } from '../../../src/interfaces/query/aggregation';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Projection from '../../../src/interfaces/query/projection';
-import { FieldTypes, PrimitiveTypes } from '../../../src/interfaces/schema';
-import * as factories from '../../__factories__';
 
 describe('ComputedDecorator', () => {
   // State

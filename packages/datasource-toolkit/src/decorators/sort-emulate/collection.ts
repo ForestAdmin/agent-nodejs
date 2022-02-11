@@ -1,7 +1,3 @@
-import PaginatedFilter from '../../interfaces/query/filter/paginated';
-import Projection from '../../interfaces/query/projection';
-import Sort, { SortClause } from '../../interfaces/query/sort';
-import { RecordData } from '../../interfaces/record';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -9,12 +5,16 @@ import {
   FieldTypes,
   RelationSchema,
 } from '../../interfaces/schema';
+import { RecordData } from '../../interfaces/record';
+import CollectionDecorator from '../collection-decorator';
 import CollectionUtils from '../../utils/collection';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
-import RecordUtils from '../../utils/record';
-import FieldValidator from '../../validation/field';
-import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
+import FieldValidator from '../../validation/field';
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
+import Projection from '../../interfaces/query/projection';
+import RecordUtils from '../../utils/record';
+import Sort, { SortClause } from '../../interfaces/query/sort';
 
 export default class SortEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<SortEmulate>;

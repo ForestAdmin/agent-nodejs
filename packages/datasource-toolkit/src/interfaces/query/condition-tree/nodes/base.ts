@@ -1,7 +1,7 @@
+import { AsyncLeafReplacer, LeafCallback, LeafReplacer, LeafTester } from './leaf';
 import { Collection } from '../../../collection';
 import { RecordData } from '../../../record';
 import Projection from '../../projection';
-import { AsyncLeafReplacer, LeafCallback, LeafReplacer, LeafTester } from './leaf';
 
 export default abstract class ConditionTree {
   abstract inverse(): ConditionTree;

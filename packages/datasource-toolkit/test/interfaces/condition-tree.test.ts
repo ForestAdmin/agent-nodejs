@@ -1,11 +1,11 @@
+import * as factories from '../__factories__';
+import { PrimitiveTypes } from '../../src/interfaces/schema';
 import ConditionTreeBranch, {
   Aggregator,
 } from '../../src/interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import ConditionTreeNot from '../../src/interfaces/query/condition-tree/nodes/not';
-import * as factories from '../__factories__';
-import { PrimitiveTypes } from '../../src/interfaces/schema';
 
 describe('ConditionTree', () => {
   describe('Factory', () => {

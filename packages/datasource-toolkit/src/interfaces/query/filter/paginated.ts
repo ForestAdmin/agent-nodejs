@@ -1,6 +1,6 @@
+import Filter, { FilterComponents } from './unpaginated';
 import Page from '../page';
 import Sort from '../sort';
-import Filter, { FilterComponents } from './unpaginated';
 
 export type PaginatedFilterComponents = FilterComponents & {
   sort?: Sort;

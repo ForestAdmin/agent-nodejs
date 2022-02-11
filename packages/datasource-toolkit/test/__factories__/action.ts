@@ -1,8 +1,9 @@
 import { Factory } from 'fishery';
+
 import {
   Action,
-  ActionResponse,
   ActionForm,
+  ActionResponse,
   ActionResponseType,
 } from '../../src/interfaces/action';
 

@@ -1,8 +1,9 @@
 import { ConditionTreeFactory, PaginatedFilter } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
 import { Context } from 'koa';
-import QueryStringParser from '../../utils/query-string';
+import Router from '@koa/router';
+
 import CollectionRoute from '../collection-base-route';
+import QueryStringParser from '../../utils/query-string';
 
 export default class ListRoute extends CollectionRoute {
   override setupPrivateRoutes(router: Router): void {

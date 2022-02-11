@@ -1,8 +1,8 @@
+import { AsyncLeafReplacer, LeafCallback, LeafComponents, LeafReplacer, LeafTester } from './leaf';
 import { Collection } from '../../../collection';
 import { RecordData } from '../../../record';
-import Projection from '../../projection';
 import ConditionTree from './base';
-import { AsyncLeafReplacer, LeafCallback, LeafComponents, LeafReplacer, LeafTester } from './leaf';
+import Projection from '../../projection';
 
 export enum Aggregator {
   And = 'and',

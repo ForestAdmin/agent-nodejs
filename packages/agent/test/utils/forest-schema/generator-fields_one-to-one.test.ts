@@ -1,6 +1,7 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
+
 import * as factories from '../../__factories__';
+import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
 
 describe('SchemaGeneratorFields > One to One', () => {
   const dataSource = factories.dataSource.buildWithCollections([

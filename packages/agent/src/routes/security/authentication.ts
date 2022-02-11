@@ -1,11 +1,12 @@
+import { Client, ClientAuthMethod, Issuer } from 'openid-client';
+import { Context } from 'koa';
 import Router from '@koa/router';
 import jsonwebtoken from 'jsonwebtoken';
-import { Context } from 'koa';
 import jwt from 'koa-jwt';
-import { Client, ClientAuthMethod, Issuer } from 'openid-client';
 import path from 'path';
-import BaseRoute from '../base-route';
+
 import { HttpCode } from '../../types';
+import BaseRoute from '../base-route';
 import ForestHttpApi, { UserInfo } from '../../utils/forest-http-api';
 
 export default class Authentication extends BaseRoute {

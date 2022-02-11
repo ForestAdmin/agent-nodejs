@@ -9,6 +9,7 @@ import {
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import path from 'path';
+
 import { ForestServerAction, ForestServerActionField } from './types';
 
 export default class SchemaGeneratorActions {

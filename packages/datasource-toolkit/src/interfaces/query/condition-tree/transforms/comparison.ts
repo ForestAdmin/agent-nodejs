@@ -1,8 +1,8 @@
-import { PrimitiveTypes } from '../../../schema';
 import { Alternative } from '../equivalence';
-import ConditionTreeFactory from '../factory';
-import ConditionTree from '../nodes/base';
 import { Operator } from '../nodes/leaf';
+import { PrimitiveTypes } from '../../../schema';
+import ConditionTree from '../nodes/base';
+import ConditionTreeFactory from '../factory';
 
 export default (): Partial<Record<Operator, Alternative[]>> => ({
   [Operator.Blank]: [

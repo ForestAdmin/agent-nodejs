@@ -1,6 +1,7 @@
 import { ActionSchemaScope, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import SchemaGeneratorCollection from '../../../src/utils/forest-schema/generator-collection';
+
 import * as factories from '../../__factories__';
+import SchemaGeneratorCollection from '../../../src/utils/forest-schema/generator-collection';
 
 describe('SchemaGeneratorCollection', () => {
   const dataSource = factories.dataSource.buildWithCollections([

@@ -1,9 +1,9 @@
+import * as factories from '../__factories__';
+import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
 import Aggregation, { AggregationOperation } from '../../src/interfaces/query/aggregation';
+import CollectionUtils from '../../src/utils/collection';
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
-import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
-import CollectionUtils from '../../src/utils/collection';
-import * as factories from '../__factories__';
 
 describe('CollectionUtils', () => {
   const setupWithUnsupportedRelation = () => {

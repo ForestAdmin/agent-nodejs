@@ -1,9 +1,10 @@
-import { createMockContext } from '@shopify/jest-koa-mocks';
 import { Context, Next } from 'koa';
-import IpWhitelist from '../../../src/routes/security/ip-whitelist';
+import { createMockContext } from '@shopify/jest-koa-mocks';
+
+import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
 import ForestHttpApi from '../../../src/utils/forest-http-api';
-import * as factories from '../../__factories__';
+import IpWhitelist from '../../../src/routes/security/ip-whitelist';
 
 jest.mock('../../../src/utils/forest-http-api', () => ({
   getIpWhitelistConfiguration: jest.fn(),

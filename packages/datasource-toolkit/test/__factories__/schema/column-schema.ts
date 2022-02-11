@@ -1,4 +1,5 @@
 import { Factory } from 'fishery';
+
 import { ColumnSchema, FieldTypes, PrimitiveTypes } from '../../../src/interfaces/schema';
 import { Operator } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 

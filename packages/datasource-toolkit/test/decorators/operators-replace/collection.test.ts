@@ -1,12 +1,12 @@
-import OperatorsDecorator from '../../../src/decorators/operators-replace/collection';
+import * as factories from '../../__factories__';
 import { Collection } from '../../../src/interfaces/collection';
+import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
 import ConditionTreeLeaf, {
   Operator,
 } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
+import OperatorsDecorator from '../../../src/decorators/operators-replace/collection';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Projection from '../../../src/interfaces/query/projection';
-import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
-import * as factories from '../../__factories__';
 
 describe('ConditionTreeOperators', () => {
   describe('with a date field which support only "<", "==" and ">"', () => {

@@ -1,5 +1,6 @@
-import Router from '@koa/router';
 import { Context } from 'koa';
+import Router from '@koa/router';
+
 import { HttpCode } from '../../types';
 import BaseRoute from '../base-route';
 

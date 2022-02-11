@@ -1,7 +1,3 @@
-import { DataSource } from '../../interfaces/collection';
-import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
-import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
-import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -9,9 +5,13 @@ import {
   FieldTypes,
   PrimitiveTypes,
 } from '../../interfaces/schema';
-import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
-import TypeGetter from '../../validation/type-getter';
+import { DataSource } from '../../interfaces/collection';
 import CollectionDecorator from '../collection-decorator';
+import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
+import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
+import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
+import TypeGetter from '../../validation/type-getter';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   public override refineSchema(subSchema: CollectionSchema): CollectionSchema {

@@ -1,13 +1,4 @@
 import {
-  col as Col,
-  FindAttributeOptions,
-  fn as Fn,
-  GroupOption,
-  ModelDefined,
-  OrderItem,
-  UpdateOptions,
-} from 'sequelize';
-import {
   AggregateResult,
   Aggregation,
   BaseCollection,
@@ -19,9 +10,18 @@ import {
   RecordData,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
+import {
+  col as Col,
+  FindAttributeOptions,
+  fn as Fn,
+  GroupOption,
+  ModelDefined,
+  OrderItem,
+  UpdateOptions,
+} from 'sequelize';
 
-import ModelConverter from './utils/model-to-collection-schema-converter';
 import FilterConverter from './utils/filter-converter';
+import ModelConverter from './utils/model-to-collection-schema-converter';
 
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,4 +1,5 @@
 import { Factory } from 'fishery';
+
 import { CollectionSchema } from '../../../src/interfaces/schema';
 
 export class CollectionSchemaFactory extends Factory<CollectionSchema> {

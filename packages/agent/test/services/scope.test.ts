@@ -1,8 +1,9 @@
 import { ConditionTreeLeaf, Operator } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import ScopeService from '../../src/services/scope';
+
 import * as factories from '../__factories__';
 import ForestHttpApi from '../../src/utils/forest-http-api';
+import ScopeService from '../../src/services/scope';
 
 jest.mock('../../src/utils/forest-http-api', () => ({
   getScopes: jest.fn(),

@@ -1,8 +1,9 @@
-import hashRecord from 'object-hash';
 import { DateTime } from 'luxon';
-import RecordUtils from '../../utils/record';
+import hashRecord from 'object-hash';
+
 import { RecordData } from '../record';
 import Projection from './projection';
+import RecordUtils from '../../utils/record';
 
 export enum AggregationOperation {
   Count = 'Count',
