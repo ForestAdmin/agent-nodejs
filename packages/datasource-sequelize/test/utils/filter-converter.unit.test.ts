@@ -1,4 +1,3 @@
-import { Op } from 'sequelize';
 import {
   Aggregator,
   ConditionTreeBranch,
@@ -10,6 +9,7 @@ import {
   PaginatedFilter,
   Sort,
 } from '@forestadmin/datasource-toolkit';
+import { Op } from 'sequelize';
 
 import FilterConverter from '../../src/utils/filter-converter';
 

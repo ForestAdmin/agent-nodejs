@@ -1,6 +1,6 @@
 import { Collection } from '../interfaces/collection';
-import { CompositeId, RecordData } from '../interfaces/record';
 import { CollectionSchema, FieldTypes } from '../interfaces/schema';
+import { CompositeId, RecordData } from '../interfaces/record';
 import FieldValidator from '../validation/field';
 import SchemaUtils from './schema';
 

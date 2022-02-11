@@ -1,5 +1,5 @@
-import TypeGetter from '../../src/validation/type-getter';
 import { PrimitiveTypes } from '../../src/interfaces/schema';
+import TypeGetter from '../../src/validation/type-getter';
 import ValidationTypes from '../../src/validation/types';
 
 describe('TypeGetter', () => {

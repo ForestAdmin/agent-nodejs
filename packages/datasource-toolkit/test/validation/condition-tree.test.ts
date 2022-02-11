@@ -1,8 +1,8 @@
-import { Aggregator } from '../../src/interfaces/query/condition-tree/nodes/branch';
-import { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
-import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
-import ConditionTreeValidator from '../../src/validation/condition-tree';
 import * as factories from '../__factories__';
+import { Aggregator } from '../../src/interfaces/query/condition-tree/nodes/branch';
+import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
+import { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeValidator from '../../src/validation/condition-tree';
 
 describe('ConditionTreeValidation', () => {
   describe('validate', () => {

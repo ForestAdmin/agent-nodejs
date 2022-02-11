@@ -1,4 +1,3 @@
-import { LiveDataSource } from '@forestadmin/datasource-live';
 import {
   CollectionSchema,
   DataSourceSchema,
@@ -6,6 +5,7 @@ import {
   Operator,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
+import { LiveDataSource } from '@forestadmin/datasource-live';
 
 import loadLiveDataSource from './live-business-data';
 

@@ -1,13 +1,14 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
-import crypto from 'crypto';
-import { readFileSync } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
-import JSONAPISerializer from 'json-api-serializer';
-import stringify from 'json-stringify-pretty-compact';
+import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import JSONAPISerializer from 'json-api-serializer';
+import crypto from 'crypto';
+import stringify from 'json-stringify-pretty-compact';
+
 import { ForestAdminHttpDriverOptions } from '../../types';
-import SchemaGeneratorCollection from './generator-collection';
 import { ForestServerCollection } from './types';
+import SchemaGeneratorCollection from './generator-collection';
 
 type RawSchema = ForestServerCollection[];
 type SerializedSchema = { meta: { schemaFileHash: string } };

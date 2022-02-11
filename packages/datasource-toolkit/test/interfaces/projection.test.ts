@@ -1,5 +1,5 @@
-import Projection from '../../src/interfaces/query/projection';
 import * as factories from '../__factories__';
+import Projection from '../../src/interfaces/query/projection';
 
 describe('Projection', () => {
   describe('replace()', () => {

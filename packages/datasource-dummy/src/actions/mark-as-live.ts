@@ -1,9 +1,9 @@
 import {
   Action,
-  RecordData,
+  ActionForm,
   ActionResponse,
   ActionResponseType,
-  ActionForm,
+  RecordData,
 } from '@forestadmin/datasource-toolkit';
 
 export default class MarkAsLiveAction implements Action {

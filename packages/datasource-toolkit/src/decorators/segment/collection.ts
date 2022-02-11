@@ -1,9 +1,9 @@
-import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
-import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import { CollectionSchema } from '../../interfaces/schema';
+import CollectionDecorator from '../collection-decorator';
+import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import ConditionTreeValidator from '../../validation/condition-tree';
-import CollectionDecorator from '../collection-decorator';
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
 
 type ConditionTreeGenerator = (timezone: string) => Promise<ConditionTree>;
 

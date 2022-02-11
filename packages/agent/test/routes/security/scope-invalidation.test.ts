@@ -1,8 +1,9 @@
-import Router from '@koa/router';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import ScopeInvalidation from '../../../src/routes/security/scope-invalidation';
-import { HttpCode } from '../../../src/types';
+import Router from '@koa/router';
+
 import * as factories from '../../__factories__';
+import { HttpCode } from '../../../src/types';
+import ScopeInvalidation from '../../../src/routes/security/scope-invalidation';
 
 describe('ScopeInvalidation', () => {
   const options = factories.forestAdminHttpDriverOptions.build();

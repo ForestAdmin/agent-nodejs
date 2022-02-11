@@ -1,9 +1,10 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
-import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
-import makeRoutes from '../src/routes';
-import { ForestAdminHttpDriverOptionsWithDefaults } from '../src/types';
-import ForestHttpApi from '../src/utils/forest-http-api';
+
 import * as factories from './__factories__';
+import { ForestAdminHttpDriverOptionsWithDefaults } from '../src/types';
+import ForestAdminHttpDriver from '../src/forestadmin-http-driver';
+import ForestHttpApi from '../src/utils/forest-http-api';
+import makeRoutes from '../src/routes';
 
 jest.mock('../src/routes', () => ({
   __esModule: true,

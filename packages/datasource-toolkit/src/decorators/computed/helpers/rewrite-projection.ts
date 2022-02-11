@@ -1,6 +1,6 @@
-import Projection from '../../../interfaces/query/projection';
 import { RelationSchema } from '../../../interfaces/schema';
 import ComputedCollection from '../collection';
+import Projection from '../../../interfaces/query/projection';
 
 export default function rewriteField(collection: ComputedCollection, path: string): Projection {
   // Projection is targeting a field on another collection => recurse.

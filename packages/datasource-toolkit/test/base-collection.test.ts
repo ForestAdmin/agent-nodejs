@@ -1,12 +1,12 @@
 // eslint-disable-next-line max-classes-per-file
-import { CollectionSchema } from '../dist/src';
-import BaseCollection from '../src/base-collection';
-import { DataSource } from '../src/interfaces/collection';
-import { AggregateResult } from '../src/interfaces/query/aggregation';
-import Projection from '../src/interfaces/query/projection';
-import { RecordData } from '../src/interfaces/record';
-import { ActionSchema, ColumnSchema, FieldSchema, PrimitiveTypes } from '../src/interfaces/schema';
 import * as factories from './__factories__';
+import { ActionSchema, ColumnSchema, FieldSchema, PrimitiveTypes } from '../src/interfaces/schema';
+import { AggregateResult } from '../src/interfaces/query/aggregation';
+import { CollectionSchema } from '../dist/src';
+import { DataSource } from '../src/interfaces/collection';
+import { RecordData } from '../src/interfaces/record';
+import BaseCollection from '../src/base-collection';
+import Projection from '../src/interfaces/query/projection';
 
 class ConcreteCollection extends BaseCollection {
   override schema: CollectionSchema;

@@ -1,8 +1,9 @@
 import { DateTime, DateTimeUnit } from 'luxon';
-import { PrimitiveTypes } from '../../../schema';
+
 import { Alternative } from '../equivalence';
-import ConditionTreeFactory from '../factory';
 import { Operator } from '../nodes/leaf';
+import { PrimitiveTypes } from '../../../schema';
+import ConditionTreeFactory from '../factory';
 
 type DateCallback = (now: DateTime, value: unknown) => DateTime;
 

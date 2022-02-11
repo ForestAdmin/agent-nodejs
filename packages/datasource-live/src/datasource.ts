@@ -1,10 +1,10 @@
-import { Sequelize } from 'sequelize';
 import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
+import { Sequelize } from 'sequelize';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
-import LiveCollection from './collection';
 import CollectionAttributesConverter from './utils/collection-schema-to-model-attributes-converter';
 import CollectionRelationsConverter from './utils/collection-schema-to-model-relations-converter';
+import LiveCollection from './collection';
 
 export default class LiveDataSource extends SequelizeDataSource {
   constructor(dataSourceSchema: DataSourceSchema) {

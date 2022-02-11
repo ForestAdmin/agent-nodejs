@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import SchemaEmitter from '../../../src/utils/forest-schema/emitter';
+
 import * as factories from '../../__factories__';
+import SchemaEmitter from '../../../src/utils/forest-schema/emitter';
 
 const schemaPath = '/tmp/test-schema.json';
 

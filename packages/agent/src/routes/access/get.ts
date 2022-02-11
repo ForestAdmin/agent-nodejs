@@ -5,11 +5,12 @@ import {
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
 import { Context, HttpError } from 'koa';
-import IdUtils from '../../utils/id';
-import CollectionRoute from '../collection-base-route';
+import Router from '@koa/router';
+
 import { HttpCode } from '../../types';
+import CollectionRoute from '../collection-base-route';
+import IdUtils from '../../utils/id';
 
 export default class GetRoute extends CollectionRoute {
   override setupPrivateRoutes(router: Router): void {

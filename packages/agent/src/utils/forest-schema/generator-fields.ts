@@ -8,8 +8,8 @@ import {
   RelationSchema,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import FrontendFilterableUtils from './filterable';
 import { ForestServerField } from './types';
+import FrontendFilterableUtils from './filterable';
 import FrontendValidationUtils from './validation';
 
 export default class SchemaGeneratorFields {

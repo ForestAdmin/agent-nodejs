@@ -1,7 +1,7 @@
-import SegmentCollectionDecorator from '../../../src/decorators/segment/collection';
-import ConditionTree from '../../../src/interfaces/query/condition-tree/nodes/base';
-import { Operator } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import * as factories from '../../__factories__';
+import { Operator } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
+import ConditionTree from '../../../src/interfaces/query/condition-tree/nodes/base';
+import SegmentCollectionDecorator from '../../../src/decorators/segment/collection';
 
 describe('SegmentCollectionDecorator', () => {
   let segmentDecorator: SegmentCollectionDecorator;

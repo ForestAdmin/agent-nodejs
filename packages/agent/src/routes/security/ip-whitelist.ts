@@ -1,8 +1,9 @@
-import Router from '@koa/router';
-import IpUtil from 'forest-ip-utils';
 import { Context, Next } from 'koa';
-import BaseRoute from '../base-route';
+import IpUtil from 'forest-ip-utils';
+import Router from '@koa/router';
+
 import { HttpCode } from '../../types';
+import BaseRoute from '../base-route';
 import ForestHttpApi, { IpWhitelistConfiguration } from '../../utils/forest-http-api';
 
 export default class IpWhitelist extends BaseRoute {

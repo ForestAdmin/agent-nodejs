@@ -1,12 +1,12 @@
 import { Action } from './interfaces/action';
+import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 import { Collection, DataSource } from './interfaces/collection';
+import { CompositeId, RecordData } from './interfaces/record';
 import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
+import ConditionTreeFactory from './interfaces/query/condition-tree/factory';
 import Filter from './interfaces/query/filter/unpaginated';
 import PaginatedFilter from './interfaces/query/filter/paginated';
 import Projection from './interfaces/query/projection';
-import { CompositeId, RecordData } from './interfaces/record';
-import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
-import ConditionTreeFactory from './interfaces/query/condition-tree/factory';
 
 export default abstract class BaseCollection implements Collection {
   readonly dataSource: DataSource = null;

@@ -1,9 +1,10 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import openidClient, { Issuer } from 'openid-client';
-import Authentication from '../../../src/routes/security/authentication';
-import { HttpCode } from '../../../src/types';
-import ForestHttpApi from '../../../src/utils/forest-http-api';
+
 import * as factories from '../../__factories__';
+import { HttpCode } from '../../../src/types';
+import Authentication from '../../../src/routes/security/authentication';
+import ForestHttpApi from '../../../src/utils/forest-http-api';
 
 jest.mock('openid-client', () => ({ Issuer: jest.fn() }));
 jest.mock('../../../src/utils/forest-http-api', () => ({

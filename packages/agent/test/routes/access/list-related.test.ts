@@ -1,16 +1,17 @@
 import {
   CollectionUtils,
+  ConditionTreeLeaf,
+  Operator,
+  Page,
   PaginatedFilter,
   PrimitiveTypes,
   Sort,
-  Page,
-  ConditionTreeLeaf,
-  Operator,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import ListRelatedRoute from '../../../src/routes/access/list-related';
+
 import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
+import ListRelatedRoute from '../../../src/routes/access/list-related';
 
 describe('ListRelatedRoute', () => {
   const setupWithOneToManyRelation = () => {

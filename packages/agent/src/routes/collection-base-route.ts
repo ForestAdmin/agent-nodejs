@@ -1,6 +1,6 @@
 import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
-import { ForestAdminHttpDriverServices } from '../services';
 import { ForestAdminHttpDriverOptionsWithDefaults } from '../types';
+import { ForestAdminHttpDriverServices } from '../services';
 import BaseRoute from './base-route';
 
 export default abstract class CollectionRoute extends BaseRoute {

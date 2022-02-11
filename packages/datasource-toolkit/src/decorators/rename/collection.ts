@@ -1,11 +1,11 @@
-import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
-import PaginatedFilter from '../../interfaces/query/filter/paginated';
-import Filter from '../../interfaces/query/filter/unpaginated';
-import Projection from '../../interfaces/query/projection';
-import { CompositeId, RecordData } from '../../interfaces/record';
 import { CollectionSchema, FieldSchema, FieldTypes, RelationSchema } from '../../interfaces/schema';
+import { CompositeId, RecordData } from '../../interfaces/record';
+import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
+import Filter from '../../interfaces/query/filter/unpaginated';
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
+import Projection from '../../interfaces/query/projection';
 
 /**
  * This decorator renames fields.

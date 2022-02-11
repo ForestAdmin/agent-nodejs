@@ -1,6 +1,6 @@
+import * as factories from '../__factories__';
 import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
 import RecordUtils from '../../src/utils/record';
-import * as factories from '../__factories__';
 
 describe('RecordUtils', () => {
   const dataSource = factories.dataSource.buildWithCollections([

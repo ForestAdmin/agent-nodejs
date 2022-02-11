@@ -1,6 +1,7 @@
 import { ActionFieldType, ActionSchemaScope, Collection } from '@forestadmin/datasource-toolkit';
-import SchemaGeneratorActions from '../../../src/utils/forest-schema/generator-actions';
+
 import * as factories from '../../__factories__';
+import SchemaGeneratorActions from '../../../src/utils/forest-schema/generator-actions';
 
 describe('SchemaGeneratorActions', () => {
   describe('Without form', () => {

@@ -1,9 +1,9 @@
-import Projection from '../../../interfaces/query/projection';
-import { RecordData } from '../../../interfaces/record';
-import ComputedCollection from '../collection';
 import { ComputedContext, ComputedDefinition } from '../types';
-import transformUniqueValues from '../utils/deduplication';
+import { RecordData } from '../../../interfaces/record';
 import { flatten, unflatten } from '../utils/flattener';
+import ComputedCollection from '../collection';
+import Projection from '../../../interfaces/query/projection';
+import transformUniqueValues from '../utils/deduplication';
 
 async function computeField(
   ctx: ComputedContext,

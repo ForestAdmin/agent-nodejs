@@ -1,6 +1,6 @@
+import * as factories from '../__factories__';
 import Sort from '../../src/interfaces/query/sort';
 import SortValidator from '../../src/validation/sort';
-import * as factories from '../__factories__';
 
 describe('SortValidator', () => {
   describe('validate', () => {

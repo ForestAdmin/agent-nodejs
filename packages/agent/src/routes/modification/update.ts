@@ -1,14 +1,15 @@
 import {
-  Filter,
-  ConditionTreeFactory,
-  RecordUtils,
   CompositeId,
+  ConditionTreeFactory,
+  Filter,
   RecordData,
+  RecordUtils,
 } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
 import { Context } from 'koa';
-import CollectionRoute from '../collection-base-route';
+import Router from '@koa/router';
+
 import { HttpCode } from '../../types';
+import CollectionRoute from '../collection-base-route';
 import IdUtils from '../../utils/id';
 
 export default class UpdateRoute extends CollectionRoute {

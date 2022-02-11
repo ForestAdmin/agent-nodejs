@@ -1,8 +1,8 @@
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
-import PublicationCollectionDecorator from '../../../src/decorators/publication/collection';
+import * as factories from '../../__factories__';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
 import { PrimitiveTypes } from '../../../src/interfaces/schema';
-import * as factories from '../../__factories__';
+import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
+import PublicationCollectionDecorator from '../../../src/decorators/publication/collection';
 
 describe('PublicationCollectionDecorator', () => {
   // State

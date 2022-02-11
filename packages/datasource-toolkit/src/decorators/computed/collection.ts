@@ -1,16 +1,16 @@
+import { CollectionSchema, ColumnSchema, FieldTypes } from '../../interfaces/schema';
+import { CompositeId, RecordData } from '../../interfaces/record';
+import { ComputedDefinition, ProxyDefinition } from './types';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
+import CollectionDecorator from '../collection-decorator';
+import CollectionUtils from '../../utils/collection';
+import DataSourceDecorator from '../datasource-decorator';
+import FieldValidator from '../../validation/field';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
-import { CompositeId, RecordData } from '../../interfaces/record';
-import { CollectionSchema, ColumnSchema, FieldTypes } from '../../interfaces/schema';
-import CollectionUtils from '../../utils/collection';
-import FieldValidator from '../../validation/field';
-import CollectionDecorator from '../collection-decorator';
-import DataSourceDecorator from '../datasource-decorator';
 import ProxyField from './fields/proxy';
 import computeFromRecords from './helpers/compute-fields';
 import rewriteField from './helpers/rewrite-projection';
-import { ComputedDefinition, ProxyDefinition } from './types';
 
 /** Decorator injects computed fields */
 export default class ComputedCollection extends CollectionDecorator {

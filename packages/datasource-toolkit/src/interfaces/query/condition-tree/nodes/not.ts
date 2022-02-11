@@ -1,8 +1,8 @@
+import { AsyncLeafReplacer, LeafCallback, LeafReplacer, LeafTester } from './leaf';
 import { Collection } from '../../../collection';
 import { RecordData } from '../../../record';
-import Projection from '../../projection';
 import ConditionTree from './base';
-import { AsyncLeafReplacer, LeafCallback, LeafReplacer, LeafTester } from './leaf';
+import Projection from '../../projection';
 
 export default class ConditionTreeNot extends ConditionTree {
   condition: ConditionTree;

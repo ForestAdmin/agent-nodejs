@@ -1,9 +1,9 @@
-import ConditionTreeEquivalent from '../../interfaces/query/condition-tree/equivalence';
-import { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
-import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import { CollectionSchema, ColumnSchema, FieldSchema, FieldTypes } from '../../interfaces/schema';
-import CollectionUtils from '../../utils/collection';
+import { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
 import CollectionDecorator from '../collection-decorator';
+import CollectionUtils from '../../utils/collection';
+import ConditionTreeEquivalent from '../../interfaces/query/condition-tree/equivalence';
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
 
 /**
  * Decorator which emulates filter operators from others.

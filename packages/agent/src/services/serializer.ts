@@ -6,6 +6,7 @@ import {
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import JsonApiSerializer from 'json-api-serializer';
+
 import { ForestAdminHttpDriverOptionsWithDefaults } from '../types';
 import IdUtils from '../utils/id';
 

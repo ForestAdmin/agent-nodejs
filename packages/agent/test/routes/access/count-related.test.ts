@@ -7,9 +7,10 @@ import {
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import CountRelatedRoute from '../../../src/routes/access/count-related';
+
 import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
+import CountRelatedRoute from '../../../src/routes/access/count-related';
 
 describe('CountRelatedRoute', () => {
   const setupWithOneToManyRelation = () => {

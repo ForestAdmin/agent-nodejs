@@ -6,12 +6,13 @@ import {
   ConditionTreeFactory,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
 import { Context } from 'koa';
-import QueryStringParser from '../../utils/query-string';
-import RelationRoute from '../relation-route';
+import Router from '@koa/router';
+
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
+import QueryStringParser from '../../utils/query-string';
+import RelationRoute from '../relation-route';
 
 export default class CountRelatedRoute extends RelationRoute {
   override setupPrivateRoutes(router: Router): void {

@@ -1,7 +1,7 @@
-import { DataSource } from '../../interfaces/collection';
-import Projection from '../../interfaces/query/projection';
-import { RecordData } from '../../interfaces/record';
 import { ColumnType } from '../../interfaces/schema';
+import { DataSource } from '../../interfaces/collection';
+import { RecordData } from '../../interfaces/record';
+import Projection from '../../interfaces/query/projection';
 
 export type ComputedContext = {
   dataSource: DataSource;

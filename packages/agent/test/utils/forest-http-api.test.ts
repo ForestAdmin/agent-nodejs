@@ -1,6 +1,7 @@
 import { ConditionTreeLeaf, Operator } from '@forestadmin/datasource-toolkit';
-import ForestHttpApi from '../../src/utils/forest-http-api';
+
 import * as factories from '../__factories__';
+import ForestHttpApi from '../../src/utils/forest-http-api';
 
 describe('ForestHttpApi', () => {
   const options = factories.forestAdminHttpDriverOptions.build({

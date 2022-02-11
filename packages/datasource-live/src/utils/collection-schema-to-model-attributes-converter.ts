@@ -1,10 +1,10 @@
-import { DataTypes, ModelAttributeColumnOptions, ModelAttributes } from 'sequelize';
 import {
   CollectionSchema,
   ColumnSchema,
   FieldTypes,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
+import { DataTypes, ModelAttributeColumnOptions, ModelAttributes } from 'sequelize';
 
 import { TypeConverter } from '@forestadmin/datasource-sequelize';
 

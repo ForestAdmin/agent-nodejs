@@ -1,6 +1,6 @@
-import DataSourceDecorator from '../../src/decorators/datasource-decorator';
 import * as factories from '../__factories__';
 import { DecoratedCollection } from '../__factories__/collection';
+import DataSourceDecorator from '../../src/decorators/datasource-decorator';
 
 describe('DataSourceDecorator', () => {
   test('should decorate child collections', () => {

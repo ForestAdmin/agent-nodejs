@@ -1,5 +1,5 @@
-import BaseRoute from '../../src/routes/base-route';
 import * as factories from '../__factories__';
+import BaseRoute from '../../src/routes/base-route';
 
 describe('Base routes', () => {
   const services = factories.forestAdminHttpDriverServices.build();

@@ -1,8 +1,4 @@
 import { Collection } from '../interfaces/collection';
-import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
-import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
-import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
-import PaginatedFilter from '../interfaces/query/filter/paginated';
 import { CompositeId, RecordData } from '../interfaces/record';
 import {
   FieldSchema,
@@ -11,8 +7,12 @@ import {
   OneToManySchema,
   RelationSchema,
 } from '../interfaces/schema';
-import Projection from '../interfaces/query/projection';
+import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
+import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
+import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
+import PaginatedFilter from '../interfaces/query/filter/paginated';
+import Projection from '../interfaces/query/projection';
 
 export default class CollectionUtils {
   static getRelation(collection: Collection, path: string): Collection {

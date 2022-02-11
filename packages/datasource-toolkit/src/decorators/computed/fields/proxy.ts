@@ -1,9 +1,9 @@
 import { Collection } from '../../../interfaces/collection';
-import Projection from '../../../interfaces/query/projection';
-import { RecordData } from '../../../interfaces/record';
 import { ColumnType } from '../../../interfaces/schema';
-import RecordUtils from '../../../utils/record';
 import { ComputedDefinition, ProxyDefinition } from '../types';
+import { RecordData } from '../../../interfaces/record';
+import Projection from '../../../interfaces/query/projection';
+import RecordUtils from '../../../utils/record';
 
 export default class ProxyField implements ComputedDefinition {
   readonly collection: Collection;

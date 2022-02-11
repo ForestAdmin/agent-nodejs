@@ -1,4 +1,5 @@
 import { Factory } from 'fishery';
+
 import { Collection, DataSource } from '../../src/interfaces/collection';
 import factoryCollection from './collection';
 

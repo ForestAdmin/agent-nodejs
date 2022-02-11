@@ -1,5 +1,5 @@
-import SchemaGeneratorSegments from '../../../src/utils/forest-schema/generator-segments';
 import * as factories from '../../__factories__';
+import SchemaGeneratorSegments from '../../../src/utils/forest-schema/generator-segments';
 
 describe('SchemaGeneratorSegments', () => {
   const collection = factories.collection.build({

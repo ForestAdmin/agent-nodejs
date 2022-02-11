@@ -1,13 +1,13 @@
-import CollectionUtils from '../../../../utils/collection';
-import RecordUtils from '../../../../utils/record';
 import { Collection } from '../../../collection';
-import { RecordData } from '../../../record';
 import { ColumnSchema } from '../../../schema';
-import Projection from '../../projection';
+import { RecordData } from '../../../record';
+import CollectionUtils from '../../../../utils/collection';
+import ConditionTree from './base';
 import ConditionTreeEquivalent from '../equivalence';
 import ConditionTreeFactory from '../factory';
-import ConditionTree from './base';
 import ConditionTreeNot from './not';
+import Projection from '../../projection';
+import RecordUtils from '../../../../utils/record';
 
 export enum Operator {
   // All types
