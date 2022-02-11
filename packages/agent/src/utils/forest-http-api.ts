@@ -21,7 +21,7 @@ export type UserInfo = {
   firstName: string;
   lastName: string;
   team: string;
-  renderingId: string;
+  renderingId: number;
   role: string;
   tags: { key: string; value: string }[];
 };
@@ -66,7 +66,7 @@ export default class ForestHttpApi {
 
   static async getUserInformation(
     options: HttpOptions,
-    renderingId: string,
+    renderingId: number,
     accessToken: string,
   ): Promise<UserInfo> {
     try {
