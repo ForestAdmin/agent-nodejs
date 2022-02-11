@@ -61,7 +61,7 @@ export default class QueryStringParser {
     const search = context.request.query.search?.toString() ?? null;
 
     if (search && !collection.schema.searchable) {
-      context.throw(HttpCode.BadRequest, `Collection is not searchable`);
+      context.throw(HttpCode.BadRequest, 'Collection is not searchable');
     }
 
     return search;

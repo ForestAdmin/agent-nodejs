@@ -19,8 +19,8 @@ describe('QueryStringParser', () => {
     test('should return null when not provided', () => {
       const context = createMockContext({});
 
-      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseConditionTree(collectionSimple, context)).toBeNull();
+      expect(context.throw).not.toBeCalled();
     });
 
     test('should work when passed in the querystring', () => {
@@ -192,8 +192,23 @@ describe('QueryStringParser', () => {
     test('should return null when not provided', () => {
       const context = createMockContext({});
 
-      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSearch(collectionSimple, context)).toBeNull();
+      expect(context.throw).not.toBeCalled();
+    });
+
+    test('should throw an error when the collection is not searchable', () => {
+      const context = createMockContext({
+        customProperties: { query: { search: 'searched argument' } },
+      });
+
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          searchable: false,
+        }),
+      });
+      QueryStringParser.parseSearch(collection, context);
+
+      expect(context.throw).toBeCalledWith(HttpCode.BadRequest, 'Collection is not searchable');
     });
 
     test('should return the query search parameter', () => {
@@ -201,8 +216,8 @@ describe('QueryStringParser', () => {
         customProperties: { query: { search: 'searched argument' } },
       });
 
-      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSearch(collectionSimple, context)).toEqual('searched argument');
+      expect(context.throw).not.toBeCalled();
     });
 
     test('should convert the query search parameter as string', () => {
@@ -210,8 +225,8 @@ describe('QueryStringParser', () => {
         customProperties: { query: { search: 1234 } },
       });
 
-      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSearch(collectionSimple, context)).toEqual('1234');
+      expect(context.throw).not.toBeCalled();
     });
   });
 
@@ -221,7 +236,6 @@ describe('QueryStringParser', () => {
         customProperties: { query: { searchExtended: true } },
       });
 
-      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSearchExtended(context)).toEqual(true);
     });
 
@@ -230,7 +244,6 @@ describe('QueryStringParser', () => {
         customProperties: { query: { searchExtended: '0' } },
       });
 
-      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSearchExtended(context)).toEqual(false);
     });
 
@@ -239,7 +252,6 @@ describe('QueryStringParser', () => {
         customProperties: { query: { searchExtended: 'false' } },
       });
 
-      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSearchExtended(context)).toEqual(false);
     });
   });
@@ -250,8 +262,8 @@ describe('QueryStringParser', () => {
         customProperties: { query: {} },
       });
 
-      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSegment(collectionSimple, context)).toEqual(null);
+      expect(context.throw).not.toBeCalled();
     });
 
     test('should return the segment name when it exists', () => {
@@ -259,8 +271,8 @@ describe('QueryStringParser', () => {
         customProperties: { query: { segment: 'fake-segment' } },
       });
 
-      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseSegment(collectionSimple, context)).toEqual('fake-segment');
+      expect(context.throw).not.toBeCalled();
     });
 
     test('should throw a HTTP 400 when the segment name does not exist', () => {
@@ -283,8 +295,8 @@ describe('QueryStringParser', () => {
         customProperties: { query: { timezone: 'America/Los_Angeles' } },
       });
 
-      expect(context.throw).not.toBeCalled();
       expect(QueryStringParser.parseTimezone(context)).toEqual('America/Los_Angeles');
+      expect(context.throw).not.toBeCalled();
     });
 
     test('should throw a HTTP 400 when the timezone is missing', () => {
