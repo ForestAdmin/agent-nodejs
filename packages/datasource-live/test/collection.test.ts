@@ -5,7 +5,6 @@ import {
   Aggregation,
   AggregationOperation,
   CollectionSchema,
-  ColumnSchema,
   ConditionTreeLeaf,
   DataSource,
   FieldTypes,
@@ -156,16 +155,6 @@ describe('LiveDataSource > Collection', () => {
     const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
     expect(liveCollection).toBeDefined();
-  });
-
-  it('should set FilterOperators where not predefined', () => {
-    const { liveCollection } = instanciateCollection(liveCollectionSchema);
-
-    const valueFieldOperators = (liveCollection.schema.fields.value as ColumnSchema)
-      .filterOperators;
-
-    expect(valueFieldOperators).toBeInstanceOf(Set);
-    expect(valueFieldOperators.has(Operator.In)).toBe(true);
   });
 
   describe('sync', () => {

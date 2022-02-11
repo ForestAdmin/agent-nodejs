@@ -1,19 +1,17 @@
-import { AbstractDataTypeConstructor, ModelDefined } from 'sequelize';
+import { ModelDefined } from 'sequelize';
 
 import {
   AggregateResult,
   Aggregation,
   CollectionSchema,
-  ColumnSchema,
   CompositeId,
   DataSource,
-  FieldTypes,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { SequelizeCollection, TypeConverter } from '@forestadmin/datasource-sequelize';
+import { SequelizeCollection } from '@forestadmin/datasource-sequelize';
 
 export default class LiveCollection extends SequelizeCollection {
   private synched = false;
@@ -27,35 +25,13 @@ export default class LiveCollection extends SequelizeCollection {
   ) {
     super(name, dataSource, model);
 
-    if (schema) {
-      if (schema.searchable) this.enableSearch();
-
-      this.extendSchemaWithFilterOperators(schema, model);
-    }
+    if (schema?.searchable) this.enableSearch();
   }
 
   private ensureSynched(): void {
     if (!this.synched) {
       throw new Error(`Collection "${this.name}" is not synched yet. Call "sync" first.`);
     }
-  }
-
-  private extendSchemaWithFilterOperators(
-    schema: CollectionSchema,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    model: ModelDefined<any, any>,
-  ) {
-    Object.entries(schema.fields).forEach(([fieldName, field]) => {
-      if (field.type !== FieldTypes.Column) return;
-
-      const columnSchema = field as ColumnSchema;
-
-      if ([null, undefined].includes(columnSchema.filterOperators)) {
-        field.filterOperators = TypeConverter.operatorsForDataType(
-          model.getAttributes()[fieldName].type as AbstractDataTypeConstructor,
-        );
-      }
-    });
   }
 
   async sync(): Promise<boolean> {
