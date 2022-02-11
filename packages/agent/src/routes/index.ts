@@ -5,6 +5,7 @@ import { ForestAdminHttpDriverOptionsWithDefaults as Options } from '../types';
 import Authentication from './security/authentication';
 import BaseRoute from './base-route';
 import Count from './access/count';
+import Chart from './access/chart';
 import CountRelatedRoute from './access/count-related';
 import Create from './modification/create';
 import Delete from './modification/delete';
@@ -16,7 +17,7 @@ import Update from './modification/update';
 import ListRelatedRoute from './access/list-related';
 
 export const RootRoutesCtor = [Authentication, HealthCheck, ScopeInvalidation];
-export const CollectionRoutesCtor = [Count, Create, Delete, Get, List, Update];
+export const CollectionRoutesCtor = [Chart, Count, Create, Delete, Get, List, Update];
 export const RelatedRoutesCtor = [CountRelatedRoute, ListRelatedRoute];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {
