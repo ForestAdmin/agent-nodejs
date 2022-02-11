@@ -12,29 +12,18 @@ export default class TypeGetter {
       throw new Error(`Unexpected value of type: ${typeContext}`);
     }
 
-    if (Array.isArray(value)) {
-      return TypeGetter.getArrayType(value, typeContext);
-    }
+    if (Array.isArray(value)) return TypeGetter.getArrayType(value, typeContext);
 
-    if (typeof value === 'string') {
-      return TypeGetter.getTypeFromString(value, typeContext);
-    }
+    if (typeof value === 'string') return TypeGetter.getTypeFromString(value, typeContext);
 
-    if (typeof value === 'number') {
-      return PrimitiveTypes.Number;
-    }
+    if (typeof value === 'number') return PrimitiveTypes.Number;
 
-    if (value instanceof Date && DateTime.fromJSDate(value).isValid) {
-      return PrimitiveTypes.Date;
-    }
+    if (value instanceof Date && DateTime.fromJSDate(value).isValid) return PrimitiveTypes.Date;
 
-    if (typeof value === 'boolean') {
-      return PrimitiveTypes.Boolean;
-    }
+    if (typeof value === 'boolean') return PrimitiveTypes.Boolean;
 
-    if (typeof value === 'object' && PrimitiveTypes.Json === typeContext) {
+    if (typeof value === 'object' && PrimitiveTypes.Json === typeContext)
       return PrimitiveTypes.Json;
-    }
 
     return null;
   }
@@ -43,24 +32,18 @@ export default class TypeGetter {
     value: Array<unknown>,
     typeContext?: PrimitiveTypes,
   ): ValidationTypes | PrimitiveTypes | null {
-    if (value.length === 0) {
-      return ValidationTypes.EmptyArray;
-    }
+    if (value.length === 0) return ValidationTypes.EmptyArray;
 
-    if (value.every(item => TypeGetter.get(item) === PrimitiveTypes.Number)) {
-      return ValidationTypes.ArrayOfNumber;
-    }
+    if (TypeGetter.isArrayOf(PrimitiveTypes.Number, value)) return ValidationTypes.ArrayOfNumber;
 
-    const isArrayOfString = value.every(item => TypeGetter.get(item) === PrimitiveTypes.String);
+    if (TypeGetter.isArrayOf(PrimitiveTypes.Uuid, value)) return ValidationTypes.ArrayOfUuid;
 
-    if (isArrayOfString) {
+    if (TypeGetter.isArrayOf(PrimitiveTypes.Boolean, value)) return ValidationTypes.ArrayOfBoolean;
+
+    if (TypeGetter.isArrayOf(PrimitiveTypes.String, value)) {
       return typeContext === PrimitiveTypes.Enum
         ? ValidationTypes.ArrayOfEnum
         : ValidationTypes.ArrayOfString;
-    }
-
-    if (value.every(item => TypeGetter.get(item) === PrimitiveTypes.Boolean)) {
-      return ValidationTypes.ArrayOfBoolean;
     }
 
     return null;
@@ -69,49 +52,31 @@ export default class TypeGetter {
   private static getDateType(value: string): PrimitiveTypes {
     const dateTime = DateTime.fromISO(value);
 
-    if (dateTime.toISODate() === value) {
-      return PrimitiveTypes.Dateonly;
-    }
+    if (dateTime.toISODate() === value) return PrimitiveTypes.Dateonly;
 
-    if (dateTime.toISOTime().match(value)) {
-      return PrimitiveTypes.Timeonly;
-    }
+    if (dateTime.toISOTime().match(value)) return PrimitiveTypes.Timeonly;
 
     return PrimitiveTypes.Date;
   }
 
   private static getTypeFromString(value: string, typeContext?: PrimitiveTypes): PrimitiveTypes {
-    if ([PrimitiveTypes.Enum, PrimitiveTypes.String].includes(typeContext)) {
-      return typeContext;
-    }
+    if ([PrimitiveTypes.Enum, PrimitiveTypes.String].includes(typeContext)) return typeContext;
 
-    if (uuidValidate(value)) {
-      return PrimitiveTypes.Uuid;
-    }
+    if (uuidValidate(value)) return PrimitiveTypes.Uuid;
 
-    if (TypeGetter.isNumberAndContextAllowToCast(value, typeContext)) {
-      return PrimitiveTypes.Number;
-    }
+    if (TypeGetter.isNumberAndContextAllowToCast(value, typeContext)) return PrimitiveTypes.Number;
 
-    if (TypeGetter.isValidDate(value)) {
-      return TypeGetter.getDateType(value);
-    }
+    if (TypeGetter.isValidDate(value)) return TypeGetter.getDateType(value);
 
-    if (TypeGetter.isJson(value)) {
-      return PrimitiveTypes.Json;
-    }
+    if (TypeGetter.isJson(value)) return PrimitiveTypes.Json;
 
-    if (TypeGetter.isPoint(value, typeContext)) {
-      return PrimitiveTypes.Point;
-    }
+    if (TypeGetter.isPoint(value, typeContext)) return PrimitiveTypes.Point;
 
     return PrimitiveTypes.String;
   }
 
   private static isValidDate(value: string): boolean {
-    const dateTime = DateTime.fromISO(value);
-
-    return dateTime.isValid;
+    return DateTime.fromISO(value).isValid;
   }
 
   private static isPoint(value: string, typeContext: PrimitiveTypes): boolean {
@@ -142,5 +107,9 @@ export default class TypeGetter {
     } catch {
       return false;
     }
+  }
+
+  private static isArrayOf(type: PrimitiveTypes, values: Array<unknown>) {
+    return values.every(item => TypeGetter.get(item) === type);
   }
 }

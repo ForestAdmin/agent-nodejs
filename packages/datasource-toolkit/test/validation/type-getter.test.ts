@@ -33,6 +33,17 @@ describe('TypeGetter', () => {
         });
       });
 
+      describe('when all the values are Uuid', () => {
+        it('should return the expected type', () => {
+          expect(
+            TypeGetter.get([
+              '2d162303-78bf-599e-b197-93590ac3d315',
+              '2d162303-78bf-599e-b197-93590ac3d315',
+            ]),
+          ).toEqual(ValidationTypes.ArrayOfUuid);
+        });
+      });
+
       describe('when all the values are string', () => {
         describe('when the given context is an Enum', () => {
           it('should return the expected type', () => {
