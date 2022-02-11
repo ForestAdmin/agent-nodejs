@@ -54,7 +54,7 @@ export default class QueryStringParser {
       // is sending, but are still required for the frontend to work.
       return new Projection(...explicitRequest).withPks(collection);
     } catch (e) {
-      throw new ValidationError(`Invalid projection (${e.message})`);
+      throw new ValidationError(`Invalid projection`);
     }
   }
 
