@@ -1,6 +1,6 @@
+import * as factories from '../__factories__';
 import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
 import RecordValidator from '../../src/validation/record';
-import * as factories from '../__factories__';
 
 describe('RecordValidator', () => {
   describe('when the given field is not in the collection', () => {

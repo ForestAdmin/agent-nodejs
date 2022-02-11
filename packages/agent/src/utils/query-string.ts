@@ -13,7 +13,6 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
-import { HttpCode } from '../types';
 
 const DEFAULT_ITEMS_PER_PAGE = 15;
 const DEFAULT_PAGE_TO_SKIP = 1;

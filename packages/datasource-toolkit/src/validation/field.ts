@@ -1,7 +1,7 @@
-import ValidationError from '../errors';
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, FieldTypes, PrimitiveTypes } from '../interfaces/schema';
 import TypeGetter from './type-getter';
+import ValidationError from '../errors';
 import ValidationTypes from './types';
 
 export default class FieldValidator {

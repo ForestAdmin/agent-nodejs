@@ -1,7 +1,7 @@
-import ValidationError from '../errors';
 import { Collection } from '../interfaces/collection';
 import { SortClause } from '../interfaces/query/sort';
 import FieldValidator from './field';
+import ValidationError from '../errors';
 
 export default class SortValidator {
   static validate(collection: Collection, sort: SortClause[]): void {
