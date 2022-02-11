@@ -18,12 +18,14 @@
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
-    "start": "node --enable-source-maps -e \"require('./dist/index.js').default()\"",
+    "start": "nodemon --watch '../*/dist/' --exec yarn start:agent",
+    "start:agent": "node --enable-source-maps -e \"require('./dist/index.js').default()\"",
     "test": "jest"
   },
   "devDependencies": {
     "fishery": "^2.1.0",
     "nock": "^13.2.2",
+    "nodemon": "^2.0.15",
     "superagent": "^7.0.1"
   }
 }
