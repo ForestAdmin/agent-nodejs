@@ -1,7 +1,16 @@
 import http from 'http';
 
-import { ForestAdminHttpDriver, ForestAdminHttpDriverOptions } from '@forestadmin/agent';
+import { ForestAdminHttpDriverOptions, AgentBuilder } from '@forestadmin/agent';
 
+import {
+  Aggregation,
+  AggregationOperation,
+  ConditionTreeFactory,
+  Operator,
+  PaginatedFilter,
+  PrimitiveTypes,
+  Projection,
+} from '@forestadmin/datasource-toolkit';
 import prepareDummyDataSource from './datasources/dummy-library';
 import prepareLiveDataSource from './datasources/live-business';
 import prepareSequelizeDataSource from './datasources/sequelize-example';
@@ -11,17 +20,44 @@ export default async function start(
   serverHost: string,
   options: ForestAdminHttpDriverOptions,
 ) {
-  const dataSources = await Promise.all([
-    prepareDummyDataSource(),
-    prepareLiveDataSource(),
-    prepareSequelizeDataSource(),
-  ]);
+  const builder = new AgentBuilder(options);
 
-  const driver = new ForestAdminHttpDriver(dataSources, options);
+  builder
+    .addDatasource(await prepareDummyDataSource())
+    .addDatasource(await prepareLiveDataSource())
+    .addDatasource(await prepareSequelizeDataSource())
+    .build()
+    .collection('persons', personsCollection =>
+      personsCollection
+        .registerComputed('fullName', {
+          columnType: PrimitiveTypes.String,
+          dependencies: new Projection('firstName', 'lastName'),
+          getValues: records => records.map(record => `${record.firstName} ${record.lastName}`),
+        })
+        .emulateSort('fullName')
+        .registerComputed('booksCount', {
+          columnType: PrimitiveTypes.Number,
+          dependencies: new Projection('id'),
+          getValues: async (persons, { dataSource }) => {
+            const counts = await dataSource.getCollection('books').aggregate(
+              new PaginatedFilter({}),
+              new Aggregation({
+                operation: AggregationOperation.Count,
+                groups: [{ field: 'author:id' }],
+              }),
+            );
 
-  await driver.start();
+            return persons.map(person => {
+              const count = counts.find(c => c.group['author:id'] === `${person.id}`);
 
-  const server = http.createServer(driver.handler);
+              return count?.value ?? 0;
+            });
+          },
+        }),
+    )
+    .start();
+
+  const server = http.createServer(builder.httpCallback);
 
   await new Promise<void>(resolve => {
     server.listen(serverPort, serverHost, null, () => {
