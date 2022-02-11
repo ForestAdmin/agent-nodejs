@@ -35,7 +35,7 @@ export default class CountRelatedRoute extends RelationRoute {
         QueryStringParser.parseConditionTree(this.foreignCollection, context),
         await this.services.scope.getConditionTree(this.foreignCollection, context),
       ),
-      search: QueryStringParser.parseSearch(context),
+      search: QueryStringParser.parseSearch(this.foreignCollection, context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.foreignCollection, context),
       timezone: QueryStringParser.parseTimezone(context),

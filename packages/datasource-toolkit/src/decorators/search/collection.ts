@@ -122,17 +122,22 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   }
 
   private static isSearchable(schema: FieldSchema): boolean {
-    if (schema.type !== FieldTypes.Column) {
-      return false;
+    if (schema.type === FieldTypes.Column) {
+      const { columnType, filterOperators } = schema;
+
+      if (
+        columnType === PrimitiveTypes.Enum ||
+        columnType === PrimitiveTypes.Number ||
+        columnType === PrimitiveTypes.Uuid
+      ) {
+        return filterOperators?.has(Operator.Equal);
+      }
+
+      if (columnType === PrimitiveTypes.String) {
+        return filterOperators?.has(Operator.Contains);
+      }
     }
 
-    const { columnType } = schema;
-
-    return (
-      columnType === PrimitiveTypes.Enum ||
-      columnType === PrimitiveTypes.Number ||
-      columnType === PrimitiveTypes.String ||
-      columnType === PrimitiveTypes.Uuid
-    );
+    return false;
   }
 }

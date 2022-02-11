@@ -7,7 +7,7 @@ const dataSourceWithDummyCollectionSchema: DataSourceSchema = {
     dummy: {
       actions: {},
       fields: {},
-      searchable: true,
+      searchable: false,
       segments: [],
     },
   },

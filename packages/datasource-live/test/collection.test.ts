@@ -71,7 +71,7 @@ const liveCollectionSchema: CollectionSchema = {
       type: FieldTypes.Column,
     },
   },
-  searchable: true,
+  searchable: false,
   segments: [],
 };
 

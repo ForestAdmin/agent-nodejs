@@ -57,8 +57,14 @@ export default class QueryStringParser {
     }
   }
 
-  static parseSearch(context: Context): string {
-    return context.request.query.search?.toString() ?? null;
+  static parseSearch(collection: Collection, context: Context): string {
+    const search = context.request.query.search?.toString() ?? null;
+
+    if (search && !collection.schema.searchable) {
+      context.throw(HttpCode.BadRequest, 'Collection is not searchable');
+    }
+
+    return search;
   }
 
   static parseSearchExtended(context: Context): boolean {

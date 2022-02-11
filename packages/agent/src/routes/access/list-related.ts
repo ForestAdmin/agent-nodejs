@@ -22,7 +22,7 @@ export default class ListRelatedRoute extends RelationRoute {
   public async handleListRelated(context: Context): Promise<void> {
     let parentId: CompositeId;
     const paginatedFilter = new PaginatedFilter({
-      search: QueryStringParser.parseSearch(context),
+      search: QueryStringParser.parseSearch(this.foreignCollection, context),
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(this.foreignCollection, context),
         await this.services.scope.getConditionTree(this.foreignCollection, context),
