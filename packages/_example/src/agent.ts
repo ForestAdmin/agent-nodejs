@@ -6,6 +6,7 @@ import {
   Aggregation,
   AggregationOperation,
   ConditionTreeFactory,
+  ConditionTreeLeaf,
   Operator,
   PaginatedFilter,
   PrimitiveTypes,
@@ -40,7 +41,13 @@ export default async function start(
           dependencies: new Projection('id'),
           getValues: async (persons, { dataSource }) => {
             const counts = await dataSource.getCollection('books').aggregate(
-              new PaginatedFilter({}),
+              new PaginatedFilter({
+                conditionTree: new ConditionTreeLeaf(
+                  'author:id',
+                  Operator.In,
+                  persons.map(p => p.id),
+                ),
+              }),
               new Aggregation({
                 operation: AggregationOperation.Count,
                 groups: [{ field: 'author:id' }],
@@ -48,7 +55,7 @@ export default async function start(
             );
 
             return persons.map(person => {
-              const count = counts.find(c => c.group['author:id'] === `${person.id}`);
+              const count = counts.find(c => c.group['author:id'] === person.id);
 
               return count?.value ?? 0;
             });

@@ -17,8 +17,8 @@ import {
   Sort,
   SortEmulateCollectionDecorator,
 } from '@forestadmin/datasource-toolkit';
-import { ComputedDefinition } from '@forestadmin/datasource-toolkit/dist/decorators/computed/types';
-import { OperatorReplacer } from '@forestadmin/datasource-toolkit/dist/decorators/operators-emulate/types';
+import { ComputedDefinition } from '@forestadmin/datasource-toolkit/dist/src/decorators/computed/types';
+import { OperatorReplacer } from '@forestadmin/datasource-toolkit/dist/src/decorators/operators-emulate/types';
 import { ForestAdminHttpDriverOptions } from '.';
 import ForestAdminHttpDriver, { HttpCallback } from './forestadmin-http-driver';
 
