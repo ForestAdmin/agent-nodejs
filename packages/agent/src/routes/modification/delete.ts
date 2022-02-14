@@ -4,6 +4,7 @@ import Router from '@koa/router';
 
 import { HttpCode } from '../../types';
 import CollectionRoute from '../collection-route';
+import Data from '../../utils/data';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 
@@ -21,14 +22,14 @@ export default class DeleteRoute extends CollectionRoute {
   }
 
   public async handleListDelete(context: Context): Promise<void> {
-    const attributes = context.request.body?.data?.attributes;
-    const excludedRecordMode = Boolean(attributes?.all_records);
+    const allRecordsMode = Data.parseAllRecordsMode(context);
+    const ids = context.request.body?.data?.attributes?.ids;
     const unpackedIds = IdUtils.unpackIds(
       this.collection.schema,
-      excludedRecordMode ? attributes?.all_records_ids_excluded : attributes?.ids,
+      allRecordsMode.isActivated ? allRecordsMode.excludedIds : ids,
     );
 
-    await this.deleteRecords(context, unpackedIds, excludedRecordMode);
+    await this.deleteRecords(context, unpackedIds, allRecordsMode.isActivated);
 
     context.response.status = HttpCode.NoContent;
   }

@@ -27,6 +27,11 @@ export type UserInfo = {
   tags: { key: string; value: string }[];
 };
 
+export type AllRecordsMode = {
+  isActivated: boolean;
+  excludedIds: string | number[];
+};
+
 export type ScopeByCollection = {
   [collectionName: string]: {
     conditionTree: ConditionTree;

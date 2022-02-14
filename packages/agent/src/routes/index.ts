@@ -8,6 +8,7 @@ import Count from './access/count';
 import CountRelatedRoute from './access/count-related';
 import Create from './modification/create';
 import Delete from './modification/delete';
+import DissociateDeleteRelatedRoute from './modification/dissociate-delete-related';
 import Get from './access/get';
 import HealthCheck from './healthcheck';
 import List from './access/list';
@@ -15,12 +16,16 @@ import ListRelatedRoute from './access/list-related';
 import ScopeInvalidation from './security/scope-invalidation';
 import Update from './modification/update';
 
-export const RootRoutesCtor = [Authentication, HealthCheck, ScopeInvalidation];
-export const CollectionRoutesCtor = [Count, Create, Delete, Get, List, Update];
-export const RelatedRoutesCtor = [CountRelatedRoute, ListRelatedRoute];
+export const ROOT_ROUTES_CTOR = [Authentication, HealthCheck, ScopeInvalidation];
+export const COLLECTION_ROUTES_CTOR = [Count, Create, Delete, Get, List, Update];
+export const RELATED_ROUTES_CTOR = [
+  CountRelatedRoute,
+  ListRelatedRoute,
+  DissociateDeleteRelatedRoute,
+];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {
-  return RootRoutesCtor.map(Route => new Route(services, options));
+  return ROOT_ROUTES_CTOR.map(Route => new Route(services, options));
 }
 
 function getCrudRoutes(dataSource: DataSource, options: Options, services: Services): BaseRoute[] {
@@ -28,7 +33,7 @@ function getCrudRoutes(dataSource: DataSource, options: Options, services: Servi
 
   dataSource.collections.forEach(collection => {
     routes.push(
-      ...CollectionRoutesCtor.map(
+      ...COLLECTION_ROUTES_CTOR.map(
         Route => new Route(services, options, dataSource, collection.name),
       ),
     );
@@ -51,7 +56,7 @@ function getRelatedRoutes(
 
     relationNames.forEach(([relationName]) => {
       routes.push(
-        ...RelatedRoutesCtor.map(
+        ...RELATED_ROUTES_CTOR.map(
           Route => new Route(services, options, dataSource, collection.name, relationName),
         ),
       );

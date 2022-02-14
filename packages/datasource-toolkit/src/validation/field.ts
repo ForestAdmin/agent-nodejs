@@ -2,7 +2,7 @@ import { Collection } from '../interfaces/collection';
 import { ColumnSchema, FieldTypes, PrimitiveTypes } from '../interfaces/schema';
 import TypeGetter from './type-getter';
 import ValidationError from '../errors';
-import ValidationTypes from './types';
+import ValidationTypes, { ValidationTypesArray } from './types';
 
 export default class FieldValidator {
   static validate(collection: Collection, field: string, values?: unknown[]) {
@@ -57,7 +57,7 @@ export default class FieldValidator {
       return;
     }
 
-    const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes, true);
+    const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes);
 
     if (schema.columnType === PrimitiveTypes.Enum) {
       FieldValidator.checkEnumValue(type, schema, value);
@@ -81,7 +81,7 @@ export default class FieldValidator {
   ) {
     let isEnumAllowed: boolean;
 
-    if (type === ValidationTypes.ArrayOfEnum) {
+    if (type === ValidationTypesArray.Enum) {
       const enumValuesConditionTree = enumValue as Array<string>;
       isEnumAllowed = enumValuesConditionTree.every(value =>
         columnSchema.enumValues.includes(value),

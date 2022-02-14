@@ -1,8 +1,8 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import makeRoutes, {
-  CollectionRoutesCtor,
-  RelatedRoutesCtor,
-  RootRoutesCtor,
+  COLLECTION_ROUTES_CTOR,
+  RELATED_ROUTES_CTOR,
+  ROOT_ROUTES_CTOR,
 } from '../../src/routes';
 
 import Authentication from '../../src/routes/security/authentication';
@@ -16,25 +16,30 @@ import List from '../../src/routes/access/list';
 import Update from '../../src/routes/modification/update';
 
 import * as factories from '../__factories__';
+import DissociateRelatedRoute from '../../src/routes/modification/dissociate-delete-related';
+import ListRelatedRoute from '../../src/routes/access/list-related';
 
 describe('Route index', () => {
   describe('exports', () => {
     test('should export the required routes', () => {
-      expect(RootRoutesCtor).toContain(Authentication);
-      expect(RootRoutesCtor).toContain(HealthCheck);
+      expect(ROOT_ROUTES_CTOR).toContain(Authentication);
+      expect(ROOT_ROUTES_CTOR).toContain(HealthCheck);
     });
 
     describe.each([Count, Create, Delete, Get, List, Update])('the route', route => {
       it('should be defined', () => {
-        expect(CollectionRoutesCtor).toContain(route);
+        expect(COLLECTION_ROUTES_CTOR).toContain(route);
       });
     });
 
-    describe.each([CountRelatedRoute])('the route', route => {
-      it('should be defined', () => {
-        expect(RelatedRoutesCtor).toContain(route);
-      });
-    });
+    describe.each([CountRelatedRoute, ListRelatedRoute, DissociateRelatedRoute])(
+      'the route',
+      route => {
+        it('should be defined', () => {
+          expect(RELATED_ROUTES_CTOR).toContain(route);
+        });
+      },
+    );
   });
 
   describe('makeRoutes', () => {
@@ -87,14 +92,14 @@ describe('Route index', () => {
 
       const booksCollectionNoRelation = 1;
       const countRelationRoutes =
-        RelatedRoutesCtor.length * dataSourceWithRelation.collections.length -
-        booksCollectionNoRelation * RelatedRoutesCtor.length;
+        RELATED_ROUTES_CTOR.length * dataSourceWithRelation.collections.length -
+        booksCollectionNoRelation * RELATED_ROUTES_CTOR.length;
       const countCollectionRoutes =
-        CollectionRoutesCtor.length * dataSourceWithRelation.collections.length +
-        CollectionRoutesCtor.length * dataSourceWithoutRelation.collections.length;
+        COLLECTION_ROUTES_CTOR.length * dataSourceWithRelation.collections.length +
+        COLLECTION_ROUTES_CTOR.length * dataSourceWithoutRelation.collections.length;
 
       expect(routes.length).toEqual(
-        RootRoutesCtor.length + countCollectionRoutes + countRelationRoutes,
+        ROOT_ROUTES_CTOR.length + countCollectionRoutes + countRelationRoutes,
       );
     });
   });

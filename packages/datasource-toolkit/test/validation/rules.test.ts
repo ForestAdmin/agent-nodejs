@@ -5,7 +5,7 @@ import {
 } from '../../src/validation/rules';
 import { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import { PrimitiveTypes } from '../../src/interfaces/schema';
-import ValidationTypes from '../../src/validation/types';
+import { ValidationPrimaryTypes } from '../../src/validation/types';
 
 describe('ConditionTreeFactory', () => {
   describe('MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER', () => {
@@ -27,7 +27,7 @@ describe('ConditionTreeFactory', () => {
 
     it.each(Object.values(PrimitiveTypes))('should support the Null value', async type => {
       expect(
-        MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[type].includes(ValidationTypes.Null),
+        MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[type].includes(ValidationPrimaryTypes.Null),
       ).toEqual(true);
     });
   });
