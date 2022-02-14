@@ -96,7 +96,12 @@ export default class TypeConverter {
     const dataTypeName = dataType?.key;
 
     if (dataTypeName === 'ARRAY') {
-      return new Set<Operator>([Operator.In, Operator.IncludesAll, Operator.NotIn]);
+      return new Set<Operator>([
+        ...this.baseOperators,
+        Operator.In,
+        Operator.IncludesAll,
+        Operator.NotIn,
+      ]);
     }
 
     switch (dataTypeName) {
@@ -105,7 +110,13 @@ export default class TypeConverter {
       case 'UUID':
       case 'UUIDV1':
       case 'UUIDV4':
-        return new Set<Operator>([...this.baseOperators]);
+        return new Set<Operator>([
+          ...this.baseOperators,
+          Operator.Contains,
+          Operator.EndsWith,
+          Operator.Like,
+          Operator.StartsWith,
+        ]);
       case 'BIGINT':
       case 'DECIMAL':
       case 'DOUBLE':
@@ -121,6 +132,7 @@ export default class TypeConverter {
           Operator.GreaterThan,
           Operator.In,
           Operator.LessThan,
+          Operator.NotIn,
         ]);
       case 'CHAR':
       case 'CITEXT':
@@ -134,6 +146,7 @@ export default class TypeConverter {
           Operator.Like,
           Operator.LongerThan,
           Operator.NotContains,
+          Operator.NotIn,
           Operator.ShorterThan,
           Operator.StartsWith,
         ]);
@@ -166,7 +179,7 @@ export default class TypeConverter {
           Operator.Yesterday,
         ]);
       case 'ENUM':
-        return new Set<Operator>([...this.baseOperators]);
+        return new Set<Operator>([...this.baseOperators, Operator.In, Operator.NotIn]);
       case 'JSON':
       case 'JSONB':
         return new Set<Operator>([...this.baseOperators]);
