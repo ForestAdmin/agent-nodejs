@@ -14,7 +14,7 @@ describe('OptionsUtils', () => {
 
       expect(options).toHaveProperty('clientId', null);
       expect(options).toHaveProperty('forestServerUrl', 'https://api.forestadmin.com');
-      expect(options).toHaveProperty('logger', console.error);
+      expect(options).toHaveProperty('logger');
       expect(options).toHaveProperty('prefix', '/forest');
       expect(options).toHaveProperty('schemaPath', '.forestadmin-schema.json');
     });
