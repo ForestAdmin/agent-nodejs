@@ -130,7 +130,11 @@ export default class OperatorsEmulate extends CollectionDecorator {
     // Query all records on the dataSource and emulate the filter.
     return ConditionTreeFactory.matchRecords(
       this.schema,
-      leaf.apply(await this.list(null, leaf.projection.withPks(this)), this, timezone),
+      leaf.apply(
+        await this.list(new PaginatedFilter({}), leaf.projection.withPks(this)),
+        this,
+        timezone,
+      ),
     );
   }
 }

@@ -237,7 +237,7 @@ describe('OperatorsEmulate', () => {
         expect(records).toStrictEqual([{ id: 2, title: 'Foundation' }]);
 
         expect(persons.list).toHaveBeenCalledTimes(1);
-        expect(persons.list).toHaveBeenCalledWith(undefined, ['firstName', 'id']);
+        expect(persons.list).toHaveBeenCalledWith({}, ['firstName', 'id']);
 
         expect(books.list).toHaveBeenCalledTimes(1);
         expect(books.list).toHaveBeenCalledWith(
