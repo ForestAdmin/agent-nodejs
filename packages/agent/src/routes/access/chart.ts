@@ -12,6 +12,7 @@ import { DateTime, DateTimeUnit } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
 import Router from '@koa/router';
 
+import { HttpCode } from '../../types';
 import CollectionBaseRoute from '../collection-base-route';
 import QueryStringParser from '../../utils/query-string';
 
@@ -32,16 +33,14 @@ export default class Chart extends CollectionBaseRoute {
   };
 
   override setupPrivateRoutes(router: Router): void {
-    router.post(`/stats/${this.collection.name}`, this.handleStat.bind(this));
+    router.post(`/stats/${this.collection.name}`, this.handleChart.bind(this));
   }
 
-  async handleStat(context: Context) {
+  async handleChart(context: Context) {
     const { body } = context.request;
 
     if (!Object.values(ChartType).includes(body.type)) {
-      context.response.status = 400;
-
-      return;
+      return context.throw(HttpCode.BadRequest, `Invalid Chart type "${body.type}"`);
     }
 
     try {
@@ -59,7 +58,7 @@ export default class Chart extends CollectionBaseRoute {
 
   private async makeValueChart(
     context: Context,
-  ): Promise<{ countCurrent: unknown; countPrevious: unknown }> {
+  ): Promise<{ countCurrent: number; countPrevious?: number }> {
     const currentFilter = this.getFilter(context);
     const result = {
       countCurrent: await this.computeValue(context, currentFilter),
