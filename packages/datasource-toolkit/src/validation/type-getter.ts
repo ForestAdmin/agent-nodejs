@@ -5,10 +5,7 @@ import { PrimitiveTypes } from '../interfaces/schema';
 import ValidationTypes from './types';
 
 export default class TypeGetter {
-  static get(
-    value: unknown,
-    typeContext?: PrimitiveTypes,
-  ): PrimitiveTypes | ValidationTypes | null {
+  static get(value: unknown, typeContext?: PrimitiveTypes): PrimitiveTypes | ValidationTypes {
     if (typeContext && !Object.values(PrimitiveTypes).includes(typeContext)) {
       throw new Error(`Unexpected value of type: ${typeContext}`);
     }
@@ -26,13 +23,13 @@ export default class TypeGetter {
     if (typeof value === 'object' && PrimitiveTypes.Json === typeContext)
       return PrimitiveTypes.Json;
 
-    return null;
+    return ValidationTypes.Null;
   }
 
   private static getArrayType(
     value: Array<unknown>,
     typeContext?: PrimitiveTypes,
-  ): ValidationTypes | PrimitiveTypes | null {
+  ): ValidationTypes | PrimitiveTypes {
     if (value.length === 0) return ValidationTypes.EmptyArray;
 
     if (TypeGetter.isArrayOf(PrimitiveTypes.Number, value)) return ValidationTypes.ArrayOfNumber;
@@ -47,7 +44,7 @@ export default class TypeGetter {
         : ValidationTypes.ArrayOfString;
     }
 
-    return null;
+    return ValidationTypes.Null;
   }
 
   private static getDateType(value: string): PrimitiveTypes {

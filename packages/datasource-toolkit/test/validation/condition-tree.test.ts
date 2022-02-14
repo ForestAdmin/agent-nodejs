@@ -220,7 +220,7 @@ describe('ConditionTreeValidation', () => {
         });
 
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-          "The given value attribute 'null (type: null)' has an unexpected " +
+          "The given value attribute 'null (type: Null)' has an unexpected " +
             "value for the given operator 'greater_than'.\n" +
             'The allowed types of the field value are: [Number,Timeonly].',
         );
@@ -246,7 +246,7 @@ describe('ConditionTreeValidation', () => {
         });
 
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-          'Wrong type for "target": 1,2,3. Expects [String,ArrayOfString]',
+          'Wrong type for "target": 1,2,3. Expects [String,ArrayOfString,Null]',
         );
       });
     });
@@ -405,9 +405,93 @@ describe('ConditionTreeValidation', () => {
           });
 
           expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-            'Wrong type for "pointField": -80, 20, 90. Expects [Point]',
+            'Wrong type for "pointField": -80, 20, 90. Expects [Point,Null]',
           );
         });
+      });
+    });
+
+    describe('when the operator is yesterday', () => {
+      it('should throw an error when a date is given', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.Yesterday,
+          value: new Date(),
+          field: 'dateField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              dateField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Date,
+                filterOperators: new Set(Object.values(Operator)),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow();
+      });
+
+      it('should not throw an error when a value is empty', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.Yesterday,
+          value: null,
+          field: 'dateField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              dateField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Date,
+                filterOperators: new Set(Object.values(Operator)),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+      });
+    });
+
+    describe('when the operator is today', () => {
+      it('should throw an error when a date is given', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.Today,
+          value: new Date(),
+          field: 'dateField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              dateField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Date,
+                filterOperators: new Set(Object.values(Operator)),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow();
+      });
+
+      it('should not throw an error when a value is empty', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.Today,
+          value: null,
+          field: 'dateField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              dateField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Date,
+                filterOperators: new Set(Object.values(Operator)),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
       });
     });
   });

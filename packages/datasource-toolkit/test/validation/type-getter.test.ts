@@ -66,7 +66,7 @@ describe('TypeGetter', () => {
 
       describe('when the values are strings and numbers', () => {
         it('should return null', () => {
-          expect(TypeGetter.get(['str', 1, 'str'])).toEqual(null);
+          expect(TypeGetter.get(['str', 1, 'str'])).toEqual(ValidationTypes.Null);
         });
       });
 
@@ -91,7 +91,7 @@ describe('TypeGetter', () => {
 
     describe('when the value is an object', () => {
       it('should return null', () => {
-        expect(TypeGetter.get({ message: 'hello' })).toEqual(null);
+        expect(TypeGetter.get({ message: 'hello' })).toEqual(ValidationTypes.Null);
       });
     });
 

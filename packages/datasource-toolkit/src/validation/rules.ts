@@ -69,16 +69,28 @@ export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
 export const MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
   Record<PrimitiveTypes, readonly (ValidationTypes | PrimitiveTypes)[]>
 > = Object.freeze({
-  [PrimitiveTypes.String]: [PrimitiveTypes.String, ValidationTypes.ArrayOfString],
-  [PrimitiveTypes.Number]: [PrimitiveTypes.Number, ValidationTypes.ArrayOfNumber],
-  [PrimitiveTypes.Boolean]: [PrimitiveTypes.Boolean, ValidationTypes.ArrayOfBoolean],
-  [PrimitiveTypes.Enum]: [PrimitiveTypes.Enum, ValidationTypes.ArrayOfEnum],
-  [PrimitiveTypes.Date]: [PrimitiveTypes.Date],
-  [PrimitiveTypes.Dateonly]: [PrimitiveTypes.Dateonly],
-  [PrimitiveTypes.Json]: [PrimitiveTypes.Json],
-  [PrimitiveTypes.Point]: [PrimitiveTypes.Point],
-  [PrimitiveTypes.Timeonly]: [PrimitiveTypes.Timeonly],
-  [PrimitiveTypes.Uuid]: [PrimitiveTypes.Uuid, ValidationTypes.ArrayOfUuid],
+  [PrimitiveTypes.String]: [
+    PrimitiveTypes.String,
+    ValidationTypes.ArrayOfString,
+    ValidationTypes.Null,
+  ],
+  [PrimitiveTypes.Number]: [
+    PrimitiveTypes.Number,
+    ValidationTypes.ArrayOfNumber,
+    ValidationTypes.Null,
+  ],
+  [PrimitiveTypes.Boolean]: [
+    PrimitiveTypes.Boolean,
+    ValidationTypes.ArrayOfBoolean,
+    ValidationTypes.Null,
+  ],
+  [PrimitiveTypes.Enum]: [PrimitiveTypes.Enum, ValidationTypes.ArrayOfEnum, ValidationTypes.Null],
+  [PrimitiveTypes.Date]: [PrimitiveTypes.Date, ValidationTypes.Null],
+  [PrimitiveTypes.Dateonly]: [PrimitiveTypes.Dateonly, ValidationTypes.Null],
+  [PrimitiveTypes.Json]: [PrimitiveTypes.Json, ValidationTypes.Null],
+  [PrimitiveTypes.Point]: [PrimitiveTypes.Point, ValidationTypes.Null],
+  [PrimitiveTypes.Timeonly]: [PrimitiveTypes.Timeonly, ValidationTypes.Null],
+  [PrimitiveTypes.Uuid]: [PrimitiveTypes.Uuid, ValidationTypes.ArrayOfUuid, ValidationTypes.Null],
 });
 
 function computeAllowedTypesForOperators(): Record<Operator, PrimitiveTypes[]> {
@@ -96,13 +108,11 @@ function computeAllowedTypesForOperators(): Record<Operator, PrimitiveTypes[]> {
   }, {} as Record<Operator, PrimitiveTypes[]>);
 }
 
-const NO_TYPES_ALLOWED: ValidationTypes[] = [];
-
+const NO_TYPES_ALLOWED: ValidationTypes[] = [ValidationTypes.Null];
 export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<
   Record<Operator, readonly (ValidationTypes | PrimitiveTypes)[]>
 > = Object.freeze({
   ...computeAllowedTypesForOperators(),
-  [Operator.Blank]: NO_TYPES_ALLOWED,
   [Operator.In]: [
     ValidationTypes.ArrayOfBoolean,
     ValidationTypes.ArrayOfEnum,
@@ -116,6 +126,9 @@ export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<
     ValidationTypes.ArrayOfNumber,
     ValidationTypes.ArrayOfString,
   ],
+  [Operator.Blank]: NO_TYPES_ALLOWED,
   [Operator.Missing]: NO_TYPES_ALLOWED,
   [Operator.Present]: NO_TYPES_ALLOWED,
+  [Operator.Yesterday]: NO_TYPES_ALLOWED,
+  [Operator.Today]: NO_TYPES_ALLOWED,
 });
