@@ -1,13 +1,11 @@
 import {
   CollectionUtils,
-  CompositeId,
   ConditionTreeFactory,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';
@@ -21,7 +19,7 @@ export default class ListRelatedRoute extends RelationRoute {
   }
 
   public async handleListRelated(context: Context): Promise<void> {
-    let parentId: CompositeId;
+    const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const paginatedFilter = new PaginatedFilter({
       search: QueryStringParser.parseSearch(this.foreignCollection, context),
       conditionTree: ConditionTreeFactory.intersect(
@@ -37,27 +35,14 @@ export default class ListRelatedRoute extends RelationRoute {
 
     const projection = QueryStringParser.parseProjection(this.foreignCollection, context);
 
-    try {
-      parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-    } catch (e) {
-      return context.throw(HttpCode.BadRequest, e.message);
-    }
+    const records = await CollectionUtils.listRelation(
+      this.collection,
+      parentId,
+      this.relationName,
+      paginatedFilter,
+      projection,
+    );
 
-    try {
-      const records = await CollectionUtils.listRelation(
-        this.collection,
-        parentId,
-        this.relationName,
-        paginatedFilter,
-        projection,
-      );
-
-      context.response.body = this.services.serializer.serialize(this.foreignCollection, records);
-    } catch {
-      context.throw(
-        HttpCode.InternalServerError,
-        `Failed to get the collection relation of the "${this.collection.name}"`,
-      );
-    }
+    context.response.body = this.services.serializer.serialize(this.foreignCollection, records);
   }
 }

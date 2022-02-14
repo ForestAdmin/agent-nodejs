@@ -188,10 +188,7 @@ describe('ListRelatedRoute', () => {
           params: { BAD_PARENT_ID: '1523' },
         };
         const context = createMockContext({ customProperties });
-        await count.handleListRelated(context);
-
-        expect(context.throw).toHaveBeenCalledWith(
-          HttpCode.BadRequest,
+        await expect(count.handleListRelated(context)).rejects.toThrow(
           'Expected string, received: undefined',
         );
       });
@@ -208,16 +205,11 @@ describe('ListRelatedRoute', () => {
         );
 
         jest.spyOn(CollectionUtils, 'listRelation').mockImplementation(() => {
-          throw new Error();
+          throw new Error('list failed');
         });
 
         const context = setupContext();
-        await count.handleListRelated(context);
-
-        expect(context.throw).toHaveBeenCalledWith(
-          HttpCode.InternalServerError,
-          'Failed to get the collection relation of the "books"',
-        );
+        await expect(count.handleListRelated(context)).rejects.toThrow('list failed');
       });
     });
   });

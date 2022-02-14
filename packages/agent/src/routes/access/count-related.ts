@@ -21,8 +21,7 @@ export default class CountRelatedRoute extends RelationRoute {
   }
 
   public async handleCountRelated(context: Context): Promise<void> {
-    const parentId = IdUtils.unpackId(this.collection.schema, context.params.id);
-
+    const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const paginatedFilter = new PaginatedFilter({
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(this.foreignCollection, context),
