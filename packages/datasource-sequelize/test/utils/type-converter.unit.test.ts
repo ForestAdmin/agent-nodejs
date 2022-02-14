@@ -1,5 +1,5 @@
 import { DataTypes } from 'sequelize';
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 import TypeConverter from '../../src/utils/type-converter';
 
@@ -31,6 +31,145 @@ describe('Utils > TypeConverter', () => {
       expect(TypeConverter.fromDataType(DataTypes.ARRAY(DataTypes.BOOLEAN))).toStrictEqual([
         PrimitiveTypes.Boolean,
       ]);
+    });
+  });
+
+  describe('operatorsForDataType', () => {
+    describe('with an array type', () => {
+      it('should return the matching set of operators', () => {
+        expect(TypeConverter.operatorsForDataType(DataTypes.ARRAY(DataTypes.BOOLEAN))).toEqual(
+          new Set<Operator>([
+            Operator.Blank,
+            Operator.Equal,
+            Operator.In,
+            Operator.IncludesAll,
+            Operator.Missing,
+            Operator.NotEqual,
+            Operator.NotIn,
+            Operator.Present,
+          ]),
+        );
+      });
+    });
+
+    describe('with a non-array type', () => {
+      describe.each([
+        [
+          'Boolean',
+          [DataTypes.BOOLEAN],
+          [Operator.Blank, Operator.Equal, Operator.Missing, Operator.NotEqual, Operator.Present],
+        ],
+        [
+          'Universally Unique Identifier',
+          [DataTypes.UUID],
+          [
+            Operator.Blank,
+            Operator.Equal,
+            Operator.Missing,
+            Operator.NotEqual,
+            Operator.Present,
+            Operator.StartsWith,
+            Operator.EndsWith,
+            Operator.Contains,
+            Operator.Like,
+          ],
+        ],
+        [
+          'Numerical',
+          [DataTypes.BIGINT],
+          [
+            Operator.Blank,
+            Operator.Equal,
+            Operator.GreaterThan,
+            Operator.In,
+            Operator.LessThan,
+            Operator.Missing,
+            Operator.NotEqual,
+            Operator.NotIn,
+            Operator.Present,
+          ],
+        ],
+        [
+          'Textual',
+          [DataTypes.CHAR],
+          [
+            Operator.Blank,
+            Operator.Contains,
+            Operator.EndsWith,
+            Operator.Equal,
+            Operator.In,
+            Operator.Like,
+            Operator.LongerThan,
+            Operator.Missing,
+            Operator.NotContains,
+            Operator.NotEqual,
+            Operator.NotIn,
+            Operator.Present,
+            Operator.ShorterThan,
+            Operator.StartsWith,
+          ],
+        ],
+        [
+          'Temporal',
+          [DataTypes.DATE],
+          [
+            Operator.Blank,
+            Operator.Equal,
+            Operator.Missing,
+            Operator.NotEqual,
+            Operator.Present,
+            Operator.Before,
+            // Date operators
+            Operator.After,
+            Operator.AfterXHoursAgo,
+            Operator.BeforeXHoursAgo,
+            Operator.Future,
+            Operator.GreaterThan,
+            Operator.LessThan,
+            Operator.Past,
+            Operator.PreviousMonthToDate,
+            Operator.PreviousMonth,
+            Operator.PreviousQuarterToDate,
+            Operator.PreviousQuarter,
+            Operator.PreviousWeekToDate,
+            Operator.PreviousWeek,
+            Operator.PreviousXDaysToDate,
+            Operator.PreviousXDays,
+            Operator.PreviousYearToDate,
+            Operator.PreviousYear,
+            Operator.Today,
+            Operator.Yesterday,
+          ],
+        ],
+        [
+          'Enum',
+          [DataTypes.ENUM],
+          [
+            Operator.Blank,
+            Operator.Equal,
+            Operator.In,
+            Operator.Missing,
+            Operator.NotEqual,
+            Operator.NotIn,
+            Operator.Present,
+          ],
+        ],
+        [
+          'JSON',
+          [DataTypes.JSON],
+          [Operator.Blank, Operator.Equal, Operator.Missing, Operator.NotEqual, Operator.Present],
+        ],
+        ['Unsupported', [DataTypes.BLOB], []],
+      ])('with "%s" types', (message, dataTypes, operatorList) => {
+        it.each([dataTypes])(
+          'should return the matching set of operators for type "%s"',
+          dataType => {
+            expect(TypeConverter.operatorsForDataType(dataType)).toEqual(
+              new Set<Operator>(operatorList),
+            );
+          },
+        );
+      });
     });
   });
 });

@@ -16,7 +16,6 @@ export default class FrontendFilterableUtils {
     Operator.Yesterday,
     Operator.PreviousXDays,
     Operator.PreviousWeek,
-    Operator.PreviousWeek,
     Operator.PreviousQuarter,
     Operator.PreviousYear,
     Operator.PreviousXDaysToDate,

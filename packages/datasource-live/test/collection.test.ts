@@ -38,8 +38,12 @@ const compositeKeyCollectionSchema: CollectionSchema = {
     },
     value: {
       columnType: PrimitiveTypes.String,
-      filterOperators: new Set<Operator>(),
       type: FieldTypes.Column,
+    },
+    link: {
+      type: FieldTypes.OneToMany,
+      foreignCollection: '__another__',
+      foreignKey: 'id',
     },
   },
   searchable: false,

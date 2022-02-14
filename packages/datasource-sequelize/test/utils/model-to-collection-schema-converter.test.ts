@@ -1,8 +1,7 @@
 import { CollectionSchema, FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { DataTypes, Sequelize } from 'sequelize';
-
-// eslint-disable-next-line max-len
 import ModelToCollectionSchemaConverter from '../../src/utils/model-to-collection-schema-converter';
+import TypeConverter from '../../src/utils/type-converter';
 
 describe('Utils > ModelToCollectionSchemaConverter', () => {
   describe('convert', () => {
@@ -27,6 +26,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         fields: {
           id: {
             columnType: PrimitiveTypes.Number,
+            filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
             isPrimaryKey: true,
             type: FieldTypes.Column,
           },
@@ -48,6 +48,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         fields: {
           myPk: {
             columnType: PrimitiveTypes.Number,
+            filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
             isPrimaryKey: true,
             type: FieldTypes.Column,
           },
@@ -79,24 +80,29 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         fields: {
           myPk: {
             columnType: PrimitiveTypes.Number,
+            filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
             isPrimaryKey: true,
             type: FieldTypes.Column,
           },
           myBoolean: {
             columnType: PrimitiveTypes.Boolean,
+            filterOperators: TypeConverter.operatorsForDataType(DataTypes.BOOLEAN),
             type: FieldTypes.Column,
           },
           myValue: {
             columnType: PrimitiveTypes.String,
             defaultValue: '__default__',
+            filterOperators: TypeConverter.operatorsForDataType(DataTypes.STRING),
             type: FieldTypes.Column,
           },
           createdAt: {
             columnType: PrimitiveTypes.Date,
+            filterOperators: TypeConverter.operatorsForDataType(DataTypes.DATE),
             type: FieldTypes.Column,
           },
           updatedAt: {
             columnType: PrimitiveTypes.Date,
+            filterOperators: TypeConverter.operatorsForDataType(DataTypes.DATE),
             type: FieldTypes.Column,
           },
         },

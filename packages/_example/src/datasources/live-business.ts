@@ -2,7 +2,6 @@ import {
   CollectionSchema,
   DataSourceSchema,
   FieldTypes,
-  Operator,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
 import { LiveDataSource } from '@forestadmin/datasource-live';
@@ -14,13 +13,11 @@ const companyCollection: CollectionSchema = {
   fields: {
     id: {
       columnType: PrimitiveTypes.Number,
-      filterOperators: new Set<Operator>([Operator.Equal]),
       isPrimaryKey: true,
       type: FieldTypes.Column,
     },
     name: {
       columnType: PrimitiveTypes.String,
-      filterOperators: new Set<Operator>(),
       type: FieldTypes.Column,
     },
   },
@@ -33,18 +30,15 @@ const userCollection: CollectionSchema = {
   fields: {
     id: {
       columnType: PrimitiveTypes.Number,
-      filterOperators: new Set<Operator>([Operator.Equal]),
       isPrimaryKey: true,
       type: FieldTypes.Column,
     },
     name: {
       columnType: PrimitiveTypes.String,
-      filterOperators: new Set<Operator>(),
       type: FieldTypes.Column,
     },
     email: {
       columnType: PrimitiveTypes.String,
-      filterOperators: new Set<Operator>(),
       type: FieldTypes.Column,
     },
     companyId: {
@@ -62,18 +56,15 @@ const itemCollection: CollectionSchema = {
   fields: {
     id: {
       columnType: PrimitiveTypes.Number,
-      filterOperators: new Set<Operator>([Operator.Equal]),
       isPrimaryKey: true,
       type: FieldTypes.Column,
     },
     name: {
       columnType: PrimitiveTypes.String,
-      filterOperators: new Set<Operator>(),
       type: FieldTypes.Column,
     },
     value: {
       columnType: PrimitiveTypes.Number,
-      filterOperators: new Set<Operator>(),
       type: FieldTypes.Column,
     },
     userId: {
