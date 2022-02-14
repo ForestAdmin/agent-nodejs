@@ -40,9 +40,7 @@ describe('SegmentCollectionDecorator', () => {
           const collection = factories.collection.build({
             schema: factories.collectionSchema.build({
               fields: {
-                name: factories.columnSchema.build({
-                  filterOperators: new Set(Object.values(Operator)),
-                }),
+                name: factories.columnSchema.build({}),
               },
             }),
           });
@@ -93,9 +91,7 @@ describe('SegmentCollectionDecorator', () => {
             name: 'book',
             schema: factories.collectionSchema.build({
               fields: {
-                name: factories.columnSchema.build({
-                  filterOperators: new Set(Object.values(Operator)),
-                }),
+                name: factories.columnSchema.build({}),
               },
             }),
           });

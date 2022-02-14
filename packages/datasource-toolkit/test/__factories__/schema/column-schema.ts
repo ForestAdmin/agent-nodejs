@@ -17,5 +17,5 @@ export class ColumnSchemaFactory extends Factory<ColumnSchema> {
 export default ColumnSchemaFactory.define(() => ({
   type: FieldTypes.Column as FieldTypes.Column,
   columnType: PrimitiveTypes.String,
-  filterOperators: new Set() as Set<Operator>,
+  filterOperators: new Set(Object.values(Operator)),
 }));
