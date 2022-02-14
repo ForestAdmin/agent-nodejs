@@ -39,6 +39,7 @@ export default class CountRelatedRoute extends RelationRoute {
       search: QueryStringParser.parseSearch(this.foreignCollection, context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.foreignCollection, context),
+
       timezone: QueryStringParser.parseTimezone(context),
     });
 
