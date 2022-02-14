@@ -76,6 +76,20 @@ export class CollectionBuilder {
     return this;
   }
 
+  emulateStringOperators(name: string): this {
+    this.emulateOperator(name, Operator.Equal);
+    this.emulateOperator(name, Operator.NotEqual);
+    this.emulateOperator(name, Operator.Present);
+    this.emulateOperator(name, Operator.Blank);
+    this.emulateOperator(name, Operator.In);
+    this.emulateOperator(name, Operator.StartsWith);
+    this.emulateOperator(name, Operator.EndsWith);
+    this.emulateOperator(name, Operator.Contains);
+    this.emulateOperator(name, Operator.NotContains);
+
+    return this;
+  }
+
   implementOperator(name: string, operator: Operator, replacer: OperatorReplacer): this {
     this.agentBuilder.operatorEmulate
       .getCollection(this.name)

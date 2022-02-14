@@ -87,6 +87,13 @@ export default class BooksCollection extends BaseDummyCollection {
       publication: new Date().toISOString(),
       author: { id: 4, firstName: 'Stephen', lastName: 'King' },
     },
+    {
+      id: 7,
+      title: 'A good one',
+      authorId: 3,
+      publication: new Date().toISOString(),
+      author: { id: 3, firstName: 'Roberto', lastName: 'Saviano' },
+    },
   ];
 
   constructor(datasource: DataSource) {

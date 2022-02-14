@@ -60,7 +60,7 @@ export default class Chart extends CollectionBaseRoute {
   async makeValueChart(
     context: Context,
   ): Promise<{ countCurrent: unknown; countPrevious: unknown }> {
-    const currentFilter = this.getFilter(context);
+    const currentFilter = await this.getFilter(context);
     const result = {
       countCurrent: await this.computeValue(context, currentFilter),
       countPrevious: undefined,
@@ -96,7 +96,7 @@ export default class Chart extends CollectionBaseRoute {
       }),
     );
 
-    return rows.map(row => ({ key: row[groupByField], value: row.value }));
+    return rows.map(row => ({ key: row.group[groupByField], value: row.value }));
   }
 
   // async makeLineChart(context: Context): Promise<any> {
@@ -156,9 +156,12 @@ export default class Chart extends CollectionBaseRoute {
     return rows.length ? (rows[0].value as number) : 0;
   }
 
-  private getFilter(context: Context): Filter {
+  private async getFilter(context: Context): Promise<Filter> {
     return new Filter({
-      conditionTree: QueryStringParser.parseConditionTree(this.collection, context),
+      conditionTree: ConditionTreeFactory.intersect(
+        QueryStringParser.parseConditionTree(this.collection, context),
+        await this.services.scope.getConditionTree(this.collection, context),
+      ),
       segment: null,
       timezone: QueryStringParser.parseTimezone(context),
     });
