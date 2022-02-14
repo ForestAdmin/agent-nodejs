@@ -96,7 +96,7 @@ describe('CountRelatedRoute', () => {
           .mockResolvedValue([{ value: 1568, group: {} }]);
 
         const searchParams = { search: 'searched argument' };
-        const filtersParams = {
+        const conditionTreeParams = {
           filters: JSON.stringify({
             aggregator: 'and',
             conditions: [
@@ -108,7 +108,7 @@ describe('CountRelatedRoute', () => {
         const customProperties = {
           query: {
             ...searchParams,
-            ...filtersParams,
+            ...conditionTreeParams,
             ...segmentParams,
             timezone: 'Europe/Paris',
           },

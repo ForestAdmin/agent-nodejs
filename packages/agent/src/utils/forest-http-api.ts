@@ -30,6 +30,11 @@ export type UserInfo = {
   tags: { [key: string]: string };
 };
 
+export type AllRecordsMode = {
+  isActivated: boolean;
+  excludedIds: string | number[];
+};
+
 export type RenderingPermissions = {
   actions: Set<string>;
   actionsByUser: { [actionName: string]: Set<number> };
