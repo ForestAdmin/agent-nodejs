@@ -1,20 +1,19 @@
 import {
   Aggregation,
-  Aggregator,
   ConditionTree,
-  ConditionTreeBranch,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   DateOperation,
   Filter,
   Operator,
 } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
 import { Context } from 'koa';
 import { DateTime, DateTimeUnit } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
-import QueryStringParser from '../../utils/query-string';
+import Router from '@koa/router';
+
 import CollectionBaseRoute from '../collection-base-route';
+import QueryStringParser from '../../utils/query-string';
 
 enum ChartType {
   Value = 'Value',
@@ -54,7 +53,7 @@ export default class Chart extends CollectionBaseRoute {
         },
       };
     } catch (e) {
-      console.log(e);
+      // console.log(e);
     }
   }
 
@@ -67,7 +66,7 @@ export default class Chart extends CollectionBaseRoute {
       countPrevious: undefined,
     };
 
-    const withCountPrevious = currentFilter.conditionTree.someLeaf(leaf =>
+    const withCountPrevious = currentFilter.conditionTree?.someLeaf(leaf =>
       leaf.useIntervalOperator(),
     );
 
@@ -161,7 +160,7 @@ export default class Chart extends CollectionBaseRoute {
       limit,
       relationship_field: relationshipField,
     } = context.request.body;
-
+    void limit; // Handle me
     const aggregationField = `${relationshipField}`;
     const rows = await this.collection.aggregate(
       this.getFilter(context),
@@ -176,7 +175,6 @@ export default class Chart extends CollectionBaseRoute {
       }),
     );
 
-    // Limit ?
     return rows.map(row => ({ key: row.group[labelField] as string, value: row.value as number }));
   }
 
@@ -198,9 +196,9 @@ export default class Chart extends CollectionBaseRoute {
   }
 
   private getPreviousConditionTree(
+    field: string,
     startPeriod: DateTime,
     endPeriod: DateTime,
-    field: string,
   ): ConditionTree {
     return ConditionTreeFactory.intersect(
       new ConditionTreeLeaf(field, Operator.GreaterThan, startPeriod.toISO()),
@@ -208,12 +206,13 @@ export default class Chart extends CollectionBaseRoute {
     );
   }
 
-  private getPreviousPeriodByUnit(now: DateTime, field: string, interval: string): ConditionTree {
+  private getPreviousPeriodByUnit(field: string, now: DateTime, interval: string): ConditionTree {
     const dayBeforeYesterday = now.minus({ [interval]: 2 });
+
     return this.getPreviousConditionTree(
+      field,
       dayBeforeYesterday.startOf(interval as DateTimeUnit),
       dayBeforeYesterday.endOf(interval as DateTimeUnit),
-      field,
     );
   }
 
@@ -225,27 +224,34 @@ export default class Chart extends CollectionBaseRoute {
         case Operator.Today:
           return leaf.override({ operator: Operator.Yesterday });
         case Operator.Yesterday:
-          return this.getPreviousPeriodByUnit(now, leaf.field, 'day');
+          return this.getPreviousPeriodByUnit(leaf.field, now, 'day');
         case Operator.PreviousWeek:
-          return this.getPreviousPeriodByUnit(now, leaf.field, 'week');
+          return this.getPreviousPeriodByUnit(leaf.field, now, 'week');
         case Operator.PreviousMonth:
-          return this.getPreviousPeriodByUnit(now, leaf.field, 'month');
+          return this.getPreviousPeriodByUnit(leaf.field, now, 'month');
         case Operator.PreviousQuarter:
-          return this.getPreviousPeriodByUnit(now, leaf.field, 'quarter');
+          return this.getPreviousPeriodByUnit(leaf.field, now, 'quarter');
         case Operator.PreviousYear:
-          return this.getPreviousPeriodByUnit(now, leaf.field, 'year');
-        case Operator.PreviousXDays:
+          return this.getPreviousPeriodByUnit(leaf.field, now, 'year');
+
+        case Operator.PreviousXDays: {
           const startPeriodXDays = now.minus({ days: 2 * Number(leaf.value) });
           const endPeriodXDays = now.minus({ days: Number(leaf.value) });
+
           return this.getPreviousConditionTree(
+            leaf.field,
             startPeriodXDays.startOf('day'),
             endPeriodXDays.startOf('day'),
-            leaf.field,
           );
-        case Operator.PreviousXDaysToDate:
+        }
+
+        case Operator.PreviousXDaysToDate: {
           const startPeriod = now.minus({ days: 2 * Number(leaf.value) });
           const endPeriod = now.minus({ days: Number(leaf.value) });
-          return this.getPreviousConditionTree(startPeriod.startOf('day'), endPeriod, leaf.field);
+
+          return this.getPreviousConditionTree(leaf.field, startPeriod.startOf('day'), endPeriod);
+        }
+
         case Operator.PreviousMonthToDate:
           return leaf.override({ operator: Operator.PreviousMonth });
         case Operator.PreviousQuarterToDate:
@@ -256,6 +262,7 @@ export default class Chart extends CollectionBaseRoute {
           return leaf;
       }
     });
+
     return filter;
   }
 }

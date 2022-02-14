@@ -92,6 +92,8 @@ export default class SequelizeCollection extends BaseCollection {
     if (aggregation.field) attributes.push(field);
 
     const groups: GroupOption = aggregation.groups?.map(group => {
+      attributes.push(group.field);
+
       if (group.operation) {
         // TODO: Ensure operation names are the same on all DB engines.
         return Fn(group.operation?.toUpperCase(), Col(group.field));
