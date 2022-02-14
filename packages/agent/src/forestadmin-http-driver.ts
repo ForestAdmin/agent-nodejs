@@ -69,6 +69,7 @@ export default class ForestAdminHttpDriver {
     await Promise.all(this.routes.map(route => route.bootstrap()));
 
     this.app
+      .use(this.logger.bind(this))
       .use(this.errorHandler.bind(this))
       .use(cors({ credentials: true, maxAge: 24 * 3600 }))
       .use(bodyParser())
@@ -81,6 +82,8 @@ export default class ForestAdminHttpDriver {
     if (!schemaIsKnown) {
       await ForestHttpApi.uploadSchema(this.options, schema);
     }
+
+    this.options?.logger(LoggerLevel.Info, 'Started');
   }
 
   /**
@@ -95,23 +98,53 @@ export default class ForestAdminHttpDriver {
     await Promise.all(this.routes.map(route => route.tearDown()));
   }
 
+  /** When not in production, dump the errors to stderr for debugging. */
   async errorHandler(context: Context, next: Next): Promise<void> {
+    const { request, response } = context;
+
     try {
       await next();
     } catch (e) {
-      if (e instanceof HttpError) throw e;
-      if (e instanceof ValidationError) context.throw(HttpCode.BadRequest, e.message);
+      if (!this.options.isProduction) {
+        const query = JSON.stringify(request.query, null, ' ').replace(/"/g, '');
+        console.error('');
+        console.error(`\x1b[33m===== An exception was raised =====\x1b[0m`);
+        console.error(`${request.method} \x1b[34m${request.path}\x1b[36m?${query}\x1b[0m`);
+        console.error('');
+        console.error(e.stack);
+        console.error(`\x1b[33m===================================\x1b[0m`);
+        console.error('');
+      }
+
+      if (e instanceof HttpError) {
+        response.status = e.status;
+        response.body = { message: e.message };
+      } else if (e instanceof ValidationError) {
+        response.status = HttpCode.BadRequest;
+        response.body = { message: e.message };
+      } else {
+        response.status = HttpCode.InternalServerError;
+        response.body = { message: 'Unexpected error' };
+      }
+    }
+  }
+
+  async logger(context: Context, next: Next): Promise<void> {
+    const timer = Date.now();
+
+    try {
+      await next();
+    } finally {
+      let message = '';
+      if (context.state.user) message += `[${context.state.user?.email}]`;
+      message += ` ${context.request.method} ${context.request.path}`;
+      message += ` - ${context.response.status}`;
+      message += ` - ${Date.now() - timer}ms`;
 
       this.options?.logger(
-        LoggerLevel.Error,
-        `Unexpected error on ${context.path}\n${e.stack}\n\n`,
+        context.response.status >= HttpCode.BadRequest ? LoggerLevel.Warn : LoggerLevel.Info,
+        message,
       );
-
-      context.response.status = HttpCode.InternalServerError;
-      context.response.body = {
-        error: true,
-        message: `Failed to perform request for an unexpected reason.`,
-      };
     }
   }
 }
