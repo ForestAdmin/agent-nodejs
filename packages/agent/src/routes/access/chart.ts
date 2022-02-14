@@ -11,7 +11,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
-import { DateTime } from 'luxon';
+import { DateTime, DateTimeUnit } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
 import QueryStringParser from '../../utils/query-string';
 import CollectionBaseRoute from '../collection-base-route';
@@ -36,7 +36,7 @@ export default class Chart extends CollectionBaseRoute {
     router.post(`/stats/${this.collection.name}`, this.handleStat.bind(this));
   }
 
-  private async handleStat(context: Context) {
+  async handleStat(context: Context) {
     const { body } = context.request;
 
     if (!Object.values(ChartType).includes(body.type)) {
@@ -66,7 +66,10 @@ export default class Chart extends CollectionBaseRoute {
       countCurrent: await this.computeValue(context, currentFilter),
       countPrevious: undefined,
     };
-    const withCountPrevious = context.request.body.filters;
+
+    const withCountPrevious = currentFilter.conditionTree.someLeaf(leaf =>
+      leaf.useIntervalOperator(),
+    );
 
     if (withCountPrevious) {
       result.countPrevious = await this.computeValue(
@@ -79,17 +82,17 @@ export default class Chart extends CollectionBaseRoute {
   }
 
   private async makeObjectiveChart(context: Context): Promise<{ value: unknown }> {
-    return { value: await this.computeValue(context, await this.getFilter(context)) };
+    return { value: await this.computeValue(context, this.getFilter(context)) };
   }
 
-  private async makePieChart(context: Context): Promise<Array<{ key: string; value: unknown }>> {
+  private async makePieChart(context: Context): Promise<Array<{ key: string; value: number }>> {
     const {
       group_by_field: groupByField,
       aggregate,
       aggregate_field: aggregateField,
     } = context.request.body;
     const rows = await this.collection.aggregate(
-      await this.getFilter(context),
+      this.getFilter(context),
       new Aggregation({
         operation: aggregate,
         field: aggregateField,
@@ -97,10 +100,13 @@ export default class Chart extends CollectionBaseRoute {
       }),
     );
 
-    return rows.map(row => ({ key: row.group[groupByField] as string, value: row.value }));
+    return rows.map(row => ({
+      key: row.group[groupByField] as string,
+      value: row.value as number,
+    }));
   }
 
-  private async makeLineChart(context: Context): Promise<Array<{ label: string; value: unknown }>> {
+  private async makeLineChart(context: Context): Promise<Array<{ label: string; value: number }>> {
     const {
       aggregate,
       aggregate_field: aggregateField,
@@ -109,7 +115,7 @@ export default class Chart extends CollectionBaseRoute {
     } = context.request.body;
 
     const rows = await this.collection.aggregate(
-      await this.getFilter(context),
+      this.getFilter(context),
       new Aggregation({
         operation: aggregate,
         field: aggregateField,
@@ -148,20 +154,31 @@ export default class Chart extends CollectionBaseRoute {
     return dataPoints;
   }
 
-  // async makeLeaderboardChart(ctx: Context): Promise<any> {
-  //   const aggregateField =
-  //      `${ctx.request.body.relationship_field}:${ctx.request.body.aggregate_field}`;
-  //   const rows = await this.collection.aggregate(
-  //     await this.getSelection(ctx),
-  //     {
-  //       aggregate: { operation: ctx.request.body.aggregate, field: aggregateField },
-  //       buckets: [{ field: 'title' }],
-  //     },
-  //     ctx.request.body.limit,
-  //   );
+  async makeLeaderboardChart(context: Context): Promise<Array<{ key: string; value: number }>> {
+    const {
+      aggregate,
+      label_field: labelField,
+      limit,
+      relationship_field: relationshipField,
+    } = context.request.body;
 
-  //   return rows;
-  // }
+    const aggregationField = `${relationshipField}`;
+    const rows = await this.collection.aggregate(
+      this.getFilter(context),
+      new Aggregation({
+        operation: aggregate,
+        field: aggregationField,
+        groups: [
+          {
+            field: labelField,
+          },
+        ],
+      }),
+    );
+
+    // Limit ?
+    return rows.map(row => ({ key: row.group[labelField] as string, value: row.value as number }));
+  }
 
   private async computeValue(context: Context, selection: Filter): Promise<number> {
     const { aggregate, aggregate_field: aggregateField } = context.request.body;
@@ -180,26 +197,55 @@ export default class Chart extends CollectionBaseRoute {
     });
   }
 
+  private getPreviousConditionTree(
+    startPeriod: DateTime,
+    endPeriod: DateTime,
+    field: string,
+  ): ConditionTree {
+    return ConditionTreeFactory.intersect(
+      new ConditionTreeLeaf(field, Operator.GreaterThan, startPeriod.toISO()),
+      new ConditionTreeLeaf(field, Operator.LessThan, endPeriod.toISO()),
+    );
+  }
+
+  private getPreviousPeriodByUnit(now: DateTime, field: string, interval: string): ConditionTree {
+    const dayBeforeYesterday = now.minus({ [interval]: 2 });
+    return this.getPreviousConditionTree(
+      dayBeforeYesterday.startOf(interval as DateTimeUnit),
+      dayBeforeYesterday.endOf(interval as DateTimeUnit),
+      field,
+    );
+  }
+
   private getPreviousPeriodFilter(context: Context): Filter {
     const filter = this.getFilter(context);
+    const now = DateTime.now().setZone(QueryStringParser.parseTimezone(context));
     filter.conditionTree = filter.conditionTree.replaceLeafs(leaf => {
       switch (leaf.operator) {
         case Operator.Today:
           return leaf.override({ operator: Operator.Yesterday });
         case Operator.Yesterday:
-          return leaf;
+          return this.getPreviousPeriodByUnit(now, leaf.field, 'day');
         case Operator.PreviousWeek:
-          return leaf;
+          return this.getPreviousPeriodByUnit(now, leaf.field, 'week');
         case Operator.PreviousMonth:
-          return leaf;
+          return this.getPreviousPeriodByUnit(now, leaf.field, 'month');
         case Operator.PreviousQuarter:
-          return leaf;
+          return this.getPreviousPeriodByUnit(now, leaf.field, 'quarter');
         case Operator.PreviousYear:
-          return leaf;
+          return this.getPreviousPeriodByUnit(now, leaf.field, 'year');
         case Operator.PreviousXDays:
-          return leaf;
+          const startPeriodXDays = now.minus({ days: 2 * Number(leaf.value) });
+          const endPeriodXDays = now.minus({ days: Number(leaf.value) });
+          return this.getPreviousConditionTree(
+            startPeriodXDays.startOf('day'),
+            endPeriodXDays.startOf('day'),
+            leaf.field,
+          );
         case Operator.PreviousXDaysToDate:
-          return leaf;
+          const startPeriod = now.minus({ days: 2 * Number(leaf.value) });
+          const endPeriod = now.minus({ days: Number(leaf.value) });
+          return this.getPreviousConditionTree(startPeriod.startOf('day'), endPeriod, leaf.field);
         case Operator.PreviousMonthToDate:
           return leaf.override({ operator: Operator.PreviousMonth });
         case Operator.PreviousQuarterToDate:
@@ -209,10 +255,7 @@ export default class Chart extends CollectionBaseRoute {
         default:
           return leaf;
       }
-
-      return leaf;
     });
-
     return filter;
   }
 }

@@ -188,4 +188,20 @@ export default class ConditionTreeLeaf extends ConditionTree {
 
     return RegExp(`^${regexp}$`, 'gi').test(value);
   }
+
+  useIntervalOperator() {
+    return [
+      Operator.Today,
+      Operator.Yesterday,
+      Operator.PreviousWeek,
+      Operator.PreviousMonth,
+      Operator.PreviousQuarter,
+      Operator.PreviousYear,
+      Operator.PreviousXDays,
+      Operator.PreviousXDaysToDate,
+      Operator.PreviousMonthToDate,
+      Operator.PreviousQuarterToDate,
+      Operator.PreviousYearToDate,
+    ].includes(this.operator);
+  }
 }
