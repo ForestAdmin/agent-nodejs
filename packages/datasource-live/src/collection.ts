@@ -1,11 +1,7 @@
-import { ModelDefined } from 'sequelize';
-
 import {
   AggregateResult,
   Aggregation,
-  CollectionSchema,
   CompositeId,
-  DataSource,
   Filter,
   PaginatedFilter,
   Projection,
@@ -15,18 +11,6 @@ import { SequelizeCollection } from '@forestadmin/datasource-sequelize';
 
 export default class LiveCollection extends SequelizeCollection {
   private synched = false;
-
-  constructor(
-    name: string,
-    dataSource: DataSource,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    model: ModelDefined<any, any>,
-    schema?: CollectionSchema,
-  ) {
-    super(name, dataSource, model);
-
-    if (schema?.searchable) this.enableSearch();
-  }
 
   private ensureSynched(): void {
     if (!this.synched) {
