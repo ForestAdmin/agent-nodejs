@@ -52,7 +52,7 @@ describe('ListRelatedRoute', () => {
 
   const setupContext = () => {
     const customProperties = {
-      query: { timezone: 'Europe/Paris' },
+      query: { timezone: 'Europe/Paris', 'fields[persons]': 'id,name' },
       params: { parentId: '1523' },
     };
 
@@ -168,12 +168,8 @@ describe('ListRelatedRoute', () => {
           params: { parentId: '1523' },
         };
         const context = createMockContext({ customProperties });
-        await count.handleListRelated(context);
 
-        expect(context.throw).toHaveBeenCalledWith(
-          HttpCode.BadRequest,
-          "Invalid projection (Cannot read property 'type' of undefined)",
-        );
+        await expect(count.handleListRelated(context)).rejects.toThrow('Invalid projection');
       });
 
       test('should return an HTTP 400 response when the parent id is malformed', async () => {

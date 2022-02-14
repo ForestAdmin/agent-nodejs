@@ -79,10 +79,7 @@ describe('GetRoute', () => {
 
           await get.handleGet(context);
 
-          expect(context.throw).toHaveBeenCalledWith(
-            HttpCode.NotFound,
-            'Record id 1 does not exist on collection "books"',
-          );
+          expect(context.throw).toHaveBeenCalledWith(HttpCode.NotFound, 'Record does not exists');
           expect(context.throw).toHaveBeenCalledTimes(1);
         });
       });
@@ -96,12 +93,7 @@ describe('GetRoute', () => {
             customProperties: { params: { id: '1|2' } },
           });
 
-          await get.handleGet(context);
-
-          expect(context.throw).toHaveBeenCalledWith(
-            HttpCode.BadRequest,
-            'Expected 1 values, found 2',
-          );
+          await expect(get.handleGet(context)).rejects.toThrow('Expected 1 values, found 2');
         });
       });
 
@@ -111,19 +103,14 @@ describe('GetRoute', () => {
             .spyOn(dataSource.getCollection('books'), 'getById')
             .mockImplementation(async () => ({ title: 'test ' }));
           services.serializer.serialize = jest.fn().mockImplementation(() => {
-            throw new Error();
+            throw new Error('failed to serialize');
           });
           const get = new Get(services, options, dataSource, 'books');
           const context = createMockContext({
             customProperties: { params: { id: '1' } },
           });
 
-          await get.handleGet(context);
-
-          expect(context.throw).toHaveBeenCalledWith(
-            HttpCode.InternalServerError,
-            'Failed to get record using id 1 on collection "books"',
-          );
+          await expect(get.handleGet(context)).rejects.toThrow('failed to serialize');
         });
       });
     });

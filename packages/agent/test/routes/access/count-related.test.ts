@@ -10,7 +10,6 @@ import {
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import CountRelatedRoute from '../../../src/routes/access/count-related';
 
 describe('CountRelatedRoute', () => {
@@ -158,8 +157,6 @@ describe('CountRelatedRoute', () => {
           const context = setupContext();
           await count.handleCountRelated(context);
 
-          await count.handleCountRelated(context);
-
           expect(context.throw).not.toHaveBeenCalled();
           expect(context.response.body).toEqual({ count: 0 });
         });
@@ -206,12 +203,7 @@ describe('CountRelatedRoute', () => {
         });
 
         const context = setupContext();
-        await count.handleCountRelated(context);
-
-        expect(context.throw).toHaveBeenCalledWith(
-          HttpCode.InternalServerError,
-          'Failed to count the collection relation of the "books"',
-        );
+        await expect(count.handleCountRelated(context)).rejects.toThrow('an error');
       });
     });
   });

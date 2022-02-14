@@ -2,7 +2,6 @@ import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import CreateRoute from '../../../src/routes/modification/create';
 
 describe('CreateRoute', () => {
@@ -114,10 +113,7 @@ describe('CreateRoute', () => {
           };
           const context = createMockContext({ requestBody });
 
-          await create.handleCreate(context);
-
-          expect(context.throw).toHaveBeenCalledWith(
-            HttpCode.BadRequest,
+          await expect(create.handleCreate(context)).rejects.toThrow(
             'Unknown field "failNameAttribute"',
           );
         });
@@ -128,7 +124,7 @@ describe('CreateRoute', () => {
           const collection = factories.collection.build({
             name: 'books',
             create: jest.fn().mockImplementation(() => {
-              throw new Error();
+              throw new Error('failed to create');
             }),
             schema: factories.collectionSchema.build({
               fields: {
@@ -152,12 +148,7 @@ describe('CreateRoute', () => {
             },
           };
           const context = createMockContext({ requestBody });
-          await create.handleCreate(context);
-
-          expect(context.throw).toHaveBeenCalledWith(
-            HttpCode.InternalServerError,
-            'Failed to create record on collection "books"',
-          );
+          await expect(create.handleCreate(context)).rejects.toThrow('failed to create');
         });
       });
     });

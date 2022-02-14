@@ -28,7 +28,7 @@ export default class GetRoute extends CollectionRoute {
     const records = await this.collection.list(filter, this.buildProjection());
 
     if (!records.length) {
-      context.throw(HttpCode.NotFound, 'Record does not exist');
+      context.throw(HttpCode.NotFound, 'Record does not exists');
     }
 
     context.response.body = this.services.serializer.serialize(this.collection, records[0]);

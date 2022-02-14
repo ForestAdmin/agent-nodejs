@@ -2,7 +2,6 @@ import { ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../__factories__';
-import { HttpCode } from '../../src/types';
 import QueryStringParser from '../../src/utils/query-string';
 
 describe('QueryStringParser', () => {
@@ -124,7 +123,7 @@ describe('QueryStringParser', () => {
 
             const fn = () => QueryStringParser.parseProjection(collectionSimple, context);
 
-            expect(fn).toThrow(new ValidationError('Invalid projection'));
+            expect(fn).toThrow('Invalid projection');
           });
         });
 
@@ -136,7 +135,7 @@ describe('QueryStringParser', () => {
 
             const fn = () => QueryStringParser.parseProjection(collectionSimple, context);
 
-            expect(fn).toThrow(new ValidationError('Invalid projection'));
+            expect(fn).toThrow('Invalid projection');
           });
         });
       });
@@ -202,9 +201,9 @@ describe('QueryStringParser', () => {
           searchable: false,
         }),
       });
-      QueryStringParser.parseSearch(collection, context);
+      const fn = () => QueryStringParser.parseSearch(collection, context);
 
-      expect(context.throw).toBeCalledWith(HttpCode.BadRequest, 'Collection is not searchable');
+      expect(fn).toThrow('Collection is not searchable');
     });
 
     test('should return the query search parameter', () => {
@@ -278,7 +277,7 @@ describe('QueryStringParser', () => {
 
       const fn = () => QueryStringParser.parseSegment(collectionSimple, context);
 
-      expect(fn).toThrow(new ValidationError('Invalid segment: "fake-segment-that-dont-exist"'));
+      expect(fn).toThrow('Invalid segment: "fake-segment-that-dont-exist"');
     });
   });
 
@@ -299,7 +298,7 @@ describe('QueryStringParser', () => {
 
       const fn = () => QueryStringParser.parseTimezone(context);
 
-      expect(fn).toThrow(new ValidationError('Missing timezone'));
+      expect(fn).toThrow('Missing timezone');
     });
 
     test('should throw a ValidationError when the timezone is invalid', () => {
@@ -309,7 +308,7 @@ describe('QueryStringParser', () => {
 
       const fn = () => QueryStringParser.parseTimezone(context);
 
-      expect(fn).toThrow(new ValidationError('Invalid timezone: "ThisTZ/Donotexist"'));
+      expect(fn).toThrow('Invalid timezone: "ThisTZ/Donotexist"');
     });
 
     describe('when timezone are not available in the environment', () => {
@@ -378,7 +377,7 @@ describe('QueryStringParser', () => {
 
         const fn = () => QueryStringParser.parsePagination(context);
 
-        expect(fn).toThrow(new ValidationError('Invalid pagination [limit: -5, skip: NaN]'));
+        expect(fn).toThrow('Invalid pagination [limit: -5, skip: NaN]');
       });
     });
   });
@@ -413,7 +412,7 @@ describe('QueryStringParser', () => {
 
       const fn = () => QueryStringParser.parseSort(collectionSimple, context);
 
-      expect(fn).toThrow(new ValidationError('Invalid sort: -fieldThatDoNotExist'));
+      expect(fn).toThrow('Invalid sort: -fieldThatDoNotExist');
     });
   });
 });
