@@ -135,11 +135,10 @@ export default class ForestAdminHttpDriver {
     try {
       await next();
     } finally {
-      let message = '';
-      if (context.state.user) message += `[${context.state.user?.email}]`;
-      message += ` ${context.request.method} ${context.request.path}`;
+      let message = `${context.request.method} ${context.request.path}`;
       message += ` - ${context.response.status}`;
       message += ` - ${Date.now() - timer}ms`;
+      if (context.state.user) message += ` - ${context.state.user?.email}`;
 
       this.options?.logger(
         context.response.status >= HttpCode.BadRequest ? LoggerLevel.Warn : LoggerLevel.Info,
