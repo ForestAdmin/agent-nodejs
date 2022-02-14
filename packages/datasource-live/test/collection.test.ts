@@ -81,7 +81,7 @@ const instanciateCollection = schema => {
   const model = sequelize.define('__name__', CollectionAttributesConverter.convert(schema));
 
   return {
-    liveCollection: new LiveCollection('__name__', dataSource, model, schema),
+    liveCollection: new LiveCollection('__name__', dataSource, model),
     model,
     sequelize,
   };

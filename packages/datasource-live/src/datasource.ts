@@ -22,8 +22,8 @@ export default class LiveDataSource extends SequelizeDataSource {
     });
 
     // Add actual Collection instances to DataSource.
-    collections.forEach(([name, schema]) => {
-      this.addCollection(new LiveCollection(name, this, this.sequelize.model(name), schema));
+    collections.forEach(([name]) => {
+      this.addCollection(new LiveCollection(name, this, this.sequelize.model(name)));
     });
   }
 
