@@ -11,6 +11,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
+import { DateTime } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
 import QueryStringParser from '../../utils/query-string';
 import CollectionBaseRoute from '../collection-base-route';
@@ -57,7 +58,7 @@ export default class Chart extends CollectionBaseRoute {
     }
   }
 
-  async makeValueChart(
+  private async makeValueChart(
     context: Context,
   ): Promise<{ countCurrent: unknown; countPrevious: unknown }> {
     const currentFilter = this.getFilter(context);
@@ -77,11 +78,11 @@ export default class Chart extends CollectionBaseRoute {
     return result;
   }
 
-  async makeObjectiveChart(context: Context): Promise<{ value: unknown }> {
+  private async makeObjectiveChart(context: Context): Promise<{ value: unknown }> {
     return { value: await this.computeValue(context, await this.getFilter(context)) };
   }
 
-  async makePieChart(context: Context): Promise<Array<{ key: unknown; value: unknown }>> {
+  private async makePieChart(context: Context): Promise<Array<{ key: string; value: unknown }>> {
     const {
       group_by_field: groupByField,
       aggregate,
@@ -96,41 +97,56 @@ export default class Chart extends CollectionBaseRoute {
       }),
     );
 
-    return rows.map(row => ({ key: row[groupByField], value: row.value }));
+    return rows.map(row => ({ key: row.group[groupByField] as string, value: row.value }));
   }
 
-  // async makeLineChart(context: Context): Promise<any> {
-  //   const { aggregate, aggregate_field, group_by_date_field, time_range } = context.request.body;
-  //   const rows = await this.collection.aggregate(await this.getFilter(context), {
-  //     aggregate: { operation: aggregate, field: aggregate_field },
-  //     buckets: [{ field: group_by_date_field, operation: time_range }],
-  //   });
+  private async makeLineChart(context: Context): Promise<Array<{ label: string; value: unknown }>> {
+    const {
+      aggregate,
+      aggregate_field: aggregateField,
+      group_by_date_field: groupByDateField,
+      time_range: timeRange,
+    } = context.request.body;
 
-  //   const values = {};
-  //   rows.forEach(row => {
-  //     values[DateTime.fromISO(row[group_by_date_field]).toISODate()] = Number(row.result);
-  //   });
+    const rows = await this.collection.aggregate(
+      await this.getFilter(context),
+      new Aggregation({
+        operation: aggregate,
+        field: aggregateField,
+        groups: [
+          {
+            field: groupByDateField,
+            operation: timeRange,
+          },
+        ],
+      }),
+    );
 
-  //   // Extract first and last dates
-  //   const dates = Object.keys(values).sort((a, b) => a.localeCompare(b));
-  //   const last = DateTime.fromISO(dates[dates.length - 1]);
+    const values = {};
+    rows.forEach(row => {
+      values[DateTime.fromISO(row.group[groupByDateField] as string).toISODate()] = Number(
+        row.value,
+      );
+    });
 
-  //   // Compute line chart
-  //   const dataPoints = [];
-  //   const format = Chart.formats[time_range];
+    const dates = Object.keys(values).sort((dateA, dateB) => dateA.localeCompare(dateB));
+    const last = DateTime.fromISO(dates[dates.length - 1]);
 
-  //   for (
-  //     let current = DateTime.fromISO(dates[0]);
-  //     current < last;
-  //     current = current.plus({ [time_range]: 1 })
-  //   ) {
-  //     const label = current.toFormat(format);
-  //     const value = values[current.toISODate()] ?? 0;
-  //     dataPoints.push({ label, values: { value } });
-  //   }
+    const dataPoints = [];
+    const format = Chart.formats[timeRange];
 
-  //   return dataPoints;
-  // }
+    for (
+      let current = DateTime.fromISO(dates[0]);
+      current <= last;
+      current = current.plus({ [timeRange]: 1 })
+    ) {
+      const label = current.toFormat(format);
+      const value = values[current.toISODate()] ?? 0;
+      dataPoints.push({ label, values: { value } });
+    }
+
+    return dataPoints;
+  }
 
   // async makeLeaderboardChart(ctx: Context): Promise<any> {
   //   const aggregateField =
