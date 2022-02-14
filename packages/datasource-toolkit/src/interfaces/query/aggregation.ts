@@ -201,6 +201,6 @@ export default class Aggregation implements AggregationComponents {
       }
     }
 
-    return String(value);
+    return value;
   }
 }
