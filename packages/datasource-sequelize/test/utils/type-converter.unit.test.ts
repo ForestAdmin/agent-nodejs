@@ -38,7 +38,16 @@ describe('Utils > TypeConverter', () => {
     describe('with an array type', () => {
       it('should return the matching set of operators', () => {
         expect(TypeConverter.operatorsForDataType(DataTypes.ARRAY(DataTypes.BOOLEAN))).toEqual(
-          new Set<Operator>([Operator.In, Operator.IncludesAll, Operator.NotIn]),
+          new Set<Operator>([
+            Operator.Blank,
+            Operator.Equal,
+            Operator.In,
+            Operator.IncludesAll,
+            Operator.Missing,
+            Operator.NotEqual,
+            Operator.NotIn,
+            Operator.Present,
+          ]),
         );
       });
     });
@@ -53,7 +62,17 @@ describe('Utils > TypeConverter', () => {
         [
           'Universally Unique Identifier',
           [DataTypes.UUID],
-          [Operator.Blank, Operator.Equal, Operator.Missing, Operator.NotEqual, Operator.Present],
+          [
+            Operator.Blank,
+            Operator.Equal,
+            Operator.Missing,
+            Operator.NotEqual,
+            Operator.Present,
+            Operator.StartsWith,
+            Operator.EndsWith,
+            Operator.Contains,
+            Operator.Like,
+          ],
         ],
         [
           'Numerical',
@@ -66,6 +85,7 @@ describe('Utils > TypeConverter', () => {
             Operator.LessThan,
             Operator.Missing,
             Operator.NotEqual,
+            Operator.NotIn,
             Operator.Present,
           ],
         ],
@@ -83,6 +103,7 @@ describe('Utils > TypeConverter', () => {
             Operator.Missing,
             Operator.NotContains,
             Operator.NotEqual,
+            Operator.NotIn,
             Operator.Present,
             Operator.ShorterThan,
             Operator.StartsWith,
@@ -123,7 +144,15 @@ describe('Utils > TypeConverter', () => {
         [
           'Enum',
           [DataTypes.ENUM],
-          [Operator.Blank, Operator.Equal, Operator.Missing, Operator.NotEqual, Operator.Present],
+          [
+            Operator.Blank,
+            Operator.Equal,
+            Operator.In,
+            Operator.Missing,
+            Operator.NotEqual,
+            Operator.NotIn,
+            Operator.Present,
+          ],
         ],
         [
           'JSON',
