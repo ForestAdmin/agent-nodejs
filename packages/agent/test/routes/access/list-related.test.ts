@@ -10,7 +10,6 @@ import {
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import ListRelatedRoute from '../../../src/routes/access/list-related';
 
 describe('ListRelatedRoute', () => {
