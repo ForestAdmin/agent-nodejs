@@ -2,7 +2,7 @@
 import * as factories from './__factories__';
 import { ActionSchema, ColumnSchema, FieldSchema, PrimitiveTypes } from '../src/interfaces/schema';
 import { AggregateResult } from '../src/interfaces/query/aggregation';
-import { CollectionSchema } from '../dist/src';
+import { CollectionSchema } from '../src';
 import { DataSource } from '../src/interfaces/collection';
 import { RecordData } from '../src/interfaces/record';
 import BaseCollection from '../src/base-collection';
