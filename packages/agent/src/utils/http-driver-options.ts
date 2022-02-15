@@ -9,9 +9,9 @@ import {
 
 export default class OptionsUtils {
   private static loggerPrefix = {
-    [LoggerLevel.Info]: '\x1b[34minfo: \x1b[0m',
-    [LoggerLevel.Warn]: '\x1b[33mwarning: \x1b[0m',
-    [LoggerLevel.Error]: '\x1b[31merror: \x1b[0m',
+    [LoggerLevel.Info]: '\x1b[34minfo:\x1b[0m',
+    [LoggerLevel.Warn]: '\x1b[33mwarning:\x1b[0m',
+    [LoggerLevel.Error]: '\x1b[31merror:\x1b[0m',
   };
 
   static withDefaults(

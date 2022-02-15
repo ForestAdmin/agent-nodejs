@@ -138,8 +138,8 @@ export default class ForestAdminHttpDriver {
     try {
       await next();
     } finally {
-      let message = `${context.request.method} ${context.request.path}`;
-      message += ` - ${context.response.status}`;
+      let message = `[${context.response.status}]`;
+      message += ` ${context.request.method} ${context.request.path}`;
       message += ` - ${Date.now() - timer}ms`;
       if (context.state.user) message += ` - ${context.state.user.email}`;
 
