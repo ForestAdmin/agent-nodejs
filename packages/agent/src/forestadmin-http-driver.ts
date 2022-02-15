@@ -105,17 +105,6 @@ export default class ForestAdminHttpDriver {
     try {
       await next();
     } catch (e) {
-      if (!this.options.isProduction) {
-        const query = JSON.stringify(request.query, null, ' ').replace(/"/g, '');
-        console.error('');
-        console.error(`\x1b[33m===== An exception was raised =====\x1b[0m`);
-        console.error(`${request.method} \x1b[34m${request.path}\x1b[36m?${query}\x1b[0m`);
-        console.error('');
-        console.error(e.stack);
-        console.error(`\x1b[33m===================================\x1b[0m`);
-        console.error('');
-      }
-
       if (e instanceof HttpError) {
         response.status = e.status;
         response.body = { message: e.message };
@@ -125,6 +114,19 @@ export default class ForestAdminHttpDriver {
       } else {
         response.status = HttpCode.InternalServerError;
         response.body = { message: 'Unexpected error' };
+      }
+
+      if (!this.options.isProduction) {
+        process.nextTick(() => {
+          const query = JSON.stringify(request.query, null, ' ').replace(/"/g, '');
+          console.error('');
+          console.error(`\x1b[33m===== An exception was raised =====\x1b[0m`);
+          console.error(`${request.method} \x1b[34m${request.path}\x1b[36m?${query}\x1b[0m`);
+          console.error('');
+          console.error(e.stack);
+          console.error(`\x1b[33m===================================\x1b[0m`);
+          console.error('');
+        });
       }
     }
   }
