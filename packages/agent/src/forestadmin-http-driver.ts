@@ -98,8 +98,8 @@ export default class ForestAdminHttpDriver {
     await Promise.all(this.routes.map(route => route.tearDown()));
   }
 
-  /** When not in production, dump the errors to stderr for debugging. */
-  async errorHandler(context: Context, next: Next): Promise<void> {
+  /* istanbul ignore next */
+  private async errorHandler(context: Context, next: Next): Promise<void> {
     const { request, response } = context;
 
     try {
@@ -129,7 +129,8 @@ export default class ForestAdminHttpDriver {
     }
   }
 
-  async logger(context: Context, next: Next): Promise<void> {
+  /* istanbul ignore next */
+  private async logger(context: Context, next: Next): Promise<void> {
     const timer = Date.now();
 
     try {
@@ -138,7 +139,7 @@ export default class ForestAdminHttpDriver {
       let message = `${context.request.method} ${context.request.path}`;
       message += ` - ${context.response.status}`;
       message += ` - ${Date.now() - timer}ms`;
-      if (context.state.user) message += ` - ${context.state.user?.email}`;
+      if (context.state.user) message += ` - ${context.state.user.email}`;
 
       this.options?.logger(
         context.response.status >= HttpCode.BadRequest ? LoggerLevel.Warn : LoggerLevel.Info,
