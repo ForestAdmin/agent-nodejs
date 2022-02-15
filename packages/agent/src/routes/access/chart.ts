@@ -65,6 +65,8 @@ export default class Chart extends CollectionBaseRoute {
       countPrevious: undefined,
     };
 
+    // @fixme if multiple interval operator, skip the count previous
+    // when the Aggregation op is And (Or should still trigger this)
     const withCountPrevious = currentFilter.conditionTree?.someLeaf(leaf =>
       leaf.useIntervalOperator(),
     );

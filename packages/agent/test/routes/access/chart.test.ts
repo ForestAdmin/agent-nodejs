@@ -5,7 +5,7 @@ import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
 import Chart from '../../../src/routes/access/chart';
 
-describe('GetRoute', () => {
+describe('ChartRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
   const dataSource = factories.dataSource.buildWithCollections([
     factories.collection.build({
@@ -19,6 +19,9 @@ describe('GetRoute', () => {
           author: factories.oneToOneSchema.build({
             foreignCollection: 'persons',
             foreignKey: 'bookId',
+          }),
+          publishedAt: factories.columnSchema.build({
+            columnType: PrimitiveTypes.Date,
           }),
         },
       }),
@@ -72,13 +75,17 @@ describe('GetRoute', () => {
         .mockResolvedValue([{ value: 1234, group: null }]);
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
-        requestBody: { type: 'Value' },
+        requestBody: {
+          type: 'Value',
+          aggregate: 'Count',
+          collection: 'books',
+          filters: undefined,
+        },
         customProperties: { query: { timezone: 'Europe/Paris' } },
       });
 
       await chart.handleChart(context);
 
-      expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledTimes(1);
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
         {
           conditionTree: null,
@@ -90,7 +97,7 @@ describe('GetRoute', () => {
         {
           field: undefined,
           groups: undefined,
-          operation: undefined,
+          operation: 'Count',
         },
       );
       expect(context.response.body).toMatchObject({
@@ -108,11 +115,45 @@ describe('GetRoute', () => {
 
     describe('when the data needs filtering', () => {
       describe('when the filter contains a previous-able filter', () => {
-        test('should call aggregate twice', () => {});
+        test('should call aggregate twice', async () => {
+          jest
+            .spyOn(dataSource.getCollection('books'), 'aggregate')
+            .mockResolvedValueOnce([{ value: 1234, group: null }])
+            .mockResolvedValueOnce([{ value: 4321, group: null }]);
+          const chart = new Chart(services, options, dataSource, 'books');
+          const context = createMockContext({
+            requestBody: {
+              type: 'Value',
+              aggregate: 'Count',
+              collection: 'books',
+              filters: JSON.stringify({
+                field: 'publishedAt',
+                operator: 'today',
+                value: null,
+              }),
+            },
+            customProperties: { query: { timezone: 'Europe/Paris' } },
+          });
+
+          await chart.handleChart(context);
+
+          expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledTimes(2);
+          expect(context.response.body).toMatchObject({
+            data: {
+              attributes: {
+                value: {
+                  countCurrent: 1234,
+                  countPrevious: 4321,
+                },
+              },
+              type: 'stats',
+            },
+          });
+        });
       });
 
       describe('on a basic filter', () => {
-        test('should call aggregate twice', async () => {
+        test('should call aggregate once, with the correct filter', async () => {
           jest
             .spyOn(dataSource.getCollection('books'), 'aggregate')
             .mockResolvedValue([{ value: 1234, group: null }]);
@@ -120,9 +161,11 @@ describe('GetRoute', () => {
           const context = createMockContext({
             requestBody: {
               type: 'Value',
-              filter: JSON.stringify({
-                field: 'publication',
-                operator: 'is_present',
+              aggregate: 'Count',
+              collection: 'books',
+              filters: JSON.stringify({
+                field: 'name',
+                operator: 'present',
                 value: null,
               }),
             },
@@ -134,7 +177,11 @@ describe('GetRoute', () => {
           expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledTimes(1);
           expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
             {
-              conditionTree: null,
+              conditionTree: {
+                field: 'name',
+                operator: 'present',
+                value: null,
+              },
               search: undefined,
               searchExtended: undefined,
               segment: null,
@@ -143,7 +190,7 @@ describe('GetRoute', () => {
             {
               field: undefined,
               groups: undefined,
-              operation: undefined,
+              operation: 'Count',
             },
           );
           expect(context.response.body).toMatchObject({
