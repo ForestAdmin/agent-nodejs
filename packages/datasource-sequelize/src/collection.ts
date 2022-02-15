@@ -50,7 +50,7 @@ export default class SequelizeCollection extends BaseCollection {
 
     const record = await this.model.findOne({
       where: actualId,
-      attributes: projection,
+      attributes: projection.columns,
     });
 
     return record && record.get({ plain: true });
@@ -65,7 +65,7 @@ export default class SequelizeCollection extends BaseCollection {
   async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
     const records = await this.model.findAll({
       ...FilterConverter.convertPaginatedFilterToSequelize(filter),
-      attributes: projection,
+      attributes: projection.columns,
     });
 
     return records.map(record => record.get({ plain: true }));
