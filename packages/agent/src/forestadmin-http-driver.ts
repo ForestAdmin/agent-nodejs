@@ -107,8 +107,8 @@ export default class ForestAdminHttpDriver {
       let message = 'Unexpected error';
 
       if (e instanceof HttpError || e instanceof ValidationError) {
-        message = e.message;
         status = e instanceof HttpError ? e.status : HttpCode.BadRequest;
+        message = e.message;
       }
 
       context.response.status = status;
