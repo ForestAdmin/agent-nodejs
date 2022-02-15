@@ -34,3 +34,12 @@ export enum HttpCode {
   NotFound = 404,
   Ok = 200,
 }
+
+export enum RouteType {
+  // Do not change order: routes will be loaded in that order by the http-driver
+  ErrorHandler,
+  PublicMiddleware,
+  PublicRoute,
+  Authentication,
+  PrivateRoute,
+}

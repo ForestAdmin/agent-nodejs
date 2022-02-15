@@ -40,9 +40,9 @@ describe('GetRoute', () => {
     (router.get as jest.Mock).mockClear();
   });
 
-  test('should register "/books/:id" private routes', () => {
+  test('should register "/books/:id" route', () => {
     const get = new Get(services, options, dataSource, 'books');
-    get.setupPrivateRoutes(router);
+    get.setupRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith('/books/:id', expect.any(Function));
   });

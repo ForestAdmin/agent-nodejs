@@ -11,7 +11,7 @@ jest.mock('../../../src/utils/forest-http-api', () => ({
 }));
 
 describe('IpWhitelist', () => {
-  describe('setupAuthentication', () => {
+  describe('setupRoutes', () => {
     test('should attach the checkIp method to the router', () => {
       const services = factories.forestAdminHttpDriverServices.build();
       const options = factories.forestAdminHttpDriverOptions.build();
@@ -20,7 +20,7 @@ describe('IpWhitelist', () => {
       const router = factories.router.build();
       router.use = jest.fn();
 
-      ipWhitelistService.setupAuthentication(router);
+      ipWhitelistService.setupRoutes(router);
 
       expect((router.use as jest.Mock).mock.calls[0][0].name).toEqual('bound checkIp');
     });

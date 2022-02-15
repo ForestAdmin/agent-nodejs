@@ -6,11 +6,13 @@ import jsonwebtoken from 'jsonwebtoken';
 import jwt from 'koa-jwt';
 
 import { Context } from 'koa';
-import { HttpCode } from '../../types';
+import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
 import ForestHttpApi from '../../utils/forest-http-api';
 
 export default class Authentication extends BaseRoute {
+  readonly type = RouteType.Authentication;
+
   private client: Client;
 
   private get redirectUrl(): string {
@@ -37,13 +39,12 @@ export default class Authentication extends BaseRoute {
       : await issuer.Client.register(registration, { initialAccessToken: this.options.envSecret });
   }
 
-  override setupAuthentication(router: Router): void {
-    router.use(jwt({ secret: this.options.authSecret, cookie: 'forest_session_token' }));
-  }
-
-  override setupPublicRoutes(router: Router): void {
+  setupRoutes(router: Router): void {
     router.post('/authentication', this.handleAuthentication.bind(this));
     router.get('/authentication/callback', this.handleAuthenticationCallback.bind(this));
+
+    router.use(jwt({ secret: this.options.authSecret, cookie: 'forest_session_token' }));
+
     router.post('/authentication/logout', this.handleAuthenticationLogout.bind(this));
   }
 

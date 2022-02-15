@@ -2,10 +2,13 @@ import { Context } from 'koa';
 import { RecordValidator } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 
+import { RouteType } from '../../types';
 import CollectionRoute from '../collection-route';
 
 export default class CreateRoute extends CollectionRoute {
-  override setupPrivateRoutes(router: Router): void {
+  type = RouteType.PrivateRoute;
+
+  setupRoutes(router: Router): void {
     router.post(`/${this.collection.name}`, this.handleCreate.bind(this));
   }
 

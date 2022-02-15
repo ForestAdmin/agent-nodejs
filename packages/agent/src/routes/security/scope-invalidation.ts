@@ -2,11 +2,13 @@ import { Context } from 'koa';
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 
-import { HttpCode } from '../../types';
+import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
 
 export default class ScopeInvalidation extends BaseRoute {
-  override setupPrivateRoutes(router: Router): void {
+  readonly type = RouteType.PrivateRoute;
+
+  setupRoutes(router: Router): void {
     router.post(`/scope-cache-invalidation`, this.invalidateCache.bind(this));
   }
 

@@ -2,12 +2,14 @@ import { ConditionTreeFactory, Filter, RecordValidator } from '@forestadmin/data
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { HttpCode } from '../../types';
+import { HttpCode, RouteType } from '../../types';
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 
 export default class UpdateRoute extends CollectionRoute {
-  override setupPrivateRoutes(router: Router): void {
+  type = RouteType.PrivateRoute;
+
+  setupRoutes(router: Router): void {
     router.put(`/${this.collection.name}/:id`, this.handleUpdate.bind(this));
   }
 

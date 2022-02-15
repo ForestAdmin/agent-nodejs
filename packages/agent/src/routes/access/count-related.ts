@@ -8,12 +8,15 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { RouteType } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';
 
 export default class CountRelatedRoute extends RelationRoute {
-  override setupPrivateRoutes(router: Router): void {
+  type = RouteType.PrivateRoute;
+
+  setupRoutes(router: Router): void {
     router.get(
       `/${this.collection.name}/:parentId/relationships/${this.relationName}/count`,
       this.handleCountRelated.bind(this),

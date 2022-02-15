@@ -10,12 +10,12 @@ describe('DeleteRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
   const router = factories.router.mockAllMethods().build();
 
-  test('should register "/books" private routes', () => {
+  test('should register "/books" route', () => {
     const bookCollection = factories.collection.build({ name: 'books' });
     const dataSource = factories.dataSource.buildWithCollections([bookCollection]);
     const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
-    deleteRoute.setupPrivateRoutes(router);
+    deleteRoute.setupRoutes(router);
 
     expect(router.delete).toHaveBeenCalledWith('/books', expect.any(Function));
     expect(router.delete).toHaveBeenCalledWith('/books/:id', expect.any(Function));

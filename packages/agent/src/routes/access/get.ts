@@ -7,12 +7,14 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { HttpCode } from '../../types';
+import { HttpCode, RouteType } from '../../types';
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 
 export default class GetRoute extends CollectionRoute {
-  override setupPrivateRoutes(router: Router): void {
+  type = RouteType.PrivateRoute;
+
+  setupRoutes(router: Router): void {
     router.get(`/${this.collection.name}/:id`, this.handleGet.bind(this));
   }
 

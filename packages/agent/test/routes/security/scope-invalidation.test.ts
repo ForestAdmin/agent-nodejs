@@ -13,9 +13,9 @@ describe('ScopeInvalidation', () => {
     jest.resetAllMocks();
   });
 
-  test('should register "/scope-cache-invalidation" private routes', () => {
+  test('should register "/scope-cache-invalidation" route', () => {
     const route = new ScopeInvalidation(services, options);
-    route.setupPrivateRoutes(router);
+    route.setupRoutes(router);
 
     expect(router.post).toHaveBeenCalledWith('/scope-cache-invalidation', expect.any(Function));
   });
@@ -26,7 +26,7 @@ describe('ScopeInvalidation', () => {
 
     beforeEach(() => {
       route = new ScopeInvalidation(services, options);
-      route.setupPrivateRoutes({
+      route.setupRoutes({
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         post: (_: string, handler: Router.Middleware) => {
