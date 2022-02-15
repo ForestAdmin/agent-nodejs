@@ -100,33 +100,22 @@ export default class ForestAdminHttpDriver {
 
   /* istanbul ignore next */
   private async errorHandler(context: Context, next: Next): Promise<void> {
-    const { request, response } = context;
-
     try {
       await next();
     } catch (e) {
       if (e instanceof HttpError) {
-        response.status = e.status;
-        response.body = { message: e.message };
+        context.response.status = e.status;
+        context.response.body = { message: e.message };
       } else if (e instanceof ValidationError) {
-        response.status = HttpCode.BadRequest;
-        response.body = { message: e.message };
+        context.response.status = HttpCode.BadRequest;
+        context.response.body = { message: e.message };
       } else {
-        response.status = HttpCode.InternalServerError;
-        response.body = { message: 'Unexpected error' };
+        context.response.status = HttpCode.InternalServerError;
+        context.response.body = { message: 'Unexpected error' };
       }
 
       if (!this.options.isProduction) {
-        process.nextTick(() => {
-          const query = JSON.stringify(request.query, null, ' ').replace(/"/g, '');
-          console.error('');
-          console.error(`\x1b[33m===== An exception was raised =====\x1b[0m`);
-          console.error(`${request.method} \x1b[34m${request.path}\x1b[36m?${query}\x1b[0m`);
-          console.error('');
-          console.error(e.stack);
-          console.error(`\x1b[33m===================================\x1b[0m`);
-          console.error('');
-        });
+        process.nextTick(() => this.debugLogError(context, e));
       }
     }
   }
@@ -141,12 +130,25 @@ export default class ForestAdminHttpDriver {
       let message = `[${context.response.status}]`;
       message += ` ${context.request.method} ${context.request.path}`;
       message += ` - ${Date.now() - timer}ms`;
-      if (context.state.user) message += ` - ${context.state.user.email}`;
 
       this.options?.logger(
         context.response.status >= HttpCode.BadRequest ? LoggerLevel.Warn : LoggerLevel.Info,
         message,
       );
     }
+  }
+
+  /* istanbul ignore next */
+  private debugLogError(context: Context, error: Error): void {
+    const { request } = context;
+
+    const query = JSON.stringify(request.query, null, ' ').replace(/"/g, '');
+    console.error('');
+    console.error(`\x1b[33m===== An exception was raised =====\x1b[0m`);
+    console.error(`${request.method} \x1b[34m${request.path}\x1b[36m?${query}\x1b[0m`);
+    console.error('');
+    console.error(error.stack);
+    console.error(`\x1b[33m===================================\x1b[0m`);
+    console.error('');
   }
 }
