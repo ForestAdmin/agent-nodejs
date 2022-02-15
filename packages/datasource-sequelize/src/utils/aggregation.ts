@@ -15,6 +15,8 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
+import DateAggregationConverter from './date-aggregation-converter';
+
 export default class AggregationUtils {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private model: ModelDefined<any, any>;
@@ -73,19 +75,27 @@ export default class AggregationUtils {
     attributes: ProjectionAlias[];
   } {
     const attributes = [];
-    const groups = aggregationQueryGroup
-      ?.filter(group => !group.operation)
-      .map(group => {
-        const { field } = group;
-        const groupFieldName = this.getGroupFieldName(field);
-        const groupField = this.unAmbigousField(field);
+    const groups = aggregationQueryGroup?.map(group => {
+      const { field } = group;
+      const groupFieldName = this.getGroupFieldName(field);
+      const groupField = this.unAmbigousField(field);
 
-        // TODO add date aggregation support
+      if (group.operation) {
+        const groupFunction = DateAggregationConverter.convertToDialect(
+          this.dialect,
+          groupField,
+          group.operation,
+        );
 
-        attributes.push([col(groupField), groupFieldName]);
+        attributes.push([groupFunction, groupFieldName]);
 
-        return this.dialect === 'mssql' ? groupField : groupFieldName;
-      });
+        return this.dialect === 'mssql' ? groupFunction : groupFieldName;
+      }
+
+      attributes.push([col(groupField), groupFieldName]);
+
+      return this.dialect === 'mssql' ? groupField : groupFieldName;
+    });
 
     return { groups, attributes };
   }

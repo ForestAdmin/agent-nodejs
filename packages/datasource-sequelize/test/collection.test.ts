@@ -5,6 +5,7 @@ import {
   AggregationOperation,
   ConditionTreeLeaf,
   DataSource,
+  DateOperation,
   Filter,
   Operator,
   Projection,
@@ -659,10 +660,65 @@ describe('SequelizeDataSource > Collection', () => {
       });
 
       describe('when group have date operations', () => {
-        it.todo('should group properly');
+        it('should group properly', async () => {
+          const { findAll, sequelizeCollection } = setup();
+          const aggregation = new Aggregation({
+            operation: AggregationOperation.Count,
+            groups: [{ field: 'date__field__', operation: DateOperation.ToDay }],
+          });
+          const filter = new Filter({});
+
+          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+            { group: { date__field__: 'date__field__:value' }, value: '__aggregate__:value' },
+          ]);
+
+          expect(findAll).toHaveBeenCalledTimes(1);
+          expect(findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+              attributes: expect.arrayContaining([
+                [
+                  {
+                    args: [
+                      { args: ['day', { col: '"model"."date__field__"' }], fn: 'DATE_TRUNC' },
+                      'YYYY-MM-DD',
+                    ],
+                    fn: 'TO_CHAR',
+                  },
+                  'date__field____grouped__',
+                ],
+              ]),
+              group: ['date__field____grouped__'],
+            }),
+          );
+        });
 
         describe('when dialect is mssql', () => {
-          it.todo('should add date agregation to group');
+          it('should add date agregation to group', async () => {
+            const { findAll, sequelizeCollection } = setup('mssql');
+
+            const aggregation = new Aggregation({
+              operation: AggregationOperation.Count,
+              groups: [{ field: 'date__field__', operation: DateOperation.ToDay }],
+            });
+            const filter = new Filter({});
+
+            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+              { group: { date__field__: 'date__field__:value' }, value: '__aggregate__:value' },
+            ]);
+
+            expect(findAll).toHaveBeenCalledTimes(1);
+            expect(findAll).toHaveBeenCalledWith(
+              expect.objectContaining({
+                attributes: expect.arrayContaining([
+                  [
+                    { args: [{ col: '[model].[date__field__]' }, 'yyyy-MM-dd'], fn: 'FORMAT' },
+                    'date__field____grouped__',
+                  ],
+                ]),
+                group: [{ args: [{ col: '[model].[date__field__]' }, 'yyyy-MM-dd'], fn: 'FORMAT' }],
+              }),
+            );
+          });
         });
       });
     });
