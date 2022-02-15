@@ -1,5 +1,11 @@
 import {
   AbstractDataTypeConstructor,
+  Association,
+  BelongsTo,
+  BelongsToMany,
+  HasMany,
+  HasOne,
+  Model,
   ModelAttributeColumnOptions,
   ModelAttributes,
   ModelDefined,
@@ -10,12 +16,66 @@ import {
   ColumnSchema,
   FieldSchema,
   FieldTypes,
+  RelationSchema,
 } from '@forestadmin/datasource-toolkit';
 
 import TypeConverter from './type-converter';
 
 export default class ModelToCollectionSchemaConverter {
-  // FIXME: Handle relations.
+  private static convertAssociation(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    association: Association<Model<any, any>, Model<any, any>>,
+  ): RelationSchema {
+    switch (association.associationType) {
+      case BelongsTo.name:
+        return {
+          foreignCollection: association.target.name,
+          foreignKey: association.foreignKey,
+          type: FieldTypes.ManyToOne,
+        };
+        break;
+      case BelongsToMany.name:
+        return {
+          foreignCollection: association.target.name,
+          foreignKey: association.foreignKey,
+          originRelation: association.source.name,
+          otherField: null,
+          targetRelation: association.target.name,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          throughCollection: (association as any).through.name,
+          type: FieldTypes.ManyToMany,
+        };
+        break;
+      case HasMany.name:
+        return {
+          foreignCollection: association.target.name,
+          foreignKey: association.foreignKey,
+          type: FieldTypes.OneToMany,
+        };
+      case HasOne.name:
+        return {
+          foreignCollection: association.target.name,
+          foreignKey: association.foreignKey,
+          type: FieldTypes.OneToOne,
+        };
+      default:
+        throw new Error(`Unsupported association: "${association.associationType}".`);
+    }
+  }
+
+  private static convertAssociations(associations: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: Association<Model<any, any>, Model<any, any>>;
+  }): CollectionSchema['fields'] {
+    const schemaAssociations = {};
+
+    Object.entries(associations).forEach(([key, association]) => {
+      schemaAssociations[key] = this.convertAssociation(association);
+    });
+
+    return schemaAssociations;
+  }
+
   private static convertAttribute(attribute: ModelAttributeColumnOptions): FieldSchema {
     const sequelizeColumnType = attribute.type as AbstractDataTypeConstructor;
     const columnType = TypeConverter.fromDataType(sequelizeColumnType);
@@ -50,7 +110,10 @@ export default class ModelToCollectionSchemaConverter {
 
     return {
       actions: {},
-      fields: this.convertAttributes(model.getAttributes()),
+      fields: {
+        ...this.convertAttributes(model.getAttributes()),
+        ...this.convertAssociations(model.associations),
+      },
       searchable: false,
       segments: [],
     };
