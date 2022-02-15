@@ -18,7 +18,7 @@
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
-    "start": "nodemon --watch '../*/dist/' --exec yarn start:agent",
+    "start": "nodemon --delay 250ms --watch '../*/dist/' --exec yarn start:agent",
     "start:agent": "node --enable-source-maps -e \"require('./dist/index.js').default()\"",
     "test": "jest"
   },

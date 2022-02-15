@@ -103,16 +103,16 @@ export default class ForestAdminHttpDriver {
     try {
       await next();
     } catch (e) {
-      if (e instanceof HttpError) {
-        context.response.status = e.status;
-        context.response.body = { message: e.message };
-      } else if (e instanceof ValidationError) {
-        context.response.status = HttpCode.BadRequest;
-        context.response.body = { message: e.message };
-      } else {
-        context.response.status = HttpCode.InternalServerError;
-        context.response.body = { message: 'Unexpected error' };
+      let status = HttpCode.InternalServerError;
+      let message = 'Unexpected error';
+
+      if (e instanceof HttpError || e instanceof ValidationError) {
+        message = e.message;
+        status = e instanceof HttpError ? e.status : HttpCode.BadRequest;
       }
+
+      context.response.status = status;
+      context.response.body = { errors: [{ detail: message }] };
 
       if (!this.options.isProduction) {
         process.nextTick(() => this.debugLogError(context, e));
