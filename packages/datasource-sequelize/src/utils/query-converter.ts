@@ -10,7 +10,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { FindOptions, Op, OrOperator, Order, WhereOperators, WhereOptions } from 'sequelize';
 
-export default class FilterConverter {
+export default class QueryConverter {
   private static asArray(value) {
     if (!Array.isArray(value)) return [value];
 

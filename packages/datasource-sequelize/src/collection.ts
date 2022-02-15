@@ -20,8 +20,8 @@ import {
   UpdateOptions,
 } from 'sequelize';
 
-import FilterConverter from './utils/filter-converter';
 import ModelConverter from './utils/model-to-collection-schema-converter';
+import QueryConverter from './utils/query-converter';
 
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,8 +64,8 @@ export default class SequelizeCollection extends BaseCollection {
 
   async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
     const records = await this.model.findAll({
-      ...FilterConverter.convertPaginatedFilterToSequelize(filter),
       attributes: projection.columns,
+      ...QueryConverter.convertPaginatedFilterToSequelize(filter),
     });
 
     return records.map(record => record.get({ plain: true }));
@@ -73,13 +73,13 @@ export default class SequelizeCollection extends BaseCollection {
 
   async update(filter: Filter, patch: RecordData): Promise<void> {
     await this.model.update(patch, {
-      ...(FilterConverter.convertPaginatedFilterToSequelize(filter) as UpdateOptions),
+      ...(QueryConverter.convertPaginatedFilterToSequelize(filter) as UpdateOptions),
       fields: Object.keys(patch),
     });
   }
 
   async delete(filter: Filter): Promise<void> {
-    await this.model.destroy({ ...FilterConverter.convertPaginatedFilterToSequelize(filter) });
+    await this.model.destroy({ ...QueryConverter.convertPaginatedFilterToSequelize(filter) });
   }
 
   async aggregate(
@@ -104,7 +104,7 @@ export default class SequelizeCollection extends BaseCollection {
       return group.field;
     });
 
-    const sequelizeFilter = FilterConverter.convertPaginatedFilterToSequelize(filter);
+    const sequelizeFilter = QueryConverter.convertPaginatedFilterToSequelize(filter);
 
     if (sequelizeFilter.order) {
       sequelizeFilter.order = (sequelizeFilter.order as OrderItem[]).filter(
