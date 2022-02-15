@@ -5,6 +5,7 @@ enum ValidationTypes {
   ArrayOfString = 'ArrayOfString',
   ArrayOfUuid = 'ArrayOfUuid',
   EmptyArray = 'EmptyArray',
+  Null = 'Null',
 }
 
 export default ValidationTypes;
