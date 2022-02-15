@@ -33,7 +33,7 @@ describe('SchemaGeneratorFields > Column', () => {
             isPrimaryKey: true,
             isSortable: true,
             isReadOnly: true,
-            filterOperators: new Set(Object.values(Operator)),
+
             validation: [{ operator: Operator.Present }],
           }),
           otherField: factories.columnSchema.build({
