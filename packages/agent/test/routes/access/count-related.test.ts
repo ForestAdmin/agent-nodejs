@@ -5,11 +5,11 @@ import {
   ConditionTreeLeaf,
   Operator,
   PaginatedFilter,
+  ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import CountRelatedRoute from '../../../src/routes/access/count-related';
 
 describe('CountRelatedRoute', () => {
@@ -157,8 +157,6 @@ describe('CountRelatedRoute', () => {
           const context = setupContext();
           await count.handleCountRelated(context);
 
-          await count.handleCountRelated(context);
-
           expect(context.throw).not.toHaveBeenCalled();
           expect(context.response.body).toEqual({ count: 0 });
         });
@@ -183,9 +181,9 @@ describe('CountRelatedRoute', () => {
           params: { BAD_ATTRIBUTE: '1523' },
         };
         const context = createMockContext({ customProperties });
-        await count.handleCountRelated(context);
+        const result = count.handleCountRelated(context);
 
-        expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
+        expect(result).rejects.toThrowError(ValidationError);
       });
 
       test('should return an HTTP 500 response when the aggregate has a problem', async () => {
@@ -205,12 +203,7 @@ describe('CountRelatedRoute', () => {
         });
 
         const context = setupContext();
-        await count.handleCountRelated(context);
-
-        expect(context.throw).toHaveBeenCalledWith(
-          HttpCode.InternalServerError,
-          'Failed to count the collection relation of the "books"',
-        );
+        await expect(count.handleCountRelated(context)).rejects.toThrow('an error');
       });
     });
   });

@@ -5,6 +5,7 @@ import {
   PrimitiveTypes,
   RecordData,
   SchemaUtils,
+  ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
 export default class IdUtils {
@@ -28,7 +29,7 @@ export default class IdUtils {
 
   static unpackIds(schema: CollectionSchema, packedIds: string[]): CompositeId[] {
     if (!Array.isArray(packedIds)) {
-      throw new Error(`Expected array, received: ${typeof packedIds}`);
+      throw new ValidationError(`Expected array, received: ${typeof packedIds}`);
     }
 
     return packedIds.map(packedId => IdUtils.unpackId(schema, packedId));
@@ -36,14 +37,14 @@ export default class IdUtils {
 
   static unpackId(schema: CollectionSchema, packedId: string): CompositeId {
     if (typeof packedId !== 'string') {
-      throw new Error(`Expected string, received: ${typeof packedId}`);
+      throw new ValidationError(`Expected string, received: ${typeof packedId}`);
     }
 
     const pkNames = SchemaUtils.getPrimaryKeys(schema);
     const pkValues = packedId.split('|');
 
     if (pkValues.length !== pkNames.length) {
-      throw new Error(`Expected ${pkNames.length} values, found ${pkValues.length}`);
+      throw new ValidationError(`Expected ${pkNames.length} values, found ${pkValues.length}`);
     }
 
     return pkNames.map((pkName, index) => {
@@ -54,7 +55,7 @@ export default class IdUtils {
         const partAsNumber = Number(part);
 
         if (!Number.isFinite(partAsNumber)) {
-          throw new Error(`Failed to parse number from ${pkValues[index]}`);
+          throw new ValidationError(`Failed to parse number from ${pkValues[index]}`);
         }
 
         return partAsNumber;

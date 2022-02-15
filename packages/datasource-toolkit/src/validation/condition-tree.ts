@@ -10,6 +10,7 @@ import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeLeaf from '../interfaces/query/condition-tree/nodes/leaf';
 import FieldValidator from './field';
 import TypeGetter from './type-getter';
+import ValidationError from '../errors';
 
 export default class ConditionTreeValidator {
   static validate(conditionTree: ConditionTree, collection: Collection): void {
@@ -33,7 +34,7 @@ export default class ConditionTreeValidator {
     const operators = columnSchema.filterOperators;
 
     if (!operators?.has(conditionTree.operator)) {
-      throw new Error(
+      throw new ValidationError(
         `The given operator '${conditionTree.operator}' ` +
           `is not supported by the column: '${conditionTree.field}'.\n${
             operators?.size
@@ -54,7 +55,7 @@ export default class ConditionTreeValidator {
     const allowedTypes = MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[conditionTree.operator];
 
     if (!allowedTypes.includes(valueType)) {
-      throw new Error(
+      throw new ValidationError(
         `The given value attribute '${JSON.stringify(
           value,
         )} (type: ${valueType})' has an unexpected value ` +
@@ -76,7 +77,7 @@ export default class ConditionTreeValidator {
       MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE[columnSchema.columnType as PrimitiveTypes];
 
     if (!allowedOperators.includes(conditionTree.operator)) {
-      throw new Error(
+      throw new ValidationError(
         `The given operator '${conditionTree.operator}' ` +
           `is not allowed with the columnType schema: '${columnSchema.columnType}'.\n` +
           `The allowed types are: [${allowedOperators}]`,

@@ -1,15 +1,14 @@
 import {
-  CompositeId,
   ConditionTreeFactory,
   FieldTypes,
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
-import { Context, HttpError } from 'koa';
+import { Context } from 'koa';
 import Router from '@koa/router';
 
 import { HttpCode } from '../../types';
-import CollectionRoute from '../collection-base-route';
+import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 
 export default class GetRoute extends CollectionRoute {
@@ -18,39 +17,21 @@ export default class GetRoute extends CollectionRoute {
   }
 
   public async handleGet(context: Context) {
-    let id: CompositeId;
+    const id = IdUtils.unpackId(this.collection.schema, context.params.id);
+    const filter = new PaginatedFilter({
+      conditionTree: ConditionTreeFactory.intersect(
+        ConditionTreeFactory.matchIds(this.collection.schema, [id]),
+        await this.services.scope.getConditionTree(this.collection, context),
+      ),
+    });
 
-    try {
-      id = IdUtils.unpackId(this.collection.schema, context.params.id);
-    } catch (e) {
-      context.throw(HttpCode.BadRequest, e.message);
+    const records = await this.collection.list(filter, this.buildProjection());
+
+    if (!records.length) {
+      context.throw(HttpCode.NotFound, 'Record does not exists');
     }
 
-    try {
-      const filter = new PaginatedFilter({
-        conditionTree: ConditionTreeFactory.intersect(
-          ConditionTreeFactory.matchIds(this.collection.schema, [id]),
-          await this.services.scope.getConditionTree(this.collection, context),
-        ),
-      });
-
-      const records = await this.collection.list(filter, this.buildProjection());
-
-      if (!records.length) {
-        context.throw(
-          HttpCode.NotFound,
-          `Record id ${id} does not exist on collection "${this.collection.name}"`,
-        );
-      }
-
-      context.response.body = this.services.serializer.serialize(this.collection, records[0]);
-    } catch (error) {
-      if (error instanceof HttpError) throw error;
-      context.throw(
-        HttpCode.InternalServerError,
-        `Failed to get record using id ${id} on collection "${this.collection.name}"`,
-      );
-    }
+    context.response.body = this.services.serializer.serialize(this.collection, records[0]);
   }
 
   private buildProjection(): Projection {

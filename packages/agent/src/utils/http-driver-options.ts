@@ -8,13 +8,19 @@ import {
 } from '../types';
 
 export default class OptionsUtils {
+  private static loggerPrefix = {
+    [LoggerLevel.Info]: '\x1b[34minfo:\x1b[0m',
+    [LoggerLevel.Warn]: '\x1b[33mwarning:\x1b[0m',
+    [LoggerLevel.Error]: '\x1b[31merror:\x1b[0m',
+  };
+
   static withDefaults(
     options: ForestAdminHttpDriverOptions,
   ): ForestAdminHttpDriverOptionsWithDefaults {
     return Object.freeze({
       clientId: null,
       forestServerUrl: 'https://api.forestadmin.com',
-      logger: console.error, // eslint-disable-line no-console
+      logger: (level, data) => console.error(OptionsUtils.loggerPrefix[level], data),
       prefix: '/forest',
       schemaPath: '.forestadmin-schema.json',
       scopesCacheDurationInSeconds: 15 * 60,

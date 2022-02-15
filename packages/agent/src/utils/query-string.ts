@@ -10,9 +10,9 @@ import {
   SchemaUtils,
   Sort,
   SortValidator,
+  ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
-import { HttpCode } from '../types';
 
 const DEFAULT_ITEMS_PER_PAGE = 15;
 const DEFAULT_PAGE_TO_SKIP = 1;
@@ -29,7 +29,7 @@ export default class QueryStringParser {
 
       return conditionTree;
     } catch (e) {
-      context.throw(HttpCode.BadRequest, `Invalid filters (${e.message})`);
+      throw new ValidationError(`Invalid filters (${e.message})`);
     }
   }
 
@@ -53,7 +53,7 @@ export default class QueryStringParser {
       // is sending, but are still required for the frontend to work.
       return new Projection(...explicitRequest).withPks(collection);
     } catch (e) {
-      context.throw(HttpCode.BadRequest, `Invalid projection (${e.message})`);
+      throw new ValidationError(`Invalid projection`);
     }
   }
 
@@ -61,7 +61,7 @@ export default class QueryStringParser {
     const search = context.request.query.search?.toString() ?? null;
 
     if (search && !collection.schema.searchable) {
-      context.throw(HttpCode.BadRequest, 'Collection is not searchable');
+      throw new ValidationError(`Collection is not searchable`);
     }
 
     return search;
@@ -81,7 +81,7 @@ export default class QueryStringParser {
     }
 
     if (!collection.schema.segments.includes(segment)) {
-      context.throw(HttpCode.BadRequest, `Invalid segment: "${segment}"`);
+      throw new ValidationError(`Invalid segment: "${segment}"`);
     }
 
     return segment;
@@ -91,22 +91,19 @@ export default class QueryStringParser {
     const timezone = context.request.query.timezone?.toString();
 
     if (!timezone) {
-      context.throw(HttpCode.BadRequest, 'Missing timezone');
+      throw new ValidationError('Missing timezone');
     }
 
     // This is a method to validate a timezone using node only
     // @see https://stackoverflow.com/questions/44115681
     if (!Intl || !Intl.DateTimeFormat().resolvedOptions().timeZone) {
-      context.throw(
-        HttpCode.InternalServerError,
-        'Time zones are not available in this environment',
-      );
+      throw new Error('Time zones are not available in this environment');
     }
 
     try {
       Intl.DateTimeFormat('en-US', { timeZone: timezone });
     } catch {
-      context.throw(HttpCode.BadRequest, `Invalid timezone: "${timezone}"`);
+      throw new ValidationError(`Invalid timezone: "${timezone}"`);
     }
 
     return timezone;
@@ -129,10 +126,7 @@ export default class QueryStringParser {
       itemsPerPage <= 0 ||
       pageToSkip <= 0
     ) {
-      context.throw(
-        HttpCode.BadRequest,
-        `Invalid pagination: "limit: ${itemsPerPage}, skip: ${pageToSkip}"`,
-      );
+      throw new ValidationError(`Invalid pagination [limit: ${itemsPerPage}, skip: ${pageToSkip}]`);
     }
 
     pageToSkip = Math.max(pageToSkip - 1, 0);
@@ -163,7 +157,7 @@ export default class QueryStringParser {
 
       return sort;
     } catch {
-      context.throw(HttpCode.BadRequest, `Invalid sort: ${sortString}`);
+      throw new ValidationError(`Invalid sort: ${sortString}`);
     }
   }
 }

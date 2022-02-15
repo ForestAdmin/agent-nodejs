@@ -1,7 +1,7 @@
+import { ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../__factories__';
-import { HttpCode } from '../../src/types';
 import QueryStringParser from '../../src/utils/query-string';
 
 describe('QueryStringParser', () => {
@@ -80,9 +80,9 @@ describe('QueryStringParser', () => {
         },
       });
 
-      QueryStringParser.parseConditionTree(collectionSimple, context);
+      const fn = () => QueryStringParser.parseConditionTree(collectionSimple, context);
 
-      expect(context.throw).toHaveBeenCalled();
+      expect(fn).toThrow(ValidationError);
     });
   });
 
@@ -116,32 +116,26 @@ describe('QueryStringParser', () => {
 
       describe('on a malformed request', () => {
         describe('when the requested projection is contains fields that do not exist', () => {
-          test('should return an HTTP 400 response with an error message', () => {
+          test('should return an ValidationError response with an error message', () => {
             const context = createMockContext({
               customProperties: { query: { 'fields[books]': 'field-that-do-not-exist' } },
             });
 
-            QueryStringParser.parseProjection(collectionSimple, context);
+            const fn = () => QueryStringParser.parseProjection(collectionSimple, context);
 
-            expect(context.throw).toHaveBeenCalledWith(
-              HttpCode.BadRequest,
-              expect.stringContaining('Invalid projection'),
-            );
+            expect(fn).toThrow('Invalid projection');
           });
         });
 
         describe('when the request does not contains fields at all', () => {
-          test('should return an HTTP 400 response with an error message', () => {
+          test('should return an ValidationError response with an error message', () => {
             const context = createMockContext({
               customProperties: { query: {} },
             });
 
-            QueryStringParser.parseProjection(collectionSimple, context);
+            const fn = () => QueryStringParser.parseProjection(collectionSimple, context);
 
-            expect(context.throw).toHaveBeenCalledWith(
-              HttpCode.BadRequest,
-              expect.stringContaining('Invalid projection'),
-            );
+            expect(fn).toThrow('Invalid projection');
           });
         });
       });
@@ -207,9 +201,9 @@ describe('QueryStringParser', () => {
           searchable: false,
         }),
       });
-      QueryStringParser.parseSearch(collection, context);
+      const fn = () => QueryStringParser.parseSearch(collection, context);
 
-      expect(context.throw).toBeCalledWith(HttpCode.BadRequest, 'Collection is not searchable');
+      expect(fn).toThrow('Collection is not searchable');
     });
 
     test('should return the query search parameter', () => {
@@ -276,17 +270,14 @@ describe('QueryStringParser', () => {
       expect(context.throw).not.toBeCalled();
     });
 
-    test('should throw a HTTP 400 when the segment name does not exist', () => {
+    test('should throw a ValidationError when the segment name does not exist', () => {
       const context = createMockContext({
         customProperties: { query: { segment: 'fake-segment-that-dont-exist' } },
       });
 
-      QueryStringParser.parseSegment(collectionSimple, context);
+      const fn = () => QueryStringParser.parseSegment(collectionSimple, context);
 
-      expect(context.throw).toHaveBeenCalledWith(
-        HttpCode.BadRequest,
-        'Invalid segment: "fake-segment-that-dont-exist"',
-      );
+      expect(fn).toThrow('Invalid segment: "fake-segment-that-dont-exist"');
     });
   });
 
@@ -300,27 +291,24 @@ describe('QueryStringParser', () => {
       expect(context.throw).not.toBeCalled();
     });
 
-    test('should throw a HTTP 400 when the timezone is missing', () => {
+    test('should throw a ValidationError when the timezone is missing', () => {
       const context = createMockContext({
         customProperties: { query: {} },
       });
 
-      QueryStringParser.parseTimezone(context);
+      const fn = () => QueryStringParser.parseTimezone(context);
 
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, 'Missing timezone');
+      expect(fn).toThrow('Missing timezone');
     });
 
-    test('should throw a HTTP 400 when the timezone is invalid', () => {
+    test('should throw a ValidationError when the timezone is invalid', () => {
       const context = createMockContext({
         customProperties: { query: { timezone: 'ThisTZ/Donotexist' } },
       });
 
-      QueryStringParser.parseTimezone(context);
+      const fn = () => QueryStringParser.parseTimezone(context);
 
-      expect(context.throw).toHaveBeenCalledWith(
-        HttpCode.BadRequest,
-        'Invalid timezone: "ThisTZ/Donotexist"',
-      );
+      expect(fn).toThrow('Invalid timezone: "ThisTZ/Donotexist"');
     });
 
     describe('when timezone are not available in the environment', () => {
@@ -347,12 +335,9 @@ describe('QueryStringParser', () => {
           customProperties: { query: { timezone: 'America/Los_Angeles' } },
         });
 
-        QueryStringParser.parseTimezone(context);
+        const fn = () => QueryStringParser.parseTimezone(context);
 
-        expect(context.throw).toHaveBeenCalledWith(
-          500,
-          'Time zones are not available in this environment',
-        );
+        expect(fn).toThrow(new Error('Time zones are not available in this environment'));
       });
     });
   });
@@ -385,17 +370,14 @@ describe('QueryStringParser', () => {
     });
 
     describe('when context provides invalid values', () => {
-      test('should return a HTTP 400 error', () => {
+      test('should return a ValidationError error', () => {
         const context = createMockContext({
           customProperties: { query: { 'page[size]': -5, 'page[number]': 'NaN' } },
         });
 
-        QueryStringParser.parsePagination(context);
+        const fn = () => QueryStringParser.parsePagination(context);
 
-        expect(context.throw).toHaveBeenCalledWith(
-          HttpCode.BadRequest,
-          'Invalid pagination: "limit: -5, skip: NaN"',
-        );
+        expect(fn).toThrow('Invalid pagination [limit: -5, skip: NaN]');
       });
     });
   });
@@ -423,17 +405,14 @@ describe('QueryStringParser', () => {
       expect(sort).toEqual([{ field: 'name', ascending: false }]);
     });
 
-    test('should throw a HTTP 400 when the requested sort is invalid', () => {
+    test('should throw a ValidationError when the requested sort is invalid', () => {
       const context = createMockContext({
         customProperties: { query: { sort: '-fieldThatDoNotExist' } },
       });
 
-      QueryStringParser.parseSort(collectionSimple, context);
+      const fn = () => QueryStringParser.parseSort(collectionSimple, context);
 
-      expect(context.throw).toHaveBeenCalledWith(
-        HttpCode.BadRequest,
-        'Invalid sort: -fieldThatDoNotExist',
-      );
+      expect(fn).toThrow('Invalid sort: -fieldThatDoNotExist');
     });
   });
 });

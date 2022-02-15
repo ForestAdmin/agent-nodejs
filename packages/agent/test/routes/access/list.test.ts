@@ -67,16 +67,15 @@ describe('ListRoute', () => {
     describe('when an error happens', () => {
       test('should return an HTTP 500 response', async () => {
         services.serializer.serialize = jest.fn().mockImplementation(() => {
-          throw new Error();
+          throw new Error('hey!');
         });
 
         const list = new List(services, options, dataSource, partialCollection.name);
         const context = createMockContext({
-          customProperties: { query: { 'fields[books]': 'id' } },
+          customProperties: { query: { 'fields[books]': 'id', timezone: 'Europe/Paris' } },
         });
-        await list.handleList(context);
 
-        expect(context.throw).toHaveBeenCalledWith(500, 'Failed to list collection "books"');
+        await expect(list.handleList(context)).rejects.toThrow('hey!');
       });
     });
   });

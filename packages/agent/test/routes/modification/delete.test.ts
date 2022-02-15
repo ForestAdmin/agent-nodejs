@@ -34,16 +34,16 @@ describe('DeleteRoute', () => {
         },
       });
 
-      await deleteRoute.handleDelete(context);
-
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
+      await expect(deleteRoute.handleDelete(context)).rejects.toThrow(
+        'Expected string, received: undefined',
+      );
     });
 
     test('should throw an error when the delete action failed', async () => {
       const bookCollection = factories.collection.build({
         name: 'books',
         delete: jest.fn().mockImplementation(() => {
-          throw new Error('an error');
+          throw new Error('failed to delete records');
         }),
         schema: factories.collectionSchema.build({
           fields: {
@@ -60,9 +60,8 @@ describe('DeleteRoute', () => {
           query: { timezone: 'Europe/Paris' },
         },
       });
-      await deleteRoute.handleDelete(context);
 
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.InternalServerError, expect.any(String));
+      await expect(deleteRoute.handleDelete(context)).rejects.toThrow('failed to delete records');
     });
 
     describe('when the given id is a composite id', () => {
@@ -227,9 +226,8 @@ describe('DeleteRoute', () => {
           customProperties: { query: { timezone: 'Europe/Paris' } },
           requestBody: body,
         });
-        await deleteRoute.handleListDelete(context);
 
-        expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, errorMessage);
+        await expect(deleteRoute.handleListDelete(context)).rejects.toThrow(errorMessage);
       });
     });
 

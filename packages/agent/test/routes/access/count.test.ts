@@ -2,7 +2,6 @@ import { AggregationOperation } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import Count from '../../../src/routes/access/count';
 
 describe('CountRoute', () => {
@@ -54,17 +53,15 @@ describe('CountRoute', () => {
     describe('when an error happens', () => {
       test('should return an HTTP 500 response', async () => {
         dataSource.getCollection('books').aggregate = jest.fn().mockImplementation(() => {
-          throw new Error();
+          throw new Error('hey!');
         });
 
         const count = new Count(services, options, dataSource, collection.name);
-        const context = createMockContext();
+        const context = createMockContext({
+          customProperties: { query: { timezone: 'Europe/Paris' } },
+        });
 
-        await count.handleCount(context);
-        expect(context.throw).toHaveBeenCalledWith(
-          HttpCode.InternalServerError,
-          'Failed to count collection "books"',
-        );
+        await expect(count.handleCount(context)).rejects.toThrow('hey!');
       });
     });
   });

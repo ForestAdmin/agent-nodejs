@@ -1,3 +1,4 @@
+import { LoggerLevel } from '../../src/types';
 import OptionsUtils from '../../src/utils/http-driver-options';
 
 describe('OptionsUtils', () => {
@@ -14,9 +15,18 @@ describe('OptionsUtils', () => {
 
       expect(options).toHaveProperty('clientId', null);
       expect(options).toHaveProperty('forestServerUrl', 'https://api.forestadmin.com');
-      expect(options).toHaveProperty('logger', console.error);
+      expect(options).toHaveProperty('logger');
       expect(options).toHaveProperty('prefix', '/forest');
       expect(options).toHaveProperty('schemaPath', '.forestadmin-schema.json');
+    });
+
+    test('logger should be callable', () => {
+      jest.spyOn(console, 'error').mockReturnValue();
+
+      const options = OptionsUtils.withDefaults(mandatoryOptions);
+
+      options.logger(LoggerLevel.Info, 'hello!');
+      expect(console.error).toHaveBeenCalled();
     });
 
     test('should not overwrite existing values', () => {

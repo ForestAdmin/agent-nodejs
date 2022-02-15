@@ -2,7 +2,6 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 import Router from '@koa/router';
 
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import ScopeInvalidation from '../../../src/routes/security/scope-invalidation';
 
 describe('ScopeInvalidation', () => {
@@ -38,16 +37,16 @@ describe('ScopeInvalidation', () => {
 
     test('should throw if body is not provided', async () => {
       const context = createMockContext({});
+      const result = invalidateCache.call(route, context);
 
-      await invalidateCache.call(route, context);
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, 'Malformed body');
+      await expect(result).rejects.toThrow('Malformed body');
     });
 
     test('should throw if rendering id is invalid', async () => {
       const context = createMockContext({ requestBody: { renderingId: 'not_a_number' } });
+      const result = invalidateCache.call(route, context);
 
-      await invalidateCache.call(route, context);
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, 'Malformed body');
+      await expect(result).rejects.toThrow('Malformed body');
     });
 
     test('should invalidate cache otherwise', async () => {

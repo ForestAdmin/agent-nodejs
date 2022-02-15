@@ -2,7 +2,7 @@ import { ConditionTreeFactory, PaginatedFilter } from '@forestadmin/datasource-t
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import CollectionRoute from '../collection-base-route';
+import CollectionRoute from '../collection-route';
 import QueryStringParser from '../../utils/query-string';
 
 export default class ListRoute extends CollectionRoute {
@@ -23,14 +23,10 @@ export default class ListRoute extends CollectionRoute {
       page: QueryStringParser.parsePagination(context),
       sort: QueryStringParser.parseSort(this.collection, context),
     });
+
     const projection = QueryStringParser.parseProjection(this.collection, context);
+    const records = await this.collection.list(paginatedFilter, projection);
 
-    try {
-      const records = await this.collection.list(paginatedFilter, projection);
-
-      context.response.body = this.services.serializer.serialize(this.collection, records);
-    } catch {
-      context.throw(500, `Failed to list collection "${this.collection.name}"`);
-    }
+    context.response.body = this.services.serializer.serialize(this.collection, records);
   }
 }

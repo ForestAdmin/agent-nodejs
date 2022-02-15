@@ -2,7 +2,6 @@ import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import UpdateRoute from '../../../src/routes/modification/update';
 
 describe('UpdateRoute', () => {
@@ -31,9 +30,9 @@ describe('UpdateRoute', () => {
       const customProperties = { params: { badParam: '1523|1524' } };
       const context = createMockContext({ customProperties });
 
-      await updateRoute.handleUpdate(context);
-
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
+      await expect(updateRoute.handleUpdate(context)).rejects.toThrow(
+        'Expected string, received: undefined',
+      );
     });
 
     it('should throw an error when a given attribute is not valid', async () => {
@@ -54,9 +53,9 @@ describe('UpdateRoute', () => {
       const requestBody = { data: { attributes: { notExistField: 'foo' } } };
       const context = createMockContext({ customProperties, requestBody });
 
-      await updateRoute.handleUpdate(context);
-
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.BadRequest, expect.any(String));
+      await expect(updateRoute.handleUpdate(context)).rejects.toThrow(
+        'Unknown field "notExistField"',
+      );
     });
 
     it('should throw an error when the update action failed', async () => {
@@ -83,9 +82,7 @@ describe('UpdateRoute', () => {
       const requestBody = { data: { attributes: { name: 'foo name' } } };
       const context = createMockContext({ customProperties, requestBody });
 
-      await updateRoute.handleUpdate(context);
-
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.InternalServerError, expect.any(String));
+      await expect(updateRoute.handleUpdate(context)).rejects.toThrow('an error');
     });
 
     it('should call the update action successfully when providing a valid request', async () => {

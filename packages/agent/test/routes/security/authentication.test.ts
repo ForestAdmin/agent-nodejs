@@ -38,7 +38,9 @@ describe('Authentication', () => {
   describe('bootstrap', () => {
     describe('when the openid configuration cannot be fetched', () => {
       test('should throw an error', async () => {
-        (ForestHttpApi.getOpenIdIssuerMetadata as jest.Mock).mockRejectedValue(new Error('Failed'));
+        (ForestHttpApi.getOpenIdIssuerMetadata as jest.Mock).mockRejectedValue(
+          new Error('Failed to fetch openid-configuration.'),
+        );
 
         const authentication = new Authentication(services, options);
 
@@ -58,7 +60,7 @@ describe('Authentication', () => {
       describe('when the openid client cannot be created', () => {
         test('should throw an error', async () => {
           const clientRegisterSpy = jest.fn().mockImplementation(() => {
-            throw new Error('Error thrown during register');
+            throw new Error('Error thrown during register.');
           });
 
           openidClient.Issuer = jest.fn().mockImplementation(() => ({
@@ -68,9 +70,7 @@ describe('Authentication', () => {
           })) as unknown as typeof Issuer;
           const authentication = new Authentication(services, options);
 
-          await expect(authentication.bootstrap()).rejects.toThrow(
-            'Failed to create the openid client.',
-          );
+          await expect(authentication.bootstrap()).rejects.toThrow('Error thrown during register.');
           expect(clientRegisterSpy).toHaveBeenCalledTimes(1);
         });
       });
@@ -96,24 +96,6 @@ describe('Authentication', () => {
       beforeEach(() => {
         (ForestHttpApi.getOpenIdIssuerMetadata as jest.Mock).mockResolvedValue({
           registration_endpoint: 'http://fake-registration-endpoint',
-        });
-      });
-
-      describe('when the openid client cannot be created', () => {
-        test('should throw an error', async () => {
-          const clientConstructorSpy = jest.fn().mockImplementation(() => {
-            throw new Error('Failed to create client');
-          });
-          openidClient.Issuer = jest.fn().mockImplementation(() => ({
-            Client: clientConstructorSpy,
-          })) as unknown as typeof Issuer;
-          const optionsOverride = { ...options, clientId: 'xx' };
-          const authentication = new Authentication(services, optionsOverride);
-
-          await expect(authentication.bootstrap()).rejects.toThrow(
-            'Failed to create the openid client.',
-          );
-          expect(clientConstructorSpy).toHaveBeenCalledTimes(1);
         });
       });
 
@@ -174,11 +156,9 @@ describe('Authentication', () => {
             renderingId: 'somethingInvalid',
           },
         });
-        await authentication.handleAuthentication(context);
 
-        expect(context.throw).toHaveBeenCalledWith(
-          HttpCode.BadRequest,
-          'Failed to retrieve authorization url.',
+        await expect(authentication.handleAuthentication(context)).rejects.toThrow(
+          'Rendering id must be a number',
         );
       });
     });
@@ -221,11 +201,8 @@ describe('Authentication', () => {
             customProperties: { query: { state: '{"rendeId":' } },
           });
 
-          await authentication.handleAuthenticationCallback(context);
-
-          expect(context.throw).toHaveBeenCalledWith(
-            HttpCode.BadRequest,
-            'Failed to parse renderingId.',
+          await expect(authentication.handleAuthenticationCallback(context)).rejects.toThrow(
+            'Failed to retrieve renderingId from query[state]',
           );
         });
       });
@@ -241,11 +218,9 @@ describe('Authentication', () => {
           const context = createMockContext({
             customProperties: { query: { state: '{"renderingId": 1}' } },
           });
-          await authentication.handleAuthenticationCallback(context);
 
-          expect(context.throw).toHaveBeenCalledWith(
-            HttpCode.InternalServerError,
-            'Failed to fetch user informations.',
+          await expect(authentication.handleAuthenticationCallback(context)).rejects.toThrow(
+            'Failed !',
           );
         });
       });
@@ -261,12 +236,8 @@ describe('Authentication', () => {
           const context = createMockContext({
             customProperties: { query: { state: '{"renderingId": 1}' } },
           });
-          await authentication.handleAuthenticationCallback(context);
 
-          expect(context.throw).toHaveBeenCalledWith(
-            HttpCode.BadRequest,
-            'Failed to create token with forestadmin-server.',
-          );
+          await expect(authentication.handleAuthenticationCallback(context)).rejects.toThrow();
         });
       });
     });

@@ -7,8 +7,7 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { HttpCode } from '../../types';
-import CollectionRoute from '../collection-base-route';
+import CollectionRoute from '../collection-route';
 import QueryStringParser from '../../utils/query-string';
 
 export default class CountRoute extends CollectionRoute {
@@ -27,18 +26,11 @@ export default class CountRoute extends CollectionRoute {
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
     });
+
     const aggregation = new Aggregation({ operation: AggregationOperation.Count });
+    const aggregationResult = await this.collection.aggregate(paginatedFilter, aggregation);
+    const count = aggregationResult?.[0]?.value ?? 0;
 
-    try {
-      const aggregationResult = await this.collection.aggregate(paginatedFilter, aggregation);
-      const count = aggregationResult?.[0]?.value ?? 0;
-
-      context.response.body = { count };
-    } catch {
-      context.throw(
-        HttpCode.InternalServerError,
-        `Failed to count collection "${this.collection.name}"`,
-      );
-    }
+    context.response.body = { count };
   }
 }

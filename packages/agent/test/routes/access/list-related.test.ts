@@ -10,7 +10,6 @@ import {
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import ListRelatedRoute from '../../../src/routes/access/list-related';
 
 describe('ListRelatedRoute', () => {
@@ -52,7 +51,7 @@ describe('ListRelatedRoute', () => {
 
   const setupContext = () => {
     const customProperties = {
-      query: { timezone: 'Europe/Paris' },
+      query: { timezone: 'Europe/Paris', 'fields[persons]': 'id,name' },
       params: { parentId: '1523' },
     };
 
@@ -168,12 +167,8 @@ describe('ListRelatedRoute', () => {
           params: { parentId: '1523' },
         };
         const context = createMockContext({ customProperties });
-        await count.handleListRelated(context);
 
-        expect(context.throw).toHaveBeenCalledWith(
-          HttpCode.BadRequest,
-          "Invalid projection (Cannot read property 'type' of undefined)",
-        );
+        await expect(count.handleListRelated(context)).rejects.toThrow('Invalid projection');
       });
 
       test('should return an HTTP 400 response when the parent id is malformed', async () => {
@@ -192,10 +187,7 @@ describe('ListRelatedRoute', () => {
           params: { BAD_PARENT_ID: '1523' },
         };
         const context = createMockContext({ customProperties });
-        await count.handleListRelated(context);
-
-        expect(context.throw).toHaveBeenCalledWith(
-          HttpCode.BadRequest,
+        await expect(count.handleListRelated(context)).rejects.toThrow(
           'Expected string, received: undefined',
         );
       });
@@ -212,16 +204,11 @@ describe('ListRelatedRoute', () => {
         );
 
         jest.spyOn(CollectionUtils, 'listRelation').mockImplementation(() => {
-          throw new Error();
+          throw new Error('list failed');
         });
 
         const context = setupContext();
-        await count.handleListRelated(context);
-
-        expect(context.throw).toHaveBeenCalledWith(
-          HttpCode.InternalServerError,
-          'Failed to get the collection relation of the "books"',
-        );
+        await expect(count.handleListRelated(context)).rejects.toThrow('list failed');
       });
     });
   });

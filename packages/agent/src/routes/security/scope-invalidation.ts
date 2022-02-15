@@ -1,4 +1,5 @@
 import { Context } from 'koa';
+import { ValidationError } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 
 import { HttpCode } from '../../types';
@@ -14,7 +15,7 @@ export default class ScopeInvalidation extends BaseRoute {
     const renderingId = Number(context.request.body?.renderingId);
 
     if (Number.isNaN(renderingId)) {
-      context.throw(HttpCode.BadRequest, 'Malformed body');
+      throw new ValidationError('Malformed body');
     }
 
     this.services.scope.invalidateCache(renderingId);
