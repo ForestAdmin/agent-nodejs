@@ -7,8 +7,17 @@ import {
   Filter,
   Operator,
   PaginatedFilter,
+  Projection,
 } from '@forestadmin/datasource-toolkit';
-import { FindOptions, Op, OrOperator, Order, WhereOperators, WhereOptions } from 'sequelize';
+import {
+  FindOptions,
+  Op,
+  OrOperator,
+  Order,
+  Sequelize,
+  WhereOperators,
+  WhereOptions,
+} from 'sequelize';
 
 export default class QueryConverter {
   private static asArray(value) {
@@ -130,5 +139,32 @@ export default class QueryConverter {
     if (Array.isArray(order) && order.length > 0) sequelizeFilter.order = order;
 
     return sequelizeFilter;
+  }
+
+  private static convertProjectionRelationsToSequelize(
+    relations: Record<string, Projection>,
+    sequelize: Sequelize,
+  ) {
+    const sequelizeInclude = [];
+
+    Object.entries(relations).forEach(([key, relation]: [string, Projection]) => {
+      sequelizeInclude.push({
+        association: key,
+        attributes: relation.columns,
+        include: this.convertProjectionRelationsToSequelize(relation.relations, sequelize),
+      });
+    });
+
+    return sequelizeInclude;
+  }
+
+  public static convertProjectionToSequelize(
+    projection: Projection,
+    sequelize: Sequelize,
+  ): FindOptions {
+    return {
+      attributes: projection.columns,
+      include: this.convertProjectionRelationsToSequelize(projection.relations, sequelize),
+    };
   }
 }
