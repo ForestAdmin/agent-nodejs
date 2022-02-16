@@ -7,6 +7,7 @@ import {
   SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
+import TypeGetter from '@forestadmin/datasource-toolkit/dist/src/validation/type-getter';
 
 export default class IdUtils {
   static packIds(schema: CollectionSchema, records: RecordData[]): string[] {
@@ -54,11 +55,22 @@ export default class IdUtils {
       if (columnType === PrimitiveTypes.Number) {
         const partAsNumber = Number(part);
 
-        if (!Number.isFinite(partAsNumber)) {
+        if (
+          columnType === PrimitiveTypes.Number &&
+          TypeGetter.get(part, PrimitiveTypes.Number) !== PrimitiveTypes.Number &&
+          !Number.isFinite(partAsNumber)
+        ) {
           throw new ValidationError(`Failed to parse number from ${pkValues[index]}`);
         }
 
         return partAsNumber;
+      }
+
+      if (
+        columnType === PrimitiveTypes.Uuid &&
+        TypeGetter.get(part, PrimitiveTypes.Uuid) !== PrimitiveTypes.Uuid
+      ) {
+        throw new ValidationError(`Failed to parse uuid from ${pkValues[index]}`);
       }
 
       return part;
