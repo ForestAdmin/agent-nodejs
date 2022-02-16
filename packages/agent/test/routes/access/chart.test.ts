@@ -91,7 +91,6 @@ describe('ChartRoute', () => {
           conditionTree: null,
           search: undefined,
           searchExtended: undefined,
-          segment: null,
           timezone: 'Europe/Paris',
         },
         {
@@ -184,7 +183,6 @@ describe('ChartRoute', () => {
               },
               search: undefined,
               searchExtended: undefined,
-              segment: null,
               timezone: 'Europe/Paris',
             },
             {
@@ -207,21 +205,154 @@ describe('ChartRoute', () => {
         });
       });
     });
+
+    describe('when the aggregation retun no data', () => {
+      test('should return 0 as value', async () => {
+        jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValue([]);
+        const chart = new Chart(services, options, dataSource, 'books');
+        const context = createMockContext({
+          requestBody: {
+            type: 'Value',
+            aggregate: 'Count',
+            collection: 'books',
+          },
+          customProperties: { query: { timezone: 'Europe/Paris' } },
+        });
+
+        await chart.handleChart(context);
+
+        expect(context.response.body).toMatchObject({
+          data: {
+            attributes: {
+              value: {
+                countCurrent: 0,
+                countPrevious: undefined,
+              },
+            },
+            type: 'stats',
+          },
+        });
+      });
+    });
   });
 
   describe('on objective chart', () => {
-    test('it should call the collection aggregate with the correct parameters ', () => {});
+    test('it should call the collection aggregate with the correct parameters ', async () => {
+      jest
+        .spyOn(dataSource.getCollection('books'), 'aggregate')
+        .mockResolvedValueOnce([{ value: 1234, group: null }]);
+      const chart = new Chart(services, options, dataSource, 'books');
+      const context = createMockContext({
+        requestBody: {
+          type: 'Objective',
+          aggregate: 'Count',
+          collection: 'books',
+        },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+      });
+
+      await chart.handleChart(context);
+
+      // TODO expect on aggregate call ?
+
+      expect(context.response.body).toMatchObject({
+        data: {
+          attributes: {
+            value: {
+              value: 1234,
+            },
+          },
+          type: 'stats',
+        },
+      });
+    });
   });
 
   describe('on pie chart', () => {
-    test('it should call the collection aggregate with the correct parameters ', () => {});
+    test('it should call the collection aggregate with the correct parameters ', async () => {
+      jest
+        .spyOn(dataSource.getCollection('books'), 'aggregate')
+        .mockResolvedValueOnce([{ value: 1234, group: { 'author:firstName': 'Victor Hugo' } }]);
+      const chart = new Chart(services, options, dataSource, 'books');
+      const context = createMockContext({
+        requestBody: {
+          type: 'Pie',
+          aggregate: 'Count',
+          collection: 'books',
+          group_by_field: 'author:firstName',
+        },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+      });
+
+      await chart.handleChart(context);
+
+      // TODO expect on aggregate call ?
+
+      expect(context.response.body).toMatchObject({
+        data: {
+          attributes: {
+            value: [
+              {
+                key: 'Victor Hugo',
+                value: 1234,
+              },
+            ],
+          },
+          type: 'stats',
+        },
+      });
+    });
   });
 
   describe('on line chart', () => {
-    test('it should call the collection aggregate with the correct parameters ', () => {});
-  });
+    test('it should call the collection aggregate with the correct parameters ', async () => {
+      jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
+        {
+          value: 1234,
+          group: { publication: '2022-02-16T10:00:00.000Z' },
+        },
+        {
+          value: 456,
+          group: { publication: '2022-02-02T10:00:00.000Z' },
+        },
+      ]);
+      const chart = new Chart(services, options, dataSource, 'books');
+      const context = createMockContext({
+        requestBody: {
+          type: 'Line',
+          aggregate: 'Count',
+          collection: 'books',
+          group_by_date_field: 'publication',
+          time_range: 'Week',
+        },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+      });
 
-  describe('on leaderboard chart', () => {
-    test('it should call the collection aggregate with the correct parameters ', () => {});
+      await chart.handleChart(context);
+
+      // TODO expect on aggregate call ?
+
+      expect(context.response.body).toMatchObject({
+        data: {
+          attributes: {
+            value: [
+              {
+                label: 'W5-2022',
+                values: { value: 456 },
+              },
+              {
+                label: 'W6-2022',
+                values: { value: 0 },
+              },
+              {
+                label: 'W7-2022',
+                values: { value: 1234 },
+              },
+            ],
+          },
+          type: 'stats',
+        },
+      });
+    });
   });
 });

@@ -34,6 +34,8 @@ export default class Chart extends CollectionRoute {
       return context.throw(HttpCode.BadRequest, `Invalid Chart type "${body.type}"`);
     }
 
+    // TODO parqametters validations aggregate / timeRange
+
     context.response.body = {
       data: {
         id: uuidv1(),
@@ -68,7 +70,7 @@ export default class Chart extends CollectionRoute {
     return result;
   }
 
-  private async makeObjectiveChart(context: Context): Promise<{ value: unknown }> {
+  private async makeObjectiveChart(context: Context): Promise<{ value: number }> {
     return { value: await this.computeValue(context, this.getFilter(context)) };
   }
 
@@ -78,6 +80,7 @@ export default class Chart extends CollectionRoute {
       aggregate,
       aggregate_field: aggregateField,
     } = context.request.body;
+
     const rows = await this.collection.aggregate(
       this.getFilter(context),
       new Aggregation({
@@ -141,11 +144,11 @@ export default class Chart extends CollectionRoute {
     return dataPoints;
   }
 
-  private async computeValue(context: Context, selection: Filter): Promise<number> {
+  private async computeValue(context: Context, filter: Filter): Promise<number> {
     const { aggregate, aggregate_field: aggregateField } = context.request.body;
     const aggregation = new Aggregation({ operation: aggregate, field: aggregateField });
 
-    const rows = await this.collection.aggregate(selection, aggregation);
+    const rows = await this.collection.aggregate(filter, aggregation);
 
     return rows.length ? (rows[0].value as number) : 0;
   }
@@ -153,7 +156,6 @@ export default class Chart extends CollectionRoute {
   private getFilter(context: Context): Filter {
     return new Filter({
       conditionTree: QueryStringParser.parseConditionTree(this.collection, context),
-      segment: null,
       timezone: QueryStringParser.parseTimezone(context),
     });
   }
