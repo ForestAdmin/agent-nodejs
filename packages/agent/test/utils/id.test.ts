@@ -56,7 +56,7 @@ describe('IdUtils', () => {
 
     test('should fail to unpack if a number id cannot be properly casted', () => {
       const fn = () => IdUtils.unpackId(numberSchema, 'something');
-      expect(fn).toThrow(/Failed to parse number/);
+      expect(fn).toThrow(/Failed to parse Number/);
     });
 
     test('should fail to unpack if parameter violate expected type', () => {
@@ -110,7 +110,7 @@ describe('IdUtils', () => {
       expect(packed).toStrictEqual('23|something');
     });
 
-    describe('with a schema with a uuid id', () => {
+    describe('with a schema with an uuid id', () => {
       const uuidSchema = factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
@@ -123,13 +123,13 @@ describe('IdUtils', () => {
         ).toStrictEqual('2d162303-78bf-599e-b197-93590ac3d315');
       });
 
-      test('should unpack on a uuid id', () => {
+      test('should unpack on an uuid id', () => {
         expect(IdUtils.unpackId(uuidSchema, '2d162303-78bf-599e-b197-93590ac3d315')).toStrictEqual([
           '2d162303-78bf-599e-b197-93590ac3d315',
         ]);
       });
 
-      test('should fail to unpack if the number of parts does not match the schema', () => {
+      test('should fail to unpack if the uuid of parts does not match the schema', () => {
         const fn = () =>
           IdUtils.unpackId(
             uuidSchema,
@@ -139,7 +139,7 @@ describe('IdUtils', () => {
       });
 
       test('should fail to unpack if parameter violate expected type', () => {
-        expect(() => IdUtils.unpackId(uuidSchema, '10')).toThrow('Failed to parse uuid from 10');
+        expect(() => IdUtils.unpackId(uuidSchema, '10')).toThrow('Failed to parse Uuid from 10');
       });
     });
   });

@@ -50,30 +50,16 @@ export default class IdUtils {
 
     return pkNames.map((pkName, index) => {
       const { columnType } = schema.fields[pkName] as ColumnSchema;
-      const part = pkValues[index];
-
-      if (columnType === PrimitiveTypes.Number) {
-        const partAsNumber = Number(part);
-
-        if (
-          columnType === PrimitiveTypes.Number &&
-          TypeGetter.get(part, PrimitiveTypes.Number) !== PrimitiveTypes.Number &&
-          !Number.isFinite(partAsNumber)
-        ) {
-          throw new ValidationError(`Failed to parse number from ${pkValues[index]}`);
-        }
-
-        return partAsNumber;
-      }
+      const value = pkValues[index];
 
       if (
-        columnType === PrimitiveTypes.Uuid &&
-        TypeGetter.get(part, PrimitiveTypes.Uuid) !== PrimitiveTypes.Uuid
+        TypeGetter.get(value, columnType as PrimitiveTypes) !== columnType ||
+        (columnType === PrimitiveTypes.Number && !Number.isFinite(Number(value)))
       ) {
-        throw new ValidationError(`Failed to parse uuid from ${pkValues[index]}`);
+        throw new ValidationError(`Failed to parse ${columnType} from ${pkValues[index]}`);
       }
 
-      return part;
+      return columnType === PrimitiveTypes.Number ? Number(value) : value;
     });
   }
 }

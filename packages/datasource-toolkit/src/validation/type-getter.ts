@@ -6,14 +6,18 @@ import ValidationError from '../errors';
 import ValidationTypes from './types';
 
 export default class TypeGetter {
-  static get(value: unknown, typeContext?: PrimitiveTypes): PrimitiveTypes | ValidationTypes {
+  static get(
+    value: unknown,
+    typeContext?: PrimitiveTypes,
+    strict = false,
+  ): PrimitiveTypes | ValidationTypes {
     if (typeContext && !Object.values(PrimitiveTypes).includes(typeContext)) {
       throw new ValidationError(`Unexpected value of type: ${typeContext}`);
     }
 
     if (Array.isArray(value)) return TypeGetter.getArrayType(value, typeContext);
 
-    if (typeof value === 'string') return TypeGetter.getTypeFromString(value, typeContext);
+    if (typeof value === 'string') return TypeGetter.getTypeFromString(value, typeContext, strict);
 
     if (typeof value === 'number') return PrimitiveTypes.Number;
 
@@ -58,12 +62,16 @@ export default class TypeGetter {
     return PrimitiveTypes.Date;
   }
 
-  private static getTypeFromString(value: string, typeContext?: PrimitiveTypes): PrimitiveTypes {
+  private static getTypeFromString(
+    value: string,
+    typeContext?: PrimitiveTypes,
+    strict?: boolean,
+  ): PrimitiveTypes {
     if ([PrimitiveTypes.Enum, PrimitiveTypes.String].includes(typeContext)) return typeContext;
 
     if (uuidValidate(value)) return PrimitiveTypes.Uuid;
 
-    if (TypeGetter.isNumberAndContextAllowToCast(value, typeContext)) return PrimitiveTypes.Number;
+    if (TypeGetter.isNumberAndContextAllowToCast(value, strict)) return PrimitiveTypes.Number;
 
     if (TypeGetter.isValidDate(value)) return TypeGetter.getDateType(value);
 
@@ -88,16 +96,9 @@ export default class TypeGetter {
     );
   }
 
-  private static isNumberAndContextAllowToCast(
-    value: string,
-    typeContext: PrimitiveTypes,
-  ): boolean {
+  private static isNumberAndContextAllowToCast(value: string, strict: boolean): boolean {
     // @see https://stackoverflow.com/questions/175739
-    return (
-      !Number.isNaN(Number(value)) &&
-      !Number.isNaN(parseFloat(value)) &&
-      typeContext !== PrimitiveTypes.Number
-    );
+    return !Number.isNaN(Number(value)) && !Number.isNaN(parseFloat(value)) && !strict;
   }
 
   private static isJson(value: string): boolean {

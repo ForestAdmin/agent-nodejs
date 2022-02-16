@@ -57,7 +57,7 @@ export default class FieldValidator {
       return;
     }
 
-    const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes);
+    const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes, true);
 
     if (schema.columnType === PrimitiveTypes.Enum) {
       FieldValidator.checkEnumValue(type, schema, value);

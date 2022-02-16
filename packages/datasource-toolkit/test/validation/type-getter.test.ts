@@ -152,7 +152,7 @@ describe('TypeGetter', () => {
         });
       });
 
-      describe('when the value is a uuid and the given context is a String', () => {
+      describe('when the value is an uuid and the given context is a String', () => {
         it('should return the expected type', () => {
           expect(
             TypeGetter.get('2d162303-78bf-599e-b197-93590ac3d315', PrimitiveTypes.String),
@@ -165,8 +165,16 @@ describe('TypeGetter', () => {
           expect(TypeGetter.get('2258')).toEqual(PrimitiveTypes.Number);
         });
 
-        it('should not return Number when the given context is a Number', () => {
-          expect(TypeGetter.get('2258', PrimitiveTypes.Number)).not.toEqual(PrimitiveTypes.Number);
+        it('should not return Number when the given context is a Number in strict mode', () => {
+          expect(TypeGetter.get('2258', PrimitiveTypes.Number, true)).not.toEqual(
+            PrimitiveTypes.Number,
+          );
+        });
+
+        it('should return Number when the given context is a Number in disable strict mode', () => {
+          expect(TypeGetter.get('2258', PrimitiveTypes.Number, false)).toEqual(
+            PrimitiveTypes.Number,
+          );
         });
       });
 

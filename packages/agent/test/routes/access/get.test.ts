@@ -53,14 +53,20 @@ describe('GetRoute', () => {
       services.serializer.serialize = jest.fn().mockReturnValue('test');
       const get = new Get(services, options, dataSource, 'books');
       const context = createMockContext({
-        customProperties: { params: { id: '1' } },
+        customProperties: { params: { id: '2d162303-78bf-599e-b197-93590ac3d315' } },
       });
 
       await get.handleGet(context);
 
       expect(context.throw).not.toHaveBeenCalled();
       expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
-        { conditionTree: { field: 'id', operator: 'equal', value: '1' } },
+        {
+          conditionTree: {
+            field: 'id',
+            operator: 'equal',
+            value: '2d162303-78bf-599e-b197-93590ac3d315',
+          },
+        },
         ['id', 'name', 'author:id', 'author:bookId'],
       );
       expect(services.serializer.serialize).toHaveBeenCalled();
@@ -74,7 +80,7 @@ describe('GetRoute', () => {
           jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
           const get = new Get(services, options, dataSource, 'books');
           const context = createMockContext({
-            customProperties: { params: { id: '1' } },
+            customProperties: { params: { id: '2d162303-78bf-599e-b197-93590ac3d315' } },
           });
 
           await get.handleGet(context);
@@ -107,7 +113,7 @@ describe('GetRoute', () => {
           });
           const get = new Get(services, options, dataSource, 'books');
           const context = createMockContext({
-            customProperties: { params: { id: '1' } },
+            customProperties: { params: { id: '2d162303-78bf-599e-b197-93590ac3d315' } },
           });
 
           await expect(get.handleGet(context)).rejects.toThrow('failed to serialize');
