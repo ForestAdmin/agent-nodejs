@@ -155,8 +155,25 @@ describe('TypeGetter', () => {
       });
 
       describe('when it is a number as string', () => {
+<<<<<<< HEAD
         it('should return Number when the given context is a Number in disable strict mode', () => {
           expect(TypeGetter.get('2258', PrimitiveTypes.Number)).toEqual(PrimitiveTypes.Number);
+=======
+        it('should return the expected type', () => {
+          expect(TypeGetter.get('2258')).toEqual(PrimitiveTypes.Number);
+        });
+
+        it('should not return Number when the given context is a Number in strict mode', () => {
+          expect(TypeGetter.get('2258', PrimitiveTypes.Number, true)).not.toEqual(
+            PrimitiveTypes.Number,
+          );
+        });
+
+        it('should return Number when the given context is a Number in disable strict mode', () => {
+          expect(TypeGetter.get('2258', PrimitiveTypes.Number, false)).toEqual(
+            PrimitiveTypes.Number,
+          );
+>>>>>>> de360fb (fix(unpack): throw error when the column schema has not the same type of the value)
         });
       });
 

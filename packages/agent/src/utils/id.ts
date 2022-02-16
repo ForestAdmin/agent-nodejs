@@ -50,6 +50,7 @@ export default class IdUtils {
 
     return pkNames.map((pkName, index) => {
       const { columnType } = schema.fields[pkName] as ColumnSchema;
+<<<<<<< HEAD
       const value = pkValues[index];
 
       if (
@@ -60,6 +61,21 @@ export default class IdUtils {
       }
 
       return columnType === PrimitiveTypes.Number ? Number(value) : value;
+=======
+      const part = pkValues[index];
+
+      if (TypeGetter.get(part, columnType as PrimitiveTypes) === columnType) {
+        const partAsNumber = Number(part);
+
+        if (columnType === PrimitiveTypes.Number && !Number.isFinite(partAsNumber)) {
+          throw new ValidationError(`Failed to parse ${columnType} from ${pkValues[index]}`);
+        }
+
+        return columnType === PrimitiveTypes.Number ? partAsNumber : part;
+      }
+
+      throw new ValidationError(`Failed to parse ${columnType} from ${pkValues[index]}`);
+>>>>>>> de360fb (fix(unpack): throw error when the column schema has not the same type of the value)
     });
   }
 }
