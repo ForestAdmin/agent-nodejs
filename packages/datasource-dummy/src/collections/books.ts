@@ -62,7 +62,7 @@ export default class BooksCollection extends BaseDummyCollection {
     {
       id: 3,
       title: 'Gomorrah',
-      publication: new Date('February 12, 2022 03:24:00').toISOString(),
+      publication: new Date().toISOString(),
       authorId: 3,
       author: { id: 3, firstName: 'Roberto', lastName: 'Saviano' },
     },
@@ -70,21 +70,21 @@ export default class BooksCollection extends BaseDummyCollection {
       id: 4,
       title: 'Misery',
       authorId: 4,
-      publication: new Date('February 11, 2022 03:24:00').toISOString(),
+      publication: new Date().toISOString(),
       author: { id: 4, firstName: 'Stephen', lastName: 'King' },
     },
     {
       id: 5,
       title: 'Chistine',
       authorId: 4,
-      publication: new Date('February 6, 2022 03:24:00').toISOString(),
+      publication: new Date().toISOString(),
       author: { id: 4, firstName: 'Stephen', lastName: 'King' },
     },
     {
       id: 6,
       title: 'Running Man',
       authorId: 4,
-      publication: new Date('February 13, 2022 03:24:00').toISOString(),
+      publication: new Date().toISOString(),
       author: { id: 4, firstName: 'Stephen', lastName: 'King' },
     },
     {
