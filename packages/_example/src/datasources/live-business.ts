@@ -46,6 +46,11 @@ const userCollection: CollectionSchema = {
       foreignKey: 'id',
       type: FieldTypes.ManyToOne,
     },
+    items: {
+      foreignCollection: 'items',
+      foreignKey: 'userId',
+      type: FieldTypes.OneToMany,
+    },
   },
   searchable: false,
   segments: [],
@@ -77,10 +82,28 @@ const itemCollection: CollectionSchema = {
   segments: [],
 };
 
+const itemReferenceCollection: CollectionSchema = {
+  actions: {},
+  fields: {
+    reference: {
+      columnType: PrimitiveTypes.String,
+      type: FieldTypes.Column,
+    },
+    itemId: {
+      foreignCollection: 'items',
+      foreignKey: 'id',
+      type: FieldTypes.OneToOne,
+    },
+  },
+  searchable: false,
+  segments: [],
+};
+
 const dataSourceSchema: DataSourceSchema = {
   collections: {
     companies: companyCollection,
     items: itemCollection,
+    itemReferences: itemReferenceCollection,
     users: userCollection,
   },
 };
