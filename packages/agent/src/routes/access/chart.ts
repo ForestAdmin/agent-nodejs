@@ -1,4 +1,4 @@
-import { Aggregation, DateOperation, Filter } from '@forestadmin/datasource-toolkit';
+import { Aggregation, DateOperation, Filter, FilterUtils } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import { DateTime } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
@@ -6,7 +6,6 @@ import Router from '@koa/router';
 
 import { HttpCode } from '../../types';
 import CollectionRoute from '../collection-route';
-import PreviousPeriodChartUtils from '../../utils/previous-period-chart';
 import QueryStringParser from '../../utils/query-string';
 
 enum ChartType {
@@ -14,7 +13,7 @@ enum ChartType {
   Objective = 'Objective',
   Pie = 'Pie',
   Line = 'Line',
-  Leaderboard = 'Leaderboard',
+  // Leaderboard = 'Leaderboard', // @fixme
 }
 
 export default class Chart extends CollectionRoute {
@@ -36,18 +35,13 @@ export default class Chart extends CollectionRoute {
       return context.throw(HttpCode.BadRequest, `Invalid Chart type "${body.type}"`);
     }
 
-    // TODO remove try catch follow up error handling refacto
-    try {
-      context.response.body = {
-        data: {
-          id: uuidv1(),
-          type: 'stats',
-          attributes: { value: await this[`make${body.type}Chart`](context) },
-        },
-      };
-    } catch (e) {
-      // console.log(e);
-    }
+    context.response.body = {
+      data: {
+        id: uuidv1(),
+        type: 'stats',
+        attributes: { value: await this[`make${body.type}Chart`](context) },
+      },
+    };
   }
 
   private async makeValueChart(
@@ -68,7 +62,7 @@ export default class Chart extends CollectionRoute {
     if (withCountPrevious) {
       result.countPrevious = await this.computeValue(
         context,
-        PreviousPeriodChartUtils.getPreviousPeriodFilter(currentFilter),
+        FilterUtils.getPreviousPeriodFilter(currentFilter),
       );
     }
 

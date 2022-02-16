@@ -1,14 +1,12 @@
-import {
-  ConditionTree,
-  ConditionTreeFactory,
-  ConditionTreeLeaf,
-  Filter,
-  Operator,
-} from '@forestadmin/datasource-toolkit';
 import { DateTime, DateTimeUnit } from 'luxon';
 
-export default class PreviousPeriodChartUtils {
-  static getPreviousConditionTree(
+import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
+import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
+import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
+import Filter from '../interfaces/query/filter/unpaginated';
+
+export default class FilterUtils {
+  private static getPreviousConditionTree(
     field: string,
     startPeriod: DateTime,
     endPeriod: DateTime,
@@ -19,7 +17,11 @@ export default class PreviousPeriodChartUtils {
     );
   }
 
-  static getPreviousPeriodByUnit(field: string, now: DateTime, interval: string): ConditionTree {
+  private static getPreviousPeriodByUnit(
+    field: string,
+    now: DateTime,
+    interval: string,
+  ): ConditionTree {
     const dayBeforeYesterday = now.minus({ [interval]: 2 });
 
     return this.getPreviousConditionTree(
