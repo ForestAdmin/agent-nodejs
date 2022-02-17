@@ -1,8 +1,7 @@
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { PrimitiveTypes, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import Chart from '../../../src/routes/access/chart';
 
 describe('ChartRoute', () => {
@@ -46,7 +45,7 @@ describe('ChartRoute', () => {
 
   test('should register "/stats/books" private routes', () => {
     const chart = new Chart(services, options, dataSource, 'books');
-    chart.setupPrivateRoutes(router);
+    chart.setupRoutes(router);
 
     expect(router.post).toHaveBeenCalledWith('/stats/books', expect.any(Function));
   });
@@ -58,13 +57,9 @@ describe('ChartRoute', () => {
         requestBody: { type: 'ChartTypeThatDoNotExist' },
       });
 
-      await chart.handleChart(context);
-
-      expect(context.throw).toHaveBeenCalledWith(
-        HttpCode.BadRequest,
-        'Invalid Chart type "ChartTypeThatDoNotExist"',
+      await expect(chart.handleChart(context)).rejects.toThrow(
+        new ValidationError('Invalid Chart type "ChartTypeThatDoNotExist"'),
       );
-      expect(context.throw).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -183,7 +178,6 @@ describe('ChartRoute', () => {
             await chart.handleChart(context);
 
             expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledTimes(1);
-            // todo check arg to aggregate ?
             expect(context.response.body).toMatchObject({
               data: {
                 attributes: {
@@ -301,7 +295,19 @@ describe('ChartRoute', () => {
 
       await chart.handleChart(context);
 
-      // TODO expect on aggregate call ?
+      expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
+        {
+          conditionTree: null,
+          search: undefined,
+          searchExtended: undefined,
+          timezone: 'Europe/Paris',
+        },
+        {
+          field: undefined,
+          groups: undefined,
+          operation: 'Count',
+        },
+      );
 
       expect(context.response.body).toMatchObject({
         data: {
@@ -334,7 +340,19 @@ describe('ChartRoute', () => {
 
       await chart.handleChart(context);
 
-      // TODO expect on aggregate call ?
+      expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
+        {
+          conditionTree: null,
+          search: undefined,
+          searchExtended: undefined,
+          timezone: 'Europe/Paris',
+        },
+        {
+          field: undefined,
+          groups: [{ field: 'author:firstName' }],
+          operation: 'Count',
+        },
+      );
 
       expect(context.response.body).toMatchObject({
         data: {
@@ -378,7 +396,19 @@ describe('ChartRoute', () => {
 
       await chart.handleChart(context);
 
-      // TODO expect on aggregate call ?
+      expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
+        {
+          conditionTree: null,
+          search: undefined,
+          searchExtended: undefined,
+          timezone: 'Europe/Paris',
+        },
+        {
+          field: undefined,
+          groups: [{ field: 'publication', operation: 'Week' }],
+          operation: 'Count',
+        },
+      );
 
       expect(context.response.body).toMatchObject({
         data: {

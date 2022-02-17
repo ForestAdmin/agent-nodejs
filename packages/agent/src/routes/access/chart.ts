@@ -6,13 +6,13 @@ import {
   DateOperation,
   Filter,
   FilterUtils,
+  ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import { DateTime } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
 import Router from '@koa/router';
 
-import { HttpCode } from '../../types';
 import CollectionRoute from '../collection-route';
 import QueryStringParser from '../../utils/query-string';
 
@@ -31,7 +31,7 @@ export default class Chart extends CollectionRoute {
     [DateOperation.ToYear]: 'yyyy',
   };
 
-  override setupPrivateRoutes(router: Router): void {
+  setupRoutes(router: Router): void {
     router.post(`/stats/${this.collection.name}`, this.handleChart.bind(this));
   }
 
@@ -39,7 +39,7 @@ export default class Chart extends CollectionRoute {
     const { body } = context.request;
 
     if (!Object.values(ChartType).includes(body.type)) {
-      return context.throw(HttpCode.BadRequest, `Invalid Chart type "${body.type}"`);
+      throw new ValidationError(`Invalid Chart type "${body.type}"`);
     }
 
     context.response.body = {
