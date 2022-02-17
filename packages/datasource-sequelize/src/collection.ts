@@ -105,6 +105,9 @@ export default class SequelizeCollection extends BaseCollection {
     });
 
     const sequelizeFilter = QueryConverter.convertPaginatedFilterToSequelize(filter);
+    const sequelizeInclude = QueryConverter.convertProjectionToSequelize(
+      QueryConverter.convertFilterToProjection(filter),
+    );
 
     if (sequelizeFilter.order) {
       sequelizeFilter.order = (sequelizeFilter.order as OrderItem[]).filter(
@@ -114,6 +117,7 @@ export default class SequelizeCollection extends BaseCollection {
 
     const aggregates = await this.model.findAll({
       ...sequelizeFilter,
+      ...sequelizeInclude,
       attributes,
       group: groups,
       limit,
