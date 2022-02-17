@@ -95,7 +95,9 @@ export default class QueryConverter {
     } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
 
-      sequelizeWhereClause[field] = this.makeWhereClause(operator, value);
+      const safeField = field.indexOf(':') === -1 ? field : `$${field.replace(':', '.')}$`;
+
+      sequelizeWhereClause[safeField] = this.makeWhereClause(operator, value);
     } else {
       throw new Error('Invalid ConditionTree.');
     }
