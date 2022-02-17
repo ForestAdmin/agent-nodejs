@@ -1,14 +1,16 @@
 export default async function loadExampleData(dataSource) {
   const companyRecords = [{ name: 'Forest Admin' }, { name: 'Lumber Jacks Incorporated' }];
+  const syndicateRecords = [{ name: 'Tree Saviours' }, { name: 'Hatchet Lovers' }];
   const userRecords = [];
   const itemRecords = [];
   const itemReferenceRecords = [];
+  const userSyndicateRecords = [];
 
   const companies = await dataSource.getCollection('companies').create(companyRecords);
 
   companies.forEach(company => {
     for (let i = 0; i < 5; i += 1) {
-      const userName = `User ${i.toString().padStart(2, '0')}`;
+      const userName = `User ${i.toString().padStart(2, '0')} (${company.name})`;
       const domainName = company.name.replace(/ /g, '').toLowerCase();
 
       userRecords.push({
@@ -18,6 +20,8 @@ export default async function loadExampleData(dataSource) {
       });
     }
   });
+
+  const syndicates = await dataSource.getCollection('syndicates').create(syndicateRecords);
 
   const users = await dataSource.getCollection('users').create(userRecords);
 
@@ -35,7 +39,15 @@ export default async function loadExampleData(dataSource) {
         userId: user.id,
       });
     }
+
+    userSyndicateRecords.push({
+      userId: user.id,
+      syndicateId: syndicates[user.id % 2].id,
+      rating: (user.id + (user.id % 2)) % 3,
+    });
   });
+
+  await dataSource.getCollection('userSyndicates').create(userSyndicateRecords);
 
   const itemReferences = await dataSource
     .getCollection('itemReferences')
