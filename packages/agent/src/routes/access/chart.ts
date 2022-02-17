@@ -1,5 +1,7 @@
 import {
   Aggregation,
+  Aggregator,
+  ConditionTreeBranch,
   ConditionTreeFactory,
   DateOperation,
   Filter,
@@ -40,8 +42,6 @@ export default class Chart extends CollectionRoute {
       return context.throw(HttpCode.BadRequest, `Invalid Chart type "${body.type}"`);
     }
 
-    // TODO parqametters validations aggregate / timeRange
-
     context.response.body = {
       data: {
         id: uuidv1(),
@@ -60,13 +60,13 @@ export default class Chart extends CollectionRoute {
       countPrevious: undefined,
     };
 
-    // @fixme if multiple interval operator, skip the count previous
-    // when the Aggregation op is And (Or should still trigger this)
+    const isAndAggregator =
+      (currentFilter.conditionTree as ConditionTreeBranch)?.aggregator === Aggregator.And;
     const withCountPrevious = currentFilter.conditionTree?.someLeaf(leaf =>
       leaf.useIntervalOperator(),
     );
 
-    if (withCountPrevious) {
+    if (withCountPrevious && !isAndAggregator) {
       result.countPrevious = await this.computeValue(
         context,
         FilterUtils.getPreviousPeriodFilter(currentFilter),

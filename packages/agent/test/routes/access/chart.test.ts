@@ -149,6 +149,54 @@ describe('ChartRoute', () => {
             },
           });
         });
+
+        describe('when the Aggregator is And', () => {
+          test('should call aggregate once, with the correct filter', async () => {
+            jest
+              .spyOn(dataSource.getCollection('books'), 'aggregate')
+              .mockResolvedValue([{ value: 1234, group: null }]);
+            const chart = new Chart(services, options, dataSource, 'books');
+            const context = createMockContext({
+              requestBody: {
+                type: 'Value',
+                aggregate: 'Count',
+                collection: 'books',
+                filters: JSON.stringify({
+                  aggregator: 'and',
+                  conditions: [
+                    {
+                      field: 'publishedAt',
+                      operator: 'today',
+                      value: null,
+                    },
+                    {
+                      field: 'publishedAt',
+                      operator: 'yesterday',
+                      value: null,
+                    },
+                  ],
+                }),
+              },
+              customProperties: { query: { timezone: 'Europe/Paris' } },
+            });
+
+            await chart.handleChart(context);
+
+            expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledTimes(1);
+            // todo check arg to aggregate ?
+            expect(context.response.body).toMatchObject({
+              data: {
+                attributes: {
+                  value: {
+                    countCurrent: 1234,
+                    countPrevious: undefined,
+                  },
+                },
+                type: 'stats',
+              },
+            });
+          });
+        });
       });
 
       describe('on a basic filter', () => {
