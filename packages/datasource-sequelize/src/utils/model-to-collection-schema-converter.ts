@@ -39,10 +39,11 @@ export default class ModelToCollectionSchemaConverter {
           foreignCollection: association.target.name,
           foreignKey: association.foreignKey,
           originRelation: association.source.name,
-          otherField: null,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          otherField: (association as any).otherKey,
           targetRelation: association.target.name,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          throughCollection: (association as any).through.name,
+          throughCollection: (association as any).through.model.name,
           type: FieldTypes.ManyToMany,
         };
         break;
