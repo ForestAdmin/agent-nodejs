@@ -45,6 +45,7 @@ export default class SchemaGeneratorActions {
     const slug = name.toLocaleLowerCase().replace(/[^a-z0-9-]+/g, '-');
 
     return {
+      id: `${collection.name}-${actionIndex}-${slug}`,
       name,
       type: schema.scope,
       baseUrl: null,

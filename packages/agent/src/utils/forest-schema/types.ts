@@ -15,6 +15,7 @@ export type ForestServerCollection = {
 };
 
 export type ForestServerAction = {
+  id: string;
   name: string;
   type: 'single' | 'bulk' | 'global';
   baseUrl: string;
