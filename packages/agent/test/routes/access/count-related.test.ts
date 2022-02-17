@@ -57,7 +57,7 @@ describe('CountRelatedRoute', () => {
     return createMockContext({ customProperties });
   };
 
-  test('should register "/books/count" private routes', () => {
+  test('should register "/books/count" route', () => {
     const { services, dataSource, options, router } = setupWithOneToManyRelation();
 
     const oneToManyRelationName = 'myBookPersons';
@@ -68,7 +68,7 @@ describe('CountRelatedRoute', () => {
       dataSource.getCollection('books').name,
       oneToManyRelationName,
     );
-    count.setupPrivateRoutes(router);
+    count.setupRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith(
       '/books/:parentId/relationships/myBookPersons/count',

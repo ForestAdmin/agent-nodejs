@@ -1,4 +1,7 @@
+import Router from '@koa/router';
+
 import * as factories from '../__factories__';
+import { RouteType } from '../../src/types';
 import BaseRoute from '../../src/routes/base-route';
 
 describe('Base routes', () => {
@@ -7,11 +10,16 @@ describe('Base routes', () => {
   const router = factories.router.mockAllMethods().build();
 
   test('should not register any route', async () => {
-    const baseRoute = new (class extends BaseRoute {})(services, options);
+    const Route = class extends BaseRoute {
+      type = RouteType.PublicRoute;
+      setupRoutes(aRouter: Router): void {
+        void aRouter;
+      }
+    };
+
+    const baseRoute = new Route(services, options);
     await baseRoute.bootstrap();
-    baseRoute.setupPublicRoutes(router);
-    baseRoute.setupAuthentication(router);
-    baseRoute.setupPrivateRoutes(router);
+    baseRoute.setupRoutes(router);
 
     expect(router.get).not.toHaveBeenCalled();
     expect(router.post).not.toHaveBeenCalled();

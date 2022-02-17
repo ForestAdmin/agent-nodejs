@@ -114,10 +114,10 @@ describe('Authentication', () => {
       });
     });
 
-    describe('setupPublicRoutes', () => {
+    describe('setupRoutes', () => {
       test('should register authentication related public routes', async () => {
         const authentication = new Authentication(services, options);
-        authentication.setupPublicRoutes(router);
+        authentication.setupRoutes(router);
 
         expect(router.post).toHaveBeenCalledWith('/authentication', expect.any(Function));
         expect(router.get).toHaveBeenCalledWith('/authentication/callback', expect.any(Function));

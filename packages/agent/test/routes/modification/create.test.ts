@@ -9,13 +9,13 @@ describe('CreateRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
 
-  test('should register "/books" private routes', () => {
+  test('should register "/books" route', () => {
     const dataSource = factories.dataSource.buildWithCollection(
       factories.collection.build({ name: 'books' }),
     );
     const create = new CreateRoute(services, options, dataSource, 'books');
 
-    create.setupPrivateRoutes(router);
+    create.setupRoutes(router);
 
     expect(router.post).toHaveBeenCalledWith('/books', expect.any(Function));
   });

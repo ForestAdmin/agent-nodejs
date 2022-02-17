@@ -9,12 +9,12 @@ describe('UpdateRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
   const router = factories.router.mockAllMethods().build();
 
-  test('should register PUT books/:id private routes', () => {
+  test('should register PUT books/:id route', () => {
     const bookCollection = factories.collection.build({ name: 'books' });
     const dataSource = factories.dataSource.buildWithCollections([bookCollection]);
     const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
-    updateRoute.setupPrivateRoutes(router);
+    updateRoute.setupRoutes(router);
 
     expect(router.put).toHaveBeenCalledWith('/books/:id', expect.any(Function));
   });
@@ -25,7 +25,7 @@ describe('UpdateRoute', () => {
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
-      updateRoute.setupPrivateRoutes(router);
+      updateRoute.setupRoutes(router);
 
       const customProperties = { params: { badParam: '1523|1524' } };
       const context = createMockContext({ customProperties });

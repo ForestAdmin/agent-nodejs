@@ -5,17 +5,16 @@ import makeRoutes, {
   RootRoutesCtor,
 } from '../../src/routes';
 
+import * as factories from '../__factories__';
 import Authentication from '../../src/routes/security/authentication';
 import Count from '../../src/routes/access/count';
 import CountRelatedRoute from '../../src/routes/access/count-related';
 import Create from '../../src/routes/modification/create';
 import Delete from '../../src/routes/modification/delete';
 import Get from '../../src/routes/access/get';
-import HealthCheck from '../../src/routes/healthcheck';
+import HealthCheck from '../../src/routes/system/healthcheck';
 import List from '../../src/routes/access/list';
 import Update from '../../src/routes/modification/update';
-
-import * as factories from '../__factories__';
 
 describe('Route index', () => {
   describe('exports', () => {

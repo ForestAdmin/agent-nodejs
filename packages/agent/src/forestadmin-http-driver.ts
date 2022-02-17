@@ -1,6 +1,6 @@
-import { DataSource, ValidationError } from '@forestadmin/datasource-toolkit';
+import { DataSource } from '@forestadmin/datasource-toolkit';
 import { IncomingMessage, ServerResponse } from 'http';
-import Koa, { Context, HttpError, Next } from 'koa';
+import Koa from 'koa';
 import Router from '@koa/router';
 import bodyParser from 'koa-bodyparser';
 import cors from '@koa/cors';
@@ -9,7 +9,6 @@ import path from 'path';
 import {
   ForestAdminHttpDriverOptions,
   ForestAdminHttpDriverOptionsWithDefaults,
-  HttpCode,
   LoggerLevel,
 } from './types';
 import BaseRoute from './routes/base-route';
@@ -63,14 +62,10 @@ export default class ForestAdminHttpDriver {
     // Build http application
     const router = new Router({ prefix: path.join('/', this.options.prefix) });
 
-    this.routes.forEach(route => route.setupPublicRoutes(router));
-    this.routes.forEach(route => route.setupAuthentication(router));
-    this.routes.forEach(route => route.setupPrivateRoutes(router));
+    this.routes.forEach(route => route.setupRoutes(router));
     await Promise.all(this.routes.map(route => route.bootstrap()));
 
     this.app
-      .use(this.logger.bind(this))
-      .use(this.errorHandler.bind(this))
       .use(cors({ credentials: true, maxAge: 24 * 3600 }))
       .use(bodyParser())
       .use(router.routes());
@@ -96,59 +91,5 @@ export default class ForestAdminHttpDriver {
 
     this.status = 'done';
     await Promise.all(this.routes.map(route => route.tearDown()));
-  }
-
-  /* istanbul ignore next */
-  private async errorHandler(context: Context, next: Next): Promise<void> {
-    try {
-      await next();
-    } catch (e) {
-      let status = HttpCode.InternalServerError;
-      let message = 'Unexpected error';
-
-      if (e instanceof HttpError || e instanceof ValidationError) {
-        status = e instanceof HttpError ? e.status : HttpCode.BadRequest;
-        message = e.message;
-      }
-
-      context.response.status = status;
-      context.response.body = { errors: [{ detail: message }] };
-
-      if (!this.options.isProduction) {
-        process.nextTick(() => this.debugLogError(context, e));
-      }
-    }
-  }
-
-  /* istanbul ignore next */
-  private async logger(context: Context, next: Next): Promise<void> {
-    const timer = Date.now();
-
-    try {
-      await next();
-    } finally {
-      let message = `[${context.response.status}]`;
-      message += ` ${context.request.method} ${context.request.path}`;
-      message += ` - ${Date.now() - timer}ms`;
-
-      this.options?.logger(
-        context.response.status >= HttpCode.BadRequest ? LoggerLevel.Warn : LoggerLevel.Info,
-        message,
-      );
-    }
-  }
-
-  /* istanbul ignore next */
-  private debugLogError(context: Context, error: Error): void {
-    const { request } = context;
-
-    const query = JSON.stringify(request.query, null, ' ').replace(/"/g, '');
-    console.error('');
-    console.error(`\x1b[33m===== An exception was raised =====\x1b[0m`);
-    console.error(`${request.method} \x1b[34m${request.path}\x1b[36m?${query}\x1b[0m`);
-    console.error('');
-    console.error(error.stack);
-    console.error(`\x1b[33m===================================\x1b[0m`);
-    console.error('');
   }
 }

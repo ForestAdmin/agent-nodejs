@@ -7,7 +7,7 @@ import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 
 export default class UpdateRoute extends CollectionRoute {
-  override setupPrivateRoutes(router: Router): void {
+  setupRoutes(router: Router): void {
     router.put(`/${this.collection.name}/:id`, this.handleUpdate.bind(this));
   }
 

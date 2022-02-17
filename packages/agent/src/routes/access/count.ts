@@ -11,7 +11,7 @@ import CollectionRoute from '../collection-route';
 import QueryStringParser from '../../utils/query-string';
 
 export default class CountRoute extends CollectionRoute {
-  override setupPrivateRoutes(router: Router): void {
+  setupRoutes(router: Router): void {
     router.get(`/${this.collection.name}/count`, this.handleCount.bind(this));
   }
 

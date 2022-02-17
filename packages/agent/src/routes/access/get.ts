@@ -12,7 +12,7 @@ import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 
 export default class GetRoute extends CollectionRoute {
-  override setupPrivateRoutes(router: Router): void {
+  setupRoutes(router: Router): void {
     router.get(`/${this.collection.name}/:id`, this.handleGet.bind(this));
   }
 

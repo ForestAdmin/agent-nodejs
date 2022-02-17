@@ -68,7 +68,7 @@ describe('ListRelatedRoute', () => {
       dataSource.getCollection('books').name,
       'myPersons',
     );
-    count.setupPrivateRoutes(router);
+    count.setupRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith(
       '/books/:parentId/relationships/myPersons',

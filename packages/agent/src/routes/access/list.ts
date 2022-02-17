@@ -6,7 +6,7 @@ import CollectionRoute from '../collection-route';
 import QueryStringParser from '../../utils/query-string';
 
 export default class ListRoute extends CollectionRoute {
-  override setupPrivateRoutes(router: Router): void {
+  setupRoutes(router: Router): void {
     router.get(`/${this.collection.name}`, this.handleList.bind(this));
   }
 

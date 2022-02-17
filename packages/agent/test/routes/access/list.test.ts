@@ -22,9 +22,9 @@ describe('ListRoute', () => {
     (router.get as jest.Mock).mockClear();
   });
 
-  test('should register "/books" private routes', () => {
+  test('should register "/books" route', () => {
     const list = new List(services, options, dataSource, partialCollection.name);
-    list.setupPrivateRoutes(router);
+    list.setupRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith('/books', expect.any(Function));
   });

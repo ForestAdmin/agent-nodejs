@@ -8,7 +8,7 @@ import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 
 export default class DeleteRoute extends CollectionRoute {
-  override setupPrivateRoutes(router: Router): void {
+  setupRoutes(router: Router): void {
     router.delete(`/${this.collection.name}`, this.handleListDelete.bind(this));
     router.delete(`/${this.collection.name}/:id`, this.handleDelete.bind(this));
   }

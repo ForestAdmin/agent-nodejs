@@ -18,9 +18,9 @@ describe('CountRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
 
-  test('should register "/books/count" private routes', () => {
+  test('should register "/books/count" route', () => {
     const list = new Count(services, options, dataSource, collection.name);
-    list.setupPrivateRoutes(router);
+    list.setupRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith('/books/count', expect.any(Function));
   });

@@ -1,9 +1,11 @@
 import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
-import { ForestAdminHttpDriverOptionsWithDefaults } from '../types';
+import { ForestAdminHttpDriverOptionsWithDefaults, RouteType } from '../types';
 import { ForestAdminHttpDriverServices } from '../services';
 import BaseRoute from './base-route';
 
 export default abstract class CollectionRoute extends BaseRoute {
+  type = RouteType.PrivateRoute;
+
   private readonly collectionName: string;
   protected readonly dataSource: DataSource;
 

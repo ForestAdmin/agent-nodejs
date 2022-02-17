@@ -13,6 +13,10 @@ describe('agent', () => {
       .post('/forest/apimaps/hashcheck')
       .reply(200, { sendSchema: false });
 
+    nock('https://api.development.forestadmin.com')
+      .get('/liana/v1/ip-whitelist-rules')
+      .reply(200, { data: { attributes: { use_ip_whitelist: false, rules: [] } } });
+
     nock('https://fake-registration-endpoint.org').post('/').reply(201, { client_id: 'xx' });
 
     const stop = await agent(3352, 'localhost', {
