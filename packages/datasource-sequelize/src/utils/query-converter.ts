@@ -9,15 +9,7 @@ import {
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
-import {
-  FindOptions,
-  Op,
-  OrOperator,
-  Order,
-  Sequelize,
-  WhereOperators,
-  WhereOptions,
-} from 'sequelize';
+import { FindOptions, Op, OrOperator, Order, WhereOperators, WhereOptions } from 'sequelize';
 
 export default class QueryConverter {
   private static asArray(value) {
@@ -184,11 +176,7 @@ export default class QueryConverter {
   }
 
   public static convertFilterToProjection(filter: Filter): Projection {
-    if (filter?.conditionTree) {
-      return this.convertConditionTreeToProjection(filter.conditionTree);
-    }
-
-    return new Projection();
+    return filter?.conditionTree?.projection || new Projection();
   }
 
   private static convertProjectionRelationsToSequelize(relations: Record<string, Projection>) {
