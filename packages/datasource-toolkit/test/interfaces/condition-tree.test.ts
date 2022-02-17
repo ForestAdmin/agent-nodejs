@@ -464,5 +464,17 @@ describe('ConditionTree', () => {
       expect(tree.someLeaf(leaf => leaf.field === 'column1')).toBe(true);
       expect(tree.someLeaf(leaf => leaf.field.startsWith('something'))).toBe(false);
     });
+
+    describe('useIntervalOperator()', () => {
+      test('should return true', () => {
+        const leaf = new ConditionTreeLeaf('column', Operator.Today, true);
+        expect(leaf.useIntervalOperator()).toBe(true);
+      });
+
+      test('should return false', () => {
+        const leaf = new ConditionTreeLeaf('column', Operator.Equal, true);
+        expect(leaf.useIntervalOperator()).toBe(false);
+      });
+    });
   });
 });
