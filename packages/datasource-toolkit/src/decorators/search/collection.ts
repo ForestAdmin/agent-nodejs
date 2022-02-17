@@ -56,9 +56,9 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     schema: ColumnSchema,
     searchString: string,
   ): ConditionTree {
-    const searchType = TypeGetter.get(searchString);
     const { columnType, enumValues } = schema;
     let condition: ConditionTree = null;
+    const searchType = TypeGetter.get(searchString, columnType as PrimitiveTypes);
 
     if (
       PrimitiveTypes.Enum === columnType &&

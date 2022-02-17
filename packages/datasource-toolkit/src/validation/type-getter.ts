@@ -6,18 +6,14 @@ import ValidationError from '../errors';
 import ValidationTypes from './types';
 
 export default class TypeGetter {
-  static get(
-    value: unknown,
-    typeContext?: PrimitiveTypes,
-    strict = false,
-  ): PrimitiveTypes | ValidationTypes {
+  static get(value: unknown, typeContext?: PrimitiveTypes): PrimitiveTypes | ValidationTypes {
     if (typeContext && !Object.values(PrimitiveTypes).includes(typeContext)) {
       throw new ValidationError(`Unexpected value of type: ${typeContext}`);
     }
 
     if (Array.isArray(value)) return TypeGetter.getArrayType(value, typeContext);
 
-    if (typeof value === 'string') return TypeGetter.getTypeFromString(value, typeContext, strict);
+    if (typeof value === 'string') return TypeGetter.getTypeFromString(value, typeContext);
 
     if (typeof value === 'number') return PrimitiveTypes.Number;
 
@@ -37,17 +33,20 @@ export default class TypeGetter {
   ): ValidationTypes | PrimitiveTypes {
     if (value.length === 0) return ValidationTypes.EmptyArray;
 
-    if (TypeGetter.isArrayOf(PrimitiveTypes.Number, value)) return ValidationTypes.ArrayOfNumber;
+    if (TypeGetter.isArrayOf(PrimitiveTypes.Number, value, typeContext))
+      return ValidationTypes.ArrayOfNumber;
 
-    if (TypeGetter.isArrayOf(PrimitiveTypes.Uuid, value)) return ValidationTypes.ArrayOfUuid;
+    if (TypeGetter.isArrayOf(PrimitiveTypes.Uuid, value, typeContext))
+      return ValidationTypes.ArrayOfUuid;
 
-    if (TypeGetter.isArrayOf(PrimitiveTypes.Boolean, value)) return ValidationTypes.ArrayOfBoolean;
+    if (TypeGetter.isArrayOf(PrimitiveTypes.Boolean, value, typeContext))
+      return ValidationTypes.ArrayOfBoolean;
 
-    if (TypeGetter.isArrayOf(PrimitiveTypes.String, value)) {
-      return typeContext === PrimitiveTypes.Enum
-        ? ValidationTypes.ArrayOfEnum
-        : ValidationTypes.ArrayOfString;
-    }
+    if (TypeGetter.isArrayOf(PrimitiveTypes.String, value, typeContext))
+      return ValidationTypes.ArrayOfString;
+
+    if (TypeGetter.isArrayOf(PrimitiveTypes.Enum, value, typeContext))
+      return ValidationTypes.ArrayOfEnum;
 
     return ValidationTypes.Null;
   }
@@ -62,16 +61,12 @@ export default class TypeGetter {
     return PrimitiveTypes.Date;
   }
 
-  private static getTypeFromString(
-    value: string,
-    typeContext?: PrimitiveTypes,
-    strict?: boolean,
-  ): PrimitiveTypes {
+  private static getTypeFromString(value: string, typeContext?: PrimitiveTypes): PrimitiveTypes {
     if ([PrimitiveTypes.Enum, PrimitiveTypes.String].includes(typeContext)) return typeContext;
 
     if (uuidValidate(value)) return PrimitiveTypes.Uuid;
 
-    if (TypeGetter.isNumberAndContextAllowToCast(value, strict)) return PrimitiveTypes.Number;
+    if (TypeGetter.isNumber(value, typeContext)) return PrimitiveTypes.Number;
 
     if (TypeGetter.isValidDate(value)) return TypeGetter.getDateType(value);
 
@@ -92,13 +87,17 @@ export default class TypeGetter {
     return (
       potentialPoint.length === 2 &&
       typeContext === PrimitiveTypes.Point &&
-      TypeGetter.get(potentialPoint) === ValidationTypes.ArrayOfNumber
+      TypeGetter.get(potentialPoint, PrimitiveTypes.Number) === ValidationTypes.ArrayOfNumber
     );
   }
 
-  private static isNumberAndContextAllowToCast(value: string, strict: boolean): boolean {
+  private static isNumber(value: string, typeContext: PrimitiveTypes): boolean {
     // @see https://stackoverflow.com/questions/175739
-    return !Number.isNaN(Number(value)) && !Number.isNaN(parseFloat(value)) && !strict;
+    return (
+      !Number.isNaN(Number(value)) &&
+      !Number.isNaN(parseFloat(value)) &&
+      typeContext === PrimitiveTypes.Number
+    );
   }
 
   private static isJson(value: string): boolean {
@@ -109,7 +108,11 @@ export default class TypeGetter {
     }
   }
 
-  private static isArrayOf(type: PrimitiveTypes, values: Array<unknown>) {
-    return values.every(item => TypeGetter.get(item) === type);
+  private static isArrayOf(
+    type: PrimitiveTypes,
+    values: Array<unknown>,
+    typeContext: PrimitiveTypes,
+  ) {
+    return values.every(item => TypeGetter.get(item, typeContext) === type);
   }
 }

@@ -57,7 +57,7 @@ export default class FieldValidator {
       return;
     }
 
-    const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes, true);
+    const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes);
 
     if (schema.columnType === PrimitiveTypes.Enum) {
       FieldValidator.checkEnumValue(type, schema, value);
@@ -67,7 +67,7 @@ export default class FieldValidator {
       if (!allowedTypes.includes(type)) {
         throw new ValidationError(`Wrong type for "${field}": ${value}. Expects [${allowedTypes}]`);
       }
-    } else if (type !== schema.columnType) {
+    } else if (type !== schema.columnType || FieldValidator.isStringNumber(value, type, schema)) {
       throw new ValidationError(
         `Wrong type for "${field}": ${value}. Expects ${schema.columnType}`,
       );
@@ -95,5 +95,11 @@ export default class FieldValidator {
         `The given enum value(s) [${enumValue}] is not listed in [${columnSchema.enumValues}]`,
       );
     }
+  }
+
+  private static isStringNumber(value: unknown, type: PrimitiveTypes, schema: ColumnSchema) {
+    return (
+      type === schema.columnType && typeof value === 'string' && type === PrimitiveTypes.Number
+    );
   }
 }
