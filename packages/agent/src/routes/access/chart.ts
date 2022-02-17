@@ -1,4 +1,10 @@
-import { Aggregation, DateOperation, Filter, FilterUtils } from '@forestadmin/datasource-toolkit';
+import {
+  Aggregation,
+  ConditionTreeFactory,
+  DateOperation,
+  Filter,
+  FilterUtils,
+} from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import { DateTime } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
@@ -48,7 +54,7 @@ export default class Chart extends CollectionRoute {
   private async makeValueChart(
     context: Context,
   ): Promise<{ countCurrent: number; countPrevious?: number }> {
-    const currentFilter = this.getFilter(context);
+    const currentFilter = await this.getFilter(context);
     const result = {
       countCurrent: await this.computeValue(context, currentFilter),
       countPrevious: undefined,
@@ -71,7 +77,7 @@ export default class Chart extends CollectionRoute {
   }
 
   private async makeObjectiveChart(context: Context): Promise<{ value: number }> {
-    return { value: await this.computeValue(context, this.getFilter(context)) };
+    return { value: await this.computeValue(context, await this.getFilter(context)) };
   }
 
   private async makePieChart(context: Context): Promise<Array<{ key: string; value: number }>> {
@@ -82,7 +88,7 @@ export default class Chart extends CollectionRoute {
     } = context.request.body;
 
     const rows = await this.collection.aggregate(
-      this.getFilter(context),
+      await this.getFilter(context),
       new Aggregation({
         operation: aggregate,
         field: aggregateField,
@@ -105,7 +111,7 @@ export default class Chart extends CollectionRoute {
     } = context.request.body;
 
     const rows = await this.collection.aggregate(
-      this.getFilter(context),
+      await this.getFilter(context),
       new Aggregation({
         operation: aggregate,
         field: aggregateField,
@@ -153,9 +159,12 @@ export default class Chart extends CollectionRoute {
     return rows.length ? (rows[0].value as number) : 0;
   }
 
-  private getFilter(context: Context): Filter {
+  private async getFilter(context: Context): Promise<Filter> {
     return new Filter({
-      conditionTree: QueryStringParser.parseConditionTree(this.collection, context),
+      conditionTree: ConditionTreeFactory.intersect(
+        QueryStringParser.parseConditionTree(this.collection, context),
+        await this.services.scope.getConditionTree(this.collection, context),
+      ),
       timezone: QueryStringParser.parseTimezone(context),
     });
   }
