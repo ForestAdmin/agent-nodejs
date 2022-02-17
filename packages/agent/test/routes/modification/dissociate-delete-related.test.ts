@@ -11,7 +11,7 @@ import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
 import DissociateDeleteRoute from '../../../src/routes/modification/dissociate-delete-related';
 
-describe('CountRelatedRoute', () => {
+describe('DissociateDeleteRelatedRoute', () => {
   const setupWithManyToManyRelation = () => {
     const services = factories.forestAdminHttpDriverServices.build();
     const options = factories.forestAdminHttpDriverOptions.build();
