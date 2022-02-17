@@ -7,13 +7,10 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { RouteType } from '../../types';
 import CollectionRoute from '../collection-route';
 import QueryStringParser from '../../utils/query-string';
 
 export default class CountRoute extends CollectionRoute {
-  type = RouteType.PrivateRoute;
-
   setupRoutes(router: Router): void {
     router.get(`/${this.collection.name}/count`, this.handleCount.bind(this));
   }

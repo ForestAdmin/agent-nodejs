@@ -2,14 +2,12 @@ import { CompositeId, ConditionTreeFactory, Filter } from '@forestadmin/datasour
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { HttpCode, RouteType } from '../../types';
+import { HttpCode } from '../../types';
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 
 export default class DeleteRoute extends CollectionRoute {
-  type = RouteType.PrivateRoute;
-
   setupRoutes(router: Router): void {
     router.delete(`/${this.collection.name}`, this.handleListDelete.bind(this));
     router.delete(`/${this.collection.name}/:id`, this.handleDelete.bind(this));

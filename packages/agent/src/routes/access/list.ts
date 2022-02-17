@@ -2,13 +2,10 @@ import { ConditionTreeFactory, PaginatedFilter } from '@forestadmin/datasource-t
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { RouteType } from '../../types';
 import CollectionRoute from '../collection-route';
 import QueryStringParser from '../../utils/query-string';
 
 export default class ListRoute extends CollectionRoute {
-  type = RouteType.PrivateRoute;
-
   setupRoutes(router: Router): void {
     router.get(`/${this.collection.name}`, this.handleList.bind(this));
   }

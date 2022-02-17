@@ -36,10 +36,10 @@ export enum HttpCode {
 }
 
 export enum RouteType {
-  // Do not change order: routes will be loaded in that order by the http-driver
-  ErrorHandler,
-  PublicMiddleware,
-  PublicRoute,
-  Authentication,
-  PrivateRoute,
+  // Changing the values of this enum changes the order in which routes are loaded into koa-router.
+  ErrorHandler = 0,
+  PublicMiddleware = 1,
+  PublicRoute = 2,
+  Authentication = 3,
+  PrivateRoute = 4,
 }
