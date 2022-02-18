@@ -70,9 +70,11 @@ export default class ModelToCollectionSchemaConverter {
   }): CollectionSchema['fields'] {
     const schemaAssociations = {};
 
-    Object.entries(associations).forEach(([key, association]) => {
-      schemaAssociations[key] = this.convertAssociation(association);
-    });
+    if (associations) {
+      Object.entries(associations).forEach(([key, association]) => {
+        schemaAssociations[key] = this.convertAssociation(association);
+      });
+    }
 
     return schemaAssociations;
   }
