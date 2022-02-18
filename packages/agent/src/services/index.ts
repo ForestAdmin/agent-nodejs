@@ -1,15 +1,15 @@
 import { ForestAdminHttpDriverOptionsWithDefaults } from '../types';
-import ScopeService from './scope';
+import PermissionService from './permissions';
 import Serializer from './serializer';
 
 export type ForestAdminHttpDriverServices = {
-  scope: ScopeService;
+  permissions: PermissionService;
   serializer: Serializer;
 };
 
 export default (
   options: ForestAdminHttpDriverOptionsWithDefaults,
 ): ForestAdminHttpDriverServices => ({
-  scope: new ScopeService(options),
+  permissions: new PermissionService(options),
   serializer: new Serializer(options),
 });

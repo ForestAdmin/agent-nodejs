@@ -47,7 +47,7 @@ describe('OptionsUtils', () => {
       logger: () => {},
       prefix: '/forest',
       schemaPath: '.forestadmin-schema.json',
-      scopesCacheDurationInSeconds: 12,
+      permissionsCacheDurationInSeconds: 12,
     };
 
     test('should work with good format', () => {

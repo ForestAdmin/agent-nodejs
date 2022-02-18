@@ -10,6 +10,8 @@ export default class CreateRoute extends CollectionRoute {
   }
 
   public async handleCreate(context: Context) {
+    await this.services.permissions.can(context, `add:${this.collection.name}`);
+
     const rawRecord = this.services.serializer.deserialize(this.collection, context.request.body);
     RecordValidator.validate(this.collection, rawRecord);
 

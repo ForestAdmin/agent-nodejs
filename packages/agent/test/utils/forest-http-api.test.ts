@@ -5,6 +5,7 @@ import ForestHttpApi from '../../src/utils/forest-http-api';
 
 describe('ForestHttpApi', () => {
   const options = factories.forestAdminHttpDriverOptions.build({
+    isProduction: true,
     forestServerUrl: 'https://api.url',
     envSecret: 'myEnvSecret',
   });
@@ -145,7 +146,7 @@ describe('ForestHttpApi', () => {
 
   describe('getUserAuthorizationInformations', () => {
     const user = {
-      id: '1',
+      id: 1,
       email: 'me@fake-email.com',
       first_name: 'John',
       last_name: 'Smith',
@@ -156,8 +157,8 @@ describe('ForestHttpApi', () => {
 
     const body = {
       body: {
-        id: '1',
         data: {
+          id: '1',
           attributes: user,
         },
       },
@@ -179,7 +180,7 @@ describe('ForestHttpApi', () => {
     });
 
     describe('when the call succeeds', () => {
-      test('should return the openid configuration', async () => {
+      test('should return the user information', async () => {
         superagentMock.set.mockReturnValue({ ...body, set: () => body });
 
         const result = await ForestHttpApi.getUserInformation(options, 1, 'tokenset');
@@ -191,7 +192,7 @@ describe('ForestHttpApi', () => {
           lastName: user.last_name,
           team: user.teams[0],
           role: user.role,
-          tags: user.tags,
+          tags: { tag1: 'value1' },
           renderingId: 1,
         });
       });
@@ -293,47 +294,100 @@ describe('ForestHttpApi', () => {
     });
   });
 
-  describe('getScopes', () => {
-    test('should fetch the correct end point with the env secret', async () => {
-      superagentMock.query.mockResolvedValue({ body: {} });
-
-      await ForestHttpApi.getScopes(options, 1);
-
-      expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
-      expect(superagentMock.query).toHaveBeenCalledWith('renderingId=1');
-      expect(superagentMock.get).toHaveBeenCalledWith('https://api.url/liana/scopes');
-    });
-
-    describe('when the call succeeds', () => {
-      test('should return the correct value', async () => {
-        superagentMock.query.mockResolvedValue({
-          body: {
-            books: {
-              scope: {
-                filter: { field: 'something', operator: 'equal', value: 32 },
-                dynamicScopeValues: {},
+  describe('getPermissions', () => {
+    test('when the call succeeds should return the correct value', async () => {
+      superagentMock.query.mockResolvedValue({
+        body: {
+          meta: { rolesACLActivated: true },
+          data: {
+            collections: {
+              books: {
+                actions: {},
+                collection: {
+                  browseEnabled: [1],
+                  readEnabled: [1],
+                  editEnabled: [1],
+                  addEnabled: [1],
+                  deleteEnabled: [1],
+                  exportEnabled: [1],
+                },
+              },
+            },
+            renderings: {
+              '5': {
+                books: {
+                  scope: {
+                    filter: { field: 'id', operator: 'not_equal', value: '$currentUser.team.id' },
+                    dynamicScopesValues: { users: { '1': { '$currentUser.team.id': 1 } } },
+                  },
+                  segments: [],
+                },
               },
             },
           },
-        });
-
-        const result = await ForestHttpApi.getScopes(options, 1);
-
-        expect(result).toStrictEqual({
-          books: {
-            conditionTree: new ConditionTreeLeaf('something', Operator.Equal, 32),
-            dynamicScopeValues: {},
+          stats: {
+            queries: [],
+            leaderboards: [],
+            lines: [],
+            objectives: [],
+            percentages: [],
+            pies: [
+              {
+                type: 'Pie',
+                filter: null,
+                aggregator: 'Count',
+                groupByFieldName: 'fullName',
+                aggregateFieldName: null,
+                sourceCollectionId: 'persons',
+              },
+            ],
+            values: [],
           },
-        });
+        },
+      });
+
+      const result = await ForestHttpApi.getPermissions(options, 5);
+
+      expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
+      expect(superagentMock.query).toHaveBeenCalledWith('renderingId=5');
+      expect(superagentMock.get).toHaveBeenCalledWith('https://api.url/liana/v3/permissions');
+      expect(result).toStrictEqual({
+        actions: new Set(['chart:64d827598f878231f66659e9f8a741c46b556fb4']),
+        collections: {
+          books: {
+            actionsByUser: {
+              add: new Set([1]),
+              browse: new Set([1]),
+              delete: new Set([1]),
+              edit: new Set([1]),
+              export: new Set([1]),
+              read: new Set([1]),
+            },
+            scopes: {
+              conditionTree: new ConditionTreeLeaf('id', Operator.NotEqual, '$currentUser.team.id'),
+              dynamicScopeValues: { '1': { '$currentUser.team.id': 1 } },
+            },
+          },
+        },
       });
     });
 
-    describe('when the call fails', () => {
-      test('should throw an error', async () => {
-        superagentMock.query.mockRejectedValue(new Error());
-
-        await expect(ForestHttpApi.getScopes(options, 1)).rejects.toThrow();
+    test('should throw an error when not using roles V3', async () => {
+      superagentMock.query.mockResolvedValue({
+        body: {
+          meta: { rolesACLActivated: false },
+        },
       });
+
+      await expect(ForestHttpApi.getPermissions(options, 1)).rejects.toThrow(
+        'Roles V2 are unsupported',
+      );
+    });
+
+    test('should throw an error when the call fails', async () => {
+      superagentMock.query.mockRejectedValue(new Error());
+
+      await expect(ForestHttpApi.getPermissions(options, 1)).rejects.toThrow();
     });
   });
 });

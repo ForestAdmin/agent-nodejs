@@ -4,12 +4,12 @@ import Router from '@koa/router';
 
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
-import ForestHttpApi, { IpWhitelistConfiguration } from '../../utils/forest-http-api';
+import ForestHttpApi, { IpWhitelistConfig } from '../../utils/forest-http-api';
 
 export default class IpWhitelist extends BaseRoute {
   type = RouteType.Authentication;
 
-  private configuration: IpWhitelistConfiguration;
+  private configuration: IpWhitelistConfig;
 
   setupRoutes(router: Router): void {
     router.use(this.checkIp.bind(this));

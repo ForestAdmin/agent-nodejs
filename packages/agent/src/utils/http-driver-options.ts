@@ -23,7 +23,7 @@ export default class OptionsUtils {
       logger: (level, data) => console.error(OptionsUtils.loggerPrefix[level], data),
       prefix: '/forest',
       schemaPath: '.forestadmin-schema.json',
-      scopesCacheDurationInSeconds: 15 * 60,
+      permissionsCacheDurationInSeconds: 15 * 60,
       ...options,
     });
   }

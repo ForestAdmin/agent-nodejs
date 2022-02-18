@@ -10,6 +10,6 @@ export default Factory.define<ForestAdminHttpDriverOptionsWithDefaults>(() => ({
   isProduction: false,
   schemaPath: '/tmp/.testschema.json',
   clientId: null,
-  scopesCacheDurationInSeconds: 15 * 60,
+  permissionsCacheDurationInSeconds: 15 * 60,
   logger: () => {},
 }));

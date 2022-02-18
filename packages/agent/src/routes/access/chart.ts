@@ -38,6 +38,8 @@ export default class Chart extends CollectionRoute {
   async handleChart(context: Context) {
     const { body } = context.request;
 
+    await this.services.permissions.canChart(context);
+
     if (!Object.values(ChartType).includes(body.type)) {
       throw new ValidationError(`Invalid Chart type "${body.type}"`);
     }
@@ -163,7 +165,7 @@ export default class Chart extends CollectionRoute {
     return new Filter({
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(this.collection, context),
-        await this.services.scope.getConditionTree(this.collection, context),
+        await this.services.permissions.getScope(this.collection, context),
       ),
       timezone: QueryStringParser.parseTimezone(context),
     });

@@ -1,11 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 import { IssuerMetadata } from 'openid-client';
 import { JSONAPIDocument } from 'json-api-serializer';
+import hashObject from 'object-hash';
 import superagent, { Response, ResponseError } from 'superagent';
 
 import { ForestAdminHttpDriverOptions } from '../types';
 
-export type IpWhitelistConfiguration = {
+export type IpWhitelistConfig = {
   isFeatureEnabled: boolean;
   ipRules: Array<{
     type: number;
@@ -17,7 +20,7 @@ export type IpWhitelistConfiguration = {
 };
 
 export type UserInfo = {
-  id: string;
+  id: number;
   email: string;
   firstName: string;
   lastName: string;
@@ -27,19 +30,26 @@ export type UserInfo = {
   tags: { key: string; value: string }[];
 };
 
-export type ScopeByCollection = {
-  [collectionName: string]: {
-    conditionTree: ConditionTree;
-    dynamicScopesValues: Record<string, Record<string, unknown>>;
+export type RenderingPerms = {
+  actions: Set<string>;
+  collections: {
+    [collectionName: string]: {
+      actionsByUser: { [actionName: string]: Set<number> };
+      scopes: {
+        conditionTree: ConditionTree;
+        dynamicScopeValues: { [userId: number]: { [replacementKey: string]: unknown } };
+      };
+    };
   };
 };
 
-type HttpOptions = Pick<ForestAdminHttpDriverOptions, 'forestServerUrl' | 'envSecret'>;
+type HttpOptions = Pick<
+  ForestAdminHttpDriverOptions,
+  'envSecret' | 'forestServerUrl' | 'isProduction'
+>;
 
 export default class ForestHttpApi {
-  static async getIpWhitelistConfiguration(
-    options: HttpOptions,
-  ): Promise<IpWhitelistConfiguration> {
+  static async getIpWhitelistConfiguration(options: HttpOptions): Promise<IpWhitelistConfig> {
     try {
       const response: Response = await superagent
         .get(new URL('/liana/v1/ip-whitelist-rules', options.forestServerUrl).toString())
@@ -81,16 +91,16 @@ export default class ForestHttpApi {
         .set('forest-token', accessToken)
         .set('forest-secret-key', options.envSecret);
 
-      const { attributes } = response.body.data;
+      const { attributes, id } = response.body.data;
 
       return {
-        id: response.body.id,
+        id: Number(id),
         email: attributes.email,
         firstName: attributes.first_name,
         lastName: attributes.last_name,
         team: attributes.teams[0],
         role: attributes.role,
-        tags: attributes.tags,
+        tags: attributes.tags?.reduce((memo, { key, value }) => ({ ...memo, [key]: value }), {}),
         renderingId,
       };
     } catch {
@@ -142,26 +152,108 @@ export default class ForestHttpApi {
     }
   }
 
-  static async getScopes(options: HttpOptions, renderingId: number): Promise<ScopeByCollection> {
-    try {
-      const response = await superagent
-        .get(`${options.forestServerUrl}/liana/scopes`)
-        .set('forest-secret-key', options.envSecret)
-        .query(`renderingId=${renderingId}`);
+  static async getPermissions(options: HttpOptions, renderingId: number): Promise<RenderingPerms> {
+    const response = await superagent
+      .get(`${options.forestServerUrl}/liana/v3/permissions`)
+      .set('forest-secret-key', options.envSecret)
+      .query(`renderingId=${renderingId}`);
 
-      const result = {};
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const [collection, data] of Object.entries<any>(response.body)) {
-        result[collection] = {
-          conditionTree: ConditionTreeFactory.fromPlainObject(data.scope.filter),
-          dynamicScopeValues: data.scope.dynamicScopesValues?.users ?? {},
-        };
-      }
-
-      return result;
-    } catch (e) {
-      throw new Error('Failed to retrieve scopes.');
+    if (!response.body?.meta?.rolesACLActivated) {
+      throw new Error('Roles V2 are unsupported');
     }
+
+    const result = { actions: new Set<string>(), collections: {} };
+    if (options.isProduction)
+      result.actions = ForestHttpApi.decodeChartPermissions(response.body.stats);
+
+    for (const [name, settings] of Object.entries<any>(response.body.data.collections)) {
+      const scopes = response.body.data.renderings[renderingId][name].scope;
+
+      result.collections[name] = {
+        actionsByUser: options.isProduction ? ForestHttpApi.decodeActionPermissions(settings) : {},
+        scopes: ForestHttpApi.decodeScopePermissions(scopes),
+      };
+    }
+
+    return result;
+  }
+
+  /** Helper to format permissions into something easy to validate against */
+  private static decodeChartPermissions(charts: any): Set<string> {
+    return new Set<string>(
+      Object.values<any>(charts)
+        // Drop distinction between chart types
+        .flat()
+
+        // Drop Percentage charts, those are rendered by the frontend by calling the value
+        // chart handler twice
+        .filter(chart => chart.type !== 'Percentage')
+
+        // Reformat them, so that they match the frontend format
+        // Why are those objects getting reformatted the other way around?
+        .map(chart => {
+          const frontendChart: Record<string, unknown> = {
+            type: chart.type,
+            filters: chart.filter ?? null,
+            aggregate: chart.aggregator ?? null,
+            aggregate_field: chart.aggregateFieldName ?? null,
+            collection: chart.sourceCollectionId ?? null,
+          };
+
+          if (chart.type === 'Line') {
+            frontendChart.time_range = chart.timeRange ?? null;
+            frontendChart.group_by_date_field = chart.groupByFieldName ?? null;
+          }
+
+          if (chart.type === 'Pie') {
+            frontendChart.group_by_field = chart.groupByFieldName ?? null;
+          }
+
+          if (chart.type === 'Leaderboard') {
+            frontendChart.limit = chart.limit ?? null;
+            frontendChart.label_field = chart.labelFieldName ?? null;
+            frontendChart.relationship_field = chart.relationshipFieldName ?? null;
+            delete frontendChart.filter;
+          }
+
+          console.log(frontendChart);
+
+          return frontendChart;
+        })
+
+        // Keep only a sha1 from the chart definition
+        .map(chart => `chart:${hashObject(chart)}`),
+    );
+  }
+
+  /** Helper to format permissions into something easy to validate against */
+  private static decodeActionPermissions(
+    settings: any,
+  ): RenderingPerms['collections'][string]['actionsByUser'] {
+    const actionsByUser = {};
+
+    for (const [actionName, userIds] of Object.entries<any>(settings.collection)) {
+      const shortName = actionName.substring(0, actionName.length - 'Enabled'.length);
+      actionsByUser[shortName] = new Set<number>(userIds);
+    }
+
+    for (const [actionName, actionPerms] of Object.entries<any>(settings.actions)) {
+      const userIds = actionPerms.triggerEnabled;
+      actionsByUser[`custom:${actionName}`] = new Set<number>(userIds);
+    }
+
+    return actionsByUser;
+  }
+
+  /** Helper to format permissions into something easy to validate against */
+  private static decodeScopePermissions(
+    scopes: any,
+  ): RenderingPerms['collections'][string]['scopes'] {
+    return (
+      scopes && {
+        conditionTree: ConditionTreeFactory.fromPlainObject(scopes.filter),
+        dynamicScopeValues: scopes.dynamicScopesValues?.users ?? {},
+      }
+    );
   }
 }

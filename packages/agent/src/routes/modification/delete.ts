@@ -14,6 +14,8 @@ export default class DeleteRoute extends CollectionRoute {
   }
 
   public async handleDelete(context: Context): Promise<void> {
+    await this.services.permissions.can(context, `delete:${this.collection.name}`);
+
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
     await this.deleteRecords(context, [id]);
 
@@ -44,7 +46,7 @@ export default class DeleteRoute extends CollectionRoute {
     const filter = new Filter({
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(this.collection, context),
-        await this.services.scope.getConditionTree(this.collection, context),
+        await this.services.permissions.getScope(this.collection, context),
         selectedIds,
       ),
       segment: QueryStringParser.parseSegment(this.collection, context),
