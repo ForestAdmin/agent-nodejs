@@ -19,7 +19,7 @@
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
     "start": "nodemon --delay 250ms --watch '../*/dist/' --exec yarn start:agent",
-    "start:agent": "node --enable-source-maps -e \"require('./dist/index.js').default()\"",
+    "start:agent": "node --enable-source-maps --async-stack-traces -e \"require('./dist/index.js').default()\"",
     "test": "jest"
   },
   "devDependencies": {
