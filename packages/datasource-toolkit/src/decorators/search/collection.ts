@@ -58,32 +58,32 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   ): ConditionTree {
     const { columnType, enumValues } = schema;
     let condition: ConditionTree = null;
-    const searchType = TypeGetter.get(searchString, columnType as PrimitiveTypes);
+
+    const type = columnType as PrimitiveTypes;
+    const value = PrimitiveTypes.Number === columnType ? Number(searchString) : searchString;
+    const searchType = TypeGetter.get(value, type);
 
     if (
-      PrimitiveTypes.Enum === columnType &&
-      SearchCollectionDecorator.getEnumValue(enumValues, searchString)
+      SearchCollectionDecorator.isValidEnum(enumValues, searchString, type) ||
+      searchType === PrimitiveTypes.Number ||
+      searchType === PrimitiveTypes.Uuid
     ) {
-      condition = new ConditionTreeLeaf(
-        field,
-        Operator.Equal,
-        SearchCollectionDecorator.getEnumValue(enumValues, searchString),
-      );
-    } else if (PrimitiveTypes.Number === columnType && searchType === PrimitiveTypes.Number) {
-      condition = new ConditionTreeLeaf(field, Operator.Equal, Number(searchString));
-    } else if (PrimitiveTypes.Uuid === columnType && searchType === PrimitiveTypes.Uuid) {
-      condition = new ConditionTreeLeaf(field, Operator.Equal, searchString);
-    } else if (PrimitiveTypes.String === columnType && searchType === PrimitiveTypes.String) {
-      condition = new ConditionTreeLeaf(field, Operator.Contains, searchString);
+      condition = new ConditionTreeLeaf(field, Operator.Equal, value);
+    } else if (searchType === PrimitiveTypes.String) {
+      condition = new ConditionTreeLeaf(field, Operator.Contains, value);
     }
 
     return condition;
   }
 
-  private static getEnumValue(enumValues: string[], searchString: string): string {
+  private static isValidEnum(
+    enumValues: string[],
+    searchString: string,
+    searchType: PrimitiveTypes,
+  ): boolean {
     return (
-      enumValues &&
-      enumValues.find(
+      searchType === PrimitiveTypes.Enum &&
+      !!enumValues?.find(
         enumValue => enumValue.toLocaleLowerCase() === searchString.toLocaleLowerCase().trim(),
       )
     );

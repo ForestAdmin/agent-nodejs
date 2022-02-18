@@ -154,12 +154,6 @@ describe('TypeGetter', () => {
         });
       });
 
-      describe('when it is a number as string', () => {
-        it('should return Number when the given context is a Number in disable strict mode', () => {
-          expect(TypeGetter.get('2258', PrimitiveTypes.Number)).toEqual(PrimitiveTypes.Number);
-        });
-      });
-
       describe('when the value is a number and the given context is a String', () => {
         it('should return the expected type', () => {
           expect(TypeGetter.get('12', PrimitiveTypes.String)).toEqual(PrimitiveTypes.String);

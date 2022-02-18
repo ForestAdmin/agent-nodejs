@@ -206,7 +206,7 @@ describe('DeleteRoute', () => {
               },
             },
           },
-          'Failed to parse Number from string',
+          'Wrong type for "id": NaN. Expects Number',
         ],
       ])('should throw an error when %s', async (_, body, errorMessage) => {
         const bookCollection = factories.collection.build({

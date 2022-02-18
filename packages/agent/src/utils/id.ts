@@ -2,12 +2,12 @@ import {
   CollectionSchema,
   ColumnSchema,
   CompositeId,
+  FieldValidator,
   PrimitiveTypes,
   RecordData,
   SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import TypeGetter from '@forestadmin/datasource-toolkit/dist/src/validation/type-getter';
 
 export default class IdUtils {
   static packIds(schema: CollectionSchema, records: RecordData[]): string[] {
@@ -49,17 +49,13 @@ export default class IdUtils {
     }
 
     return pkNames.map((pkName, index) => {
-      const { columnType } = schema.fields[pkName] as ColumnSchema;
+      const schemaField = schema.fields[pkName] as ColumnSchema;
       const value = pkValues[index];
 
-      if (
-        TypeGetter.get(value, columnType as PrimitiveTypes) !== columnType ||
-        (columnType === PrimitiveTypes.Number && !Number.isFinite(Number(value)))
-      ) {
-        throw new ValidationError(`Failed to parse ${columnType} from ${pkValues[index]}`);
-      }
+      const castedValue = schemaField.columnType === PrimitiveTypes.Number ? Number(value) : value;
+      FieldValidator.validateValue(pkName, schemaField, castedValue);
 
-      return columnType === PrimitiveTypes.Number ? Number(value) : value;
+      return castedValue;
     });
   }
 }

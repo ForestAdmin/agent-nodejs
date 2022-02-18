@@ -67,7 +67,7 @@ export default class FieldValidator {
       if (!allowedTypes.includes(type)) {
         throw new ValidationError(`Wrong type for "${field}": ${value}. Expects [${allowedTypes}]`);
       }
-    } else if (type !== schema.columnType || FieldValidator.isStringNumber(value, type, schema)) {
+    } else if (type !== schema.columnType) {
       throw new ValidationError(
         `Wrong type for "${field}": ${value}. Expects ${schema.columnType}`,
       );
@@ -95,11 +95,5 @@ export default class FieldValidator {
         `The given enum value(s) [${enumValue}] is not listed in [${columnSchema.enumValues}]`,
       );
     }
-  }
-
-  private static isStringNumber(value: unknown, type: PrimitiveTypes, schema: ColumnSchema) {
-    return (
-      type === schema.columnType && typeof value === 'string' && type === PrimitiveTypes.Number
-    );
   }
 }

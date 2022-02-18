@@ -15,7 +15,7 @@ export default class TypeGetter {
 
     if (typeof value === 'string') return TypeGetter.getTypeFromString(value, typeContext);
 
-    if (typeof value === 'number') return PrimitiveTypes.Number;
+    if (typeof value === 'number' && !Number.isNaN(Number(value))) return PrimitiveTypes.Number;
 
     if (value instanceof Date && DateTime.fromJSDate(value).isValid) return PrimitiveTypes.Date;
 
@@ -66,8 +66,6 @@ export default class TypeGetter {
 
     if (uuidValidate(value)) return PrimitiveTypes.Uuid;
 
-    if (TypeGetter.isNumber(value, typeContext)) return PrimitiveTypes.Number;
-
     if (TypeGetter.isValidDate(value)) return TypeGetter.getDateType(value);
 
     if (TypeGetter.isJson(value)) return PrimitiveTypes.Json;
@@ -87,16 +85,8 @@ export default class TypeGetter {
     return (
       potentialPoint.length === 2 &&
       typeContext === PrimitiveTypes.Point &&
-      TypeGetter.get(potentialPoint, PrimitiveTypes.Number) === ValidationTypes.ArrayOfNumber
-    );
-  }
-
-  private static isNumber(value: string, typeContext: PrimitiveTypes): boolean {
-    // @see https://stackoverflow.com/questions/175739
-    return (
-      !Number.isNaN(Number(value)) &&
-      !Number.isNaN(parseFloat(value)) &&
-      typeContext === PrimitiveTypes.Number
+      TypeGetter.get(potentialPoint.map(Number), PrimitiveTypes.Number) ===
+        ValidationTypes.ArrayOfNumber
     );
   }
 
