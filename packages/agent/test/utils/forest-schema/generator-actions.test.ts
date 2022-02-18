@@ -14,6 +14,7 @@ describe('SchemaGeneratorActions', () => {
       const schema = await SchemaGeneratorActions.buildSchema('/forest', collection, 'Send email');
 
       expect(schema).toStrictEqual({
+        id: 'books-0-send-email',
         name: 'Send email',
         baseUrl: null,
         download: false,
