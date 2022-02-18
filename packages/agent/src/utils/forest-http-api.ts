@@ -180,27 +180,23 @@ export default class ForestHttpApi {
 
   /** Helper to format permissions into something easy to validate against */
   private static decodeChartPermissions(chartsByType: any): Set<string> {
-    const charts = Object.values<any>(chartsByType).flat();
-    const hashes = charts.map(chart =>
-      hashObject(
-        {
-          type: chart.type,
-          filters: chart.filter ?? null,
-          aggregate: chart.aggregator ?? null,
-          aggregate_field: chart.aggregateFieldName ?? null,
-          collection: chart.sourceCollectionId ?? null,
-          time_range: chart.timeRange ?? null,
-          group_by_date_field: (chart.type === 'Line' && chart.groupByFieldName) || null,
-          group_by_field: (chart.type !== 'Line' && chart.groupByFieldName) || null,
-          limit: chart.limit ?? null,
-          label_field: chart.labelFieldName ?? null,
-          relationship_field: chart.relationshipFieldName ?? null,
-        },
-        {
-          respectType: false,
-          excludeKeys: key => chart[key] === null,
-        },
-      ),
+    const serverCharts = Object.values<any>(chartsByType).flat();
+    const frontendCharts = serverCharts.map(chart => ({
+      type: chart.type,
+      filters: chart.filter ?? null,
+      aggregate: chart.aggregator ?? null,
+      aggregate_field: chart.aggregateFieldName ?? null,
+      collection: chart.sourceCollectionId ?? null,
+      time_range: chart.timeRange ?? null,
+      group_by_date_field: (chart.type === 'Line' && chart.groupByFieldName) || null,
+      group_by_field: (chart.type !== 'Line' && chart.groupByFieldName) || null,
+      limit: chart.limit ?? null,
+      label_field: chart.labelFieldName ?? null,
+      relationship_field: chart.relationshipFieldName ?? null,
+    }));
+
+    const hashes = frontendCharts.map(chart =>
+      hashObject(chart, { respectType: false, excludeKeys: key => chart[key] === null }),
     );
 
     return new Set<string>(hashes.map(hash => `chart:${hash}`));
