@@ -34,11 +34,7 @@ export default class PermissionService {
     this.cache.delete(renderingId);
   }
 
-  /**
-   * Checks that a charting query is in the list of allowed queries.
-   * For an unknown reason, the format in [server]/liana/v3/permissions is quite different from
-   * the format used by the frontend, so this routines makes the transformation between the two.
-   */
+  /** Checks that a charting query is in the list of allowed queries */
   async canChart(context: Context): Promise<void> {
     const chartHash = hashObject(context.request.body, {
       respectType: false,
