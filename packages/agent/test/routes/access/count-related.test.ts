@@ -51,7 +51,7 @@ describe('CountRelatedRoute', () => {
   const setupContext = () => {
     const customProperties = {
       query: { timezone: 'Europe/Paris' },
-      params: { parentId: '1523' },
+      params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
     };
 
     return createMockContext({ customProperties });
@@ -112,14 +112,14 @@ describe('CountRelatedRoute', () => {
             ...segmentParams,
             timezone: 'Europe/Paris',
           },
-          params: { parentId: '1523' },
+          params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
         };
         const context = createMockContext({ customProperties });
         await count.handleCountRelated(context);
 
         expect(CollectionUtils.aggregateRelation).toHaveBeenCalledWith(
           dataSource.getCollection('books'),
-          ['1523'],
+          ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myBookPersons',
           new PaginatedFilter({
             search: 'searched argument',

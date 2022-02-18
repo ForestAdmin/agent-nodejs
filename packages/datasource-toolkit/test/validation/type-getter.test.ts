@@ -19,12 +19,6 @@ describe('TypeGetter', () => {
         it('should return the expected type when there are negative numbers', () => {
           expect(TypeGetter.get([-1, 2, 3])).toEqual(ValidationTypes.ArrayOfNumber);
         });
-
-        describe('when values are number and string number', () => {
-          it('should return the expected type', () => {
-            expect(TypeGetter.get(['1', 2, 3])).toEqual(ValidationTypes.ArrayOfNumber);
-          });
-        });
       });
 
       describe('when all the values are boolean', () => {
@@ -152,21 +146,11 @@ describe('TypeGetter', () => {
         });
       });
 
-      describe('when the value is a uuid and the given context is a String', () => {
+      describe('when the value is an uuid and the given context is a String', () => {
         it('should return the expected type', () => {
           expect(
             TypeGetter.get('2d162303-78bf-599e-b197-93590ac3d315', PrimitiveTypes.String),
           ).toEqual(PrimitiveTypes.String);
-        });
-      });
-
-      describe('when it is a number as string', () => {
-        it('should return the expected type', () => {
-          expect(TypeGetter.get('2258')).toEqual(PrimitiveTypes.Number);
-        });
-
-        it('should not return Number when the given context is a Number', () => {
-          expect(TypeGetter.get('2258', PrimitiveTypes.Number)).not.toEqual(PrimitiveTypes.Number);
         });
       });
 

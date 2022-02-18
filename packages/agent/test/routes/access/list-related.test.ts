@@ -52,7 +52,7 @@ describe('ListRelatedRoute', () => {
   const setupContext = () => {
     const customProperties = {
       query: { timezone: 'Europe/Paris', 'fields[persons]': 'id,name' },
-      params: { parentId: '1523' },
+      params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
     };
 
     return createMockContext({ customProperties });
@@ -114,14 +114,14 @@ describe('ListRelatedRoute', () => {
             ...projectionParams,
             timezone: 'Europe/Paris',
           },
-          params: { parentId: '1523' },
+          params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
         };
         const context = createMockContext({ customProperties });
         await count.handleListRelated(context);
 
         expect(CollectionUtils.listRelation).toHaveBeenCalledWith(
           dataSource.getCollection('books'),
-          ['1523'],
+          ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
           new PaginatedFilter({
             search: 'searched argument',
@@ -164,7 +164,7 @@ describe('ListRelatedRoute', () => {
         const malformedProjectionParams = { 'fields[persons]': 'id,BAD_ATTRIBUTE' };
         const customProperties = {
           query: { ...malformedProjectionParams, timezone: 'Europe/Paris' },
-          params: { parentId: '1523' },
+          params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
         };
         const context = createMockContext({ customProperties });
 

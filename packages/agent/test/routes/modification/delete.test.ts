@@ -56,7 +56,7 @@ describe('DeleteRoute', () => {
 
       const context = createMockContext({
         customProperties: {
-          params: { id: '1523' },
+          params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
           query: { timezone: 'Europe/Paris' },
         },
       });
@@ -206,7 +206,7 @@ describe('DeleteRoute', () => {
               },
             },
           },
-          'Failed to parse number from string',
+          'Wrong type for "id": NaN. Expects Number',
         ],
       ])('should throw an error when %s', async (_, body, errorMessage) => {
         const bookCollection = factories.collection.build({

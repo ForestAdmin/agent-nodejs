@@ -11,19 +11,27 @@ describe('Serializer', () => {
       name: 'person',
       schema: factories.collectionSchema.build({
         fields: {
-          birthdate: factories.columnSchema.isPrimaryKey().build(),
+          idA: factories.columnSchema.isPrimaryKey().build(),
           firstName: factories.columnSchema.build(),
-          lastName: factories.columnSchema.isPrimaryKey().build(),
+          idB: factories.columnSchema.isPrimaryKey().build(),
         },
       }),
     });
 
-    const person = { birthdate: '1920-01-02', firstName: 'Isaac', lastName: 'Asimov' };
+    const person = {
+      idA: '2d162303-78bf-599e-b197-93590ac3d315',
+      firstName: 'Isaac',
+      idB: '2d162303-78bf-599e-b197-93590ac3d316',
+    };
     const serializedPerson = {
       data: {
         type: 'person',
-        id: '1920-01-02|Asimov',
-        attributes: { birthdate: '1920-01-02', firstName: 'Isaac', lastName: 'Asimov' },
+        id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+        attributes: {
+          idA: '2d162303-78bf-599e-b197-93590ac3d315',
+          firstName: 'Isaac',
+          idB: '2d162303-78bf-599e-b197-93590ac3d316',
+        },
       },
       jsonapi: { version: '1.0' },
     };
@@ -110,7 +118,7 @@ describe('Serializer', () => {
       const result = setupSerializer().deserialize(dataSource.collections[0], {
         data: {
           type: 'book',
-          id: '9780345317988',
+          id: '2d162303-78bf-599e-b197-93590ac3d315',
           attributes: { isbn: '9780345317988', title: 'Foundation' },
           relationships: { author: { data: { type: 'person', id: 'asim00' } } },
         },
@@ -128,7 +136,7 @@ describe('Serializer', () => {
       });
 
       expect(result).toStrictEqual({
-        isbn: '9780345317988',
+        isbn: '2d162303-78bf-599e-b197-93590ac3d315',
         title: 'Foundation',
       });
     });

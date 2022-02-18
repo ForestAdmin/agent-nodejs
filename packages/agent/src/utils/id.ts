@@ -2,6 +2,7 @@ import {
   CollectionSchema,
   ColumnSchema,
   CompositeId,
+  FieldValidator,
   PrimitiveTypes,
   RecordData,
   SchemaUtils,
@@ -48,20 +49,13 @@ export default class IdUtils {
     }
 
     return pkNames.map((pkName, index) => {
-      const { columnType } = schema.fields[pkName] as ColumnSchema;
-      const part = pkValues[index];
+      const schemaField = schema.fields[pkName] as ColumnSchema;
+      const value = pkValues[index];
 
-      if (columnType === PrimitiveTypes.Number) {
-        const partAsNumber = Number(part);
+      const castedValue = schemaField.columnType === PrimitiveTypes.Number ? Number(value) : value;
+      FieldValidator.validateValue(pkName, schemaField, castedValue);
 
-        if (!Number.isFinite(partAsNumber)) {
-          throw new ValidationError(`Failed to parse number from ${pkValues[index]}`);
-        }
-
-        return partAsNumber;
-      }
-
-      return part;
+      return castedValue;
     });
   }
 }
