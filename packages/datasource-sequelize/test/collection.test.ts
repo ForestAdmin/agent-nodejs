@@ -145,6 +145,7 @@ describe('SequelizeDataSource > Collection', () => {
       expect(findOne).toHaveBeenCalledWith({
         where: { id: compositeId[0] },
         attributes: projection,
+        include: [],
       });
     });
 

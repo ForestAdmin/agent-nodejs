@@ -120,8 +120,15 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
 
       describe('with ManyToOne fields', () => {
         it('should generate a reference', () => {
-          const { belongsTo, belongsToRelation, hasOne, hasOneRelation, model, schema, sequelize } =
-            setup();
+          const {
+            belongsTo,
+            belongsToRelation,
+            hasMany,
+            hasManyRelation,
+            model,
+            schema,
+            sequelize,
+          } = setup();
 
           schema.fields.a = {
             foreignCollection: '__collection__',
@@ -137,12 +144,12 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
 
           expect(relations).toBeArrayOfSize(2);
           expect(relations[0]).toBe(belongsToRelation);
-          expect(relations[1]).toBe(hasOneRelation);
+          expect(relations[1]).toBe(hasManyRelation);
           expect(sequelize.model).toHaveBeenCalledTimes(2);
           expect(belongsTo).toHaveBeenCalledTimes(1);
           expect(belongsTo).toHaveBeenCalledWith(model, { targetKey: schema.fields.a.foreignKey });
-          expect(hasOne).toHaveBeenCalledTimes(1);
-          expect(hasOne).toHaveBeenCalledWith(model);
+          expect(hasMany).toHaveBeenCalledTimes(1);
+          expect(hasMany).toHaveBeenCalledWith(model);
         });
       });
 
