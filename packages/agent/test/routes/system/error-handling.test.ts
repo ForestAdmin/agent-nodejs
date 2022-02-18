@@ -89,7 +89,7 @@ describe('ErrorHandling', () => {
     });
 
     test('it should print stuff to stderr', async () => {
-      const context = createMockContext();
+      const context = createMockContext({ method: 'POST' });
       const next = jest.fn().mockRejectedValue(new Error('hello'));
 
       await handleError.call(route, context, next);
