@@ -194,6 +194,8 @@ export default class QueryConverter {
   }
 
   public static convertProjectionToSequelize(projection: Projection): FindOptions {
+    if (!projection) return {};
+
     return {
       attributes: projection.columns,
       include: this.convertProjectionRelationsToSequelize(projection.relations),
