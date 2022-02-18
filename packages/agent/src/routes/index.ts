@@ -9,11 +9,8 @@ import Count from './access/count';
 import CountRelatedRoute from './access/count-related';
 import Create from './modification/create';
 import Delete from './modification/delete';
-<<<<<<< HEAD
-import ErrorHandling from './system/error-handling';
-=======
 import DissociateDeleteRelatedRoute from './modification/dissociate-delete-related';
->>>>>>> b80283b (feat(route): dissociate route)
+import ErrorHandling from './system/error-handling';
 import Get from './access/get';
 import HealthCheck from './system/healthcheck';
 import IpWhitelist from './security/ip-whitelist';
@@ -23,8 +20,7 @@ import Logger from './system/logger';
 import ScopeInvalidation from './security/scope-invalidation';
 import Update from './modification/update';
 
-<<<<<<< HEAD
-export const RootRoutesCtor = [
+export const ROOT_ROUTES_CTOR = [
   Authentication,
   ErrorHandling,
   HealthCheck,
@@ -32,17 +28,12 @@ export const RootRoutesCtor = [
   Logger,
   ScopeInvalidation,
 ];
-export const CollectionRoutesCtor = [Chart, Count, Create, Delete, Get, List, Update];
-export const RelatedRoutesCtor = [CountRelatedRoute, ListRelatedRoute];
-=======
-export const ROOT_ROUTES_CTOR = [Authentication, HealthCheck, ScopeInvalidation];
-export const COLLECTION_ROUTES_CTOR = [Count, Create, Delete, Get, List, Update];
+export const COLLECTION_ROUTES_CTOR = [Chart, Count, Create, Delete, Get, List, Update];
 export const RELATED_ROUTES_CTOR = [
   CountRelatedRoute,
   ListRelatedRoute,
   DissociateDeleteRelatedRoute,
 ];
->>>>>>> b80283b (feat(route): dissociate route)
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {
   return ROOT_ROUTES_CTOR.map(Route => new Route(services, options));

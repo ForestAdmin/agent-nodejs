@@ -156,7 +156,7 @@ export default class CollectionUtils {
     return CollectionUtils.removePrefixesInResults(aggregateResults, relation);
   }
 
-  static generateDissociateOneToManyCondition(
+  static matchRecordsOneToMany(
     schemaRelation: OneToManySchema,
     filter: Filter,
     ids: CompositeId[],
@@ -173,7 +173,7 @@ export default class CollectionUtils {
     );
   }
 
-  static generateDissociateManyToManyCondition(
+  static matchRecordsManyToMany(
     schemaRelation: ManyToManySchema,
     filter: Filter,
     ids: CompositeId[],

@@ -85,7 +85,7 @@ export default class TypeGetter {
       potentialPoint.length === 2 &&
       typeContext === PrimitiveTypes.Point &&
       TypeGetter.get(potentialPoint.map(Number), PrimitiveTypes.Number) ===
-        ValidationTypes.ArrayOfNumber
+        ValidationTypesArray.Number
     );
   }
 

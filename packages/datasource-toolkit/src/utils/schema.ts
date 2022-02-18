@@ -1,6 +1,12 @@
 import { CollectionSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
 
 export default class SchemaUtils {
+  static getRelationName(schema: CollectionSchema, name) {
+    return Object.entries(schema.fields).find(([, fieldSchema]) => {
+      return Object.values(fieldSchema).find(value => value === name);
+    })[0];
+  }
+
   static getForeignKeyName(schema: CollectionSchema, relationName: string): string {
     const schemaRelation = schema.fields[relationName] as RelationSchema;
 
