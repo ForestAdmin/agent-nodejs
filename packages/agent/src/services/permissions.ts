@@ -40,32 +40,12 @@ export default class PermissionService {
    * the format used by the frontend, so this routines makes the transformation between the two.
    */
   async canChart(context: Context): Promise<void> {
-    const { body } = context.request;
-    // const permissionChart: Record<string, unknown> = {
-    //   type: body.type,
-    //   filter: body.filters ?? null,
-    //   aggregator: body.aggregate ?? null,
-    //   aggregateFieldName: body.aggregate_field ?? null,
-    //   sourceCollectionId: body.collection ?? null,
-    // };
+    const chartHash = hashObject(context.request.body, {
+      respectType: false,
+      excludeKeys: key => context.request.body[key] === null,
+    });
 
-    // if (body.type === 'Line') {
-    //   permissionChart.timeRange = body.time_range ?? null;
-    //   permissionChart.groupByFieldName = body.group_by_date_field ?? null;
-    // }
-
-    // if (body.type === 'Pie') {
-    //   permissionChart.groupByFieldName = body.group_by_field ?? null;
-    // }
-
-    // if (body.type === 'Leaderboard') {
-    //   permissionChart.limit = body.limit ?? null;
-    //   permissionChart.labelFieldName = body.label_field;
-    //   permissionChart.relationshipFieldName = body.relationship_field;
-    //   delete permissionChart.filter;
-    // }
-
-    await this.can(context, `chart:${hashObject(body)}`);
+    await this.can(context, `chart:${chartHash}`);
   }
 
   /** Check if a user is allowed to perform a specific action */

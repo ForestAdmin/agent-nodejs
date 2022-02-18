@@ -179,51 +179,31 @@ export default class ForestHttpApi {
   }
 
   /** Helper to format permissions into something easy to validate against */
-  private static decodeChartPermissions(charts: any): Set<string> {
-    return new Set<string>(
-      Object.values<any>(charts)
-        // Drop distinction between chart types
-        .flat()
-
-        // Drop Percentage charts, those are rendered by the frontend by calling the value
-        // chart handler twice
-        .filter(chart => chart.type !== 'Percentage')
-
-        // Reformat them, so that they match the frontend format
-        // Why are those objects getting reformatted the other way around?
-        .map(chart => {
-          const frontendChart: Record<string, unknown> = {
-            type: chart.type,
-            filters: chart.filter ?? null,
-            aggregate: chart.aggregator ?? null,
-            aggregate_field: chart.aggregateFieldName ?? null,
-            collection: chart.sourceCollectionId ?? null,
-          };
-
-          if (chart.type === 'Line') {
-            frontendChart.time_range = chart.timeRange ?? null;
-            frontendChart.group_by_date_field = chart.groupByFieldName ?? null;
-          }
-
-          if (chart.type === 'Pie') {
-            frontendChart.group_by_field = chart.groupByFieldName ?? null;
-          }
-
-          if (chart.type === 'Leaderboard') {
-            frontendChart.limit = chart.limit ?? null;
-            frontendChart.label_field = chart.labelFieldName ?? null;
-            frontendChart.relationship_field = chart.relationshipFieldName ?? null;
-            delete frontendChart.filter;
-          }
-
-          console.log(frontendChart);
-
-          return frontendChart;
-        })
-
-        // Keep only a sha1 from the chart definition
-        .map(chart => `chart:${hashObject(chart)}`),
+  private static decodeChartPermissions(chartsByType: any): Set<string> {
+    const charts = Object.values<any>(chartsByType).flat();
+    const hashes = charts.map(chart =>
+      hashObject(
+        {
+          type: chart.type,
+          filters: chart.filter ?? null,
+          aggregate: chart.aggregator ?? null,
+          aggregate_field: chart.aggregateFieldName ?? null,
+          collection: chart.sourceCollectionId ?? null,
+          time_range: chart.timeRange ?? null,
+          group_by_date_field: (chart.type === 'Line' && chart.groupByFieldName) || null,
+          group_by_field: (chart.type !== 'Line' && chart.groupByFieldName) || null,
+          limit: chart.limit ?? null,
+          label_field: chart.labelFieldName ?? null,
+          relationship_field: chart.relationshipFieldName ?? null,
+        },
+        {
+          respectType: false,
+          excludeKeys: key => chart[key] === null,
+        },
+      ),
     );
+
+    return new Set<string>(hashes.map(hash => `chart:${hash}`));
   }
 
   /** Helper to format permissions into something easy to validate against */
