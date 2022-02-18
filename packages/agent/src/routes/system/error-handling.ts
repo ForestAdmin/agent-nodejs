@@ -27,9 +27,9 @@ export default class ErrorHandling extends BaseRoute {
       context.response.status = status;
       context.response.body = { errors: [{ detail: message }] };
 
-      // if (!this.options.isProduction) {
-      process.nextTick(() => this.debugLogError(context, e));
-      // }
+      if (!this.options.isProduction) {
+        process.nextTick(() => this.debugLogError(context, e));
+      }
     }
   }
 
