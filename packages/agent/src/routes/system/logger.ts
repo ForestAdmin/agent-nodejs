@@ -11,7 +11,6 @@ export default class Logger extends BaseRoute {
     router.use(this.logger.bind(this));
   }
 
-  /* istanbul ignore next */
   private async logger(context: Context, next: Next): Promise<void> {
     const timer = Date.now();
 
