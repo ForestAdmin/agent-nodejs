@@ -353,20 +353,18 @@ describe('ForestHttpApi', () => {
       expect(superagentMock.get).toHaveBeenCalledWith('https://api.url/liana/v3/permissions');
       expect(result).toStrictEqual({
         actions: new Set(['chart:ab0e59989e6562233902327bdc9b8a67003841af']),
-        collections: {
+        actionsByUser: {
+          'add:books': new Set([1]),
+          'browse:books': new Set([1]),
+          'delete:books': new Set([1]),
+          'edit:books': new Set([1]),
+          'export:books': new Set([1]),
+          'read:books': new Set([1]),
+        },
+        scopes: {
           books: {
-            actionsByUser: {
-              add: new Set([1]),
-              browse: new Set([1]),
-              delete: new Set([1]),
-              edit: new Set([1]),
-              export: new Set([1]),
-              read: new Set([1]),
-            },
-            scopes: {
-              conditionTree: new ConditionTreeLeaf('id', Operator.NotEqual, '$currentUser.team.id'),
-              dynamicScopeValues: { '1': { '$currentUser.team.id': 1 } },
-            },
+            conditionTree: new ConditionTreeLeaf('id', Operator.NotEqual, '$currentUser.team.id'),
+            dynamicScopeValues: { '1': { '$currentUser.team.id': 1 } },
           },
         },
       });

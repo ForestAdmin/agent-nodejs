@@ -16,7 +16,7 @@ type UserPermissions = {
   scopes: { [collectionName: string]: ConditionTree };
 };
 
-type ScopeEntry = RenderingPerms['collections'][string]['scopes'];
+type ScopeEntry = RenderingPerms['scopes'][string];
 
 export default class PermissionService {
   private options: RolesOptions;
@@ -73,10 +73,13 @@ export default class PermissionService {
     const permissions = await this.getRenderingPermissions(user.renderingId);
     const result = { actions: new Set(permissions.actions), scopes: {} };
 
-    for (const [collection, { actionsByUser, scopes }] of Object.entries(permissions.collections)) {
-      for (const [action, allowedUserIds] of Object.entries(actionsByUser))
-        if (allowedUserIds.has(user.id)) result.actions.add(`${action}:${collection}`);
+    for (const [action, allowedUserIds] of Object.entries(permissions.actionsByUser)) {
+      if (allowedUserIds.has(user.id)) {
+        result.actions.add(action);
+      }
+    }
 
+    for (const [collection, scopes] of Object.entries(permissions.scopes)) {
       result.scopes[collection] = scopes ? this.replaceUserVariables(user, scopes) : null;
     }
 

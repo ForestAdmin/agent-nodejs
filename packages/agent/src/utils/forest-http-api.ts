@@ -32,13 +32,11 @@ export type UserInfo = {
 
 export type RenderingPerms = {
   actions: Set<string>;
-  collections: {
+  actionsByUser: { [actionName: string]: Set<number> };
+  scopes: {
     [collectionName: string]: {
-      actionsByUser: { [actionName: string]: Set<number> };
-      scopes: {
-        conditionTree: ConditionTree;
-        dynamicScopeValues: { [userId: number]: { [replacementKey: string]: unknown } };
-      };
+      conditionTree: ConditionTree;
+      dynamicScopeValues: { [userId: number]: { [replacementKey: string]: unknown } };
     };
   };
 };
@@ -153,26 +151,24 @@ export default class ForestHttpApi {
   }
 
   static async getPermissions(options: HttpOptions, renderingId: number): Promise<RenderingPerms> {
-    const response = await superagent
+    const { body } = await superagent
       .get(`${options.forestServerUrl}/liana/v3/permissions`)
       .set('forest-secret-key', options.envSecret)
       .query(`renderingId=${renderingId}`);
 
-    if (!response.body?.meta?.rolesACLActivated) {
+    if (!body.meta?.rolesACLActivated) {
       throw new Error('Roles V2 are unsupported');
     }
 
-    const result = { actions: new Set<string>(), collections: {} };
-    if (options.isProduction)
-      result.actions = ForestHttpApi.decodeChartPermissions(response.body.stats);
+    const result = { actions: new Set<string>(), actionsByUser: {}, scopes: {} };
 
-    for (const [name, settings] of Object.entries<any>(response.body.data.collections)) {
-      const scopes = response.body.data.renderings[renderingId][name].scope;
+    for (const [name, { scope }] of Object.entries<any>(body.data.renderings[renderingId])) {
+      result.scopes[name] = ForestHttpApi.decodeScopePermissions(scope);
+    }
 
-      result.collections[name] = {
-        actionsByUser: options.isProduction ? ForestHttpApi.decodeActionPermissions(settings) : {},
-        scopes: ForestHttpApi.decodeScopePermissions(scopes),
-      };
+    if (options.isProduction) {
+      result.actions = ForestHttpApi.decodeChartPermissions(body.stats);
+      result.actionsByUser = ForestHttpApi.decodeActionPermissions(body.data.collections);
     }
 
     return result;
@@ -203,28 +199,26 @@ export default class ForestHttpApi {
   }
 
   /** Helper to format permissions into something easy to validate against */
-  private static decodeActionPermissions(
-    settings: any,
-  ): RenderingPerms['collections'][string]['actionsByUser'] {
+  private static decodeActionPermissions(collections: any): RenderingPerms['actionsByUser'] {
     const actionsByUser = {};
 
-    for (const [actionName, userIds] of Object.entries<any>(settings.collection)) {
-      const shortName = actionName.substring(0, actionName.length - 'Enabled'.length);
-      actionsByUser[shortName] = new Set<number>(userIds);
-    }
+    for (const [name, settings] of Object.entries<any>(collections)) {
+      for (const [actionName, userIds] of Object.entries<any>(settings.collection)) {
+        const shortName = actionName.substring(0, actionName.length - 'Enabled'.length);
+        actionsByUser[`${shortName}:${name}`] = new Set<number>(userIds);
+      }
 
-    for (const [actionName, actionPerms] of Object.entries<any>(settings.actions)) {
-      const userIds = actionPerms.triggerEnabled;
-      actionsByUser[`custom:${actionName}`] = new Set<number>(userIds);
+      for (const [actionName, actionPerms] of Object.entries<any>(settings.actions)) {
+        const userIds = actionPerms.triggerEnabled;
+        actionsByUser[`custom:${actionName}:${name}`] = new Set<number>(userIds);
+      }
     }
 
     return actionsByUser;
   }
 
   /** Helper to format permissions into something easy to validate against */
-  private static decodeScopePermissions(
-    scopes: any,
-  ): RenderingPerms['collections'][string]['scopes'] {
+  private static decodeScopePermissions(scopes: any): RenderingPerms['scopes'][string] {
     return (
       scopes && {
         conditionTree: ConditionTreeFactory.fromPlainObject(scopes.filter),

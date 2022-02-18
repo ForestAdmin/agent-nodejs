@@ -16,9 +16,7 @@ describe('Permissions', () => {
   const collection = factories.collection.build({
     name: 'books',
     schema: factories.collectionSchema.build({
-      fields: {
-        id: factories.columnSchema.isPrimaryKey().build(),
-      },
+      fields: { id: factories.columnSchema.isPrimaryKey().build() },
     }),
   });
 
@@ -32,12 +30,8 @@ describe('Permissions', () => {
     beforeEach(() => {
       getPermissions.mockResolvedValue({
         actions: new Set(),
-        collections: {
-          books: {
-            actionsByUser: { browse: new Set([1]) },
-            scopes: null,
-          },
-        },
+        actionsByUser: { 'browse:books': new Set([1]) },
+        scopes: { books: null },
       });
     });
 
@@ -93,13 +87,9 @@ describe('Permissions', () => {
     test('should work in simple case', async () => {
       getPermissions.mockResolvedValue({
         actions: new Set(),
-        collections: {
-          books: {
-            actionsByUser: {},
-            scopes: {
-              conditionTree: new ConditionTreeLeaf('id', Operator.Equal, 43),
-            },
-          },
+        actionsByUser: {},
+        scopes: {
+          books: { conditionTree: new ConditionTreeLeaf('id', Operator.Equal, 43) },
         },
       });
 
@@ -112,19 +102,15 @@ describe('Permissions', () => {
     test('should work with substitutions', async () => {
       getPermissions.mockResolvedValue({
         actions: new Set(),
-        collections: {
+        actionsByUser: {},
+        scopes: {
           books: {
-            actionsByUser: {},
-            scopes: {
-              conditionTree: new ConditionTreeLeaf(
-                'id',
-                Operator.Equal,
-                '$currentUser.tags.something',
-              ),
-              dynamicScopeValues: {
-                34: { '$currentUser.tags.something': 'value' },
-              },
-            },
+            conditionTree: new ConditionTreeLeaf(
+              'id',
+              Operator.Equal,
+              '$currentUser.tags.something',
+            ),
+            dynamicScopeValues: { 34: { '$currentUser.tags.something': 'value' } },
           },
         },
       });
@@ -138,13 +124,11 @@ describe('Permissions', () => {
     test('should fallback to jwt when the cache is broken', async () => {
       getPermissions.mockResolvedValue({
         actions: new Set(),
-        collections: {
+        actionsByUser: {},
+        scopes: {
           books: {
-            actionsByUser: {},
-            scopes: {
-              conditionTree: new ConditionTreeLeaf('id', Operator.Equal, '$currentUser.id'),
-              dynamicScopeValues: {},
-            },
+            conditionTree: new ConditionTreeLeaf('id', Operator.Equal, '$currentUser.id'),
+            dynamicScopeValues: {},
           },
         },
       });
@@ -158,25 +142,21 @@ describe('Permissions', () => {
     test('should fallback to jwt when cache broken for tags', async () => {
       getPermissions.mockResolvedValue({
         actions: new Set(),
-        collections: {
+        actionsByUser: {},
+        scopes: {
           books: {
-            actionsByUser: {},
-            scopes: {
-              conditionTree: new ConditionTreeLeaf(
-                'id',
-                Operator.Equal,
-                '$currentUser.tags.something',
-              ),
-              dynamicScopeValues: {},
-            },
+            conditionTree: new ConditionTreeLeaf(
+              'id',
+              Operator.Equal,
+              '$currentUser.tags.something',
+            ),
+            dynamicScopeValues: {},
           },
         },
       });
 
       const context = createMockContext({
-        state: {
-          user: { renderingId: 1, id: 34, tags: { something: 'tagValue' } },
-        },
+        state: { user: { renderingId: 1, id: 34, tags: { something: 'tagValue' } } },
       });
       const conditionTree = await service.getScope(collection, context);
 
