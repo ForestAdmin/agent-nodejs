@@ -36,13 +36,13 @@ export default class ErrorHandling extends BaseRoute {
   private debugLogError(context: Context, error: Error): void {
     const { request } = context;
 
-    const query = JSON.stringify(request.query, null, ' ').replace(/"/g, '');
+    const query = JSON.stringify(request.query, null, ' ')?.replace(/"/g, '');
     console.error('');
     console.error(`\x1b[33m===== An exception was raised =====\x1b[0m`);
     console.error(`${request.method} \x1b[34m${request.path}\x1b[36m?${query}\x1b[0m`);
 
-    if (request.method === 'POST' || request.method === 'PUT') {
-      const body = JSON.stringify(request.body, null, ' ').replace(/"/g, '');
+    if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
+      const body = JSON.stringify(request.body, null, ' ')?.replace(/"/g, '');
       console.error('');
       console.error(`Body \x1b[36m${body}\x1b[0m`);
     }
