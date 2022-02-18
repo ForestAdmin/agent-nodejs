@@ -49,7 +49,7 @@ export default class PermissionService {
   }
 
   /** Check if a user is allowed to perform a specific action */
-  async can(context: Context, actionName: string, allowRefetch = false): Promise<void> {
+  async can(context: Context, actionName: string, allowRefetch = true): Promise<void> {
     if (this.options.isProduction) {
       const perms = await this.getUserPermissions(context.state.user);
       const isAllowed = perms.actions.has(actionName);

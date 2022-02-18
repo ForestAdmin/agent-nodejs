@@ -352,7 +352,7 @@ describe('ForestHttpApi', () => {
       expect(superagentMock.query).toHaveBeenCalledWith('renderingId=5');
       expect(superagentMock.get).toHaveBeenCalledWith('https://api.url/liana/v3/permissions');
       expect(result).toStrictEqual({
-        actions: new Set(['chart:64d827598f878231f66659e9f8a741c46b556fb4']),
+        actions: new Set(['chart:ab0e59989e6562233902327bdc9b8a67003841af']),
         collections: {
           books: {
             actionsByUser: {
