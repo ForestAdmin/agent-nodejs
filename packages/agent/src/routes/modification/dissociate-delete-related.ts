@@ -2,23 +2,19 @@ import {
   CollectionUtils,
   CompositeId,
   ConditionTreeFactory,
-  ConditionTreeLeaf,
   FieldTypes,
   Filter,
-  OneToManySchema,
-  Operator,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import {AllRecordsMode} from '../../utils/forest-http-api';
-import {HttpCode} from '../../types';
+import { AllRecordsMode } from '../../utils/forest-http-api';
+import { HttpCode } from '../../types';
 import Data from '../../utils/data';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';
-import SchemaUtils from "@forestadmin/datasource-toolkit/dist/src/utils/schema";
 
 export default class DissociateDeleteRelatedRoute extends RelationRoute {
   setupRoutes(router: Router): void {
@@ -73,7 +69,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
       const manyToManyCollection = this.collection.dataSource.getCollection(
         schemaRelation.throughCollection,
       );
-      const conditionTree = CollectionUtils.matchRecordsManyToMany(
+      let conditionTree = CollectionUtils.matchRecordsManyToMany(
         schemaRelation,
         filter,
         ids,
@@ -85,28 +81,20 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
       await manyToManyCollection.delete(filter.override({ conditionTree }));
 
       if (isDelete) {
-        const field = SchemaUtils.getForeignKeyName(
-          manyToManyCollection.schema,
-          schemaRelation.originRelation,
+        conditionTree = CollectionUtils.matchRecordForeignManyToMany(
+          schemaRelation,
+          filter,
+          ids,
+          allRecordsMode.isActivated,
+          parentId,
+          manyToManyCollection,
+          this.foreignCollection,
         );
-        const condition = ConditionTreeFactory.matchIds(this.foreignCollection.schema, ids);
-        await this.foreignCollection.delete(
-          filter.override({
-            conditionTree: ConditionTreeFactory.intersect(
-              new ConditionTreeLeaf(field, Operator.Equal, parentId[0]).nest(
-                SchemaUtils.getRelationName(
-                  this.foreignCollection.schema,
-                  manyToManyCollection.name,
-                ),
-              ),
-              allRecordsMode.isActivated ? condition.inverse() : condition,
-            ),
-          }),
-        );
+        await this.foreignCollection.delete(filter.override({ conditionTree }));
       }
     } else if (schemaRelation.type === FieldTypes.OneToMany) {
       const conditionTree = CollectionUtils.matchRecordsOneToMany(
-        schemaRelation as OneToManySchema,
+        schemaRelation,
         filter,
         ids,
         allRecordsMode.isActivated,

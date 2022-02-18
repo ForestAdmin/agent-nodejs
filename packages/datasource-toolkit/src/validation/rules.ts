@@ -1,6 +1,6 @@
 import { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
 import { PrimitiveTypes } from '../interfaces/schema';
-import ValidationTypes, { ValidationPrimaryTypes, ValidationTypesArray } from './types';
+import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 
 const BASE_OPERATORS: Operator[] = [
   Operator.Blank,
@@ -9,6 +9,8 @@ const BASE_OPERATORS: Operator[] = [
   Operator.NotEqual,
   Operator.Present,
 ];
+
+const ARRAY_OPERATORS: Operator[] = [Operator.In, Operator.NotIn, Operator.IncludesAll];
 
 const BASE_DATEONLY_OPERATORS: Operator[] = [
   Operator.Today,
@@ -34,8 +36,7 @@ export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
 > = Object.freeze({
   [PrimitiveTypes.String]: [
     ...BASE_OPERATORS,
-    Operator.In,
-    Operator.NotIn,
+    ...ARRAY_OPERATORS,
     Operator.Contains,
     Operator.NotContains,
     Operator.EndsWith,
@@ -46,10 +47,9 @@ export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
   ],
   [PrimitiveTypes.Number]: [
     ...BASE_OPERATORS,
+    ...ARRAY_OPERATORS,
     Operator.GreaterThan,
     Operator.LessThan,
-    Operator.In,
-    Operator.NotIn,
   ],
   [PrimitiveTypes.Dateonly]: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS],
   [PrimitiveTypes.Date]: [
@@ -59,11 +59,11 @@ export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
     Operator.AfterXHoursAgo,
   ],
   [PrimitiveTypes.Timeonly]: [...BASE_OPERATORS, Operator.LessThan, Operator.GreaterThan],
-  [PrimitiveTypes.Enum]: [...BASE_OPERATORS, Operator.In, Operator.NotIn],
+  [PrimitiveTypes.Enum]: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
   [PrimitiveTypes.Json]: [Operator.Blank, Operator.Missing, Operator.Present],
   [PrimitiveTypes.Boolean]: BASE_OPERATORS,
   [PrimitiveTypes.Point]: BASE_OPERATORS,
-  [PrimitiveTypes.Uuid]: [...BASE_OPERATORS, Operator.In, Operator.NotIn],
+  [PrimitiveTypes.Uuid]: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
 });
 
 export const MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE: Readonly<

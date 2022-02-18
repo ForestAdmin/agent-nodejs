@@ -382,6 +382,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
                 ],
                 field: 'id',
               }),
+              factories.conditionTreeLeaf.build({
+                operator: Operator.Equal,
+                value: '123e4567-e89b-12d3-a456-426614174000',
+                field: 'id',
+              }),
             ],
           }),
           timezone: 'Europe/Paris',

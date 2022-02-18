@@ -11,6 +11,4 @@ export enum ValidationPrimaryTypes {
   Null = 'Null',
 }
 
-type ValidationTypes = ValidationTypesArray | ValidationPrimaryTypes;
-
-export default ValidationTypes;
+export type ValidationTypes = ValidationTypesArray | ValidationPrimaryTypes;

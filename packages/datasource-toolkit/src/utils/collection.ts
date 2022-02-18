@@ -1,4 +1,3 @@
-import { Aggregator, ConditionTreeBranch, Filter } from '../index';
 import { Collection } from '../interfaces/collection';
 import { CompositeId, RecordData } from '../interfaces/record';
 import {
@@ -10,8 +9,10 @@ import {
 } from '../interfaces/schema';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
+import ConditionTreeBranch, { Aggregator } from '../interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
+import Filter from '../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Projection from '../interfaces/query/projection';
 import SchemaUtils from './schema';
@@ -170,6 +171,28 @@ export default class CollectionUtils {
       filter.conditionTree,
       isExcludedIds ? condition.inverse() : condition,
       new ConditionTreeLeaf(schemaRelation.foreignKey, Operator.Equal, parentId[0]),
+    );
+  }
+
+  static matchRecordForeignManyToMany(
+    schemaRelation: ManyToManySchema,
+    filter: Filter,
+    ids: CompositeId[],
+    isExcludedIds: boolean,
+    parentId: CompositeId,
+    manyToManyCollection: Collection,
+    foreignCollection: Collection,
+  ) {
+    const { originRelation } = schemaRelation;
+    const { schema } = foreignCollection;
+    const fkName = SchemaUtils.getForeignKeyName(manyToManyCollection.schema, originRelation);
+    const condition = ConditionTreeFactory.matchIds(schema, ids);
+    const relationName = SchemaUtils.getRelationName(schema, manyToManyCollection.name);
+
+    return ConditionTreeFactory.intersect(
+      new ConditionTreeLeaf(fkName, Operator.Equal, parentId[0]).nest(relationName),
+      isExcludedIds ? condition.inverse() : condition,
+      filter.conditionTree,
     );
   }
 
