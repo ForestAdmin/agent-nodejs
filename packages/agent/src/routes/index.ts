@@ -1,4 +1,4 @@
-import { DataSource, FieldTypes } from '@forestadmin/datasource-toolkit';
+import { Collection, DataSource, FieldTypes } from '@forestadmin/datasource-toolkit';
 
 import { ForestAdminHttpDriverOptionsWithDefaults as Options } from '../types';
 import { ForestAdminHttpDriverServices as Services } from '../services';
@@ -6,10 +6,10 @@ import Authentication from './security/authentication';
 import BaseRoute from './base-route';
 import Chart from './access/chart';
 import Count from './access/count';
-import CountRelatedRoute from './access/count-related';
+import CountRelated from './access/count-related';
 import Create from './modification/create';
 import Delete from './modification/delete';
-import DissociateDeleteRelatedRoute from './modification/dissociate-delete-related';
+import DissociateDeleteRelated from './modification/dissociate-delete-related';
 import ErrorHandling from './system/error-handling';
 import Get from './access/get';
 import HealthCheck from './system/healthcheck';
@@ -19,6 +19,7 @@ import ListRelatedRoute from './access/list-related';
 import Logger from './system/logger';
 import ScopeInvalidation from './security/scope-invalidation';
 import Update from './modification/update';
+import UpdateEmbedded from './modification/update-embedded';
 
 export const ROOT_ROUTES_CTOR = [
   Authentication,
@@ -29,11 +30,8 @@ export const ROOT_ROUTES_CTOR = [
   ScopeInvalidation,
 ];
 export const COLLECTION_ROUTES_CTOR = [Chart, Count, Create, Delete, Get, List, Update];
-export const RELATED_ROUTES_CTOR = [
-  CountRelatedRoute,
-  ListRelatedRoute,
-  DissociateDeleteRelatedRoute,
-];
+export const RELATED_ROUTES_CTOR = [CountRelated, DissociateDeleteRelated, ListRelatedRoute];
+export const EMBEDDED_ROUTES_CTOR = [UpdateEmbedded];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {
   return ROOT_ROUTES_CTOR.map(Route => new Route(services, options));
@@ -60,18 +58,22 @@ function getRelatedRoutes(
 ): BaseRoute[] {
   const routes: BaseRoute[] = [];
 
-  dataSource.collections.forEach(collection => {
-    const relationNames = Object.entries(collection.schema.fields).filter(
-      ([, schema]) => schema.type === FieldTypes.ManyToMany || schema.type === FieldTypes.OneToMany,
+  function addRoutes(collection: Collection, routesCtr, supportedRelations: FieldTypes[]): void {
+    const relationNames = Object.entries(collection.schema.fields).filter(([, schema]) =>
+      supportedRelations.includes(schema.type),
     );
-
     relationNames.forEach(([relationName]) => {
       routes.push(
-        ...RELATED_ROUTES_CTOR.map(
+        ...routesCtr.map(
           Route => new Route(services, options, dataSource, collection.name, relationName),
         ),
       );
     });
+  }
+
+  dataSource.collections.forEach(collection => {
+    addRoutes(collection, RELATED_ROUTES_CTOR, [FieldTypes.ManyToMany, FieldTypes.OneToMany]);
+    addRoutes(collection, EMBEDDED_ROUTES_CTOR, [FieldTypes.OneToOne, FieldTypes.ManyToOne]);
   });
 
   return routes;
