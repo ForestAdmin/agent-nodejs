@@ -145,7 +145,7 @@ describe('ForestHttpApi', () => {
 
   describe('getUserAuthorizationInformations', () => {
     const user = {
-      id: '1',
+      id: 1,
       email: 'me@fake-email.com',
       first_name: 'John',
       last_name: 'Smith',
@@ -156,8 +156,8 @@ describe('ForestHttpApi', () => {
 
     const body = {
       body: {
-        id: '1',
         data: {
+          id: '1',
           attributes: user,
         },
       },
@@ -179,7 +179,7 @@ describe('ForestHttpApi', () => {
     });
 
     describe('when the call succeeds', () => {
-      test('should return the openid configuration', async () => {
+      test('should return the user information', async () => {
         superagentMock.set.mockReturnValue({ ...body, set: () => body });
 
         const result = await ForestHttpApi.getUserInformation(options, 1, 'tokenset');
@@ -191,7 +191,7 @@ describe('ForestHttpApi', () => {
           lastName: user.last_name,
           team: user.teams[0],
           role: user.role,
-          tags: user.tags,
+          tags: { tag1: 'value1' },
           renderingId: 1,
         });
       });
@@ -293,47 +293,212 @@ describe('ForestHttpApi', () => {
     });
   });
 
-  describe('getScopes', () => {
-    test('should fetch the correct end point with the env secret', async () => {
-      superagentMock.query.mockResolvedValue({ body: {} });
+  describe('getPermissions', () => {
+    test('should query the route in the server', async () => {
+      superagentMock.query.mockResolvedValue({
+        body: {
+          meta: { rolesACLActivated: true },
+          data: {},
+          stats: {},
+        },
+      });
 
-      await ForestHttpApi.getScopes(options, 1);
+      await ForestHttpApi.getPermissions(options, 5);
 
       expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
-      expect(superagentMock.query).toHaveBeenCalledWith('renderingId=1');
-      expect(superagentMock.get).toHaveBeenCalledWith('https://api.url/liana/scopes');
+      expect(superagentMock.query).toHaveBeenCalledWith('renderingId=5');
+      expect(superagentMock.get).toHaveBeenCalledWith('https://api.url/liana/v3/permissions');
     });
 
-    describe('when the call succeeds', () => {
-      test('should return the correct value', async () => {
-        superagentMock.query.mockResolvedValue({
-          body: {
-            books: {
-              scope: {
-                filter: { field: 'something', operator: 'equal', value: 32 },
-                dynamicScopeValues: {},
-              },
-            },
-          },
-        });
+    test('should properly parse chart information', async () => {
+      const line = {
+        type: 'Line',
+        sourceCollectionId: 'books',
+        groupByFieldName: 'publication',
+        aggregator: 'Count',
+        timeRange: 'Day',
+      };
 
-        const result = await ForestHttpApi.getScopes(options, 1);
+      const pie = {
+        type: 'Pie',
+        filter: null,
+        aggregator: 'Count',
+        groupByFieldName: 'fullName',
+        aggregateFieldName: null,
+        sourceCollectionId: 'persons',
+      };
 
-        expect(result).toStrictEqual({
+      superagentMock.query.mockResolvedValue({
+        body: {
+          meta: { rolesACLActivated: true },
+          stats: { pies: [line, pie] },
+        },
+      });
+
+      const result = await ForestHttpApi.getPermissions(options, 5);
+
+      expect(result).toStrictEqual({
+        actions: new Set([
+          // A transformation must happens before hashing:
+          // 'cd1c5781a5d3ff02b4ca497ec0832ccba16dd89b' == objectHash({
+          //   type: 'Line', collection: 'books',
+          //   group_by_date_field: 'publication', aggregate: 'Count', time_range: 'Day'
+          // })
+          'chart:cd1c5781a5d3ff02b4ca497ec0832ccba16dd89b',
+
+          // Same here with the pie chart
+          'chart:ab0e59989e6562233902327bdc9b8a67003841af',
+        ]),
+        actionsByUser: {},
+        scopes: {},
+      });
+    });
+
+    test('should properly parse native actions in development', async () => {
+      const native = { browseEnabled: true, readEnabled: true };
+
+      superagentMock.query.mockResolvedValue({
+        body: {
+          meta: { rolesACLActivated: true },
+          data: { collections: { books: { collection: native } } },
+        },
+      });
+
+      const result = await ForestHttpApi.getPermissions(options, 5);
+
+      expect(result).toStrictEqual({
+        actions: new Set(['read:books', 'browse:books']),
+        actionsByUser: {},
+        scopes: {},
+      });
+    });
+
+    test('should properly parse custom actions in development', async () => {
+      const custom = { 'Mark As Live': { triggerEnabled: true } };
+
+      superagentMock.query.mockResolvedValue({
+        body: {
+          meta: { rolesACLActivated: true },
+          data: { collections: { books: { actions: custom } } },
+        },
+      });
+
+      const result = await ForestHttpApi.getPermissions(options, 5);
+
+      expect(result).toStrictEqual({
+        actions: new Set(['custom:Mark As Live:books']),
+        actionsByUser: {},
+        scopes: {},
+      });
+    });
+
+    test('should properly parse native actions in production', async () => {
+      const native = { browseEnabled: [1], readEnabled: [1] };
+
+      superagentMock.query.mockResolvedValue({
+        body: {
+          meta: { rolesACLActivated: true },
+          data: { collections: { books: { collection: native } } },
+        },
+      });
+
+      const result = await ForestHttpApi.getPermissions(options, 5);
+
+      expect(result).toStrictEqual({
+        actions: new Set(),
+        actionsByUser: { 'browse:books': new Set([1]), 'read:books': new Set([1]) },
+        scopes: {},
+      });
+    });
+
+    test('should properly parse custom actions in production', async () => {
+      const custom = { 'Mark As Live': { triggerEnabled: [1] } };
+
+      superagentMock.query.mockResolvedValue({
+        body: {
+          meta: { rolesACLActivated: true },
+          data: { collections: { books: { actions: custom } } },
+        },
+      });
+
+      const result = await ForestHttpApi.getPermissions(options, 5);
+
+      expect(result).toStrictEqual({
+        actions: new Set(),
+        actionsByUser: { 'custom:Mark As Live:books': new Set([1]) },
+        scopes: {},
+      });
+    });
+
+    test('should properly parse scopes w/ dynamic values', async () => {
+      const scope = {
+        filter: { field: 'id', operator: 'not_equal', value: '$currentUser.team.id' },
+        dynamicScopesValues: { users: { '1': { '$currentUser.team.id': 1 } } },
+      };
+
+      superagentMock.query.mockResolvedValue({
+        body: {
+          meta: { rolesACLActivated: true },
+          data: { renderings: { '5': { books: { scope } } } },
+        },
+      });
+
+      const result = await ForestHttpApi.getPermissions(options, 5);
+
+      expect(result).toStrictEqual({
+        actions: new Set(),
+        actionsByUser: {},
+        scopes: {
           books: {
-            conditionTree: new ConditionTreeLeaf('something', Operator.Equal, 32),
+            conditionTree: new ConditionTreeLeaf('id', Operator.NotEqual, '$currentUser.team.id'),
+            dynamicScopeValues: { '1': { '$currentUser.team.id': 1 } },
+          },
+        },
+      });
+    });
+
+    test('should properly parse scopes w/o dynamic values', async () => {
+      const scope = {
+        filter: { field: 'id', operator: 'not_equal', value: '$currentUser.team.id' },
+      };
+
+      superagentMock.query.mockResolvedValue({
+        body: {
+          meta: { rolesACLActivated: true },
+          data: { renderings: { '5': { books: { scope } } } },
+        },
+      });
+
+      const result = await ForestHttpApi.getPermissions(options, 5);
+
+      expect(result).toStrictEqual({
+        actions: new Set(),
+        actionsByUser: {},
+        scopes: {
+          books: {
+            conditionTree: new ConditionTreeLeaf('id', Operator.NotEqual, '$currentUser.team.id'),
             dynamicScopeValues: {},
           },
-        });
+        },
       });
     });
 
-    describe('when the call fails', () => {
-      test('should throw an error', async () => {
-        superagentMock.query.mockRejectedValue(new Error());
-
-        await expect(ForestHttpApi.getScopes(options, 1)).rejects.toThrow();
+    test('should throw an error when not using roles V3', async () => {
+      superagentMock.query.mockResolvedValue({
+        body: {
+          meta: { rolesACLActivated: false },
+        },
       });
+
+      await expect(ForestHttpApi.getPermissions(options, 1)).rejects.toThrow(
+        'Roles V2 are unsupported',
+      );
+    });
+
+    test('should throw an error when the call fails', async () => {
+      superagentMock.query.mockRejectedValue(new Error());
+
+      await expect(ForestHttpApi.getPermissions(options, 1)).rejects.toThrow();
     });
   });
 });

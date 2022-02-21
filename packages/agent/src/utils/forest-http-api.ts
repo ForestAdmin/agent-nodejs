@@ -1,6 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 import { IssuerMetadata } from 'openid-client';
 import { JSONAPIDocument } from 'json-api-serializer';
+import hashObject from 'object-hash';
 import superagent, { Response, ResponseError } from 'superagent';
 
 import { ForestAdminHttpDriverOptions } from '../types';
@@ -17,24 +20,31 @@ export type IpWhitelistConfiguration = {
 };
 
 export type UserInfo = {
-  id: string;
+  id: number;
   email: string;
   firstName: string;
   lastName: string;
   team: string;
   renderingId: number;
   role: string;
-  tags: { key: string; value: string }[];
+  tags: { [key: string]: string };
 };
 
-export type ScopeByCollection = {
-  [collectionName: string]: {
-    conditionTree: ConditionTree;
-    dynamicScopesValues: Record<string, Record<string, unknown>>;
+export type RenderingPermissions = {
+  actions: Set<string>;
+  actionsByUser: { [actionName: string]: Set<number> };
+  scopes: {
+    [collectionName: string]: {
+      conditionTree: ConditionTree;
+      dynamicScopeValues: { [userId: number]: { [replacementKey: string]: unknown } };
+    };
   };
 };
 
-type HttpOptions = Pick<ForestAdminHttpDriverOptions, 'forestServerUrl' | 'envSecret'>;
+type HttpOptions = Pick<
+  ForestAdminHttpDriverOptions,
+  'envSecret' | 'forestServerUrl' | 'isProduction'
+>;
 
 export default class ForestHttpApi {
   static async getIpWhitelistConfiguration(
@@ -81,16 +91,16 @@ export default class ForestHttpApi {
         .set('forest-token', accessToken)
         .set('forest-secret-key', options.envSecret);
 
-      const { attributes } = response.body.data;
+      const { attributes, id } = response.body.data;
 
       return {
-        id: response.body.id,
+        id: Number(id),
         email: attributes.email,
         firstName: attributes.first_name,
         lastName: attributes.last_name,
         team: attributes.teams[0],
         role: attributes.role,
-        tags: attributes.tags,
+        tags: attributes.tags?.reduce((memo, { key, value }) => ({ ...memo, [key]: value }), {}),
         renderingId,
       };
     } catch {
@@ -142,26 +152,95 @@ export default class ForestHttpApi {
     }
   }
 
-  static async getScopes(options: HttpOptions, renderingId: number): Promise<ScopeByCollection> {
-    try {
-      const response = await superagent
-        .get(`${options.forestServerUrl}/liana/scopes`)
-        .set('forest-secret-key', options.envSecret)
-        .query(`renderingId=${renderingId}`);
+  static async getPermissions(
+    options: HttpOptions,
+    renderingId: number,
+  ): Promise<RenderingPermissions> {
+    const { body } = await superagent
+      .get(`${options.forestServerUrl}/liana/v3/permissions`)
+      .set('forest-secret-key', options.envSecret)
+      .query(`renderingId=${renderingId}`);
 
-      const result = {};
+    if (!body.meta?.rolesACLActivated) {
+      throw new Error('Roles V2 are unsupported');
+    }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const [collection, data] of Object.entries<any>(response.body)) {
-        result[collection] = {
-          conditionTree: ConditionTreeFactory.fromPlainObject(data.scope.filter),
-          dynamicScopeValues: data.scope.dynamicScopesValues?.users ?? {},
-        };
+    const actions = new Set<string>();
+    const actionsByUser = {};
+
+    ForestHttpApi.decodeChartPermissions(body?.stats ?? {}, actions);
+    ForestHttpApi.decodeActionPermissions(body?.data?.collections ?? {}, actions, actionsByUser);
+
+    return {
+      actions,
+      actionsByUser,
+      scopes: ForestHttpApi.decodeScopePermissions(body?.data?.renderings?.[renderingId] ?? {}),
+    };
+  }
+
+  /** Helper to format permissions into something easy to validate against */
+  private static decodeChartPermissions(chartsByType: any, actions: Set<string>): void {
+    const serverCharts = Object.values<any>(chartsByType).flat();
+    const frontendCharts = serverCharts.map(chart => ({
+      type: chart.type,
+      filters: chart.filter,
+      aggregate: chart.aggregator,
+      aggregate_field: chart.aggregateFieldName,
+      collection: chart.sourceCollectionId,
+      time_range: chart.timeRange,
+      group_by_date_field: (chart.type === 'Line' && chart.groupByFieldName) || null,
+      group_by_field: (chart.type !== 'Line' && chart.groupByFieldName) || null,
+      limit: chart.limit,
+      label_field: chart.labelFieldName,
+      relationship_field: chart.relationshipFieldName,
+    }));
+
+    const hashes = frontendCharts.map(chart =>
+      hashObject(chart, {
+        respectType: false,
+        excludeKeys: key => chart[key] === null || chart[key] === undefined,
+      }),
+    );
+
+    hashes.forEach(hash => actions.add(`chart:${hash}`));
+  }
+
+  /**
+   * Helper to format permissions into something easy to validate against
+   * Note that the format the server is sending varies depending on if we're using a remote or
+   * local environment.
+   */
+  private static decodeActionPermissions(
+    collections: any,
+    actions: Set<string>,
+    actionsByUser: RenderingPermissions['actionsByUser'],
+  ): void {
+    for (const [name, settings] of Object.entries<any>(collections)) {
+      for (const [actionName, userIds] of Object.entries<any>(settings.collection ?? {})) {
+        const shortName = actionName.substring(0, actionName.length - 'Enabled'.length);
+        if (typeof userIds === 'boolean') actions.add(`${shortName}:${name}`);
+        else actionsByUser[`${shortName}:${name}`] = new Set<number>(userIds);
       }
 
-      return result;
-    } catch (e) {
-      throw new Error('Failed to retrieve scopes.');
+      for (const [actionName, actionPerms] of Object.entries<any>(settings.actions ?? {})) {
+        const userIds = actionPerms.triggerEnabled;
+        if (typeof userIds === 'boolean') actions.add(`custom:${actionName}:${name}`);
+        else actionsByUser[`custom:${actionName}:${name}`] = new Set<number>(userIds);
+      }
     }
+  }
+
+  /** Helper to format permissions into something easy to validate against */
+  private static decodeScopePermissions(rendering: any): RenderingPermissions['scopes'] {
+    const scopes = {};
+
+    for (const [name, { scope }] of Object.entries<any>(rendering)) {
+      scopes[name] = scope && {
+        conditionTree: ConditionTreeFactory.fromPlainObject(scope.filter),
+        dynamicScopeValues: scope.dynamicScopesValues?.users ?? {},
+      };
+    }
+
+    return scopes;
   }
 }

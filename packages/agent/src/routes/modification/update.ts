@@ -12,13 +12,15 @@ export default class UpdateRoute extends CollectionRoute {
   }
 
   public async handleUpdate(context: Context): Promise<void> {
+    await this.services.permissions.can(context, `edit:${this.collection.name}`);
+
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
     const record = this.services.serializer.deserialize(this.collection, context.request.body);
     RecordValidator.validate(this.collection, record);
 
     const conditionTree = ConditionTreeFactory.intersect(
       ConditionTreeFactory.matchIds(this.collection.schema, [id]),
-      await this.services.scope.getConditionTree(this.collection, context),
+      await this.services.permissions.getScope(this.collection, context),
     );
 
     await this.collection.update(new Filter({ conditionTree }), record);

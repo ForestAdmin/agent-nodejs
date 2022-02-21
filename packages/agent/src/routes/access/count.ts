@@ -16,10 +16,12 @@ export default class CountRoute extends CollectionRoute {
   }
 
   public async handleCount(context: Context): Promise<void> {
+    await this.services.permissions.can(context, `browse:${this.collection.name}`);
+
     const paginatedFilter = new PaginatedFilter({
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(this.collection, context),
-        await this.services.scope.getConditionTree(this.collection, context),
+        await this.services.permissions.getScope(this.collection, context),
       ),
       search: QueryStringParser.parseSearch(this.collection, context),
       searchExtended: QueryStringParser.parseSearchExtended(context),

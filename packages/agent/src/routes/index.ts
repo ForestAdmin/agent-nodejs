@@ -77,9 +77,12 @@ export default function makeRoutes(
   options: Options,
   services: Services,
 ): BaseRoute[] {
-  return [
+  const routes = [
     ...getRootRoutes(options, services),
     ...dataSources.map(dataSource => getCrudRoutes(dataSource, options, services)).flat(),
     ...dataSources.map(dataSource => getRelatedRoutes(dataSource, options, services)).flat(),
-  ].sort((a, b) => a.type - b.type);
+  ];
+
+  // Ensure routes and middlewares are loaded in the right order.
+  return routes.sort((a, b) => a.type - b.type);
 }

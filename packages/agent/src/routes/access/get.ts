@@ -17,11 +17,13 @@ export default class GetRoute extends CollectionRoute {
   }
 
   public async handleGet(context: Context) {
+    await this.services.permissions.can(context, `read:${this.collection.name}`);
+
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
     const filter = new PaginatedFilter({
       conditionTree: ConditionTreeFactory.intersect(
         ConditionTreeFactory.matchIds(this.collection.schema, [id]),
-        await this.services.scope.getConditionTree(this.collection, context),
+        await this.services.permissions.getScope(this.collection, context),
       ),
     });
 

@@ -19,12 +19,14 @@ export default class ListRelatedRoute extends RelationRoute {
   }
 
   public async handleListRelated(context: Context): Promise<void> {
+    await this.services.permissions.can(context, `browse:${this.collection.name}`);
+
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const paginatedFilter = new PaginatedFilter({
       search: QueryStringParser.parseSearch(this.foreignCollection, context),
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(this.foreignCollection, context),
-        await this.services.scope.getConditionTree(this.foreignCollection, context),
+        await this.services.permissions.getScope(this.foreignCollection, context),
       ),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       timezone: QueryStringParser.parseTimezone(context),
