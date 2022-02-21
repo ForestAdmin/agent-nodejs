@@ -5,20 +5,37 @@ import { SequelizeCollection, SequelizeDataSource } from '@forestadmin/datasourc
 const prepareDatabase = async (): Promise<Sequelize> => {
   const sequelize = new Sequelize('postgres://example:password@localhost:5442/example');
 
-  sequelize.define(
+  const example = sequelize.define(
     'example',
     {
       name: {
         type: DataTypes.STRING,
       },
-      value: {
+      val: {
         type: DataTypes.INTEGER,
+        field: 'value',
       },
     },
     {
       tableName: 'example',
     },
   );
+
+  const userSeqExample = sequelize.define(
+    'userSeqExample',
+    {
+      toto: {
+        type: DataTypes.STRING,
+        field: 'name',
+      },
+    },
+    {
+      tableName: 'userSeqExample',
+    },
+  );
+
+  userSeqExample.hasMany(example);
+  example.belongsTo(userSeqExample);
 
   return sequelize;
 };
@@ -38,8 +55,14 @@ const prepareDataSource = async (): Promise<SequelizeDataSource> => {
     dataSource,
     sequelize.model('example'),
   );
+  const userSeqExempleCollection = new SequelizeCollection(
+    'userSeqExample',
+    dataSource,
+    sequelize.model('userSeqExample'),
+  );
 
   dataSource.addCollection(exampleCollection);
+  dataSource.addCollection(userSeqExempleCollection);
 
   return dataSource;
 };
