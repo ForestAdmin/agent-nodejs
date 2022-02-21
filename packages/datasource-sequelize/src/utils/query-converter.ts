@@ -135,70 +135,32 @@ export default class QueryConverter {
     return sequelizeFilter;
   }
 
-  private static convertConditionTreeToProjection(conditionTree: ConditionTree): Projection {
-    const projection = new Projection();
-
-    if (!conditionTree) return projection;
-
-    if ((conditionTree as ConditionTreeBranch).aggregator !== undefined) {
-      const { aggregator, conditions } = conditionTree as ConditionTreeBranch;
-
-      if (aggregator === null) {
-        throw new Error('Invalid (null) aggregator.');
-      }
-
-      if (!Array.isArray(conditions) || conditions.length < 2) {
-        throw new Error('Two or more conditions needed for aggregation.');
-      }
-
-      return projection.union(
-        ...conditions.map(condition => this.convertConditionTreeToProjection(condition)),
-      );
-    }
-
-    if ((conditionTree as ConditionTreeNot).condition !== undefined) {
-      const { condition } = conditionTree as ConditionTreeNot;
-
-      if (condition === null) {
-        throw new Error('Invalid (null) condition.');
-      }
-
-      return this.convertConditionTreeToProjection((conditionTree as ConditionTreeNot).condition);
-    }
-
-    if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
-      const { field } = conditionTree as ConditionTreeLeaf;
-
-      return projection.union([field]);
-    }
-
-    throw new Error('Invalid ConditionTree.');
-  }
-
-  public static convertFilterToProjection(filter: Filter): Projection {
-    return filter?.conditionTree?.projection || new Projection();
-  }
-
-  private static convertProjectionRelationsToSequelize(relations: Record<string, Projection>) {
+  private static convertProjectionRelationsToSequelize(
+    relations: Record<string, Projection>,
+    withAttributes = true,
+  ) {
     const sequelizeInclude = [];
 
     Object.entries(relations).forEach(([key, relation]: [string, Projection]) => {
       sequelizeInclude.push({
         association: key,
-        attributes: relation.columns,
-        include: this.convertProjectionRelationsToSequelize(relation.relations),
+        attributes: withAttributes ? relation.columns : [],
+        include: this.convertProjectionRelationsToSequelize(relation.relations, withAttributes),
       });
     });
 
     return sequelizeInclude;
   }
 
-  public static convertProjectionToSequelize(projection: Projection): FindOptions {
+  public static convertProjectionToSequelize(
+    projection: Projection,
+    withAttributes?: boolean,
+  ): FindOptions {
     if (!projection) return {};
 
     return {
       attributes: projection.columns,
-      include: this.convertProjectionRelationsToSequelize(projection.relations),
+      include: this.convertProjectionRelationsToSequelize(projection.relations, withAttributes),
     };
   }
 }

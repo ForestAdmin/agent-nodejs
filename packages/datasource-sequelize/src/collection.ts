@@ -1,6 +1,7 @@
 import {
   AggregateResult,
   Aggregation,
+  AggregationOperation,
   BaseCollection,
   CompositeId,
   DataSource,
@@ -12,11 +13,10 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import {
   col as Col,
-  FindAttributeOptions,
+  FindOptions,
   fn as Fn,
-  GroupOption,
   ModelDefined,
-  OrderItem,
+  ProjectionAlias,
   UpdateOptions,
 } from 'sequelize';
 
@@ -39,6 +39,8 @@ export default class SequelizeCollection extends BaseCollection {
 
     this.addFields(modelSchema.fields);
     this.addSegments(modelSchema.segments);
+
+    this.enableSearch();
   }
 
   override async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
@@ -87,52 +89,67 @@ export default class SequelizeCollection extends BaseCollection {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    const operation = aggregation.operation.toUpperCase();
-    const field = aggregation.field ?? '*';
     const aggregateFieldName = '__aggregate__';
+    const getGroupFieldName = (groupField: string) => `${groupField}__grouped__`;
 
-    const attributes: FindAttributeOptions = [[Fn(operation, Col(field)), aggregateFieldName]];
+    const unAmbigousField = (field: string) => {
+      if (field.includes(':')) {
+        const [collectionName, fieldName] = field.split(':');
+        const model = this.model.associations[collectionName].target;
 
-    if (aggregation.field) attributes.push(field);
-
-    const groups: GroupOption = aggregation.groups?.map(group => {
-      if (group.operation) {
-        // TODO: Ensure operation names are the same on all DB engines.
-        return Fn(group.operation?.toUpperCase(), Col(group.field));
+        return `${collectionName}.${model.getAttributes()[fieldName].field}`;
       }
 
-      return group.field;
-    });
+      return `${this.model.name}.${this.model.getAttributes()[field].field}`;
+    };
 
-    const sequelizeFilter = QueryConverter.convertPaginatedFilterToSequelize(filter);
-    const sequelizeInclude = QueryConverter.convertProjectionToSequelize(
-      QueryConverter.convertFilterToProjection(filter),
-    );
+    const { operation } = aggregation;
+    let aggregationField = aggregation.field && unAmbigousField(aggregation.field);
+    if (operation === AggregationOperation.Count || !aggregationField) aggregationField = '*';
 
-    if (sequelizeFilter.order) {
-      sequelizeFilter.order = (sequelizeFilter.order as OrderItem[]).filter(
-        orderClause => groups && aggregation.groups?.find(group => group.field === orderClause[0]),
-      );
-    }
+    const aggregationAttribute: ProjectionAlias = [
+      Fn(operation.toUpperCase(), Col(aggregationField)),
+      aggregateFieldName,
+    ];
 
-    const aggregates = await this.model.findAll({
-      ...sequelizeFilter,
-      ...sequelizeInclude,
-      attributes,
+    const { include } = QueryConverter.convertProjectionToSequelize(aggregation.projection, false);
+
+    const groupAttributes = [];
+    const groups = aggregation.groups
+      ?.filter(group => !group.operation)
+      .map(group => {
+        const { field } = group;
+        const groupFieldName = getGroupFieldName(field);
+        const groupField = unAmbigousField(field);
+        groupAttributes.push([Col(groupField), groupFieldName]);
+
+        return groupFieldName;
+      });
+
+    // TODO hamdle date grouping properly another PR
+
+    const query: FindOptions = {
+      attributes: [...groupAttributes, aggregationAttribute],
       group: groups,
+      where: QueryConverter.convertFilterToSequelize(filter).where,
+      include,
       limit,
-    });
+      order: [[Col(aggregateFieldName), 'DESC']], // FIXME handle properly order
+      subQuery: false,
+      raw: true,
+    };
+
+    const aggregates = await this.model.findAll(query);
 
     const result = aggregates.map(aggregate => {
       const aggregateResult = {
-        value: aggregate.get(aggregateFieldName) as number,
+        value: aggregate[aggregateFieldName] as number,
         group: {},
       };
 
-      if (Array.isArray(groups) && groups.length > 0)
-        aggregation.groups.forEach(group => {
-          aggregateResult.group[group.field] = aggregate.get(group.field);
-        });
+      aggregation.groups?.forEach(({ field }) => {
+        aggregateResult.group[field] = aggregate[getGroupFieldName(field)];
+      });
 
       return aggregateResult;
     });

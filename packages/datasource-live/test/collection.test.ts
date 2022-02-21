@@ -533,8 +533,8 @@ describe('LiveDataSource > Collection', () => {
 
       await expect(liveCollection.aggregate(new PaginatedFilter({}), aggregation)).resolves.toEqual(
         expect.arrayContaining([
-          { group: { even: true }, value: 5 },
-          { group: { even: false }, value: 4 },
+          { group: { even: 1 }, value: 5 },
+          { group: { even: 0 }, value: 4 },
         ]),
       );
     });
