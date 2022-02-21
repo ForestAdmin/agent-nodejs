@@ -9,13 +9,10 @@ import {
 } from '../interfaces/schema';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
-import ConditionTreeBranch, { Aggregator } from '../interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
-import Filter from '../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Projection from '../interfaces/query/projection';
-import SchemaUtils from './schema';
 
 export default class CollectionUtils {
   static getRelation(collection: Collection, path: string): Collection {
@@ -157,65 +154,6 @@ export default class CollectionUtils {
     return CollectionUtils.removePrefixesInResults(aggregateResults, relation);
   }
 
-  static matchRecordsOneToMany(
-    schemaRelation: OneToManySchema,
-    filter: Filter,
-    ids: CompositeId[],
-    isExcludedIds: boolean,
-    parentId: CompositeId,
-    foreignCollection: Collection,
-  ) {
-    const condition = ConditionTreeFactory.matchIds(foreignCollection.schema, ids);
-
-    return ConditionTreeFactory.intersect(
-      filter.conditionTree,
-      isExcludedIds ? condition.inverse() : condition,
-      new ConditionTreeLeaf(schemaRelation.foreignKey, Operator.Equal, parentId[0]),
-    );
-  }
-
-  static matchRecordForeignManyToMany(
-    schemaRelation: ManyToManySchema,
-    filter: Filter,
-    ids: CompositeId[],
-    isExcludedIds: boolean,
-    parentId: CompositeId,
-    manyToManyCollection: Collection,
-    foreignCollection: Collection,
-  ) {
-    const { originRelation } = schemaRelation;
-    const { schema } = foreignCollection;
-    const fkName = SchemaUtils.getForeignKeyName(manyToManyCollection.schema, originRelation);
-    const condition = ConditionTreeFactory.matchIds(schema, ids);
-    const relationName = SchemaUtils.getRelationName(schema, manyToManyCollection.name);
-
-    return ConditionTreeFactory.intersect(
-      new ConditionTreeLeaf(fkName, Operator.Equal, parentId[0]).nest(relationName),
-      isExcludedIds ? condition.inverse() : condition,
-      filter.conditionTree,
-    );
-  }
-
-  static matchRecordsManyToMany(
-    schemaRelation: ManyToManySchema,
-    filter: Filter,
-    ids: CompositeId[],
-    isExcludedIds: boolean,
-    parentId: CompositeId,
-    manyToManyCollection: Collection,
-  ) {
-    return ConditionTreeFactory.intersect(
-      filter.conditionTree?.nest(schemaRelation.targetRelation),
-      CollectionUtils.generateConditionsToMatchRecords(
-        ids,
-        isExcludedIds,
-        manyToManyCollection,
-        schemaRelation,
-        parentId,
-      ),
-    );
-  }
-
   private static getCollectionFromRelation(
     collection: Collection,
     relation: ManyToManySchema | OneToManySchema,
@@ -269,36 +207,5 @@ export default class CollectionUtils {
 
       return newResult;
     });
-  }
-
-  private static generateConditionsToMatchRecords(
-    ids: CompositeId[],
-    isExcludedIds: boolean,
-    manyToManyCollection: Collection,
-    schemaRelation: ManyToManySchema,
-    parentId: CompositeId,
-  ): ConditionTree {
-    const originRelation = manyToManyCollection.schema.fields[
-      schemaRelation.originRelation
-    ] as OneToManySchema;
-
-    if (ids.length === 0 && isExcludedIds) {
-      return new ConditionTreeLeaf(originRelation.foreignKey, Operator.Equal, parentId[0]);
-    }
-
-    const inCondition = new ConditionTreeLeaf(
-      SchemaUtils.getForeignKeyName(manyToManyCollection.schema, schemaRelation.targetRelation),
-      Operator.In,
-      ids.flat(),
-    );
-
-    return new ConditionTreeBranch(Aggregator.And, [
-      new ConditionTreeLeaf(
-        SchemaUtils.getForeignKeyName(manyToManyCollection.schema, schemaRelation.originRelation),
-        Operator.Equal,
-        parentId[0],
-      ),
-      isExcludedIds ? inCondition.inverse() : inCondition,
-    ]);
   }
 }
