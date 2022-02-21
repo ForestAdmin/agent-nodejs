@@ -4,19 +4,12 @@ import LruCache from 'lru-cache';
 import hashObject from 'object-hash';
 
 import { ForestAdminHttpDriverOptionsWithDefaults, HttpCode } from '../types';
-import ForestHttpApi, { RenderingPerms, UserInfo } from '../utils/forest-http-api';
+import ForestHttpApi, { RenderingPerms } from '../utils/forest-http-api';
 
 type RolesOptions = Pick<
   ForestAdminHttpDriverOptionsWithDefaults,
   'forestServerUrl' | 'envSecret' | 'isProduction' | 'permissionsCacheDurationInSeconds'
 >;
-
-type UserPermissions = {
-  actions: Set<string>;
-  scopes: { [collectionName: string]: ConditionTree };
-};
-
-type ScopeEntry = RenderingPerms['scopes'][string];
 
 export default class PermissionService {
   private options: RolesOptions;
@@ -45,62 +38,32 @@ export default class PermissionService {
   }
 
   /** Check if a user is allowed to perform a specific action */
-  async can(context: Context, actionName: string, allowRefetch = true): Promise<void> {
-    if (this.options.isProduction) {
-      const perms = await this.getUserPermissions(context.state.user);
-      const isAllowed = perms.actions.has(actionName);
+  async can(context: Context, action: string, allowRefetch = true): Promise<void> {
+    const { id: userId, renderingId } = context.state.user;
+    const perms = await this.getRenderingPermissions(renderingId);
+    const isAllowed = perms.actions.has(action) || perms.actionsByUser[action]?.has(userId);
 
-      if (!isAllowed && allowRefetch) {
-        this.invalidateCache(context.state.user.renderingId);
+    if (!isAllowed && allowRefetch) {
+      this.invalidateCache(renderingId);
 
-        return this.can(context, actionName, false);
-      }
+      return this.can(context, action, false);
+    }
 
-      if (!isAllowed) {
-        context.throw(HttpCode.Forbidden, 'Forbidden');
-      }
+    if (!isAllowed) {
+      context.throw(HttpCode.Forbidden, 'Forbidden');
     }
   }
 
   async getScope(collection: Collection, context: Context): Promise<ConditionTree> {
-    const perms = await this.getUserPermissions(context.state.user);
+    const { user } = context.state;
+    const perms = await this.getRenderingPermissions(user.renderingId);
+    const scopes = perms.scopes[collection.name];
 
-    return perms.scopes[collection.name];
-  }
+    if (!scopes) return null;
 
-  /** Build "user permissions" from "rendering permissions" */
-  private async getUserPermissions(user: UserInfo): Promise<UserPermissions> {
-    const permissions = await this.getRenderingPermissions(user.renderingId);
-    const result = { actions: new Set(permissions.actions), scopes: {} };
+    return scopes.conditionTree.replaceLeafs(leaf => {
+      const dynamicValues = scopes.dynamicScopeValues?.[user.id];
 
-    for (const [action, allowedUserIds] of Object.entries(permissions.actionsByUser)) {
-      if (allowedUserIds.has(user.id)) {
-        result.actions.add(action);
-      }
-    }
-
-    for (const [collection, scopes] of Object.entries(permissions.scopes)) {
-      result.scopes[collection] = scopes ? this.replaceUserVariables(user, scopes) : null;
-    }
-
-    return result;
-  }
-
-  /** Get cached version of "rendering permissions" */
-  private getRenderingPermissions(renderingId: number): Promise<RenderingPerms> {
-    if (!this.cache.has(renderingId))
-      this.cache.set(renderingId, ForestHttpApi.getPermissions(this.options, renderingId));
-
-    // We already checked the entry is up-to-date with the .has() call => allowStale
-    return this.cache.get(renderingId, { allowStale: true });
-  }
-
-  /** Generate condition tree from generic "ScopeEntry" */
-  private replaceUserVariables(user: UserInfo, scopesEntry: ScopeEntry): ConditionTree {
-    const { conditionTree } = scopesEntry;
-    const dynamicValues = scopesEntry.dynamicScopeValues?.[user.id];
-
-    return conditionTree.replaceLeafs(leaf => {
       if (typeof leaf.value === 'string' && leaf.value.startsWith('$currentUser')) {
         // Search replacement hash from forestadmin server
         if (dynamicValues) {
@@ -117,5 +80,14 @@ export default class PermissionService {
 
       return leaf;
     });
+  }
+
+  /** Get cached version of "rendering permissions" */
+  private getRenderingPermissions(renderingId: number): Promise<RenderingPerms> {
+    if (!this.cache.has(renderingId))
+      this.cache.set(renderingId, ForestHttpApi.getPermissions(this.options, renderingId));
+
+    // We already checked the entry is up-to-date with the .has() call => allowStale
+    return this.cache.get(renderingId, { allowStale: true });
   }
 }

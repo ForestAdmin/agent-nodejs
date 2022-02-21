@@ -27,7 +27,7 @@ export type UserInfo = {
   team: string;
   renderingId: number;
   role: string;
-  tags: { key: string; value: string }[];
+  tags: { [key: string]: string };
 };
 
 export type RenderingPerms = {
@@ -160,22 +160,21 @@ export default class ForestHttpApi {
       throw new Error('Roles V2 are unsupported');
     }
 
-    const result = { actions: new Set<string>(), actionsByUser: {}, scopes: {} };
+    const actions = new Set<string>();
+    const actionsByUser = {};
 
-    for (const [name, { scope }] of Object.entries<any>(body.data.renderings[renderingId])) {
-      result.scopes[name] = ForestHttpApi.decodeScopePermissions(scope);
-    }
+    ForestHttpApi.decodeChartPermissions(body.stats, actions);
+    ForestHttpApi.decodeActionPermissions(body.data.collections, actions, actionsByUser);
 
-    if (options.isProduction) {
-      result.actions = ForestHttpApi.decodeChartPermissions(body.stats);
-      result.actionsByUser = ForestHttpApi.decodeActionPermissions(body.data.collections);
-    }
-
-    return result;
+    return {
+      actions,
+      actionsByUser,
+      scopes: ForestHttpApi.decodeScopePermissions(body.data.renderings[renderingId]),
+    };
   }
 
   /** Helper to format permissions into something easy to validate against */
-  private static decodeChartPermissions(chartsByType: any): Set<string> {
+  private static decodeChartPermissions(chartsByType: any, actions: Set<string>): void {
     const serverCharts = Object.values<any>(chartsByType).flat();
     const frontendCharts = serverCharts.map(chart => ({
       type: chart.type,
@@ -195,35 +194,45 @@ export default class ForestHttpApi {
       hashObject(chart, { respectType: false, excludeKeys: key => chart[key] === null }),
     );
 
-    return new Set<string>(hashes.map(hash => `chart:${hash}`));
+    hashes.forEach(hash => actions.add(`chart:${hash}`));
   }
 
-  /** Helper to format permissions into something easy to validate against */
-  private static decodeActionPermissions(collections: any): RenderingPerms['actionsByUser'] {
-    const actionsByUser = {};
-
+  /**
+   * Helper to format permissions into something easy to validate against
+   * Note that the format the server is sending varies depending on if we're using a remote or
+   * local environment.
+   */
+  private static decodeActionPermissions(
+    collections: any,
+    actions: Set<string>,
+    actionsByUser: RenderingPerms['actionsByUser'],
+  ): void {
     for (const [name, settings] of Object.entries<any>(collections)) {
       for (const [actionName, userIds] of Object.entries<any>(settings.collection)) {
         const shortName = actionName.substring(0, actionName.length - 'Enabled'.length);
-        actionsByUser[`${shortName}:${name}`] = new Set<number>(userIds);
+        if (typeof userIds === 'boolean') actions.add(`${shortName}:${name}`);
+        else actionsByUser[`${shortName}:${name}`] = new Set<number>(userIds);
       }
 
       for (const [actionName, actionPerms] of Object.entries<any>(settings.actions)) {
         const userIds = actionPerms.triggerEnabled;
-        actionsByUser[`custom:${actionName}:${name}`] = new Set<number>(userIds);
+        if (typeof userIds === 'boolean') actions.add(`custom:${actionName}:${name}`);
+        else actionsByUser[`custom:${actionName}:${name}`] = new Set<number>(userIds);
       }
     }
-
-    return actionsByUser;
   }
 
   /** Helper to format permissions into something easy to validate against */
-  private static decodeScopePermissions(scopes: any): RenderingPerms['scopes'][string] {
-    return (
-      scopes && {
-        conditionTree: ConditionTreeFactory.fromPlainObject(scopes.filter),
-        dynamicScopeValues: scopes.dynamicScopesValues?.users ?? {},
-      }
-    );
+  private static decodeScopePermissions(rendering: any): RenderingPerms['scopes'] {
+    const scopes = {};
+
+    for (const [name, { scope }] of Object.entries<any>(rendering)) {
+      scopes[name] = scope && {
+        conditionTree: ConditionTreeFactory.fromPlainObject(scope.filter),
+        dynamicScopeValues: scope.dynamicScopesValues?.users ?? {},
+      };
+    }
+
+    return scopes;
   }
 }
