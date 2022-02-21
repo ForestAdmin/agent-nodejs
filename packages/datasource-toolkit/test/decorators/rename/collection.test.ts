@@ -204,8 +204,8 @@ describe('RenameCollectionDecorator', () => {
 
       personsAggregate.mockResolvedValue(result);
 
-      const rows = await newPersons.aggregate(personsPaginatedFilter, aggregate);
-      expect(persons.aggregate).toHaveBeenCalledWith(personsPaginatedFilter, aggregate);
+      const rows = await newPersons.aggregate(personsPaginatedFilter, aggregate, null);
+      expect(persons.aggregate).toHaveBeenCalledWith(personsPaginatedFilter, aggregate, null);
       expect(rows).toStrictEqual(result);
     });
   });
@@ -312,13 +312,18 @@ describe('RenameCollectionDecorator', () => {
           field: 'primaryKey',
           groups: [{ field: 'myNovelAuthor:createdAt' }],
         }),
+        null,
       );
 
-      expect(persons.aggregate).toHaveBeenCalledWith(personsPaginatedFilter, {
-        operation: AggregationOperation.Sum,
-        field: 'id',
-        groups: [{ field: 'myBookPerson:date' }],
-      });
+      expect(persons.aggregate).toHaveBeenCalledWith(
+        personsPaginatedFilter,
+        {
+          operation: AggregationOperation.Sum,
+          field: 'id',
+          groups: [{ field: 'myBookPerson:date' }],
+        },
+        null,
+      );
       expect(result).toStrictEqual([{ value: 34, group: { 'myNovelAuthor:createdAt': 'abc' } }]);
     });
   });

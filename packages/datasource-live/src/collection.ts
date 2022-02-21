@@ -58,11 +58,12 @@ export default class LiveCollection extends SequelizeCollection {
   }
 
   override aggregate(
-    filter: PaginatedFilter,
+    filter: Filter,
     aggregation: Aggregation,
+    limit?: number,
   ): Promise<AggregateResult[]> {
     this.ensureSynched();
 
-    return super.aggregate(filter, aggregation);
+    return super.aggregate(filter, aggregation, limit);
   }
 }

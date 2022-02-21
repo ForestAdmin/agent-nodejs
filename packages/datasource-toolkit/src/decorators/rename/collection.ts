@@ -105,12 +105,14 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
   }
 
   override async aggregate(
-    filter: PaginatedFilter,
+    filter: Filter,
     aggregation: Aggregation,
+    limit?: number,
   ): Promise<AggregateResult[]> {
     const rows = await super.aggregate(
       filter,
       aggregation.replaceFields(f => this.pathToChildCollection(f)),
+      limit,
     );
 
     return rows.map(row => ({

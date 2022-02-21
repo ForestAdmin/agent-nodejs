@@ -54,10 +54,14 @@ export default abstract class CollectionDecorator implements Collection {
     return this.childCollection.delete(refinedFilter);
   }
 
-  async aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
+  async aggregate(
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]> {
     const refinedFilter = await this.refineFilter(filter);
 
-    return this.childCollection.aggregate(refinedFilter, aggregation);
+    return this.childCollection.aggregate(refinedFilter, aggregation, limit);
   }
 
   protected async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
