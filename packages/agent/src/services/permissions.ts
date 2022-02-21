@@ -4,7 +4,7 @@ import LruCache from 'lru-cache';
 import hashObject from 'object-hash';
 
 import { ForestAdminHttpDriverOptionsWithDefaults, HttpCode } from '../types';
-import ForestHttpApi, { RenderingPerms } from '../utils/forest-http-api';
+import ForestHttpApi, { RenderingPermissions } from '../utils/forest-http-api';
 
 type RolesOptions = Pick<
   ForestAdminHttpDriverOptionsWithDefaults,
@@ -13,7 +13,7 @@ type RolesOptions = Pick<
 
 export default class PermissionService {
   private options: RolesOptions;
-  private cache: LruCache<number, Promise<RenderingPerms>>;
+  private cache: LruCache<number, Promise<RenderingPermissions>>;
 
   constructor(options: RolesOptions) {
     this.options = options;
@@ -83,7 +83,7 @@ export default class PermissionService {
   }
 
   /** Get cached version of "rendering permissions" */
-  private getRenderingPermissions(renderingId: number): Promise<RenderingPerms> {
+  private getRenderingPermissions(renderingId: number): Promise<RenderingPermissions> {
     if (!this.cache.has(renderingId))
       this.cache.set(renderingId, ForestHttpApi.getPermissions(this.options, renderingId));
 

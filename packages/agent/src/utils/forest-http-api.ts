@@ -8,7 +8,7 @@ import superagent, { Response, ResponseError } from 'superagent';
 
 import { ForestAdminHttpDriverOptions } from '../types';
 
-export type IpWhitelistConfig = {
+export type IpWhitelistConfiguration = {
   isFeatureEnabled: boolean;
   ipRules: Array<{
     type: number;
@@ -30,7 +30,7 @@ export type UserInfo = {
   tags: { [key: string]: string };
 };
 
-export type RenderingPerms = {
+export type RenderingPermissions = {
   actions: Set<string>;
   actionsByUser: { [actionName: string]: Set<number> };
   scopes: {
@@ -47,7 +47,9 @@ type HttpOptions = Pick<
 >;
 
 export default class ForestHttpApi {
-  static async getIpWhitelistConfiguration(options: HttpOptions): Promise<IpWhitelistConfig> {
+  static async getIpWhitelistConfiguration(
+    options: HttpOptions,
+  ): Promise<IpWhitelistConfiguration> {
     try {
       const response: Response = await superagent
         .get(new URL('/liana/v1/ip-whitelist-rules', options.forestServerUrl).toString())
@@ -150,7 +152,10 @@ export default class ForestHttpApi {
     }
   }
 
-  static async getPermissions(options: HttpOptions, renderingId: number): Promise<RenderingPerms> {
+  static async getPermissions(
+    options: HttpOptions,
+    renderingId: number,
+  ): Promise<RenderingPermissions> {
     const { body } = await superagent
       .get(`${options.forestServerUrl}/liana/v3/permissions`)
       .set('forest-secret-key', options.envSecret)
@@ -208,7 +213,7 @@ export default class ForestHttpApi {
   private static decodeActionPermissions(
     collections: any,
     actions: Set<string>,
-    actionsByUser: RenderingPerms['actionsByUser'],
+    actionsByUser: RenderingPermissions['actionsByUser'],
   ): void {
     for (const [name, settings] of Object.entries<any>(collections)) {
       for (const [actionName, userIds] of Object.entries<any>(settings.collection ?? {})) {
@@ -226,7 +231,7 @@ export default class ForestHttpApi {
   }
 
   /** Helper to format permissions into something easy to validate against */
-  private static decodeScopePermissions(rendering: any): RenderingPerms['scopes'] {
+  private static decodeScopePermissions(rendering: any): RenderingPermissions['scopes'] {
     const scopes = {};
 
     for (const [name, { scope }] of Object.entries<any>(rendering)) {
