@@ -12,7 +12,7 @@ jest.mock('../../src/utils/forest-http-api', () => ({
 const getPermissions = ForestHttpApi.getPermissions as jest.Mock;
 
 describe('Permissions', () => {
-  const options = factories.forestAdminHttpDriverOptions.build({ isProduction: true });
+  const options = factories.forestAdminHttpDriverOptions.build();
   const collection = factories.collection.build({
     name: 'books',
     schema: factories.collectionSchema.build({
@@ -29,7 +29,7 @@ describe('Permissions', () => {
   describe('with no scopes activated', () => {
     beforeEach(() => {
       getPermissions.mockResolvedValue({
-        actions: new Set(),
+        actions: new Set(['read:books']),
         actionsByUser: { 'browse:books': new Set([1]) },
         scopes: { books: null },
       });
@@ -67,10 +67,19 @@ describe('Permissions', () => {
       expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(2);
     });
 
-    test('should not throw on allowed actions', async () => {
+    test('should not throw on allowed actions (allowed for all)', async () => {
+      const context = createMockContext({ state: { user: { renderingId: 1, id: 1 } } });
+
+      await expect(service.can(context, 'read:books')).resolves.not.toThrow();
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not throw on allowed actions (allowed by user)', async () => {
       const context = createMockContext({ state: { user: { renderingId: 1, id: 1 } } });
 
       await expect(service.can(context, 'browse:books')).resolves.not.toThrow();
+      expect(context.throw).not.toHaveBeenCalled();
       expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(1);
     });
 
