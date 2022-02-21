@@ -163,13 +163,13 @@ export default class ForestHttpApi {
     const actions = new Set<string>();
     const actionsByUser = {};
 
-    ForestHttpApi.decodeChartPermissions(body.stats, actions);
-    ForestHttpApi.decodeActionPermissions(body.data.collections, actions, actionsByUser);
+    ForestHttpApi.decodeChartPermissions(body?.stats ?? {}, actions);
+    ForestHttpApi.decodeActionPermissions(body?.data?.collections ?? {}, actions, actionsByUser);
 
     return {
       actions,
       actionsByUser,
-      scopes: ForestHttpApi.decodeScopePermissions(body.data.renderings[renderingId]),
+      scopes: ForestHttpApi.decodeScopePermissions(body?.data?.renderings?.[renderingId] ?? {}),
     };
   }
 
@@ -178,20 +178,23 @@ export default class ForestHttpApi {
     const serverCharts = Object.values<any>(chartsByType).flat();
     const frontendCharts = serverCharts.map(chart => ({
       type: chart.type,
-      filters: chart.filter ?? null,
-      aggregate: chart.aggregator ?? null,
-      aggregate_field: chart.aggregateFieldName ?? null,
-      collection: chart.sourceCollectionId ?? null,
-      time_range: chart.timeRange ?? null,
+      filters: chart.filter,
+      aggregate: chart.aggregator,
+      aggregate_field: chart.aggregateFieldName,
+      collection: chart.sourceCollectionId,
+      time_range: chart.timeRange,
       group_by_date_field: (chart.type === 'Line' && chart.groupByFieldName) || null,
       group_by_field: (chart.type !== 'Line' && chart.groupByFieldName) || null,
-      limit: chart.limit ?? null,
-      label_field: chart.labelFieldName ?? null,
-      relationship_field: chart.relationshipFieldName ?? null,
+      limit: chart.limit,
+      label_field: chart.labelFieldName,
+      relationship_field: chart.relationshipFieldName,
     }));
 
     const hashes = frontendCharts.map(chart =>
-      hashObject(chart, { respectType: false, excludeKeys: key => chart[key] === null }),
+      hashObject(chart, {
+        respectType: false,
+        excludeKeys: key => chart[key] === null || chart[key] === undefined,
+      }),
     );
 
     hashes.forEach(hash => actions.add(`chart:${hash}`));
@@ -208,13 +211,13 @@ export default class ForestHttpApi {
     actionsByUser: RenderingPerms['actionsByUser'],
   ): void {
     for (const [name, settings] of Object.entries<any>(collections)) {
-      for (const [actionName, userIds] of Object.entries<any>(settings.collection)) {
+      for (const [actionName, userIds] of Object.entries<any>(settings.collection ?? {})) {
         const shortName = actionName.substring(0, actionName.length - 'Enabled'.length);
         if (typeof userIds === 'boolean') actions.add(`${shortName}:${name}`);
         else actionsByUser[`${shortName}:${name}`] = new Set<number>(userIds);
       }
 
-      for (const [actionName, actionPerms] of Object.entries<any>(settings.actions)) {
+      for (const [actionName, actionPerms] of Object.entries<any>(settings.actions ?? {})) {
         const userIds = actionPerms.triggerEnabled;
         if (typeof userIds === 'boolean') actions.add(`custom:${actionName}:${name}`);
         else actionsByUser[`custom:${actionName}:${name}`] = new Set<number>(userIds);
