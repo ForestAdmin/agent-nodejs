@@ -21,6 +21,7 @@ enum ChartType {
   Objective = 'Objective',
   Pie = 'Pie',
   Line = 'Line',
+  Leaderboard = 'Leaderboard',
 }
 
 export default class Chart extends CollectionRoute {
@@ -150,6 +151,32 @@ export default class Chart extends CollectionRoute {
     }
 
     return dataPoints;
+  }
+
+  private async makeLeaderboardChart(
+    context: Context,
+  ): Promise<Array<{ key: string; value: number }>> {
+    const {
+      aggregate,
+      label_field: labelField,
+      relationship_field: relationshipField,
+      aggregate_field: aggregateField,
+      limit,
+    } = context.request.body;
+
+    const field = `${relationshipField}:${aggregateField}`;
+
+    const rows = await this.collection.aggregate(
+      await this.getFilter(context),
+      new Aggregation({
+        operation: aggregate,
+        field,
+        groups: [{ field: labelField }],
+      }),
+      Number(limit),
+    );
+
+    return rows.map(row => ({ key: row.group[labelField] as string, value: row.value as number }));
   }
 
   private async computeValue(context: Context, filter: Filter): Promise<number> {
