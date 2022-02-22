@@ -94,10 +94,10 @@ export default class SequelizeCollection extends BaseCollection {
 
     const unAmbigousField = (field: string) => {
       if (field.includes(':')) {
-        const [collectionName, fieldName] = field.split(':');
-        const model = this.model.associations[collectionName].target;
+        const [associationName, fieldName] = field.split(':');
+        const model = this.model.associations[associationName].target;
 
-        return `${collectionName}.${model.getAttributes()[fieldName].field}`;
+        return `${associationName}.${model.getAttributes()[fieldName].field}`;
       }
 
       return `${this.model.name}.${this.model.getAttributes()[field].field}`;

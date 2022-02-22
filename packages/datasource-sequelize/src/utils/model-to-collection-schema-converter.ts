@@ -33,7 +33,6 @@ export default class ModelToCollectionSchemaConverter {
           foreignKey: association.foreignKey,
           type: FieldTypes.ManyToOne,
         };
-        break;
       case BelongsToMany.name:
         return {
           foreignCollection: association.target.name,
@@ -46,7 +45,6 @@ export default class ModelToCollectionSchemaConverter {
           throughCollection: (association as any).through.model.name,
           type: FieldTypes.ManyToMany,
         };
-        break;
       case HasMany.name:
         return {
           foreignCollection: association.target.name,
