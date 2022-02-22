@@ -1,12 +1,4 @@
-import {
-  ColumnSchema,
-  CompositeId,
-  ConditionTreeFactory,
-  FieldValidator,
-  Filter,
-  RelationSchema,
-  SchemaUtils,
-} from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, Filter, SchemaUtils } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
