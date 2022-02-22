@@ -1,4 +1,5 @@
 import { Context } from 'koa';
+import { ManyToOneSchema, OneToOneSchema } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 
 import { HttpCode } from '../../types';
@@ -14,6 +15,11 @@ export default class UpdateEmbedded extends RelationRoute {
   }
 
   public async handleDissociateDeleteRelatedRoute(context: Context): Promise<void> {
+    const data = context.request.body?.data;
+    const relation = this.collection.schema.fields[data.type] as ManyToOneSchema | OneToOneSchema;
+
+    const filter = await this.collection.update(filter, { [relation.foreignKey]: data.ip });
+
     context.response.status = HttpCode.Ok;
   }
 }
