@@ -444,5 +444,23 @@ describe('SequelizeDataSource > Collection', () => {
         );
       });
     });
+
+    describe('with limit option', () => {
+      it('should add limit to query', async () => {
+        const { findAll, sequelizeCollection } = setup();
+        const aggregation = new Aggregation({
+          operation: AggregationOperation.Count,
+        });
+        const filter = new Filter({});
+        const limit = 1;
+
+        await expect(
+          sequelizeCollection.aggregate(filter, aggregation, limit),
+        ).resolves.not.toThrow();
+
+        expect(findAll).toHaveBeenCalledTimes(1);
+        expect(findAll).toHaveBeenCalledWith(expect.objectContaining({ limit }));
+      });
+    });
   });
 });
