@@ -478,4 +478,37 @@ describe('CollectionUtils', () => {
       });
     });
   });
+
+  describe('getRelationOrThrowError', () => {
+    test('should returns the relation when the relation is a many to many', () => {
+      const { dataSource } = setupWithManyToManyRelation();
+
+      const manyToManyCollection = dataSource.getCollection('books');
+      const result = CollectionUtils.getRelationOrThrowError(
+        manyToManyCollection,
+        'manyToManyRelationField',
+      );
+      expect(result).toEqual(manyToManyCollection.schema.fields.manyToManyRelationField);
+    });
+
+    test('should returns the relation when the relation is a one to many', () => {
+      const { dataSource } = setupWithOneToManyRelation();
+
+      const oneToManyRelation = dataSource.getCollection('books');
+      const result = CollectionUtils.getRelationOrThrowError(
+        oneToManyRelation,
+        'oneToManyRelationField',
+      );
+      expect(result).toEqual(oneToManyRelation.schema.fields.oneToManyRelationField);
+    });
+
+    test('should throw an error when the relation is not expected', () => {
+      const { dataSource } = setupWithUnsupportedRelation();
+
+      const unsupportedRelation = dataSource.getCollection('books');
+      expect(() =>
+        CollectionUtils.getRelationOrThrowError(unsupportedRelation, 'aNonSupportedRelationField'),
+      ).toThrow('This method can only be used with OneToMany and ManyToMany relations');
+    });
+  });
 });
