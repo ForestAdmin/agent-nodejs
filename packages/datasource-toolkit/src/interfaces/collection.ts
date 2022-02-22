@@ -28,5 +28,5 @@ export interface Collection {
 
   delete(filter: Filter): Promise<void>;
 
-  aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]>;
+  aggregate(filter: Filter, aggregation: Aggregation, limit?: number): Promise<AggregateResult[]>;
 }

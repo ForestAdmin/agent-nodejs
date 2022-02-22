@@ -80,5 +80,9 @@ export default abstract class BaseCollection implements Collection {
 
   abstract delete(filter: Filter): Promise<void>;
 
-  abstract aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]>;
+  abstract aggregate(
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]>;
 }

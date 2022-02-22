@@ -67,11 +67,11 @@ describe('CollectionDecorator', () => {
       });
       decoratedCollection.refineFilter = jest.fn().mockReturnValue(filter);
 
-      const result = await decoratedCollection.aggregate(filter, aggregation);
+      const result = await decoratedCollection.aggregate(filter, aggregation, null);
 
       expect(result).toStrictEqual([aggregateResult]);
       expect(decoratedCollection.refineFilter).toHaveBeenCalledWith(filter);
-      expect(childAggregate).toHaveBeenCalledWith(filter, aggregation);
+      expect(childAggregate).toHaveBeenCalledWith(filter, aggregation, null);
     });
   });
 

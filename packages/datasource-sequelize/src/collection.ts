@@ -82,7 +82,11 @@ export default class SequelizeCollection extends BaseCollection {
     await this.model.destroy({ ...FilterConverter.convertPaginatedFilterToSequelize(filter) });
   }
 
-  async aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
+  async aggregate(
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]> {
     const operation = aggregation.operation.toUpperCase();
     const field = aggregation.field ?? '*';
     const aggregateFieldName = '__aggregate__';
@@ -112,6 +116,7 @@ export default class SequelizeCollection extends BaseCollection {
       ...sequelizeFilter,
       attributes,
       group: groups,
+      limit,
     });
 
     const result = aggregates.map(aggregate => {

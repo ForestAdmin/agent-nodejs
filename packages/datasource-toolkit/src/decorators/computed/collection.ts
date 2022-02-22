@@ -6,6 +6,7 @@ import CollectionDecorator from '../collection-decorator';
 import CollectionUtils from '../../utils/collection';
 import DataSourceDecorator from '../datasource-decorator';
 import FieldValidator from '../../validation/field';
+import Filter from '../../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
 import ProxyField from './fields/proxy';
@@ -60,12 +61,13 @@ export default class ComputedCollection extends CollectionDecorator {
   }
 
   override async aggregate(
-    filter: PaginatedFilter,
+    filter: Filter,
     aggregation: Aggregation,
+    limit?: number,
   ): Promise<AggregateResult[]> {
     // No computed are used in the aggregation => just delegate to the underlying collection.
     if (!aggregation.projection.some(field => this.getComputed(field))) {
-      return this.childCollection.aggregate(filter, aggregation);
+      return this.childCollection.aggregate(filter, aggregation, limit);
     }
 
     // Fallback to full emulation.

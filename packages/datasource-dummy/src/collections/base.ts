@@ -77,9 +77,15 @@ export default class BaseDummyCollection extends BaseCollection {
     void filter;
   }
 
-  async aggregate(filter: PaginatedFilter, aggregation: Aggregation): Promise<AggregateResult[]> {
+  async aggregate(
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]> {
     const result = await this.list(filter, aggregation.projection);
 
-    return aggregation.apply(result, filter.timezone);
+    const aggregationResults = aggregation.apply(result, filter.timezone);
+
+    return limit ? aggregationResults.slice(0, limit) : aggregationResults;
   }
 }
