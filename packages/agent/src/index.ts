@@ -1,4 +1,6 @@
-import ForestAdminHttpDriver from './agent/forestadmin-http-driver';
+import Agent from './builder/agent';
 
 export * from './types';
-export { ForestAdminHttpDriver };
+export { default as Collection } from './builder/collection';
+
+export default Agent;

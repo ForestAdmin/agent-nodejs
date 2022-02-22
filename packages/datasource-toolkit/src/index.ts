@@ -14,6 +14,10 @@ export { default as SearchCollectionDecorator } from './decorators/search/collec
 export { default as SegmentCollectionDecorator } from './decorators/segment/collection';
 export { default as SortEmulateCollectionDecorator } from './decorators/sort-emulate/collection';
 
+export { Action as ActionDefinition } from './decorators/actions/types/actions';
+export * from './decorators/computed/types';
+export * from './decorators/operators-emulate/types';
+
 export { default as Aggregation } from './interfaces/query/aggregation';
 export { default as ConditionTree } from './interfaces/query/condition-tree/nodes/base';
 export { default as ConditionTreeBranch } from './interfaces/query/condition-tree/nodes/branch';
