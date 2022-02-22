@@ -7,6 +7,7 @@ import {
   Operator,
   Page,
   PaginatedFilter,
+  Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 import { Op } from 'sequelize';
@@ -315,6 +316,60 @@ describe('Utils > QueryConverter', () => {
             ['__a__', 'ASC'],
             ['__b__', 'DESC'],
           ],
+        });
+      });
+    });
+  });
+
+  describe('convertProjectionToSequelize', () => {
+    describe('when no project is given', () => {
+      it('should return empty object', () => {
+        expect(QueryConverter.convertProjectionToSequelize(null)).toStrictEqual({});
+      });
+    });
+
+    it('should return attributes', () => {
+      const projection = new Projection('field');
+      expect(QueryConverter.convertProjectionToSequelize(projection)).toEqual(
+        expect.objectContaining({
+          attributes: ['field'],
+        }),
+      );
+    });
+
+    describe('when projection have relation field', () => {
+      it('should add include', () => {
+        const projection = new Projection('model:another_field');
+        expect(QueryConverter.convertProjectionToSequelize(projection)).toEqual(
+          expect.objectContaining({
+            include: [{ association: 'model', attributes: ['another_field'], include: [] }],
+          }),
+        );
+      });
+
+      it('should add include recursively', () => {
+        const projection = new Projection('model:another_model:a_field');
+        expect(QueryConverter.convertProjectionToSequelize(projection)).toEqual(
+          expect.objectContaining({
+            include: [
+              {
+                association: 'model',
+                attributes: [],
+                include: [{ association: 'another_model', attributes: ['a_field'], include: [] }],
+              },
+            ],
+          }),
+        );
+      });
+
+      describe('when withAttributes option was false', () => {
+        it('should not add include attributes', () => {
+          const projection = new Projection('model:another_field');
+          expect(QueryConverter.convertProjectionToSequelize(projection, false)).toEqual(
+            expect.objectContaining({
+              include: [{ association: 'model', attributes: [], include: [] }],
+            }),
+          );
         });
       });
     });
