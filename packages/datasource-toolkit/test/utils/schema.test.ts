@@ -19,7 +19,7 @@ describe('SchemaUtils', () => {
     });
 
     test('should return null when the relation does not exist', () => {
-      const result = SchemaUtils.getForeignKeyName(schema, 'badRelationFiedl');
+      const result = SchemaUtils.getForeignKeyName(schema, 'badRelationField');
 
       expect(result).toStrictEqual(null);
     });

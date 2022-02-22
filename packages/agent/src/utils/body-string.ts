@@ -1,6 +1,6 @@
 import { AllRecordsMode } from './forest-http-api';
 
-export default class Data {
+export default class BodyString {
   static parseAllRecordsMode(context): AllRecordsMode {
     const attributes = context.request.body?.data?.attributes;
 

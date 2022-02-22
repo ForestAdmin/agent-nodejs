@@ -1,7 +1,16 @@
-import { PrimitiveTypes, ValidationError } from '@forestadmin/datasource-toolkit';
+import {
+  Aggregator,
+  Operator,
+  Page,
+  PaginatedFilter,
+  PrimitiveTypes,
+  Sort,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { HttpCode } from '../../../src/types';
 import DissociateDeleteRoute from '../../../src/routes/modification/dissociate-delete-related';
 
 export const setupWithManyToManyRelation = () => {
@@ -126,83 +135,135 @@ describe('DissociateDeleteRelatedRoute', () => {
   });
 
   describe('handleDissociateDeleteRelatedRoute', () => {
-    describe('when an empty id list is passed', () => {
-      test('should throw an error', async () => {
-        const { services, dataSource, options } = setupWithManyToManyRelation();
-        const count = new DissociateDeleteRoute(
-          services,
-          options,
-          dataSource,
-          dataSource.getCollection('books').name,
-          'manyToManyRelationField',
-        );
+    test('should throw an error when an empty id list is passed', async () => {
+      const { services, dataSource, options } = setupWithManyToManyRelation();
+      const count = new DissociateDeleteRoute(
+        services,
+        options,
+        dataSource,
+        dataSource.getCollection('books').name,
+        'manyToManyRelationField',
+      );
 
-        const customProperties = {
-          query: {
-            timezone: 'Europe/Paris',
-          },
-          params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
-        };
-        const requestBody = {
-          // no ids
-          data: [],
-        };
-        const context = createMockContext({ customProperties, requestBody });
+      const customProperties = {
+        query: {
+          timezone: 'Europe/Paris',
+        },
+        params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
+      };
+      const requestBody = {
+        // no ids
+        data: [],
+      };
+      const context = createMockContext({ customProperties, requestBody });
 
-        await expect(count.handleDissociateDeleteRelatedRoute(context)).rejects.toThrow(
-          new ValidationError('Expected no empty id list'),
-        );
-      });
+      await expect(count.handleDissociateDeleteRelatedRoute(context)).rejects.toThrow(
+        new ValidationError('Expected no empty id list'),
+      );
     });
 
-    describe('when it is a one to many relation', () => {
-      test('should throw an error when the given ids are not valid', async () => {
-        const { services, dataSource, options } = setupWithOneToManyRelation();
-        const count = new DissociateDeleteRoute(
-          services,
-          options,
-          dataSource,
-          dataSource.getCollection('books').name,
-          'myBookPersons',
-        );
+    test('should throw an error when the given ids are not valid', async () => {
+      const { services, dataSource, options } = setupWithOneToManyRelation();
+      const count = new DissociateDeleteRoute(
+        services,
+        options,
+        dataSource,
+        dataSource.getCollection('books').name,
+        'myBookPersons',
+      );
 
-        const customProperties = {
-          query: {
-            timezone: 'Europe/Paris',
-          },
-          params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
-        };
-        const requestBody = { data: [{ id: 'bad-uuid' }] };
-        const context = createMockContext({ customProperties, requestBody });
+      const customProperties = {
+        query: {
+          timezone: 'Europe/Paris',
+        },
+        params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
+      };
+      const requestBody = { data: [{ id: 'bad-uuid' }] };
+      const context = createMockContext({ customProperties, requestBody });
 
-        await expect(() => count.handleDissociateDeleteRelatedRoute(context)).rejects.toThrowError(
-          'bad-uuid',
-        );
-      });
+      await expect(() => count.handleDissociateDeleteRelatedRoute(context)).rejects.toThrowError(
+        'bad-uuid',
+      );
+    });
 
-      test('should throw an error when the parent id is not valid', async () => {
-        const { services, dataSource, options } = setupWithOneToManyRelation();
-        const count = new DissociateDeleteRoute(
-          services,
-          options,
-          dataSource,
-          dataSource.getCollection('books').name,
-          'myBookPersons',
-        );
+    test('should throw an error when the parent id is not valid', async () => {
+      const { services, dataSource, options } = setupWithOneToManyRelation();
+      const count = new DissociateDeleteRoute(
+        services,
+        options,
+        dataSource,
+        dataSource.getCollection('books').name,
+        'myBookPersons',
+      );
 
-        const customProperties = {
-          query: {
-            timezone: 'Europe/Paris',
-          },
-          params: { parentId: 'bad-uuid' },
-        };
-        const requestBody = { data: [{ id: '123e4567-e89b-12d3-a456-426614174088' }] };
-        const context = createMockContext({ customProperties, requestBody });
+      const customProperties = {
+        query: {
+          timezone: 'Europe/Paris',
+        },
+        params: { parentId: 'bad-uuid' },
+      };
+      const requestBody = { data: [{ id: '123e4567-e89b-12d3-a456-426614174088' }] };
+      const context = createMockContext({ customProperties, requestBody });
 
-        await expect(() => count.handleDissociateDeleteRelatedRoute(context)).rejects.toThrowError(
-          'bad-uuid',
-        );
-      });
+      await expect(() => count.handleDissociateDeleteRelatedRoute(context)).rejects.toThrowError(
+        'bad-uuid',
+      );
+    });
+
+    test('should generate a right paginated filter', async () => {
+      const { services, dataSource, options } = setupWithOneToManyRelation();
+      dataSource.getCollection('bookPersons').schema.segments = ['a-valid-segment'];
+
+      const count = new DissociateDeleteRoute(
+        services,
+        options,
+        dataSource,
+        dataSource.getCollection('books').name,
+        'myBookPersons',
+      );
+
+      const conditionTreeParams = {
+        filters: JSON.stringify({
+          aggregator: 'and',
+          conditions: [
+            { field: 'id', operator: 'equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+          ],
+        }),
+      };
+      const customProperties = {
+        query: {
+          ...conditionTreeParams,
+          segment: 'a-valid-segment',
+          timezone: 'Europe/Paris',
+        },
+        params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
+      };
+      const requestBody = {
+        data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }],
+      };
+      const context = createMockContext({ customProperties, requestBody });
+      await count.handleDissociateDeleteRelatedRoute(context);
+
+      expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
+        new PaginatedFilter({
+          conditionTree: factories.conditionTreeBranch.build({
+            aggregator: Aggregator.And,
+            conditions: expect.arrayContaining([
+              factories.conditionTreeLeaf.build({
+                operator: Operator.Equal,
+                value: '123e4567-e89b-12d3-a456-426614174000',
+                field: 'id',
+              }),
+            ]),
+          }),
+          segment: 'a-valid-segment',
+          timezone: 'Europe/Paris',
+          page: new Page(0, 15),
+          sort: new Sort({ field: 'id', ascending: true }),
+        }),
+        expect.any(Object),
+      );
+      expect(context.response.status).toEqual(HttpCode.NoContent);
     });
   });
 });

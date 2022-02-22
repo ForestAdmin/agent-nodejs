@@ -3,8 +3,8 @@ import { Context } from 'koa';
 import Router from '@koa/router';
 
 import { HttpCode } from '../../types';
+import BodyString from '../../utils/body-string';
 import CollectionRoute from '../collection-route';
-import Data from '../../utils/data';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 
@@ -24,7 +24,7 @@ export default class DeleteRoute extends CollectionRoute {
   }
 
   public async handleListDelete(context: Context): Promise<void> {
-    const allRecordsMode = Data.parseAllRecordsMode(context);
+    const allRecordsMode = BodyString.parseAllRecordsMode(context);
     const ids = context.request.body?.data?.attributes?.ids;
     const unpackedIds = IdUtils.unpackIds(
       this.collection.schema,
