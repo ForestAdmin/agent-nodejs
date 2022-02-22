@@ -1,8 +1,17 @@
+import {
+  ColumnSchema,
+  CompositeId,
+  ConditionTreeFactory,
+  FieldValidator,
+  Filter,
+  RelationSchema,
+  SchemaUtils,
+} from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
-import { ManyToOneSchema, OneToOneSchema } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 
 import { HttpCode } from '../../types';
+import IdUtils from '../../utils/id';
 import RelationRoute from '../relation-route';
 
 export default class UpdateEmbedded extends RelationRoute {
@@ -10,16 +19,23 @@ export default class UpdateEmbedded extends RelationRoute {
     router.put(
       `/${this.collection.name}/:parentId/relationships/${this.relationName}`,
 
-      this.handleDissociateDeleteRelatedRoute.bind(this),
+      this.handleUpdateEmbeddedRoute.bind(this),
     );
   }
 
-  public async handleDissociateDeleteRelatedRoute(context: Context): Promise<void> {
+  public async handleUpdateEmbeddedRoute(context: Context): Promise<void> {
     const data = context.request.body?.data;
-    const relation = this.collection.schema.fields[data.type] as ManyToOneSchema | OneToOneSchema;
 
-    const filter = await this.collection.update(filter, { [relation.foreignKey]: data.ip });
+    const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
+    const id = IdUtils.unpackId(this.foreignCollection.schema, data.id);
+    const foreignKey = SchemaUtils.getForeignKeyName(this.collection.schema, data.type);
 
+    const conditionTree = ConditionTreeFactory.intersect(
+      ConditionTreeFactory.matchIds(this.collection.schema, [parentId]),
+      await this.services.permissions.getScope(this.collection, context),
+    );
+
+    await this.collection.update(new Filter({ conditionTree }), { [foreignKey]: id });
     context.response.status = HttpCode.Ok;
   }
 }
