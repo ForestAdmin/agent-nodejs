@@ -65,7 +65,7 @@ describe('CountRelatedRoute', () => {
       services,
       options,
       dataSource,
-      dataSource.getCollection('books').name,
+      'books',
       oneToManyRelationName,
     );
     count.setupRoutes(router);
@@ -87,7 +87,7 @@ describe('CountRelatedRoute', () => {
           services,
           options,
           dataSource,
-          dataSource.getCollection('books').name,
+          'books',
           oneToManyRelationName,
         );
 
@@ -148,7 +148,7 @@ describe('CountRelatedRoute', () => {
             services,
             options,
             dataSource,
-            dataSource.getCollection('books').name,
+            'books',
             oneToManyRelationName,
           );
 
@@ -172,7 +172,7 @@ describe('CountRelatedRoute', () => {
           services,
           options,
           dataSource,
-          dataSource.getCollection('books').name,
+          'books',
           oneToManyRelationName,
         );
 
@@ -194,7 +194,7 @@ describe('CountRelatedRoute', () => {
           services,
           options,
           dataSource,
-          dataSource.getCollection('books').name,
+          'books',
           oneToManyRelationName,
         );
 

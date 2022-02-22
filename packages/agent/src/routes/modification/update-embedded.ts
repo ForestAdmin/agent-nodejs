@@ -21,7 +21,7 @@ export default class UpdateEmbedded extends RelationRoute {
     const data = context.request.body?.data;
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-    const id = IdUtils.unpackId(this.foreignCollection.schema, data.id);
+    const newId = IdUtils.unpackId(this.foreignCollection.schema, data.id);
     const foreignKey = SchemaUtils.getForeignKeyName(this.collection.schema, data.type);
 
     const conditionTree = ConditionTreeFactory.intersect(
@@ -29,7 +29,7 @@ export default class UpdateEmbedded extends RelationRoute {
       await this.services.permissions.getScope(this.collection, context),
     );
 
-    await this.collection.update(new Filter({ conditionTree }), { [foreignKey]: id });
-    context.response.status = HttpCode.Ok;
+    await this.collection.update(new Filter({ conditionTree }), { [foreignKey]: newId });
+    context.response.status = HttpCode.NoContent;
   }
 }
