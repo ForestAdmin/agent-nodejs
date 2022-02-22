@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CompositeId, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
+import { ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 import { IssuerMetadata } from 'openid-client';
 import { JSONAPIDocument } from 'json-api-serializer';
 import hashObject from 'object-hash';
@@ -27,11 +27,6 @@ export type UserInfo = {
   renderingId: number;
   role: string;
   tags: { [key: string]: string };
-};
-
-export type AllRecordsMode = {
-  isActivated: boolean;
-  excludedIds: CompositeId[];
 };
 
 export type RenderingPermissions = {

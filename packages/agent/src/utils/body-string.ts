@@ -1,12 +1,17 @@
-import { AllRecordsMode } from './forest-http-api';
+import { CollectionSchema } from '@forestadmin/datasource-toolkit';
+import { Context } from 'koa';
+import { SelectionIds } from '../types';
+import IdUtils from './id';
 
-export default class BodyString {
-  static parseAllRecordsMode(context): AllRecordsMode {
-    const attributes = context.request.body?.data?.attributes;
+export default class BodyStringParser {
+  static parseSelectionIds(schema: CollectionSchema, context: Context): SelectionIds {
+    const data = context.request.body?.data;
+    const attributes = data?.attributes;
+    const areExcluded = Boolean(attributes?.all_records);
+    let ids =
+      attributes?.ids || data?.ids || (Array.isArray(data) && data.map(r => r.id)) || undefined;
+    ids = IdUtils.unpackIds(schema, areExcluded ? attributes?.all_records_ids_excluded : ids);
 
-    return {
-      isActivated: Boolean(attributes?.all_records),
-      excludedIds: attributes?.all_records_ids_excluded,
-    };
+    return { areExcluded, ids };
   }
 }

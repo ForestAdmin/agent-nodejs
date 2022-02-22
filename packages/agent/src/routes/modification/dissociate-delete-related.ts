@@ -21,9 +21,8 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { AllRecordsMode } from '../../utils/forest-http-api';
-import { HttpCode } from '../../types';
-import BodyString from '../../utils/body-string';
+import { HttpCode, SelectionIds } from '../../types';
+import BodyStringParser from '../../utils/body-string';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';
@@ -38,17 +37,11 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
   }
 
   public async handleDissociateDeleteRelatedRoute(context: Context): Promise<void> {
-    const data = context.request.body?.data;
     const isDeleteMode = Boolean(context.request.query?.delete);
-    const allRecordsMode = BodyString.parseAllRecordsMode(context);
-
+    const selectionIds = BodyStringParser.parseSelectionIds(this.foreignCollection.schema, context);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-    const ids = IdUtils.unpackIds(
-      this.foreignCollection.schema,
-      allRecordsMode.isActivated ? allRecordsMode.excludedIds : data.map(r => r.id),
-    );
 
-    if (ids.length === 0 && !allRecordsMode.isActivated) {
+    if (selectionIds.ids.length === 0 && !selectionIds.areExcluded) {
       throw new ValidationError('Expected no empty id list');
     }
 
@@ -63,14 +56,13 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
       sort: QueryStringParser.parseSort(this.foreignCollection, context),
     });
 
-    await this.dissociateOrDeleteData(filter, ids, allRecordsMode, isDeleteMode, parentId);
+    await this.dissociateOrDeleteData(filter, selectionIds, isDeleteMode, parentId);
     context.response.status = HttpCode.NoContent;
   }
 
   private async dissociateOrDeleteData(
     filter: PaginatedFilter,
-    ids: CompositeId[],
-    allRecordsMode: AllRecordsMode,
+    selectionIds: SelectionIds,
     isDeleteMode: boolean,
     parentId: CompositeId,
   ): Promise<void> {
@@ -78,12 +70,15 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     const schema = CollectionUtils.getRelationOrThrowError(this.collection, this.relationName);
 
     if (schema.type === FieldTypes.ManyToMany)
-      return this.applyForManyToMany(schema, filter, ids, allRecordsMode, parentId, isDeleteMode);
+      return this.applyForManyToMany(schema, filter, selectionIds, parentId, isDeleteMode);
 
-    const condition = ConditionTreeFactory.matchIds(this.foreignCollection.schema, ids);
+    const condition = ConditionTreeFactory.matchIds(
+      this.foreignCollection.schema,
+      selectionIds.ids,
+    );
     const conditionTree = ConditionTreeFactory.intersect(
       filter.conditionTree,
-      allRecordsMode.isActivated ? condition.inverse() : condition,
+      selectionIds.areExcluded ? condition.inverse() : condition,
       new ConditionTreeLeaf(schema.foreignKey, Operator.Equal, parentId[0]),
     );
     const updatedFilter = filter.override({ conditionTree });
@@ -96,8 +91,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
   private async applyForManyToMany(
     schemaRelation: ManyToManySchema,
     filter: Filter,
-    ids: CompositeId[],
-    allRecordsMode: AllRecordsMode,
+    selectionIds: SelectionIds,
     parentId: CompositeId,
     deleteMode: boolean,
   ): Promise<void> {
@@ -107,8 +101,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     let conditionTree = ConditionTreeFactory.intersect(
       filter.conditionTree?.nest(schemaRelation.targetRelation),
       DissociateDeleteRelatedRoute.generateConditionsToMatchRecords(
-        ids,
-        allRecordsMode.isActivated,
+        selectionIds,
         manyToManyCollection,
         schemaRelation,
         parentId,
@@ -138,8 +131,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
   }
 
   private static generateConditionsToMatchRecords(
-    ids: CompositeId[],
-    areIdsExcluded: boolean,
+    selectionIds: SelectionIds,
     manyToManyCollection: Collection,
     schemaRelation: ManyToManySchema,
     parentId: CompositeId,
@@ -148,13 +140,13 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
       schemaRelation.originRelation
     ] as OneToManySchema;
 
-    if (ids.length === 0 && areIdsExcluded)
+    if (selectionIds.ids.length === 0 && selectionIds.areExcluded)
       return new ConditionTreeLeaf(originRelation.foreignKey, Operator.Equal, parentId[0]);
 
     const inCondition = new ConditionTreeLeaf(
       SchemaUtils.getForeignKeyName(manyToManyCollection.schema, schemaRelation.targetRelation),
       Operator.In,
-      ids.flat(),
+      selectionIds.ids.flat(),
     );
 
     return new ConditionTreeBranch(Aggregator.And, [
@@ -163,7 +155,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
         Operator.Equal,
         parentId[0],
       ),
-      areIdsExcluded ? inCondition.inverse() : inCondition,
+      selectionIds.areExcluded ? inCondition.inverse() : inCondition,
     ]);
   }
 }

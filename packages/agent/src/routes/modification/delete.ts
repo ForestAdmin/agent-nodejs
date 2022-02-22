@@ -1,9 +1,9 @@
-import { CompositeId, ConditionTreeFactory, Filter } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, Filter } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { HttpCode } from '../../types';
-import BodyString from '../../utils/body-string';
+import { HttpCode, SelectionIds } from '../../types';
+import BodyStringParser from '../../utils/body-string';
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -18,31 +18,21 @@ export default class DeleteRoute extends CollectionRoute {
     await this.services.permissions.can(context, `delete:${this.collection.name}`);
 
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
-    await this.deleteRecords(context, [id]);
+    await this.deleteRecords(context, { ids: [id], areExcluded: false });
 
     context.response.status = HttpCode.NoContent;
   }
 
   public async handleListDelete(context: Context): Promise<void> {
-    const allRecordsMode = BodyString.parseAllRecordsMode(context);
-    const ids = context.request.body?.data?.attributes?.ids;
-    const unpackedIds = IdUtils.unpackIds(
-      this.collection.schema,
-      allRecordsMode.isActivated ? allRecordsMode.excludedIds : ids,
-    );
-
-    await this.deleteRecords(context, unpackedIds, allRecordsMode.isActivated);
+    const selectionIds = BodyStringParser.parseSelectionIds(this.collection.schema, context);
+    await this.deleteRecords(context, selectionIds);
 
     context.response.status = HttpCode.NoContent;
   }
 
-  private async deleteRecords(
-    context: Context,
-    ids: CompositeId[],
-    isRemoveAllRecords = false,
-  ): Promise<void> {
-    let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, ids);
-    if (isRemoveAllRecords) selectedIds = selectedIds.inverse();
+  private async deleteRecords(context: Context, selectionIds: SelectionIds): Promise<void> {
+    let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
+    if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
 
     const filter = new Filter({
       conditionTree: ConditionTreeFactory.intersect(
