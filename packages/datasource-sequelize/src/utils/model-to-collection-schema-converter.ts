@@ -38,11 +38,9 @@ export default class ModelToCollectionSchemaConverter {
           foreignCollection: association.target.name,
           foreignKey: association.foreignKey,
           originRelation: association.source.name,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          otherField: (association as any).otherKey,
+          otherField: (association as BelongsToMany).otherKey,
           targetRelation: association.target.name,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          throughCollection: (association as any).through.model.name,
+          throughCollection: (association as BelongsToMany).through.model.name,
           type: FieldTypes.ManyToMany,
         };
       case HasMany.name:

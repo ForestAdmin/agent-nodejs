@@ -1,0 +1,12 @@
+diff --git a/node_modules/sequelize/dist/lib/associations/belongs-to-many.d.ts b/node_modules/sequelize/dist/lib/associations/belongs-to-many.d.ts
+index af3e307..2f6569f 100644
+--- a/node_modules/sequelize/dist/lib/associations/belongs-to-many.d.ts
++++ b/node_modules/sequelize/dist/lib/associations/belongs-to-many.d.ts
+@@ -98,6 +98,7 @@ export class BelongsToMany<S extends Model = Model, T extends Model = Model> ext
+   public sourceKey: string;
+   public targetKey: string;
+   public accessors: MultiAssociationAccessors;
++  public through: { model: ModelType };
+   constructor(source: ModelCtor<S>, target: ModelCtor<T>, options: BelongsToManyOptions);
+ }
+ 

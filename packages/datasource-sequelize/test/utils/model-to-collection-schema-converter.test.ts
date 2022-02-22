@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Association, DataTypes, ModelDefined, Sequelize } from 'sequelize';
 import { CollectionSchema, FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import { DataTypes, Sequelize } from 'sequelize';
 import ModelToCollectionSchemaConverter from '../../src/utils/model-to-collection-schema-converter';
 import TypeConverter from '../../src/utils/type-converter';
 
@@ -130,6 +131,159 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
       );
 
       expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+    });
+
+    describe('whith model containing associations', () => {
+      describe('with belongsTo relation', () => {
+        it('should build correct schema', () => {
+          const { sequelize } = setup();
+
+          const model = sequelize.define('__model__', {}, { timestamps: false });
+          const model2 = sequelize.define('__model2__', {}, { timestamps: false });
+          model.belongsTo(model2);
+
+          const schema: CollectionSchema = {
+            actions: {},
+            fields: {
+              Model2Id: {
+                columnType: PrimitiveTypes.Number,
+                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                type: FieldTypes.Column,
+              },
+              __model2__: {
+                foreignCollection: '__model2__',
+                foreignKey: 'Model2Id',
+                type: FieldTypes.ManyToOne,
+              },
+              id: {
+                columnType: PrimitiveTypes.Number,
+                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                isPrimaryKey: true,
+                type: FieldTypes.Column,
+              },
+            },
+            searchable: false,
+            segments: [],
+          };
+
+          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+        });
+      });
+
+      describe('with belongsToMany relation', () => {
+        it('should build correct schema', () => {
+          const { sequelize } = setup();
+
+          const model = sequelize.define('__model__', {}, { timestamps: false });
+          const model2 = sequelize.define('__model2__', {}, { timestamps: false });
+          model.belongsToMany(model2, { through: 'ss' });
+          model2.belongsToMany(model, { through: 'ss' });
+
+          const schema: CollectionSchema = {
+            actions: {},
+            fields: {
+              __model2__s: {
+                foreignCollection: '__model2__',
+                foreignKey: 'ModelId',
+                originRelation: '__model__',
+                otherField: 'Model2Id',
+                targetRelation: '__model2__',
+                throughCollection: 'ss',
+                type: FieldTypes.ManyToMany,
+              },
+              id: {
+                columnType: PrimitiveTypes.Number,
+                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                isPrimaryKey: true,
+                type: FieldTypes.Column,
+              },
+            },
+            searchable: false,
+            segments: [],
+          };
+
+          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+        });
+      });
+
+      describe('with hasMany relation', () => {
+        it('should build correct schema', () => {
+          const { sequelize } = setup();
+
+          const model = sequelize.define('__model__', {}, { timestamps: false });
+          const model2 = sequelize.define('__model2__', {}, { timestamps: false });
+          model.hasMany(model2);
+
+          const schema: CollectionSchema = {
+            actions: {},
+            fields: {
+              __model2__s: {
+                foreignCollection: '__model2__',
+                foreignKey: 'ModelId',
+                type: FieldTypes.OneToMany,
+              },
+              id: {
+                columnType: PrimitiveTypes.Number,
+                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                isPrimaryKey: true,
+                type: FieldTypes.Column,
+              },
+            },
+            searchable: false,
+            segments: [],
+          };
+
+          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+        });
+      });
+
+      describe('with hasOne relation', () => {
+        it('should build correct schema', () => {
+          const { sequelize } = setup();
+
+          const model = sequelize.define('__model__', {}, { timestamps: false });
+          const model2 = sequelize.define('__model2__', {}, { timestamps: false });
+          model.hasOne(model2);
+
+          const schema: CollectionSchema = {
+            actions: {},
+            fields: {
+              __model2__: {
+                foreignCollection: '__model2__',
+                foreignKey: 'ModelId',
+                type: FieldTypes.OneToOne,
+              },
+              id: {
+                columnType: PrimitiveTypes.Number,
+                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                isPrimaryKey: true,
+                type: FieldTypes.Column,
+              },
+            },
+            searchable: false,
+            segments: [],
+          };
+
+          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+        });
+      });
+
+      describe('when association is unknown', () => {
+        it('should throw an error', () => {
+          const model = {
+            getAttributes: () => ({}),
+            associations: {
+              relationsModel: {
+                associationType: 'badAssociation',
+              } as Association,
+            } as ModelDefined<any, any>['associations'],
+          } as ModelDefined<any, any>;
+
+          expect(() => ModelToCollectionSchemaConverter.convert(model)).toThrow(
+            'Unsupported association: "badAssociation".',
+          );
+        });
+      });
     });
   });
 });
