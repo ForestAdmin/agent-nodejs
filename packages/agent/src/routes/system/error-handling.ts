@@ -48,6 +48,8 @@ export default class ErrorHandling extends BaseRoute {
     }
 
     console.error('');
+    console.error('\x1b[31m', error.message, '\x1b[0m');
+    console.error('');
     console.error(error.stack);
     console.error(`\x1b[33m===================================\x1b[0m`);
     console.error('');
