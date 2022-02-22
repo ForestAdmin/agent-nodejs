@@ -6,7 +6,7 @@
   "dependencies": {
     "@forestadmin/datasource-sequelize": "^1.0.0",
     "@forestadmin/datasource-toolkit": "^1.0.0",
-    "sequelize": "~6.14.1",
+    "sequelize": "6.14.1",
     "sqlite3": "^5.0.2"
   },
   "files": [
