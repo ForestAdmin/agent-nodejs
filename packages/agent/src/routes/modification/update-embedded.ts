@@ -16,6 +16,8 @@ export default class UpdateEmbedded extends RelationRoute {
   }
 
   public async handleUpdateEmbeddedRoute(context: Context): Promise<void> {
+    await this.services.permissions.can(context, `edit:${this.collection.name}`);
+
     const data = context.request.body?.data;
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
