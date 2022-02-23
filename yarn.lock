@@ -1805,7 +1805,7 @@
     jest-diff "^27.0.0"
     pretty-format "^27.0.0"
 
-"@types/json-api-serializer@^2.6.3":
+"@types/json-api-serializer@2.6.3":
   version "2.6.3"
   resolved "https://registry.yarnpkg.com/@types/json-api-serializer/-/json-api-serializer-2.6.3.tgz#fc1c1afa64ad1b87abdb33ffa0359a5f5a12a5e5"
   integrity sha512-u+lY4YjPQ4BbwXH+W5rWopjkKESOElbnSZXaRFTfYOyw4QPOE8dX/9PeWQ8CScC8tBgCRb18hVb8vewaHwXa1A==
