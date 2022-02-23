@@ -26,18 +26,6 @@ describe('BodyStringParserParser', () => {
       });
     });
 
-    test('should return ids when is passed by data.ids', () => {
-      const context = createMockContext({
-        requestBody: {
-          data: { ids: ['2d162303-78bf-599e-b197-93590ac3d315'] },
-        },
-      });
-      expect(BodyStringParser.parseSelectionIds(setupSchema(), context)).toEqual({
-        areExcluded: false,
-        ids: [['2d162303-78bf-599e-b197-93590ac3d315']],
-      });
-    });
-
     test('should return ids when is passed by data[{id...}]', () => {
       const context = createMockContext({
         requestBody: {

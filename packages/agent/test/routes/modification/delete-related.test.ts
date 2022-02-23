@@ -66,6 +66,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:bookPersons');
     });
 
     describe('when all records mode is activated', () => {
@@ -251,9 +252,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:libraries');
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:librariesBooks');
     });
 
-    describe('when all records mode is activated', () => {
+    describe('when the given ids should be excluded', () => {
       test('should remove all the related records except excluded records', async () => {
         const { services, dataSource, options } = setupWithManyToManyRelation();
 

@@ -242,6 +242,10 @@ describe('DissociateDeleteRelatedRoute', () => {
         data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }],
       };
       const context = createMockContext({ customProperties, requestBody });
+
+      const scopeCondition = factories.conditionTreeLeaf.build();
+      services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
+
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
@@ -249,6 +253,7 @@ describe('DissociateDeleteRelatedRoute', () => {
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: Aggregator.And,
             conditions: expect.arrayContaining([
+              scopeCondition,
               factories.conditionTreeLeaf.build({
                 operator: Operator.Equal,
                 value: '123e4567-e89b-12d3-a456-426614174000',

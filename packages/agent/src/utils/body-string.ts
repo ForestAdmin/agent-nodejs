@@ -8,8 +8,7 @@ export default class BodyStringParser {
     const data = context.request.body?.data;
     const attributes = data?.attributes;
     const areExcluded = Boolean(attributes?.all_records);
-    let ids =
-      attributes?.ids || data?.ids || (Array.isArray(data) && data.map(r => r.id)) || undefined;
+    let ids = attributes?.ids || (Array.isArray(data) && data.map(r => r.id)) || undefined;
     ids = IdUtils.unpackIds(schema, areExcluded ? attributes?.all_records_ids_excluded : ids);
 
     return { areExcluded, ids };
