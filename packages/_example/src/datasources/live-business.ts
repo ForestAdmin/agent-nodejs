@@ -37,13 +37,13 @@ const syndicateCollection: CollectionSchema = {
       columnType: PrimitiveTypes.String,
       type: FieldTypes.Column,
     },
-    user: {
-      foreignCollection: 'users',
+    users: {
+      foreignCollection: 'user',
       foreignKey: 'userId',
-      originRelation: 'syndicates',
+      originRelation: 'syndicate',
       otherField: 'syndicateId',
       targetRelation: 'users',
-      throughCollection: 'userSyndicates',
+      throughCollection: 'userSyndicate',
       type: FieldTypes.ManyToMany,
     },
   },
@@ -68,22 +68,22 @@ const userCollection: CollectionSchema = {
       type: FieldTypes.Column,
     },
     companyId: {
-      foreignCollection: 'companies',
+      foreignCollection: 'companie',
       foreignKey: 'id',
       type: FieldTypes.ManyToOne,
     },
     items: {
-      foreignCollection: 'items',
+      foreignCollection: 'item',
       foreignKey: 'userId',
       type: FieldTypes.OneToMany,
     },
-    syndicates: {
-      foreignCollection: 'syndicates',
+    syndicate: {
+      foreignCollection: 'syndicate',
       foreignKey: 'syndicateId',
-      originRelation: 'users',
+      originRelation: 'user',
       otherField: 'userId',
-      targetRelation: 'syndicates',
-      throughCollection: 'userSyndicates',
+      targetRelation: 'syndicate',
+      throughCollection: 'userSyndicate',
       type: FieldTypes.ManyToMany,
     },
   },
@@ -98,13 +98,13 @@ const userSyndicateCollection: CollectionSchema = {
       columnType: PrimitiveTypes.Number,
       type: FieldTypes.Column,
     },
-    users: {
-      foreignCollection: 'users',
+    user: {
+      foreignCollection: 'user',
       foreignKey: 'id',
       type: FieldTypes.ManyToOne,
     },
-    syndicates: {
-      foreignCollection: 'syndicates',
+    syndicate: {
+      foreignCollection: 'syndicate',
       foreignKey: 'id',
       type: FieldTypes.ManyToOne,
     },
@@ -130,7 +130,7 @@ const itemCollection: CollectionSchema = {
       type: FieldTypes.Column,
     },
     userId: {
-      foreignCollection: 'users',
+      foreignCollection: 'user',
       foreignKey: 'id',
       type: FieldTypes.ManyToOne,
     },
@@ -147,7 +147,7 @@ const itemReferenceCollection: CollectionSchema = {
       type: FieldTypes.Column,
     },
     itemId: {
-      foreignCollection: 'items',
+      foreignCollection: 'item',
       foreignKey: 'id',
       type: FieldTypes.OneToOne,
     },
@@ -158,12 +158,12 @@ const itemReferenceCollection: CollectionSchema = {
 
 const dataSourceSchema: DataSourceSchema = {
   collections: {
-    companies: companyCollection,
-    itemReferences: itemReferenceCollection,
-    items: itemCollection,
-    syndicates: syndicateCollection,
-    users: userCollection,
-    userSyndicates: userSyndicateCollection,
+    companie: companyCollection,
+    itemReference: itemReferenceCollection,
+    item: itemCollection,
+    syndicate: syndicateCollection,
+    user: userCollection,
+    userSyndicate: userSyndicateCollection,
   },
 };
 

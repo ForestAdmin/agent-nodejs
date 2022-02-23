@@ -9,25 +9,35 @@ import {
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
-import { FindOptions, Op, OrOperator, Order, WhereOperators, WhereOptions } from 'sequelize';
+import {
+  FindOptions,
+  IncludeOptions,
+  Op,
+  OrOperator,
+  Order,
+  WhereOperators,
+  WhereOptions,
+  col,
+} from 'sequelize';
 
 export default class QueryConverter {
-  private static asArray(value) {
+  private static asArray(value: unknown) {
     if (!Array.isArray(value)) return [value];
 
     return value;
   }
 
-  private static makeWhereClause(operator: Operator, value?): WhereOperators | OrOperator {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private static makeWhereClause(operator: Operator, value?: any): WhereOperators | OrOperator {
     if (operator === null) throw new Error('Invalid (null) operator.');
 
     switch (operator) {
       case Operator.Blank:
         return { [Op.or]: [this.makeWhereClause(Operator.Missing), { [Op.eq]: '' }] };
       case Operator.Contains:
-        return { [Op.iLike]: `%${value}%` };
+        return { [Op.like]: `%${value}%` };
       case Operator.EndsWith:
-        return { [Op.iLike]: `%${value}` };
+        return { [Op.like]: `%${value}` };
       case Operator.Equal:
         return { [Op.eq]: value };
       case Operator.GreaterThan:
@@ -49,7 +59,7 @@ export default class QueryConverter {
       case Operator.Present:
         return { [Op.not]: { [Op.is]: null } };
       case Operator.StartsWith:
-        return { [Op.iLike]: `${value}%` };
+        return { [Op.like]: `${value}%` };
       default:
         throw new Error(`Unsupported operator: "${operator}".`);
     }
@@ -116,7 +126,10 @@ export default class QueryConverter {
     return sequelizeFilter;
   }
 
-  public static convertPaginatedFilterToSequelize(filter: PaginatedFilter): FindOptions {
+  public static convertPaginatedFilterToSequelize(
+    modelName: string,
+    filter: PaginatedFilter,
+  ): FindOptions {
     const sequelizeFilter = this.convertFilterToSequelize(filter);
 
     const pageLimit = filter.page?.limit ?? null;
@@ -125,9 +138,9 @@ export default class QueryConverter {
     if (pageLimit !== null) sequelizeFilter.limit = pageLimit;
     if (pageOffset !== null) sequelizeFilter.offset = pageOffset;
 
-    const order: Order = filter.sort?.map(value => [
-      value.field,
-      value.ascending === false ? 'DESC' : 'ASC',
+    const order: Order = filter.sort?.map(({ field, ascending }) => [
+      col(field.includes(':') ? field.replace(':', '.') : `${modelName}.${field}`),
+      ascending === false ? 'DESC' : 'ASC',
     ]);
 
     if (Array.isArray(order) && order.length > 0) sequelizeFilter.order = order;
@@ -138,8 +151,8 @@ export default class QueryConverter {
   private static convertProjectionRelationsToSequelize(
     relations: Record<string, Projection>,
     withAttributes = true,
-  ) {
-    const sequelizeInclude = [];
+  ): IncludeOptions[] {
+    const sequelizeInclude: IncludeOptions[] = [];
 
     Object.entries(relations).forEach(([key, relation]: [string, Projection]) => {
       sequelizeInclude.push({

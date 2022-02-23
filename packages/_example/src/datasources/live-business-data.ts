@@ -6,7 +6,7 @@ export default async function loadExampleData(dataSource) {
   const itemReferenceRecords = [];
   const userSyndicateRecords = [];
 
-  const companies = await dataSource.getCollection('companies').create(companyRecords);
+  const companies = await dataSource.getCollection('companie').create(companyRecords);
 
   companies.forEach(company => {
     for (let i = 0; i < 5; i += 1) {
@@ -21,9 +21,9 @@ export default async function loadExampleData(dataSource) {
     }
   });
 
-  const syndicates = await dataSource.getCollection('syndicates').create(syndicateRecords);
+  const syndicates = await dataSource.getCollection('syndicate').create(syndicateRecords);
 
-  const users = await dataSource.getCollection('users').create(userRecords);
+  const users = await dataSource.getCollection('user').create(userRecords);
 
   users.forEach(user => {
     for (let i = 0; i < 5; i += 1) {
@@ -47,15 +47,15 @@ export default async function loadExampleData(dataSource) {
     });
   });
 
-  await dataSource.getCollection('userSyndicates').create(userSyndicateRecords);
+  await dataSource.getCollection('userSyndicate').create(userSyndicateRecords);
 
   const itemReferences = await dataSource
-    .getCollection('itemReferences')
+    .getCollection('itemReference')
     .create(itemReferenceRecords);
 
   itemReferences.forEach((itemReference, index) => {
     itemRecords[index].itemReferenceId = itemReference.id;
   });
 
-  await dataSource.getCollection('items').create(itemRecords);
+  await dataSource.getCollection('item').create(itemRecords);
 }

@@ -119,8 +119,8 @@ describe('Utils > QueryConverter', () => {
 
         it.each([
           ['Operator.Blank', undefined, { [Op.or]: [{ [Op.is]: null }, { [Op.eq]: '' }] }],
-          ['Operator.Contains', '__value__', { [Op.iLike]: '%__value__%' }],
-          ['Operator.EndsWith', '__value__', { [Op.iLike]: '%__value__' }],
+          ['Operator.Contains', '__value__', { [Op.like]: '%__value__%' }],
+          ['Operator.EndsWith', '__value__', { [Op.like]: '%__value__' }],
           ['Operator.Equal', defaultIntegerValue, { [Op.eq]: defaultIntegerValue }],
           ['Operator.GreaterThan', defaultIntegerValue, { [Op.gt]: defaultIntegerValue }],
           ['Operator.In', defaultArrayValue, { [Op.in]: defaultArrayValue }],
@@ -131,7 +131,7 @@ describe('Utils > QueryConverter', () => {
           ['Operator.NotEqual', defaultIntegerValue, { [Op.ne]: defaultIntegerValue }],
           ['Operator.NotIn', defaultArrayValue, { [Op.notIn]: defaultArrayValue }],
           ['Operator.Present', undefined, { [Op.not]: { [Op.is]: null } }],
-          ['Operator.StartsWith', '__value__', { [Op.iLike]: '__value__%' }],
+          ['Operator.StartsWith', '__value__', { [Op.like]: '__value__%' }],
         ])(
           'should generate a "where" Sequelize filter from a "%s" ConditionTreeLeaf',
           (operator, value, where) => {
@@ -253,9 +253,9 @@ describe('Utils > QueryConverter', () => {
       const defaultInputFilter = new PaginatedFilter({});
       const defaultPaginatedFilter = {};
 
-      expect(QueryConverter.convertPaginatedFilterToSequelize(defaultInputFilter)).toEqual(
-        defaultPaginatedFilter,
-      );
+      expect(
+        QueryConverter.convertPaginatedFilterToSequelize('modelName', defaultInputFilter),
+      ).toEqual(defaultPaginatedFilter);
     });
 
     describe('with paging', () => {
@@ -264,7 +264,9 @@ describe('Utils > QueryConverter', () => {
           page: new Page(42),
         });
 
-        expect(QueryConverter.convertPaginatedFilterToSequelize(noLimitFilter)).toEqual({
+        expect(
+          QueryConverter.convertPaginatedFilterToSequelize('modelName', noLimitFilter),
+        ).toEqual({
           offset: noLimitFilter.page.skip,
         });
       });
@@ -274,7 +276,7 @@ describe('Utils > QueryConverter', () => {
           page: new Page(),
         });
 
-        expect(QueryConverter.convertPaginatedFilterToSequelize(noSkipFilter)).toEqual(
+        expect(QueryConverter.convertPaginatedFilterToSequelize('modelName', noSkipFilter)).toEqual(
           expect.objectContaining({
             offset: 0,
           }),
@@ -286,7 +288,7 @@ describe('Utils > QueryConverter', () => {
           page: new Page(42, 21),
         });
 
-        expect(QueryConverter.convertPaginatedFilterToSequelize(filter)).toEqual(
+        expect(QueryConverter.convertPaginatedFilterToSequelize('modelName', filter)).toEqual(
           expect.objectContaining({
             limit: filter.page.limit,
             offset: filter.page.skip,
@@ -301,9 +303,9 @@ describe('Utils > QueryConverter', () => {
           sort: new Sort(),
         });
 
-        expect(QueryConverter.convertPaginatedFilterToSequelize(noOrderConditionFilter)).toEqual(
-          {},
-        );
+        expect(
+          QueryConverter.convertPaginatedFilterToSequelize('modelName', noOrderConditionFilter),
+        ).toEqual({});
       });
 
       it('should honor values from "sort"', () => {
@@ -311,10 +313,10 @@ describe('Utils > QueryConverter', () => {
           sort: new Sort({ field: '__a__', ascending: true }, { field: '__b__', ascending: false }),
         });
 
-        expect(QueryConverter.convertPaginatedFilterToSequelize(filter)).toEqual({
+        expect(QueryConverter.convertPaginatedFilterToSequelize('modelName', filter)).toEqual({
           order: [
-            ['__a__', 'ASC'],
-            ['__b__', 'DESC'],
+            [{ col: 'modelName.__a__' }, 'ASC'],
+            [{ col: 'modelName.__b__' }, 'DESC'],
           ],
         });
       });

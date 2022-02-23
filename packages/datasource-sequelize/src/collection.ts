@@ -66,7 +66,7 @@ export default class SequelizeCollection extends BaseCollection {
 
   async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
     const records = await this.model.findAll({
-      ...QueryConverter.convertPaginatedFilterToSequelize(filter),
+      ...QueryConverter.convertPaginatedFilterToSequelize(this.model.name, filter),
       ...QueryConverter.convertProjectionToSequelize(projection),
     });
 
@@ -75,13 +75,18 @@ export default class SequelizeCollection extends BaseCollection {
 
   async update(filter: Filter, patch: RecordData): Promise<void> {
     await this.model.update(patch, {
-      ...(QueryConverter.convertPaginatedFilterToSequelize(filter) as UpdateOptions),
+      ...(QueryConverter.convertPaginatedFilterToSequelize(
+        this.model.name,
+        filter,
+      ) as UpdateOptions),
       fields: Object.keys(patch),
     });
   }
 
   async delete(filter: Filter): Promise<void> {
-    await this.model.destroy({ ...QueryConverter.convertPaginatedFilterToSequelize(filter) });
+    await this.model.destroy({
+      ...QueryConverter.convertPaginatedFilterToSequelize(this.model.name, filter),
+    });
   }
 
   async aggregate(
