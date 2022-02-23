@@ -1,7 +1,9 @@
 import {
   Collection,
   CollectionSchema,
+  ColumnSchema,
   FieldTypes,
+  PrimitiveTypes,
   RecordData,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
@@ -87,8 +89,11 @@ export default class Serializer {
         relationships[name] = {
           type: field.foreignCollection,
           alternativeKey: field.foreignKey,
-          deserialize: (data: Record<string, unknown>) =>
-            IdUtils.unpackId(collection.schema, data.id as string)[0],
+          deserialize: (data: Record<string, unknown>) => {
+            const referenceField = collection.schema.fields[field.foreignKey] as ColumnSchema;
+
+            return referenceField.columnType === PrimitiveTypes.Number ? Number(data.id) : data.id;
+          },
         };
       }
 
