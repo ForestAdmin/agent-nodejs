@@ -58,7 +58,6 @@ describe('GetRoute', () => {
 
       await get.handleGet(context);
 
-      expect(context.throw).not.toHaveBeenCalled();
       expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
         {
           conditionTree: {

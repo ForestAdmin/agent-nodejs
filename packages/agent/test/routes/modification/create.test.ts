@@ -66,7 +66,7 @@ describe('CreateRoute', () => {
       const context = createMockContext({ requestBody });
 
       await create.handleCreate(context);
-      expect(context.throw).not.toHaveBeenCalled();
+
       expect(collection.create).toHaveBeenCalledWith([requestBody.data.attributes]);
 
       expect(context.response.body).toEqual({
@@ -83,73 +83,6 @@ describe('CreateRoute', () => {
             price: 6.75,
           },
         },
-      });
-    });
-
-    describe('when an error happens', () => {
-      describe('when request body does not match the schema types', () => {
-        test('should return an HTTP 400 response', async () => {
-          const collection = factories.collection.build({
-            name: 'books',
-            schema: factories.collectionSchema.build({
-              fields: {
-                name: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.String,
-                }),
-              },
-            }),
-          });
-          const dataSource = factories.dataSource.buildWithCollections([collection]);
-
-          const create = new CreateRoute(services, options, dataSource, collection.name);
-
-          const requestBody = {
-            data: {
-              attributes: {
-                failNameAttribute: 'this field does not exist in schema',
-              },
-              type: 'books',
-            },
-          };
-          const context = createMockContext({ requestBody });
-
-          await expect(create.handleCreate(context)).rejects.toThrow(
-            'Unknown field "failNameAttribute"',
-          );
-        });
-      });
-
-      describe('if either create or serialize failed', () => {
-        test('should return an HTTP 500 response', async () => {
-          const collection = factories.collection.build({
-            name: 'books',
-            create: jest.fn().mockImplementation(() => {
-              throw new Error('failed to create');
-            }),
-            schema: factories.collectionSchema.build({
-              fields: {
-                name: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.String,
-                }),
-              },
-            }),
-          });
-
-          const dataSource = factories.dataSource.buildWithCollections([collection]);
-
-          const create = new CreateRoute(services, options, dataSource, 'books');
-
-          const requestBody = {
-            data: {
-              attributes: {
-                name: 'Harry potter and thegoblet of fire',
-              },
-              type: 'books',
-            },
-          };
-          const context = createMockContext({ requestBody });
-          await expect(create.handleCreate(context)).rejects.toThrow('failed to create');
-        });
       });
     });
   });

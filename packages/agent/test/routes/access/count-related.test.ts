@@ -5,7 +5,6 @@ import {
   ConditionTreeLeaf,
   Operator,
   PaginatedFilter,
-  ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
@@ -135,7 +134,6 @@ describe('CountRelatedRoute', () => {
           new Aggregation({ operation: AggregationOperation.Count }),
         );
 
-        expect(context.throw).not.toHaveBeenCalled();
         expect(context.response.body).toEqual({ count: 1568 });
       });
 
@@ -157,53 +155,8 @@ describe('CountRelatedRoute', () => {
           const context = setupContext();
           await count.handleCountRelated(context);
 
-          expect(context.throw).not.toHaveBeenCalled();
           expect(context.response.body).toEqual({ count: 0 });
         });
-      });
-    });
-
-    describe('when an error happens', () => {
-      test('should return an HTTP 400 response when the request is malformed', async () => {
-        const { services, dataSource, options } = setupWithOneToManyRelation();
-
-        const oneToManyRelationName = 'myBookPersons';
-        const count = new CountRelatedRoute(
-          services,
-          options,
-          dataSource,
-          'books',
-          oneToManyRelationName,
-        );
-
-        const customProperties = {
-          query: { timezone: 'Europe/Paris' },
-          params: { BAD_ATTRIBUTE: '1523' },
-        };
-        const context = createMockContext({ customProperties });
-        const result = count.handleCountRelated(context);
-
-        expect(result).rejects.toThrowError(ValidationError);
-      });
-
-      test('should return an HTTP 500 response when the aggregate has a problem', async () => {
-        const { services, dataSource, options } = setupWithOneToManyRelation();
-
-        const oneToManyRelationName = 'myBookPersons';
-        const count = new CountRelatedRoute(
-          services,
-          options,
-          dataSource,
-          'books',
-          oneToManyRelationName,
-        );
-
-        jest.spyOn(CollectionUtils, 'aggregateRelation').mockImplementation(() => {
-          throw new Error('an error');
-        });
-
-        const context = setupContext();
-        await expect(count.handleCountRelated(context)).rejects.toThrow('an error');
       });
     });
   });
