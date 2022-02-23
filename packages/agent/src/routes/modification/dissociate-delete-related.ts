@@ -10,7 +10,7 @@ import {
   FieldTypes,
   Filter,
   ManyToManySchema,
-  OneToManySchema,
+  ManyToOneSchema,
   Operator,
   PaginatedFilter,
   Projection,
@@ -56,7 +56,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
       sort: QueryStringParser.parseSort(this.foreignCollection, context),
     });
 
-    await this.dissociateOrDeleteData(filter, selectionIds, isDeleteMode, parentId);
+    await this.dissociateOrDeleteData(filter, selectionIds, isDeleteMode, parentId, context);
     context.response.status = HttpCode.NoContent;
   }
 
@@ -65,12 +65,13 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     selectionIds: SelectionIds,
     isDeleteMode: boolean,
     parentId: CompositeId,
+    context: Context,
   ): Promise<void> {
     // throw error if it is not a many to many or a one to many relation
     const schema = CollectionUtils.getRelationOrThrowError(this.collection, this.relationName);
 
     if (schema.type === FieldTypes.ManyToMany)
-      return this.applyForManyToMany(schema, filter, selectionIds, parentId, isDeleteMode);
+      return this.applyForManyToMany(schema, filter, selectionIds, parentId, isDeleteMode, context);
 
     const condition = ConditionTreeFactory.matchIds(
       this.foreignCollection.schema,
@@ -83,8 +84,13 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     );
     const updatedFilter = filter.override({ conditionTree });
 
-    if (isDeleteMode) return this.foreignCollection.delete(updatedFilter);
+    if (isDeleteMode) {
+      await this.services.permissions.can(context, `delete:${this.foreignCollection.name}`);
 
+      return this.foreignCollection.delete(updatedFilter);
+    }
+
+    await this.services.permissions.can(context, `edit:${this.foreignCollection.name}`);
     await this.foreignCollection.update(updatedFilter, { [schema.foreignKey]: null });
   }
 
@@ -94,17 +100,18 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     selectionIds: SelectionIds,
     parentId: CompositeId,
     deleteMode: boolean,
+    context: Context,
   ): Promise<void> {
     const { dataSource } = this.collection;
     const manyToManyCollection = dataSource.getCollection(schemaRelation.throughCollection);
 
-    let conditionTree = ConditionTreeFactory.intersect(
+    const conditionTree = ConditionTreeFactory.intersect(
       filter.conditionTree?.nest(schemaRelation.targetRelation),
       DissociateDeleteRelatedRoute.generateConditionsToMatchRecords(
         selectionIds,
+        parentId,
         manyToManyCollection,
         schemaRelation,
-        parentId,
       ),
     );
     const updatedFilter = filter.override({ conditionTree });
@@ -113,12 +120,22 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
       const { schema } = manyToManyCollection;
       const fkName = SchemaUtils.getForeignKeyName(schema, schemaRelation.targetRelation);
       const records = await manyToManyCollection.list(updatedFilter, new Projection(fkName));
-      await manyToManyCollection.delete(updatedFilter);
-      conditionTree = this.matchIds(records, fkName);
-      const { segment, timezone } = updatedFilter;
 
-      return this.foreignCollection.delete(new Filter({ conditionTree, segment, timezone }));
+      await this.services.permissions.can(context, `delete:${manyToManyCollection.name}`);
+      await manyToManyCollection.delete(updatedFilter);
+
+      await this.services.permissions.can(context, `delete:${this.foreignCollection.name}`);
+
+      return this.foreignCollection.delete(
+        new Filter({
+          conditionTree: this.matchIds(records, fkName),
+          segment: updatedFilter.segment,
+          timezone: updatedFilter.timezone,
+        }),
+      );
     }
+
+    await this.services.permissions.can(context, `delete:${manyToManyCollection.name}`);
 
     return manyToManyCollection.delete(updatedFilter);
   }
@@ -132,26 +149,27 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
 
   private static generateConditionsToMatchRecords(
     selectionIds: SelectionIds,
+    parentId: CompositeId,
     manyToManyCollection: Collection,
     schemaRelation: ManyToManySchema,
-    parentId: CompositeId,
   ): ConditionTree {
-    const originRelation = manyToManyCollection.schema.fields[
-      schemaRelation.originRelation
-    ] as OneToManySchema;
+    const { originRelation, targetRelation } = schemaRelation;
 
-    if (selectionIds.ids.length === 0 && selectionIds.areExcluded)
-      return new ConditionTreeLeaf(originRelation.foreignKey, Operator.Equal, parentId[0]);
+    if (selectionIds.ids.length === 0 && selectionIds.areExcluded) {
+      const origin = manyToManyCollection.schema.fields[originRelation] as ManyToOneSchema;
+
+      return new ConditionTreeLeaf(origin.foreignKey, Operator.Equal, parentId[0]);
+    }
 
     const inCondition = new ConditionTreeLeaf(
-      SchemaUtils.getForeignKeyName(manyToManyCollection.schema, schemaRelation.targetRelation),
+      SchemaUtils.getForeignKeyName(manyToManyCollection.schema, targetRelation),
       Operator.In,
       selectionIds.ids.flat(),
     );
 
     return new ConditionTreeBranch(Aggregator.And, [
       new ConditionTreeLeaf(
-        SchemaUtils.getForeignKeyName(manyToManyCollection.schema, schemaRelation.originRelation),
+        SchemaUtils.getForeignKeyName(manyToManyCollection.schema, originRelation),
         Operator.Equal,
         parentId[0],
       ),

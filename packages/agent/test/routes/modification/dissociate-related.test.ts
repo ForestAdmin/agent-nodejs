@@ -11,7 +11,7 @@ import DissociateDeleteRoute from '../../../src/routes/modification/dissociate-d
 
 describe('DissociateDeleteRelatedRoute > dissociate', () => {
   describe('when it is a one to many relation', () => {
-    test('should update the foreign key to the foreign relation', async () => {
+    test('should update the foreign key in the foreign collection', async () => {
       const { services, dataSource, options } = setupWithOneToManyRelation();
 
       const count = new DissociateDeleteRoute(
@@ -65,6 +65,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
         { bookId: null },
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:bookPersons');
     });
 
     describe('when all records mode is activated', () => {
@@ -235,7 +236,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });
 
-    describe('when all records mode is activated', () => {
+    describe('when the given ids should be excluded', () => {
       test('should remove all the related records except excluded records', async () => {
         const { services, dataSource, options } = setupWithManyToManyRelation();
 
