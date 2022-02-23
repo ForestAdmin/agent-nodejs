@@ -22,48 +22,6 @@ describe('DeleteRoute', () => {
   });
 
   describe('handleDelete', () => {
-    test('should throw an error when the id attribute is not provided', async () => {
-      const bookCollection = factories.collection.build({ name: 'books' });
-      const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-      const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
-
-      const context = createMockContext({
-        customProperties: {
-          params: { badParam: '1523|1524' },
-          query: { timezone: 'Europe/Paris' },
-        },
-      });
-
-      await expect(deleteRoute.handleDelete(context)).rejects.toThrow(
-        'Expected string, received: undefined',
-      );
-    });
-
-    test('should throw an error when the delete action failed', async () => {
-      const bookCollection = factories.collection.build({
-        name: 'books',
-        delete: jest.fn().mockImplementation(() => {
-          throw new Error('failed to delete records');
-        }),
-        schema: factories.collectionSchema.build({
-          fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
-          },
-        }),
-      });
-      const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-      const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
-
-      const context = createMockContext({
-        customProperties: {
-          params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
-          query: { timezone: 'Europe/Paris' },
-        },
-      });
-
-      await expect(deleteRoute.handleDelete(context)).rejects.toThrow('failed to delete records');
-    });
-
     describe('when the given id is a composite id', () => {
       test('should generate the filter to delete the right records', async () => {
         const bookCollection = factories.collection.build({
@@ -159,78 +117,6 @@ describe('DeleteRoute', () => {
   });
 
   describe('handleListDelete', () => {
-    describe('when some attributes are badly provided', () => {
-      test.each([
-        ['no body is provided', null, 'Expected array, received: undefined'],
-        [
-          'body does not contains data',
-          { datum: 'something' },
-          'Expected array, received: undefined',
-        ],
-        [
-          'body does not contains attributes',
-          { data: 'something' },
-          'Expected array, received: undefined',
-        ],
-        [
-          'ids are not provided',
-          { data: { attributes: { badIdsAttribute: ['1523', '5684'] } } },
-          'Expected array, received: undefined',
-        ],
-        [
-          'ids_excluded are not provided',
-          { data: { attributes: { ids: ['1523', '5684'], all_records: true } } },
-          'Expected array, received: undefined',
-        ],
-        [
-          'ids and ids_excluded are not the expected type',
-          {
-            data: {
-              attributes: {
-                all_records: ['not', 'a', 'boolean'],
-                ids: 'not_an_array',
-                all_records_ids_excluded: 45,
-              },
-            },
-          },
-          'Expected array, received: number',
-        ],
-        [
-          'ids and ids_excluded members are not the expected type',
-          {
-            data: {
-              attributes: {
-                all_records: true,
-                ids: ['string', 'string'],
-                all_records_ids_excluded: ['string'],
-              },
-            },
-          },
-          'Wrong type for "id": NaN. Expects Number',
-        ],
-      ])('should throw an error when %s', async (_, body, errorMessage) => {
-        const bookCollection = factories.collection.build({
-          name: 'books',
-          schema: factories.collectionSchema.build({
-            fields: {
-              id: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
-              }),
-            },
-          }),
-        });
-        const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-        const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
-
-        const context = createMockContext({
-          customProperties: { query: { timezone: 'Europe/Paris' } },
-          requestBody: body,
-        });
-
-        await expect(deleteRoute.handleListDelete(context)).rejects.toThrow(errorMessage);
-      });
-    });
-
     describe('when the given ids are simples ids', () => {
       test('should generate the filter to delete the right records', async () => {
         const bookCollection = factories.collection.build({
