@@ -30,14 +30,7 @@ export default class Serializer {
   }
 
   deserialize(collection: Collection, body: unknown): RecordData {
-    let jsonApiBody = body as JsonApiSerializer.JSONAPIDocument;
-    jsonApiBody = { data: { ...jsonApiBody.data } };
-
-    if ('relationships' in jsonApiBody.data) {
-      delete jsonApiBody.data.relationships;
-    }
-
-    return this.getSerializer(collection).deserialize(collection.name, jsonApiBody);
+    return this.getSerializer(collection).deserialize(collection.name, body);
   }
 
   private getSerializer(collection: Collection): JsonApiSerializer {
@@ -94,6 +87,8 @@ export default class Serializer {
         relationships[name] = {
           type: field.foreignCollection,
           alternativeKey: field.foreignKey,
+          deserialize: (data: Record<string, unknown>) =>
+            IdUtils.unpackId(collection.schema, data.id as string)[0],
         };
       }
 

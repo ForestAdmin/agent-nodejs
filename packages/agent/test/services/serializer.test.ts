@@ -114,13 +114,15 @@ describe('Serializer', () => {
       });
     });
 
-    test('deserialize should ignore relations provided relations', () => {
+    test('deserialize should properly deserialize relation', () => {
       const result = setupSerializer().deserialize(dataSource.collections[0], {
         data: {
           type: 'book',
           id: '2d162303-78bf-599e-b197-93590ac3d315',
           attributes: { isbn: '9780345317988', title: 'Foundation' },
-          relationships: { author: { data: { type: 'person', id: 'asim00' } } },
+          relationships: {
+            author: { data: { type: 'person', id: '1d162304-78bf-599e-b197-93590ac3d314' } },
+          },
         },
         included: [
           {
@@ -138,6 +140,7 @@ describe('Serializer', () => {
       expect(result).toStrictEqual({
         isbn: '2d162303-78bf-599e-b197-93590ac3d315',
         title: 'Foundation',
+        authorId: '1d162304-78bf-599e-b197-93590ac3d314',
       });
     });
   });

@@ -15,7 +15,14 @@ export default class UpdateRoute extends CollectionRoute {
     await this.services.permissions.can(context, `edit:${this.collection.name}`);
 
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
-    const record = this.services.serializer.deserialize(this.collection, context.request.body);
+
+    const { body } = context.request;
+
+    if ('relationships' in body.data) {
+      delete body.data.relationships;
+    }
+
+    const record = this.services.serializer.deserialize(this.collection, body);
     RecordValidator.validate(this.collection, record);
 
     const conditionTree = ConditionTreeFactory.intersect(

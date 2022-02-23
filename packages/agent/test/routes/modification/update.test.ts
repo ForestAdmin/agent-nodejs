@@ -121,5 +121,46 @@ describe('UpdateRoute', () => {
         { name: 'foo name' },
       );
     });
+
+    it('should remove relation ship before update', async () => {
+      const bookCollection = factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.isPrimaryKey().build({
+              columnType: PrimitiveTypes.Number,
+            }),
+          },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollection(bookCollection);
+      const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
+
+      const customProperties = { params: { id: '1523' } };
+      const requestBody = {
+        data: {
+          attributes: {
+            id: 1,
+          },
+          relationships: {
+            library: {
+              data: {
+                id: '1',
+                type: 'companies',
+              },
+            },
+          },
+        },
+      };
+      const context = createMockContext({ customProperties, requestBody });
+
+      const spy = jest.spyOn(services.serializer, 'deserialize');
+
+      await updateRoute.handleUpdate(context);
+
+      expect(spy).toHaveBeenCalledWith(dataSource.getCollection('books'), {
+        data: { attributes: { id: 1 } },
+      });
+    });
   });
 });
