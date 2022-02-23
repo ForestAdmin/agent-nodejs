@@ -84,6 +84,8 @@ describe('CreateRoute', () => {
           },
         },
       });
+
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'add:books');
     });
   });
 });

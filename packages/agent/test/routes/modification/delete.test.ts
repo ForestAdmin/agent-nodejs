@@ -6,11 +6,48 @@ import { HttpCode } from '../../../src/types';
 import DeleteRoute from '../../../src/routes/modification/delete';
 
 describe('DeleteRoute', () => {
-  const options = factories.forestAdminHttpDriverOptions.build();
-  const services = factories.forestAdminHttpDriverServices.build();
-  const router = factories.router.mockAllMethods().build();
+  const setup = () => {
+    return {
+      options: factories.forestAdminHttpDriverOptions.build(),
+      services: factories.forestAdminHttpDriverServices.build(),
+      router: factories.router.mockAllMethods().build(),
+    };
+  };
+
+  const setupCollectionWithCompositeId = () => {
+    return factories.collection.build({
+      name: 'books',
+      schema: factories.collectionSchema.build({
+        fields: {
+          idField1: factories.columnSchema.isPrimaryKey().build({
+            columnType: PrimitiveTypes.Number,
+          }),
+          idField2: factories.columnSchema.isPrimaryKey().build({
+            columnType: PrimitiveTypes.Number,
+          }),
+          notIdField: factories.columnSchema.build({
+            columnType: PrimitiveTypes.Number,
+          }),
+        },
+      }),
+    });
+  };
+
+  const setupCollectionWithSimpleId = () => {
+    return factories.collection.build({
+      name: 'books',
+      schema: factories.collectionSchema.build({
+        fields: {
+          id: factories.columnSchema.isPrimaryKey().build({
+            columnType: PrimitiveTypes.Number,
+          }),
+        },
+      }),
+    });
+  };
 
   test('should register "/books" route', () => {
+    const { options, services, router } = setup();
     const bookCollection = factories.collection.build({ name: 'books' });
     const dataSource = factories.dataSource.buildWithCollections([bookCollection]);
     const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
@@ -24,22 +61,9 @@ describe('DeleteRoute', () => {
   describe('handleDelete', () => {
     describe('when the given id is a composite id', () => {
       test('should generate the filter to delete the right records', async () => {
-        const bookCollection = factories.collection.build({
-          name: 'books',
-          schema: factories.collectionSchema.build({
-            fields: {
-              idField1: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
-              }),
-              idField2: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
-              }),
-              notIdField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Number,
-              }),
-            },
-          }),
-        });
+        const { options, services } = setup();
+        const bookCollection = setupCollectionWithCompositeId();
+
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
@@ -72,21 +96,16 @@ describe('DeleteRoute', () => {
             timezone: 'Europe/Paris',
           }),
         );
+
+        expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
       });
     });
 
     describe('when the given id is a simple id', () => {
       test('should generate the filter to delete the right record', async () => {
-        const bookCollection = factories.collection.build({
-          name: 'books',
-          schema: factories.collectionSchema.build({
-            fields: {
-              id: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
-              }),
-            },
-          }),
-        });
+        const { options, services } = setup();
+
+        const bookCollection = setupCollectionWithSimpleId();
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
@@ -117,16 +136,9 @@ describe('DeleteRoute', () => {
   describe('handleListDelete', () => {
     describe('when the given ids are simples ids', () => {
       test('should generate the filter to delete the right records', async () => {
-        const bookCollection = factories.collection.build({
-          name: 'books',
-          schema: factories.collectionSchema.build({
-            fields: {
-              id: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
-              }),
-            },
-          }),
-        });
+        const { options, services } = setup();
+
+        const bookCollection = setupCollectionWithSimpleId();
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
@@ -152,20 +164,14 @@ describe('DeleteRoute', () => {
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
+        expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
       });
 
       describe('with excluded mode', () => {
         test('should generate the filter to delete the right records', async () => {
-          const bookCollection = factories.collection.build({
-            name: 'books',
-            schema: factories.collectionSchema.build({
-              fields: {
-                id: factories.columnSchema.isPrimaryKey().build({
-                  columnType: PrimitiveTypes.Number,
-                }),
-              },
-            }),
-          });
+          const { options, services } = setup();
+
+          const bookCollection = setupCollectionWithSimpleId();
           const dataSource = factories.dataSource.buildWithCollection(bookCollection);
           const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
@@ -202,22 +208,9 @@ describe('DeleteRoute', () => {
 
     describe('with the given ids are composites ids', () => {
       test('should generate the filter to delete the right records', async () => {
-        const bookCollection = factories.collection.build({
-          name: 'books',
-          schema: factories.collectionSchema.build({
-            fields: {
-              idField1: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
-              }),
-              idField2: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
-              }),
-              notIdField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Number,
-              }),
-            },
-          }),
-        });
+        const { options, services } = setup();
+
+        const bookCollection = setupCollectionWithCompositeId();
         const dataSource = factories.dataSource.buildWithCollection(bookCollection);
         const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
@@ -276,22 +269,9 @@ describe('DeleteRoute', () => {
 
       describe('with excluded mode', () => {
         test('should generate the filter to delete the right records', async () => {
-          const bookCollection = factories.collection.build({
-            name: 'books',
-            schema: factories.collectionSchema.build({
-              fields: {
-                idField1: factories.columnSchema.isPrimaryKey().build({
-                  columnType: PrimitiveTypes.Number,
-                }),
-                idField2: factories.columnSchema.isPrimaryKey().build({
-                  columnType: PrimitiveTypes.Number,
-                }),
-                notIdField: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Number,
-                }),
-              },
-            }),
-          });
+          const { options, services } = setup();
+
+          const bookCollection = setupCollectionWithCompositeId();
           const dataSource = factories.dataSource.buildWithCollection(bookCollection);
           const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 

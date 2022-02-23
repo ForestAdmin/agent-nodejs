@@ -24,6 +24,8 @@ export default class DeleteRoute extends CollectionRoute {
   }
 
   public async handleListDelete(context: Context): Promise<void> {
+    await this.services.permissions.can(context, `delete:${this.collection.name}`);
+
     const selectionIds = BodyStringParser.parseSelectionIds(this.collection.schema, context);
     await this.deleteRecords(context, selectionIds);
 
