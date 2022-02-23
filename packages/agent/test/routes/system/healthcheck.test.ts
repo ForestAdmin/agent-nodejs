@@ -24,7 +24,6 @@ describe('Healthcheck', () => {
     const context = createMockContext();
     await healthCheck.handleRequest(context);
 
-    expect(context.throw).not.toHaveBeenCalled();
     expect(context.response.status).toEqual(200);
   });
 });

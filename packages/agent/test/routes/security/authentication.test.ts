@@ -138,7 +138,6 @@ describe('Authentication', () => {
 
         await authentication.handleAuthentication(context);
 
-        expect(context.throw).not.toHaveBeenCalled();
         expect(context.response.body).toEqual({
           authorizationUrl: 'authorizationUrl',
         });
@@ -185,7 +184,6 @@ describe('Authentication', () => {
         });
         await authentication.handleAuthenticationCallback(context);
 
-        expect(context.throw).not.toHaveBeenCalled();
         expect(context.response.body).toContainAllKeys(['token', 'tokenData']);
       });
     });
@@ -251,7 +249,6 @@ describe('Authentication', () => {
 
       await authentication.handleAuthenticationLogout(context);
 
-      expect(context.throw).not.toHaveBeenCalled();
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });
   });

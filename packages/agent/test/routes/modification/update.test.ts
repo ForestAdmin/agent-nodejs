@@ -44,7 +44,6 @@ describe('UpdateRoute', () => {
 
       await updateRoute.handleUpdate(context);
 
-      expect(context.throw).not.toHaveBeenCalled();
       expect(bookCollection.update).toHaveBeenCalledWith(
         factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({

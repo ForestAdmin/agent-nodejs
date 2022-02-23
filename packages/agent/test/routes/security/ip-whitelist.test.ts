@@ -80,7 +80,6 @@ describe('IpWhitelist', () => {
       const next = jest.fn() as Next;
       await ipWhitelistService.checkIp(context, next);
 
-      expect(context.throw).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
     });
 
