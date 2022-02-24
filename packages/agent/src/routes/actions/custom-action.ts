@@ -1,4 +1,12 @@
-import { ActionResponseType, ActionSchema, DataSource } from '@forestadmin/datasource-toolkit';
+import {
+  ActionResponse,
+  ActionResponseType,
+  ActionSchema,
+  ConditionTree,
+  DataSource,
+  Filter,
+  RecordData,
+} from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
@@ -42,7 +50,43 @@ export default class CustomActionRoute extends BaseActionRoute {
     delete data['Loading...']; // This field is always present in forms with load hook.
 
     const result = await this.collection.execute(this.actionName, data, filter);
+    this.formatExecute(context, result);
+  }
 
+  private async handleFormLoad(context: Context): Promise<void> {
+    await this.checkPermissions(context);
+    await this.formatFields(context, null);
+  }
+
+  private async handleFormChange(context: Context): Promise<void> {
+    await this.checkPermissions(context);
+
+    const data: Record<string, unknown> = {};
+    for (const field of context.request.body.data.attributes.fields)
+      data[field.field] = field.value;
+
+    await this.formatFields(context, data);
+  }
+
+  private async checkPermissions(context: Context): Promise<void> {
+    await this.services.permissions.can(
+      context,
+      `custom:${this.actionName}:${this.collection.name}`,
+    );
+  }
+
+  private async formatFields(context: Context, data: RecordData): Promise<void> {
+    const filter = await this.getRecordSelection(context);
+    const fields = await this.collection.getForm(this.actionName, data, filter);
+
+    context.response.body = {
+      fields: fields.map(field =>
+        SchemaGeneratorActions.buildFieldSchema(this.collection.dataSource, field),
+      ),
+    };
+  }
+
+  private formatExecute(context: Context, result: ActionResponse): void {
     if (result.type === ActionResponseType.Error) {
       context.response.status = HttpCode.BadRequest;
       context.response.body = { error: result.message };
@@ -66,44 +110,7 @@ export default class CustomActionRoute extends BaseActionRoute {
       context.response.type = result.mimeType;
       context.response.body = result.stream;
     } else {
-      throw new Error('Unexpected Action result');
+      throw new Error('Unexpected Action result.');
     }
-  }
-
-  private async handleFormLoad(context: Context): Promise<void> {
-    await this.checkPermissions(context);
-
-    const filter = await this.getRecordSelection(context);
-    const fields = await this.collection.getForm(this.actionName, null, filter);
-
-    context.response.body = {
-      fields: fields.map(field =>
-        SchemaGeneratorActions.buildFieldSchema(this.collection.dataSource, field),
-      ),
-    };
-  }
-
-  private async handleFormChange(context: Context): Promise<void> {
-    await this.checkPermissions(context);
-
-    const filter = await this.getRecordSelection(context);
-    const data: Record<string, unknown> = {};
-    for (const field of context.request.body.data.attributes.fields)
-      data[field.field] = field.value;
-
-    const fields = await this.collection.getForm(this.actionName, data, filter);
-
-    context.response.body = {
-      fields: fields.map(field =>
-        SchemaGeneratorActions.buildFieldSchema(this.collection.dataSource, field),
-      ),
-    };
-  }
-
-  private async checkPermissions(context: Context): Promise<void> {
-    await this.services.permissions.can(
-      context,
-      `custom:${this.actionName}:${this.collection.name}`,
-    );
   }
 }

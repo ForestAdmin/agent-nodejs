@@ -66,30 +66,25 @@ export default class SchemaGeneratorActions {
 
   /** Build schema for given field */
   static buildFieldSchema(dataSource: DataSource, field: ActionField): ForestServerActionField {
-    const output: Record<string, unknown> = {};
-    output.field = field.label;
-    output.description = field.description;
-    output.isRequired = field.isRequired;
-    output.isReadOnly = field.isReadOnly;
+    const { label, description, isRequired, isReadOnly, watchChanges, type } = field;
+    const output = { label, description, isRequired, isReadOnly } as Record<string, unknown>;
 
-    if (field.watchChanges) {
-      output.hook = 'changeHook';
-    }
+    if (watchChanges) output.hook = 'changeHook';
 
-    if (field.type === ActionFieldType.Collection) {
+    if (type === ActionFieldType.Collection) {
       const collection = dataSource.getCollection(field.collectionName);
       const [pk] = SchemaUtils.getPrimaryKeys(collection.schema);
       const pkSchema = collection.schema.fields[pk] as ColumnSchema;
 
       output.type = pkSchema.columnType;
       output.reference = `${collection.name}.${pk}`;
-    } else if (field.type.endsWith('[]')) {
-      output.type = [field.type.substring(0, field.type.length - 2) as PrimitiveTypes];
+    } else if (type.endsWith('[]')) {
+      output.type = [type.substring(0, type.length - 2) as PrimitiveTypes];
     } else {
-      output.type = field.type as unknown as PrimitiveTypes;
+      output.type = type as unknown as PrimitiveTypes;
     }
 
-    if (field.type === ActionFieldType.Enum || field.type === ActionFieldType.EnumList) {
+    if (type === ActionFieldType.Enum || type === ActionFieldType.EnumList) {
       output.enums = field.enumValues;
       output.value = field.enumValues.includes(field.value as string) ? field.value : null;
     } else {

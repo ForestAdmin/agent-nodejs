@@ -169,29 +169,21 @@ describe('SchemaGeneratorActions', () => {
       // Relation to other collection
       expect(schema.fields[0]).toMatchObject({
         field: 'author',
-        position: 0,
         reference: 'authors.primaryId',
-        widget: 'belongsto select', // only for relations
         type: 'Uuid', // type of the pk
       });
 
       // File
       expect(schema.fields[1]).toMatchObject({
         field: 'avatar',
-        position: 1,
-        reference: null,
-        type: 'String',
-        widget: 'file picker',
+        type: 'File',
       });
 
       // List
       expect(schema.fields[2]).toMatchObject({
         field: 'inclusive gender',
-        position: 2,
-        reference: null,
         type: ['Enum'],
         enums: ['Male', 'Female'],
-        widget: null,
       });
     });
   });
