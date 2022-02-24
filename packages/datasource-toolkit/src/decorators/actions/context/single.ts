@@ -6,7 +6,7 @@ import Projection from '../../../interfaces/query/projection';
 import RecordUtils from '../../../utils/record';
 
 export default class ActionContextSingle extends ActionContext {
-  private filter: Filter;
+  readonly filter: Filter;
   private dependencies: Projection;
   private recordId: CompositeId;
   private record: RecordData;

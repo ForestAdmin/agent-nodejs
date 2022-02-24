@@ -6,7 +6,7 @@ import Filter from '../../../interfaces/query/filter/unpaginated';
 import Projection from '../../../interfaces/query/projection';
 
 export default class ActionContextBulk extends ActionContext {
-  protected readonly filter: Filter;
+  readonly filter: Filter;
   private dependencies: Projection;
   private recordIds: CompositeId[];
   private records: RecordData[];
