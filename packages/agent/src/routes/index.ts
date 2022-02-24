@@ -6,10 +6,10 @@ import Authentication from './security/authentication';
 import BaseRoute from './base-route';
 import Chart from './access/chart';
 import Count from './access/count';
-import CountRelatedRoute from './access/count-related';
+import CountRelated from './access/count-related';
 import Create from './modification/create';
 import Delete from './modification/delete';
-import DissociateDeleteRelatedRoute from './modification/dissociate-delete-related';
+import DissociateDeleteRelated from './modification/dissociate-delete-related';
 import ErrorHandling from './system/error-handling';
 import Get from './access/get';
 import HealthCheck from './system/healthcheck';
@@ -19,6 +19,7 @@ import ListRelatedRoute from './access/list-related';
 import Logger from './system/logger';
 import ScopeInvalidation from './security/scope-invalidation';
 import Update from './modification/update';
+import UpdateEmbedded from './modification/update-embedded';
 
 export const ROOT_ROUTES_CTOR = [
   Authentication,
@@ -29,11 +30,8 @@ export const ROOT_ROUTES_CTOR = [
   ScopeInvalidation,
 ];
 export const COLLECTION_ROUTES_CTOR = [Chart, Count, Create, Delete, Get, List, Update];
-export const RELATED_ROUTES_CTOR = [
-  CountRelatedRoute,
-  ListRelatedRoute,
-  DissociateDeleteRelatedRoute,
-];
+export const RELATED_ROUTES_CTOR = [CountRelated, DissociateDeleteRelated, ListRelatedRoute];
+export const EMBEDDED_ROUTES_CTOR = [UpdateEmbedded];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {
   return ROOT_ROUTES_CTOR.map(Route => new Route(services, options));
@@ -53,24 +51,28 @@ function getCrudRoutes(dataSource: DataSource, options: Options, services: Servi
   return routes;
 }
 
-function getRelatedRoutes(
+function getRelatedAndEmbeddedRoutes(
   dataSource: DataSource,
   options: Options,
   services: Services,
 ): BaseRoute[] {
   const routes: BaseRoute[] = [];
 
+  const routesToBuild = [
+    { list: RELATED_ROUTES_CTOR, relations: [FieldTypes.ManyToMany, FieldTypes.OneToMany] },
+    { list: EMBEDDED_ROUTES_CTOR, relations: [FieldTypes.OneToOne, FieldTypes.ManyToOne] },
+  ];
   dataSource.collections.forEach(collection => {
-    const relationNames = Object.entries(collection.schema.fields).filter(
-      ([, schema]) => schema.type === FieldTypes.ManyToMany || schema.type === FieldTypes.OneToMany,
-    );
-
-    relationNames.forEach(([relationName]) => {
-      routes.push(
-        ...RELATED_ROUTES_CTOR.map(
-          Route => new Route(services, options, dataSource, collection.name, relationName),
-        ),
-      );
+    routesToBuild.forEach(route => {
+      const fields = Object.entries(collection.schema.fields);
+      const relationFields = fields.filter(([, schema]) => route.relations.includes(schema.type));
+      relationFields.forEach(([relationName]) => {
+        routes.push(
+          ...route.list.map(
+            Route => new Route(services, options, dataSource, collection.name, relationName),
+          ),
+        );
+      });
     });
   });
 
@@ -85,7 +87,9 @@ export default function makeRoutes(
   const routes = [
     ...getRootRoutes(options, services),
     ...dataSources.map(dataSource => getCrudRoutes(dataSource, options, services)).flat(),
-    ...dataSources.map(dataSource => getRelatedRoutes(dataSource, options, services)).flat(),
+    ...dataSources
+      .map(dataSource => getRelatedAndEmbeddedRoutes(dataSource, options, services))
+      .flat(),
   ];
 
   // Ensure routes and middlewares are loaded in the right order.
