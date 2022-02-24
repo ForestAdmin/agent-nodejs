@@ -19,7 +19,7 @@ import Get from '../../../src/agent/routes/access/get';
 import HealthCheck from '../../../src/agent/routes/system/healthcheck';
 import IpWhitelist from '../../../src/agent/routes/security/ip-whitelist';
 import List from '../../../src/agent/routes/access/list';
-import ListRelatedRoute from '../../../src/agent/routes/access/list-related';
+import ListRelated from '../../../src/agent/routes/access/list-related';
 import Logger from '../../../src/agent/routes/system/logger';
 import ScopeInvalidation from '../../../src/agent/routes/security/scope-invalidation';
 import Update from '../../../src/agent/routes/modification/update';
@@ -35,8 +35,8 @@ describe('Route index', () => {
       Logger,
       ScopeInvalidation,
     ]);
-    expect(COLLECTION_ROUTES_CTOR).toEqual([Chart, Count, Create, Delete, Get, List, Update]);
-    expect(RELATED_ROUTES_CTOR).toEqual([CountRelated, DissociateDeleteRelated, ListRelatedRoute]);
+    expect(COLLECTION_ROUTES_CTOR).toEqual([Chart, Count, Create, Csv, Delete, Get, List, Update]);
+    expect(RELATED_ROUTES_CTOR).toEqual([CountRelated, DissociateDeleteRelated, ListRelated]);
     expect(RELATED_RELATION_ROUTES_CTOR).toEqual([UpdateRelation]);
   });
 
