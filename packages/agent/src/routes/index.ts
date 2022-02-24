@@ -2,13 +2,13 @@ import { DataSource, FieldTypes } from '@forestadmin/datasource-toolkit';
 
 import { ForestAdminHttpDriverOptionsWithDefaults as Options } from '../types';
 import { ForestAdminHttpDriverServices as Services } from '../services';
+import ActionRoute from './modification/action';
 import Authentication from './security/authentication';
 import BaseRoute from './base-route';
 import Chart from './access/chart';
 import Count from './access/count';
 import CountRelated from './access/count-related';
 import Create from './modification/create';
-import CustomActionRoute from './actions/custom-action';
 import Delete from './modification/delete';
 import DissociateDeleteRelated from './modification/dissociate-delete-related';
 import ErrorHandling from './system/error-handling';
@@ -89,9 +89,7 @@ function getActionRoutes(
 
   for (const collection of dataSource.collections)
     for (const actionName of Object.keys(collection.schema.actions))
-      routes.push(
-        new CustomActionRoute(services, options, dataSource, collection.name, actionName),
-      );
+      routes.push(new ActionRoute(services, options, dataSource, collection.name, actionName));
 
   return routes;
 }

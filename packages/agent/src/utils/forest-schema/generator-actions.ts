@@ -67,8 +67,9 @@ export default class SchemaGeneratorActions {
   /** Build schema for given field */
   static buildFieldSchema(dataSource: DataSource, field: ActionField): ForestServerActionField {
     const { label, description, isRequired, isReadOnly, watchChanges, type } = field;
-    const output = { label, description, isRequired, isReadOnly } as Record<string, unknown>;
+    const output = { description, isRequired, isReadOnly } as Record<string, unknown>;
 
+    output.field = label;
     if (watchChanges) output.hook = 'changeHook';
 
     if (type === ActionFieldType.Collection) {
