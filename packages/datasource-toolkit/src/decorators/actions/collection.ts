@@ -50,6 +50,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     const used = new Set<string>();
     const context = this.getContext(action, formValues, filter, used);
 
+    // Convert DynamicField to ActionField in successive steps.
     let conditionalFields: DynamicField[];
     conditionalFields = action.form.map(c => ({ ...c }));
     conditionalFields = await this.withDefaults(context, conditionalFields, !data, formValues);
@@ -71,12 +72,14 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   protected refineSchema(subSchema: CollectionSchema): CollectionSchema {
     const newSchema = { ...subSchema, actions: { ...subSchema.actions } };
 
-    for (const [name, action] of Object.entries(this.actions)) {
-      newSchema.actions[name] = {
-        scope: action.scope,
-        staticForm: this.isStatic(action),
-        generateFile: action.generateFile,
-      };
+    for (const [name, { form, scope, generateFile }] of Object.entries(this.actions)) {
+      // An action form can be send in the schema to avoid calling the load handler
+      // as long as there is nothing dynamic in it.
+      const isDynamic = form?.some(field =>
+        Object.values(field).every(value => typeof value === 'function'),
+      );
+
+      newSchema.actions[name] = { scope, generateFile, staticForm: !isDynamic };
     }
 
     return newSchema;
@@ -99,19 +102,11 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       : new ActionContextBulk(this, formValues, used, dependencies, filter);
   }
 
-  private isStatic(action: Action): boolean {
-    if (!action.form) return true;
-
-    return action.form.every(field => {
-      return Object.values(field).every(value => typeof value !== 'function');
-    });
-  }
-
   private async withDefaults(
     context: ActionContext,
     fields: DynamicField[],
     isFirstCall: boolean,
-    formValues: Record<string, unknown>,
+    data: Record<string, unknown>,
   ): Promise<DynamicField[]> {
     if (isFirstCall) {
       const defaults = await Promise.all(
@@ -119,7 +114,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       );
 
       fields.forEach((field, index) => {
-        formValues[field.label] = defaults[index];
+        data[field.label] = defaults[index];
       });
     }
 
@@ -141,10 +136,10 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     context: ActionContext,
     fields: DynamicField[],
   ): Promise<ActionField[]> {
-    const newFields = fields.map(async (conditionalField): Promise<ActionField> => {
-      const keys = Object.keys(conditionalField);
+    const newFields = fields.map(async (field): Promise<ActionField> => {
+      const keys = Object.keys(field);
       const values = await Promise.all(
-        Object.values(conditionalField).map(value => this.evaluate(context, value)),
+        Object.values(field).map(value => this.evaluate(context, value)),
       );
 
       return keys.reduce<ActionField>(
