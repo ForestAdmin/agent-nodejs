@@ -1,6 +1,6 @@
 import {
-  ActionResponse,
-  ActionResponseType,
+  ActionResult,
+  ActionResultType,
   ActionSchema,
   ConditionTreeFactory,
   DataSource,
@@ -52,7 +52,7 @@ export default class ActionRoute extends CollectionRoute {
     delete data['Loading...']; // This field is always present in forms with load hook.
 
     const result = await this.collection.execute(this.actionName, data, filter);
-    this.formatExecute(context, result);
+    this.formatExecuteResult(context, result);
   }
 
   private async handleFormLoad(context: Context): Promise<void> {
@@ -88,25 +88,25 @@ export default class ActionRoute extends CollectionRoute {
     };
   }
 
-  private formatExecute(context: Context, result: ActionResponse): void {
-    if (result.type === ActionResponseType.Error) {
+  private formatExecuteResult(context: Context, result: ActionResult): void {
+    if (result.type === ActionResultType.Error) {
       context.response.status = HttpCode.BadRequest;
       context.response.body = { error: result.message };
 
       return;
     }
 
-    if (result.type === ActionResponseType.Success) {
+    if (result.type === ActionResultType.Success) {
       context.response.body = {
         [result.format === 'text' ? 'success' : 'html']: result.message,
         refresh: { relationships: result.invalidated },
       };
-    } else if (result.type === ActionResponseType.Webhook) {
+    } else if (result.type === ActionResultType.Webhook) {
       const { url, method, headers, body } = result;
       context.response.body = { webhook: { url, method, headers, body } };
-    } else if (result.type === ActionResponseType.Redirect) {
+    } else if (result.type === ActionResultType.Redirect) {
       context.response.body = { redirectTo: result.path };
-    } else if (result.type === ActionResponseType.File) {
+    } else if (result.type === ActionResultType.File) {
       context.attachment(result.name);
       context.set('Access-Control-Expose-Headers', 'Content-Disposition');
       context.response.type = result.mimeType;

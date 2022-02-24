@@ -1,4 +1,4 @@
-import { ActionField, ActionResponse } from './action';
+import { ActionField, ActionResult } from './action';
 import { CollectionSchema } from './schema';
 import { RecordData } from './record';
 import Aggregation, { AggregateResult } from './query/aggregation';
@@ -16,7 +16,7 @@ export interface Collection {
   get name(): string;
   get schema(): CollectionSchema;
 
-  execute(name: string, formValues: RecordData, filter?: Filter): Promise<ActionResponse>;
+  execute(name: string, formValues: RecordData, filter?: Filter): Promise<ActionResult>;
 
   getForm(name: string, formValues?: RecordData, filter?: Filter): Promise<ActionField[]>;
 

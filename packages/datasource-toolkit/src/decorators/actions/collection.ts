@@ -1,5 +1,5 @@
 import { Action, ActionBulk, ActionGlobal, ActionSingle } from './types/actions';
-import { ActionField, ActionResponse, ActionResponseType } from '../../interfaces/action';
+import { ActionField, ActionResult, ActionResultType } from '../../interfaces/action';
 import { ActionSchemaScope, CollectionSchema } from '../../interfaces/schema';
 import { DynamicField, ValueOrHandler } from './types/fields';
 import { RecordData } from '../../interfaces/record';
@@ -21,12 +21,12 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     this.actions[name] = action;
   }
 
-  override async execute(name: string, data: RecordData, filter: Filter): Promise<ActionResponse> {
+  override async execute(name: string, data: RecordData, filter: Filter): Promise<ActionResult> {
     const action = this.actions[name];
     if (!action) return this.childCollection.execute(name, data, filter);
 
     const response = {
-      type: ActionResponseType.Success as const,
+      type: ActionResultType.Success as const,
       invalidated: new Set<string>(),
       format: 'text' as const,
       message: 'Success',

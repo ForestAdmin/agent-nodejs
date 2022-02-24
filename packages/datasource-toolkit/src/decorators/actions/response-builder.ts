@@ -1,12 +1,12 @@
 import { Readable } from 'stream';
 
-import { ActionResponse, ActionResponseType } from '../../interfaces/action';
+import { ActionResult, ActionResultType } from '../../interfaces/action';
 
 export default class ResponseBuilder {
   private done: boolean;
-  private response: ActionResponse;
+  private response: ActionResult;
 
-  constructor(response: ActionResponse) {
+  constructor(response: ActionResult) {
     this.done = false;
     this.response = response;
   }
@@ -14,7 +14,7 @@ export default class ResponseBuilder {
   success(message: string, options?: { type?: 'html' | 'text'; invalidated?: string[] }): void {
     this.checkNotDone();
     Object.assign(this.response, {
-      type: ActionResponseType.Success,
+      type: ActionResultType.Success,
       message: message ?? 'Success',
       format: options?.type ?? 'text',
       invalidated: new Set(options?.invalidated ?? []),
@@ -24,7 +24,7 @@ export default class ResponseBuilder {
   error(message: string): void {
     this.checkNotDone();
     Object.assign(this.response, {
-      type: ActionResponseType.Error,
+      type: ActionResultType.Error,
       message: message ?? 'Error',
     });
   }
@@ -37,7 +37,7 @@ export default class ResponseBuilder {
   ): void {
     this.checkNotDone();
     Object.assign(this.response, {
-      type: ActionResponseType.Webhook,
+      type: ActionResultType.Webhook,
       url,
       method,
       headers,
@@ -52,7 +52,7 @@ export default class ResponseBuilder {
   ): void {
     this.checkNotDone();
     Object.assign(this.response, {
-      type: ActionResponseType.File,
+      type: ActionResultType.File,
       name,
       mimeType,
       stream:
@@ -64,7 +64,7 @@ export default class ResponseBuilder {
 
   redirectTo(path: string): void {
     this.checkNotDone();
-    Object.assign(this.response, { type: ActionResponseType.Redirect, path });
+    Object.assign(this.response, { type: ActionResultType.Redirect, path });
   }
 
   private checkNotDone() {

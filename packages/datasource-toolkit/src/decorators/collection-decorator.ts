@@ -1,4 +1,4 @@
-import { ActionField, ActionResponse } from '../interfaces/action';
+import { ActionField, ActionResult } from '../interfaces/action';
 import { Collection, DataSource } from '../interfaces/collection';
 import { CollectionSchema } from '../interfaces/schema';
 import { RecordData } from '../interfaces/record';
@@ -24,7 +24,7 @@ export default abstract class CollectionDecorator implements Collection {
     return this.refineSchema(this.childCollection.schema);
   }
 
-  async execute(name: string, data: RecordData, filter?: Filter): Promise<ActionResponse> {
+  async execute(name: string, data: RecordData, filter?: Filter): Promise<ActionResult> {
     const refinedFilter = await this.refineFilter(filter);
 
     return this.childCollection.execute(name, data, refinedFilter);

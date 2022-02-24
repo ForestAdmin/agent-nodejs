@@ -1,16 +1,11 @@
 import { Factory } from 'fishery';
 
-import {
-  Action,
-  ActionField,
-  ActionResponse,
-  ActionResponseType,
-} from '../../src/interfaces/action';
+import { Action, ActionField, ActionResult, ActionResultType } from '../../src/interfaces/action';
 
 class ConcreteAction implements Action {
-  async execute(): Promise<ActionResponse> {
+  async execute(): Promise<ActionResult> {
     return {
-      type: ActionResponseType.Redirect,
+      type: ActionResultType.Redirect,
       path: 'https://test.com',
     };
   }

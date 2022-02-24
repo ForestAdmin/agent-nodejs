@@ -2,7 +2,7 @@ import { RecordData } from './record';
 import Filter from './query/filter/unpaginated';
 
 export interface Action {
-  execute(formValues: RecordData, filter?: Filter): Promise<ActionResponse>;
+  execute(formValues: RecordData, filter?: Filter): Promise<ActionResult>;
   getForm(formValues: RecordData, filter?: Filter): Promise<ActionField[]>;
 }
 
@@ -10,12 +10,12 @@ export interface ActionField {
   type: ActionFieldType;
   label: string;
   description?: string;
-  enumValues?: string[];
   isRequired?: boolean;
   isReadOnly?: boolean;
   value?: unknown;
-  collectionName?: string; // When type === ActionFieldType.Collection
   watchChanges: boolean;
+  enumValues?: string[]; // When type === ActionFieldType.Enum
+  collectionName?: string; // When type === ActionFieldType.Collection
 }
 
 export enum ActionFieldType {
@@ -34,7 +34,7 @@ export enum ActionFieldType {
   StringList = 'String[]',
 }
 
-export enum ActionResponseType {
+export enum ActionResultType {
   Success,
   Error,
   Webhook,
@@ -42,41 +42,41 @@ export enum ActionResponseType {
   Redirect,
 }
 
-export type SuccessReponse = {
-  type: ActionResponseType.Success;
+export type SuccessResult = {
+  type: ActionResultType.Success;
   message: string;
   format: 'html' | 'text';
   invalidated: Set<string>;
 };
 
-export type ErrorResponse = {
-  type: ActionResponseType.Error;
+export type ErrorResult = {
+  type: ActionResultType.Error;
   message: string;
 };
 
-export type WebHookReponse = {
-  type: ActionResponseType.Webhook;
+export type WebHookResult = {
+  type: ActionResultType.Webhook;
   url: string;
   method: 'GET' | 'POST';
   headers: { [key: string]: string };
   body: unknown;
 };
 
-export type FileResponse = {
-  type: ActionResponseType.File;
+export type FileResult = {
+  type: ActionResultType.File;
   mimeType: string;
   name: string;
   stream: ReadableStream;
 };
 
-export type RedirectResponse = {
-  type: ActionResponseType.Redirect;
+export type RedirectResult = {
+  type: ActionResultType.Redirect;
   path: string;
 };
 
-export type ActionResponse =
-  | SuccessReponse
-  | ErrorResponse
-  | WebHookReponse
-  | FileResponse
-  | RedirectResponse;
+export type ActionResult =
+  | SuccessResult
+  | ErrorResult
+  | WebHookResult
+  | FileResult
+  | RedirectResult;
