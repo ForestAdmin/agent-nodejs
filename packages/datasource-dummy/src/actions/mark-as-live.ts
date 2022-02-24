@@ -1,19 +1,19 @@
 import {
   Action,
   ActionField,
-  ActionResponse,
-  ActionResponseType,
+  ActionResult,
+  ActionResultType,
   Filter,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
 export default class MarkAsLiveAction implements Action {
-  async execute(formValues?: RecordData, filter?: Filter): Promise<ActionResponse> {
+  async execute(formValues?: RecordData, filter?: Filter): Promise<ActionResult> {
     void formValues;
     void filter;
 
     return {
-      type: ActionResponseType.Success,
+      type: ActionResultType.Success,
       message: 'Record set as active',
       format: 'text',
       invalidated: new Set(),
