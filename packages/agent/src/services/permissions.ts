@@ -29,9 +29,13 @@ export default class PermissionService {
 
   /** Checks that a charting query is in the list of allowed queries */
   async canChart(context: Context): Promise<void> {
-    const chartHash = hashObject(context.request.body, {
+    const chart = { ...context.request.body };
+    if (chart?.group_by_field?.includes(':'))
+      chart.group_by_field = chart.group_by_field.substring(0, chart.group_by_field.indexOf(':'));
+
+    const chartHash = hashObject(chart, {
       respectType: false,
-      excludeKeys: key => context.request.body[key] === null,
+      excludeKeys: key => chart[key] === null,
     });
 
     await this.can(context, `chart:${chartHash}`);
