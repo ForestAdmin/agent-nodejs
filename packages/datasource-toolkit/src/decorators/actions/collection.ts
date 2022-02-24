@@ -58,7 +58,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     const fields = await this.withDeferred(context, conditionalFields);
 
     for (const field of fields) {
-      // customer did not defined a handler to rewrite the previous value => reuse current one.
+      // customer did not define a handler to rewrite the previous value => reuse current one.
       if (field.value === undefined) field.value = formValues[field.label];
 
       // fields that were accessed through the context.formValues.X getter should be watched.
