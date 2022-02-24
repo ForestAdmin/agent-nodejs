@@ -49,15 +49,6 @@ describe('ListRelatedRoute', () => {
     };
   };
 
-  const setupContext = () => {
-    const customProperties = {
-      query: { timezone: 'Europe/Paris', 'fields[persons]': 'id,name' },
-      params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
-    };
-
-    return createMockContext({ customProperties });
-  };
-
   test('should register the relation private route', () => {
     const { services, dataSource, options, router } = setupWithOneToManyRelation();
 
@@ -134,51 +125,6 @@ describe('ListRelatedRoute', () => {
           ],
           jsonapi: { version: '1.0' },
         });
-      });
-    });
-
-    describe('when an error happens', () => {
-      test('should return an HTTP 400 response when the projection is malformed', async () => {
-        const { services, dataSource, options } = setupWithOneToManyRelation();
-
-        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
-
-        const malformedProjectionParams = { 'fields[persons]': 'id,BAD_ATTRIBUTE' };
-        const customProperties = {
-          query: { ...malformedProjectionParams, timezone: 'Europe/Paris' },
-          params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
-        };
-        const context = createMockContext({ customProperties });
-
-        await expect(count.handleListRelated(context)).rejects.toThrow('Invalid projection');
-      });
-
-      test('should return an HTTP 400 response when the parent id is malformed', async () => {
-        const { services, dataSource, options } = setupWithOneToManyRelation();
-
-        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
-
-        const customProperties = {
-          query: { 'fields[persons]': 'id,name', timezone: 'Europe/Paris' },
-          params: { BAD_PARENT_ID: '1523' },
-        };
-        const context = createMockContext({ customProperties });
-        await expect(count.handleListRelated(context)).rejects.toThrow(
-          'Expected string, received: undefined',
-        );
-      });
-
-      test('should return an HTTP 500 response when the list has a problem', async () => {
-        const { services, dataSource, options } = setupWithOneToManyRelation();
-
-        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
-
-        jest.spyOn(CollectionUtils, 'listRelation').mockImplementation(() => {
-          throw new Error('list failed');
-        });
-
-        const context = setupContext();
-        await expect(count.handleListRelated(context)).rejects.toThrow('list failed');
       });
     });
   });

@@ -22,48 +22,6 @@ describe('DeleteRoute', () => {
   });
 
   describe('handleDelete', () => {
-    test('should throw an error when the id attribute is not provided', async () => {
-      const bookCollection = factories.collection.build({ name: 'books' });
-      const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-      const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
-
-      const context = createMockContext({
-        customProperties: {
-          params: { badParam: '1523|1524' },
-          query: { timezone: 'Europe/Paris' },
-        },
-      });
-
-      await expect(deleteRoute.handleDelete(context)).rejects.toThrow(
-        'Expected string, received: undefined',
-      );
-    });
-
-    test('should throw an error when the delete action failed', async () => {
-      const bookCollection = factories.collection.build({
-        name: 'books',
-        delete: jest.fn().mockImplementation(() => {
-          throw new Error('failed to delete records');
-        }),
-        schema: factories.collectionSchema.build({
-          fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
-          },
-        }),
-      });
-      const dataSource = factories.dataSource.buildWithCollection(bookCollection);
-      const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
-
-      const context = createMockContext({
-        customProperties: {
-          params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
-          query: { timezone: 'Europe/Paris' },
-        },
-      });
-
-      await expect(deleteRoute.handleDelete(context)).rejects.toThrow('failed to delete records');
-    });
-
     describe('when the given id is a composite id', () => {
       test('should generate the filter to delete the right records', async () => {
         const bookCollection = factories.collection.build({

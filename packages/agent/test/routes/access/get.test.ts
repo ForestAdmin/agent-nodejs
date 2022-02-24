@@ -89,38 +89,6 @@ describe('GetRoute', () => {
           expect(context.throw).toHaveBeenCalledTimes(1);
         });
       });
-
-      describe('when the provided id does not match the schema definition', () => {
-        test('should return an HTTP 400 response', async () => {
-          const get = new Get(services, options, dataSource, 'books');
-          // In the schema above, ID is a classic primary key
-          // Asking for a composite PK will throw
-          const context = createMockContext({
-            customProperties: { params: { id: '1|2' } },
-          });
-
-          await expect(get.handleGet(context)).rejects.toThrow('Expected 1 values, found 2');
-        });
-      });
-
-      describe('if either list or serialize failed', () => {
-        test('should return an HTTP 500 response', async () => {
-          jest
-            .spyOn(dataSource.getCollection('books'), 'list')
-            .mockResolvedValue([{ title: 'test ' }]);
-
-          services.serializer.serialize = jest.fn().mockImplementation(() => {
-            throw new Error('failed to serialize');
-          });
-
-          const get = new Get(services, options, dataSource, 'books');
-          const context = createMockContext({
-            customProperties: { params: { id: '2d162303-78bf-599e-b197-93590ac3d315' } },
-          });
-
-          await expect(get.handleGet(context)).rejects.toThrow('failed to serialize');
-        });
-      });
     });
   });
 });
