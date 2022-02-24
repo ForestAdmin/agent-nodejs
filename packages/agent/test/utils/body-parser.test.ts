@@ -2,9 +2,9 @@ import { CollectionSchema } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../__factories__';
-import BodyStringParser from '../../src/utils/body-string';
+import BodyParser from '../../src/utils/body-parser';
 
-describe('BodyStringParserParser', () => {
+describe('BodyParser', () => {
   describe('parseSelectionIds', () => {
     const setupSchema = (): CollectionSchema => {
       return factories.collectionSchema.build({
@@ -20,7 +20,7 @@ describe('BodyStringParserParser', () => {
           data: { attributes: { ids: ['2d162303-78bf-599e-b197-93590ac3d315'] } },
         },
       });
-      expect(BodyStringParser.parseSelectionIds(setupSchema(), context)).toEqual({
+      expect(BodyParser.parseSelectionIds(setupSchema(), context)).toEqual({
         areExcluded: false,
         ids: [['2d162303-78bf-599e-b197-93590ac3d315']],
       });
@@ -32,7 +32,7 @@ describe('BodyStringParserParser', () => {
           data: [{ id: '2d162303-78bf-599e-b197-93590ac3d315' }],
         },
       });
-      expect(BodyStringParser.parseSelectionIds(setupSchema(), context)).toEqual({
+      expect(BodyParser.parseSelectionIds(setupSchema(), context)).toEqual({
         areExcluded: false,
         ids: [['2d162303-78bf-599e-b197-93590ac3d315']],
       });
@@ -49,7 +49,7 @@ describe('BodyStringParserParser', () => {
           },
         },
       });
-      expect(BodyStringParser.parseSelectionIds(setupSchema(), context)).toEqual({
+      expect(BodyParser.parseSelectionIds(setupSchema(), context)).toEqual({
         areExcluded: true,
         ids: [['2d162303-78bf-599e-b197-93590ac3d315']],
       });
@@ -61,7 +61,7 @@ describe('BodyStringParserParser', () => {
           data: [{ bad_id: '2d162303-78bf-599e-b197-93590ac3d315' }],
         },
       });
-      expect(() => BodyStringParser.parseSelectionIds(setupSchema(), context)).toThrowError();
+      expect(() => BodyParser.parseSelectionIds(setupSchema(), context)).toThrowError();
     });
   });
 });

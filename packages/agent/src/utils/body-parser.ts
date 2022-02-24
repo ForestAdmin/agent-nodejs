@@ -3,7 +3,7 @@ import { Context } from 'koa';
 import { SelectionIds } from '../types';
 import IdUtils from './id';
 
-export default class BodyStringParser {
+export default class BodyParser {
   static parseSelectionIds(schema: CollectionSchema, context: Context): SelectionIds {
     const data = context.request.body?.data;
     const attributes = data?.attributes;

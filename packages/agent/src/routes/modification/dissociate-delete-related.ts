@@ -22,7 +22,7 @@ import { Context } from 'koa';
 import Router from '@koa/router';
 
 import { HttpCode, SelectionIds } from '../../types';
-import BodyStringParser from '../../utils/body-string';
+import BodyParser from '../../utils/body-parser';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';
@@ -38,7 +38,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
 
   public async handleDissociateDeleteRelatedRoute(context: Context): Promise<void> {
     const isDeleteMode = Boolean(context.request.query?.delete);
-    const selectionIds = BodyStringParser.parseSelectionIds(this.foreignCollection.schema, context);
+    const selectionIds = BodyParser.parseSelectionIds(this.foreignCollection.schema, context);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 
     if (selectionIds.ids.length === 0 && !selectionIds.areExcluded) {
