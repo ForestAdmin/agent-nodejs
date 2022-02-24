@@ -2,7 +2,9 @@ import {
   ActionResponse,
   ActionResponseType,
   ActionSchema,
+  ConditionTreeFactory,
   DataSource,
+  Filter,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
@@ -10,10 +12,12 @@ import Router from '@koa/router';
 
 import { ForestAdminHttpDriverOptionsWithDefaults, HttpCode } from '../../types';
 import { ForestAdminHttpDriverServices } from '../../services';
-import BaseActionRoute from './base-action';
+import BodyParser from '../../utils/body-parser';
+import CollectionRoute from '../collection-route';
+import QueryStringParser from '../../utils/query-string';
 import SchemaGeneratorActions from '../../utils/forest-schema/generator-actions';
 
-export default class CustomActionRoute extends BaseActionRoute {
+export default class ActionRoute extends CollectionRoute {
   private actionName: string;
 
   get actionSchema(): ActionSchema {
@@ -110,5 +114,27 @@ export default class CustomActionRoute extends BaseActionRoute {
     } else {
       throw new Error('Unexpected Action result.');
     }
+  }
+
+  private async getRecordSelection(context: Context): Promise<Filter> {
+    const selectionIds = BodyParser.parseSelectionIds(this.collection.schema, context);
+    let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
+    if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
+
+    const conditionTree = ConditionTreeFactory.intersect(
+      selectedIds,
+      QueryStringParser.parseConditionTree(this.collection, context),
+      await this.services.permissions.getScope(this.collection, context),
+    );
+
+    const filter = new Filter({
+      conditionTree,
+      search: QueryStringParser.parseSearch(this.collection, context),
+      searchExtended: QueryStringParser.parseSearchExtended(context),
+      segment: QueryStringParser.parseSegment(this.collection, context),
+      timezone: QueryStringParser.parseTimezone(context),
+    });
+
+    return filter;
   }
 }

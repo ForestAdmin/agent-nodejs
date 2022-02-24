@@ -13,22 +13,11 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
-import IdUtils from './id';
 
 const DEFAULT_ITEMS_PER_PAGE = 15;
 const DEFAULT_PAGE_TO_SKIP = 1;
 
 export default class QueryStringParser {
-  static parseRecordSelection(collection: Collection, context: Context): ConditionTree {
-    const attributes = context.request.body?.data?.attributes;
-    const includedIds = IdUtils.unpackIds(collection.schema, attributes?.ids);
-    const excludedIds = IdUtils.unpackIds(collection.schema, attributes?.all_records_ids_excluded);
-
-    return attributes?.all_records
-      ? ConditionTreeFactory.matchIds(collection.schema, excludedIds).inverse()
-      : ConditionTreeFactory.matchIds(collection.schema, includedIds);
-  }
-
   static parseConditionTree(collection: Collection, context: Context): ConditionTree {
     try {
       const string = context.request.query?.filters || context.request.body?.filters;
