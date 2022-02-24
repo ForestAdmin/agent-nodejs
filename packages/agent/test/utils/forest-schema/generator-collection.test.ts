@@ -31,11 +31,7 @@ describe('SchemaGeneratorCollection', () => {
         },
         segments: ['Live'],
       }),
-
-      // Action does not have a form
-      getAction: jest.fn().mockReturnValue({
-        getForm: jest.fn().mockReturnValue(Promise.resolve(null)),
-      }),
+      getForm: jest.fn().mockReturnValue(Promise.resolve(null)),
     }),
   ]);
 

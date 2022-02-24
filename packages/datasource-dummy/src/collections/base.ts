@@ -43,7 +43,11 @@ export default class BaseDummyCollection extends BaseCollection {
   ) {
     super(name, datasource);
     this.addFields(fields);
-    this.addAction('Mark as Live', { scope: ActionSchemaScope.Bulk }, new MarkAsLiveAction());
+    this.addAction(
+      'Mark as Live',
+      { scope: ActionSchemaScope.Bulk, staticForm: true },
+      new MarkAsLiveAction(),
+    );
     this.records = records;
 
     // filters/sort is supported

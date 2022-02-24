@@ -11,18 +11,14 @@ describe('DummyDataSource > Actions > MarkAsLiveAction', () => {
       await expect(new MarkAsLiveAction().execute({ value: 42 })).resolves.toMatchObject({
         type: ActionResponseType.Success,
         message: 'Record set as active',
-        options: {
-          type: 'text',
-        },
+        format: 'text',
       });
     });
   });
 
   describe('getForm', () => {
     it('should resolve with an empty ActionForm', async () => {
-      await expect(new MarkAsLiveAction().getForm()).resolves.toMatchObject({
-        fields: [],
-      });
+      await expect(new MarkAsLiveAction().getForm()).resolves.toMatchObject([]);
     });
   });
 });

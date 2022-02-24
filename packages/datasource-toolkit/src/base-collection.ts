@@ -1,4 +1,4 @@
-import { Action } from './interfaces/action';
+import { Action, ActionField, ActionResponse } from './interfaces/action';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 import { Collection, DataSource } from './interfaces/collection';
 import { RecordData } from './interfaces/record';
@@ -77,4 +77,12 @@ export default abstract class BaseCollection implements Collection {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]>;
+
+  execute(name: string, formValues: RecordData, filter?: Filter): Promise<ActionResponse> {
+    return this.getAction(name).execute(formValues, filter);
+  }
+
+  getForm(name: string, formValues?: RecordData, filter?: Filter): Promise<ActionField[]> {
+    return this.getAction(name).getForm(formValues, filter);
+  }
 }

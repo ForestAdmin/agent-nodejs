@@ -1,7 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import {
   Action,
-  ActionForm,
+  ActionField,
   ActionResponse,
   ActionResponseType,
   ActionSchemaScope,
@@ -67,8 +67,8 @@ describe('SequelizeDataSource > Collection', () => {
         };
       }
 
-      async getForm(): Promise<ActionForm> {
-        return { fields: [] };
+      async getForm(): Promise<ActionField[]> {
+        return [];
       }
     }
 

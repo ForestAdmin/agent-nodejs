@@ -8,8 +8,8 @@ export enum ActionSchemaScope {
 
 export type ActionSchema = {
   scope: ActionSchemaScope;
-  forceDownload?: boolean;
-  generateFormOnUsage?: boolean;
+  generateFile?: boolean;
+  staticForm?: boolean;
 };
 
 export type CollectionSchema = {

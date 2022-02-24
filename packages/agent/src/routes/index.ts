@@ -8,6 +8,7 @@ import Chart from './access/chart';
 import Count from './access/count';
 import CountRelated from './access/count-related';
 import Create from './modification/create';
+import CustomActionRoute from './actions/custom-action';
 import Delete from './modification/delete';
 import DissociateDeleteRelated from './modification/dissociate-delete-related';
 import ErrorHandling from './system/error-handling';
@@ -79,6 +80,22 @@ function getRelatedAndRelatedRelationRoutes(
   return routes;
 }
 
+function getActionRoutes(
+  dataSource: DataSource,
+  options: Options,
+  services: Services,
+): BaseRoute[] {
+  const routes: BaseRoute[] = [];
+
+  for (const collection of dataSource.collections)
+    for (const actionName of Object.keys(collection.schema.actions))
+      routes.push(
+        new CustomActionRoute(services, options, dataSource, collection.name, actionName),
+      );
+
+  return routes;
+}
+
 export default function makeRoutes(
   dataSources: DataSource[],
   options: Options,
@@ -90,6 +107,7 @@ export default function makeRoutes(
     ...dataSources
       .map(dataSource => getRelatedAndRelatedRelationRoutes(dataSource, options, services))
       .flat(),
+    ...dataSources.map(dataSource => getActionRoutes(dataSource, options, services)).flat(),
   ];
 
   // Ensure routes and middlewares are loaded in the right order.

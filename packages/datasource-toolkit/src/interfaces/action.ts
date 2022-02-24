@@ -1,29 +1,21 @@
 import { RecordData } from './record';
-import Projection from './query/projection';
+import Filter from './query/filter/unpaginated';
 
 export interface Action {
-  execute(formValues: RecordData, selection?: Selection): Promise<ActionResponse>;
-  getForm(
-    selection?: Selection,
-    changedField?: string,
-    formValues?: RecordData,
-  ): Promise<ActionForm>;
-}
-
-export interface ActionForm {
-  fields: ActionField[];
+  execute(formValues: RecordData, filter?: Filter): Promise<ActionResponse>;
+  getForm(formValues: RecordData, filter?: Filter): Promise<ActionField[]>;
 }
 
 export interface ActionField {
+  type: ActionFieldType;
   label: string;
   description?: string;
-  type: ActionFieldType;
-  enumValues: string[];
+  enumValues?: string[];
   isRequired?: boolean;
   isReadOnly?: boolean;
-  defaultValue?: unknown;
-  reloadOnChange: boolean;
+  value?: unknown;
   collectionName?: string; // When type === ActionFieldType.Collection
+  watchChanges: boolean;
 }
 
 export enum ActionFieldType {
@@ -37,6 +29,7 @@ export enum ActionFieldType {
   Number = 'Number',
   String = 'String',
   EnumList = 'Enum[]',
+  FileList = 'File[]',
   NumberList = 'Number[]',
   StringList = 'String[]',
 }
@@ -52,13 +45,14 @@ export enum ActionResponseType {
 export type SuccessReponse = {
   type: ActionResponseType.Success;
   message: string;
-  invalidatedDependencies?: Projection;
-  options: {
-    type: 'html' | 'text';
-  };
+  format: 'html' | 'text';
+  invalidated: Set<string>;
 };
 
-export type ErrorResponse = SuccessReponse & { type: ActionResponseType.Error };
+export type ErrorResponse = {
+  type: ActionResponseType.Error;
+  message: string;
+};
 
 export type WebHookReponse = {
   type: ActionResponseType.Webhook;
@@ -71,6 +65,7 @@ export type WebHookReponse = {
 export type FileResponse = {
   type: ActionResponseType.File;
   mimeType: string;
+  name: string;
   stream: ReadableStream;
 };
 

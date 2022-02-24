@@ -31,6 +31,7 @@ export type ForestServerAction = {
 };
 
 export type ForestServerActionField = {
+  value: unknown;
   defaultValue: unknown;
   description: string | null;
   enums: string[];
@@ -38,7 +39,6 @@ export type ForestServerActionField = {
   hook: string;
   isReadOnly: boolean;
   isRequired: boolean;
-  position: number;
   reference: string | null;
   type: ColumnType;
   widget: null | 'belongsto select' | 'file picker';

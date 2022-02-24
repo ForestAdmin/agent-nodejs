@@ -1,4 +1,5 @@
 import * as factories from '../__factories__';
+import { ActionFieldType, ActionResponseType } from '../../src';
 
 describe('CollectionDecorator', () => {
   describe('list', () => {
@@ -116,18 +117,33 @@ describe('CollectionDecorator', () => {
     });
   });
 
-  describe('getAction', () => {
-    it('calls the child getAction method', () => {
-      const action = factories.action.build();
-      const childGetAction = jest.fn().mockReturnValue(action);
+  describe('getForm', () => {
+    it('calls the child getForm method', async () => {
+      const fields = { type: ActionFieldType.String, label: 'field ' };
+      const childGetForm = jest.fn().mockReturnValue(fields);
       const decoratedCollection = factories.collection.buildDecoratedCollection({
-        getAction: childGetAction,
+        getForm: childGetForm,
       });
 
-      const result = decoratedCollection.getAction('an action name');
+      const result = await decoratedCollection.getForm('an action name', {}, null);
 
-      expect(result).toStrictEqual(action);
-      expect(childGetAction).toHaveBeenCalledWith('an action name');
+      expect(result).toStrictEqual(fields);
+      expect(childGetForm).toHaveBeenCalledWith('an action name', {}, null);
+    });
+  });
+
+  describe('execute', () => {
+    it('calls the child execute method', async () => {
+      const response = { type: ActionResponseType.Success };
+      const childExecute = jest.fn().mockReturnValue(response);
+      const decoratedCollection = factories.collection.buildDecoratedCollection({
+        execute: childExecute,
+      });
+
+      const result = await decoratedCollection.execute('an action name', {}, null);
+
+      expect(result).toStrictEqual(response);
+      expect(childExecute).toHaveBeenCalledWith('an action name', {}, null);
     });
   });
 

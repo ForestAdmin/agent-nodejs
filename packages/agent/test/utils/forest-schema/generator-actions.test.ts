@@ -7,7 +7,8 @@ describe('SchemaGeneratorActions', () => {
   describe('Without form', () => {
     const collection = factories.collection.buildWithAction('Send email', {
       scope: ActionSchemaScope.Single,
-      forceDownload: false,
+      generateFile: false,
+      staticForm: true,
     });
 
     test('should generate schema correctly', async () => {
@@ -37,23 +38,21 @@ describe('SchemaGeneratorActions', () => {
       'Send {} email',
       {
         scope: ActionSchemaScope.Single,
-        forceDownload: false,
-        generateFormOnUsage: true,
+        generateFile: false,
+        staticForm: false,
       },
-      {
-        fields: [
-          {
-            label: 'label',
-            description: 'email',
-            type: ActionFieldType.String,
-            enumValues: [],
-            isRequired: true,
-            isReadOnly: false,
-            defaultValue: '',
-            reloadOnChange: false,
-          },
-        ],
-      },
+      [
+        {
+          label: 'label',
+          description: 'email',
+          type: ActionFieldType.String,
+          enumValues: [],
+          isRequired: true,
+          isReadOnly: false,
+          value: '',
+          watchChanges: false,
+        },
+      ],
     );
 
     test('should generate schema correctly', async () => {
@@ -87,23 +86,21 @@ describe('SchemaGeneratorActions', () => {
       'Send email',
       {
         scope: ActionSchemaScope.Single,
-        forceDownload: false,
-        generateFormOnUsage: false,
+        generateFile: false,
+        staticForm: true,
       },
-      {
-        fields: [
-          {
-            label: 'label',
-            description: 'email',
-            type: ActionFieldType.String,
-            enumValues: [],
-            isRequired: true,
-            isReadOnly: false,
-            defaultValue: '',
-            reloadOnChange: true,
-          },
-        ],
-      },
+      [
+        {
+          label: 'label',
+          description: 'email',
+          type: ActionFieldType.String,
+          enumValues: [],
+          isRequired: true,
+          isReadOnly: false,
+          value: '',
+          watchChanges: true,
+        },
+      ],
     );
 
     test('should include a reference to the change hook', async () => {
@@ -118,44 +115,42 @@ describe('SchemaGeneratorActions', () => {
         'Send email',
         {
           scope: ActionSchemaScope.Single,
-          forceDownload: false,
-          generateFormOnUsage: false,
+          generateFile: false,
+          staticForm: true,
         },
-        {
-          fields: [
-            {
-              label: 'author',
-              description: 'choose an author',
-              type: ActionFieldType.Collection,
-              enumValues: [],
-              isRequired: true,
-              isReadOnly: false,
-              defaultValue: '',
-              reloadOnChange: false,
-              collectionName: 'authors',
-            },
-            {
-              label: 'avatar',
-              description: 'choose an avatar',
-              type: ActionFieldType.File,
-              enumValues: [],
-              isRequired: true,
-              isReadOnly: false,
-              defaultValue: '',
-              reloadOnChange: false,
-            },
-            {
-              label: 'inclusive gender',
-              description: 'Choose None, Male, Female or Both',
-              type: ActionFieldType.EnumList,
-              enumValues: ['Male', 'Female'],
-              isRequired: true,
-              isReadOnly: false,
-              defaultValue: '',
-              reloadOnChange: false,
-            },
-          ],
-        },
+        [
+          {
+            label: 'author',
+            description: 'choose an author',
+            type: ActionFieldType.Collection,
+            enumValues: [],
+            isRequired: true,
+            isReadOnly: false,
+            value: '',
+            watchChanges: false,
+            collectionName: 'authors',
+          },
+          {
+            label: 'avatar',
+            description: 'choose an avatar',
+            type: ActionFieldType.File,
+            enumValues: [],
+            isRequired: true,
+            isReadOnly: false,
+            value: '',
+            watchChanges: false,
+          },
+          {
+            label: 'inclusive gender',
+            description: 'Choose None, Male, Female or Both',
+            type: ActionFieldType.EnumList,
+            enumValues: ['Male', 'Female'],
+            isRequired: true,
+            isReadOnly: false,
+            value: '',
+            watchChanges: false,
+          },
+        ],
       ),
       factories.collection.build({
         name: 'authors',

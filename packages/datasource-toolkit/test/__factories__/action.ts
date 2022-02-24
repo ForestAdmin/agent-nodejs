@@ -2,7 +2,7 @@ import { Factory } from 'fishery';
 
 import {
   Action,
-  ActionForm,
+  ActionField,
   ActionResponse,
   ActionResponseType,
 } from '../../src/interfaces/action';
@@ -15,8 +15,8 @@ class ConcreteAction implements Action {
     };
   }
 
-  async getForm(): Promise<ActionForm> {
-    return { fields: [] };
+  async getForm(): Promise<ActionField[]> {
+    return [];
   }
 }
 
