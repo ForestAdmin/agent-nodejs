@@ -110,6 +110,12 @@ describe('ConditionTree', () => {
           }),
         });
 
+        test('should generate matchNone', () => {
+          const condition = ConditionTreeFactory.matchRecords(collection.schema, []);
+
+          expect(condition).toEqual(ConditionTreeFactory.MatchNone);
+        });
+
         test('should generate equal', () => {
           const condition = ConditionTreeFactory.matchRecords(collection.schema, [{ col1: 1 }]);
 
@@ -208,7 +214,7 @@ describe('ConditionTree', () => {
     describe('fromPlainObject', () => {
       test('should crash when calling with badly formatted json', () => {
         const fn = () => ConditionTreeFactory.fromPlainObject('this is not json');
-        expect(fn).toThrow('Failed to instanciate condition tree from json');
+        expect(fn).toThrow('Failed to instantiate condition tree from json');
       });
 
       test('should work with a simple case', () => {

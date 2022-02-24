@@ -108,6 +108,25 @@ export default class CollectionUtils {
     return records.map(r => r[relation.targetRelation] as RecordData);
   }
 
+  static getRelationOrThrowError(
+    collection: Collection,
+    relationName: string,
+  ): ManyToManySchema | OneToManySchema {
+    const relationFieldSchema = collection.schema.fields[relationName];
+
+    if (
+      relationFieldSchema.type !== FieldTypes.OneToMany &&
+      relationFieldSchema.type !== FieldTypes.ManyToMany
+    ) {
+      throw new Error(
+        'This method can only be used with ' +
+          `${FieldTypes.OneToMany} and ${FieldTypes.ManyToMany} relations`,
+      );
+    }
+
+    return collection.schema.fields[relationName] as ManyToManySchema | OneToManySchema;
+  }
+
   static async aggregateRelation(
     collection: Collection,
     id: CompositeId,
@@ -144,25 +163,6 @@ export default class CollectionUtils {
     }
 
     return collection.dataSource.getCollection(relation.throughCollection);
-  }
-
-  private static getRelationOrThrowError(
-    collection: Collection,
-    relationName: string,
-  ): ManyToManySchema | OneToManySchema {
-    const relationFieldSchema = collection.schema.fields[relationName];
-
-    if (
-      relationFieldSchema.type !== FieldTypes.OneToMany &&
-      relationFieldSchema.type !== FieldTypes.ManyToMany
-    ) {
-      throw new Error(
-        'This method can only be used with ' +
-          `${FieldTypes.OneToMany} and ${FieldTypes.ManyToMany} relations`,
-      );
-    }
-
-    return collection.schema.fields[relationName] as ManyToManySchema | OneToManySchema;
   }
 
   private static buildConditionTreeFromRelation(

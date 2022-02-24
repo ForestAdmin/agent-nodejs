@@ -62,7 +62,7 @@ export default class ConditionTreeFactory {
       return branch.conditions.length !== 1 ? branch : branch.conditions[0];
     }
 
-    throw new Error('Failed to instanciate condition tree from json');
+    throw new Error('Failed to instantiate condition tree from json');
   }
 
   private static matchFields(fields: string[], values: unknown[][]): ConditionTree {

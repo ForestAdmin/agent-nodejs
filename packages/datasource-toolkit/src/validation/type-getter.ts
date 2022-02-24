@@ -2,8 +2,8 @@ import { DateTime } from 'luxon';
 import { validate as uuidValidate } from 'uuid';
 
 import { PrimitiveTypes } from '../interfaces/schema';
+import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 import ValidationError from '../errors';
-import ValidationTypes from './types';
 
 export default class TypeGetter {
   static get(value: unknown, typeContext?: PrimitiveTypes): PrimitiveTypes | ValidationTypes {
@@ -24,31 +24,30 @@ export default class TypeGetter {
     if (typeof value === 'object' && PrimitiveTypes.Json === typeContext)
       return PrimitiveTypes.Json;
 
-    return ValidationTypes.Null;
+    return ValidationPrimaryTypes.Null;
   }
 
   private static getArrayType(
     value: Array<unknown>,
     typeContext?: PrimitiveTypes,
   ): ValidationTypes | PrimitiveTypes {
-    if (value.length === 0) return ValidationTypes.EmptyArray;
-
+    if (value.length === 0) return ValidationTypesArray.Empty;
     if (TypeGetter.isArrayOf(PrimitiveTypes.Number, value, typeContext))
-      return ValidationTypes.ArrayOfNumber;
+      return ValidationTypesArray.Number;
 
     if (TypeGetter.isArrayOf(PrimitiveTypes.Uuid, value, typeContext))
-      return ValidationTypes.ArrayOfUuid;
+      return ValidationTypesArray.Uuid;
 
     if (TypeGetter.isArrayOf(PrimitiveTypes.Boolean, value, typeContext))
-      return ValidationTypes.ArrayOfBoolean;
+      return ValidationTypesArray.Boolean;
 
     if (TypeGetter.isArrayOf(PrimitiveTypes.String, value, typeContext))
-      return ValidationTypes.ArrayOfString;
+      return ValidationTypesArray.String;
 
     if (TypeGetter.isArrayOf(PrimitiveTypes.Enum, value, typeContext))
-      return ValidationTypes.ArrayOfEnum;
+      return ValidationTypesArray.Enum;
 
-    return ValidationTypes.Null;
+    return ValidationPrimaryTypes.Null;
   }
 
   private static getDateType(value: string): PrimitiveTypes {
@@ -86,7 +85,7 @@ export default class TypeGetter {
       potentialPoint.length === 2 &&
       typeContext === PrimitiveTypes.Point &&
       TypeGetter.get(potentialPoint.map(Number), PrimitiveTypes.Number) ===
-        ValidationTypes.ArrayOfNumber
+        ValidationTypesArray.Number
     );
   }
 

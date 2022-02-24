@@ -1,4 +1,6 @@
 /** Logger Level */
+import { CompositeId } from '@forestadmin/datasource-toolkit';
+
 export enum LoggerLevel {
   Info = 'info',
   Warn = 'warn',
@@ -43,3 +45,8 @@ export enum RouteType {
   Authentication = 3,
   PrivateRoute = 4,
 }
+
+export type SelectionIds = {
+  areExcluded: boolean;
+  ids: CompositeId[];
+};

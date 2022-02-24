@@ -96,7 +96,7 @@ describe('ListRelatedRoute', () => {
         ]);
 
         const searchParams = { search: 'searched argument' };
-        const filtersParams = {
+        const conditionTreeParams = {
           filters: JSON.stringify({
             aggregator: 'and',
             conditions: [
@@ -109,7 +109,7 @@ describe('ListRelatedRoute', () => {
         const customProperties = {
           query: {
             ...searchParams,
-            ...filtersParams,
+            ...conditionTreeParams,
             ...segmentParams,
             ...projectionParams,
             timezone: 'Europe/Paris',

@@ -1,6 +1,6 @@
 import { PrimitiveTypes } from '../../src/interfaces/schema';
+import { ValidationPrimaryTypes, ValidationTypesArray } from '../../src/validation/types';
 import TypeGetter from '../../src/validation/type-getter';
-import ValidationTypes from '../../src/validation/types';
 
 describe('TypeGetter', () => {
   describe('get', () => {
@@ -13,17 +13,17 @@ describe('TypeGetter', () => {
     describe('when the value is an Array', () => {
       describe('when all the values are numbers', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get([1, 2, 3])).toEqual(ValidationTypes.ArrayOfNumber);
+          expect(TypeGetter.get([1, 2, 3])).toEqual(ValidationTypesArray.Number);
         });
 
         it('should return the expected type when there are negative numbers', () => {
-          expect(TypeGetter.get([-1, 2, 3])).toEqual(ValidationTypes.ArrayOfNumber);
+          expect(TypeGetter.get([-1, 2, 3])).toEqual(ValidationTypesArray.Number);
         });
       });
 
       describe('when all the values are boolean', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get([true, false])).toEqual(ValidationTypes.ArrayOfBoolean);
+          expect(TypeGetter.get([true, false])).toEqual(ValidationTypesArray.Boolean);
         });
       });
 
@@ -34,7 +34,7 @@ describe('TypeGetter', () => {
               '2d162303-78bf-599e-b197-93590ac3d315',
               '2d162303-78bf-599e-b197-93590ac3d315',
             ]),
-          ).toEqual(ValidationTypes.ArrayOfUuid);
+          ).toEqual(ValidationTypesArray.Uuid);
         });
       });
 
@@ -42,13 +42,13 @@ describe('TypeGetter', () => {
         describe('when the given context is an Enum', () => {
           it('should return the expected type', () => {
             expect(TypeGetter.get(['an enum value'], PrimitiveTypes.Enum)).toEqual(
-              ValidationTypes.ArrayOfEnum,
+              ValidationTypesArray.Enum,
             );
           });
         });
 
         it('should return the expected type', () => {
-          expect(TypeGetter.get(['str', 'str2', 'str'])).toEqual(ValidationTypes.ArrayOfString);
+          expect(TypeGetter.get(['str', 'str2', 'str'])).toEqual(ValidationTypesArray.String);
         });
       });
 
@@ -60,13 +60,13 @@ describe('TypeGetter', () => {
 
       describe('when the values are strings and numbers', () => {
         it('should return null', () => {
-          expect(TypeGetter.get(['str', 1, 'str'])).toEqual(ValidationTypes.Null);
+          expect(TypeGetter.get(['str', 1, 'str'])).toEqual(ValidationPrimaryTypes.Null);
         });
       });
 
       describe('when there is no value', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get([])).toEqual(ValidationTypes.EmptyArray);
+          expect(TypeGetter.get([])).toEqual(ValidationTypesArray.Empty);
         });
       });
     });
@@ -85,7 +85,7 @@ describe('TypeGetter', () => {
 
     describe('when the value is an object', () => {
       it('should return null', () => {
-        expect(TypeGetter.get({ message: 'hello' })).toEqual(ValidationTypes.Null);
+        expect(TypeGetter.get({ message: 'hello' })).toEqual(ValidationPrimaryTypes.Null);
       });
     });
 
