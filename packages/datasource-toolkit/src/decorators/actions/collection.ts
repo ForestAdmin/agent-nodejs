@@ -51,12 +51,12 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     const context = this.getContext(action, formValues, filter, used);
 
     // Convert DynamicField to ActionField in successive steps.
-    let conditionalFields: DynamicField[];
-    conditionalFields = action.form.map(c => ({ ...c }));
-    conditionalFields = await this.withDefaults(context, conditionalFields, !data, formValues);
-    conditionalFields = await this.withIfs(context, conditionalFields);
+    let dynamicFields: DynamicField[];
+    dynamicFields = action.form.map(c => ({ ...c }));
+    dynamicFields = await this.withDefaults(context, dynamicFields, !data, formValues);
+    dynamicFields = await this.withIfs(context, dynamicFields);
 
-    const fields = await this.withDeferred(context, conditionalFields);
+    const fields = await this.withDeferred(context, dynamicFields);
 
     for (const field of fields) {
       // customer did not define a handler to rewrite the previous value => reuse current one.
