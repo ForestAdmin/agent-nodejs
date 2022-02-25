@@ -19,9 +19,10 @@ export default class CsvGenerator {
    */
   static async *generate(
     projection: Projection,
-    filter: Filter,
     header: string,
+    filter: Filter,
     collection: Collection,
+    list: (paginatedFilter: PaginatedFilter, Projection: Projection) => Promise<RecordData[]>,
   ): AsyncGenerator<string> {
     yield `${header}\n`;
     let skip = 0;
@@ -33,7 +34,7 @@ export default class CsvGenerator {
       const paginatedFilter = new PaginatedFilter({ page, sort }).override({ ...filter });
 
       // eslint-disable-next-line no-await-in-loop
-      const records = await collection.list(paginatedFilter, projection);
+      const records = await list(paginatedFilter, projection);
 
       yield CsvGenerator.convert(records, projection);
 

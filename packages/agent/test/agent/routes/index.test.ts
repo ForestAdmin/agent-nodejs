@@ -7,6 +7,7 @@ import makeRoutes, {
 } from '../../../src/agent/routes';
 
 import * as factories from '../__factories__';
+<<<<<<< HEAD:packages/agent/test/agent/routes/index.test.ts
 import Authentication from '../../../src/agent/routes/security/authentication';
 import Chart from '../../../src/agent/routes/access/chart';
 import Count from '../../../src/agent/routes/access/count';
@@ -24,6 +25,8 @@ import Logger from '../../../src/agent/routes/system/logger';
 import ScopeInvalidation from '../../../src/agent/routes/security/scope-invalidation';
 import Update from '../../../src/agent/routes/modification/update';
 import UpdateRelation from '../../../src/agent/routes/modification/update-relation';
+import Csv from '../../../src/agent/routes/access/csv';
+import CsvRelated from '../../../src/agent/routes/access/csv-related';
 
 describe('Route index', () => {
   it('should declare all the routes', () => {
@@ -36,7 +39,12 @@ describe('Route index', () => {
       ScopeInvalidation,
     ]);
     expect(COLLECTION_ROUTES_CTOR).toEqual([Chart, Count, Create, Csv, Delete, Get, List, Update]);
-    expect(RELATED_ROUTES_CTOR).toEqual([CountRelated, DissociateDeleteRelated, ListRelated]);
+    expect(RELATED_ROUTES_CTOR).toEqual([
+      CountRelated,
+      CsvRelated,
+      DissociateDeleteRelated,
+      ListRelated,
+    ]);
     expect(RELATED_RELATION_ROUTES_CTOR).toEqual([UpdateRelation]);
   });
 

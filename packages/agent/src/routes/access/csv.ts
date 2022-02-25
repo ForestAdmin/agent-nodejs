@@ -30,8 +30,10 @@ export default class CsvRoute extends CollectionRoute {
     context.response.lastModified = new Date();
     context.response.set({ 'X-Accel-Buffering': 'no' });
     context.response.set({ 'Cache-Control': 'no-cache' });
-    context.response.body = Readable.from(
-      CsvGenerator.generate(projection, filter, query.header as string, this.collection),
-    );
+
+    const header = query.header as string;
+    const list = this.collection.list.bind(this.collection);
+    const generator = CsvGenerator.generate(projection, header, filter, this.collection, list);
+    context.response.body = Readable.from(generator);
   }
 }

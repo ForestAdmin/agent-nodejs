@@ -58,7 +58,13 @@ describe('CsvGenerator', () => {
 
       collection.list = jest.fn().mockResolvedValue(records);
 
-      const generator = CsvGenerator.generate(projection, filter, 'id,name', collection);
+      const generator = CsvGenerator.generate(
+        projection,
+        'id,name',
+        filter,
+        collection,
+        collection.list,
+      );
       await readCsv(generator);
 
       expect(collection.list).toHaveBeenCalledWith(
@@ -77,7 +83,13 @@ describe('CsvGenerator', () => {
 
       collection.list = jest.fn().mockResolvedValue(records);
 
-      const generator = CsvGenerator.generate(projection, filter, 'id,name', collection);
+      const generator = CsvGenerator.generate(
+        projection,
+        'id,name',
+        filter,
+        collection,
+        collection.list,
+      );
 
       expect(await readCsv(generator)).toEqual(['id,name\n', 'ab,1\nabc,2\nabd,3\nabe,4\n']);
     });
@@ -88,7 +100,13 @@ describe('CsvGenerator', () => {
 
       collection.list = jest.fn().mockResolvedValue(records);
 
-      const generator = CsvGenerator.generate(projection, filter, 'name', collection);
+      const generator = CsvGenerator.generate(
+        projection,
+        'name',
+        filter,
+        collection,
+        collection.list,
+      );
 
       expect(await readCsv(generator)).toEqual(['name\n', 'ab\nabc\nabd\nabe\n']);
     });
@@ -128,7 +146,13 @@ describe('CsvGenerator', () => {
           .mockReturnValueOnce(records.slice(PAGE_SIZE, PAGE_SIZE * 2))
           .mockReturnValueOnce([]);
 
-        const generator = CsvGenerator.generate(projection, filter, 'name', collection);
+        const generator = CsvGenerator.generate(
+          projection,
+          'name',
+          filter,
+          collection,
+          collection.list,
+        );
         await readCsv(generator);
 
         expect(collection.list).toHaveBeenCalledTimes(3);

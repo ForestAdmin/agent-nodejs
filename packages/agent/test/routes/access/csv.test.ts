@@ -2,7 +2,7 @@ import { Aggregator, Filter, Operator, PrimitiveTypes } from '@forestadmin/datas
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { readCsv } from '../../utils/csv-converter.test';
+import { readCsv } from '../../utils/csv-generator.test';
 import CsvGenerator from '../../../src/utils/csv-generator';
 import CsvRoute from '../../../src/routes/access/csv';
 
@@ -118,6 +118,7 @@ describe('CsvRoute', () => {
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
         ['name', 'id'],
+        'id,name',
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: Aggregator.And,
@@ -134,8 +135,8 @@ describe('CsvRoute', () => {
           segment: 'a-valid-segment',
           search: 'searched argument',
         }),
-        'id,name',
         dataSource.getCollection('books'),
+        expect.any(Function),
       );
     });
 
