@@ -1,13 +1,13 @@
 import { Operator } from './query/condition-tree/nodes/leaf';
 
-export enum ActionSchemaScope {
+export enum ActionScope {
   Single = 'single',
   Bulk = 'bulk',
   Global = 'global',
 }
 
 export type ActionSchema = {
-  scope: ActionSchemaScope;
+  scope: ActionScope;
   generateFile?: boolean;
   staticForm?: boolean;
 };

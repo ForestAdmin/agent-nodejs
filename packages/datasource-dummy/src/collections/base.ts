@@ -1,5 +1,5 @@
 import {
-  ActionSchemaScope,
+  ActionScope,
   AggregateResult,
   Aggregation,
   BaseCollection,
@@ -45,7 +45,7 @@ export default class BaseDummyCollection extends BaseCollection {
     this.addFields(fields);
     this.addAction(
       'Mark as Live',
-      { scope: ActionSchemaScope.Bulk, staticForm: true },
+      { scope: ActionScope.Bulk, staticForm: true },
       new MarkAsLiveAction(),
     );
     this.records = records;

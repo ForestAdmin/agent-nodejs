@@ -1,4 +1,4 @@
-import { ActionSchemaScope } from '../../../interfaces/schema';
+import { ActionScope } from '../../../interfaces/schema';
 import { DynamicField } from './fields';
 import ActionContext from '../context/base';
 import ActionContextBulk from '../context/bulk';
@@ -10,21 +10,19 @@ interface BaseAction {
 }
 
 export interface ActionGlobal extends BaseAction {
-  scope: ActionSchemaScope.Global;
+  scope: ActionScope.Global;
   form?: DynamicField<ActionContext>[];
   execute(context: ActionContext, responseBuilder: ResponseBuilder): Promise<void>;
 }
 
 export interface ActionBulk extends BaseAction {
-  scope: ActionSchemaScope.Bulk;
-  dependencies: string[];
+  scope: ActionScope.Bulk;
   form?: DynamicField<ActionContextBulk>[];
   execute(context: ActionContextBulk, responseBuilder: ResponseBuilder): Promise<void>;
 }
 
 export interface ActionSingle extends BaseAction {
-  scope: ActionSchemaScope.Single;
-  dependencies: string[];
+  scope: ActionScope.Single;
   form?: DynamicField<ActionContextSingle>[];
   execute(context: ActionContextSingle, responseBuilder: ResponseBuilder): Promise<void>;
 }

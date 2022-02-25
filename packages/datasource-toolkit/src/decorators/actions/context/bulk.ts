@@ -7,20 +7,9 @@ import Projection from '../../../interfaces/query/projection';
 
 export default class ActionContextBulk extends ActionContext {
   readonly filter: Filter;
-  private dependencies: Projection;
-  private recordIds: CompositeId[];
-  private records: RecordData[];
 
-  constructor(
-    collection: Collection,
-    formValues: RecordData,
-    used: Set<string>,
-    dependencies: Projection,
-    filter: Filter,
-  ) {
+  constructor(collection: Collection, formValues: RecordData, used: Set<string>, filter: Filter) {
     super(collection, formValues, used);
-
-    this.dependencies = dependencies;
     this.filter = filter;
   }
 
@@ -29,27 +18,17 @@ export default class ActionContextBulk extends ActionContext {
       throw new Error('Form was marked as static');
     }
 
-    if (!this.recordIds) {
-      const records = await this.collection.list(
-        this.filter,
-        new Projection().withPks(this.collection),
-      );
+    const records = await this.getRecords(new Projection().withPks(this.collection));
 
-      this.recordIds = records.map(r => RecordUtils.getPrimaryKey(this.collection.schema, r));
-    }
-
-    return this.recordIds;
+    return records.map(r => RecordUtils.getPrimaryKey(this.collection.schema, r));
   }
 
-  async getRecords(): Promise<RecordData[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getRecords(projection: string[]): Promise<any[]> {
     if (this.filter === null) {
       throw new Error('Form was marked as static');
     }
 
-    if (!this.records) {
-      this.records = await this.collection.list(this.filter, this.dependencies);
-    }
-
-    return this.records;
+    return this.collection.list(this.filter, new Projection(...projection));
   }
 }

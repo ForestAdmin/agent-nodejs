@@ -1,4 +1,4 @@
-import { ActionFieldType, ActionSchemaScope, Collection } from '@forestadmin/datasource-toolkit';
+import { ActionFieldType, ActionScope, Collection } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../../__factories__';
 import SchemaGeneratorActions from '../../../src/utils/forest-schema/generator-actions';
@@ -6,7 +6,7 @@ import SchemaGeneratorActions from '../../../src/utils/forest-schema/generator-a
 describe('SchemaGeneratorActions', () => {
   describe('Without form', () => {
     const collection = factories.collection.buildWithAction('Send email', {
-      scope: ActionSchemaScope.Single,
+      scope: ActionScope.Single,
       generateFile: false,
       staticForm: true,
     });
@@ -37,7 +37,7 @@ describe('SchemaGeneratorActions', () => {
     const collection: Collection = factories.collection.buildWithAction(
       'Send {} email',
       {
-        scope: ActionSchemaScope.Single,
+        scope: ActionScope.Single,
         generateFile: false,
         staticForm: false,
       },
@@ -85,7 +85,7 @@ describe('SchemaGeneratorActions', () => {
     const collection: Collection = factories.collection.buildWithAction(
       'Send email',
       {
-        scope: ActionSchemaScope.Single,
+        scope: ActionScope.Single,
         generateFile: false,
         staticForm: true,
       },
@@ -114,7 +114,7 @@ describe('SchemaGeneratorActions', () => {
       factories.collection.buildWithAction(
         'Send email',
         {
-          scope: ActionSchemaScope.Single,
+          scope: ActionScope.Single,
           generateFile: false,
           staticForm: true,
         },

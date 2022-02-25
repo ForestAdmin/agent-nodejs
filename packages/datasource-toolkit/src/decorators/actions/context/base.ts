@@ -2,8 +2,9 @@ import { Collection, DataSource } from '../../../interfaces/collection';
 import { RecordData } from '../../../interfaces/record';
 
 export default class ActionContext {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly formValues: any;
   readonly collection: Collection;
-  readonly formValues: Record<string, unknown>;
 
   get dataSource(): DataSource {
     return this.collection.dataSource;
@@ -19,6 +20,9 @@ export default class ActionContext {
           if (typeof prop === 'string') used.add(prop);
 
           return Reflect.get(target, prop, receiver);
+        },
+        set: () => {
+          throw new Error('formValues is readonly');
         },
       });
     }

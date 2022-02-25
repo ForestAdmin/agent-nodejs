@@ -1,10 +1,20 @@
 import { RecordData } from './record';
 import Filter from './query/filter/unpaginated';
 
+// @todo not sure it make sense to keep this interface
 export interface Action {
   execute(formValues: RecordData, filter?: Filter): Promise<ActionResult>;
   getForm(formValues: RecordData, filter?: Filter): Promise<ActionField[]>;
 }
+
+export type Json = string | number | boolean | { [x: string]: Json } | Array<Json>;
+
+export type File = {
+  mimeType: string;
+  buffer: Buffer;
+  name: string;
+  charset?: string;
+};
 
 export interface ActionField {
   type: ActionFieldType;

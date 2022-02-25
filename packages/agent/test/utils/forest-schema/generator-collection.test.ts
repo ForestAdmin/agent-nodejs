@@ -1,4 +1,4 @@
-import { ActionSchemaScope, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { ActionScope, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../../__factories__';
 import SchemaGeneratorCollection from '../../../src/utils/forest-schema/generator-collection';
@@ -22,7 +22,7 @@ describe('SchemaGeneratorCollection', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         actions: {
-          'Make as Live': { scope: ActionSchemaScope.Single },
+          'Make as Live': { scope: ActionScope.Single },
         },
         fields: {
           id: factories.columnSchema.isPrimaryKey().build({

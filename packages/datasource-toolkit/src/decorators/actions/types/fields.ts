@@ -1,4 +1,4 @@
-import { ActionFieldType } from '../../../interfaces/action';
+import { ActionFieldType, File, Json } from '../../../interfaces/action';
 import { CompositeId } from '../../../interfaces/record';
 
 export type ValueOrHandler<Context = unknown, Result = unknown> =
@@ -6,15 +6,13 @@ export type ValueOrHandler<Context = unknown, Result = unknown> =
   | ((context: Context) => Result)
   | Result;
 
-type JSONValue = string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
-
 interface BaseDynamicField<Context, Result> {
   label: string;
   description?: string;
   isRequired?: ValueOrHandler<Context, boolean>;
   isReadOnly?: ValueOrHandler<Context, boolean>;
 
-  if?: ValueOrHandler<Context, boolean>;
+  if?: ((context: Context) => Promise<unknown>) | ((context: Context) => unknown);
   value?: ValueOrHandler<Context, Result>;
   defaultValue?: ValueOrHandler<Context, Result>;
 }
@@ -38,7 +36,15 @@ interface EnumListDynamicField<Context> extends BaseDynamicField<Context, string
   enumValues: ValueOrHandler<Context, string[]>;
 }
 
-interface JsonDynamicField<Context> extends BaseDynamicField<Context, JSONValue> {
+interface FileDynamicField<Context> extends BaseDynamicField<Context, File> {
+  type: ActionFieldType.File;
+}
+
+interface FileListDynamicField<Context> extends BaseDynamicField<Context, File[]> {
+  type: ActionFieldType.FileList;
+}
+
+interface JsonDynamicField<Context> extends BaseDynamicField<Context, Json> {
   type: ActionFieldType.Json;
 }
 
@@ -51,15 +57,11 @@ interface NumberListDynamicField<Context> extends BaseDynamicField<Context, numb
 }
 
 interface StringDynamicField<Context> extends BaseDynamicField<Context, string> {
-  type:
-    | ActionFieldType.Date
-    | ActionFieldType.Dateonly
-    | ActionFieldType.File
-    | ActionFieldType.String;
+  type: ActionFieldType.Date | ActionFieldType.Dateonly | ActionFieldType.String;
 }
 
 interface StringListDynamicField<Context> extends BaseDynamicField<Context, string[]> {
-  type: ActionFieldType.FileList | ActionFieldType.StringList;
+  type: ActionFieldType.StringList;
 }
 
 export type DynamicField<Context = unknown> =
@@ -67,6 +69,8 @@ export type DynamicField<Context = unknown> =
   | CollectionDynamicField<Context>
   | EnumDynamicField<Context>
   | EnumListDynamicField<Context>
+  | FileDynamicField<Context>
+  | FileListDynamicField<Context>
   | JsonDynamicField<Context>
   | NumberDynamicField<Context>
   | NumberListDynamicField<Context>

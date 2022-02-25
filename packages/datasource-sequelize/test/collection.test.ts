@@ -4,7 +4,7 @@ import {
   ActionField,
   ActionResponse,
   ActionResponseType,
-  ActionSchemaScope,
+  ActionScope,
   Aggregation,
   AggregationOperation,
   ConditionTreeLeaf,
@@ -76,7 +76,7 @@ describe('SequelizeDataSource > Collection', () => {
       constructor(name, datasource: DataSource, sequelize) {
         super(name, datasource, sequelize);
 
-        this.addAction('__action__', { scope: ActionSchemaScope.Single }, new TestAction());
+        this.addAction('__action__', { scope: ActionScope.Single }, new TestAction());
       }
     }
 

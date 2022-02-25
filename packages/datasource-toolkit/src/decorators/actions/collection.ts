@@ -1,6 +1,6 @@
 import { Action, ActionBulk, ActionGlobal, ActionSingle } from './types/actions';
 import { ActionField, ActionResult, ActionResultType } from '../../interfaces/action';
-import { ActionSchemaScope, CollectionSchema } from '../../interfaces/schema';
+import { ActionScope, CollectionSchema } from '../../interfaces/schema';
 import { DynamicField, ValueOrHandler } from './types/fields';
 import { RecordData } from '../../interfaces/record';
 import ActionContext from './context/base';
@@ -9,7 +9,6 @@ import ActionContextSingle from './context/single';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 import Filter from '../../interfaces/query/filter/unpaginated';
-import Projection from '../../interfaces/query/projection';
 import ResponseBuilder from './response-builder';
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
@@ -76,7 +75,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       // An action form can be send in the schema to avoid calling the load handler
       // as long as there is nothing dynamic in it.
       const isDynamic = form?.some(field =>
-        Object.values(field).every(value => typeof value === 'function'),
+        Object.values(field).some(value => typeof value === 'function'),
       );
 
       newSchema.actions[name] = { scope, generateFile, staticForm: !isDynamic };
@@ -91,15 +90,13 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     filter: Filter,
     used?: Set<string>,
   ): ActionContext {
-    if (action.scope === ActionSchemaScope.Global) {
+    if (action.scope === ActionScope.Global) {
       return new ActionContext(this, formValues, used);
     }
 
-    const dependencies = new Projection(...action.dependencies);
-
-    return action.scope === ActionSchemaScope.Single
-      ? new ActionContextSingle(this, formValues, used, dependencies, filter)
-      : new ActionContextBulk(this, formValues, used, dependencies, filter);
+    return action.scope === ActionScope.Single
+      ? new ActionContextSingle(this, formValues, used, filter)
+      : new ActionContextBulk(this, formValues, used, filter);
   }
 
   private async withDefaults(
@@ -125,8 +122,10 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
   private async withIfs(context: ActionContext, fields: DynamicField[]): Promise<DynamicField[]> {
     // Remove fields which have falsy if
-    const ifValues = await Promise.all(fields.map(field => this.evaluate(context, field.if)));
-    const newFields = fields.filter((_, index) => ifValues[index] === undefined || ifValues[index]);
+    const ifValues = await Promise.all(
+      fields.map(field => !field.if || this.evaluate(context, field.if)),
+    );
+    const newFields = fields.filter((_, index) => ifValues[index]);
     newFields.forEach(field => delete field.if);
 
     return newFields;

@@ -11,6 +11,7 @@ import {
 import path from 'path';
 
 import { ForestServerAction, ForestServerActionField } from './types';
+import ForestValueConverter from './action-values';
 
 export default class SchemaGeneratorActions {
   /**
@@ -70,6 +71,8 @@ export default class SchemaGeneratorActions {
     const output = { description, isRequired, isReadOnly } as Record<string, unknown>;
 
     output.field = label;
+    output.value = ForestValueConverter.valueToForest(field, field.value);
+
     if (watchChanges) output.hook = 'changeHook';
 
     if (type === ActionFieldType.Collection) {
@@ -87,9 +90,6 @@ export default class SchemaGeneratorActions {
 
     if (type === ActionFieldType.Enum || type === ActionFieldType.EnumList) {
       output.enums = field.enumValues;
-      output.value = field.enumValues.includes(field.value as string) ? field.value : null;
-    } else {
-      output.value = field.value;
     }
 
     return output as ForestServerActionField;
