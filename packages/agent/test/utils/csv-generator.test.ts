@@ -48,13 +48,13 @@ describe('CsvGenerator', () => {
           },
         }),
       });
+      const projection = new Projection('name', 'id');
 
-      return { records, filter, collection };
+      return { records, filter, collection, projection };
     };
 
     test('should call collection list with specified page and sort options', async () => {
-      const { records, filter, collection } = setup();
-      const projection = new Projection('name', 'id');
+      const { records, filter, collection, projection } = setup();
 
       collection.list = jest.fn().mockResolvedValue(records);
 
@@ -73,13 +73,12 @@ describe('CsvGenerator', () => {
           page: new Page(0, 1000),
           sort: new Sort({ ascending: true, field: 'id' }),
         }),
-        new Projection('name', 'id'),
+        projection,
       );
     });
 
     test('should generate all the records as csv format with the header', async () => {
-      const { records, filter, collection } = setup();
-      const projection = new Projection('name', 'id');
+      const { records, filter, collection, projection } = setup();
 
       collection.list = jest.fn().mockResolvedValue(records);
 
@@ -95,9 +94,10 @@ describe('CsvGenerator', () => {
     });
 
     test('should filter the fields by given a projection in the generated csv', async () => {
-      const { records, filter, collection } = setup();
+      const { filter, collection } = setup();
       const projection = new Projection('name');
 
+      const records = [{ name: 'ab' }, { name: 'abc' }, { name: 'abd' }, { name: 'abe' }];
       collection.list = jest.fn().mockResolvedValue(records);
 
       const generator = CsvGenerator.generate(
@@ -113,6 +113,8 @@ describe('CsvGenerator', () => {
 
     describe('when there are more records than the PAGE_SIZE', () => {
       const setupWith2PageSizeRecords = () => {
+        const projection = new Projection('name', 'id');
+
         const records = Array.from({ length: PAGE_SIZE * 2 }, (_, n: number) => [
           { name: 'ab', id: n },
         ]);
@@ -133,12 +135,11 @@ describe('CsvGenerator', () => {
           }),
         });
 
-        return { records, filter, collection };
+        return { records, filter, collection, projection };
       };
 
       test('should call list collection 3 times', async () => {
-        const { records, filter, collection } = setupWith2PageSizeRecords();
-        const projection = new Projection('name');
+        const { records, filter, collection, projection } = setupWith2PageSizeRecords();
 
         collection.list = jest
           .fn()

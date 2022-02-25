@@ -1,3 +1,5 @@
+import * as factories from '../__factories__';
+import { SortFactory } from '../../src';
 import Sort from '../../src/interfaces/query/sort/sort';
 
 describe('Sort', () => {
@@ -69,6 +71,37 @@ describe('Sort', () => {
 
     test('should fail when no common prefix exists', () => {
       expect(() => sort.unnest()).toThrow('Cannot unnest sort.');
+    });
+  });
+
+  describe('factory', () => {
+    describe('byPrimaryKeys', () => {
+      test('should return a sort instance sorted by primary keys', () => {
+        const collectionWithCompositeId = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              id1: factories.columnSchema.isPrimaryKey().build(),
+              id2: factories.columnSchema.isPrimaryKey().build(),
+            },
+          }),
+        });
+        expect(SortFactory.byPrimaryKeys(collectionWithCompositeId)).toEqual(
+          new Sort({ field: 'id1', ascending: true }, { field: 'id2', ascending: true }),
+        );
+      });
+
+      test('should return a sort instance sorted by primary key', () => {
+        const collectionWithSimpleId = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.isPrimaryKey().build(),
+            },
+          }),
+        });
+        expect(SortFactory.byPrimaryKeys(collectionWithSimpleId)).toEqual(
+          new Sort({ field: 'id', ascending: true }),
+        );
+      });
     });
   });
 });

@@ -26,9 +26,9 @@ export default class CsvGenerator {
   ): AsyncGenerator<string> {
     yield `${header}\n`;
     let skip = 0;
-    let isAllRecordFetched = false;
+    let isAllRecordsFetched = false;
 
-    while (!isAllRecordFetched) {
+    while (!isAllRecordsFetched) {
       const page = new Page(skip, PAGE_SIZE);
       const sort = SortFactory.byPrimaryKeys(collection);
       const paginatedFilter = new PaginatedFilter({ page, sort }).override({ ...filter });
@@ -36,19 +36,19 @@ export default class CsvGenerator {
       // eslint-disable-next-line no-await-in-loop
       const records = await list(paginatedFilter, projection);
 
-      yield CsvGenerator.convert(records, projection);
+      yield CsvGenerator.convert(records);
 
-      isAllRecordFetched = records.length < PAGE_SIZE;
+      isAllRecordsFetched = records.length < PAGE_SIZE;
       skip += PAGE_SIZE;
     }
   }
 
-  private static convert(records: RecordData[], projection: Projection): string {
-    return records.map(record => CsvGenerator.buildLine(projection, record)).join('');
+  private static convert(records: RecordData[]): string {
+    return records.map(record => CsvGenerator.buildLine(record)).join('');
   }
 
-  private static buildLine(projection: Projection, record: RecordData) {
-    return `${projection
+  private static buildLine(record: RecordData) {
+    return `${Object.keys(record)
       .map(field => {
         let value = String(RecordUtils.getFieldValue(record, field));
         if (value.includes(',')) value = `"${value.replace('"', '""')}"`;

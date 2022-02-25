@@ -42,7 +42,7 @@ export default class ListRelatedRoute extends RelationRoute {
     context.response.set({ 'X-Accel-Buffering': 'no' });
     context.response.set({ 'Cache-Control': 'no-cache' });
 
-    const list = (paginatedFilter: PaginatedFilter, projectionParam: Projection) =>
+    const list = async (paginatedFilter: PaginatedFilter, projectionParam: Projection) =>
       CollectionUtils.listRelation(
         this.collection,
         parentId,

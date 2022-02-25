@@ -11,37 +11,37 @@ describe('CsvRoute', () => {
     const options = factories.forestAdminHttpDriverOptions.build();
     const services = factories.forestAdminHttpDriverServices.build();
     const router = factories.router.mockAllMethods().build();
+    const dataSource = factories.dataSource.buildWithCollection(
+      factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          segments: ['a-valid-segment'],
+          fields: {
+            id: factories.columnSchema.isPrimaryKey().build(),
+            name: factories.columnSchema.build({
+              columnType: PrimitiveTypes.String,
+            }),
+          },
+        }),
+      }),
+    );
 
-    return { options, services, router };
+    return { options, services, router, dataSource };
   }
 
   test('should register GET books.csv route', () => {
-    const { options, services, router } = setup();
-    const bookCollection = factories.collection.build({ name: 'books' });
-    const dataSource = factories.dataSource.buildWithCollections([bookCollection]);
-    const updateRoute = new CsvRoute(services, options, dataSource, 'books');
+    const { options, services, router, dataSource } = setup();
+    const csvRoute = new CsvRoute(services, options, dataSource, 'books');
 
-    updateRoute.setupRoutes(router);
+    csvRoute.setupRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith('/books.csv', expect.any(Function));
   });
 
   describe('handleCsv', () => {
     it('should set the response headers correctly', async () => {
-      const { options, services } = setup();
+      const { options, services, dataSource } = setup();
 
-      const dataSource = factories.dataSource.buildWithCollection(
-        factories.collection.build({
-          name: 'books',
-          schema: factories.collectionSchema.build({
-            fields: {
-              name: factories.columnSchema.build({
-                columnType: PrimitiveTypes.String,
-              }),
-            },
-          }),
-        }),
-      );
       const csvRoute = new CsvRoute(services, options, dataSource, 'books');
 
       const customProperties = {
@@ -60,22 +60,8 @@ describe('CsvRoute', () => {
     });
 
     it('calls the csv generator with the right params', async () => {
-      const { options, services } = setup();
+      const { options, services, dataSource } = setup();
 
-      const dataSource = factories.dataSource.buildWithCollection(
-        factories.collection.build({
-          name: 'books',
-          schema: factories.collectionSchema.build({
-            segments: ['a-valid-segment'],
-            fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
-              name: factories.columnSchema.build({
-                columnType: PrimitiveTypes.String,
-              }),
-            },
-          }),
-        }),
-      );
       const csvRoute = new CsvRoute(services, options, dataSource, 'books');
 
       const conditionTreeParams = {
@@ -86,7 +72,7 @@ describe('CsvRoute', () => {
           ],
         }),
       };
-      const projectionParams = { 'fields[books]': 'name' };
+      const projectionParams = { 'fields[books]': 'id,name' };
       const customProperties = {
         query: {
           ...projectionParams,
@@ -97,7 +83,6 @@ describe('CsvRoute', () => {
           segment: 'a-valid-segment',
           timezone: 'Europe/Paris',
         },
-        params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
       };
       const requestBody = { data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }] };
 
@@ -117,7 +102,7 @@ describe('CsvRoute', () => {
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
-        ['name', 'id'],
+        ['id', 'name'],
         'id,name',
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
@@ -140,29 +125,16 @@ describe('CsvRoute', () => {
       );
     });
 
-    it('should return the record as the csv format', async () => {
-      const { options, services } = setup();
+    it('should return the records as the csv format', async () => {
+      const { options, services, dataSource } = setup();
 
-      const dataSource = factories.dataSource.buildWithCollection(
-        factories.collection.build({
-          name: 'books',
-          schema: factories.collectionSchema.build({
-            fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
-              name: factories.columnSchema.build({
-                columnType: PrimitiveTypes.String,
-              }),
-            },
-          }),
-        }),
-      );
       const csvRoute = new CsvRoute(services, options, dataSource, 'books');
 
       const projectionParams = { 'fields[books]': 'name' };
       const customProperties = {
         query: {
           ...projectionParams,
-          header: 'id,name',
+          header: 'name',
           filename: 'csv_file_name',
           timezone: 'Europe/Paris',
         },
@@ -170,16 +142,14 @@ describe('CsvRoute', () => {
 
       const context = createMockContext({ customProperties });
 
-      dataSource.getCollection('books').list = jest.fn().mockReturnValue([
-        { id: 1, name: 'a' },
-        { id: 2, name: 'ab' },
-        { id: 3, name: 'abc' },
-      ]);
+      dataSource.getCollection('books').list = jest
+        .fn()
+        .mockReturnValue([{ name: 'a' }, { name: 'ab' }, { name: 'abc' }]);
 
       await csvRoute.handleCsv(context);
 
       const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
-      expect(csvResult).toEqual(['id,name\n', 'a,1\nab,2\nabc,3\n']);
+      expect(csvResult).toEqual(['name\n', 'a\nab\nabc\n']);
     });
   });
 });
