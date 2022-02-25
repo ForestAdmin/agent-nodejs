@@ -2,7 +2,7 @@ import { DataTypes, Sequelize } from 'sequelize';
 
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
-import { faker } from '@faker-js/faker';
+// import { faker } from '@faker-js/faker';
 
 const prepareDatabase = async (): Promise<Sequelize> => {
   const sequelize = new Sequelize('postgres://example:password@localhost:5442/example');

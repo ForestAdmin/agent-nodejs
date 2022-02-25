@@ -55,7 +55,7 @@ export default class QueryConverter {
       case Operator.NotIn:
         return { [Op.notIn]: this.asArray(value) };
       case Operator.Present:
-        return { [Op.not]: { [Op.is]: null } };
+        return { [Op.ne]: null };
       case Operator.StartsWith:
         return { [Op.like]: `${value}%` };
       default:
@@ -69,7 +69,7 @@ export default class QueryConverter {
   ): WhereOptions {
     const sequelizeWhereClause = {};
 
-    if ((conditionTree as ConditionTreeBranch)?.aggregator !== undefined) {
+    if ((conditionTree as ConditionTreeBranch).aggregator !== undefined) {
       const { aggregator, conditions } = conditionTree as ConditionTreeBranch;
 
       if (aggregator === null) {
@@ -96,7 +96,7 @@ export default class QueryConverter {
         (conditionTree as ConditionTreeNot).condition,
         model,
       );
-    } else if ((conditionTree as ConditionTreeLeaf)?.operator !== undefined) {
+    } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
 
       let safeField = field;
@@ -138,8 +138,9 @@ export default class QueryConverter {
         association: relationName,
         include: nestedInclude,
       });
+
       includeAttributes = includeAttributes.concat(
-        relationProjection.nest(relationName).columns,
+        relationProjection.columns.map(column => `${relationName}.${column}`),
         nestedIncludeAttributes,
       );
     });

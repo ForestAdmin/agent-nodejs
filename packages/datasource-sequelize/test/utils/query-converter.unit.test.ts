@@ -1,13 +1,9 @@
 import {
   Aggregator,
-  ConditionTree,
   ConditionTreeBranch,
   ConditionTreeLeaf,
   ConditionTreeNot,
-  Filter,
   Operator,
-  Page,
-  PaginatedFilter,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
@@ -15,7 +11,7 @@ import { ModelDefined, Op } from 'sequelize';
 
 import QueryConverter from '../../src/utils/query-converter';
 
-describe.only('Utils > QueryConverter', () => {
+describe('Utils > QueryConverter', () => {
   describe('getWhereFromConditionTree', () => {
     it('should fail with an invalid conditionTree', () => {
       const conditionTree = {
@@ -103,7 +99,7 @@ describe.only('Utils > QueryConverter', () => {
           ['Operator.NotContains', '__value__', { [Op.notILike]: '%__value__%' }],
           ['Operator.NotEqual', defaultIntegerValue, { [Op.ne]: defaultIntegerValue }],
           ['Operator.NotIn', defaultArrayValue, { [Op.notIn]: defaultArrayValue }],
-          ['Operator.Present', undefined, { [Op.not]: { [Op.is]: null } }],
+          ['Operator.Present', undefined, { [Op.ne]: null }],
           ['Operator.StartsWith', '__value__', { [Op.like]: '__value__%' }],
         ])(
           'should generate a "where" Sequelize filter from a "%s" ConditionTreeLeaf',
@@ -121,9 +117,7 @@ describe.only('Utils > QueryConverter', () => {
 
             expect(sequelizeFilter).toEqual(
               expect.objectContaining({
-                where: expect.objectContaining({
-                  __field__: where,
-                }),
+                __field__: where,
               }),
             );
           },
@@ -197,157 +191,58 @@ describe.only('Utils > QueryConverter', () => {
           );
 
           expect(sequelizeFilter).toEqual(
-            expect.objectContaining({ __field__: { [sequelizeOperator]: 42 } }),
+            expect.objectContaining({ __field__: { [sequelizeOperator]: [42] } }),
           );
         });
       });
     });
   });
 
-  // describe('convertPaginatedFilterToSequelize', () => {
-  //   it('should return with defaults when called with a classic Filter', () => {
-  //     const defaultInputFilter = new PaginatedFilter({});
-  //     const defaultPaginatedFilter = {};
+  describe('getOrderFromSort', () => {
+    it('should omit the "order" clause when condition list is empty', () => {
+      expect(QueryConverter.getOrderFromSort(new Sort())).toEqual([]);
+    });
 
-  //     expect(
-  //       QueryConverter.convertPaginatedFilterToSequelize(
-  //         {} as ModelDefined<any, any>,
-  //         defaultInputFilter,
-  //       ),
-  //     ).toEqual(defaultPaginatedFilter);
-  //   });
+    it('should honor values from "sort"', () => {
+      const sort = new Sort(
+        { field: '__a__', ascending: true },
+        { field: '__b__', ascending: false },
+      );
 
-  //   describe('with paging', () => {
-  //     it('should ignore "limit" when missing', () => {
-  //       const noLimitFilter = new PaginatedFilter({
-  //         page: new Page(42),
-  //       });
+      expect(QueryConverter.getOrderFromSort(sort)).toEqual([
+        ['__a__', 'ASC'],
+        ['__b__', 'DESC'],
+      ]);
+    });
+  });
 
-  //       expect(
-  //         QueryConverter.convertPaginatedFilterToSequelize(
-  //           {} as ModelDefined<any, any>,
-  //           noLimitFilter,
-  //         ),
-  //       ).toEqual({
-  //         offset: noLimitFilter.page.skip,
-  //       });
-  //     });
+  describe('getIncludeAndAttributesFromProjection', () => {
+    describe('when projection have relation field', () => {
+      it('should add include', () => {
+        const projection = new Projection('model:another_field');
 
-  //     it('should ignore "skip" when missing', () => {
-  //       const noSkipFilter = new PaginatedFilter({
-  //         page: new Page(),
-  //       });
+        expect(QueryConverter.getIncludeAndAttributesFromProjection(projection)).toEqual(
+          expect.objectContaining({
+            includeAttributes: ['model.another_field'],
+            include: [{ association: 'model', include: [] }],
+          }),
+        );
+      });
 
-  //       expect(
-  //         QueryConverter.convertPaginatedFilterToSequelize(
-  //           {} as ModelDefined<any, any>,
-  //           noSkipFilter,
-  //         ),
-  //       ).toEqual(
-  //         expect.objectContaining({
-  //           offset: 0,
-  //         }),
-  //       );
-  //     });
-
-  //     it('should honor values from "page"', () => {
-  //       const filter = new PaginatedFilter({
-  //         page: new Page(42, 21),
-  //       });
-
-  //       expect(
-  //         QueryConverter.convertPaginatedFilterToSequelize({} as ModelDefined<any, any>, filter),
-  //       ).toEqual(
-  //         expect.objectContaining({
-  //           limit: filter.page.limit,
-  //           offset: filter.page.skip,
-  //         }),
-  //       );
-  //     });
-  //   });
-
-  //   describe('with sorting', () => {
-  //     it('should omit the "order" clause when condition list is empty', () => {
-  //       const noOrderConditionFilter = new PaginatedFilter({
-  //         sort: new Sort(),
-  //       });
-
-  //       expect(
-  //         QueryConverter.convertPaginatedFilterToSequelize(
-  //           {} as ModelDefined<any, any>,
-  //           noOrderConditionFilter,
-  //         ),
-  //       ).toEqual({});
-  //     });
-
-  //     it('should honor values from "sort"', () => {
-  //       const filter = new PaginatedFilter({
-  //         sort: new Sort({ field: '__a__', ascending: true }, { field: '__b__', ascending: false }),
-  //       });
-
-  //       expect(
-  //         QueryConverter.convertPaginatedFilterToSequelize({} as ModelDefined<any, any>, filter),
-  //       ).toEqual({
-  //         order: [
-  //           ['__a__', 'ASC'],
-  //           ['__b__', 'DESC'],
-  //         ],
-  //       });
-  //     });
-  //   });
-  // });
-
-  // describe('convertProjectionToSequelize', () => {
-  //   describe('when no project is given', () => {
-  //     it('should return empty object', () => {
-  //       expect(QueryConverter.convertProjectionToSequelize(null)).toStrictEqual({});
-  //     });
-  //   });
-
-  //   it('should return attributes', () => {
-  //     const projection = new Projection('field');
-  //     expect(QueryConverter.convertProjectionToSequelize(projection)).toEqual(
-  //       expect.objectContaining({
-  //         attributes: ['field'],
-  //       }),
-  //     );
-  //   });
-
-  //   describe('when projection have relation field', () => {
-  //     it('should add include', () => {
-  //       const projection = new Projection('model:another_field');
-  //       expect(QueryConverter.convertProjectionToSequelize(projection)).toEqual(
-  //         expect.objectContaining({
-  //           include: [{ association: 'model', attributes: ['another_field'], include: [] }],
-  //         }),
-  //       );
-  //     });
-
-  //     it('should add include recursively', () => {
-  //       const projection = new Projection('model:another_model:a_field');
-  //       expect(QueryConverter.convertProjectionToSequelize(projection)).toEqual(
-  //         expect.objectContaining({
-  //           include: [
-  //             {
-  //               association: 'model',
-  //               attributes: [],
-  //               include: [{ association: 'another_model', attributes: ['a_field'], include: [] }],
-  //             },
-  //           ],
-  //         }),
-  //       );
-  //     });
-
-  //     describe('when withAttributes option was false', () => {
-  //       it('should not add include attributes', () => {
-  //         const projection = new Projection('model:another_field');
-  //         expect(QueryConverter.convertProjectionToSequelize(projection, false)).toEqual(
-  //           expect.objectContaining({
-  //             include: [{ association: 'model', attributes: [], include: [] }],
-  //           }),
-  //         );
-  //       });
-  //     });
-  //   });
-  // });
+      it('should add include recursively', () => {
+        const projection = new Projection('model:another_model:a_field');
+        expect(QueryConverter.getIncludeAndAttributesFromProjection(projection)).toEqual(
+          expect.objectContaining({
+            includeAttributes: ['another_model.a_field'],
+            include: [
+              {
+                association: 'model',
+                include: [{ association: 'another_model', include: [] }],
+              },
+            ],
+          }),
+        );
+      });
+    });
+  });
 });
