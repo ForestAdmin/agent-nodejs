@@ -7,7 +7,6 @@ import {
   Page,
   Projection,
   ProjectionValidator,
-  SchemaUtils,
   Sort,
   SortFactory,
   SortValidator,

@@ -14,7 +14,7 @@ import Filter from '../../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
 import RecordUtils from '../../utils/record';
-import Sort, { SortClause } from '../../interfaces/query/sort';
+import Sort, { SortClause } from '../../interfaces/query/sort/sort';
 
 export default class SortEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<SortEmulate>;

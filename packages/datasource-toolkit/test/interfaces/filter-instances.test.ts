@@ -2,7 +2,7 @@ import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/conditio
 import Filter from '../../src/interfaces/query/filter/unpaginated';
 import Page from '../../src/interfaces/query/page';
 import PaginatedFilter from '../../src/interfaces/query/filter/paginated';
-import Sort from '../../src/interfaces/query/sort';
+import Sort from '../../src/interfaces/query/sort/sort';
 
 describe('Filter', () => {
   const leaf = new ConditionTreeLeaf('column', Operator.GreaterThan, 0);

@@ -92,7 +92,7 @@ describe('CsvRoute', () => {
           ...projectionParams,
           ...conditionTreeParams,
           search: 'searched argument',
-          header: ['id', 'name'],
+          header: 'id,name',
           filename: 'csv_file_name',
           segment: 'a-valid-segment',
           timezone: 'Europe/Paris',
@@ -134,7 +134,7 @@ describe('CsvRoute', () => {
           segment: 'a-valid-segment',
           search: 'searched argument',
         }),
-        ['id', 'name'],
+        'id,name',
         dataSource.getCollection('books'),
       );
     });
@@ -161,7 +161,7 @@ describe('CsvRoute', () => {
       const customProperties = {
         query: {
           ...projectionParams,
-          header: ['id', 'name'],
+          header: 'id,name',
           filename: 'csv_file_name',
           timezone: 'Europe/Paris',
         },

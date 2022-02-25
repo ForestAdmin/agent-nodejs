@@ -52,13 +52,13 @@ describe('CsvGenerator', () => {
       return { records, filter, collection };
     };
 
-    test('should call collection list with the right paginated filter and pagination', async () => {
+    test('should call collection list with specified page and sort options', async () => {
       const { records, filter, collection } = setup();
       const projection = new Projection('name', 'id');
 
       collection.list = jest.fn().mockResolvedValue(records);
 
-      const generator = CsvGenerator.generate(projection, filter, ['id', 'name'], collection);
+      const generator = CsvGenerator.generate(projection, filter, 'id,name', collection);
       await readCsv(generator);
 
       expect(collection.list).toHaveBeenCalledWith(
@@ -77,7 +77,7 @@ describe('CsvGenerator', () => {
 
       collection.list = jest.fn().mockResolvedValue(records);
 
-      const generator = CsvGenerator.generate(projection, filter, ['id', 'name'], collection);
+      const generator = CsvGenerator.generate(projection, filter, 'id,name', collection);
 
       expect(await readCsv(generator)).toEqual(['id,name\n', 'ab,1\nabc,2\nabd,3\nabe,4\n']);
     });
@@ -88,12 +88,12 @@ describe('CsvGenerator', () => {
 
       collection.list = jest.fn().mockResolvedValue(records);
 
-      const generator = CsvGenerator.generate(projection, filter, ['name'], collection);
+      const generator = CsvGenerator.generate(projection, filter, 'name', collection);
 
       expect(await readCsv(generator)).toEqual(['name\n', 'ab\nabc\nabd\nabe\n']);
     });
 
-    describe('when the are more record than the PAGE_SIZE', () => {
+    describe('when there are more records than the PAGE_SIZE', () => {
       const setupWith2PageSizeRecords = () => {
         const records = Array.from({ length: PAGE_SIZE * 2 }, (_, n: number) => [
           { name: 'ab', id: n },
@@ -128,7 +128,7 @@ describe('CsvGenerator', () => {
           .mockReturnValueOnce(records.slice(PAGE_SIZE, PAGE_SIZE * 2))
           .mockReturnValueOnce([]);
 
-        const generator = CsvGenerator.generate(projection, filter, ['name'], collection);
+        const generator = CsvGenerator.generate(projection, filter, 'name', collection);
         await readCsv(generator);
 
         expect(collection.list).toHaveBeenCalledTimes(3);

@@ -20,10 +20,10 @@ export default class CsvGenerator {
   static async *generate(
     projection: Projection,
     filter: Filter,
-    header: string | string[],
+    header: string,
     collection: Collection,
   ): AsyncGenerator<string> {
-    yield `${header?.toString?.()}\n`;
+    yield `${header}\n`;
     let skip = 0;
     let isAllRecordFetched = false;
 
