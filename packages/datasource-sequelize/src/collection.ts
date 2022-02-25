@@ -11,14 +11,7 @@ import {
   RecordData,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import {
-  col as Col,
-  FindOptions,
-  fn as Fn,
-  ModelDefined,
-  ProjectionAlias,
-  UpdateOptions,
-} from 'sequelize';
+import { col as Col, FindOptions, fn as Fn, ModelDefined, ProjectionAlias } from 'sequelize';
 
 import ModelConverter from './utils/model-to-collection-schema-converter';
 import QueryConverter from './utils/query-converter';
@@ -50,9 +43,13 @@ export default class SequelizeCollection extends BaseCollection {
       actualId[field] = id[index];
     });
 
+    const { include, includeAttributes } =
+      QueryConverter.getIncludeAndAttributesFromProjection(projection);
+
     const record = await this.model.findOne({
+      attributes: [...projection.columns, ...includeAttributes],
       where: actualId,
-      ...QueryConverter.convertProjectionToSequelize(projection),
+      include,
     });
 
     return record && record.get({ plain: true });
@@ -65,27 +62,48 @@ export default class SequelizeCollection extends BaseCollection {
   }
 
   async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    const records = await this.model.findAll({
-      ...QueryConverter.convertPaginatedFilterToSequelize(this.model.name, filter),
-      ...QueryConverter.convertProjectionToSequelize(projection),
-    });
+    const { include, includeAttributes } =
+      QueryConverter.getIncludeAndAttributesFromProjection(projection);
+
+    let filterInclude = [];
+
+    if (filter.conditionTree) {
+      ({ include: filterInclude } = QueryConverter.getIncludeAndAttributesFromProjection(
+        filter.conditionTree.projection,
+      ));
+    }
+
+    const query: FindOptions = {
+      attributes: [...projection.columns, ...includeAttributes],
+      where:
+        filter.conditionTree &&
+        QueryConverter.getWhereFromConditionTree(filter.conditionTree, this.model),
+      include: Array.from(new Set(include.concat(filterInclude))),
+      limit: filter.page?.limit,
+      offset: filter.page?.skip,
+      order: QueryConverter.getOrderFromSort(filter.sort),
+      subQuery: false,
+    };
+
+    const records = await this.model.findAll(query);
 
     return records.map(record => record.get({ plain: true }));
   }
 
   async update(filter: Filter, patch: RecordData): Promise<void> {
     await this.model.update(patch, {
-      ...(QueryConverter.convertPaginatedFilterToSequelize(
-        this.model.name,
-        filter,
-      ) as UpdateOptions),
+      where:
+        filter.conditionTree &&
+        QueryConverter.getWhereFromConditionTree(filter.conditionTree, this.model),
       fields: Object.keys(patch),
     });
   }
 
   async delete(filter: Filter): Promise<void> {
     await this.model.destroy({
-      ...QueryConverter.convertPaginatedFilterToSequelize(this.model.name, filter),
+      where:
+        filter.conditionTree &&
+        QueryConverter.getWhereFromConditionTree(filter.conditionTree, this.model),
     });
   }
 
@@ -117,7 +135,17 @@ export default class SequelizeCollection extends BaseCollection {
       aggregateFieldName,
     ];
 
-    const { include } = QueryConverter.convertProjectionToSequelize(aggregation.projection, false);
+    const { include } = QueryConverter.getIncludeAndAttributesFromProjection(
+      aggregation.projection,
+    );
+
+    let filterInclude = [];
+
+    if (filter.conditionTree) {
+      ({ include: filterInclude } = QueryConverter.getIncludeAndAttributesFromProjection(
+        filter.conditionTree.projection,
+      ));
+    }
 
     const groupAttributes = [];
     const groups = aggregation.groups
@@ -131,13 +159,15 @@ export default class SequelizeCollection extends BaseCollection {
         return groupFieldName;
       });
 
-    // TODO hamdle date grouping properly another PR
+    // TODO handle date grouping properly another PR
 
     const query: FindOptions = {
       attributes: [...groupAttributes, aggregationAttribute],
       group: groups,
-      where: QueryConverter.convertFilterToSequelize(filter).where,
-      include,
+      where:
+        filter.conditionTree &&
+        QueryConverter.getWhereFromConditionTree(filter.conditionTree, this.model),
+      include: Array.from(new Set(include.concat(filterInclude))),
       limit,
       order: [[Col(aggregateFieldName), 'DESC']], // FIXME handle properly order
       subQuery: false,

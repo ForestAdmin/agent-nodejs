@@ -151,7 +151,7 @@ describe('SequelizeDataSource > Collection', () => {
       const { record, recordData, sequelizeCollection } = setup();
       const compositeId = [42];
 
-      const result = await sequelizeCollection.getById(compositeId, null);
+      const result = await sequelizeCollection.getById(compositeId, new Projection());
 
       expect(record.get).toHaveBeenCalledWith({ plain: true });
       expect(result).toBe(recordData);
@@ -231,8 +231,9 @@ describe('SequelizeDataSource > Collection', () => {
     it('should resolve with plain records', async () => {
       const { record, recordData, sequelizeCollection } = setup();
       const filter = new Filter({});
+      const projection = new Projection();
 
-      const result = await sequelizeCollection.list(filter, null);
+      const result = await sequelizeCollection.list(filter, projection);
 
       expect(result).toBeArrayOfSize(1);
       expect(result[0]).toBe(recordData);
@@ -487,7 +488,6 @@ describe('SequelizeDataSource > Collection', () => {
               include: [
                 {
                   association: 'modelAssociations',
-                  attributes: [],
                   include: [],
                 },
               ],
@@ -653,7 +653,6 @@ describe('SequelizeDataSource > Collection', () => {
               include: [
                 {
                   association: 'modelAssociations',
-                  attributes: [],
                   include: [],
                 },
               ],

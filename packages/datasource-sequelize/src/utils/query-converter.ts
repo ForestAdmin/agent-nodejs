@@ -4,20 +4,18 @@ import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
   ConditionTreeNot,
-  Filter,
   Operator,
-  PaginatedFilter,
   Projection,
+  Sort,
 } from '@forestadmin/datasource-toolkit';
 import {
-  FindOptions,
   IncludeOptions,
+  ModelDefined,
   Op,
   OrOperator,
-  Order,
+  OrderItem,
   WhereOperators,
   WhereOptions,
-  col,
 } from 'sequelize';
 
 export default class QueryConverter {
@@ -65,10 +63,13 @@ export default class QueryConverter {
     }
   }
 
-  private static convertConditionTreeToSequelize(conditionTree: ConditionTree): WhereOptions {
+  public static getWhereFromConditionTree(
+    conditionTree: ConditionTree,
+    model: ModelDefined<any, any>,
+  ): WhereOptions {
     const sequelizeWhereClause = {};
 
-    if ((conditionTree as ConditionTreeBranch).aggregator !== undefined) {
+    if ((conditionTree as ConditionTreeBranch)?.aggregator !== undefined) {
       const { aggregator, conditions } = conditionTree as ConditionTreeBranch;
 
       if (aggregator === null) {
@@ -82,7 +83,7 @@ export default class QueryConverter {
       }
 
       sequelizeWhereClause[sequelizeOperator] = conditions.map(condition =>
-        this.convertConditionTreeToSequelize(condition),
+        this.getWhereFromConditionTree(condition, model),
       );
     } else if ((conditionTree as ConditionTreeNot).condition !== undefined) {
       const { condition } = conditionTree as ConditionTreeNot;
@@ -91,13 +92,23 @@ export default class QueryConverter {
         throw new Error('Invalid (null) condition.');
       }
 
-      sequelizeWhereClause[Op.not] = this.convertConditionTreeToSequelize(
+      sequelizeWhereClause[Op.not] = this.getWhereFromConditionTree(
         (conditionTree as ConditionTreeNot).condition,
+        model,
       );
-    } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
+    } else if ((conditionTree as ConditionTreeLeaf)?.operator !== undefined) {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
 
-      const safeField = field.indexOf(':') === -1 ? field : `$${field.replace(':', '.')}$`;
+      let safeField = field;
+
+      if (field.includes(':')) {
+        const paths = field.split(':');
+        const fieldName = paths.pop();
+        const safeFieldName = paths
+          .reduce((acc, path) => acc.associations[path].target, model)
+          .getAttributes()[fieldName].field;
+        safeField = `$${paths.join('.')}.${safeFieldName}$`;
+      }
 
       sequelizeWhereClause[safeField] = this.makeWhereClause(operator, value);
     } else {
@@ -107,73 +118,40 @@ export default class QueryConverter {
     return sequelizeWhereClause;
   }
 
-  public static convertFilterToSequelize(filter: Filter): FindOptions {
-    if (!filter) {
-      throw new Error('Invalid (null) filter.');
-    }
+  static getIncludeAndAttributesFromProjection(projection: Projection): {
+    include: IncludeOptions[];
+    includeAttributes: string[];
+  } {
+    const include: IncludeOptions[] = [];
+    let includeAttributes: string[] = [];
 
-    const sequelizeFilter: FindOptions = {};
+    Object.entries(projection.relations).forEach(([relationName, relationProjection]) => {
+      let nestedInclude: IncludeOptions[] = [];
+      let nestedIncludeAttributes: string[] = [];
 
-    if (filter.conditionTree) {
-      sequelizeFilter.where = this.convertConditionTreeToSequelize(filter.conditionTree);
-    }
+      if (Object.keys(relationProjection.relations).length) {
+        ({ include: nestedInclude, includeAttributes: nestedIncludeAttributes } =
+          this.getIncludeAndAttributesFromProjection(relationProjection));
+      }
 
-    // TODO: Handle `search`
-    // TODO: Handle `searchExtended`
-    // TODO: Handle `segment`
-    // TODO: Handle `timezone`
-
-    return sequelizeFilter;
-  }
-
-  public static convertPaginatedFilterToSequelize(
-    modelName: string,
-    filter: PaginatedFilter,
-  ): FindOptions {
-    const sequelizeFilter = this.convertFilterToSequelize(filter);
-
-    const pageLimit = filter.page?.limit ?? null;
-    const pageOffset = filter.page?.skip ?? null;
-
-    if (pageLimit !== null) sequelizeFilter.limit = pageLimit;
-    if (pageOffset !== null) sequelizeFilter.offset = pageOffset;
-
-    const order: Order = filter.sort?.map(({ field, ascending }) => [
-      col(field.includes(':') ? field.replace(':', '.') : `${modelName}.${field}`),
-      ascending === false ? 'DESC' : 'ASC',
-    ]);
-
-    if (Array.isArray(order) && order.length > 0) sequelizeFilter.order = order;
-
-    return sequelizeFilter;
-  }
-
-  private static convertProjectionRelationsToSequelize(
-    relations: Record<string, Projection>,
-    withAttributes = true,
-  ): IncludeOptions[] {
-    const sequelizeInclude: IncludeOptions[] = [];
-
-    Object.entries(relations).forEach(([key, relation]: [string, Projection]) => {
-      sequelizeInclude.push({
-        association: key,
-        attributes: withAttributes ? relation.columns : [],
-        include: this.convertProjectionRelationsToSequelize(relation.relations, withAttributes),
+      include.push({
+        association: relationName,
+        include: nestedInclude,
       });
+      includeAttributes = includeAttributes.concat(
+        relationProjection.nest(relationName).columns,
+        nestedIncludeAttributes,
+      );
     });
 
-    return sequelizeInclude;
+    return { include, includeAttributes };
   }
 
-  public static convertProjectionToSequelize(
-    projection: Projection,
-    withAttributes?: boolean,
-  ): FindOptions {
-    if (!projection) return {};
+  static getOrderFromSort(sort: Sort): OrderItem[] {
+    return (sort ?? []).map(({ field, ascending }): OrderItem => {
+      const path = field.split(':') as [string];
 
-    return {
-      attributes: projection.columns,
-      include: this.convertProjectionRelationsToSequelize(projection.relations, withAttributes),
-    };
+      return [...path, ascending ? 'ASC' : 'DESC'];
+    });
   }
 }

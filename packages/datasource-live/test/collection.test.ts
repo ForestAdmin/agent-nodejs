@@ -189,7 +189,10 @@ describe('LiveDataSource > Collection', () => {
         sequelizeRecords: [expectedRecord],
       } = await preloadLiveCollectionRecords(1, liveCollectionSchema);
 
-      const record = await liveCollection.getById([Number(expectedRecord.get('id'))], null);
+      const record = await liveCollection.getById(
+        [Number(expectedRecord.get('id'))],
+        new Projection('id', 'value'),
+      );
 
       expect(record).toEqual(
         expect.objectContaining({
@@ -207,7 +210,7 @@ describe('LiveDataSource > Collection', () => {
 
       const record = await liveCollection.getById(
         [String(expectedRecord.get('pkA')), String(expectedRecord.get('pkB'))],
-        null,
+        new Projection('pkA', 'pkB', 'value'),
       );
 
       expect(record).toEqual(
@@ -274,9 +277,9 @@ describe('LiveDataSource > Collection', () => {
         liveCollectionSchema,
       );
 
-      await expect(liveCollection.list(new PaginatedFilter({}), null)).resolves.toBeArrayOfSize(
-        recordCount,
-      );
+      await expect(
+        liveCollection.list(new PaginatedFilter({}), new Projection('id')),
+      ).resolves.toBeArrayOfSize(recordCount);
     });
 
     it('should resolve honoring the projection', async () => {
@@ -299,7 +302,7 @@ describe('LiveDataSource > Collection', () => {
           new PaginatedFilter({
             conditionTree: new ConditionTreeLeaf('value', Operator.Equal, 'record_4'),
           }),
-          null,
+          new Projection('value'),
         );
 
         expect(records).toBeArrayOfSize(1);
@@ -313,7 +316,7 @@ describe('LiveDataSource > Collection', () => {
 
         const records = await liveCollection.list(
           new PaginatedFilter({ sort: new Sort({ field: 'value', ascending: true }) }),
-          null,
+          new Projection('value'),
         );
         const sortedRecords = sortBy(records, 'value');
 
@@ -327,7 +330,7 @@ describe('LiveDataSource > Collection', () => {
 
         const records = await liveCollection.list(
           new PaginatedFilter({ sort: new Sort({ field: 'value', ascending: false }) }),
-          null,
+          new Projection('value'),
         );
         const sortedRecords = sortBy(records, 'value').reverse();
 
@@ -360,7 +363,7 @@ describe('LiveDataSource > Collection', () => {
             sort: new Sort({ field: 'value', ascending: true }),
             page: new Page(offset),
           }),
-          null,
+          new Projection('value'),
         );
 
         expect(records).toBeArrayOfSize(recordCount - offset);

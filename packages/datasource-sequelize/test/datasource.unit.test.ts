@@ -9,7 +9,7 @@ describe('SequelizeDataSource', () => {
 
   it('should have no predefined collection', () => {
     expect(
-      new SequelizeDataSource(Symbol('sequelize') as unknown as Sequelize).collections,
+      new SequelizeDataSource({ models: {} } as unknown as Sequelize).collections,
     ).toBeArrayOfSize(0);
   });
 });
