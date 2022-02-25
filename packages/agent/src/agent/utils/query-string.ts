@@ -9,6 +9,7 @@ import {
   ProjectionValidator,
   SchemaUtils,
   Sort,
+  SortFactory,
   SortValidator,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -153,14 +154,7 @@ export default class QueryStringParser {
       context.request.query.sort?.toString();
 
     try {
-      if (!sortString) {
-        return new Sort(
-          ...SchemaUtils.getPrimaryKeys(collection.schema).map(pk => ({
-            field: pk,
-            ascending: true,
-          })),
-        );
-      }
+      if (!sortString) return SortFactory.byPrimaryKeys(collection);
 
       const sort = new Sort({
         field: sortString.replace(/^-/, '').replace('.', ':'),

@@ -1,8 +1,9 @@
-import { Aggregator, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import { Readable } from 'stream';
+import { Aggregator, Filter, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { readCsv } from '../../utils/csv-converter.test';
+import CsvGenerator from '../../../src/utils/csv-generator';
 import CsvRoute from '../../../src/routes/access/csv';
 
 describe('CsvRoute', () => {
@@ -58,7 +59,7 @@ describe('CsvRoute', () => {
       });
     });
 
-    it('should generate the paginated filter correctly', async () => {
+    it('calls the csv generator with the right params', async () => {
       const { options, services } = setup();
 
       const dataSource = factories.dataSource.buildWithCollection(
@@ -110,16 +111,14 @@ describe('CsvRoute', () => {
         { id: 2, name: 'ab' },
         { id: 3, name: 'abc' },
       ]);
+      const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
+
       await csvRoute.handleCsv(context);
 
-      const csvResult = [];
-
-      for await (const csv of context.response.body as Readable) {
-        csvResult.push(csv);
-      }
-
-      expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
-        factories.filter.build({
+      await readCsv(context.response.body as AsyncGenerator<string>);
+      expect(csvGenerator).toHaveBeenCalledWith(
+        ['name', 'id'],
+        new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: Aggregator.And,
             conditions: [
@@ -131,13 +130,12 @@ describe('CsvRoute', () => {
               scopeCondition,
             ],
           }),
-          page: expect.any(Object),
           timezone: 'Europe/Paris',
           segment: 'a-valid-segment',
-          sort: expect.any(Object),
           search: 'searched argument',
         }),
-        ['name', 'id'],
+        ['id', 'name'],
+        dataSource.getCollection('books'),
       );
     });
 
@@ -176,14 +174,10 @@ describe('CsvRoute', () => {
         { id: 2, name: 'ab' },
         { id: 3, name: 'abc' },
       ]);
+
       await csvRoute.handleCsv(context);
 
-      const csvResult = [];
-
-      for await (const csv of context.response.body as Readable) {
-        csvResult.push(csv);
-      }
-
+      const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvResult).toEqual(['id,name\n', 'a,1\nab,2\nabc,3\n']);
     });
   });
