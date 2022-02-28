@@ -7,7 +7,7 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-import { ModelDefined, Op } from 'sequelize';
+import { Association, ModelDefined, Op } from 'sequelize';
 
 import QueryConverter from '../../src/utils/query-converter';
 
@@ -162,6 +162,34 @@ describe('Utils > QueryConverter', () => {
             [Op.not]: {
               [condition.field]: { [Op.eq]: condition.value },
             },
+          });
+        });
+      });
+
+      describe('with a condition tree acting on relation', () => {
+        it('should generate a valid where clause', () => {
+          const conditionTree = new ConditionTreeLeaf(
+            'relation:__field__',
+            Operator.Equal,
+            '__value__',
+          );
+
+          const model = {
+            associations: {
+              relation: {
+                target: {
+                  getAttributes: jest.fn().mockReturnValue({
+                    __field__: {
+                      field: 'fieldName',
+                    },
+                  }),
+                } as unknown as ModelDefined<any, any>,
+              } as Association,
+            },
+          } as unknown as ModelDefined<any, any>;
+
+          expect(QueryConverter.getWhereFromConditionTree(conditionTree, model)).toEqual({
+            '$relation.fieldName$': { [Op.eq]: '__value__' },
           });
         });
       });

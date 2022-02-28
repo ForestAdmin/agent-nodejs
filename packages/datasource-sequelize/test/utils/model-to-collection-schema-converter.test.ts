@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Association, DataTypes, ModelDefined, Sequelize } from 'sequelize';
-import { CollectionSchema, FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import {
+  CollectionSchema,
+  FieldTypes,
+  Operator,
+  PrimitiveTypes,
+} from '@forestadmin/datasource-toolkit';
 import ModelToCollectionSchemaConverter from '../../src/utils/model-to-collection-schema-converter';
 import TypeConverter from '../../src/utils/type-converter';
 
@@ -113,6 +118,16 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             validation: [],
             type: FieldTypes.Column,
           },
+          myRequired: {
+            columnType: PrimitiveTypes.Uuid,
+            filterOperators: TypeConverter.operatorsForDataType(DataTypes.UUID),
+            validation: [
+              {
+                operator: Operator.Present,
+              },
+            ],
+            type: FieldTypes.Column,
+          },
         },
         searchable: false,
         segments: [],
@@ -132,6 +147,10 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           myValue: {
             type: DataTypes.STRING,
             defaultValue: '__default__',
+          },
+          myRequired: {
+            type: DataTypes.UUID,
+            allowNull: false,
           },
         },
         { timestamps: true },
