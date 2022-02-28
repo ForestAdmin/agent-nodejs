@@ -102,7 +102,7 @@ export default class ForestValueConverter {
     }
 
     if (field.type === ActionFieldType.EnumList) {
-      return (value as string[])?.map(v => (field.enumValues.includes(v) ? v : null));
+      return (value as string[])?.filter(v => field.enumValues.includes(v));
     }
 
     if (field.type === ActionFieldType.Collection) {
@@ -127,7 +127,7 @@ export default class ForestValueConverter {
     // Hopefully this does not breaks.
     const [header, data] = dataUri.substring(5).split(',');
     const [mimeType, ...mediaTypes] = header.split(';');
-    const result = { mimeType, buffer: Buffer.from(data) };
+    const result = { mimeType, buffer: Buffer.from(data, 'base64') };
 
     for (const mediaType of mediaTypes) {
       const index = mediaType.indexOf('=');
