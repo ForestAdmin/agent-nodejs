@@ -14,7 +14,7 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { DataTypes, ModelDefined, Op, Sequelize } from 'sequelize';
+import { Association, DataTypes, ModelDefined, Op, Sequelize } from 'sequelize';
 
 import { SequelizeCollection } from '../src';
 
@@ -27,6 +27,7 @@ describe('SequelizeDataSource > Collection', () => {
       models: {
         [name]: {
           getAttributes: jest.fn(() => ({})),
+          associations: {},
           name: 'model',
         },
       },
@@ -198,6 +199,17 @@ describe('SequelizeDataSource > Collection', () => {
         get: jest.fn(() => recordData),
       };
       const findAll = jest.fn().mockResolvedValue([record]);
+
+      sequelize.models[name].associations.relationModel = {
+        target: {
+          getAttributes: jest.fn().mockReturnValue({
+            aField: {
+              field: 'a_field',
+            },
+          }),
+        } as unknown as ModelDefined<any, any>,
+      } as Association;
+
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         ...sequelize.models[name],
@@ -238,6 +250,31 @@ describe('SequelizeDataSource > Collection', () => {
       expect(result).toBeArrayOfSize(1);
       expect(result[0]).toBe(recordData);
       expect(record.get).toHaveBeenCalledWith({ plain: true });
+    });
+
+    it('should add include from filter', async () => {
+      const { findAll, sequelizeCollection } = setup();
+      const filter = new Filter({
+        conditionTree: new ConditionTreeLeaf('relationModel:aField', Operator.Equal, 42),
+      });
+      const projection = new Projection();
+
+      await sequelizeCollection.list(filter, projection);
+
+      expect(findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            '$relationModel.a_field$': { [Op.eq]: 42 },
+          },
+          include: expect.arrayContaining([
+            {
+              association: 'relationModel',
+              attributes: [],
+              include: [],
+            },
+          ]),
+        }),
+      );
     });
   });
 
