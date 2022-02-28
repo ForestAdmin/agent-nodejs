@@ -1,6 +1,5 @@
 import {
   ActionResultType,
-  ActionSchema,
   ConditionTreeFactory,
   DataSource,
   Filter,
@@ -18,10 +17,6 @@ import SchemaGeneratorActions from '../../utils/forest-schema/generator-actions'
 
 export default class ActionRoute extends CollectionRoute {
   private actionName: string;
-
-  get actionSchema(): ActionSchema {
-    return this.collection.schema.actions[this.actionName];
-  }
 
   constructor(
     services: ForestAdminHttpDriverServices,
@@ -55,26 +50,26 @@ export default class ActionRoute extends CollectionRoute {
     const unsafeData = ForestValueConverter.makeFormDataUnsafe(rawData);
     const fields = await this.collection.getForm(this.actionName, unsafeData);
 
-    // Now that we have the field list, we can parse again the data.
+    // Now that we have the field list, we can parse the data again.
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
     const result = await this.collection.execute(this.actionName, data, filter);
 
-    if (result.type === ActionResultType.Error) {
+    if (result?.type === ActionResultType.Error) {
       context.response.status = HttpCode.BadRequest;
       context.response.body = { error: result.message };
-    } else if (result.type === ActionResultType.Success) {
+    } else if (result?.type === ActionResultType.Success) {
       context.response.body = {
         [result.format === 'text' ? 'success' : 'html']: result.message,
-        refresh: { relationships: result.invalidated },
+        refresh: { relationships: [...result.invalidated] },
       };
-    } else if (result.type === ActionResultType.Webhook) {
+    } else if (result?.type === ActionResultType.Webhook) {
       const { url, method, headers, body } = result;
       context.response.body = { webhook: { url, method, headers, body } };
-    } else if (result.type === ActionResultType.Redirect) {
+    } else if (result?.type === ActionResultType.Redirect) {
       context.response.body = { redirectTo: result.path };
-    } else if (result.type === ActionResultType.File) {
-      context.attachment(result.name);
-      context.set('Access-Control-Expose-Headers', 'Content-Disposition');
+    } else if (result?.type === ActionResultType.File) {
+      context.response.attachment(result.name);
+      context.response.set('Access-Control-Expose-Headers', 'Content-Disposition');
       context.response.type = result.mimeType;
       context.response.body = result.stream;
     } else {
@@ -86,9 +81,9 @@ export default class ActionRoute extends CollectionRoute {
     await this.checkPermissions(context);
 
     const { dataSource } = this.collection;
-    const changeFields = context.request.body?.data?.attributes?.fields;
-    const data = changeFields
-      ? ForestValueConverter.makeFormDataFromFields(dataSource, changeFields)
+    const forestFields = context.request.body?.data?.attributes?.fields;
+    const data = forestFields
+      ? ForestValueConverter.makeFormDataFromFields(dataSource, forestFields)
       : null;
 
     const filter = await this.getRecordSelection(context);
