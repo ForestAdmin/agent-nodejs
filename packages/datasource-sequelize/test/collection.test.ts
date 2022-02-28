@@ -2,8 +2,8 @@
 import {
   Action,
   ActionField,
-  ActionResponse,
-  ActionResponseType,
+  ActionResult,
+  ActionResultType,
   ActionScope,
   Aggregation,
   AggregationOperation,
@@ -60,9 +60,9 @@ describe('SequelizeDataSource > Collection', () => {
 
   describe('getAction', () => {
     class TestAction implements Action {
-      async execute(): Promise<ActionResponse> {
+      async execute(): Promise<ActionResult> {
         return {
-          type: ActionResponseType.Redirect,
+          type: ActionResultType.Redirect,
           path: 'https://test.com',
         };
       }

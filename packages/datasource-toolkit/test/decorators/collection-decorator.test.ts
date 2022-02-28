@@ -1,5 +1,5 @@
 import * as factories from '../__factories__';
-import { ActionFieldType, ActionResponseType } from '../../src';
+import { ActionFieldType, ActionResultType } from '../../src';
 
 describe('CollectionDecorator', () => {
   describe('list', () => {
@@ -134,7 +134,7 @@ describe('CollectionDecorator', () => {
 
   describe('execute', () => {
     it('calls the child execute method', async () => {
-      const response = { type: ActionResponseType.Success };
+      const response = { type: ActionResultType.Success };
       const childExecute = jest.fn().mockReturnValue(response);
       const decoratedCollection = factories.collection.buildDecoratedCollection({
         execute: childExecute,

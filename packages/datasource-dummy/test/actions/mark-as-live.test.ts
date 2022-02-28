@@ -1,4 +1,4 @@
-import { ActionResponseType } from '@forestadmin/datasource-toolkit';
+import { ActionResultType } from '@forestadmin/datasource-toolkit';
 import MarkAsLiveAction from '../../src/actions/mark-as-live';
 
 describe('DummyDataSource > Actions > MarkAsLiveAction', () => {
@@ -9,7 +9,7 @@ describe('DummyDataSource > Actions > MarkAsLiveAction', () => {
   describe('execute', () => {
     it('should resolve with a SuccessResponse', async () => {
       await expect(new MarkAsLiveAction().execute({ value: 42 })).resolves.toMatchObject({
-        type: ActionResponseType.Success,
+        type: ActionResultType.Success,
         message: 'Record set as active',
         format: 'text',
       });
