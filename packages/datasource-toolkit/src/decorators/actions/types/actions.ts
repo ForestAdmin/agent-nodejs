@@ -4,7 +4,7 @@ import { DynamicField } from './fields';
 import ActionContext from '../context/base';
 import ActionContextBulk from '../context/bulk';
 import ActionContextSingle from '../context/single';
-import ResponseBuilder from '../response-builder';
+import ResultBuilder from '../result-builder';
 
 interface BaseAction<Scope extends ActionScope, Context extends ActionContext> {
   generateFile?: boolean;
@@ -12,7 +12,7 @@ interface BaseAction<Scope extends ActionScope, Context extends ActionContext> {
   form?: DynamicField<Context>[];
   execute(
     context: Context,
-    responseBuilder: ResponseBuilder,
+    resultBuilder: ResultBuilder,
   ): void | ActionResult | Promise<void> | Promise<ActionResult>;
 }
 

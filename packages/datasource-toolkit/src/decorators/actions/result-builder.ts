@@ -2,9 +2,9 @@ import { Readable } from 'stream';
 
 import { ActionResult, ActionResultType } from '../../interfaces/action';
 
-export default class ResponseBuilder {
+export default class ResultBuilder {
   success(
-    message: string,
+    message?: string,
     options?: { type?: 'html' | 'text'; invalidated?: string[] },
   ): ActionResult {
     return {
@@ -15,7 +15,7 @@ export default class ResponseBuilder {
     };
   }
 
-  error(message: string): ActionResult {
+  error(message?: string): ActionResult {
     return {
       type: ActionResultType.Error,
       message: message ?? 'Error',
@@ -38,9 +38,9 @@ export default class ResponseBuilder {
   }
 
   file(
-    mimeType: string,
-    name: string,
     streamOrBufferOrString: Readable | Uint8Array | string,
+    name = 'file',
+    mimeType = 'application/octet-stream',
   ): ActionResult {
     return {
       type: ActionResultType.File,

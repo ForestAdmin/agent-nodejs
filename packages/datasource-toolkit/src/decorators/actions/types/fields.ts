@@ -20,7 +20,7 @@ interface BaseDynamicField<Type, Context, Result> {
 
 interface CollectionDynamicField<Context>
   extends BaseDynamicField<ActionFieldType.Collection, Context, CompositeId> {
-  collectionName?: ValueOrHandler<Context, string>;
+  collectionName: ValueOrHandler<Context, string>;
 }
 
 interface EnumDynamicField<Context>

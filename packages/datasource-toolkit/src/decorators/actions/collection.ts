@@ -9,7 +9,7 @@ import ActionContextSingle from './context/single';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 import Filter from '../../interfaces/query/filter/unpaginated';
-import ResponseBuilder from './response-builder';
+import ResultBuilder from './result-builder';
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
@@ -26,7 +26,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const context = this.getContext(action, data, filter) as any;
-    const responseBuilder = new ResponseBuilder();
+    const responseBuilder = new ResultBuilder();
     const result = await action.execute(context, responseBuilder);
 
     return (
@@ -77,7 +77,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
         Object.values(field).some(value => typeof value === 'function'),
       );
 
-      newSchema.actions[name] = { scope, generateFile, staticForm: !isDynamic };
+      newSchema.actions[name] = { scope, generateFile: !!generateFile, staticForm: !isDynamic };
     }
 
     return newSchema;
