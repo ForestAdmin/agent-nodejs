@@ -1,7 +1,5 @@
 import {
   ActionCollectionDecorator,
-  ActionFieldType,
-  ActionScope,
   DataSourceDecorator,
   OperatorsEmulateCollectionDecorator,
   OperatorsReplaceCollectionDecorator,
