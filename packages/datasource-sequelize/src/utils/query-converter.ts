@@ -63,8 +63,9 @@ export default class QueryConverter {
     }
   }
 
-  public static getWhereFromConditionTree(
+  static getWhereFromConditionTree(
     conditionTree: ConditionTree,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     model: ModelDefined<any, any>,
   ): WhereOptions {
     const sequelizeWhereClause = {};
@@ -118,34 +119,25 @@ export default class QueryConverter {
     return sequelizeWhereClause;
   }
 
-  static getIncludeAndAttributesFromProjection(projection: Projection): {
-    include: IncludeOptions[];
-    includeAttributes: string[];
-  } {
-    const include: IncludeOptions[] = [];
-    let includeAttributes: string[] = [];
-
-    Object.entries(projection.relations).forEach(([relationName, relationProjection]) => {
-      let nestedInclude: IncludeOptions[] = [];
-      let nestedIncludeAttributes: string[] = [];
-
-      if (Object.keys(relationProjection.relations).length) {
-        ({ include: nestedInclude, includeAttributes: nestedIncludeAttributes } =
-          this.getIncludeAndAttributesFromProjection(relationProjection));
-      }
-
-      include.push({
+  private static computeIncludeFromProjection(
+    projection: Projection,
+    withAttributes = true,
+  ): IncludeOptions[] {
+    return Object.entries(projection.relations).map(([relationName, relationProjection]) => {
+      return {
         association: relationName,
-        include: nestedInclude,
-      });
-
-      includeAttributes = includeAttributes.concat(
-        relationProjection.columns.map(column => `${relationName}.${column}`),
-        nestedIncludeAttributes,
-      );
+        attributes: withAttributes ? relationProjection.columns : [],
+        include: this.computeIncludeFromProjection(relationProjection, withAttributes),
+      };
     });
+  }
 
-    return { include, includeAttributes };
+  static getIncludeFromProjection(projection: Projection): IncludeOptions[] {
+    return this.computeIncludeFromProjection(projection, false);
+  }
+
+  static getIncludeWithAttributesFromProjection(projection: Projection): IncludeOptions[] {
+    return this.computeIncludeFromProjection(projection);
   }
 
   static getOrderFromSort(sort: Sort): OrderItem[] {

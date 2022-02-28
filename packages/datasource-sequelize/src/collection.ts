@@ -43,11 +43,10 @@ export default class SequelizeCollection extends BaseCollection {
       actualId[field] = id[index];
     });
 
-    const { include, includeAttributes } =
-      QueryConverter.getIncludeAndAttributesFromProjection(projection);
+    const include = QueryConverter.getIncludeWithAttributesFromProjection(projection);
 
     const record = await this.model.findOne({
-      attributes: [...projection.columns, ...includeAttributes],
+      attributes: projection.columns,
       where: actualId,
       include,
     });
@@ -62,23 +61,20 @@ export default class SequelizeCollection extends BaseCollection {
   }
 
   async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    const { include, includeAttributes } =
-      QueryConverter.getIncludeAndAttributesFromProjection(projection);
+    const include = QueryConverter.getIncludeWithAttributesFromProjection(projection);
 
     let filterInclude = [];
 
     if (filter.conditionTree) {
-      ({ include: filterInclude } = QueryConverter.getIncludeAndAttributesFromProjection(
-        filter.conditionTree.projection,
-      ));
+      filterInclude = QueryConverter.getIncludeFromProjection(filter.conditionTree.projection);
     }
 
     const query: FindOptions = {
-      attributes: [...projection.columns, ...includeAttributes],
+      attributes: projection.columns,
       where:
         filter.conditionTree &&
         QueryConverter.getWhereFromConditionTree(filter.conditionTree, this.model),
-      include: Array.from(new Set(include.concat(filterInclude))),
+      include: include.concat(filterInclude),
       limit: filter.page?.limit,
       offset: filter.page?.skip,
       order: QueryConverter.getOrderFromSort(filter.sort),
@@ -135,16 +131,12 @@ export default class SequelizeCollection extends BaseCollection {
       aggregateFieldName,
     ];
 
-    const { include } = QueryConverter.getIncludeAndAttributesFromProjection(
-      aggregation.projection,
-    );
+    const include = QueryConverter.getIncludeFromProjection(aggregation.projection);
 
     let filterInclude = [];
 
     if (filter.conditionTree) {
-      ({ include: filterInclude } = QueryConverter.getIncludeAndAttributesFromProjection(
-        filter.conditionTree.projection,
-      ));
+      filterInclude = QueryConverter.getIncludeFromProjection(filter.conditionTree.projection);
     }
 
     const groupAttributes = [];
@@ -167,7 +159,7 @@ export default class SequelizeCollection extends BaseCollection {
       where:
         filter.conditionTree &&
         QueryConverter.getWhereFromConditionTree(filter.conditionTree, this.model),
-      include: Array.from(new Set(include.concat(filterInclude))),
+      include: include.concat(filterInclude),
       limit,
       order: [[Col(aggregateFieldName), 'DESC']], // FIXME handle properly order
       subQuery: false,

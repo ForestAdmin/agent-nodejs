@@ -489,6 +489,7 @@ describe('SequelizeDataSource > Collection', () => {
                 {
                   association: 'modelAssociations',
                   include: [],
+                  attributes: [],
                 },
               ],
             }),
@@ -654,6 +655,7 @@ describe('SequelizeDataSource > Collection', () => {
                 {
                   association: 'modelAssociations',
                   include: [],
+                  attributes: [],
                 },
               ],
             }),

@@ -216,32 +216,48 @@ describe('Utils > QueryConverter', () => {
     });
   });
 
-  describe('getIncludeAndAttributesFromProjection', () => {
+  describe('getIncludeWithAttributesFromProjection', () => {
+    describe('when projection have relation field', () => {
+      it('should add include with attributes', () => {
+        const projection = new Projection('model:another_field');
+
+        expect(QueryConverter.getIncludeWithAttributesFromProjection(projection)).toEqual([
+          { association: 'model', include: [], attributes: ['another_field'] },
+        ]);
+      });
+
+      it('should add include recursively with attributes', () => {
+        const projection = new Projection('model:another_model:a_field');
+        expect(QueryConverter.getIncludeWithAttributesFromProjection(projection)).toEqual([
+          {
+            association: 'model',
+            include: [{ association: 'another_model', include: [], attributes: ['a_field'] }],
+            attributes: [],
+          },
+        ]);
+      });
+    });
+  });
+
+  describe('getIncludeFromProjection', () => {
     describe('when projection have relation field', () => {
       it('should add include', () => {
         const projection = new Projection('model:another_field');
 
-        expect(QueryConverter.getIncludeAndAttributesFromProjection(projection)).toEqual(
-          expect.objectContaining({
-            includeAttributes: ['model.another_field'],
-            include: [{ association: 'model', include: [] }],
-          }),
-        );
+        expect(QueryConverter.getIncludeFromProjection(projection)).toEqual([
+          { association: 'model', include: [], attributes: [] },
+        ]);
       });
 
       it('should add include recursively', () => {
         const projection = new Projection('model:another_model:a_field');
-        expect(QueryConverter.getIncludeAndAttributesFromProjection(projection)).toEqual(
-          expect.objectContaining({
-            includeAttributes: ['another_model.a_field'],
-            include: [
-              {
-                association: 'model',
-                include: [{ association: 'another_model', include: [] }],
-              },
-            ],
-          }),
-        );
+        expect(QueryConverter.getIncludeFromProjection(projection)).toEqual([
+          {
+            association: 'model',
+            include: [{ association: 'another_model', include: [], attributes: [] }],
+            attributes: [],
+          },
+        ]);
       });
     });
   });
