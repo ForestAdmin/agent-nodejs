@@ -202,6 +202,7 @@ describe('ScopeInvalidation', () => {
         { type: ActionResultType.Redirect, path: '/route-that-the-frontend-should-go-to' },
         { redirectTo: '/route-that-the-frontend-should-go-to' },
       ],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as Array<[string, ActionResult, any]>)(
       'handleExecute should format the response (%s)',
       async (_, executeResult, expectedBody) => {
