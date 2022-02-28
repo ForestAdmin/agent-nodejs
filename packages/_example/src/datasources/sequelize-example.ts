@@ -10,7 +10,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   const City = sequelize.define(
     'city',
     {
-      cityId: {
+      id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
@@ -36,7 +36,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   const Country = sequelize.define(
     'country',
     {
-      countryId: {
+      id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
@@ -62,7 +62,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   const Address = sequelize.define(
     'address',
     {
-      addressId: {
+      id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true,
@@ -91,10 +91,10 @@ const prepareDatabase = async (): Promise<Sequelize> => {
     },
   );
 
-  Country.hasMany(City, { sourceKey: 'countryId', foreignKey: 'countryId' });
-  City.belongsTo(Country, { targetKey: 'countryId', foreignKey: 'countryId' });
-  City.hasMany(Address, { sourceKey: 'cityId', foreignKey: 'cityId' });
-  Address.belongsTo(City, { targetKey: 'cityId', foreignKey: 'cityId' });
+  Country.hasMany(City);
+  City.belongsTo(Country);
+  City.hasMany(Address);
+  Address.belongsTo(City);
 
   return sequelize;
 };
@@ -128,7 +128,7 @@ const prepareDataSource = async (): Promise<SequelizeDataSource> => {
   //   cityRecords.push({
   //     city: faker.address.city(),
   //     lastUpdate: faker.datatype.datetime(),
-  //     countryId: countryRecords[Math.floor(Math.random() * countryRecords.length)].countryId,
+  //     countryId: countryRecords[Math.floor(Math.random() * countryRecords.length)].id,
   //   });
   // }
 
@@ -139,14 +139,11 @@ const prepareDataSource = async (): Promise<SequelizeDataSource> => {
   //     address: faker.address.streetAddress(),
   //     address2: faker.address.secondaryAddress(),
   //     postalCode: faker.address.zipCode(),
-  //     cityId: cityRecords[Math.floor(Math.random() * cityRecords.length)].cityId,
+  //     cityId: cityRecords[Math.floor(Math.random() * cityRecords.length)].id,
   //   });
   // }
 
   // await dataSource.getCollection('address').create(addressRecords);
-  // } catch (err) {
-  //   console.log(err);
-  // }
 
   return dataSource;
 };
