@@ -6,7 +6,8 @@ export type ValueOrHandler<Context = unknown, Result = unknown> =
   | ((context: Context) => Result)
   | Result;
 
-interface BaseDynamicField<Context, Result> {
+interface BaseDynamicField<Type, Context, Result> {
+  type: Type;
   label: string;
   description?: string;
   isRequired?: ValueOrHandler<Context, boolean>;
@@ -17,52 +18,44 @@ interface BaseDynamicField<Context, Result> {
   defaultValue?: ValueOrHandler<Context, Result>;
 }
 
-interface BooleanDynamicField<Context> extends BaseDynamicField<Context, boolean> {
-  type: ActionFieldType.Boolean;
-}
-
-interface CollectionDynamicField<Context> extends BaseDynamicField<Context, CompositeId> {
-  type: ActionFieldType.Collection;
+interface CollectionDynamicField<Context>
+  extends BaseDynamicField<ActionFieldType.Collection, Context, CompositeId> {
   collectionName?: ValueOrHandler<Context, string>;
 }
 
-interface EnumDynamicField<Context> extends BaseDynamicField<Context, string> {
-  type: ActionFieldType.Enum;
+interface EnumDynamicField<Context>
+  extends BaseDynamicField<ActionFieldType.Enum, Context, string> {
   enumValues: ValueOrHandler<Context, string[]>;
 }
 
-interface EnumListDynamicField<Context> extends BaseDynamicField<Context, string[]> {
-  type: ActionFieldType.EnumList;
+interface EnumListDynamicField<Context>
+  extends BaseDynamicField<ActionFieldType.EnumList, Context, string[]> {
   enumValues: ValueOrHandler<Context, string[]>;
 }
 
-interface FileDynamicField<Context> extends BaseDynamicField<Context, File> {
-  type: ActionFieldType.File;
-}
+type BooleanDynamicField<Context> = BaseDynamicField<ActionFieldType.Boolean, Context, boolean>;
+type FileDynamicField<Context> = BaseDynamicField<ActionFieldType.File, Context, File>;
+type FileListDynamicField<Context> = BaseDynamicField<ActionFieldType.FileList, Context, File[]>;
+type JsonDynamicField<Context> = BaseDynamicField<ActionFieldType.Json, Context, Json>;
+type NumberDynamicField<Context> = BaseDynamicField<ActionFieldType.Number, Context, number>;
 
-interface FileListDynamicField<Context> extends BaseDynamicField<Context, File[]> {
-  type: ActionFieldType.FileList;
-}
+type NumberListDynamicField<Context> = BaseDynamicField<
+  ActionFieldType.NumberList,
+  Context,
+  number[]
+>;
 
-interface JsonDynamicField<Context> extends BaseDynamicField<Context, Json> {
-  type: ActionFieldType.Json;
-}
+type StringDynamicField<Context> = BaseDynamicField<
+  ActionFieldType.Date | ActionFieldType.Dateonly | ActionFieldType.String,
+  Context,
+  string
+>;
 
-interface NumberDynamicField<Context> extends BaseDynamicField<Context, number> {
-  type: ActionFieldType.Number;
-}
-
-interface NumberListDynamicField<Context> extends BaseDynamicField<Context, number[]> {
-  type: ActionFieldType.NumberList;
-}
-
-interface StringDynamicField<Context> extends BaseDynamicField<Context, string> {
-  type: ActionFieldType.Date | ActionFieldType.Dateonly | ActionFieldType.String;
-}
-
-interface StringListDynamicField<Context> extends BaseDynamicField<Context, string[]> {
-  type: ActionFieldType.StringList;
-}
+type StringListDynamicField<Context> = BaseDynamicField<
+  ActionFieldType.StringList,
+  Context,
+  string[]
+>;
 
 export type DynamicField<Context = unknown> =
   | BooleanDynamicField<Context>
