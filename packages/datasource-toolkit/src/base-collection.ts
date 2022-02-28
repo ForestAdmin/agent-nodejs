@@ -67,7 +67,7 @@ export default abstract class BaseCollection implements Collection {
     limit?: number,
   ): Promise<AggregateResult[]>;
 
-  execute(name: string): Promise<ActionResult> {
+  async execute(name: string): Promise<ActionResult> {
     throw new Error(
       this.schema.actions[name]
         ? `Action ${name} is not implemented.`

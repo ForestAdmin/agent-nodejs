@@ -160,4 +160,20 @@ describe('BaseCollection', () => {
       expect(collection.schema.searchable).toBe(true);
     });
   });
+
+  describe('execute', () => {
+    test('it always throws', async () => {
+      const collection = new ConcreteCollection('books', null);
+
+      await expect(collection.execute('someAction')).rejects.toThrow();
+    });
+  });
+
+  describe('getForm', () => {
+    test('it return an empty form', async () => {
+      const collection = new ConcreteCollection('books', null);
+
+      await expect(collection.getForm()).resolves.toStrictEqual([]);
+    });
+  });
 });
