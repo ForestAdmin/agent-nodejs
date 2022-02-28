@@ -1,5 +1,6 @@
 import { ConditionTreeLeaf, Operator } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
+import hashObject from 'object-hash';
 
 import * as factories from '../__factories__';
 import ForestHttpApi from '../../src/utils/forest-http-api';
@@ -28,8 +29,15 @@ describe('Permissions', () => {
 
   describe('with no scopes activated', () => {
     beforeEach(() => {
+      const chart = {
+        type: 'Pie',
+        aggregate: 'Count',
+        collection: 'books',
+        group_by_field: 'author',
+      };
+
       getPermissions.mockResolvedValue({
-        actions: new Set(['read:books']),
+        actions: new Set(['read:books', `chart:${hashObject(chart, { respectType: false })}`]),
         actionsByUser: { 'browse:books': new Set([1]) },
         scopes: { books: null },
       });
@@ -87,6 +95,38 @@ describe('Permissions', () => {
       const context = createMockContext({ state: { user: { renderingId: 1, id: 1 } } });
       await service.can(context, 'not_allowed');
 
+      expect(context.throw).toHaveBeenCalled();
+      expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(2);
+    });
+
+    test('should not throw on allowed chart (using relation)', async () => {
+      const context = createMockContext({
+        state: { user: { renderingId: 1, id: 1 } },
+        requestBody: {
+          type: 'Pie',
+          aggregate: 'Count',
+          collection: 'books',
+          group_by_field: 'author:firstName',
+        },
+      });
+
+      await expect(service.canChart(context)).resolves.not.toThrow();
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(1);
+    });
+
+    test('should throw on forbidden chart (using relation)', async () => {
+      const context = createMockContext({
+        state: { user: { renderingId: 1, id: 1 } },
+        requestBody: {
+          type: 'Pie',
+          aggregate: 'Count',
+          collection: 'books',
+          group_by_field: 'title',
+        },
+      });
+
+      await service.canChart(context);
       expect(context.throw).toHaveBeenCalled();
       expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(2);
     });
