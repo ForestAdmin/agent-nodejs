@@ -1,8 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
-import * as factories from './__factories__';
-import { ActionSchema, ColumnSchema, FieldSchema } from '../src/interfaces/schema';
 import { AggregateResult } from '../src/interfaces/query/aggregation';
 import { CollectionSchema } from '../src';
+import { ColumnSchema, FieldSchema } from '../src/interfaces/schema';
 import { DataSource } from '../src/interfaces/collection';
 import { RecordData } from '../src/interfaces/record';
 import BaseCollection from '../src/base-collection';
@@ -41,7 +40,7 @@ describe('BaseCollection', () => {
       constructor(name: string, dataSource: DataSource) {
         super(name, dataSource);
 
-        this.addAction('__action__', null, null);
+        this.addAction('myAction', null);
       }
     }
 
@@ -49,14 +48,14 @@ describe('BaseCollection', () => {
       constructor(name: string, dataSource: DataSource) {
         super(name, dataSource);
 
-        this.addAction('__duplicated__', null, null);
-        this.addAction('__duplicated__', null, null);
+        this.addAction('duplicatedAction', null);
+        this.addAction('duplicatedAction', null);
       }
     }
 
     it('should prevent instanciation when adding action with duplicated name', () => {
-      expect(() => new DuplicatedActionErrorCollection('__duplicated__', null)).toThrow(
-        'Action "__duplicated__" already defined in collection',
+      expect(() => new DuplicatedActionErrorCollection('duplicatedAction', null)).toThrow(
+        'Action "duplicatedAction" already defined in collection',
       );
     });
 
@@ -64,31 +63,7 @@ describe('BaseCollection', () => {
       const collection = new CollectionWithAction('__valid__', null);
 
       expect(collection).toBeInstanceOf(CollectionWithAction);
-      expect(collection.getAction('__action__')).toBeDefined();
-    });
-  });
-
-  describe('getAction', () => {
-    const expectedAction = factories.action.build();
-
-    class CollectionWithAction extends ConcreteCollection {
-      constructor(name: string, dataSource: DataSource) {
-        super(name, dataSource);
-
-        this.addAction('__action__', {} as ActionSchema, expectedAction);
-      }
-    }
-
-    it('should get action from collection schema', () => {
-      const collection = new CollectionWithAction('collection', null);
-
-      expect(collection.getAction('__action__')).toBe(expectedAction);
-    });
-
-    it('should fail to get action if one with the same name is not present', () => {
-      const collection = new CollectionWithAction('collection', null);
-
-      expect(() => collection.getAction('__no_such_action__')).toThrow();
+      expect(collection.schema.actions.myAction).toBeDefined();
     });
   });
 

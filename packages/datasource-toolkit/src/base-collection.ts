@@ -1,4 +1,4 @@
-import { Action, ActionField, ActionResult } from './interfaces/action';
+import { ActionField, ActionResult } from './interfaces/action';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 import { Collection, DataSource } from './interfaces/collection';
 import { RecordData } from './interfaces/record';
@@ -12,8 +12,6 @@ export default abstract class BaseCollection implements Collection {
   readonly name: string = null;
   readonly schema: CollectionSchema = null;
 
-  private actions: { [actionName: string]: Action } = {};
-
   constructor(name: string, datasource: DataSource) {
     this.dataSource = datasource;
     this.name = name;
@@ -25,20 +23,11 @@ export default abstract class BaseCollection implements Collection {
     };
   }
 
-  getAction(name: string): Action {
-    const action = this.actions[name];
-
-    if (action === undefined) throw new Error(`Action "${name}" not found.`);
-
-    return action;
-  }
-
-  protected addAction(name: string, schema: ActionSchema, instance: Action): void {
-    const action = this.actions[name];
+  protected addAction(name: string, schema: ActionSchema): void {
+    const action = this.schema.actions[name];
 
     if (action !== undefined) throw new Error(`Action "${name}" already defined in collection`);
 
-    this.actions[name] = instance;
     this.schema.actions[name] = schema;
   }
 
@@ -78,11 +67,15 @@ export default abstract class BaseCollection implements Collection {
     limit?: number,
   ): Promise<AggregateResult[]>;
 
-  execute(name: string, formValues: RecordData, filter?: Filter): Promise<ActionResult> {
-    return this.getAction(name).execute(formValues, filter);
+  execute(name: string): Promise<ActionResult> {
+    throw new Error(
+      this.schema.actions[name]
+        ? `Action ${name} is not implemented.`
+        : `No action named ${name} was added`,
+    );
   }
 
-  getForm(name: string, formValues?: RecordData, filter?: Filter): Promise<ActionField[]> {
-    return this.getAction(name).getForm(formValues, filter);
+  async getForm(): Promise<ActionField[]> {
+    return [];
   }
 }

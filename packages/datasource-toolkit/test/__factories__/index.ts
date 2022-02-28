@@ -1,4 +1,3 @@
-export { default as action } from './action';
 export { default as aggregateResult } from './aggregate-result';
 export { default as aggregation } from './aggregation';
 export { default as collection } from './collection';

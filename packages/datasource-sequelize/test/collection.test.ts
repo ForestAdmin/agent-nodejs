@@ -1,10 +1,5 @@
 /* eslint-disable max-classes-per-file */
 import {
-  Action,
-  ActionField,
-  ActionResult,
-  ActionResultType,
-  ActionScope,
   Aggregation,
   AggregationOperation,
   ConditionTreeLeaf,
@@ -56,53 +51,6 @@ describe('SequelizeDataSource > Collection', () => {
     expect(() => new SequelizeCollection(name, dataSource, null)).toThrow(
       'Invalid (null) model instance.',
     );
-  });
-
-  describe('getAction', () => {
-    class TestAction implements Action {
-      async execute(): Promise<ActionResult> {
-        return {
-          type: ActionResultType.Redirect,
-          path: 'https://test.com',
-        };
-      }
-
-      async getForm(): Promise<ActionField[]> {
-        return [];
-      }
-    }
-
-    class CollectionWithAction extends SequelizeCollection {
-      constructor(name, datasource: DataSource, sequelize) {
-        super(name, datasource, sequelize);
-
-        this.addAction('__action__', { scope: ActionScope.Single }, new TestAction());
-      }
-    }
-
-    it('should return a known action', () => {
-      const { dataSource, name, sequelize } = makeConstructorParams();
-      const collectionWithAction = new CollectionWithAction(
-        name,
-        dataSource,
-        sequelize.models[name],
-      );
-
-      expect(collectionWithAction.getAction('__action__')).toBeInstanceOf(TestAction);
-    });
-
-    it('should throw with an unknown action name', () => {
-      const { dataSource, name, sequelize } = makeConstructorParams();
-      const collectionWithAction = new CollectionWithAction(
-        name,
-        dataSource,
-        sequelize.models[name],
-      );
-
-      expect(() => collectionWithAction.getAction('__no_such_action__')).toThrow(
-        'Action "__no_such_action__" not found.',
-      );
-    });
   });
 
   describe('create', () => {
