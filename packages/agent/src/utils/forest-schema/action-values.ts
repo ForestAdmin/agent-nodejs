@@ -124,7 +124,7 @@ export default class ForestValueConverter {
     if (!dataUri) return null;
 
     // Poor man's data uri parser (spec compliants one don't get the filename).
-    // Hopefully this does not breaks.
+    // Hopefully this does not break.
     const [header, data] = dataUri.substring(5).split(',');
     const [mimeType, ...mediaTypes] = header.split(';');
     const result = { mimeType, buffer: Buffer.from(data, 'base64') };
