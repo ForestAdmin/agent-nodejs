@@ -1,9 +1,4 @@
-import {
-  ActionField,
-  ActionFieldType,
-  FieldTypes,
-  PrimitiveTypes,
-} from '@forestadmin/datasource-toolkit';
+import { ActionFieldType, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../../__factories__';
 import ForestValueConverter from '../../../src/utils/forest-schema/action-values';

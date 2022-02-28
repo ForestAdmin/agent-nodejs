@@ -6,35 +6,17 @@ import ActionContextBulk from '../context/bulk';
 import ActionContextSingle from '../context/single';
 import ResponseBuilder from '../response-builder';
 
-interface BaseAction {
+interface BaseAction<Scope extends ActionScope, Context extends ActionContext> {
   generateFile?: boolean;
-}
-
-export interface ActionGlobal extends BaseAction {
-  scope: ActionScope.Global;
-  form?: DynamicField<ActionContext>[];
+  scope: Scope;
+  form?: DynamicField<Context>[];
   execute(
-    context: ActionContext,
+    context: Context,
     responseBuilder: ResponseBuilder,
   ): void | ActionResult | Promise<void> | Promise<ActionResult>;
 }
 
-export interface ActionBulk extends BaseAction {
-  scope: ActionScope.Bulk;
-  form?: DynamicField<ActionContextBulk>[];
-  execute(
-    context: ActionContextBulk,
-    responseBuilder: ResponseBuilder,
-  ): void | ActionResult | Promise<void> | Promise<ActionResult>;
-}
-
-export interface ActionSingle extends BaseAction {
-  scope: ActionScope.Single;
-  form?: DynamicField<ActionContextSingle>[];
-  execute(
-    context: ActionContextSingle,
-    responseBuilder: ResponseBuilder,
-  ): void | ActionResult | Promise<void> | Promise<ActionResult>;
-}
-
+export type ActionGlobal = BaseAction<ActionScope.Global, ActionContext>;
+export type ActionBulk = BaseAction<ActionScope.Bulk, ActionContextBulk>;
+export type ActionSingle = BaseAction<ActionScope.Single, ActionContextSingle>;
 export type Action = ActionSingle | ActionBulk | ActionGlobal;
