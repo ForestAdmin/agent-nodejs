@@ -1,3 +1,4 @@
+import { Readable } from 'stream';
 import { RecordData } from './record';
 import Filter from './query/filter/unpaginated';
 
@@ -76,7 +77,7 @@ export type FileResult = {
   type: ActionResultType.File;
   mimeType: string;
   name: string;
-  stream: ReadableStream;
+  stream: Readable;
 };
 
 export type RedirectResult = {

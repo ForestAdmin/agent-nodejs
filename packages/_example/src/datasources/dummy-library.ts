@@ -1,7 +1,7 @@
 import {
   ActionCollectionDecorator,
   ActionFieldType,
-  ActionSchemaScope,
+  ActionScope,
   DataSourceDecorator,
   OperatorsEmulateCollectionDecorator,
   OperatorsReplaceCollectionDecorator,
@@ -23,49 +23,65 @@ const prepareDataSource = async (): Promise<DummyDataSource> => {
   dataSource = new DataSourceDecorator(dataSource, PublicationCollectionDecorator);
   dataSource = new DataSourceDecorator(dataSource, SearchCollectionDecorator);
 
-  const decorator = new DataSourceDecorator(dataSource, ActionCollectionDecorator);
+  const agentBuilder = new DataSourceDecorator(dataSource, ActionCollectionDecorator);
 
-  decorator.getCollection('books').registerAction('From Decorator', {
-    scope: ActionSchemaScope.Single,
-    dependencies: ['id', 'title'],
-
+  agentBuilder.getCollection('books').registerAction('Leave a review', {
+    scope: ActionScope.Single,
     form: [
       {
-        label: 'field9',
-        description: 'coucoucou ocucouco ',
+        label: 'original title',
         type: ActionFieldType.String,
-        defaultValue: 'mystring',
+        isReadOnly: true,
+        defaultValue: context =>
+          context
+            .getRecord(['title', 'author:firstName', 'author:lastName'])
+            .then(book => `${book.title} (by ${book.author.firstName} ${book.author.lastName})`),
       },
-      // {
-      //   type: ActionFieldType.Collection,
-      //   label: 'field2',
-      //   collectionName: 'persons',
-      // },
-      // { label: 'field1', type: ActionFieldType.Boolean },
-      // { label: 'field3', type: ActionFieldType.Date },
-      // { label: 'field4', type: ActionFieldType.Dateonly },
-      // { label: 'field5', type: ActionFieldType.Enum, enumValues: ['1', '2'] },
-      // { label: 'field6', type: ActionFieldType.File },
-      // { label: 'field7', type: ActionFieldType.Json },
-      // { label: 'field8', type: ActionFieldType.Number },
-      // { label: 'field10', type: ActionFieldType.EnumList, enumValues: ['1', '2'] },
       {
-        label: 'field11',
-        type: ActionFieldType.FileList,
-        // if: context => !context.formValues.field10,
+        label: 'rating',
+        type: ActionFieldType.Enum,
+        enumValues: ['keep away 🤮', 'meeeh 🤷', 'good enough 👍', 'nice! 🤪', 'great 🎉'],
+        defaultValue: 'good enough 👍',
+        value: context =>
+          context.formValues.rating === 'keep away 🤮' ? 'meeeh 🤷' : context.formValues.rating,
       },
-      // { label: 'field12', type: ActionFieldType.NumberList },
-      // { label: 'field13', type: ActionFieldType.StringList },
+      {
+        label: 'country',
+        type: ActionFieldType.Enum,
+        enumValues: ['France', 'Spain'],
+      },
+      {
+        label: 'region',
+        type: ActionFieldType.Enum,
+        isReadOnly: context => !context.formValues.country,
+        enumValues: context => {
+          const { country } = context.formValues;
+          if (country === 'France') return ['poitou', 'idf'];
+          if (country === 'Spain') return ['país basco', 'madrid'];
+
+          return [];
+        },
+      },
+      {
+        label: 'want to make a paypal donation?',
+        type: ActionFieldType.Boolean,
+        if: context => context.formValues.rating === 'great 🎉',
+      },
     ],
 
-    execute: async (context, responseBuilder) => {
-      const record = await context.getRecord();
-      console.log(context.formValues);
-      responseBuilder.success(`it worked on "${record.title}"`);
+    execute: (context, responseBuilder) => {
+      // Do stuff here 💪
+
+      // When you are done, call the response builder
+      return responseBuilder.success(
+        context.formValues['want to make a paypal donation?']
+          ? 'Thank you for for the money 💰'
+          : 'Thank you for leaving a review 🤪',
+      );
     },
   });
 
-  return decorator;
+  return agentBuilder;
 };
 
 export default prepareDataSource;

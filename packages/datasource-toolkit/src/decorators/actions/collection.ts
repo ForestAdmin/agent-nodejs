@@ -24,20 +24,19 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     const action = this.actions[name];
     if (!action) return this.childCollection.execute(name, data, filter);
 
-    const response = {
-      type: ActionResultType.Success as const,
-      invalidated: new Set<string>(),
-      format: 'text' as const,
-      message: 'Success',
-    };
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const context = this.getContext(action, data, filter) as any;
-    const responseBuilder = new ResponseBuilder(response);
+    const responseBuilder = new ResponseBuilder();
+    const result = await action.execute(context, responseBuilder);
 
-    await action.execute(context, responseBuilder);
-
-    return response;
+    return (
+      result || {
+        type: ActionResultType.Success as const,
+        invalidated: new Set<string>(),
+        format: 'text' as const,
+        message: 'Success',
+      }
+    );
   }
 
   override async getForm(name: string, data?: RecordData, filter?: Filter): Promise<ActionField[]> {
@@ -52,10 +51,10 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     // Convert DynamicField to ActionField in successive steps.
     let dynamicFields: DynamicField[];
     dynamicFields = action.form.map(c => ({ ...c }));
-    dynamicFields = await this.withDefaults(context, dynamicFields, !data, formValues);
-    dynamicFields = await this.withIfs(context, dynamicFields);
+    dynamicFields = await this.dropDefaults(context, dynamicFields, !data, formValues);
+    dynamicFields = await this.dropIfs(context, dynamicFields);
 
-    const fields = await this.withDeferred(context, dynamicFields);
+    const fields = await this.dropDeferred(context, dynamicFields);
 
     for (const field of fields) {
       // customer did not define a handler to rewrite the previous value => reuse current one.
@@ -91,15 +90,15 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     used?: Set<string>,
   ): ActionContext {
     if (action.scope === ActionScope.Global) {
-      return new ActionContext(this, formValues, used);
+      return new ActionContext(this, formValues, filter, used);
     }
 
     return action.scope === ActionScope.Single
-      ? new ActionContextSingle(this, formValues, used, filter)
-      : new ActionContextBulk(this, formValues, used, filter);
+      ? new ActionContextSingle(this, formValues, filter, used)
+      : new ActionContextBulk(this, formValues, filter, used);
   }
 
-  private async withDefaults(
+  private async dropDefaults(
     context: ActionContext,
     fields: DynamicField[],
     isFirstCall: boolean,
@@ -120,7 +119,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     return fields;
   }
 
-  private async withIfs(context: ActionContext, fields: DynamicField[]): Promise<DynamicField[]> {
+  private async dropIfs(context: ActionContext, fields: DynamicField[]): Promise<DynamicField[]> {
     // Remove fields which have falsy if
     const ifValues = await Promise.all(
       fields.map(field => !field.if || this.evaluate(context, field.if)),
@@ -131,7 +130,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     return newFields;
   }
 
-  private async withDeferred(
+  private async dropDeferred(
     context: ActionContext,
     fields: DynamicField[],
   ): Promise<ActionField[]> {
