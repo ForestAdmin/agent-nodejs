@@ -13,5 +13,10 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
     if (!sequelize) throw new Error('Invalid (null) Sequelize instance.');
 
     this.sequelize = sequelize;
+
+    Object.values(sequelize.models).forEach(model => {
+      const collection = new SequelizeCollection(model.name, this, model);
+      this.addCollection(collection);
+    });
   }
 }

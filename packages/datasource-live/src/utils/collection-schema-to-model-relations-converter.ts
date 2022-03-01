@@ -27,7 +27,7 @@ export default class CollectionSchemaToModelRelationsConverter {
       } else if (field.type === FieldTypes.ManyToOne) {
         relations.push(
           sourceModel.belongsTo(targetModel, { targetKey: field.foreignKey }),
-          targetModel.hasOne(sourceModel),
+          targetModel.hasMany(sourceModel),
         );
       } else if (field.type === FieldTypes.OneToMany) {
         relations.push(

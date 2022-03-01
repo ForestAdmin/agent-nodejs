@@ -4,29 +4,38 @@ import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
   ConditionTreeNot,
-  Filter,
   Operator,
-  PaginatedFilter,
+  Projection,
+  Sort,
 } from '@forestadmin/datasource-toolkit';
-import { FindOptions, Op, OrOperator, Order, WhereOperators, WhereOptions } from 'sequelize';
+import {
+  IncludeOptions,
+  ModelDefined,
+  Op,
+  OrOperator,
+  OrderItem,
+  WhereOperators,
+  WhereOptions,
+} from 'sequelize';
 
-export default class FilterConverter {
-  private static asArray(value) {
+export default class QueryConverter {
+  private static asArray(value: unknown) {
     if (!Array.isArray(value)) return [value];
 
     return value;
   }
 
-  private static makeWhereClause(operator: Operator, value?): WhereOperators | OrOperator {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private static makeWhereClause(operator: Operator, value?: any): WhereOperators | OrOperator {
     if (operator === null) throw new Error('Invalid (null) operator.');
 
     switch (operator) {
       case Operator.Blank:
         return { [Op.or]: [this.makeWhereClause(Operator.Missing), { [Op.eq]: '' }] };
       case Operator.Contains:
-        return { [Op.iLike]: `%${value}%` };
+        return { [Op.like]: `%${value}%` };
       case Operator.EndsWith:
-        return { [Op.iLike]: `%${value}` };
+        return { [Op.like]: `%${value}` };
       case Operator.Equal:
         return { [Op.eq]: value };
       case Operator.GreaterThan:
@@ -46,15 +55,21 @@ export default class FilterConverter {
       case Operator.NotIn:
         return { [Op.notIn]: this.asArray(value) };
       case Operator.Present:
-        return { [Op.not]: { [Op.is]: null } };
+        return { [Op.ne]: null };
       case Operator.StartsWith:
-        return { [Op.iLike]: `${value}%` };
+        return { [Op.like]: `${value}%` };
       default:
         throw new Error(`Unsupported operator: "${operator}".`);
     }
   }
 
-  private static convertConditionTreeToSequelize(conditionTree: ConditionTree): WhereOptions {
+  static getWhereFromConditionTree(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    model: ModelDefined<any, any>,
+    conditionTree?: ConditionTree,
+  ): WhereOptions {
+    if (!conditionTree) return null;
+
     const sequelizeWhereClause = {};
 
     if ((conditionTree as ConditionTreeBranch).aggregator !== undefined) {
@@ -71,7 +86,7 @@ export default class FilterConverter {
       }
 
       sequelizeWhereClause[sequelizeOperator] = conditions.map(condition =>
-        this.convertConditionTreeToSequelize(condition),
+        this.getWhereFromConditionTree(model, condition),
       );
     } else if ((conditionTree as ConditionTreeNot).condition !== undefined) {
       const { condition } = conditionTree as ConditionTreeNot;
@@ -80,13 +95,25 @@ export default class FilterConverter {
         throw new Error('Invalid (null) condition.');
       }
 
-      sequelizeWhereClause[Op.not] = this.convertConditionTreeToSequelize(
+      sequelizeWhereClause[Op.not] = this.getWhereFromConditionTree(
+        model,
         (conditionTree as ConditionTreeNot).condition,
       );
     } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
 
-      sequelizeWhereClause[field] = this.makeWhereClause(operator, value);
+      let safeField = field;
+
+      if (field.includes(':')) {
+        const paths = field.split(':');
+        const fieldName = paths.pop();
+        const safeFieldName = paths
+          .reduce((acc, path) => acc.associations[path].target, model)
+          .getAttributes()[fieldName].field;
+        safeField = `$${paths.join('.')}.${safeFieldName}$`;
+      }
+
+      sequelizeWhereClause[safeField] = this.makeWhereClause(operator, value);
     } else {
       throw new Error('Invalid ConditionTree.');
     }
@@ -94,41 +121,32 @@ export default class FilterConverter {
     return sequelizeWhereClause;
   }
 
-  public static convertFilterToSequelize(filter: Filter): FindOptions {
-    if (!filter) {
-      throw new Error('Invalid (null) filter.');
-    }
-
-    const sequelizeFilter: FindOptions = {};
-
-    if (filter.conditionTree) {
-      sequelizeFilter.where = this.convertConditionTreeToSequelize(filter.conditionTree);
-    }
-
-    // TODO: Handle `search`
-    // TODO: Handle `searchExtended`
-    // TODO: Handle `segment`
-    // TODO: Handle `timezone`
-
-    return sequelizeFilter;
+  private static computeIncludeFromProjection(
+    projection: Projection,
+    withAttributes = true,
+  ): IncludeOptions[] {
+    return Object.entries(projection.relations).map(([relationName, relationProjection]) => {
+      return {
+        association: relationName,
+        attributes: withAttributes ? relationProjection.columns : [],
+        include: this.computeIncludeFromProjection(relationProjection, withAttributes),
+      };
+    });
   }
 
-  public static convertPaginatedFilterToSequelize(filter: PaginatedFilter): FindOptions {
-    const sequelizeFilter = this.convertFilterToSequelize(filter);
+  static getIncludeFromProjection(projection: Projection): IncludeOptions[] {
+    return this.computeIncludeFromProjection(projection, false);
+  }
 
-    const pageLimit = filter.page?.limit ?? null;
-    const pageOffset = filter.page?.skip ?? null;
+  static getIncludeWithAttributesFromProjection(projection: Projection): IncludeOptions[] {
+    return this.computeIncludeFromProjection(projection);
+  }
 
-    if (pageLimit !== null) sequelizeFilter.limit = pageLimit;
-    if (pageOffset !== null) sequelizeFilter.offset = pageOffset;
+  static getOrderFromSort(sort: Sort): OrderItem[] {
+    return (sort ?? []).map(({ field, ascending }): OrderItem => {
+      const path = field.split(':') as [string];
 
-    const order: Order = filter.sort?.map(value => [
-      value.field,
-      value.ascending === false ? 'DESC' : 'ASC',
-    ]);
-
-    if (Array.isArray(order) && order.length > 0) sequelizeFilter.order = order;
-
-    return sequelizeFilter;
+      return [...path, ascending ? 'ASC' : 'DESC'];
+    });
   }
 }

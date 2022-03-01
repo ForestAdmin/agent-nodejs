@@ -486,6 +486,11 @@
     minimatch "^3.0.4"
     strip-json-comments "^3.1.1"
 
+"@faker-js/faker@6.0.0-alpha.7":
+  version "6.0.0-alpha.7"
+  resolved "https://registry.yarnpkg.com/@faker-js/faker/-/faker-6.0.0-alpha.7.tgz#d4383b10c5cd35ec02fafd1bc472b2f85c306cf5"
+  integrity sha512-T2nYE8+EfzfkRMLMSm7UvgC7fZ2KkKEyCMeyPVS0q2cuvENbt1SjWyu0bOJ0JqBbTs1g+gYMWMFMXspWlzNVmQ==
+
 "@gar/promisify@^1.0.1":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.2.tgz#30aa825f11d438671d585bd44e7fd564535fc210"
@@ -7907,7 +7912,7 @@ sequelize-pool@^7.1.0:
   resolved "https://registry.yarnpkg.com/sequelize-pool/-/sequelize-pool-7.1.0.tgz#210b391af4002762f823188fd6ecfc7413020768"
   integrity sha512-G9c0qlIWQSK29pR/5U2JF5dDQeqqHRragoyahj/Nx4KOOQ3CPPfzxnfqFPCSB7x5UgjOgnZ61nSxz+fjDpRlJg==
 
-sequelize@~6.14.0, sequelize@~6.14.1:
+sequelize@6.14.1:
   version "6.14.1"
   resolved "https://registry.yarnpkg.com/sequelize/-/sequelize-6.14.1.tgz#f30350697bd6acee1a78eeb2154d880f5c86b596"
   integrity sha512-/GiibFCA1Pg3KZIoTsziYJDe2UF3/bcY5+yMdFs0vYrk/JuRG5mkpBQIfekhDPhbx6LnlkaTKci+Q5oJCW6n6Q==

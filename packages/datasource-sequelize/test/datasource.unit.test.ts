@@ -1,6 +1,6 @@
 import { Sequelize } from 'sequelize';
 
-import { SequelizeDataSource } from '../src';
+import { SequelizeCollection, SequelizeDataSource } from '../src';
 
 describe('SequelizeDataSource', () => {
   it('should fail to instanciate without a Sequelize instance', () => {
@@ -9,7 +9,16 @@ describe('SequelizeDataSource', () => {
 
   it('should have no predefined collection', () => {
     expect(
-      new SequelizeDataSource(Symbol('sequelize') as unknown as Sequelize).collections,
+      new SequelizeDataSource({ models: {} } as unknown as Sequelize).collections,
     ).toBeArrayOfSize(0);
+  });
+
+  it('should create collection based on models', () => {
+    const sequelize = new Sequelize({ dialect: 'postgres' });
+    sequelize.define('cars', {});
+
+    const datasource = new SequelizeDataSource(sequelize);
+
+    expect(datasource.getCollection('cars')).toBeInstanceOf(SequelizeCollection);
   });
 });
