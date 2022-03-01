@@ -1,7 +1,7 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 import makeRoutes, {
   COLLECTION_ROUTES_CTOR,
-  EMBEDDED_ROUTES_CTOR,
+  RELATED_RELATION_ROUTES_CTOR,
   RELATED_ROUTES_CTOR,
   ROOT_ROUTES_CTOR,
 } from '../../src/routes';
@@ -23,7 +23,7 @@ import ListRelatedRoute from '../../src/routes/access/list-related';
 import Logger from '../../src/routes/system/logger';
 import ScopeInvalidation from '../../src/routes/security/scope-invalidation';
 import Update from '../../src/routes/modification/update';
-import UpdateEmbedded from '../../src/routes/modification/update-embedded';
+import UpdateRelation from '../../src/routes/modification/update-relation';
 
 describe('Route index', () => {
   it('should declare all the routes', () => {
@@ -37,7 +37,7 @@ describe('Route index', () => {
     ]);
     expect(COLLECTION_ROUTES_CTOR).toEqual([Chart, Count, Create, Delete, Get, List, Update]);
     expect(RELATED_ROUTES_CTOR).toEqual([CountRelated, DissociateDeleteRelated, ListRelatedRoute]);
-    expect(EMBEDDED_ROUTES_CTOR).toEqual([UpdateEmbedded]);
+    expect(RELATED_RELATION_ROUTES_CTOR).toEqual([UpdateRelation]);
   });
 
   describe('makeRoutes', () => {
@@ -153,7 +153,7 @@ describe('Route index', () => {
           ROOT_ROUTES_CTOR.length +
             countCollectionRoutes +
             RELATED_ROUTES_CTOR.length * 2 +
-            EMBEDDED_ROUTES_CTOR.length * 2,
+            RELATED_RELATION_ROUTES_CTOR.length * 2,
         );
       });
     });
@@ -189,7 +189,7 @@ describe('Route index', () => {
 
         const countCollectionRoutes = COLLECTION_ROUTES_CTOR.length * dataSource.collections.length;
         expect(routes.length).toEqual(
-          ROOT_ROUTES_CTOR.length + countCollectionRoutes + EMBEDDED_ROUTES_CTOR.length,
+          ROOT_ROUTES_CTOR.length + countCollectionRoutes + RELATED_RELATION_ROUTES_CTOR.length,
         );
       });
     });

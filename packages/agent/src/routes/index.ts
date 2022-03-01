@@ -19,7 +19,7 @@ import ListRelatedRoute from './access/list-related';
 import Logger from './system/logger';
 import ScopeInvalidation from './security/scope-invalidation';
 import Update from './modification/update';
-import UpdateEmbedded from './modification/update-embedded';
+import UpdateRelation from './modification/update-relation';
 
 export const ROOT_ROUTES_CTOR = [
   Authentication,
@@ -31,7 +31,7 @@ export const ROOT_ROUTES_CTOR = [
 ];
 export const COLLECTION_ROUTES_CTOR = [Chart, Count, Create, Delete, Get, List, Update];
 export const RELATED_ROUTES_CTOR = [CountRelated, DissociateDeleteRelated, ListRelatedRoute];
-export const EMBEDDED_ROUTES_CTOR = [UpdateEmbedded];
+export const RELATED_RELATION_ROUTES_CTOR = [UpdateRelation];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {
   return ROOT_ROUTES_CTOR.map(Route => new Route(services, options));
@@ -51,7 +51,7 @@ function getCrudRoutes(dataSource: DataSource, options: Options, services: Servi
   return routes;
 }
 
-function getRelatedAndEmbeddedRoutes(
+function getRelatedAndRelatedRelationRoutes(
   dataSource: DataSource,
   options: Options,
   services: Services,
@@ -60,7 +60,7 @@ function getRelatedAndEmbeddedRoutes(
 
   const routesToBuild = [
     { list: RELATED_ROUTES_CTOR, relations: [FieldTypes.ManyToMany, FieldTypes.OneToMany] },
-    { list: EMBEDDED_ROUTES_CTOR, relations: [FieldTypes.OneToOne, FieldTypes.ManyToOne] },
+    { list: RELATED_RELATION_ROUTES_CTOR, relations: [FieldTypes.OneToOne, FieldTypes.ManyToOne] },
   ];
   dataSource.collections.forEach(collection => {
     routesToBuild.forEach(route => {
@@ -88,7 +88,7 @@ export default function makeRoutes(
     ...getRootRoutes(options, services),
     ...dataSources.map(dataSource => getCrudRoutes(dataSource, options, services)).flat(),
     ...dataSources
-      .map(dataSource => getRelatedAndEmbeddedRoutes(dataSource, options, services))
+      .map(dataSource => getRelatedAndRelatedRelationRoutes(dataSource, options, services))
       .flat(),
   ];
 
