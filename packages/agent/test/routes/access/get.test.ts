@@ -75,7 +75,7 @@ describe('GetRoute', () => {
     });
 
     describe('when an error happens', () => {
-      describe('when getById returns null', () => {
+      describe('when list returns []', () => {
         test('should return an HTTP 404 response', async () => {
           jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
           const get = new Get(services, options, dataSource, 'books');
@@ -103,14 +103,16 @@ describe('GetRoute', () => {
         });
       });
 
-      describe('if either getById or serialize failed', () => {
+      describe('if either list or serialize failed', () => {
         test('should return an HTTP 500 response', async () => {
           jest
-            .spyOn(dataSource.getCollection('books'), 'getById')
-            .mockImplementation(async () => ({ title: 'test ' }));
+            .spyOn(dataSource.getCollection('books'), 'list')
+            .mockResolvedValue([{ title: 'test ' }]);
+
           services.serializer.serialize = jest.fn().mockImplementation(() => {
             throw new Error('failed to serialize');
           });
+
           const get = new Get(services, options, dataSource, 'books');
           const context = createMockContext({
             customProperties: { params: { id: '2d162303-78bf-599e-b197-93590ac3d315' } },

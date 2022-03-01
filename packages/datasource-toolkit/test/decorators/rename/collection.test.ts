@@ -30,7 +30,6 @@ describe('RenameCollectionDecorator', () => {
   let newBooks: RenameCollectionDecorator;
 
   // Convenience: Direct access to persons mocks
-  let personsGetById: jest.Mock;
   let personsList: jest.Mock;
   let personsCreate: jest.Mock;
   let personsUpdate: jest.Mock;
@@ -95,7 +94,6 @@ describe('RenameCollectionDecorator', () => {
     });
 
     dataSource = factories.dataSource.buildWithCollections([persons, bookPersons, books]);
-    personsGetById = persons.getById as jest.Mock;
     personsList = persons.list as jest.Mock;
     personsCreate = persons.create as jest.Mock;
     personsUpdate = persons.update as jest.Mock;
@@ -177,17 +175,6 @@ describe('RenameCollectionDecorator', () => {
       expect(result).toStrictEqual(records);
     });
 
-    test('getById should act as a pass-though', async () => {
-      const record = { id: '1', myBookPerson: { date: 'something' } };
-      const projection = new Projection('id', 'myBookPerson:date');
-
-      personsGetById.mockResolvedValue(record);
-
-      const result = await newPersons.getById(['1'], projection);
-      expect(personsGetById).toHaveBeenCalledWith(['1'], projection);
-      expect(result).toStrictEqual(record);
-    });
-
     test('update should act as a pass-through', async () => {
       await newPersons.update(personsFilter, { id: '55' });
       expect(personsUpdate).toHaveBeenCalledWith(personsFilter, { id: '55' });
@@ -256,17 +243,6 @@ describe('RenameCollectionDecorator', () => {
       const records = await newPersons.create([{ primaryKey: '1' }]);
       expect(persons.create).toHaveBeenCalledWith([{ id: '1' }]);
       expect(records).toStrictEqual([{ primaryKey: '1' }]);
-    });
-
-    test('getById should rewrite projection and record', async () => {
-      const projection = new Projection('primaryKey', 'myNovelAuthor:createdAt');
-      const expectedProjection = new Projection('id', 'myBookPerson:date');
-
-      personsGetById.mockResolvedValue({ id: '1', myBookPerson: { date: 'something' } });
-
-      const record = await newPersons.getById(['1'], projection);
-      expect(personsGetById).toHaveBeenCalledWith(['1'], expectedProjection);
-      expect(record).toStrictEqual({ primaryKey: '1', myNovelAuthor: { createdAt: 'something' } });
     });
 
     test('list should rewrite the filter, projection and record', async () => {

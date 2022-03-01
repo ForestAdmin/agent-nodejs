@@ -3,16 +3,13 @@ import {
   Aggregation,
   AggregationOperation,
   BaseCollection,
-  CompositeId,
   DataSource,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import { col as Col, FindOptions, fn as Fn, ModelDefined, ProjectionAlias } from 'sequelize';
-
 import ModelConverter from './utils/model-to-collection-schema-converter';
 import QueryConverter from './utils/query-converter';
 
@@ -32,24 +29,6 @@ export default class SequelizeCollection extends BaseCollection {
 
     this.addFields(modelSchema.fields);
     this.addSegments(modelSchema.segments);
-  }
-
-  override async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    const actualId = {};
-
-    SchemaUtils.getPrimaryKeys(this.schema).forEach((field, index) => {
-      actualId[field] = id[index];
-    });
-
-    const include = QueryConverter.getIncludeWithAttributesFromProjection(projection);
-
-    const record = await this.model.findOne({
-      attributes: projection.columns,
-      where: actualId,
-      include,
-    });
-
-    return record && record.get({ plain: true });
   }
 
   async create(data: RecordData[]): Promise<RecordData[]> {

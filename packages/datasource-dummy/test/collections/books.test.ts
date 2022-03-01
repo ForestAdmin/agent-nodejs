@@ -40,19 +40,6 @@ describe('DummyDataSource > Collections > Books', () => {
     });
   });
 
-  describe('getById', () => {
-    it('should return a record with a proper ID and projection', async () => {
-      const bookCollection = instanciateCollection();
-
-      expect(await bookCollection.getById([2], new Projection('id', 'title'))).toEqual(
-        expect.objectContaining({
-          id: expect.toBeNumber(),
-          title: expect.toBeString(),
-        }),
-      );
-    });
-  });
-
   describe('create', () => {
     it('should return the record data', async () => {
       const bookCollection = instanciateCollection();

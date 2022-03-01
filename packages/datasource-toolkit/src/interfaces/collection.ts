@@ -1,6 +1,6 @@
 import { Action } from './action';
 import { CollectionSchema } from './schema';
-import { CompositeId, RecordData } from './record';
+import { RecordData } from './record';
 import Aggregation, { AggregateResult } from './query/aggregation';
 import Filter from './query/filter/unpaginated';
 import PaginatedFilter from './query/filter/paginated';
@@ -17,8 +17,6 @@ export interface Collection {
   get schema(): CollectionSchema;
 
   getAction(name: string): Action;
-
-  getById(id: CompositeId, projection: Projection): Promise<RecordData>;
 
   create(data: RecordData[]): Promise<RecordData[]>;
 

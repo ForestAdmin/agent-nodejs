@@ -1,6 +1,6 @@
 import { CollectionSchema, ColumnSchema, FieldTypes } from '../../interfaces/schema';
-import { CompositeId, RecordData } from '../../interfaces/record';
 import { ComputedDefinition, ProxyDefinition } from './types';
+import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionDecorator from '../collection-decorator';
 import CollectionUtils from '../../utils/collection';
@@ -41,16 +41,6 @@ export default class ComputedCollection extends CollectionDecorator {
     const schema = CollectionUtils.getFieldSchema(this, proxy.path) as ColumnSchema;
 
     this.registerComputed(name, new ProxyField(this, { ...proxy, type: schema.columnType }));
-  }
-
-  override async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    const childProjection = projection.replace(path => rewriteField(this, path));
-    const childRecord = await this.childCollection.getById(id, childProjection);
-    if (!childRecord) return null;
-
-    const records = await computeFromRecords(this, childProjection, projection, [childRecord]);
-
-    return records[0];
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {

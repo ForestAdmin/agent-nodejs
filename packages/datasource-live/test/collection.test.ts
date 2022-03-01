@@ -21,35 +21,6 @@ import LiveCollection from '../src/collection';
 // eslint-disable-next-line max-len
 import CollectionAttributesConverter from '../src/utils/collection-schema-to-model-attributes-converter';
 
-const compositeKeyCollectionSchema: CollectionSchema = {
-  actions: {},
-  fields: {
-    pkA: {
-      columnType: PrimitiveTypes.String,
-      filterOperators: new Set<Operator>([Operator.Equal]),
-      isPrimaryKey: true,
-      type: FieldTypes.Column,
-    },
-    pkB: {
-      columnType: PrimitiveTypes.String,
-      filterOperators: new Set<Operator>([Operator.Equal]),
-      isPrimaryKey: true,
-      type: FieldTypes.Column,
-    },
-    value: {
-      columnType: PrimitiveTypes.String,
-      type: FieldTypes.Column,
-    },
-    link: {
-      type: FieldTypes.OneToMany,
-      foreignCollection: '__another__',
-      foreignKey: 'id',
-    },
-  },
-  searchable: false,
-  segments: [],
-};
-
 const liveCollectionSchema: CollectionSchema = {
   actions: {},
   fields: {
@@ -117,17 +88,6 @@ const preloadRecords = async (recordCount, schema, options) => {
   };
 };
 
-const preloadCompositeKeyCollectionRecords = async (recordCount, schema, options = {}) => {
-  // eslint-disable-next-line @typescript-eslint/dot-notation
-  options['recordBuilder'] = index => ({
-    pkA: `pkA_${index}`,
-    pkB: `pkB_${index}`,
-    value: `record_${index + 1}`,
-  });
-
-  return preloadRecords(recordCount, schema, options);
-};
-
 const preloadLiveCollectionRecords = async (recordCount, schema, options = {}) => {
   const fixedValue = '__fixed__';
 
@@ -171,70 +131,6 @@ describe('LiveDataSource > Collection', () => {
 
       expect(sequelize.model(liveCollection.name)).toBeDefined();
       await expect(sequelize.model(liveCollection.name).findAll()).resolves.toBeArrayOfSize(0);
-    });
-  });
-
-  describe('getById', () => {
-    it('should reject if collection is not synched first', async () => {
-      const { liveCollection } = instanciateCollection(liveCollectionSchema);
-
-      expect(() => liveCollection.getById([null], null)).toThrow(
-        `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
-      );
-    });
-
-    it('should resolve with the requested record data', async () => {
-      const {
-        liveCollection,
-        sequelizeRecords: [expectedRecord],
-      } = await preloadLiveCollectionRecords(1, liveCollectionSchema);
-
-      const record = await liveCollection.getById(
-        [Number(expectedRecord.get('id'))],
-        new Projection('id', 'value'),
-      );
-
-      expect(record).toEqual(
-        expect.objectContaining({
-          id: expectedRecord.get('id'),
-          value: expectedRecord.get('value'),
-        }),
-      );
-    });
-
-    it('should resolve when given an actual composite ID', async () => {
-      const {
-        liveCollection,
-        sequelizeRecords: [expectedRecord],
-      } = await preloadCompositeKeyCollectionRecords(1, compositeKeyCollectionSchema);
-
-      const record = await liveCollection.getById(
-        [String(expectedRecord.get('pkA')), String(expectedRecord.get('pkB'))],
-        new Projection('pkA', 'pkB', 'value'),
-      );
-
-      expect(record).toEqual(
-        expect.objectContaining({
-          pkA: expectedRecord.get('pkA'),
-          pkB: expectedRecord.get('pkB'),
-          value: expectedRecord.get('value'),
-        }),
-      );
-    });
-
-    it('should resolve honoring the projection', async () => {
-      const {
-        liveCollection,
-        sequelizeRecords: [expectedRecord],
-      } = await preloadLiveCollectionRecords(1, liveCollectionSchema);
-
-      const record = await liveCollection.getById(
-        [Number(expectedRecord.get('id'))],
-        new Projection('id'),
-      );
-
-      expect(record.id).toEqual(expectedRecord.get('id'));
-      expect(record.value).toBeUndefined();
     });
   });
 

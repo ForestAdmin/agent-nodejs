@@ -1,7 +1,6 @@
 import {
   AggregateResult,
   Aggregation,
-  CompositeId,
   Filter,
   PaginatedFilter,
   Projection,
@@ -25,12 +24,6 @@ export default class LiveCollection extends SequelizeCollection {
     this.synched = true;
 
     return true;
-  }
-
-  override getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    this.ensureSynched();
-
-    return super.getById(id, projection);
   }
 
   override create(data: RecordData[]): Promise<RecordData[]> {

@@ -131,24 +131,6 @@ describe('CollectionDecorator', () => {
     });
   });
 
-  describe('getById', () => {
-    it('calls the child getById method', async () => {
-      const projection = factories.projection.build();
-      const recordData = factories.recordData.build();
-
-      const childGetById = jest.fn().mockReturnValue(recordData);
-      const decoratedCollection = factories.collection.buildDecoratedCollection({
-        getById: childGetById,
-      });
-
-      const id = factories.compositeId.build();
-      const result = await decoratedCollection.getById(id, projection);
-
-      expect(result).toStrictEqual(recordData);
-      expect(childGetById).toHaveBeenCalledWith(id, projection);
-    });
-  });
-
   describe('name', () => {
     it('calls the child name', async () => {
       const decoratedCollection = factories.collection.buildDecoratedCollection({

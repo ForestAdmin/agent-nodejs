@@ -105,60 +105,6 @@ describe('SequelizeDataSource > Collection', () => {
     });
   });
 
-  describe('getById', () => {
-    const setup = () => {
-      const { dataSource, name, sequelize } = makeConstructorParams();
-
-      const model = sequelize.models[name];
-
-      model.getAttributes = () => ({
-        id: {
-          primaryKey: true,
-          type: DataTypes.INTEGER,
-        },
-      });
-
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
-      const recordData = Symbol('recordData');
-      const record = {
-        get: jest.fn(() => recordData),
-      };
-      const findOne = jest.fn().mockResolvedValue(record);
-      model.findOne = findOne;
-
-      return {
-        findOne,
-        record,
-        recordData,
-        sequelize,
-        sequelizeCollection,
-      };
-    };
-
-    it('should delegate work to `sequelize.model.findOne`', async () => {
-      const { findOne, recordData, sequelizeCollection } = setup();
-      const compositeId = [42];
-      const projection = new Projection();
-
-      await expect(sequelizeCollection.getById(compositeId, projection)).resolves.toBe(recordData);
-      expect(findOne).toHaveBeenCalledWith({
-        where: { id: compositeId[0] },
-        attributes: projection,
-        include: [],
-      });
-    });
-
-    it('should resolve with a plain record', async () => {
-      const { record, recordData, sequelizeCollection } = setup();
-      const compositeId = [42];
-
-      const result = await sequelizeCollection.getById(compositeId, new Projection());
-
-      expect(record.get).toHaveBeenCalledWith({ plain: true });
-      expect(result).toBe(recordData);
-    });
-  });
-
   describe('create', () => {
     const setup = () => {
       const { dataSource, name, sequelize } = makeConstructorParams();

@@ -47,7 +47,6 @@ export default CollectionFactory.define(() => ({
   name: 'a collection',
   schema: collectionSchemaFactory.build(),
   getAction: jest.fn(),
-  getById: jest.fn(),
   create: jest.fn(),
   list: jest.fn(),
   update: jest.fn(),
