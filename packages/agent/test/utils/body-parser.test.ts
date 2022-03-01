@@ -63,5 +63,62 @@ describe('BodyParser', () => {
       });
       expect(() => BodyParser.parseSelectionIds(setupSchema(), context)).toThrowError();
     });
+
+    describe('when some attributes are badly provided', () => {
+      test.each([
+        ['no body is provided', null, 'Expected array, received: undefined'],
+        [
+          'body does not contains data',
+          { datum: 'something' },
+          'Expected array, received: undefined',
+        ],
+        [
+          'body does not contains attributes',
+          { data: 'something' },
+          'Expected array, received: undefined',
+        ],
+        [
+          'ids are not provided',
+          { data: { attributes: { badIdsAttribute: ['1523', '5684'] } } },
+          'Expected array, received: undefined',
+        ],
+        [
+          'ids_excluded are not provided',
+          { data: { attributes: { ids: ['1523', '5684'], all_records: true } } },
+          'Expected array, received: undefined',
+        ],
+        [
+          'ids and ids_excluded are not the expected type',
+          {
+            data: {
+              attributes: {
+                all_records: ['not', 'a', 'boolean'],
+                ids: 'not_an_array',
+                all_records_ids_excluded: 45,
+              },
+            },
+          },
+          'Expected array, received: number',
+        ],
+        [
+          'ids and ids_excluded members are not the expected type',
+          {
+            data: {
+              attributes: {
+                all_records: true,
+                ids: ['string', 'string'],
+                all_records_ids_excluded: ['string'],
+              },
+            },
+          },
+          'Wrong type for "id": string. Expects Uuid',
+        ],
+      ])('should throw an error when %s', async (_, body, errorMessage) => {
+        const context = createMockContext({ requestBody: body });
+        expect(() => BodyParser.parseSelectionIds(setupSchema(), context)).toThrowError(
+          errorMessage,
+        );
+      });
+    });
   });
 });

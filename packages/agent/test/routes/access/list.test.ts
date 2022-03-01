@@ -63,20 +63,5 @@ describe('ListRoute', () => {
       );
       expect(context.response.body).toEqual('test');
     });
-
-    describe('when an error happens', () => {
-      test('should return an HTTP 500 response', async () => {
-        services.serializer.serialize = jest.fn().mockImplementation(() => {
-          throw new Error('hey!');
-        });
-
-        const list = new List(services, options, dataSource, partialCollection.name);
-        const context = createMockContext({
-          customProperties: { query: { 'fields[books]': 'id', timezone: 'Europe/Paris' } },
-        });
-
-        await expect(list.handleList(context)).rejects.toThrow('hey!');
-      });
-    });
   });
 });

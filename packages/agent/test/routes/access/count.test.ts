@@ -49,20 +49,5 @@ describe('CountRoute', () => {
       );
       expect(context.response.body).toEqual({ count: 2 });
     });
-
-    describe('when an error happens', () => {
-      test('should return an HTTP 500 response', async () => {
-        dataSource.getCollection('books').aggregate = jest.fn().mockImplementation(() => {
-          throw new Error('hey!');
-        });
-
-        const count = new Count(services, options, dataSource, collection.name);
-        const context = createMockContext({
-          customProperties: { query: { timezone: 'Europe/Paris' } },
-        });
-
-        await expect(count.handleCount(context)).rejects.toThrow('hey!');
-      });
-    });
   });
 });

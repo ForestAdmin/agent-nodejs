@@ -162,54 +162,6 @@ describe('DissociateDeleteRelatedRoute', () => {
       );
     });
 
-    test('should throw an error when the given ids are not valid', async () => {
-      const { services, dataSource, options } = setupWithOneToManyRelation();
-      const count = new DissociateDeleteRoute(
-        services,
-        options,
-        dataSource,
-        'books',
-        'myBookPersons',
-      );
-
-      const customProperties = {
-        query: {
-          timezone: 'Europe/Paris',
-        },
-        params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
-      };
-      const requestBody = { data: [{ id: 'bad-uuid' }] };
-      const context = createMockContext({ customProperties, requestBody });
-
-      await expect(() => count.handleDissociateDeleteRelatedRoute(context)).rejects.toThrowError(
-        'bad-uuid',
-      );
-    });
-
-    test('should throw an error when the parent id is not valid', async () => {
-      const { services, dataSource, options } = setupWithOneToManyRelation();
-      const count = new DissociateDeleteRoute(
-        services,
-        options,
-        dataSource,
-        'books',
-        'myBookPersons',
-      );
-
-      const customProperties = {
-        query: {
-          timezone: 'Europe/Paris',
-        },
-        params: { parentId: 'bad-uuid' },
-      };
-      const requestBody = { data: [{ id: '123e4567-e89b-12d3-a456-426614174088' }] };
-      const context = createMockContext({ customProperties, requestBody });
-
-      await expect(() => count.handleDissociateDeleteRelatedRoute(context)).rejects.toThrowError(
-        'bad-uuid',
-      );
-    });
-
     test('should generate a right paginated filter', async () => {
       const { services, dataSource, options } = setupWithOneToManyRelation();
       dataSource.getCollection('bookPersons').schema.segments = ['a-valid-segment'];
