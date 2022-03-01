@@ -1,7 +1,5 @@
 import {
   Collection,
-  CompositeId,
-  ConditionTree,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   FieldTypes,
@@ -28,41 +26,50 @@ export default class UpdateRelation extends RelationRoute {
 
   public async handleUpdateRelationRoute(context: Context): Promise<void> {
     const data = context.request.body?.data;
-    const foreignKey = SchemaUtils.getForeignKeyName(this.collection.schema, data.type);
+    const { id, type } = data;
+    const foreignKey = SchemaUtils.getForeignKeyName(this.collection.schema, type);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
+    const relation = this.collection.schema.fields[this.relationName];
+    const timezone = QueryStringParser.parseTimezone(context);
 
-    const { targetCollection, conditions } = this.getRelationRoutes(foreignKey, parentId);
+    let targetCollection;
+    let conditions;
 
-    await this.services.permissions.can(context, `edit:${targetCollection.name}`);
+    if (relation.type === FieldTypes.OneToOne) {
+      targetCollection = this.foreignCollection;
+      conditions = new ConditionTreeLeaf(foreignKey, Operator.Equal, parentId[0]);
+      await this.services.permissions.can(context, `edit:${targetCollection.name}`);
+      await this.removePreviousRelation(foreignKey, id, timezone, targetCollection, context);
+    } else {
+      targetCollection = this.collection;
+      conditions = ConditionTreeFactory.matchIds(this.collection.schema, [parentId]);
+      await this.services.permissions.can(context, `edit:${targetCollection.name}`);
+    }
 
-    const newId = IdUtils.unpackId(this.foreignCollection.schema, data.id);
     const conditionTree = ConditionTreeFactory.intersect(
       conditions,
       await this.services.permissions.getScope(targetCollection, context),
     );
-    const timezone = QueryStringParser.parseTimezone(context);
     await targetCollection.update(new Filter({ conditionTree, timezone }), {
-      [foreignKey]: newId,
+      [foreignKey]: IdUtils.unpackId(this.foreignCollection.schema, id),
     });
 
     context.response.status = HttpCode.NoContent;
   }
 
-  private getRelationRoutes(
+  private async removePreviousRelation(
     foreignKey: string,
-    parentId: CompositeId,
-  ): { targetCollection: Collection; conditions: ConditionTree } {
-    const relation = this.collection.schema.fields[this.relationName];
-
-    if (relation.type === FieldTypes.OneToOne)
-      return {
-        targetCollection: this.foreignCollection,
-        conditions: new ConditionTreeLeaf(foreignKey, Operator.Equal, parentId[0]),
-      };
-
-    return {
-      targetCollection: this.collection,
-      conditions: ConditionTreeFactory.matchIds(this.collection.schema, [parentId]),
-    };
+    id: string,
+    timezone: string,
+    targetCollection: Collection,
+    context: Context,
+  ) {
+    const conditionTree = ConditionTreeFactory.intersect(
+      new ConditionTreeLeaf(foreignKey, Operator.Equal, id),
+      await this.services.permissions.getScope(targetCollection, context),
+    );
+    await targetCollection.update(new Filter({ conditionTree, timezone }), {
+      [foreignKey]: null,
+    });
   }
 }

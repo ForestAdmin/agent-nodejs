@@ -141,7 +141,7 @@ describe('UpdateRelationRoute', () => {
         };
       };
 
-      test('should update the relation', async () => {
+      test('should update the relation and remove the previous relation', async () => {
         const { services, dataSource, options } = setupWithOneToOneRelation();
 
         const update = new UpdateRelationRoute(services, options, dataSource, 'book', 'owner');
@@ -156,6 +156,18 @@ describe('UpdateRelationRoute', () => {
         const context = createMockContext({ customProperties, requestBody });
 
         await update.handleUpdateRelationRoute(context);
+
+        expect(dataSource.getCollection('owner').update).toHaveBeenCalledWith(
+          new Filter({
+            timezone: 'Europe/Paris',
+            conditionTree: factories.conditionTreeLeaf.build({
+              operator: Operator.Equal,
+              value: '123e4567-e89b-12d3-a456-426614174089',
+              field: 'bookId',
+            }),
+          }),
+          { bookId: null },
+        );
 
         expect(dataSource.getCollection('owner').update).toHaveBeenCalledWith(
           new Filter({
