@@ -1,5 +1,5 @@
 import { CollectionSchema, FieldSchema, FieldTypes, RelationSchema } from '../../interfaces/schema';
-import { CompositeId, RecordData } from '../../interfaces/record';
+import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
@@ -76,13 +76,6 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
         ascending: clause.ascending,
       })),
     });
-  }
-
-  override async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    const childProjection = projection.replace(field => this.pathToChildCollection(field));
-    const record = await this.childCollection.getById(id, childProjection);
-
-    return record ? this.recordFromChildCollection(record) : null;
   }
 
   override async create(records: RecordData[]): Promise<RecordData[]> {

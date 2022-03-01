@@ -1,7 +1,7 @@
 import { Action } from '../interfaces/action';
 import { Collection, DataSource } from '../interfaces/collection';
 import { CollectionSchema } from '../interfaces/schema';
-import { CompositeId, RecordData } from '../interfaces/record';
+import { RecordData } from '../interfaces/record';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import Filter from '../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
@@ -22,10 +22,6 @@ export default abstract class CollectionDecorator implements Collection {
 
   get schema(): CollectionSchema {
     return this.refineSchema(this.childCollection.schema);
-  }
-
-  async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    return this.childCollection.getById(id, projection);
   }
 
   getAction(name: string): Action {

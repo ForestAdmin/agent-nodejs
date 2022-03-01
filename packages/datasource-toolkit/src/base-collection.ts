@@ -1,9 +1,8 @@
 import { Action } from './interfaces/action';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 import { Collection, DataSource } from './interfaces/collection';
-import { CompositeId, RecordData } from './interfaces/record';
+import { RecordData } from './interfaces/record';
 import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
-import ConditionTreeFactory from './interfaces/query/condition-tree/factory';
 import Filter from './interfaces/query/filter/unpaginated';
 import PaginatedFilter from './interfaces/query/filter/paginated';
 import Projection from './interfaces/query/projection';
@@ -63,13 +62,6 @@ export default abstract class BaseCollection implements Collection {
 
   protected enableSearch(): void {
     this.schema.searchable = true;
-  }
-
-  async getById(id: CompositeId, projection: Projection): Promise<RecordData> {
-    const conditionTree = ConditionTreeFactory.matchIds(this.schema, [id]);
-    const records = await this.list(new PaginatedFilter({ conditionTree }), projection);
-
-    return records.length ? records[0] : null;
   }
 
   abstract create(data: RecordData[]): Promise<RecordData[]>;

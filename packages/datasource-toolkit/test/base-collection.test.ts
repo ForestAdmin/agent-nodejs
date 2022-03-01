@@ -1,12 +1,11 @@
 // eslint-disable-next-line max-classes-per-file
 import * as factories from './__factories__';
-import { ActionSchema, ColumnSchema, FieldSchema, PrimitiveTypes } from '../src/interfaces/schema';
+import { ActionSchema, ColumnSchema, FieldSchema } from '../src/interfaces/schema';
 import { AggregateResult } from '../src/interfaces/query/aggregation';
 import { CollectionSchema } from '../src';
 import { DataSource } from '../src/interfaces/collection';
 import { RecordData } from '../src/interfaces/record';
 import BaseCollection from '../src/base-collection';
-import Projection from '../src/interfaces/query/projection';
 
 class ConcreteCollection extends BaseCollection {
   override schema: CollectionSchema;
@@ -184,40 +183,6 @@ describe('BaseCollection', () => {
       const collection = new CollectionSearchable('__searchable__', null);
 
       expect(collection.schema.searchable).toBe(true);
-    });
-  });
-
-  describe('getById', () => {
-    test('it call list and return null', async () => {
-      const collection = new ConcreteCollection('books', null);
-      collection.list = jest.fn().mockResolvedValue([]);
-      collection.schema = factories.collectionSchema.build({
-        fields: {
-          id: factories.columnSchema.isPrimaryKey().build({ columnType: PrimitiveTypes.Number }),
-        },
-      });
-
-      const result = await collection.getById([23], new Projection('title'));
-
-      expect(result).toBeNull();
-      expect(collection.list).toHaveBeenCalledWith(
-        { conditionTree: { field: 'id', operator: 'equal', value: 23 } },
-        ['title'],
-      );
-    });
-
-    test('it return the matching record', async () => {
-      const collection = new ConcreteCollection('books', null);
-      collection.list = jest.fn().mockResolvedValue([{ id: 23, title: 'some book' }]);
-      collection.schema = factories.collectionSchema.build({
-        fields: {
-          id: factories.columnSchema.isPrimaryKey().build({ columnType: PrimitiveTypes.Number }),
-        },
-      });
-
-      const result = await collection.getById([23], new Projection('title'));
-
-      expect(result).toStrictEqual({ id: 23, title: 'some book' });
     });
   });
 });
