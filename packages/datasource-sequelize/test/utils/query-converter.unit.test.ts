@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Aggregator,
   ConditionTreeBranch,
@@ -19,7 +20,7 @@ describe('Utils > QueryConverter', () => {
       } as unknown as ConditionTreeBranch;
 
       expect(() =>
-        QueryConverter.getWhereFromConditionTree(conditionTree, {} as ModelDefined<any, any>),
+        QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
       ).toThrow('Invalid ConditionTree.');
     });
 
@@ -32,7 +33,7 @@ describe('Utils > QueryConverter', () => {
           ]);
 
           expect(() =>
-            QueryConverter.getWhereFromConditionTree(conditionTree, {} as ModelDefined<any, any>),
+            QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
           ).toThrow('Invalid (null) aggregator.');
         });
 
@@ -40,7 +41,7 @@ describe('Utils > QueryConverter', () => {
           const conditionTree = new ConditionTreeBranch(Aggregator.And, []);
 
           expect(() =>
-            QueryConverter.getWhereFromConditionTree(conditionTree, {} as ModelDefined<any, any>),
+            QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
           ).toThrow('Two or more conditions needed for aggregation.');
         });
 
@@ -50,7 +51,7 @@ describe('Utils > QueryConverter', () => {
           ]);
 
           expect(() =>
-            QueryConverter.getWhereFromConditionTree(conditionTree, {} as ModelDefined<any, any>),
+            QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
           ).toThrow('Two or more conditions needed for aggregation.');
         });
 
@@ -67,7 +68,7 @@ describe('Utils > QueryConverter', () => {
             const conditionTree = new ConditionTreeBranch(aggregator, conditions);
 
             expect(
-              QueryConverter.getWhereFromConditionTree(conditionTree, {} as ModelDefined<any, any>),
+              QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
             ).toEqual({
               [operator]: [
                 {
@@ -111,8 +112,8 @@ describe('Utils > QueryConverter', () => {
             );
 
             const sequelizeFilter = QueryConverter.getWhereFromConditionTree(
-              conditionTree,
               {} as ModelDefined<any, any>,
+              conditionTree,
             );
 
             expect(sequelizeFilter).toEqual(
@@ -126,8 +127,8 @@ describe('Utils > QueryConverter', () => {
         it('should fail with a null operator', () => {
           expect(() =>
             QueryConverter.getWhereFromConditionTree(
-              new ConditionTreeLeaf('__field__', null, '__value__'),
               {} as ModelDefined<any, any>,
+              new ConditionTreeLeaf('__field__', null, '__value__'),
             ),
           ).toThrow('Invalid (null) operator.');
         });
@@ -135,8 +136,8 @@ describe('Utils > QueryConverter', () => {
         it('should fail with an invalid operator', () => {
           expect(() =>
             QueryConverter.getWhereFromConditionTree(
-              new ConditionTreeLeaf('__field__', '__invalid__' as Operator, '__value__'),
               {} as ModelDefined<any, any>,
+              new ConditionTreeLeaf('__field__', '__invalid__' as Operator, '__value__'),
             ),
           ).toThrow('Unsupported operator: "__invalid__".');
         });
@@ -146,8 +147,8 @@ describe('Utils > QueryConverter', () => {
         it('should fail with an empty condition', () => {
           expect(() =>
             QueryConverter.getWhereFromConditionTree(
-              new ConditionTreeNot(null),
               {} as ModelDefined<any, any>,
+              new ConditionTreeNot(null),
             ),
           ).toThrow('Invalid (null) condition.');
         });
@@ -157,7 +158,7 @@ describe('Utils > QueryConverter', () => {
           const conditionTree = new ConditionTreeNot(condition);
 
           expect(
-            QueryConverter.getWhereFromConditionTree(conditionTree, {} as ModelDefined<any, any>),
+            QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
           ).toEqual({
             [Op.not]: {
               [condition.field]: { [Op.eq]: condition.value },
@@ -188,7 +189,7 @@ describe('Utils > QueryConverter', () => {
             },
           } as unknown as ModelDefined<any, any>;
 
-          expect(QueryConverter.getWhereFromConditionTree(conditionTree, model)).toEqual({
+          expect(QueryConverter.getWhereFromConditionTree(model, conditionTree)).toEqual({
             '$relation.fieldName$': { [Op.eq]: '__value__' },
           });
         });
@@ -203,8 +204,8 @@ describe('Utils > QueryConverter', () => {
       ])('"%s"', (message, schemaOperator, sequelizeOperator) => {
         it('should handle atomic values', () => {
           const sequelizeFilter = QueryConverter.getWhereFromConditionTree(
-            new ConditionTreeLeaf('__field__', schemaOperator, 42),
             {} as ModelDefined<any, any>,
+            new ConditionTreeLeaf('__field__', schemaOperator, 42),
           );
 
           expect(sequelizeFilter).toEqual(
@@ -214,8 +215,8 @@ describe('Utils > QueryConverter', () => {
 
         it('should handle array values', () => {
           const sequelizeFilter = QueryConverter.getWhereFromConditionTree(
-            new ConditionTreeLeaf('__field__', schemaOperator, [42]),
             {} as ModelDefined<any, any>,
+            new ConditionTreeLeaf('__field__', schemaOperator, [42]),
           );
 
           expect(sequelizeFilter).toEqual(

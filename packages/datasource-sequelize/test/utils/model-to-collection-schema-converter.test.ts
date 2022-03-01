@@ -159,7 +159,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
       expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
     });
 
-    describe('whith model containing associations', () => {
+    describe('with model containing associations', () => {
       describe('with belongsTo relation', () => {
         it('should build correct schema', () => {
           const { sequelize } = setup();

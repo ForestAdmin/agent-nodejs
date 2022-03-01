@@ -6,7 +6,6 @@
   "dependencies": {
     "@forestadmin/datasource-sequelize": "^1.0.0",
     "@forestadmin/datasource-toolkit": "^1.0.0",
-    "sequelize": "6.14.1",
     "sqlite3": "^5.0.2"
   },
   "files": [
@@ -21,6 +20,13 @@
     "test": "jest"
   },
   "devDependencies": {
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "sequelize": "6.14.1"
+  },
+  "devDependencies_comments": {
+    "sequelize": "6.14.1 => compilation error with 6.15.0, remove constraint when possible"
+  },
+  "peerDependencies": {
+    "sequelize": "6.14.1"
   }
 }

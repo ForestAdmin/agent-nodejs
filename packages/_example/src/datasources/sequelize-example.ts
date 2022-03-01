@@ -2,7 +2,7 @@ import { DataTypes, Sequelize } from 'sequelize';
 
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
-// import { faker } from '@faker-js/faker';
+import { faker } from '@faker-js/faker';
 
 const prepareDatabase = async (): Promise<Sequelize> => {
   const sequelize = new Sequelize('postgres://example:password@localhost:5442/example');
@@ -105,45 +105,45 @@ const prepareDataSource = async (): Promise<SequelizeDataSource> => {
   // NOTICE: First call to ensure DB is ready to function.
   //         This is a hack to prevent open handle with Jest.
   if (process.env.NODE_ENV !== 'test') {
-    await sequelize.sync();
+    await sequelize.sync({ force: true });
   }
 
   const dataSource = new SequelizeDataSource(sequelize);
 
-  // let cityRecords = [];
-  // let countryRecords = [];
-  // const addressRecords = [];
-  // const ENTRIES = 100;
+  let cityRecords = [];
+  let countryRecords = [];
+  const addressRecords = [];
+  const ENTRIES = 100;
 
-  // for (let i = 0; i < ENTRIES; i += 1) {
-  //   countryRecords.push({
-  //     country: faker.address.country(),
-  //     lastUpdate: faker.datatype.datetime(),
-  //   });
-  // }
+  for (let i = 0; i < ENTRIES; i += 1) {
+    countryRecords.push({
+      country: faker.address.country(),
+      lastUpdate: faker.datatype.datetime(),
+    });
+  }
 
-  // countryRecords = await dataSource.getCollection('country').create(countryRecords);
+  countryRecords = await dataSource.getCollection('country').create(countryRecords);
 
-  // for (let i = 0; i < ENTRIES; i += 1) {
-  //   cityRecords.push({
-  //     city: faker.address.city(),
-  //     lastUpdate: faker.datatype.datetime(),
-  //     countryId: countryRecords[Math.floor(Math.random() * countryRecords.length)].id,
-  //   });
-  // }
+  for (let i = 0; i < ENTRIES; i += 1) {
+    cityRecords.push({
+      city: faker.address.city(),
+      lastUpdate: faker.datatype.datetime(),
+      countryId: countryRecords[Math.floor(Math.random() * countryRecords.length)].id,
+    });
+  }
 
-  // cityRecords = await dataSource.getCollection('city').create(cityRecords);
+  cityRecords = await dataSource.getCollection('city').create(cityRecords);
 
-  // for (let i = 0; i < ENTRIES; i += 1) {
-  //   addressRecords.push({
-  //     address: faker.address.streetAddress(),
-  //     address2: faker.address.secondaryAddress(),
-  //     postalCode: faker.address.zipCode(),
-  //     cityId: cityRecords[Math.floor(Math.random() * cityRecords.length)].id,
-  //   });
-  // }
+  for (let i = 0; i < ENTRIES; i += 1) {
+    addressRecords.push({
+      address: faker.address.streetAddress(),
+      address2: faker.address.secondaryAddress(),
+      postalCode: faker.address.zipCode(),
+      cityId: cityRecords[Math.floor(Math.random() * cityRecords.length)].id,
+    });
+  }
 
-  // await dataSource.getCollection('address').create(addressRecords);
+  await dataSource.getCollection('address').create(addressRecords);
 
   return dataSource;
 };

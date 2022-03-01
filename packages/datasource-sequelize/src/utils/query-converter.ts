@@ -64,10 +64,12 @@ export default class QueryConverter {
   }
 
   static getWhereFromConditionTree(
-    conditionTree: ConditionTree,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     model: ModelDefined<any, any>,
+    conditionTree?: ConditionTree,
   ): WhereOptions {
+    if (!conditionTree) return null;
+
     const sequelizeWhereClause = {};
 
     if ((conditionTree as ConditionTreeBranch).aggregator !== undefined) {
@@ -84,7 +86,7 @@ export default class QueryConverter {
       }
 
       sequelizeWhereClause[sequelizeOperator] = conditions.map(condition =>
-        this.getWhereFromConditionTree(condition, model),
+        this.getWhereFromConditionTree(model, condition),
       );
     } else if ((conditionTree as ConditionTreeNot).condition !== undefined) {
       const { condition } = conditionTree as ConditionTreeNot;
@@ -94,8 +96,8 @@ export default class QueryConverter {
       }
 
       sequelizeWhereClause[Op.not] = this.getWhereFromConditionTree(
-        (conditionTree as ConditionTreeNot).condition,
         model,
+        (conditionTree as ConditionTreeNot).condition,
       );
     } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
