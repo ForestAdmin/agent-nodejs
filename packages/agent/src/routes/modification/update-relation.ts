@@ -31,10 +31,7 @@ export default class UpdateRelation extends RelationRoute {
     const foreignKey = SchemaUtils.getForeignKeyName(this.collection.schema, data.type);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 
-    const { targetCollection, conditions } = this.getTargetCollectionAndConditions(
-      foreignKey,
-      parentId,
-    );
+    const { targetCollection, conditions } = this.getRelationRoutes(foreignKey, parentId);
 
     await this.services.permissions.can(context, `edit:${targetCollection.name}`);
 
@@ -51,7 +48,7 @@ export default class UpdateRelation extends RelationRoute {
     context.response.status = HttpCode.NoContent;
   }
 
-  private getTargetCollectionAndConditions(
+  private getRelationRoutes(
     foreignKey: string,
     parentId: CompositeId,
   ): { targetCollection: Collection; conditions: ConditionTree } {
