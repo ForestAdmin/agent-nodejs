@@ -32,8 +32,6 @@ export default class SequelizeCollection extends BaseCollection {
 
     this.addFields(modelSchema.fields);
     this.addSegments(modelSchema.segments);
-
-    this.enableSearch();
   }
 
   override async getById(id: CompositeId, projection: Projection): Promise<RecordData> {

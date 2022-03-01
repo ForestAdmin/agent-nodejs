@@ -2,6 +2,17 @@ import { DataTypes, Sequelize } from 'sequelize';
 
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
+import {
+  DataSource,
+  DataSourceDecorator,
+  OperatorsEmulateCollectionDecorator,
+  OperatorsReplaceCollectionDecorator,
+  PublicationCollectionDecorator,
+  RenameCollectionDecorator,
+  SearchCollectionDecorator,
+  SegmentCollectionDecorator,
+  SortEmulateCollectionDecorator,
+} from '@forestadmin/datasource-toolkit';
 import { faker } from '@faker-js/faker';
 
 const prepareDatabase = async (): Promise<Sequelize> => {
@@ -10,7 +21,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   const City = sequelize.define(
     'city',
     {
-      id: {
+      cityId: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
@@ -36,7 +47,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   const Country = sequelize.define(
     'country',
     {
-      id: {
+      countryId: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
@@ -62,7 +73,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   const Address = sequelize.define(
     'address',
     {
-      id: {
+      addressId: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true,
@@ -91,15 +102,15 @@ const prepareDatabase = async (): Promise<Sequelize> => {
     },
   );
 
-  Country.hasMany(City);
-  City.belongsTo(Country);
-  City.hasMany(Address);
-  Address.belongsTo(City);
+  Country.hasMany(City, { foreignKey: 'countryId', sourceKey: 'countryId' });
+  City.belongsTo(Country, { foreignKey: 'countryId', targetKey: 'countryId' });
+  City.hasMany(Address, { foreignKey: 'cityId', sourceKey: 'cityId' });
+  Address.belongsTo(City, { foreignKey: 'cityId', targetKey: 'cityId' });
 
   return sequelize;
 };
 
-const prepareDataSource = async (): Promise<SequelizeDataSource> => {
+const prepareDataSource = async (): Promise<DataSource> => {
   const sequelize = await prepareDatabase();
 
   // NOTICE: First call to ensure DB is ready to function.
@@ -110,42 +121,54 @@ const prepareDataSource = async (): Promise<SequelizeDataSource> => {
 
   const dataSource = new SequelizeDataSource(sequelize);
 
-  let cityRecords = [];
-  let countryRecords = [];
-  const addressRecords = [];
-  const ENTRIES = 100;
+  // NOTICE: First call to ensure DB is ready to function.
+  //         This is a hack to prevent open handle with Jest.
+  if (process.env.NODE_ENV !== 'test') {
+    let cityRecords = [];
+    let countryRecords = [];
+    const addressRecords = [];
+    const ENTRIES = 100;
 
-  for (let i = 0; i < ENTRIES; i += 1) {
-    countryRecords.push({
-      country: faker.address.country(),
-      lastUpdate: faker.datatype.datetime(),
-    });
+    for (let i = 0; i < ENTRIES; i += 1) {
+      countryRecords.push({
+        country: faker.address.country(),
+        lastUpdate: faker.datatype.datetime(),
+      });
+    }
+
+    countryRecords = await dataSource.getCollection('country').create(countryRecords);
+
+    for (let i = 0; i < ENTRIES; i += 1) {
+      cityRecords.push({
+        city: faker.address.city(),
+        lastUpdate: faker.datatype.datetime(),
+        countryId: countryRecords[Math.floor(Math.random() * countryRecords.length)].countryId,
+      });
+    }
+
+    cityRecords = await dataSource.getCollection('city').create(cityRecords);
+
+    for (let i = 0; i < ENTRIES; i += 1) {
+      addressRecords.push({
+        address: faker.address.streetAddress(),
+        address2: faker.address.secondaryAddress(),
+        postalCode: faker.address.zipCode(),
+        cityId: cityRecords[Math.floor(Math.random() * cityRecords.length)].cityId,
+      });
+    }
+
+    await dataSource.getCollection('address').create(addressRecords);
   }
 
-  countryRecords = await dataSource.getCollection('country').create(countryRecords);
+  let deco: DataSource = new DataSourceDecorator(dataSource, OperatorsEmulateCollectionDecorator);
+  deco = new DataSourceDecorator(deco, OperatorsReplaceCollectionDecorator);
+  deco = new DataSourceDecorator(deco, SortEmulateCollectionDecorator);
+  deco = new DataSourceDecorator(deco, SegmentCollectionDecorator);
+  deco = new DataSourceDecorator(deco, RenameCollectionDecorator);
+  deco = new DataSourceDecorator(deco, PublicationCollectionDecorator);
+  deco = new DataSourceDecorator(deco, SearchCollectionDecorator);
 
-  for (let i = 0; i < ENTRIES; i += 1) {
-    cityRecords.push({
-      city: faker.address.city(),
-      lastUpdate: faker.datatype.datetime(),
-      countryId: countryRecords[Math.floor(Math.random() * countryRecords.length)].id,
-    });
-  }
-
-  cityRecords = await dataSource.getCollection('city').create(cityRecords);
-
-  for (let i = 0; i < ENTRIES; i += 1) {
-    addressRecords.push({
-      address: faker.address.streetAddress(),
-      address2: faker.address.secondaryAddress(),
-      postalCode: faker.address.zipCode(),
-      cityId: cityRecords[Math.floor(Math.random() * cityRecords.length)].id,
-    });
-  }
-
-  await dataSource.getCollection('address').create(addressRecords);
-
-  return dataSource;
+  return deco;
 };
 
 export default prepareDataSource;
