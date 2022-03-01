@@ -61,13 +61,7 @@ describe('ListRelatedRoute', () => {
   test('should register the relation private route', () => {
     const { services, dataSource, options, router } = setupWithOneToManyRelation();
 
-    const count = new ListRelatedRoute(
-      services,
-      options,
-      dataSource,
-      dataSource.getCollection('books').name,
-      'myPersons',
-    );
+    const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
     count.setupRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith(
@@ -82,13 +76,7 @@ describe('ListRelatedRoute', () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
         dataSource.getCollection('persons').schema.segments = ['a-valid-segment'];
 
-        const count = new ListRelatedRoute(
-          services,
-          options,
-          dataSource,
-          dataSource.getCollection('books').name,
-          'myPersons',
-        );
+        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
 
         jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([
           { id: 1, name: 'aName' },
@@ -153,13 +141,7 @@ describe('ListRelatedRoute', () => {
       test('should return an HTTP 400 response when the projection is malformed', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
 
-        const count = new ListRelatedRoute(
-          services,
-          options,
-          dataSource,
-          dataSource.getCollection('books').name,
-          'myPersons',
-        );
+        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
 
         const malformedProjectionParams = { 'fields[persons]': 'id,BAD_ATTRIBUTE' };
         const customProperties = {
@@ -174,13 +156,7 @@ describe('ListRelatedRoute', () => {
       test('should return an HTTP 400 response when the parent id is malformed', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
 
-        const count = new ListRelatedRoute(
-          services,
-          options,
-          dataSource,
-          dataSource.getCollection('books').name,
-          'myPersons',
-        );
+        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
 
         const customProperties = {
           query: { 'fields[persons]': 'id,name', timezone: 'Europe/Paris' },
@@ -195,13 +171,7 @@ describe('ListRelatedRoute', () => {
       test('should return an HTTP 500 response when the list has a problem', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
 
-        const count = new ListRelatedRoute(
-          services,
-          options,
-          dataSource,
-          dataSource.getCollection('books').name,
-          'myPersons',
-        );
+        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
 
         jest.spyOn(CollectionUtils, 'listRelation').mockImplementation(() => {
           throw new Error('list failed');

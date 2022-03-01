@@ -18,7 +18,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         services,
         options,
         dataSource,
-        dataSource.getCollection('books').name,
+        'books',
         'myBookPersons',
       );
 
@@ -77,7 +77,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           services,
           options,
           dataSource,
-          dataSource.getCollection('books').name,
+          'books',
           'myBookPersons',
         );
 
@@ -140,7 +140,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
             services,
             options,
             dataSource,
-            dataSource.getCollection('books').name,
+            'books',
             'myBookPersons',
           );
 
@@ -190,7 +190,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         services,
         options,
         dataSource,
-        dataSource.getCollection('books').name,
+        'books',
         'manyToManyRelationField',
       );
 
@@ -264,7 +264,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           services,
           options,
           dataSource,
-          dataSource.getCollection('books').name,
+          'books',
           'manyToManyRelationField',
         );
 
@@ -345,7 +345,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
             services,
             options,
             dataSource,
-            dataSource.getCollection('books').name,
+            'books',
             'manyToManyRelationField',
           );
 

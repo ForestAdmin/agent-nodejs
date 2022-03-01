@@ -124,7 +124,7 @@ export default class CollectionUtils {
       );
     }
 
-    return collection.schema.fields[relationName] as ManyToManySchema | OneToManySchema;
+    return relationFieldSchema as ManyToManySchema | OneToManySchema;
   }
 
   static async aggregateRelation(
