@@ -1,4 +1,5 @@
-/* eslint-disable max-classes-per-file */
+import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from 'sequelize';
+
 import {
   Aggregation,
   AggregationOperation,
@@ -9,24 +10,15 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { Association, DataTypes, ModelDefined, Op, Sequelize } from 'sequelize';
 
 import { SequelizeCollection } from '../src';
 
 describe('SequelizeDataSource > Collection', () => {
-  const makeConstructorParams = () => {
+  const makeConstructorParams = (dialect = 'postgres') => {
     const dataSource = Symbol('datasource') as unknown as DataSource;
     const name = '__collection__';
-    const sequelize = {
-      define: jest.fn(() => ({})),
-      models: {
-        [name]: {
-          getAttributes: jest.fn(() => ({})),
-          associations: {},
-          name: 'model',
-        },
-      },
-    } as unknown as Sequelize;
+    const sequelize = new Sequelize({ dialect: dialect as Dialect });
+    sequelize.define('__collection__', {});
 
     return {
       dataSource,
@@ -87,28 +79,23 @@ describe('SequelizeDataSource > Collection', () => {
   describe('list', () => {
     const setup = () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
+
+      const relation = sequelize.define('relation', {
+        aField: { field: 'a_field', type: DataTypes.STRING },
+      });
+
+      const model = sequelize.model(name);
+      model.belongsTo(relation);
+
       const recordData = Symbol('recordData');
       const record = {
         get: jest.fn(() => recordData),
       };
       const findAll = jest.fn().mockResolvedValue([record]);
 
-      sequelize.models[name].associations.relationModel = {
-        target: {
-          getAttributes: jest.fn().mockReturnValue({
-            aField: {
-              field: 'a_field',
-            },
-          }),
-        } as unknown as ModelDefined<any, any>,
-      } as Association;
+      model.findAll = findAll;
 
-      // eslint-disable-next-line @typescript-eslint/dot-notation
-      sequelizeCollection['model'] = {
-        ...sequelize.models[name],
-        findAll,
-      } as unknown as ModelDefined<unknown, unknown>;
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
 
       return {
         findAll,
@@ -149,7 +136,7 @@ describe('SequelizeDataSource > Collection', () => {
     it('should add include from filter', async () => {
       const { findAll, sequelizeCollection } = setup();
       const filter = new Filter({
-        conditionTree: new ConditionTreeLeaf('relationModel:aField', Operator.Equal, 42),
+        conditionTree: new ConditionTreeLeaf('relation:aField', Operator.Equal, 42),
       });
       const projection = new Projection();
 
@@ -158,11 +145,11 @@ describe('SequelizeDataSource > Collection', () => {
       expect(findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            '$relationModel.a_field$': { [Op.eq]: 42 },
+            '$relation.a_field$': { [Op.eq]: 42 },
           },
           include: expect.arrayContaining([
             {
-              association: 'relationModel',
+              association: 'relation',
               attributes: [],
               include: [],
             },
@@ -175,13 +162,13 @@ describe('SequelizeDataSource > Collection', () => {
   describe('update', () => {
     const setup = () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
+
       const update = jest.fn().mockResolvedValue([]);
-      // eslint-disable-next-line @typescript-eslint/dot-notation
-      sequelizeCollection['model'] = {
-        ...sequelize.models[name],
-        update,
-      } as unknown as ModelDefined<unknown, unknown>;
+
+      const model = sequelize.model(name);
+      model.update = update;
+
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
 
       return {
         update,
@@ -206,13 +193,13 @@ describe('SequelizeDataSource > Collection', () => {
   describe('delete', () => {
     const setup = () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
+
       const destroy = jest.fn().mockResolvedValue(0);
-      // eslint-disable-next-line @typescript-eslint/dot-notation
-      sequelizeCollection['model'] = {
-        ...sequelize.models[name],
-        destroy,
-      } as unknown as ModelDefined<unknown, unknown>;
+
+      const model = sequelize.model(name);
+      model.destroy = destroy;
+
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
 
       return {
         destroy,
@@ -231,21 +218,10 @@ describe('SequelizeDataSource > Collection', () => {
   });
 
   describe('aggregate', () => {
-    const setup = () => {
-      const { dataSource, name, sequelize } = makeConstructorParams();
-      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
-      const findAll = jest.fn().mockResolvedValue([
-        {
-          __aggregate__: '__aggregate__:value',
-          __group_field____grouped__: '__group_field__:value',
-          renamed__field____grouped__: 'renamed__field__:value',
-          'modelAssociations:as__field____grouped__':
-            'modelAssociations:as__field____grouped__:value',
-          'modelAssociations:renamed__as__field____grouped__':
-            'modelAssociations:renamed__as__field____grouped__:value',
-        },
-      ]);
-      const getAttributes = () => ({
+    const setup = (dialect?: string) => {
+      const { dataSource, name, sequelize } = makeConstructorParams(dialect);
+
+      const model = sequelize.define('model', {
         __field__: {
           type: DataTypes.STRING,
           field: '__field__',
@@ -258,35 +234,45 @@ describe('SequelizeDataSource > Collection', () => {
           type: DataTypes.STRING,
           field: 'another__field__',
         },
+        date__field__: {
+          type: DataTypes.DATE,
+          field: 'date__field__',
+        },
       });
 
-      const modelAssociations = {
-        target: {
-          getAttributes: () => ({
-            as__field__: {
-              type: DataTypes.STRING,
-              field: 'as__field__',
-            },
-            renamed__as__field__: {
-              type: DataTypes.STRING,
-              field: 'another__as__field__',
-            },
-          }),
+      const relation = sequelize.define('relation', {
+        as__field__: {
+          type: DataTypes.STRING,
+          field: 'as__field__',
         },
-      };
+        renamed__as__field__: {
+          type: DataTypes.STRING,
+          field: 'another__as__field__',
+        },
+      });
 
-      // eslint-disable-next-line @typescript-eslint/dot-notation
-      sequelizeCollection['model'] = {
-        ...sequelize.models[name],
-        getAttributes,
-        findAll,
-        associations: { modelAssociations },
-      } as unknown as ModelDefined<unknown, unknown>;
+      const findAll = jest.fn().mockResolvedValue([
+        {
+          __aggregate__: '__aggregate__:value',
+          __group_field____grouped__: '__group_field__:value',
+          renamed__field____grouped__: 'renamed__field__:value',
+          'relations:as__field____grouped__': 'relations:as__field__:value',
+          'relations:renamed__as__field____grouped__': 'relations:renamed__as__field__:value',
+          date__field____grouped__: 'date__field__:value',
+        },
+      ]);
+
+      model.hasMany(relation);
+
+      model.findAll = findAll;
+
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
 
       return {
         findAll,
         sequelize,
         sequelizeCollection,
+        model,
       };
     };
 
@@ -327,7 +313,7 @@ describe('SequelizeDataSource > Collection', () => {
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
           expect.objectContaining({
-            attributes: [[{ args: [{ col: 'model.__field__' }], fn: 'SUM' }, '__aggregate__']],
+            attributes: [[{ args: [{ col: '"model"."__field__"' }], fn: 'SUM' }, '__aggregate__']],
           }),
         );
       });
@@ -371,7 +357,7 @@ describe('SequelizeDataSource > Collection', () => {
           expect(findAll).toHaveBeenCalledWith(
             expect.objectContaining({
               attributes: [
-                [{ args: [{ col: 'model.another__field__' }], fn: 'SUM' }, '__aggregate__'],
+                [{ args: [{ col: '"model"."another__field__"' }], fn: 'SUM' }, '__aggregate__'],
               ],
             }),
           );
@@ -382,7 +368,7 @@ describe('SequelizeDataSource > Collection', () => {
         it('should aggregate properly', async () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
-            field: 'modelAssociations:as__field__',
+            field: 'relations:as__field__',
             operation: AggregationOperation.Sum,
           });
           const filter = new Filter({});
@@ -395,7 +381,7 @@ describe('SequelizeDataSource > Collection', () => {
           expect(findAll).toHaveBeenCalledWith(
             expect.objectContaining({
               attributes: [
-                [{ args: [{ col: 'modelAssociations.as__field__' }], fn: 'SUM' }, '__aggregate__'],
+                [{ args: [{ col: '"relations"."as__field__"' }], fn: 'SUM' }, '__aggregate__'],
               ],
             }),
           );
@@ -404,7 +390,7 @@ describe('SequelizeDataSource > Collection', () => {
         it('should add relation to include clause', async () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
-            field: 'modelAssociations:as__field__',
+            field: 'relations:as__field__',
             operation: AggregationOperation.Sum,
           });
           const filter = new Filter({});
@@ -418,7 +404,7 @@ describe('SequelizeDataSource > Collection', () => {
             expect.objectContaining({
               include: [
                 {
-                  association: 'modelAssociations',
+                  association: 'relations',
                   include: [],
                   attributes: [],
                 },
@@ -427,11 +413,33 @@ describe('SequelizeDataSource > Collection', () => {
           );
         });
 
+        describe('on count', () => {
+          it('should count on *', async () => {
+            const { findAll, sequelizeCollection } = setup();
+            const aggregation = new Aggregation({
+              field: 'relations:undefined',
+              operation: AggregationOperation.Count,
+            });
+            const filter = new Filter({});
+
+            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+              { group: {}, value: '__aggregate__:value' },
+            ]);
+
+            expect(findAll).toHaveBeenCalledTimes(1);
+            expect(findAll).toHaveBeenCalledWith(
+              expect.objectContaining({
+                attributes: [[{ args: [{ col: '*' }], fn: 'COUNT' }, '__aggregate__']],
+              }),
+            );
+          });
+        });
+
         describe('when field name is deferent as column', () => {
           it('should aggregate properly', async () => {
             const { findAll, sequelizeCollection } = setup();
             const aggregation = new Aggregation({
-              field: 'modelAssociations:renamed__as__field__',
+              field: 'relations:renamed__as__field__',
               operation: AggregationOperation.Sum,
             });
             const filter = new Filter({});
@@ -445,7 +453,7 @@ describe('SequelizeDataSource > Collection', () => {
               expect.objectContaining({
                 attributes: [
                   [
-                    { args: [{ col: 'modelAssociations.another__as__field__' }], fn: 'SUM' },
+                    { args: [{ col: '"relations"."another__as__field__"' }], fn: 'SUM' },
                     '__aggregate__',
                   ],
                 ],
@@ -498,7 +506,7 @@ describe('SequelizeDataSource > Collection', () => {
         expect(findAll).toHaveBeenCalledWith(
           expect.objectContaining({
             attributes: expect.arrayContaining([
-              [{ col: 'model.__group_field__' }, '__group_field____grouped__'],
+              [{ col: '"model"."__group_field__"' }, '__group_field____grouped__'],
             ]),
             group: ['__group_field____grouped__'],
           }),
@@ -522,7 +530,7 @@ describe('SequelizeDataSource > Collection', () => {
           expect(findAll).toHaveBeenCalledWith(
             expect.objectContaining({
               attributes: expect.arrayContaining([
-                [{ col: 'model.another__field__' }, 'renamed__field____grouped__'],
+                [{ col: '"model"."another__field__"' }, 'renamed__field____grouped__'],
               ]),
               group: ['renamed__field____grouped__'],
             }),
@@ -535,14 +543,14 @@ describe('SequelizeDataSource > Collection', () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
             operation: AggregationOperation.Count,
-            groups: [{ field: 'modelAssociations:as__field__' }],
+            groups: [{ field: 'relations:as__field__' }],
           });
           const filter = new Filter({});
 
           await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
             {
               group: {
-                'modelAssociations:as__field__': 'modelAssociations:as__field____grouped__:value',
+                'relations:as__field__': 'relations:as__field__:value',
               },
               value: '__aggregate__:value',
             },
@@ -552,12 +560,9 @@ describe('SequelizeDataSource > Collection', () => {
           expect(findAll).toHaveBeenCalledWith(
             expect.objectContaining({
               attributes: expect.arrayContaining([
-                [
-                  { col: 'modelAssociations.as__field__' },
-                  'modelAssociations:as__field____grouped__',
-                ],
+                [{ col: '"relations"."as__field__"' }, 'relations:as__field____grouped__'],
               ]),
-              group: ['modelAssociations:as__field____grouped__'],
+              group: ['relations:as__field____grouped__'],
             }),
           );
         });
@@ -566,14 +571,14 @@ describe('SequelizeDataSource > Collection', () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
             operation: AggregationOperation.Count,
-            groups: [{ field: 'modelAssociations:as__field__' }],
+            groups: [{ field: 'relations:as__field__' }],
           });
           const filter = new Filter({});
 
           await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
             {
               group: {
-                'modelAssociations:as__field__': 'modelAssociations:as__field____grouped__:value',
+                'relations:as__field__': 'relations:as__field__:value',
               },
               value: '__aggregate__:value',
             },
@@ -584,7 +589,7 @@ describe('SequelizeDataSource > Collection', () => {
             expect.objectContaining({
               include: [
                 {
-                  association: 'modelAssociations',
+                  association: 'relations',
                   include: [],
                   attributes: [],
                 },
@@ -598,15 +603,14 @@ describe('SequelizeDataSource > Collection', () => {
             const { findAll, sequelizeCollection } = setup();
             const aggregation = new Aggregation({
               operation: AggregationOperation.Count,
-              groups: [{ field: 'modelAssociations:renamed__as__field__' }],
+              groups: [{ field: 'relations:renamed__as__field__' }],
             });
             const filter = new Filter({});
 
             await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
               {
                 group: {
-                  'modelAssociations:renamed__as__field__':
-                    'modelAssociations:renamed__as__field____grouped__:value',
+                  'relations:renamed__as__field__': 'relations:renamed__as__field__:value',
                 },
                 value: '__aggregate__:value',
               },
@@ -617,43 +621,116 @@ describe('SequelizeDataSource > Collection', () => {
               expect.objectContaining({
                 attributes: expect.arrayContaining([
                   [
-                    { col: 'modelAssociations.another__as__field__' },
-                    'modelAssociations:renamed__as__field____grouped__',
+                    { col: '"relations"."another__as__field__"' },
+                    'relations:renamed__as__field____grouped__',
                   ],
                 ]),
-                group: ['modelAssociations:renamed__as__field____grouped__'],
+                group: ['relations:renamed__as__field____grouped__'],
+              }),
+            );
+          });
+        });
+
+        describe('when dialect is mssql', () => {
+          it('should add field to group', async () => {
+            const { findAll, sequelizeCollection } = setup('mssql');
+
+            const aggregation = new Aggregation({
+              operation: AggregationOperation.Count,
+              groups: [{ field: '__group_field__' }],
+            });
+            const filter = new Filter({});
+
+            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+              { group: { __group_field__: '__group_field__:value' }, value: '__aggregate__:value' },
+            ]);
+
+            expect(findAll).toHaveBeenCalledTimes(1);
+            expect(findAll).toHaveBeenCalledWith(
+              expect.objectContaining({
+                attributes: expect.arrayContaining([
+                  [{ col: '[model].[__group_field__]' }, '__group_field____grouped__'],
+                ]),
+                group: ['[model].[__group_field__]'],
               }),
             );
           });
         });
       });
 
-      describe('when group have operations', () => {
-        // TODO
+      describe('when group have date operations', () => {
         it.todo('should group properly');
+
+        describe('when dialect is mssql', () => {
+          it.todo('should add date agregation to group');
+        });
       });
     });
 
-    it('should sort on aggragate by default', async () => {
-      const { findAll, sequelizeCollection } = setup();
-      const aggregation = new Aggregation({
-        operation: AggregationOperation.Count,
+    describe('on sort', () => {
+      describe('when dialect is postgres', () => {
+        it('should sort on aggragate by default', async () => {
+          const { findAll, sequelizeCollection } = setup();
+          const aggregation = new Aggregation({
+            operation: AggregationOperation.Count,
+          });
+          const filter = new Filter({});
+
+          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+            { group: {}, value: '__aggregate__:value' },
+          ]);
+
+          expect(findAll).toHaveBeenCalledTimes(1);
+          expect(findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+              order: [[{ col: '__aggregate__' }, 'DESC NULLS LAST']],
+            }),
+          );
+        });
       });
-      const filter = new Filter({});
 
-      await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-        { group: {}, value: '__aggregate__:value' },
-      ]);
+      describe('when dialect is mssql', () => {
+        it('should sort on aggragate by default', async () => {
+          const { findAll, sequelizeCollection } = setup('mssql');
+          const aggregation = new Aggregation({
+            operation: AggregationOperation.Count,
+          });
+          const filter = new Filter({});
 
-      expect(findAll).toHaveBeenCalledTimes(1);
-      expect(findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          order: [[{ col: '__aggregate__' }, 'DESC']],
-        }),
-      );
+          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+            { group: {}, value: '__aggregate__:value' },
+          ]);
+
+          expect(findAll).toHaveBeenCalledTimes(1);
+          expect(findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+              order: [[{ fn: 'COUNT', args: [{ col: '*' }] }, 'DESC']],
+            }),
+          );
+        });
+      });
+
+      it('should sort on aggragate by default', async () => {
+        const { findAll, sequelizeCollection } = setup('mysql');
+        const aggregation = new Aggregation({
+          operation: AggregationOperation.Count,
+        });
+        const filter = new Filter({});
+
+        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+          { group: {}, value: '__aggregate__:value' },
+        ]);
+
+        expect(findAll).toHaveBeenCalledTimes(1);
+        expect(findAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            order: [[{ col: '__aggregate__' }, 'DESC']],
+          }),
+        );
+      });
     });
 
-    describe('with limit option', () => {
+    describe('with limit', () => {
       it('should add limit to query', async () => {
         const { findAll, sequelizeCollection } = setup();
         const aggregation = new Aggregation({
