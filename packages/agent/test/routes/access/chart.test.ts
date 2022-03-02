@@ -433,4 +433,68 @@ describe('ChartRoute', () => {
       });
     });
   });
+
+  describe('on leaderboard chart', () => {
+    test('it should call the collection aggregate with the correct parameters ', async () => {
+      jest.spyOn(dataSource.getCollection('persons'), 'aggregate').mockResolvedValueOnce([
+        {
+          value: 1234,
+          group: { id: 2 },
+        },
+        {
+          value: 456,
+          group: { id: 1 },
+        },
+      ]);
+      const chart = new Chart(services, options, dataSource, 'persons');
+
+      const context = createMockContext({
+        requestBody: {
+          type: 'Leaderboard',
+          aggregate: 'Sum',
+          aggregate_field: 'id',
+          collection: 'persons',
+          label_field: 'id',
+          relationship_field: 'books',
+          limit: 2,
+        },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+      });
+
+      await chart.handleChart(context);
+
+      expect(dataSource.getCollection('persons').aggregate).toHaveBeenCalledWith(
+        {
+          conditionTree: null,
+          search: undefined,
+          searchExtended: undefined,
+          timezone: 'Europe/Paris',
+        },
+        {
+          field: 'books:id',
+          groups: [{ field: 'id' }],
+          operation: 'Sum',
+        },
+        2,
+      );
+
+      expect(context.response.body).toMatchObject({
+        data: {
+          attributes: {
+            value: [
+              {
+                key: 2,
+                value: 1234,
+              },
+              {
+                key: 1,
+                value: 456,
+              },
+            ],
+          },
+          type: 'stats',
+        },
+      });
+    });
+  });
 });
