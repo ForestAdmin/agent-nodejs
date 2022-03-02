@@ -6,6 +6,7 @@ import {
   File,
 } from '@forestadmin/datasource-toolkit';
 import IdUtils from '../id';
+import SchemaGeneratorActions from './generator-actions';
 
 type FormData = Record<string, unknown>;
 
@@ -24,7 +25,7 @@ export default class ForestValueConverter {
     for (const [key, value] of Object.entries(rawData)) {
       const field = fields.find(f => f.label === key);
 
-      if (key !== 'Loading...') {
+      if (!SchemaGeneratorActions.defaultFields.map(f => f.field).includes(key)) {
         if (field?.type === ActionFieldType.Collection && value) {
           const collection = dataSource.getCollection(field.collectionName);
 
@@ -51,7 +52,7 @@ export default class ForestValueConverter {
     const data: FormData = {};
 
     for (const field of fields) {
-      if (field.field !== 'Loading...') {
+      if (SchemaGeneratorActions.defaultFields.map(f => f.field).includes(field.field)) {
         if (field.reference && field.value) {
           const [collectionName] = field.reference.split('.');
           const collection = dataSource.getCollection(collectionName);
@@ -82,7 +83,7 @@ export default class ForestValueConverter {
     const data: FormData = {};
 
     for (const [key, value] of Object.entries(rawData)) {
-      if (key !== 'Loading...') {
+      if (!SchemaGeneratorActions.defaultFields.map(f => f.field).includes(key)) {
         if (Array.isArray(value) && value.every(v => this.isDataUri(v))) {
           data[key] = value.map(uri => this.parseDataUri(uri));
         } else if (this.isDataUri(value)) {

@@ -49,7 +49,7 @@ describe('ActionContext', () => {
 
   test('should throw if form values is written to when tracking', async () => {
     // we check that only for load/change hooks, as in the execute handler it does not
-    // matter if the used wants to write there (for instance to put defaults values).
+    // matter if the user wants to write there (for instance to put defaults values).
 
     const filter = new Filter({ timezone: 'Europe/Paris' });
     const used = new Set<string>();
@@ -64,7 +64,6 @@ describe('ActionContext', () => {
     const filter = new Filter({ timezone: 'Europe/Paris' });
     const context = new ActionContextSingle(books, { title: 'Foundation' }, filter);
 
-    // this is probably null, but enough for coverage.
     expect(context.dataSource).toBe(books.dataSource);
   });
 

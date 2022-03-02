@@ -38,6 +38,20 @@ export default class ActionContext {
   }
 
   protected async getRecords(fields: string[]): Promise<RecordData[]> {
+    // This function just queues the request into this.queries, so that we can merge all calls
+    // to getRecords() into a single one.
+
+    // The call to setTimeout which resolve the promises will trigger only once all handlers in
+    // the customer's form have been called as Promises are queued before calls to setTimeout
+    // in NodeJS event loop
+
+    // @see https://dev.to/khaosdoctor/node-js-under-the-hood-3-deep-dive-into-the-event-loop-135d\
+    //   #microtasks-and-macrotasks
+    //   Ordering of micro/macro taks in NodeJS event loop
+    //
+    // @see https://github.com/graphql/dataloader
+    //   A library from facebook from which this pattern is inspired.
+
     const deferred = new Deferred<RecordData[]>();
     const projection = new Projection(...fields);
 
@@ -52,10 +66,21 @@ export default class ActionContext {
     const { queries, projection } = this;
     this.reset();
 
-    const records = await this.collection.list(this.filter, projection);
+    try {
+      // Run a single query which contains all fields / relations which were requested by
+      // the different calls made to getRecords
+      const records = await this.collection.list(this.filter, projection);
 
-    for (const query of queries) {
-      query.deferred.resolve(query.projection.apply(records));
+      // Resolve each on of the promises only with the requested fields.
+      for (const query of queries) query.deferred.resolve(query.projection.apply(records));
+    } catch (e) {
+      // Rejecting each promises at next tick
+
+      // This ensures that we don't let any promise hanging forever if the customer throws in
+      // the rejection handler.
+      for (const query of queries) {
+        process.nextTick(() => query.deferred.reject(e));
+      }
     }
   }
 

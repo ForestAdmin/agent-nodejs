@@ -12,7 +12,7 @@ import Router from '@koa/router';
 import * as factories from '../../__factories__';
 import ActionRoute from '../../../src/routes/modification/action';
 
-describe('ScopeInvalidation', () => {
+describe('ActionRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
   const services = factories.forestAdminHttpDriverServices.build();

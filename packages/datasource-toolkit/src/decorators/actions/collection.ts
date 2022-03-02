@@ -89,13 +89,11 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     filter: Filter,
     used?: Set<string>,
   ): ActionContext {
-    if (action.scope === ActionScope.Global) {
-      return new ActionContext(this, formValues, filter, used);
-    }
-
-    return action.scope === ActionScope.Single
-      ? new ActionContextSingle(this, formValues, filter, used)
-      : new ActionContextBulk(this, formValues, filter, used);
+    return new {
+      [ActionScope.Global]: ActionContext,
+      [ActionScope.Bulk]: ActionContextBulk,
+      [ActionScope.Single]: ActionContextSingle,
+    }[action.scope](this, formValues, filter, used);
   }
 
   private async dropDefaults(

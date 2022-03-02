@@ -1,7 +1,6 @@
 import { ActionResultType } from '../../../src/interfaces/action';
 import ResultBuilder from '../../../src/decorators/actions/result-builder';
 
-/** Useless file. This is just there to please code climate */
 describe('ResponseBuilder', () => {
   const builder = new ResultBuilder();
 

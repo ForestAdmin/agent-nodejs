@@ -114,14 +114,12 @@ export default class ActionRoute extends CollectionRoute {
       await this.services.permissions.getScope(this.collection, context),
     );
 
-    const filter = new Filter({
+    return new Filter({
       conditionTree,
       search: QueryStringParser.parseSearch(this.collection, context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
     });
-
-    return filter;
   }
 }
