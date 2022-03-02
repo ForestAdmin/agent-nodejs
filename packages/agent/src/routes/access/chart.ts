@@ -6,6 +6,8 @@ import {
   DateOperation,
   Filter,
   FilterUtils,
+  RelationSchema,
+  SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
@@ -160,17 +162,28 @@ export default class Chart extends CollectionRoute {
       aggregate,
       label_field: labelField,
       relationship_field: relationshipField,
-      aggregate_field: aggregateField,
       limit,
     } = context.request.body;
+    let { aggregate_field: aggregateField } = context.request.body;
 
-    const field = `${relationshipField}:${aggregateField}`;
+    if (!aggregateField) {
+      const association = this.collection.schema.fields[relationshipField] as RelationSchema;
+
+      if (!association) {
+        throw new ValidationError(
+          `${this.collection.name} does not have association "${relationshipField}".`,
+        );
+      }
+
+      const collection = this.dataSource.getCollection(association.foreignCollection);
+      [aggregateField] = SchemaUtils.getPrimaryKeys(collection.schema);
+    }
 
     const rows = await this.collection.aggregate(
       await this.getFilter(context),
       new Aggregation({
         operation: aggregate,
-        field,
+        field: `${relationshipField}:${aggregateField}`,
         groups: [{ field: labelField }],
       }),
       Number(limit),
