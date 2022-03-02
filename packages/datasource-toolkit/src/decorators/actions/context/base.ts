@@ -3,6 +3,7 @@ import { RecordData } from '../../../interfaces/record';
 import Deferred from '../../../utils/async';
 import Filter from '../../../interfaces/query/filter/unpaginated';
 import Projection from '../../../interfaces/query/projection';
+import ProjectionValidator from '../../../validation/projection';
 
 export default class ActionContext {
   readonly collection: Collection;
@@ -51,6 +52,8 @@ export default class ActionContext {
     //
     // @see https://github.com/graphql/dataloader
     //   A library from facebook from which this pattern is inspired.
+
+    ProjectionValidator.validate(this.collection, fields);
 
     const deferred = new Deferred<RecordData[]>();
     const projection = new Projection(...fields);
