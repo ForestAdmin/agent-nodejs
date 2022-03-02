@@ -79,4 +79,17 @@ describe('ActionContext', () => {
     expect(ids).toEqual([[1]]);
     expect(partials).toEqual([{ title: 'Foundation' }]);
   });
+
+  test('getrecords should reject all promises if the query fails', async () => {
+    (books.list as jest.Mock).mockRejectedValue(new Error('bad request'));
+
+    const filter = new Filter({ timezone: 'Europe/Paris' });
+    const context = new ActionContextBulk(books, { title: 'Foundation' }, filter);
+
+    const promise1 = context.getRecords(['title']);
+    const promise2 = context.getRecords(['id']);
+
+    await expect(promise1).rejects.toThrow('bad request');
+    await expect(promise2).rejects.toThrow('bad request');
+  });
 });
