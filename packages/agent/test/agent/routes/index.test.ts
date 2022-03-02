@@ -7,12 +7,13 @@ import makeRoutes, {
 } from '../../../src/agent/routes';
 
 import * as factories from '../__factories__';
-<<<<<<< HEAD:packages/agent/test/agent/routes/index.test.ts
 import Authentication from '../../../src/agent/routes/security/authentication';
 import Chart from '../../../src/agent/routes/access/chart';
 import Count from '../../../src/agent/routes/access/count';
 import CountRelated from '../../../src/agent/routes/access/count-related';
 import Create from '../../../src/agent/routes/modification/create';
+import Csv from '../../../src/agent/routes/access/csv';
+import CsvRelated from '../../../src/agent/routes/access/csv-related';
 import Delete from '../../../src/agent/routes/modification/delete';
 import DissociateDeleteRelated from '../../../src/agent/routes/modification/dissociate-delete-related';
 import ErrorHandling from '../../../src/agent/routes/system/error-handling';
@@ -25,8 +26,6 @@ import Logger from '../../../src/agent/routes/system/logger';
 import ScopeInvalidation from '../../../src/agent/routes/security/scope-invalidation';
 import Update from '../../../src/agent/routes/modification/update';
 import UpdateRelation from '../../../src/agent/routes/modification/update-relation';
-import Csv from '../../../src/agent/routes/access/csv';
-import CsvRelated from '../../../src/agent/routes/access/csv-related';
 
 describe('Route index', () => {
   it('should declare all the routes', () => {

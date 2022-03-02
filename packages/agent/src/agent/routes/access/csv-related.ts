@@ -4,7 +4,7 @@ import Router from '@koa/router';
 
 import { Readable } from 'stream';
 import CsvCommon from './csv-common';
-import CsvGenerator from '../../utils/csv-generator';
+import CsvGenerator from '../../../utils/csv-generator';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';

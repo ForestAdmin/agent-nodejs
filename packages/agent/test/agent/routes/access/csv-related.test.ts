@@ -1,7 +1,6 @@
 import {
   Aggregator,
   CollectionUtils,
-  Filter,
   Operator,
   PaginatedFilter,
   PrimitiveTypes,
@@ -11,8 +10,8 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
 import { readCsv } from '../../utils/csv-generator.test';
-import CsvGenerator from '../../../src/utils/csv-generator';
-import CsvRoute from '../../../src/routes/access/csv-related';
+import CsvGenerator from '../../../../src/utils/csv-generator';
+import CsvRoute from '../../../../src/agent/routes/access/csv-related';
 
 describe('CsvRelatedRoute', () => {
   const setupWithOneToManyRelation = () => {
@@ -133,7 +132,7 @@ describe('CsvRelatedRoute', () => {
       expect(csvGenerator).toHaveBeenCalledWith(
         new Projection('id', 'name'),
         'id,name',
-        new Filter({
+        new PaginatedFilter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: Aggregator.And,
             conditions: [
@@ -148,6 +147,8 @@ describe('CsvRelatedRoute', () => {
           timezone: 'Europe/Paris',
           segment: 'a-valid-segment',
           search: 'searched argument',
+          sort: expect.any(Object),
+          page: expect.any(Object),
         }),
         dataSource.getCollection('persons'),
         expect.any(Function),
@@ -167,7 +168,7 @@ describe('CsvRelatedRoute', () => {
       const { options, services, dataSource } = setupWithOneToManyRelation();
       const csvRoute = new CsvRoute(services, options, dataSource, 'books', 'myPersons');
 
-      const projectionParams = { 'fields[persons]': 'name' };
+      const projectionParams = { 'fields[persons]': 'name,id' };
       const customProperties = {
         params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
         query: {
@@ -180,14 +181,16 @@ describe('CsvRelatedRoute', () => {
 
       const context = createMockContext({ customProperties });
 
-      jest
-        .spyOn(CollectionUtils, 'listRelation')
-        .mockResolvedValue([{ name: 'a' }, { name: 'ab' }, { name: 'abc' }]);
+      jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([
+        { id: 1, name: 'a' },
+        { id: 2, name: 'ab' },
+        { id: 3, name: 'abc' },
+      ]);
 
       await csvRoute.handleRelatedCsv(context);
 
       const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
-      expect(csvResult).toEqual(['name\n', 'a\nab\nabc\n']);
+      expect(csvResult).toEqual(['name\n', 'a,1\nab,2\nabc,3\n']);
     });
   });
 });

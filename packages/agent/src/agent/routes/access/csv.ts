@@ -4,7 +4,7 @@ import Router from '@koa/router';
 import { Readable } from 'stream';
 import CollectionRoute from '../collection-route';
 import CsvCommon from './csv-common';
-import CsvGenerator from '../../utils/csv-generator';
+import CsvGenerator from '../../../utils/csv-generator';
 import QueryStringParser from '../../utils/query-string';
 
 export default class CsvRoute extends CollectionRoute {

@@ -1,6 +1,5 @@
 import {
   Collection,
-  Filter,
   Page,
   PaginatedFilter,
   Projection,
@@ -20,35 +19,43 @@ export default class CsvGenerator {
   static async *generate(
     projection: Projection,
     header: string,
-    filter: Filter,
+    filter: PaginatedFilter,
     collection: Collection,
     list: (paginatedFilter: PaginatedFilter, Projection: Projection) => Promise<RecordData[]>,
   ): AsyncGenerator<string> {
     yield `${header}\n`;
-    let skip = 0;
-    let isAllRecordsFetched = false;
 
-    while (!isAllRecordsFetched) {
-      const page = new Page(skip, PAGE_SIZE);
-      const sort = SortFactory.byPrimaryKeys(collection);
-      const paginatedFilter = new PaginatedFilter({ page, sort }).override({ ...filter });
+    const limit = filter.page?.limit;
+    let skip = filter.page?.skip || 0;
+
+    let areAllRecordsFetched = false;
+
+    while (!areAllRecordsFetched) {
+      let currentPageSize = PAGE_SIZE;
+      if (limit < skip) currentPageSize = skip - limit;
+
+      filter.page = new Page(skip, currentPageSize);
+
+      if (!filter.sort || filter.sort.length === 0) {
+        filter.sort = SortFactory.byPrimaryKeys(collection);
+      }
 
       // eslint-disable-next-line no-await-in-loop
-      const records = await list(paginatedFilter, projection);
+      const records = await list(new PaginatedFilter(filter), projection);
 
-      yield CsvGenerator.convert(records);
+      yield CsvGenerator.convert(records, projection);
 
-      isAllRecordsFetched = records.length < PAGE_SIZE;
-      skip += PAGE_SIZE;
+      areAllRecordsFetched = records.length < PAGE_SIZE;
+      skip += currentPageSize;
     }
   }
 
-  private static convert(records: RecordData[]): string {
-    return records.map(record => CsvGenerator.buildLine(record)).join('');
+  private static convert(records: RecordData[], projection: Projection): string {
+    return records.map(record => CsvGenerator.buildLine(record, projection)).join('');
   }
 
-  private static buildLine(record: RecordData) {
-    return `${Object.keys(record)
+  private static buildLine(record: RecordData, projection: Projection) {
+    return `${projection
       .map(field => {
         let value = String(RecordUtils.getFieldValue(record, field));
         if (value.includes(',')) value = `"${value.replace('"', '""')}"`;

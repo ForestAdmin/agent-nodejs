@@ -1,10 +1,15 @@
-import { Aggregator, Filter, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import {
+  Aggregator,
+  Operator,
+  PaginatedFilter,
+  PrimitiveTypes,
+} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
 import { readCsv } from '../../utils/csv-generator.test';
-import CsvGenerator from '../../../src/utils/csv-generator';
-import CsvRoute from '../../../src/routes/access/csv';
+import CsvGenerator from '../../../../src/utils/csv-generator';
+import CsvRoute from '../../../../src/agent/routes/access/csv';
 
 describe('CsvRoute', () => {
   function setup() {
@@ -104,7 +109,7 @@ describe('CsvRoute', () => {
       expect(csvGenerator).toHaveBeenCalledWith(
         ['id', 'name'],
         'id,name',
-        new Filter({
+        new PaginatedFilter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: Aggregator.And,
             conditions: [
@@ -119,6 +124,8 @@ describe('CsvRoute', () => {
           timezone: 'Europe/Paris',
           segment: 'a-valid-segment',
           search: 'searched argument',
+          sort: expect.any(Object),
+          page: expect.any(Object),
         }),
         dataSource.getCollection('books'),
         expect.any(Function),
@@ -130,7 +137,7 @@ describe('CsvRoute', () => {
 
       const csvRoute = new CsvRoute(services, options, dataSource, 'books');
 
-      const projectionParams = { 'fields[books]': 'name' };
+      const projectionParams = { 'fields[books]': 'name,id' };
       const customProperties = {
         query: {
           ...projectionParams,
@@ -142,14 +149,16 @@ describe('CsvRoute', () => {
 
       const context = createMockContext({ customProperties });
 
-      dataSource.getCollection('books').list = jest
-        .fn()
-        .mockReturnValue([{ name: 'a' }, { name: 'ab' }, { name: 'abc' }]);
+      dataSource.getCollection('books').list = jest.fn().mockReturnValue([
+        { id: 1, name: 'a' },
+        { id: 2, name: 'ab' },
+        { id: 3, name: 'abc' },
+      ]);
 
       await csvRoute.handleCsv(context);
 
       const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
-      expect(csvResult).toEqual(['name\n', 'a\nab\nabc\n']);
+      expect(csvResult).toEqual(['name\n', 'a,1\nab,2\nabc,3\n']);
     });
   });
 });
