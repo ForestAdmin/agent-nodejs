@@ -1,14 +1,9 @@
-import {
-  CollectionUtils,
-  ConditionTreeFactory,
-  Filter,
-  PaginatedFilter,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
+import { CollectionUtils, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
 import { Readable } from 'stream';
+import CsvCommon from './csv-common';
 import CsvGenerator from '../../utils/csv-generator';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -23,24 +18,13 @@ export default class ListRelatedRoute extends RelationRoute {
   }
 
   async handleRelatedCsv(context: Context): Promise<void> {
-    const { query } = context.request;
-    const projection = QueryStringParser.parseProjection(this.foreignCollection, context);
-    const filter = new Filter({
-      conditionTree: ConditionTreeFactory.intersect(
-        QueryStringParser.parseConditionTree(this.foreignCollection, context),
-        await this.services.permissions.getScope(this.foreignCollection, context),
-      ),
-      search: QueryStringParser.parseSearch(this.foreignCollection, context),
-      segment: QueryStringParser.parseSegment(this.foreignCollection, context),
-      timezone: QueryStringParser.parseTimezone(context),
-    });
-    const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
+    const { header } = context.request.query as Record<string, string>;
+    CsvCommon.buildResponseContext(context);
 
-    context.response.type = 'text/csv; charset=utf-8';
-    context.response.attachment(`attachment; filename=${query.filename}`);
-    context.response.lastModified = new Date();
-    context.response.set({ 'X-Accel-Buffering': 'no' });
-    context.response.set({ 'Cache-Control': 'no-cache' });
+    const projection = QueryStringParser.parseProjection(this.foreignCollection, context);
+    const scope = await this.services.permissions.getScope(this.foreignCollection, context);
+    const filter = CsvCommon.buildFilter(context, this.foreignCollection, scope);
+    const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 
     const list = async (paginatedFilter: PaginatedFilter, projectionParam: Projection) =>
       CollectionUtils.listRelation(
@@ -50,7 +34,6 @@ export default class ListRelatedRoute extends RelationRoute {
         paginatedFilter,
         projectionParam,
       );
-    const header = query.header as string;
     const gen = CsvGenerator.generate(projection, header, filter, this.foreignCollection, list);
     context.response.body = Readable.from(gen);
   }
