@@ -1,6 +1,5 @@
-import { DataTypes, Sequelize } from 'sequelize';
-
-import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import { DataTypes, Dialect, Sequelize } from 'sequelize';
+import faker from '@faker-js/faker';
 
 import {
   DataSource,
@@ -13,13 +12,13 @@ import {
   SegmentCollectionDecorator,
   SortEmulateCollectionDecorator,
 } from '@forestadmin/datasource-toolkit';
-import { faker } from '@faker-js/faker';
+import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
-const prepareDatabase = async (): Promise<Sequelize> => {
-  const sequelize = new Sequelize('postgres://example:password@localhost:5442/example');
+async function prepareDatabase(dialect: Dialect, connectionString: string): Promise<Sequelize> {
+  const sequelize = new Sequelize(connectionString);
 
   const City = sequelize.define(
-    'city',
+    `${dialect}City`,
     {
       cityId: {
         type: DataTypes.INTEGER,
@@ -33,7 +32,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
       },
       lastUpdate: {
         type: DataTypes.DATE,
-        defaultValue: Sequelize.literal('now()'),
+        defaultValue: Sequelize.fn(dialect === 'mssql' ? 'getdate' : 'now'),
         allowNull: false,
       },
     },
@@ -45,7 +44,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   );
 
   const Country = sequelize.define(
-    'country',
+    `${dialect}Country`,
     {
       countryId: {
         type: DataTypes.INTEGER,
@@ -59,7 +58,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
       },
       lastUpdate: {
         type: DataTypes.DATE,
-        defaultValue: Sequelize.literal('now()'),
+        defaultValue: Sequelize.fn(dialect === 'mssql' ? 'getdate' : 'now'),
         allowNull: false,
       },
     },
@@ -71,7 +70,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   );
 
   const Address = sequelize.define(
-    'address',
+    `${dialect}Address`,
     {
       addressId: {
         type: DataTypes.INTEGER,
@@ -91,7 +90,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
       },
       lastUpdate: {
         type: DataTypes.DATE,
-        defaultValue: Sequelize.literal('now()'),
+        defaultValue: Sequelize.fn(dialect === 'mssql' ? 'getdate' : 'now'),
         allowNull: false,
       },
     },
@@ -108,10 +107,11 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   Address.belongsTo(City, { foreignKey: 'cityId', targetKey: 'cityId' });
 
   return sequelize;
-};
+}
 
-const prepareDataSource = async (): Promise<DataSource> => {
-  const sequelize = await prepareDatabase();
+export default async function prepareDataSource(connectionString: string): Promise<DataSource> {
+  const [, dialect] = /(.*):\/\//.exec(connectionString);
+  const sequelize = await prepareDatabase(dialect as Dialect, connectionString);
 
   // NOTICE: First call to ensure DB is ready to function.
   //         This is a hack to prevent open handle with Jest.
@@ -136,7 +136,7 @@ const prepareDataSource = async (): Promise<DataSource> => {
       });
     }
 
-    countryRecords = await dataSource.getCollection('country').create(countryRecords);
+    countryRecords = await dataSource.getCollection(`${dialect}Country`).create(countryRecords);
 
     for (let i = 0; i < ENTRIES; i += 1) {
       cityRecords.push({
@@ -146,7 +146,7 @@ const prepareDataSource = async (): Promise<DataSource> => {
       });
     }
 
-    cityRecords = await dataSource.getCollection('city').create(cityRecords);
+    cityRecords = await dataSource.getCollection(`${dialect}City`).create(cityRecords);
 
     for (let i = 0; i < ENTRIES; i += 1) {
       addressRecords.push({
@@ -157,7 +157,7 @@ const prepareDataSource = async (): Promise<DataSource> => {
       });
     }
 
-    await dataSource.getCollection('address').create(addressRecords);
+    await dataSource.getCollection(`${dialect}Address`).create(addressRecords);
   }
 
   let deco: DataSource = new DataSourceDecorator(dataSource, OperatorsEmulateCollectionDecorator);
@@ -169,6 +169,4 @@ const prepareDataSource = async (): Promise<DataSource> => {
   deco = new DataSourceDecorator(deco, SearchCollectionDecorator);
 
   return deco;
-};
-
-export default prepareDataSource;
+}
