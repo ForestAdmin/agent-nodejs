@@ -47,7 +47,7 @@ export default class ActionContext {
 
     // @see https://dev.to/khaosdoctor/node-js-under-the-hood-3-deep-dive-into-the-event-loop-135d\
     //   #microtasks-and-macrotasks
-    //   Ordering of micro/macro taks in NodeJS event loop
+    //   Ordering of micro/macro tasks in NodeJS event loop
     //
     // @see https://github.com/graphql/dataloader
     //   A library from facebook from which this pattern is inspired.
