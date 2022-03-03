@@ -68,7 +68,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     context: Context,
   ): Promise<void> {
     // throw error if it is not a many to many or a one to many relation
-    const schema = CollectionUtils.getRelationOrThrowError(this.collection, this.relationName);
+    const schema = CollectionUtils.getToManyRelation(this.collection, this.relationName);
 
     if (schema.type === FieldTypes.ManyToMany)
       return this.applyForManyToMany(schema, filter, selectionIds, parentId, isDeleteMode, context);

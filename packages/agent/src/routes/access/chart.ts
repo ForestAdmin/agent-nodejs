@@ -1,11 +1,13 @@
 import {
   Aggregation,
   Aggregator,
+  CollectionUtils,
   ConditionTreeBranch,
   ConditionTreeFactory,
   DateOperation,
   Filter,
   FilterUtils,
+  SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
@@ -21,6 +23,7 @@ enum ChartType {
   Objective = 'Objective',
   Pie = 'Pie',
   Line = 'Line',
+  Leaderboard = 'Leaderboard',
 }
 
 export default class Chart extends CollectionRoute {
@@ -150,6 +153,37 @@ export default class Chart extends CollectionRoute {
     }
 
     return dataPoints;
+  }
+
+  private async makeLeaderboardChart(
+    context: Context,
+  ): Promise<Array<{ key: string; value: number }>> {
+    const {
+      aggregate,
+      label_field: labelField,
+      relationship_field: relationshipField,
+      limit,
+    } = context.request.body;
+    let { aggregate_field: aggregateField } = context.request.body;
+
+    if (!aggregateField) {
+      const relation = CollectionUtils.getToManyRelation(this.collection, relationshipField);
+
+      const collection = CollectionUtils.getCollectionFromToManyRelation(this.collection, relation);
+      [aggregateField] = SchemaUtils.getPrimaryKeys(collection.schema);
+    }
+
+    const rows = await this.collection.aggregate(
+      await this.getFilter(context),
+      new Aggregation({
+        operation: aggregate,
+        field: `${relationshipField}:${aggregateField}`,
+        groups: [{ field: labelField }],
+      }),
+      Number(limit),
+    );
+
+    return rows.map(row => ({ key: row.group[labelField] as string, value: row.value as number }));
   }
 
   private async computeValue(context: Context, filter: Filter): Promise<number> {
