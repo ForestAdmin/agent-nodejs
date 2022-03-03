@@ -1,4 +1,5 @@
 import {
+  ActionResultType,
   Aggregation,
   AggregationOperation,
   Page,
@@ -113,6 +114,16 @@ describe('DummyDataSource > Collections > Books', () => {
         aggregation,
       );
       rows.map(row => expect(Object.keys(row.group)).toBeArrayOfSize(aggregation.groups.length));
+    });
+  });
+
+  it('should resolve with a SuccessResponse', async () => {
+    const bookCollection = instanciateCollection();
+
+    await expect(bookCollection.execute()).resolves.toMatchObject({
+      type: ActionResultType.Success,
+      message: 'Record set as active',
+      format: 'text',
     });
   });
 });

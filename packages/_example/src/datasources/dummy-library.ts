@@ -1,4 +1,5 @@
 import {
+  ActionCollectionDecorator,
   DataSourceDecorator,
   OperatorsEmulateCollectionDecorator,
   OperatorsReplaceCollectionDecorator,
@@ -19,6 +20,7 @@ const prepareDataSource = async (): Promise<DummyDataSource> => {
   dataSource = new DataSourceDecorator(dataSource, RenameCollectionDecorator);
   dataSource = new DataSourceDecorator(dataSource, PublicationCollectionDecorator);
   dataSource = new DataSourceDecorator(dataSource, SearchCollectionDecorator);
+  dataSource = new DataSourceDecorator(dataSource, ActionCollectionDecorator);
 
   return dataSource;
 };

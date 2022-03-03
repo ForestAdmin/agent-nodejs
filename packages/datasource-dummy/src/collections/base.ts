@@ -1,5 +1,7 @@
 import {
-  ActionSchemaScope,
+  ActionResult,
+  ActionResultType,
+  ActionScope,
   AggregateResult,
   Aggregation,
   BaseCollection,
@@ -12,7 +14,6 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import MarkAsLiveAction from '../actions/mark-as-live';
 
 export default class BaseDummyCollection extends BaseCollection {
   private static supportedOperators = new Set([
@@ -43,7 +44,7 @@ export default class BaseDummyCollection extends BaseCollection {
   ) {
     super(name, datasource);
     this.addFields(fields);
-    this.addAction('Mark as Live', { scope: ActionSchemaScope.Bulk }, new MarkAsLiveAction());
+    this.addAction('Mark as Live', { scope: ActionScope.Bulk, staticForm: true });
     this.records = records;
 
     // filters/sort is supported
@@ -91,5 +92,14 @@ export default class BaseDummyCollection extends BaseCollection {
     );
 
     return limit ? aggregationResults.slice(0, limit) : aggregationResults;
+  }
+
+  override async execute(): Promise<ActionResult> {
+    return {
+      type: ActionResultType.Success,
+      message: 'Record set as active',
+      format: 'text',
+      invalidated: new Set(),
+    };
   }
 }

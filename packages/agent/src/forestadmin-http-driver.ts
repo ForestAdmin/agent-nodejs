@@ -67,7 +67,7 @@ export default class ForestAdminHttpDriver {
 
     this.app
       .use(cors({ credentials: true, maxAge: 24 * 3600 }))
-      .use(bodyParser())
+      .use(bodyParser({ jsonLimit: '50mb' }))
       .use(router.routes());
 
     // Send schema to forestadmin-server (if relevant).

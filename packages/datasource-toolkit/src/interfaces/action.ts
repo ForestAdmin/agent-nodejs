@@ -1,28 +1,23 @@
-import { RecordData } from './record';
-import Projection from './query/projection';
+import { Readable } from 'stream';
 
-export interface Action {
-  execute(formValues: RecordData, selection?: Selection): Promise<ActionResponse>;
-  getForm(
-    selection?: Selection,
-    changedField?: string,
-    formValues?: RecordData,
-  ): Promise<ActionForm>;
-}
+export type Json = string | number | boolean | { [x: string]: Json } | Array<Json>;
 
-export interface ActionForm {
-  fields: ActionField[];
-}
+export type File = {
+  mimeType: string;
+  buffer: Buffer;
+  name: string;
+  charset?: string;
+};
 
 export interface ActionField {
+  type: ActionFieldType;
   label: string;
   description?: string;
-  type: ActionFieldType;
-  enumValues: string[];
   isRequired?: boolean;
   isReadOnly?: boolean;
-  defaultValue?: unknown;
-  reloadOnChange: boolean;
+  value?: unknown;
+  watchChanges: boolean;
+  enumValues?: string[]; // When type === ActionFieldType.Enum
   collectionName?: string; // When type === ActionFieldType.Collection
 }
 
@@ -37,11 +32,12 @@ export enum ActionFieldType {
   Number = 'Number',
   String = 'String',
   EnumList = 'Enum[]',
+  FileList = 'File[]',
   NumberList = 'Number[]',
   StringList = 'String[]',
 }
 
-export enum ActionResponseType {
+export enum ActionResultType {
   Success,
   Error,
   Webhook,
@@ -49,39 +45,41 @@ export enum ActionResponseType {
   Redirect,
 }
 
-export type SuccessReponse = {
-  type: ActionResponseType.Success;
+export type SuccessResult = {
+  type: ActionResultType.Success;
   message: string;
-  invalidatedDependencies?: Projection;
-  options: {
-    type: 'html' | 'text';
-  };
+  format: 'html' | 'text';
+  invalidated: Set<string>;
 };
 
-export type ErrorResponse = SuccessReponse & { type: ActionResponseType.Error };
+export type ErrorResult = {
+  type: ActionResultType.Error;
+  message: string;
+};
 
-export type WebHookReponse = {
-  type: ActionResponseType.Webhook;
+export type WebHookResult = {
+  type: ActionResultType.Webhook;
   url: string;
   method: 'GET' | 'POST';
   headers: { [key: string]: string };
   body: unknown;
 };
 
-export type FileResponse = {
-  type: ActionResponseType.File;
+export type FileResult = {
+  type: ActionResultType.File;
   mimeType: string;
-  stream: ReadableStream;
+  name: string;
+  stream: Readable;
 };
 
-export type RedirectResponse = {
-  type: ActionResponseType.Redirect;
+export type RedirectResult = {
+  type: ActionResultType.Redirect;
   path: string;
 };
 
-export type ActionResponse =
-  | SuccessReponse
-  | ErrorResponse
-  | WebHookReponse
-  | FileResponse
-  | RedirectResponse;
+export type ActionResult =
+  | SuccessResult
+  | ErrorResult
+  | WebHookResult
+  | FileResult
+  | RedirectResult;

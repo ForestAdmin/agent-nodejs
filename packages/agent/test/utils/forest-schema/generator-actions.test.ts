@@ -1,4 +1,4 @@
-import { ActionFieldType, ActionSchemaScope, Collection } from '@forestadmin/datasource-toolkit';
+import { ActionFieldType, ActionScope, Collection } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../../__factories__';
 import SchemaGeneratorActions from '../../../src/utils/forest-schema/generator-actions';
@@ -6,8 +6,9 @@ import SchemaGeneratorActions from '../../../src/utils/forest-schema/generator-a
 describe('SchemaGeneratorActions', () => {
   describe('Without form', () => {
     const collection = factories.collection.buildWithAction('Send email', {
-      scope: ActionSchemaScope.Single,
-      forceDownload: false,
+      scope: ActionScope.Single,
+      generateFile: false,
+      staticForm: true,
     });
 
     test('should generate schema correctly', async () => {
@@ -36,24 +37,22 @@ describe('SchemaGeneratorActions', () => {
     const collection: Collection = factories.collection.buildWithAction(
       'Send {} email',
       {
-        scope: ActionSchemaScope.Single,
-        forceDownload: false,
-        generateFormOnUsage: true,
+        scope: ActionScope.Single,
+        generateFile: false,
+        staticForm: false,
       },
-      {
-        fields: [
-          {
-            label: 'label',
-            description: 'email',
-            type: ActionFieldType.String,
-            enumValues: [],
-            isRequired: true,
-            isReadOnly: false,
-            defaultValue: '',
-            reloadOnChange: false,
-          },
-        ],
-      },
+      [
+        {
+          label: 'label',
+          description: 'email',
+          type: ActionFieldType.String,
+          enumValues: [],
+          isRequired: true,
+          isReadOnly: false,
+          value: '',
+          watchChanges: false,
+        },
+      ],
     );
 
     test('should generate schema correctly', async () => {
@@ -86,24 +85,22 @@ describe('SchemaGeneratorActions', () => {
     const collection: Collection = factories.collection.buildWithAction(
       'Send email',
       {
-        scope: ActionSchemaScope.Single,
-        forceDownload: false,
-        generateFormOnUsage: false,
+        scope: ActionScope.Single,
+        generateFile: false,
+        staticForm: true,
       },
-      {
-        fields: [
-          {
-            label: 'label',
-            description: 'email',
-            type: ActionFieldType.String,
-            enumValues: [],
-            isRequired: true,
-            isReadOnly: false,
-            defaultValue: '',
-            reloadOnChange: true,
-          },
-        ],
-      },
+      [
+        {
+          label: 'label',
+          description: 'email',
+          type: ActionFieldType.String,
+          enumValues: [],
+          isRequired: true,
+          isReadOnly: false,
+          value: '',
+          watchChanges: true,
+        },
+      ],
     );
 
     test('should include a reference to the change hook', async () => {
@@ -117,45 +114,43 @@ describe('SchemaGeneratorActions', () => {
       factories.collection.buildWithAction(
         'Send email',
         {
-          scope: ActionSchemaScope.Single,
-          forceDownload: false,
-          generateFormOnUsage: false,
+          scope: ActionScope.Single,
+          generateFile: false,
+          staticForm: true,
         },
-        {
-          fields: [
-            {
-              label: 'author',
-              description: 'choose an author',
-              type: ActionFieldType.Collection,
-              enumValues: [],
-              isRequired: true,
-              isReadOnly: false,
-              defaultValue: '',
-              reloadOnChange: false,
-              collectionName: 'authors',
-            },
-            {
-              label: 'avatar',
-              description: 'choose an avatar',
-              type: ActionFieldType.File,
-              enumValues: [],
-              isRequired: true,
-              isReadOnly: false,
-              defaultValue: '',
-              reloadOnChange: false,
-            },
-            {
-              label: 'inclusive gender',
-              description: 'Choose None, Male, Female or Both',
-              type: ActionFieldType.EnumList,
-              enumValues: ['Male', 'Female'],
-              isRequired: true,
-              isReadOnly: false,
-              defaultValue: '',
-              reloadOnChange: false,
-            },
-          ],
-        },
+        [
+          {
+            label: 'author',
+            description: 'choose an author',
+            type: ActionFieldType.Collection,
+            enumValues: [],
+            isRequired: true,
+            isReadOnly: false,
+            value: null,
+            watchChanges: false,
+            collectionName: 'authors',
+          },
+          {
+            label: 'avatar',
+            description: 'choose an avatar',
+            type: ActionFieldType.File,
+            enumValues: [],
+            isRequired: true,
+            isReadOnly: false,
+            value: null,
+            watchChanges: false,
+          },
+          {
+            label: 'inclusive gender',
+            description: 'Choose None, Male, Female or Both',
+            type: ActionFieldType.EnumList,
+            enumValues: ['Male', 'Female'],
+            isRequired: true,
+            isReadOnly: false,
+            value: null,
+            watchChanges: false,
+          },
+        ],
       ),
       factories.collection.build({
         name: 'authors',
@@ -174,29 +169,21 @@ describe('SchemaGeneratorActions', () => {
       // Relation to other collection
       expect(schema.fields[0]).toMatchObject({
         field: 'author',
-        position: 0,
         reference: 'authors.primaryId',
-        widget: 'belongsto select', // only for relations
         type: 'Uuid', // type of the pk
       });
 
       // File
       expect(schema.fields[1]).toMatchObject({
         field: 'avatar',
-        position: 1,
-        reference: null,
-        type: 'String',
-        widget: 'file picker',
+        type: 'File',
       });
 
       // List
       expect(schema.fields[2]).toMatchObject({
         field: 'inclusive gender',
-        position: 2,
-        reference: null,
         type: ['Enum'],
         enums: ['Male', 'Female'],
-        widget: null,
       });
     });
   });

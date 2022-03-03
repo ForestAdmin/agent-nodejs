@@ -2,6 +2,7 @@ import { DataSource, FieldTypes } from '@forestadmin/datasource-toolkit';
 
 import { ForestAdminHttpDriverOptionsWithDefaults as Options } from '../types';
 import { ForestAdminHttpDriverServices as Services } from '../services';
+import ActionRoute from './modification/action';
 import Authentication from './security/authentication';
 import BaseRoute from './base-route';
 import Chart from './access/chart';
@@ -79,6 +80,20 @@ function getRelatedAndRelatedRelationRoutes(
   return routes;
 }
 
+function getActionRoutes(
+  dataSource: DataSource,
+  options: Options,
+  services: Services,
+): BaseRoute[] {
+  const routes: BaseRoute[] = [];
+
+  for (const collection of dataSource.collections)
+    for (const actionName of Object.keys(collection.schema.actions))
+      routes.push(new ActionRoute(services, options, dataSource, collection.name, actionName));
+
+  return routes;
+}
+
 export default function makeRoutes(
   dataSources: DataSource[],
   options: Options,
@@ -90,6 +105,7 @@ export default function makeRoutes(
     ...dataSources
       .map(dataSource => getRelatedAndRelatedRelationRoutes(dataSource, options, services))
       .flat(),
+    ...dataSources.map(dataSource => getActionRoutes(dataSource, options, services)).flat(),
   ];
 
   // Ensure routes and middlewares are loaded in the right order.

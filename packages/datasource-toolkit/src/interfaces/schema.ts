@@ -1,15 +1,15 @@
 import { Operator } from './query/condition-tree/nodes/leaf';
 
-export enum ActionSchemaScope {
+export enum ActionScope {
   Single = 'single',
   Bulk = 'bulk',
   Global = 'global',
 }
 
 export type ActionSchema = {
-  scope: ActionSchemaScope;
-  forceDownload?: boolean;
-  generateFormOnUsage?: boolean;
+  scope: ActionScope;
+  generateFile?: boolean;
+  staticForm?: boolean;
 };
 
 export type CollectionSchema = {
