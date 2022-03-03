@@ -13,7 +13,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   mysql:
-    image: mysql:5.7
+    image: mysql:oracle
     container_name: forest_agent_example_mysql
     ports:
       - '3306:3306'
@@ -35,6 +35,7 @@ services:
       - ACCEPT_EULA=Y
     volumes:
       - mssql-data:/var/opt/mssql
+    command: /bin/sh -c "(/opt/mssql/bin/sqlservr &) && sleep 10s && /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -Q 'CREATE DATABASE example' && sleep infinity"
 
 volumes:
   postgres-data:
