@@ -85,8 +85,11 @@ export default class CollectionUtils {
     paginatedFilter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    const relation = CollectionUtils.getRelationOrThrowError(collection, relationName);
-    const relationCollection = CollectionUtils.getCollectionFromRelation(collection, relation);
+    const relation = CollectionUtils.getToManyRelation(collection, relationName);
+    const relationCollection = CollectionUtils.getCollectionFromToManyRelation(
+      collection,
+      relation,
+    );
     const conditionTree = CollectionUtils.buildConditionTreeFromRelation(
       relation,
       id,
@@ -108,19 +111,22 @@ export default class CollectionUtils {
     return records.map(r => r[relation.targetRelation] as RecordData);
   }
 
-  static getRelationOrThrowError(
+  static getToManyRelation(
     collection: Collection,
     relationName: string,
   ): ManyToManySchema | OneToManySchema {
     const relationFieldSchema = collection.schema.fields[relationName];
+
+    if (!relationFieldSchema)
+      throw new Error(`Relation '${relationName}' not found on collection '${collection.name}'`);
 
     if (
       relationFieldSchema.type !== FieldTypes.OneToMany &&
       relationFieldSchema.type !== FieldTypes.ManyToMany
     ) {
       throw new Error(
-        'This method can only be used with ' +
-          `${FieldTypes.OneToMany} and ${FieldTypes.ManyToMany} relations`,
+        `Relation ${relationName} has invalid type should be one of ` +
+          `${FieldTypes.OneToMany} or ${FieldTypes.ManyToMany}.`,
       );
     }
 
@@ -134,8 +140,11 @@ export default class CollectionUtils {
     paginatedFilter: PaginatedFilter,
     aggregation: Aggregation,
   ): Promise<AggregateResult[]> {
-    const relation = CollectionUtils.getRelationOrThrowError(collection, relationName);
-    const relationCollection = CollectionUtils.getCollectionFromRelation(collection, relation);
+    const relation = CollectionUtils.getToManyRelation(collection, relationName);
+    const relationCollection = CollectionUtils.getCollectionFromToManyRelation(
+      collection,
+      relation,
+    );
     const conditionTree = CollectionUtils.buildConditionTreeFromRelation(
       relation,
       id,
@@ -154,7 +163,7 @@ export default class CollectionUtils {
     return CollectionUtils.removePrefixesInResults(aggregateResults, relation);
   }
 
-  private static getCollectionFromRelation(
+  static getCollectionFromToManyRelation(
     collection: Collection,
     relation: ManyToManySchema | OneToManySchema,
   ): Collection {

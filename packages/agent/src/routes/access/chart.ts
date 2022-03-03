@@ -1,12 +1,12 @@
 import {
   Aggregation,
   Aggregator,
+  CollectionUtils,
   ConditionTreeBranch,
   ConditionTreeFactory,
   DateOperation,
   Filter,
   FilterUtils,
-  RelationSchema,
   SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -167,15 +167,9 @@ export default class Chart extends CollectionRoute {
     let { aggregate_field: aggregateField } = context.request.body;
 
     if (!aggregateField) {
-      const association = this.collection.schema.fields[relationshipField] as RelationSchema;
+      const relation = CollectionUtils.getToManyRelation(this.collection, relationshipField);
 
-      if (!association) {
-        throw new ValidationError(
-          `${this.collection.name} does not have association "${relationshipField}".`,
-        );
-      }
-
-      const collection = this.dataSource.getCollection(association.foreignCollection);
+      const collection = CollectionUtils.getCollectionFromToManyRelation(this.collection, relation);
       [aggregateField] = SchemaUtils.getPrimaryKeys(collection.schema);
     }
 

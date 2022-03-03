@@ -15,9 +15,9 @@ describe('ChartRoute', () => {
           name: factories.columnSchema.build({
             columnType: PrimitiveTypes.String,
           }),
-          author: factories.oneToOneSchema.build({
+          author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
-            foreignKey: 'bookId',
+            foreignKey: 'personsId',
           }),
           publishedAt: factories.columnSchema.build({
             columnType: PrimitiveTypes.Date,
@@ -31,9 +31,9 @@ describe('ChartRoute', () => {
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
           bookId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
-          books: factories.manyToOneSchema.build({
+          books: factories.oneToManySchema.build({
             foreignCollection: 'books',
-            foreignKey: 'bookId',
+            foreignKey: 'personsId',
           }),
         },
       }),
@@ -590,7 +590,7 @@ describe('ChartRoute', () => {
           });
 
           await expect(chart.handleChart(context)).rejects.toThrowError(
-            new ValidationError(`persons does not have association "invalid".`),
+            new ValidationError(`Relation 'invalid' not found on collection 'persons'`),
           );
         });
       });
