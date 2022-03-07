@@ -26,16 +26,15 @@ services:
       - mysql-data:/var/lib/mysql
 
   mssql:
-    image: mcr.microsoft.com/mssql/server:2019-latest
+    image: mcr.microsoft.com/azure-sql-edge
     container_name: forest_agent_example_mssql
     ports:
       - '1433:1433'
     environment:
-      - SA_PASSWORD=yourStrong(!)Password
+      - MSSQL_SA_PASSWORD=yourStrong(!)Password
       - ACCEPT_EULA=Y
     volumes:
       - mssql-data:/var/opt/mssql
-    command: /bin/sh -c "(/opt/mssql/bin/sqlservr &) && sleep 10s && /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -Q 'CREATE DATABASE example' && sleep infinity"
 
 volumes:
   postgres-data:
