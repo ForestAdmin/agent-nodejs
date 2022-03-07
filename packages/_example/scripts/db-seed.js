@@ -2,7 +2,7 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Sequelize = require('sequelize');
 
-const connection = new Sequelize('mssql://sa:yourStrong(!)Password@localhost:1433/example');
+const connection = new Sequelize('mssql://sa:yourStrong(!)Password@localhost:1433');
 connection
   .getQueryInterface()
   .createDatabase('example')
