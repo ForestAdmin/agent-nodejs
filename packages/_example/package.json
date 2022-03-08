@@ -24,7 +24,7 @@
     "start": "nodemon --delay 250ms --watch '../*/dist/' --exec yarn start:agent",
     "start:agent": "node --enable-source-maps --async-stack-traces -e \"require('./dist/index.js').default()\"",
     "test": "jest",
-    "db:seed": "node scripts/db-seed.js"
+    "db:seed": "ts-node scripts/db-seed.ts"
   },
   "devDependencies": {
     "fishery": "^2.1.0",

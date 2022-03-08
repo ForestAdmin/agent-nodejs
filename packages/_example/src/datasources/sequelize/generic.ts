@@ -1,5 +1,4 @@
 import { DataTypes, Dialect, Sequelize } from 'sequelize';
-import faker from '@faker-js/faker';
 
 import {
   DataSource,
@@ -14,8 +13,11 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
-async function prepareDatabase(dialect: Dialect, connectionString: string): Promise<Sequelize> {
-  const sequelize = new Sequelize(connectionString);
+export async function prepareDatabase(
+  dialect: Dialect,
+  connectionString: string,
+): Promise<Sequelize> {
+  const sequelize = new Sequelize(connectionString, { logging: false });
 
   const City = sequelize.define(
     `${dialect}City`,
@@ -113,52 +115,7 @@ export default async function prepareDataSource(connectionString: string): Promi
   const [, dialect] = /(.*):\/\//.exec(connectionString);
   const sequelize = await prepareDatabase(dialect as Dialect, connectionString);
 
-  // NOTICE: First call to ensure DB is ready to function.
-  //         This is a hack to prevent open handle with Jest.
-  if (process.env.NODE_ENV !== 'test') {
-    await sequelize.sync({ force: true });
-  }
-
   const dataSource = new SequelizeDataSource(sequelize);
-
-  // NOTICE: First call to ensure DB is ready to function.
-  //         This is a hack to prevent open handle with Jest.
-  if (process.env.NODE_ENV !== 'test') {
-    let cityRecords = [];
-    let countryRecords = [];
-    const addressRecords = [];
-    const ENTRIES = 100;
-
-    for (let i = 0; i < ENTRIES; i += 1) {
-      countryRecords.push({
-        country: faker.address.country(),
-        lastUpdate: faker.datatype.datetime(),
-      });
-    }
-
-    countryRecords = await dataSource.getCollection(`${dialect}Country`).create(countryRecords);
-
-    for (let i = 0; i < ENTRIES; i += 1) {
-      cityRecords.push({
-        city: faker.address.city(),
-        lastUpdate: faker.datatype.datetime(),
-        countryId: countryRecords[Math.floor(Math.random() * countryRecords.length)].countryId,
-      });
-    }
-
-    cityRecords = await dataSource.getCollection(`${dialect}City`).create(cityRecords);
-
-    for (let i = 0; i < ENTRIES; i += 1) {
-      addressRecords.push({
-        address: faker.address.streetAddress(),
-        address2: faker.address.secondaryAddress(),
-        postalCode: faker.address.zipCode(),
-        cityId: cityRecords[Math.floor(Math.random() * cityRecords.length)].cityId,
-      });
-    }
-
-    await dataSource.getCollection(`${dialect}Address`).create(addressRecords);
-  }
 
   let deco: DataSource = new DataSourceDecorator(dataSource, OperatorsEmulateCollectionDecorator);
   deco = new DataSourceDecorator(deco, OperatorsReplaceCollectionDecorator);
