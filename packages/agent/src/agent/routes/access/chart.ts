@@ -167,7 +167,7 @@ export default class Chart extends CollectionRoute {
     let { aggregate_field: aggregateField } = context.request.body;
 
     if (!aggregateField) {
-      const relation = CollectionUtils.getToManyRelation(this.collection, relationshipField);
+      const relation = SchemaUtils.getToManyRelation(this.collection.schema, relationshipField);
 
       const collection = CollectionUtils.getCollectionFromToManyRelation(this.collection, relation);
       [aggregateField] = SchemaUtils.getPrimaryKeys(collection.schema);

@@ -1,4 +1,10 @@
-import { CollectionSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
+import {
+  CollectionSchema,
+  FieldTypes,
+  ManyToManySchema,
+  OneToManySchema,
+  RelationSchema,
+} from '../interfaces/schema';
 
 export default class SchemaUtils {
   static getForeignKeyName(schema: CollectionSchema, relationName: string): string {
@@ -25,5 +31,26 @@ export default class SchemaUtils {
         relation => relation.type === FieldTypes.ManyToOne && relation.foreignKey === name,
       )
     );
+  }
+
+  static getToManyRelation(
+    schema: CollectionSchema,
+    relationName: string,
+  ): ManyToManySchema | OneToManySchema {
+    const relationFieldSchema = schema.fields[relationName];
+
+    if (!relationFieldSchema) throw new Error(`Relation '${relationName}' not found`);
+
+    if (
+      relationFieldSchema.type !== FieldTypes.OneToMany &&
+      relationFieldSchema.type !== FieldTypes.ManyToMany
+    ) {
+      throw new Error(
+        `Relation ${relationName} has invalid type should be one of ` +
+          `${FieldTypes.OneToMany} or ${FieldTypes.ManyToMany}.`,
+      );
+    }
+
+    return relationFieldSchema as ManyToManySchema | OneToManySchema;
   }
 }

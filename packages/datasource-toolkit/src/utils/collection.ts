@@ -13,6 +13,7 @@ import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Projection from '../interfaces/query/projection';
+import SchemaUtils from './schema';
 
 export default class CollectionUtils {
   static getRelation(collection: Collection, path: string): Collection {
@@ -85,7 +86,7 @@ export default class CollectionUtils {
     paginatedFilter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    const relation = CollectionUtils.getToManyRelation(collection, relationName);
+    const relation = SchemaUtils.getToManyRelation(collection.schema, relationName);
     const relationCollection = CollectionUtils.getCollectionFromToManyRelation(
       collection,
       relation,
@@ -111,28 +112,6 @@ export default class CollectionUtils {
     return records.map(r => r[relation.targetRelation] as RecordData);
   }
 
-  static getToManyRelation(
-    collection: Collection,
-    relationName: string,
-  ): ManyToManySchema | OneToManySchema {
-    const relationFieldSchema = collection.schema.fields[relationName];
-
-    if (!relationFieldSchema)
-      throw new Error(`Relation '${relationName}' not found on collection '${collection.name}'`);
-
-    if (
-      relationFieldSchema.type !== FieldTypes.OneToMany &&
-      relationFieldSchema.type !== FieldTypes.ManyToMany
-    ) {
-      throw new Error(
-        `Relation ${relationName} has invalid type should be one of ` +
-          `${FieldTypes.OneToMany} or ${FieldTypes.ManyToMany}.`,
-      );
-    }
-
-    return relationFieldSchema as ManyToManySchema | OneToManySchema;
-  }
-
   static async aggregateRelation(
     collection: Collection,
     id: CompositeId,
@@ -140,7 +119,7 @@ export default class CollectionUtils {
     paginatedFilter: PaginatedFilter,
     aggregation: Aggregation,
   ): Promise<AggregateResult[]> {
-    const relation = CollectionUtils.getToManyRelation(collection, relationName);
+    const relation = SchemaUtils.getToManyRelation(collection.schema, relationName);
     const relationCollection = CollectionUtils.getCollectionFromToManyRelation(
       collection,
       relation,

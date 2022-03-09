@@ -590,7 +590,7 @@ describe('ChartRoute', () => {
           });
 
           await expect(chart.handleChart(context)).rejects.toThrowError(
-            new ValidationError(`Relation 'invalid' not found on collection 'persons'`),
+            new ValidationError(`Relation 'invalid' not found`),
           );
         });
       });
