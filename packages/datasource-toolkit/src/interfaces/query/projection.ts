@@ -21,8 +21,8 @@ export default class Projection extends Array<string> {
     }, {});
   }
 
-  replace(handler: (path: string) => Projection | string | string[]): Projection {
-    return this.map(handler).reduce<Projection>((memo, newPaths) => {
+  replace(handler: (path: string) => Projection | string | string[], bind?: unknown): Projection {
+    return this.map(handler, bind).reduce<Projection>((memo, newPaths) => {
       if (typeof newPaths === 'string') return memo.union([newPaths]);
 
       return memo.union(newPaths);

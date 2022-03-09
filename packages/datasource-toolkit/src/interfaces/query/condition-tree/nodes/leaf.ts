@@ -176,6 +176,10 @@ export default class ConditionTreeLeaf extends ConditionTree {
     return ConditionTreeFactory.fromPlainObject({ ...this, ...params }) as ConditionTreeLeaf;
   }
 
+  override unnest(): ConditionTreeLeaf {
+    return super.unnest() as ConditionTreeLeaf;
+  }
+
   /** @see https://stackoverflow.com/a/18418386/1897495 */
   private like(value: string, pattern: string): boolean {
     if (!value) return false;

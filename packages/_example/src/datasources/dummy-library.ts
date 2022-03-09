@@ -1,5 +1,6 @@
 import {
   ActionCollectionDecorator,
+  DataSource,
   DataSourceDecorator,
   OperatorsEmulateCollectionDecorator,
   OperatorsReplaceCollectionDecorator,
@@ -9,10 +10,10 @@ import {
   SegmentCollectionDecorator,
   SortEmulateCollectionDecorator,
 } from '@forestadmin/datasource-toolkit';
-import { DummyDataSource } from '@forestadmin/datasource-dummy';
+import makeDummyDataSource from '@forestadmin/datasource-dummy';
 
-const prepareDataSource = async (): Promise<DummyDataSource> => {
-  let dataSource = new DummyDataSource();
+const prepareDataSource = async (): Promise<DataSource> => {
+  let dataSource = makeDummyDataSource();
   dataSource = new DataSourceDecorator(dataSource, OperatorsEmulateCollectionDecorator);
   dataSource = new DataSourceDecorator(dataSource, OperatorsReplaceCollectionDecorator);
   dataSource = new DataSourceDecorator(dataSource, SortEmulateCollectionDecorator);

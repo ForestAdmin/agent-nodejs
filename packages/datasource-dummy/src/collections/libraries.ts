@@ -18,15 +18,6 @@ export default class LibrariesCollection extends BaseDummyCollection {
       type: FieldTypes.Column,
       columnType: PrimitiveTypes.String,
     },
-    books: {
-      type: FieldTypes.ManyToMany,
-      otherField: 'libraryId',
-      foreignKey: 'bookId',
-      throughCollection: 'librariesBooks',
-      foreignCollection: 'books',
-      originRelation: 'library',
-      targetRelation: 'book',
-    },
   };
 
   private static records: RecordData[] = [
