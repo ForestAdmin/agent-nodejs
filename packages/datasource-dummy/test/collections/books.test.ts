@@ -2,8 +2,6 @@ import {
   ActionResultType,
   Aggregation,
   AggregationOperation,
-  Filter,
-  FilterFactory,
   Page,
   PaginatedFilter,
   Projection,
