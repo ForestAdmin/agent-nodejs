@@ -17,9 +17,8 @@ import {
   Sort,
 } from '@forestadmin/datasource-toolkit';
 
-import LiveCollection from '../src/collection';
-// eslint-disable-next-line max-len
 import CollectionAttributesConverter from '../src/utils/collection-schema-to-model-attributes-converter';
+import LiveCollection from '../src/collection';
 
 const liveCollectionSchema: CollectionSchema = {
   actions: {},

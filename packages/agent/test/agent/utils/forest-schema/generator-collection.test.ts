@@ -1,7 +1,6 @@
 import { ActionScope, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../../__factories__';
-// eslint-disable-next-line max-len
 import SchemaGeneratorCollection from '../../../../src/agent/utils/forest-schema/generator-collection';
 
 describe('SchemaGeneratorCollection', () => {

@@ -7,7 +7,6 @@ import {
   setupWithManyToManyRelation,
   setupWithOneToManyRelation,
 } from './dissociate-delete-related.test';
-// eslint-disable-next-line max-len
 import DissociateDeleteRoute from '../../../../src/agent/routes/modification/dissociate-delete-related';
 
 describe('DissociateDeleteRelatedRoute > delete', () => {
