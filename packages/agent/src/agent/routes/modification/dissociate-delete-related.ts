@@ -1,7 +1,6 @@
 import {
   Aggregator,
   Collection,
-  CollectionUtils,
   CompositeId,
   ConditionTree,
   ConditionTreeBranch,
