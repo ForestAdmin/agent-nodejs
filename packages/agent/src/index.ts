@@ -1,5 +1,4 @@
-import { ForestAdminHttpDriverOptions } from './types';
-import ForestAdminHttpDriver from './forestadmin-http-driver';
+import ForestAdminHttpDriver from './agent/forestadmin-http-driver';
 
-export default null;
-export { ForestAdminHttpDriver, ForestAdminHttpDriverOptions };
+export * from './types';
+export { ForestAdminHttpDriver };
