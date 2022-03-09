@@ -3,12 +3,12 @@ import { DateTime, DateTimeUnit } from 'luxon';
 import * as factories from '../__factories__';
 import { Aggregator } from '../../src/interfaces/query/condition-tree/nodes/branch';
 import { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
-import FilterUtils from '../../src/utils/filter';
+import FilterFactory from '../../src/interfaces/query/filter/factory';
 
 const TEST_TIMEZONE = 'Europe/Dublin';
 const TEST_DATE = '2022-02-16T10:00:00.000Z';
 
-describe('FilterUtils', () => {
+describe('FilterFactory', () => {
   describe('getPreviousPeriodFilter', () => {
     describe('when no interval operator is present in the condition tree', () => {
       it('should not modify the condition tree', () => {
@@ -19,7 +19,7 @@ describe('FilterUtils', () => {
             value: 'someValue',
           }),
         });
-        expect(FilterUtils.getPreviousPeriodFilter(filter)).toStrictEqual(filter);
+        expect(FilterFactory.getPreviousPeriodFilter(filter)).toStrictEqual(filter);
       });
     });
 
@@ -38,7 +38,7 @@ describe('FilterUtils', () => {
           }),
         });
 
-        expect(FilterUtils.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
+        expect(FilterFactory.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
           operator: previousOperator,
         });
       });
@@ -64,7 +64,7 @@ describe('FilterUtils', () => {
           }),
         });
 
-        expect(FilterUtils.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
+        expect(FilterFactory.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
           aggregator: Aggregator.And,
           conditions: [
             {
@@ -97,7 +97,7 @@ describe('FilterUtils', () => {
 
         const newDate = time.setZone(TEST_TIMEZONE);
 
-        expect(FilterUtils.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
+        expect(FilterFactory.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
           aggregator: Aggregator.And,
           conditions: [
             {
@@ -130,7 +130,7 @@ describe('FilterUtils', () => {
 
         const newDate = time.setZone(TEST_TIMEZONE);
 
-        expect(FilterUtils.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
+        expect(FilterFactory.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
           aggregator: Aggregator.And,
           conditions: [
             {

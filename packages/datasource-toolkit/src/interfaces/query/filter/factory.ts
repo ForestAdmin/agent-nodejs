@@ -1,11 +1,11 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
-import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
-import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
-import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
-import Filter from '../interfaces/query/filter/unpaginated';
+import ConditionTree from '../condition-tree/nodes/base';
+import ConditionTreeFactory from '../condition-tree/factory';
+import ConditionTreeLeaf, { Operator } from '../condition-tree/nodes/leaf';
+import Filter from './unpaginated';
 
-export default class FilterUtils {
+export default class FilterFactory {
   private static getPreviousConditionTree(
     field: string,
     startPeriod: DateTime,
