@@ -11,7 +11,6 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
 import { HttpCode } from '../../../../src/agent/types';
-// eslint-disable-next-line max-len
 import DissociateDeleteRoute from '../../../../src/agent/routes/modification/dissociate-delete-related';
 
 export const setupWithManyToManyRelation = () => {

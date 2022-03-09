@@ -13,7 +13,6 @@ import Count from '../../../src/agent/routes/access/count';
 import CountRelated from '../../../src/agent/routes/access/count-related';
 import Create from '../../../src/agent/routes/modification/create';
 import Delete from '../../../src/agent/routes/modification/delete';
-// eslint-disable-next-line max-len
 import DissociateDeleteRelated from '../../../src/agent/routes/modification/dissociate-delete-related';
 import ErrorHandling from '../../../src/agent/routes/system/error-handling';
 import Get from '../../../src/agent/routes/access/get';

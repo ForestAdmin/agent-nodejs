@@ -18,7 +18,7 @@
   "plugins": ["@typescript-eslint", "prettier", "sort-imports-es6-autofix"],
   "rules": {
     "prettier/prettier": "error",
-    "max-len": ["error", { "code": 100 }],
+    "max-len": ["error", { "code": 100, "ignorePattern": "^(import) .*" }],
     "@typescript-eslint/lines-between-class-members": [
       "error",
       "always",
@@ -45,10 +45,12 @@
     "consistent-return": "off",
     "import/no-cycle": "off",
     "sort-imports-es6-autofix/sort-imports-es6": [
-      "error", {
-      "ignoreCase": false,
-      "ignoreMemberSort": false,
-      "memberSyntaxSortOrder": ["none", "all", "multiple", "single"]
-    }]
+      "error",
+      {
+        "ignoreCase": false,
+        "ignoreMemberSort": false,
+        "memberSyntaxSortOrder": ["none", "all", "multiple", "single"]
+      }
+    ]
   }
 }
