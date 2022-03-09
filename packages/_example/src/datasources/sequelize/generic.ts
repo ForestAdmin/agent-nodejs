@@ -1,6 +1,8 @@
 import { DataTypes, Dialect, Sequelize } from 'sequelize';
 
 import {
+  ActionCollectionDecorator,
+  ComputedCollectionDecorator,
   DataSource,
   DataSourceDecorator,
   OperatorsEmulateCollectionDecorator,
@@ -117,13 +119,15 @@ export default async function prepareDataSource(connectionString: string): Promi
 
   const dataSource = new SequelizeDataSource(sequelize);
 
-  let deco: DataSource = new DataSourceDecorator(dataSource, OperatorsEmulateCollectionDecorator);
+  let deco: DataSource = new DataSourceDecorator(dataSource, ComputedCollectionDecorator);
+  deco = new DataSourceDecorator(deco, OperatorsEmulateCollectionDecorator);
   deco = new DataSourceDecorator(deco, OperatorsReplaceCollectionDecorator);
   deco = new DataSourceDecorator(deco, SortEmulateCollectionDecorator);
   deco = new DataSourceDecorator(deco, SegmentCollectionDecorator);
   deco = new DataSourceDecorator(deco, RenameCollectionDecorator);
   deco = new DataSourceDecorator(deco, PublicationCollectionDecorator);
   deco = new DataSourceDecorator(deco, SearchCollectionDecorator);
+  deco = new DataSourceDecorator(deco, ActionCollectionDecorator);
 
   return deco;
 }
