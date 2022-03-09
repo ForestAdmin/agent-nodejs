@@ -1,16 +1,12 @@
 import http from 'http';
 
-import { ForestAdminHttpDriver, ForestAdminHttpDriverOptions } from '@forestadmin/agent';
+import { AgentOptions, ForestAdminHttpDriver } from '@forestadmin/agent';
 
 import prepareDummyDataSource from './datasources/dummy-library';
 import prepareLiveDataSource from './datasources/live-business';
 import prepareSequelizeDataSource from './datasources/sequelize-example';
 
-export default async function start(
-  serverPort: number,
-  serverHost: string,
-  options: ForestAdminHttpDriverOptions,
-) {
+export default async function start(serverPort: number, serverHost: string, options: AgentOptions) {
   const dataSources = await Promise.all([
     prepareDummyDataSource(),
     prepareLiveDataSource(),
