@@ -21,18 +21,13 @@ export default class LibrariesBooksCollection extends BaseDummyCollection {
     },
   };
 
-  private static records: RecordData[] = [
+  protected override records: RecordData[] = [
     { bookId: 1, libraryId: 1 },
     { bookId: 2, libraryId: 1 },
     { bookId: 3, libraryId: 2 },
   ];
 
   constructor(datasource: DataSource) {
-    super(
-      datasource,
-      'librariesBooks',
-      LibrariesBooksCollection.schema,
-      LibrariesBooksCollection.records,
-    );
+    super(datasource, 'librariesBooks', LibrariesBooksCollection.schema);
   }
 }
