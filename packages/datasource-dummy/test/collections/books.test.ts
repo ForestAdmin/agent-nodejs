@@ -2,6 +2,8 @@ import {
   ActionResultType,
   Aggregation,
   AggregationOperation,
+  Filter,
+  FilterFactory,
   Page,
   PaginatedFilter,
   Projection,
@@ -44,9 +46,9 @@ describe('DummyDataSource > Collections > Books', () => {
   describe('create', () => {
     it('should return the record data', async () => {
       const bookCollection = instanciateCollection();
-      const data = [{ name: Symbol('name') }];
+      const [newRecord] = await bookCollection.create([{ id: undefined, title: 'Dune' }]);
 
-      expect(await bookCollection.create(data)).toMatchObject(data);
+      expect(newRecord).toMatchObject({ id: 7, title: 'Dune' });
     });
   });
 
@@ -72,18 +74,26 @@ describe('DummyDataSource > Collections > Books', () => {
   });
 
   describe('update', () => {
-    it('should do nothing', async () => {
+    it('should update books', async () => {
       const bookCollection = instanciateCollection();
+      await bookCollection.update(null, { title: 'newTitle' });
 
-      expect(await bookCollection.update(null, {})).toBe(undefined);
+      const paginatedFilter = new PaginatedFilter({});
+      const projection = new Projection('title');
+      const records = await bookCollection.list(paginatedFilter, projection);
+
+      expect(records[0].title).toEqual('newTitle');
     });
   });
 
   describe('delete', () => {
-    it('should do nothing', async () => {
+    it('should delete books', async () => {
       const bookCollection = instanciateCollection();
+      await bookCollection.delete(null);
 
-      expect(await bookCollection.delete(null)).toBe(undefined);
+      const paginatedFilter = new PaginatedFilter({});
+      const projection = new Projection();
+      expect(await bookCollection.list(paginatedFilter, projection)).toBeArrayOfSize(0);
     });
   });
 

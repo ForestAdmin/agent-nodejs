@@ -55,7 +55,8 @@ export default class BaseDummyCollection extends BaseCollection {
 
     for (const datum of data) {
       const maxId = this.records.reduce((id, r) => (id < r.id ? (r.id as number) : id), 1);
-      const record = { id: maxId + 1, ...datum };
+      const record = { id: null, ...datum };
+      if (!record.id) record.id = maxId + 1;
 
       this.records.push(record);
       records.push(record);
