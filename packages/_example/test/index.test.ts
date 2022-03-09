@@ -5,6 +5,8 @@ import agent from '../src/agent';
 
 describe('agent', () => {
   test('should start a server on port 3352', async () => {
+    jest.setTimeout(30000);
+
     nock('https://api.development.forestadmin.com')
       .get('/oidc/.well-known/openid-configuration')
       .reply(200, { registration_endpoint: 'https://fake-registration-endpoint.org' });

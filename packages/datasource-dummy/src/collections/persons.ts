@@ -22,11 +22,6 @@ export default class PersonsCollection extends BaseDummyCollection {
       type: FieldTypes.Column,
       columnType: PrimitiveTypes.String,
     },
-    books: {
-      type: FieldTypes.OneToMany,
-      foreignCollection: 'books',
-      foreignKey: 'authorId',
-    },
   };
 
   private static records: RecordData[] = [
