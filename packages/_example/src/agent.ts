@@ -4,7 +4,9 @@ import { ForestAdminHttpDriver, ForestAdminHttpDriverOptions } from '@forestadmi
 
 import prepareDummyDataSource from './datasources/dummy-library';
 import prepareLiveDataSource from './datasources/live-business';
-import prepareSequelizeDataSource from './datasources/sequelize-example';
+import prepareMssqlSequelizeDataSource from './datasources/sequelize/mssql';
+import prepareMysqlSequelizeDataSource from './datasources/sequelize/mysql';
+import prepareSequelizeDataSource from './datasources/sequelize/postgres';
 
 export default async function start(
   serverPort: number,
@@ -14,6 +16,8 @@ export default async function start(
   const dataSources = await Promise.all([
     prepareDummyDataSource(),
     prepareLiveDataSource(),
+    prepareMssqlSequelizeDataSource(),
+    prepareMysqlSequelizeDataSource(),
     prepareSequelizeDataSource(),
   ]);
 

@@ -11,6 +11,35 @@ services:
       - POSTGRES_PASSWORD=password
     volumes:
       - postgres-data:/var/lib/postgresql/data
+
+  mysql:
+    image: mysql:oracle
+    container_name: forest_agent_example_mysql
+    ports:
+      - '3306:3306'
+    environment:
+      - MYSQL_DATABASE=example
+      - MYSQL_USER=example
+      - MYSQL_PASSWORD=password
+      - MYSQL_ROOT_PASSWORD=password
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  mssql:
+    image: mcr.microsoft.com/azure-sql-edge
+    container_name: forest_agent_example_mssql
+    ports:
+      - '1433:1433'
+    environment:
+      - MSSQL_SA_PASSWORD=yourStrong(!)Password
+      - ACCEPT_EULA=Y
+    volumes:
+      - mssql-data:/var/opt/mssql
+
 volumes:
   postgres-data:
+    driver: local
+  mysql-data:
+    driver: local
+  mssql-data:
     driver: local

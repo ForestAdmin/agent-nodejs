@@ -1,6 +1,4 @@
-import { DataTypes, Sequelize } from 'sequelize';
-
-import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import { DataTypes, Dialect, Sequelize } from 'sequelize';
 
 import {
   DataSource,
@@ -13,13 +11,16 @@ import {
   SegmentCollectionDecorator,
   SortEmulateCollectionDecorator,
 } from '@forestadmin/datasource-toolkit';
-import { faker } from '@faker-js/faker';
+import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
-const prepareDatabase = async (): Promise<Sequelize> => {
-  const sequelize = new Sequelize('postgres://example:password@localhost:5442/example');
+export async function prepareDatabase(
+  dialect: Dialect,
+  connectionString: string,
+): Promise<Sequelize> {
+  const sequelize = new Sequelize(connectionString, { logging: false });
 
   const City = sequelize.define(
-    'city',
+    `${dialect}City`,
     {
       cityId: {
         type: DataTypes.INTEGER,
@@ -33,7 +34,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
       },
       lastUpdate: {
         type: DataTypes.DATE,
-        defaultValue: Sequelize.literal('now()'),
+        defaultValue: Sequelize.fn(dialect === 'mssql' ? 'getdate' : 'now'),
         allowNull: false,
       },
     },
@@ -45,7 +46,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   );
 
   const Country = sequelize.define(
-    'country',
+    `${dialect}Country`,
     {
       countryId: {
         type: DataTypes.INTEGER,
@@ -59,7 +60,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
       },
       lastUpdate: {
         type: DataTypes.DATE,
-        defaultValue: Sequelize.literal('now()'),
+        defaultValue: Sequelize.fn(dialect === 'mssql' ? 'getdate' : 'now'),
         allowNull: false,
       },
     },
@@ -71,7 +72,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   );
 
   const Address = sequelize.define(
-    'address',
+    `${dialect}Address`,
     {
       addressId: {
         type: DataTypes.INTEGER,
@@ -91,7 +92,7 @@ const prepareDatabase = async (): Promise<Sequelize> => {
       },
       lastUpdate: {
         type: DataTypes.DATE,
-        defaultValue: Sequelize.literal('now()'),
+        defaultValue: Sequelize.fn(dialect === 'mssql' ? 'getdate' : 'now'),
         allowNull: false,
       },
     },
@@ -108,57 +109,13 @@ const prepareDatabase = async (): Promise<Sequelize> => {
   Address.belongsTo(City, { foreignKey: 'cityId', targetKey: 'cityId' });
 
   return sequelize;
-};
+}
 
-const prepareDataSource = async (): Promise<DataSource> => {
-  const sequelize = await prepareDatabase();
-
-  // NOTICE: First call to ensure DB is ready to function.
-  //         This is a hack to prevent open handle with Jest.
-  if (process.env.NODE_ENV !== 'test') {
-    await sequelize.sync({ force: true });
-  }
+export default async function prepareDataSource(connectionString: string): Promise<DataSource> {
+  const [, dialect] = /(.*):\/\//.exec(connectionString);
+  const sequelize = await prepareDatabase(dialect as Dialect, connectionString);
 
   const dataSource = new SequelizeDataSource(sequelize);
-
-  // NOTICE: First call to ensure DB is ready to function.
-  //         This is a hack to prevent open handle with Jest.
-  if (process.env.NODE_ENV !== 'test') {
-    let cityRecords = [];
-    let countryRecords = [];
-    const addressRecords = [];
-    const ENTRIES = 100;
-
-    for (let i = 0; i < ENTRIES; i += 1) {
-      countryRecords.push({
-        country: faker.address.country(),
-        lastUpdate: faker.datatype.datetime(),
-      });
-    }
-
-    countryRecords = await dataSource.getCollection('country').create(countryRecords);
-
-    for (let i = 0; i < ENTRIES; i += 1) {
-      cityRecords.push({
-        city: faker.address.city(),
-        lastUpdate: faker.datatype.datetime(),
-        countryId: countryRecords[Math.floor(Math.random() * countryRecords.length)].countryId,
-      });
-    }
-
-    cityRecords = await dataSource.getCollection('city').create(cityRecords);
-
-    for (let i = 0; i < ENTRIES; i += 1) {
-      addressRecords.push({
-        address: faker.address.streetAddress(),
-        address2: faker.address.secondaryAddress(),
-        postalCode: faker.address.zipCode(),
-        cityId: cityRecords[Math.floor(Math.random() * cityRecords.length)].cityId,
-      });
-    }
-
-    await dataSource.getCollection('address').create(addressRecords);
-  }
 
   let deco: DataSource = new DataSourceDecorator(dataSource, OperatorsEmulateCollectionDecorator);
   deco = new DataSourceDecorator(deco, OperatorsReplaceCollectionDecorator);
@@ -169,6 +126,4 @@ const prepareDataSource = async (): Promise<DataSource> => {
   deco = new DataSourceDecorator(deco, SearchCollectionDecorator);
 
   return deco;
-};
-
-export default prepareDataSource;
+}
