@@ -2,7 +2,7 @@ import { Dialect, col, fn, literal } from 'sequelize';
 
 import { DateOperation } from '@forestadmin/datasource-toolkit';
 
-import { Fn } from 'sequelize/dist/lib/utils';
+import { Col, Fn } from 'sequelize/dist/lib/utils';
 
 export default class DateAggregationConverter {
   private static convertPostgres(field: string, operation: DateOperation): Fn {
@@ -12,52 +12,48 @@ export default class DateAggregationConverter {
   }
 
   private static convertMssql(field: string, operation: DateOperation): Fn {
-    const dayFormat = 'yyyy-MM-dd';
-
-    if (operation === DateOperation.ToWeek) {
-      const aggregateFunction = fn(
-        'DATEADD',
-        literal('DAY'),
-        literal(`-DATEPART(dw, ${field})+2`),
-        col(field),
-      );
-
-      return fn('FORMAT', aggregateFunction, dayFormat);
-    }
-
-    let format: string;
+    let dateToConvert: Col | Fn;
 
     switch (operation) {
       case DateOperation.ToYear:
-        format = 'yyyy-01-01';
+        dateToConvert = fn(
+          'DATEFROMPARTS',
+          fn('DATEPART', literal('YEAR'), col(field)),
+          '01',
+          '01',
+        );
         break;
       case DateOperation.ToMonth:
-        format = 'yyyy-MM-01';
+        dateToConvert = fn(
+          'DATEFROMPARTS',
+          fn('DATEPART', literal('YEAR'), col(field)),
+          fn('DATEPART', literal('MONTH'), col(field)),
+          '01',
+        );
+        break;
+      case DateOperation.ToWeek:
+        dateToConvert = fn(
+          'DATEADD',
+          literal('DAY'),
+          literal(`-DATEPART(dw, ${field})+2`),
+          col(field),
+        );
         break;
       case DateOperation.ToDay:
-        format = dayFormat;
+        dateToConvert = col(field);
         break;
       default:
         throw new Error(`Unknow Date operation: "${operation}"`);
     }
 
-    return fn('FORMAT', col(field), format);
+    // eslint-disable-next-line max-len
+    // https://docs.microsoft.com/en-us/sql/t-sql/functions/cast-and-convert-transact-sql?redirectedfrom=MSDN&view=sql-server-ver15
+    return fn('CONVERT', literal('varchar(10)'), dateToConvert, 23);
   }
 
   private static convertMysql(field: string, operation: DateOperation): Fn {
-    const dayFormat = '%Y-%m-%d';
-
-    if (operation === DateOperation.ToWeek) {
-      const aggregateFunction = fn(
-        'DATE_SUB',
-        col(field),
-        literal(`INTERVAL(WEEKDAY(${field})) DAY`),
-      );
-
-      return fn('DATE_FORMAT', aggregateFunction, dayFormat);
-    }
-
-    let format: string;
+    let format = '%Y-%m-%d';
+    let dateToConvert: Col | Fn = col(field);
 
     switch (operation) {
       case DateOperation.ToYear:
@@ -66,14 +62,16 @@ export default class DateAggregationConverter {
       case DateOperation.ToMonth:
         format = '%Y-%m-01';
         break;
+      case DateOperation.ToWeek:
+        dateToConvert = fn('DATE_SUB', col(field), literal(`INTERVAL(WEEKDAY(${field})) DAY`));
+        break;
       case DateOperation.ToDay:
-        format = dayFormat;
         break;
       default:
         throw new Error(`Unknow Date operation: "${operation}"`);
     }
 
-    return fn('DATE_FORMAT', col(field), format);
+    return fn('DATE_FORMAT', dateToConvert, format);
   }
 
   private static convertSqlite(field: string, operation: DateOperation): Fn {

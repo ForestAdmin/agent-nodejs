@@ -706,16 +706,18 @@ describe('SequelizeDataSource > Collection', () => {
               { group: { date__field__: 'date__field__:value' }, value: '__aggregate__:value' },
             ]);
 
+            const aggregateFunction = {
+              fn: 'CONVERT',
+              args: [{ val: 'varchar(10)' }, { col: '[model].[date__field__]' }, 23],
+            };
+
             expect(findAll).toHaveBeenCalledTimes(1);
             expect(findAll).toHaveBeenCalledWith(
               expect.objectContaining({
                 attributes: expect.arrayContaining([
-                  [
-                    { args: [{ col: '[model].[date__field__]' }, 'yyyy-MM-dd'], fn: 'FORMAT' },
-                    'date__field____grouped__',
-                  ],
+                  [aggregateFunction, 'date__field____grouped__'],
                 ]),
-                group: [{ args: [{ col: '[model].[date__field__]' }, 'yyyy-MM-dd'], fn: 'FORMAT' }],
+                group: [aggregateFunction],
               }),
             );
           });

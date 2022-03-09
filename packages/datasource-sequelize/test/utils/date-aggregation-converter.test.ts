@@ -49,30 +49,62 @@ describe('Utils > DateAggregationConverter', () => {
         ).toThrowError('Unknow Date operation: "unknown"');
       });
 
-      it.each([
-        [DateOperation.ToYear, 'yyyy-01-01'],
-        [DateOperation.ToMonth, 'yyyy-MM-01'],
-        [DateOperation.ToDay, 'yyyy-MM-dd'],
-      ])(
-        'should return the right aggregation function for %s operation',
-        (dateOperation, format) => {
-          const aggregationFunction = DateAggregationConverter.convertToDialect(
-            'mssql',
-            'a__field',
-            dateOperation,
-          );
+      it('should return the right aggregation function for Year operation', () => {
+        const aggregationFunction = DateAggregationConverter.convertToDialect(
+          'mssql',
+          'a__field',
+          DateOperation.ToYear,
+        );
 
-          expect(aggregationFunction).toEqual({
-            fn: 'FORMAT',
-            args: [
-              {
-                col: 'a__field',
-              },
-              format,
-            ],
-          });
-        },
-      );
+        expect(aggregationFunction).toEqual({
+          fn: 'CONVERT',
+          args: [
+            { val: 'varchar(10)' },
+            {
+              fn: 'DATEFROMPARTS',
+              args: [{ fn: 'DATEPART', args: [{ val: 'YEAR' }, { col: 'a__field' }] }, '01', '01'],
+            },
+            23,
+          ],
+        });
+      });
+
+      it('should return the right aggregation function for Month operation', () => {
+        const aggregationFunction = DateAggregationConverter.convertToDialect(
+          'mssql',
+          'a__field',
+          DateOperation.ToMonth,
+        );
+
+        expect(aggregationFunction).toEqual({
+          fn: 'CONVERT',
+          args: [
+            { val: 'varchar(10)' },
+            {
+              fn: 'DATEFROMPARTS',
+              args: [
+                { fn: 'DATEPART', args: [{ val: 'YEAR' }, { col: 'a__field' }] },
+                { fn: 'DATEPART', args: [{ val: 'MONTH' }, { col: 'a__field' }] },
+                '01',
+              ],
+            },
+            23,
+          ],
+        });
+      });
+
+      it('should return the right aggregation function for Day operation', () => {
+        const aggregationFunction = DateAggregationConverter.convertToDialect(
+          'mssql',
+          'a__field',
+          DateOperation.ToDay,
+        );
+
+        expect(aggregationFunction).toEqual({
+          fn: 'CONVERT',
+          args: [{ val: 'varchar(10)' }, { col: 'a__field' }, 23],
+        });
+      });
 
       it('should return the right aggregation function for Week operation', () => {
         const aggregationFunction = DateAggregationConverter.convertToDialect(
@@ -82,23 +114,14 @@ describe('Utils > DateAggregationConverter', () => {
         );
 
         expect(aggregationFunction).toEqual({
-          fn: 'FORMAT',
+          fn: 'CONVERT',
           args: [
+            { val: 'varchar(10)' },
             {
               fn: 'DATEADD',
-              args: [
-                {
-                  val: 'DAY',
-                },
-                {
-                  val: '-DATEPART(dw, a__field)+2',
-                },
-                {
-                  col: 'a__field',
-                },
-              ],
+              args: [{ val: 'DAY' }, { val: '-DATEPART(dw, a__field)+2' }, { col: 'a__field' }],
             },
-            'yyyy-MM-dd',
+            23,
           ],
         });
       });
