@@ -1,3 +1,5 @@
+import { FindOptions, ModelDefined, ProjectionAlias, col, fn } from 'sequelize';
+
 import {
   AggregateResult,
   Aggregation,
@@ -9,13 +11,15 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { col as Col, FindOptions, fn as Fn, ModelDefined, ProjectionAlias } from 'sequelize';
+
+import AggregationUtils from './utils/aggregation';
 import ModelConverter from './utils/model-to-collection-schema-converter';
 import QueryConverter from './utils/query-converter';
 
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected model: ModelDefined<any, any> = null;
+  protected model: ModelDefined<any, any>;
+  private aggregationUtils: AggregationUtils;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(name: string, datasource: DataSource, model: ModelDefined<any, any>) {
@@ -24,6 +28,7 @@ export default class SequelizeCollection extends BaseCollection {
     if (!model) throw new Error('Invalid (null) model instance.');
 
     this.model = model;
+    this.aggregationUtils = new AggregationUtils(this.model);
 
     const modelSchema = ModelConverter.convert(this.model);
 
@@ -79,28 +84,22 @@ export default class SequelizeCollection extends BaseCollection {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    const aggregateFieldName = '__aggregate__';
-    const getGroupFieldName = (groupField: string) => `${groupField}__grouped__`;
+    let aggregationField = aggregation.field;
 
-    const unAmbigousField = (field: string) => {
-      if (field.includes(':')) {
-        const [associationName, fieldName] = field.split(':');
-        const model = this.model.associations[associationName].target;
+    if (aggregation.operation === AggregationOperation.Count || !aggregationField) {
+      aggregationField = '*';
+    } else {
+      aggregationField = this.aggregationUtils.unAmbigousField(aggregationField);
+    }
 
-        return `${associationName}.${model.getAttributes()[fieldName].field}`;
-      }
-
-      return `${this.model.name}.${this.model.getAttributes()[field].field}`;
-    };
-
-    const { operation } = aggregation;
-    let aggregationField = aggregation.field && unAmbigousField(aggregation.field);
-    if (operation === AggregationOperation.Count || !aggregationField) aggregationField = '*';
-
+    const aggregationFunction = fn(aggregation.operation.toUpperCase(), col(aggregationField));
     const aggregationAttribute: ProjectionAlias = [
-      Fn(operation.toUpperCase(), Col(aggregationField)),
-      aggregateFieldName,
+      aggregationFunction,
+      this.aggregationUtils.aggregateFieldName,
     ];
+
+    const { groups, attributes: groupAttributes } =
+      this.aggregationUtils.getGroupAndAttributesFromAggregation(aggregation.groups);
 
     let include = QueryConverter.getIncludeFromProjection(aggregation.projection);
 
@@ -110,19 +109,7 @@ export default class SequelizeCollection extends BaseCollection {
       );
     }
 
-    const groupAttributes = [];
-    const groups = aggregation.groups
-      ?.filter(group => !group.operation)
-      .map(group => {
-        const { field } = group;
-        const groupFieldName = getGroupFieldName(field);
-        const groupField = unAmbigousField(field);
-        groupAttributes.push([Col(groupField), groupFieldName]);
-
-        return groupFieldName;
-      });
-
-    // TODO handle date grouping properly another PR
+    const order = this.aggregationUtils.getOrder(aggregationFunction);
 
     const query: FindOptions = {
       attributes: [...groupAttributes, aggregationAttribute],
@@ -130,26 +117,13 @@ export default class SequelizeCollection extends BaseCollection {
       where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
       include,
       limit,
-      order: [[Col(aggregateFieldName), 'DESC']], // FIXME handle properly order
+      order: [order],
       subQuery: false,
       raw: true,
     };
 
-    const aggregates = await this.model.findAll(query);
+    const rows = await this.model.findAll(query);
 
-    const result = aggregates.map(aggregate => {
-      const aggregateResult = {
-        value: aggregate[aggregateFieldName] as number,
-        group: {},
-      };
-
-      aggregation.groups?.forEach(({ field }) => {
-        aggregateResult.group[field] = aggregate[getGroupFieldName(field)];
-      });
-
-      return aggregateResult;
-    });
-
-    return result;
+    return this.aggregationUtils.computeResult(rows, aggregation.groups);
   }
 }

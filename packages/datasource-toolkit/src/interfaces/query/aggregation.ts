@@ -40,7 +40,7 @@ interface AggregationComponents {
   groups?: AggregationGroup[];
 }
 
-interface AggregationGroup {
+export interface AggregationGroup {
   field: string;
   operation?: DateOperation;
 }
