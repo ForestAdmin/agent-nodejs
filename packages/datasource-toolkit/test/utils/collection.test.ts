@@ -480,46 +480,4 @@ describe('CollectionUtils', () => {
       });
     });
   });
-
-  describe('getToManyRelation', () => {
-    test('should returns the relation when the relation is a many to many', () => {
-      const { dataSource } = setupWithManyToManyRelation();
-
-      const manyToManyCollection = dataSource.getCollection('books');
-      const result = CollectionUtils.getToManyRelation(
-        manyToManyCollection,
-        'manyToManyRelationField',
-      );
-      expect(result).toEqual(manyToManyCollection.schema.fields.manyToManyRelationField);
-    });
-
-    test('should returns the relation when the relation is a one to many', () => {
-      const { dataSource } = setupWithOneToManyRelation();
-
-      const oneToManyRelation = dataSource.getCollection('books');
-      const result = CollectionUtils.getToManyRelation(oneToManyRelation, 'oneToManyRelationField');
-      expect(result).toEqual(oneToManyRelation.schema.fields.oneToManyRelationField);
-    });
-
-    test('should throw an error when the relation is not expected', () => {
-      const { dataSource } = setupWithUnsupportedRelation();
-
-      const unsupportedRelation = dataSource.getCollection('books');
-      expect(() =>
-        CollectionUtils.getToManyRelation(unsupportedRelation, 'aNonSupportedRelationField'),
-      ).toThrow(
-        'Relation aNonSupportedRelationField has invalid type should be one of' +
-          ' OneToMany or ManyToMany.',
-      );
-    });
-
-    test('should throw an error when the relation is not inside model', () => {
-      const { dataSource } = setupWithUnsupportedRelation();
-
-      const unsupportedRelation = dataSource.getCollection('books');
-      expect(() =>
-        CollectionUtils.getToManyRelation(unsupportedRelation, 'anUnknoRelation'),
-      ).toThrow(`Relation 'anUnknoRelation' not found on collection 'books'`);
-    });
-  });
 });

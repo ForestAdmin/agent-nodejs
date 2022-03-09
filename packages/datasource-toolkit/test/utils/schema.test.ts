@@ -89,4 +89,50 @@ describe('SchemaUtils', () => {
       expect(result).toBeFalsy();
     });
   });
+
+  describe('getToManyRelation', () => {
+    test('should returns the relation when the relation is a many to many', () => {
+      const schema = factories.collectionSchema.build({
+        fields: {
+          field: factories.manyToManySchema.build(),
+        },
+      });
+
+      expect(SchemaUtils.getToManyRelation(schema, 'field')).toEqual(
+        factories.manyToManySchema.build(),
+      );
+    });
+
+    test('should returns the relation when the relation is a one to many', () => {
+      const schema = factories.collectionSchema.build({
+        fields: {
+          field: factories.oneToManySchema.build(),
+        },
+      });
+
+      expect(SchemaUtils.getToManyRelation(schema, 'field')).toEqual(
+        factories.oneToManySchema.build(),
+      );
+    });
+
+    test('should throw an error when the relation is not expected', () => {
+      const schema = factories.collectionSchema.build({
+        fields: {
+          field: factories.manyToOneSchema.build(),
+        },
+      });
+
+      expect(() => SchemaUtils.getToManyRelation(schema, 'field')).toThrow(
+        'Relation field has invalid type should be one of OneToMany or ManyToMany.',
+      );
+    });
+
+    test('should throw an error when the relation is not inside model', () => {
+      const schema = factories.collectionSchema.build({});
+
+      expect(() => SchemaUtils.getToManyRelation(schema, 'anUnknownRelation')).toThrow(
+        `Relation 'anUnknownRelation' not found`,
+      );
+    });
+  });
 });
