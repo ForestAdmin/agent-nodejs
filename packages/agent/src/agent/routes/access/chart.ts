@@ -6,7 +6,7 @@ import {
   ConditionTreeFactory,
   DateOperation,
   Filter,
-  FilterUtils,
+  FilterFactory,
   SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -74,7 +74,7 @@ export default class Chart extends CollectionRoute {
     if (withCountPrevious && !isAndAggregator) {
       result.countPrevious = await this.computeValue(
         context,
-        FilterUtils.getPreviousPeriodFilter(currentFilter),
+        FilterFactory.getPreviousPeriodFilter(currentFilter),
       );
     }
 

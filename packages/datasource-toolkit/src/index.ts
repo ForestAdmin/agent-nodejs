@@ -22,6 +22,7 @@ export { default as ConditionTreeFactory } from './interfaces/query/condition-tr
 export { default as ConditionTreeLeaf } from './interfaces/query/condition-tree/nodes/leaf';
 export { default as ConditionTreeNot } from './interfaces/query/condition-tree/nodes/not';
 export { default as Filter } from './interfaces/query/filter/unpaginated';
+export { default as FilterFactory } from './interfaces/query/filter/factory';
 export { default as Page } from './interfaces/query/page';
 export { default as PaginatedFilter } from './interfaces/query/filter/paginated';
 export { default as Projection } from './interfaces/query/projection';
@@ -39,7 +40,6 @@ export * from './interfaces/record';
 export * from './interfaces/schema';
 
 export { default as CollectionUtils } from './utils/collection';
-export { default as FilterUtils } from './utils/filter';
 export { default as RecordUtils } from './utils/record';
 export { default as SchemaUtils } from './utils/schema';
 
