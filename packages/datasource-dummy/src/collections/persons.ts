@@ -24,7 +24,7 @@ export default class PersonsCollection extends BaseDummyCollection {
     },
   };
 
-  private static records: RecordData[] = [
+  protected override records: RecordData[] = [
     {
       id: 1,
       firstName: 'Edward O.',
@@ -48,6 +48,6 @@ export default class PersonsCollection extends BaseDummyCollection {
   ];
 
   constructor(datasource: DataSource) {
-    super(datasource, 'persons', PersonsCollection.schema, PersonsCollection.records);
+    super(datasource, 'persons', PersonsCollection.schema);
   }
 }

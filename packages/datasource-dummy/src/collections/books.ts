@@ -30,7 +30,7 @@ export default class BooksCollection extends BaseDummyCollection {
     },
   };
 
-  private static records: RecordData[] = [
+  protected override records: RecordData[] = [
     {
       id: 1,
       title: 'Beat the dealer',
@@ -70,6 +70,6 @@ export default class BooksCollection extends BaseDummyCollection {
   ];
 
   constructor(datasource: DataSource) {
-    super(datasource, 'books', BooksCollection.schema, BooksCollection.records);
+    super(datasource, 'books', BooksCollection.schema);
   }
 }

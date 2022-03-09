@@ -34,18 +34,12 @@ export default class BaseDummyCollection extends BaseCollection {
     Operator.NotIn,
   ]);
 
-  private records: RecordData[];
+  protected records: RecordData[] = [];
 
-  constructor(
-    datasource: DataSource,
-    name: string,
-    fields: Record<string, FieldSchema>,
-    records: RecordData[],
-  ) {
+  constructor(datasource: DataSource, name: string, fields: Record<string, FieldSchema>) {
     super(name, datasource);
     this.addFields(fields);
     this.addAction('Mark as Live', { scope: ActionScope.Bulk, staticForm: true });
-    this.records = records;
 
     // filters/sort is supported
     for (const schema of Object.values(this.schema.fields)) {
@@ -57,7 +51,17 @@ export default class BaseDummyCollection extends BaseCollection {
   }
 
   async create(data: RecordData[]): Promise<RecordData[]> {
-    return data;
+    const records = [];
+
+    for (const datum of data) {
+      const maxId = this.records.reduce((id, r) => (id < r.id ? (r.id as number) : id), 1);
+      const record = { id: maxId + 1, ...datum };
+
+      this.records.push(record);
+      records.push(record);
+    }
+
+    return records;
   }
 
   async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
@@ -70,12 +74,17 @@ export default class BaseDummyCollection extends BaseCollection {
   }
 
   async update(filter: Filter, patch: RecordData): Promise<void> {
-    void filter;
-    void patch;
+    let target: RecordData[] = this.records.slice();
+    if (filter?.conditionTree) target = filter.conditionTree.apply(target, this, filter.timezone);
+
+    for (const record of target) Object.assign(record, patch);
   }
 
   async delete(filter: Filter): Promise<void> {
-    void filter;
+    let target: RecordData[] = this.records.slice();
+    if (filter?.conditionTree) target = filter.conditionTree.apply(target, this, filter.timezone);
+
+    for (const record of target) this.records.splice(this.records.indexOf(record), 1);
   }
 
   async aggregate(
