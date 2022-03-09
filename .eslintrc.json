@@ -18,7 +18,7 @@
   "plugins": ["@typescript-eslint", "prettier", "sort-imports-es6-autofix"],
   "rules": {
     "prettier/prettier": "error",
-    "max-len": ["error", { "code": 100, "ignorePattern": "^(import) .*" }],
+    "max-len": ["error", { "code": 100, "ignorePattern": "^(import|export) .*" }],
     "@typescript-eslint/lines-between-class-members": [
       "error",
       "always",
