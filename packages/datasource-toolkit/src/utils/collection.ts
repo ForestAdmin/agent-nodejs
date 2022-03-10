@@ -16,35 +16,33 @@ import Projection from '../interfaces/query/projection';
 import SchemaUtils from './schema';
 
 export default class CollectionUtils {
-  static getRelation(collection: Collection, path: string): Collection {
-    if (path?.length) {
-      const [field, ...subPath] = path.split(':');
-      const schema = collection.schema.fields[field];
-
-      if (!schema)
-        throw new Error(`Relation '${field}' not found on collection '${collection.name}'`);
-
-      if (schema.type !== FieldTypes.ManyToOne && schema.type !== FieldTypes.OneToOne)
-        throw new Error(`Invalid relation type: ${schema.type}`);
-
-      const association = collection.dataSource.getCollection(schema.foreignCollection);
-
-      return CollectionUtils.getRelation(association, subPath.join(':'));
-    }
-
-    return collection;
-  }
-
   static getFieldSchema(collection: Collection, path: string): FieldSchema {
-    const associationPath = path.split(':');
-    const columnPath = associationPath.pop();
-    const association = CollectionUtils.getRelation(collection, associationPath.join(':'));
+    const { fields } = collection.schema;
+    const index = path.indexOf(':');
 
-    if (!association.schema.fields[columnPath]) {
-      throw new Error(`Field '${columnPath}' not found on collection '${association.name}'`);
+    if (index === -1) {
+      if (!fields[path]) throw new Error(`Column not found '${collection.name}.${path}'`);
+
+      return fields[path];
     }
 
-    return association.schema.fields[columnPath];
+    const associationName = path.substring(0, index);
+    const schema = fields[associationName] as RelationSchema;
+
+    if (!schema) {
+      throw new Error(`Relation not found '${collection.name}.${associationName}'`);
+    }
+
+    if (schema.type !== FieldTypes.ManyToOne && schema.type !== FieldTypes.OneToOne) {
+      throw new Error(
+        `Unexpected field type '${schema.type}': '${collection.name}.${associationName}'`,
+      );
+    }
+
+    return CollectionUtils.getFieldSchema(
+      collection.dataSource.getCollection(schema.foreignCollection),
+      path.substring(index + 1),
+    );
   }
 
   static getInverseRelation(collection: Collection, relationName: string): string {
