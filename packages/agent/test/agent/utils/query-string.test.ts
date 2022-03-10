@@ -21,7 +21,6 @@ describe('QueryStringParser', () => {
       const context = createMockContext({});
 
       expect(QueryStringParser.parseConditionTree(collectionSimple, context)).toBeNull();
-      expect(context.throw).not.toBeCalled();
     });
 
     test('should work when passed in the querystring (for list)', () => {
@@ -40,7 +39,6 @@ describe('QueryStringParser', () => {
 
       const conditionTree = QueryStringParser.parseConditionTree(collectionSimple, context);
 
-      expect(context.throw).not.toHaveBeenCalled();
       expect(conditionTree).toEqual({
         field: 'id',
         operator: 'equal',
@@ -61,7 +59,6 @@ describe('QueryStringParser', () => {
 
       const conditionTree = QueryStringParser.parseConditionTree(collectionSimple, context);
 
-      expect(context.throw).not.toHaveBeenCalled();
       expect(conditionTree).toEqual({
         field: 'id',
         operator: 'equal',
@@ -88,7 +85,6 @@ describe('QueryStringParser', () => {
 
       const conditionTree = QueryStringParser.parseConditionTree(collectionSimple, context);
 
-      expect(context.throw).not.toHaveBeenCalled();
       expect(conditionTree).toEqual({
         field: 'id',
         operator: 'equal',
@@ -123,7 +119,6 @@ describe('QueryStringParser', () => {
 
           const projection = QueryStringParser.parseProjection(collectionSimple, context);
 
-          expect(context.throw).not.toBeCalled();
           expect(projection).toEqual(['id']);
         });
 
@@ -135,7 +130,6 @@ describe('QueryStringParser', () => {
 
             const projection = QueryStringParser.parseProjection(collectionSimple, context);
 
-            expect(context.throw).not.toBeCalled();
             expect(projection).toEqual(['name', 'id']);
           });
         });
@@ -204,7 +198,6 @@ describe('QueryStringParser', () => {
           context,
         );
 
-        expect(context.throw).not.toHaveBeenCalled();
         expect(projection).toEqual(['id', 'owner:name', 'owner:id']);
       });
     });
@@ -215,7 +208,6 @@ describe('QueryStringParser', () => {
       const context = createMockContext({});
 
       expect(QueryStringParser.parseSearch(collectionSimple, context)).toBeNull();
-      expect(context.throw).not.toBeCalled();
     });
 
     test('should throw an error when the collection is not searchable', () => {
@@ -239,7 +231,6 @@ describe('QueryStringParser', () => {
       });
 
       expect(QueryStringParser.parseSearch(collectionSimple, context)).toEqual('searched argument');
-      expect(context.throw).not.toBeCalled();
     });
 
     test('should convert the query search parameter as string', () => {
@@ -248,7 +239,6 @@ describe('QueryStringParser', () => {
       });
 
       expect(QueryStringParser.parseSearch(collectionSimple, context)).toEqual('1234');
-      expect(context.throw).not.toBeCalled();
     });
 
     test('should work when passed in the body (actions)', () => {
@@ -259,7 +249,6 @@ describe('QueryStringParser', () => {
       });
 
       expect(QueryStringParser.parseSearch(collectionSimple, context)).toEqual('searched argument');
-      expect(context.throw).not.toBeCalled();
     });
   });
 
@@ -296,7 +285,6 @@ describe('QueryStringParser', () => {
       });
 
       expect(QueryStringParser.parseSegment(collectionSimple, context)).toEqual(null);
-      expect(context.throw).not.toBeCalled();
     });
 
     test('should return the segment name when it exists', () => {
@@ -305,7 +293,6 @@ describe('QueryStringParser', () => {
       });
 
       expect(QueryStringParser.parseSegment(collectionSimple, context)).toEqual('fake-segment');
-      expect(context.throw).not.toBeCalled();
     });
 
     test('should throw a ValidationError when the segment name does not exist', () => {
@@ -326,7 +313,6 @@ describe('QueryStringParser', () => {
       });
 
       expect(QueryStringParser.parseSegment(collectionSimple, context)).toEqual('fake-segment');
-      expect(context.throw).not.toBeCalled();
     });
   });
 
@@ -337,7 +323,6 @@ describe('QueryStringParser', () => {
       });
 
       expect(QueryStringParser.parseTimezone(context)).toEqual('America/Los_Angeles');
-      expect(context.throw).not.toBeCalled();
     });
 
     test('should throw a ValidationError when the timezone is missing', () => {
@@ -399,7 +384,6 @@ describe('QueryStringParser', () => {
 
       const pagination = QueryStringParser.parsePagination(context);
 
-      expect(context.throw).not.toBeCalled();
       expect(pagination.limit).toEqual(10);
       expect(pagination.skip).toEqual(20);
     });
@@ -412,7 +396,6 @@ describe('QueryStringParser', () => {
 
         const pagination = QueryStringParser.parsePagination(context);
 
-        expect(context.throw).not.toBeCalled();
         expect(pagination.limit).toEqual(15);
         expect(pagination.skip).toEqual(0);
       });
@@ -439,7 +422,6 @@ describe('QueryStringParser', () => {
 
       const sort = QueryStringParser.parseSort(collectionSimple, context);
 
-      expect(context.throw).not.toBeCalled();
       expect(sort).toEqual([{ field: 'id', ascending: true }]);
     });
 
@@ -450,7 +432,6 @@ describe('QueryStringParser', () => {
 
       const sort = QueryStringParser.parseSort(collectionSimple, context);
 
-      expect(context.throw).not.toBeCalled();
       expect(sort).toEqual([{ field: 'name', ascending: false }]);
     });
 
