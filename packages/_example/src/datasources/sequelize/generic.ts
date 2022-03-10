@@ -1,18 +1,5 @@
 import { DataTypes, Dialect, Sequelize } from 'sequelize';
 
-import {
-  ActionCollectionDecorator,
-  ComputedCollectionDecorator,
-  DataSource,
-  DataSourceDecorator,
-  OperatorsEmulateCollectionDecorator,
-  OperatorsReplaceCollectionDecorator,
-  PublicationCollectionDecorator,
-  RenameCollectionDecorator,
-  SearchCollectionDecorator,
-  SegmentCollectionDecorator,
-  SortEmulateCollectionDecorator,
-} from '@forestadmin/datasource-toolkit';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
 export async function prepareDatabase(
@@ -113,21 +100,9 @@ export async function prepareDatabase(
   return sequelize;
 }
 
-export default async function prepareDataSource(connectionString: string): Promise<DataSource> {
+export default async (connectionString: string): Promise<SequelizeDataSource> => {
   const [, dialect] = /(.*):\/\//.exec(connectionString);
   const sequelize = await prepareDatabase(dialect as Dialect, connectionString);
 
-  const dataSource = new SequelizeDataSource(sequelize);
-
-  let deco: DataSource = new DataSourceDecorator(dataSource, ComputedCollectionDecorator);
-  deco = new DataSourceDecorator(deco, OperatorsEmulateCollectionDecorator);
-  deco = new DataSourceDecorator(deco, OperatorsReplaceCollectionDecorator);
-  deco = new DataSourceDecorator(deco, SortEmulateCollectionDecorator);
-  deco = new DataSourceDecorator(deco, SegmentCollectionDecorator);
-  deco = new DataSourceDecorator(deco, RenameCollectionDecorator);
-  deco = new DataSourceDecorator(deco, PublicationCollectionDecorator);
-  deco = new DataSourceDecorator(deco, SearchCollectionDecorator);
-  deco = new DataSourceDecorator(deco, ActionCollectionDecorator);
-
-  return deco;
-}
+  return new SequelizeDataSource(sequelize);
+};

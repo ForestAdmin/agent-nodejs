@@ -227,7 +227,7 @@ async function loadLiveDataSource(dataSource) {
   await dataSource.getCollection('item').create(itemRecords);
 }
 
-const prepareDataSource = async (): Promise<LiveDataSource> => {
+export default async (): Promise<LiveDataSource> => {
   const dataSource = new LiveDataSource(dataSourceSchema);
 
   await dataSource.syncCollections();
@@ -235,5 +235,3 @@ const prepareDataSource = async (): Promise<LiveDataSource> => {
 
   return dataSource;
 };
-
-export default prepareDataSource;

@@ -52,7 +52,7 @@ function getCrudRoutes(dataSource: DataSource, options: Options, services: Servi
   return routes;
 }
 
-function getRelatedAndRelatedRelationRoutes(
+function getRelatedRoutes(
   dataSource: DataSource,
   options: Options,
   services: Services,
@@ -95,17 +95,15 @@ function getActionRoutes(
 }
 
 export default function makeRoutes(
-  dataSources: DataSource[],
+  dataSource: DataSource,
   options: Options,
   services: Services,
 ): BaseRoute[] {
   const routes = [
     ...getRootRoutes(options, services),
-    ...dataSources.map(dataSource => getCrudRoutes(dataSource, options, services)).flat(),
-    ...dataSources
-      .map(dataSource => getRelatedAndRelatedRelationRoutes(dataSource, options, services))
-      .flat(),
-    ...dataSources.map(dataSource => getActionRoutes(dataSource, options, services)).flat(),
+    ...getCrudRoutes(dataSource, options, services),
+    ...getRelatedRoutes(dataSource, options, services),
+    ...getActionRoutes(dataSource, options, services),
   ];
 
   // Ensure routes and middlewares are loaded in the right order.

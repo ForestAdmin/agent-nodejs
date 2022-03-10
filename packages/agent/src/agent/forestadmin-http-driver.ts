@@ -19,10 +19,10 @@ import makeServices, { ForestAdminHttpDriverServices } from './services';
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
 
 export default class ForestAdminHttpDriver {
-  public readonly dataSources: DataSource[];
+  public readonly dataSource: DataSource;
   public readonly options: AgentOptionsWithDefaults;
-  public readonly routes: BaseRoute[] = [];
   public readonly services: ForestAdminHttpDriverServices;
+  public routes: BaseRoute[] = [];
 
   private readonly app = new Koa();
   private status: 'waiting' | 'running' | 'done' = 'waiting';
@@ -36,11 +36,10 @@ export default class ForestAdminHttpDriver {
     return this.app.callback();
   }
 
-  constructor(dataSource: DataSource | DataSource[], options: AgentOptions) {
-    this.dataSources = Array.isArray(dataSource) ? dataSource : [dataSource];
+  constructor(dataSource: DataSource, options: AgentOptions) {
+    this.dataSource = dataSource;
     this.options = OptionsUtils.withDefaults(options);
     this.services = makeServices(this.options);
-    this.routes = makeRoutes(this.dataSources, this.options, this.services);
 
     OptionsUtils.validate(this.options);
   }
@@ -58,7 +57,7 @@ export default class ForestAdminHttpDriver {
 
     // Build http application
     const router = new Router({ prefix: path.join('/', this.options.prefix) });
-
+    this.routes = makeRoutes(this.dataSource, this.options, this.services);
     this.routes.forEach(route => route.setupRoutes(router));
     await Promise.all(this.routes.map(route => route.bootstrap()));
 
@@ -68,7 +67,7 @@ export default class ForestAdminHttpDriver {
       .use(router.routes());
 
     // Send schema to forestadmin-server (if relevant).
-    const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSources);
+    const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSource);
     const schemaIsKnown = await ForestHttpApi.hasSchema(this.options, schema.meta.schemaFileHash);
 
     if (!schemaIsKnown) {

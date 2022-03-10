@@ -1,7 +1,5 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 import { readFile, writeFile } from 'fs/promises';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
 import JSONAPISerializer from 'json-api-serializer';
 import crypto from 'crypto';
 import stringify from 'json-stringify-pretty-compact';
@@ -15,9 +13,8 @@ type SerializedSchema = { meta: { schemaFileHash: string } };
 type Options = Pick<AgentOptions, 'isProduction' | 'prefix' | 'schemaPath'>;
 
 // Load version from package.json at startup
-const { version } = JSON.parse(
-  readFileSync(resolve(__dirname, '../../../../package.json'), 'utf8'),
-);
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { version } = require('../../../../package.json');
 
 /**
  * Generate and dispatch dataSource schema on agent start.
@@ -34,11 +31,11 @@ export default class SchemaEmitter {
 
   static async getSerializedSchema(
     options: Options,
-    dataSources: DataSource[],
+    dataSource: DataSource,
   ): Promise<SerializedSchema> {
     const schema: RawSchema = options.isProduction
       ? await SchemaEmitter.loadFromDisk(options.schemaPath)
-      : await SchemaEmitter.generate(options.prefix, dataSources);
+      : await SchemaEmitter.generate(options.prefix, dataSource);
 
     if (!options.isProduction) {
       const pretty = stringify(schema, { maxLength: 80 });
@@ -62,15 +59,13 @@ export default class SchemaEmitter {
     }
   }
 
-  private static async generate(prefix: string, dataSources: DataSource[]): Promise<RawSchema> {
+  private static async generate(prefix: string, dataSource: DataSource): Promise<RawSchema> {
     const allCollectionSchemas = [];
 
-    dataSources.forEach(dataSource => {
-      const dataSourceCollectionSchemas = dataSource.collections.map(collection =>
-        SchemaGeneratorCollection.buildSchema(prefix, collection),
-      );
-      allCollectionSchemas.push(...dataSourceCollectionSchemas);
-    });
+    const dataSourceCollectionSchemas = dataSource.collections.map(collection =>
+      SchemaGeneratorCollection.buildSchema(prefix, collection),
+    );
+    allCollectionSchemas.push(...dataSourceCollectionSchemas);
 
     return Promise.all(allCollectionSchemas);
   }

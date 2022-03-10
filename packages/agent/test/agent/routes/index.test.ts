@@ -53,7 +53,7 @@ describe('Route index', () => {
         const dataSource = setupWithoutRelation();
 
         const routes = makeRoutes(
-          [dataSource],
+          dataSource,
           factories.forestAdminHttpDriverOptions.build(),
           factories.forestAdminHttpDriverServices.build(),
         );
@@ -92,7 +92,7 @@ describe('Route index', () => {
         const dataSource = setupWithOneToManyRelation();
 
         const routes = makeRoutes(
-          [dataSource],
+          dataSource,
           factories.forestAdminHttpDriverOptions.build(),
           factories.forestAdminHttpDriverServices.build(),
         );
@@ -143,7 +143,7 @@ describe('Route index', () => {
         const dataSource = setupManyToManyRelation();
 
         const routes = makeRoutes(
-          [dataSource],
+          dataSource,
           factories.forestAdminHttpDriverOptions.build(),
           factories.forestAdminHttpDriverServices.build(),
         );
@@ -182,7 +182,7 @@ describe('Route index', () => {
         const dataSource = setupWithOneToOneRelation();
 
         const routes = makeRoutes(
-          [dataSource],
+          dataSource,
           factories.forestAdminHttpDriverOptions.build(),
           factories.forestAdminHttpDriverServices.build(),
         );
