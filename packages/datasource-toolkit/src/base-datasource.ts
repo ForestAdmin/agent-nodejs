@@ -1,7 +1,7 @@
 import { Collection, DataSource } from './interfaces/collection';
 
-export default abstract class BaseDataSource<T extends Collection> implements DataSource {
-  private _collections: { [collectionName: string]: T } = {};
+export default class BaseDataSource<T extends Collection> implements DataSource {
+  protected _collections: { [collectionName: string]: T } = {};
 
   public get collections(): T[] {
     return Object.values(this._collections);

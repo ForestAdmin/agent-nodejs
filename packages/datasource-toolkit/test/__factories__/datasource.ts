@@ -27,4 +27,8 @@ export class DataSourceFactory extends Factory<DataSource> {
   }
 }
 
-export default DataSourceFactory.define(() => ({ collections: [], getCollection: jest.fn() }));
+export default DataSourceFactory.define(() => ({
+  collections: [],
+  getCollection: jest.fn(),
+  addCollection: jest.fn(),
+}));

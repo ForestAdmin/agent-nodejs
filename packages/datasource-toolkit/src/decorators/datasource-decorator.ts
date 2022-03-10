@@ -8,14 +8,31 @@ type CollectionDecoratorConstructor<CollectionDecorator> = {
 export default class DataSourceDecorator<
   CollectionDecorator extends Collection,
 > extends BaseDataSource<CollectionDecorator> {
+  private readonly CollectionDecoratorCtor: CollectionDecoratorConstructor<CollectionDecorator>;
+  private readonly childDataSource: DataSource;
+  private addCollectionToChildDatasource: (collection: Collection) => void;
+
+  addCollectionObserver(collection: Collection) {
+    this.addCollectionToChildDatasource(collection);
+    this.addCollection(new this.CollectionDecoratorCtor(collection, this));
+  }
+
   constructor(
     childDataSource: DataSource,
-    CollectionDecoratorConstructor: CollectionDecoratorConstructor<CollectionDecorator>,
+    CollectionDecoratorCtor: CollectionDecoratorConstructor<CollectionDecorator>,
   ) {
     super();
 
-    for (const collection of childDataSource.collections) {
-      this.addCollection(new CollectionDecoratorConstructor(collection, this));
-    }
+    this.addCollectionToChildDatasource = childDataSource.addCollection.bind(childDataSource);
+    Reflect.defineProperty(childDataSource, 'addCollection', {
+      value: this.addCollectionObserver.bind(this),
+    });
+
+    this.childDataSource = childDataSource;
+    this.CollectionDecoratorCtor = CollectionDecoratorCtor;
+
+    this.childDataSource.collections.forEach(collection =>
+      this.addCollection(new this.CollectionDecoratorCtor(collection, this)),
+    );
   }
 }
