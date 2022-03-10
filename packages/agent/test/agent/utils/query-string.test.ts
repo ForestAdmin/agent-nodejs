@@ -48,7 +48,7 @@ describe('QueryStringParser', () => {
       });
     });
 
-    test('should work when passed in the body (for actions)', () => {
+    test('should work when passed in the body (for charts)', () => {
       const context = createMockContext({
         requestBody: {
           filters: JSON.stringify({
