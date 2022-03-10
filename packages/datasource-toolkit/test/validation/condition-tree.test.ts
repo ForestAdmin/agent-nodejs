@@ -24,7 +24,7 @@ describe('ConditionTreeValidation', () => {
         });
 
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrowError(
-          "Field 'fieldDoesNotExistInSchema' not found on collection 'a collection'",
+          "Column not found 'a collection.fieldDoesNotExistInSchema'",
         );
       });
 
@@ -96,7 +96,7 @@ describe('ConditionTreeValidation', () => {
           });
 
           expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-            "Field 'fieldDoesNotExistInSchema' not found on collection 'a collection'",
+            "Column not found 'a collection.fieldDoesNotExistInSchema'",
           );
         });
       });

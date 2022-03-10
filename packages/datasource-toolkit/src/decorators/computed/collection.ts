@@ -1,4 +1,9 @@
-import { CollectionSchema, ColumnSchema, FieldTypes } from '../../interfaces/schema';
+import {
+  CollectionSchema,
+  ColumnSchema,
+  FieldTypes,
+  RelationSchema,
+} from '../../interfaces/schema';
 import { ComputedDefinition, ProxyDefinition } from './types';
 import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
@@ -20,11 +25,13 @@ export default class ComputedCollection extends CollectionDecorator {
 
   /** @internal */
   getComputed(path: string): ComputedDefinition {
-    const associationPath = path.split(':');
-    const columnPath = associationPath.pop();
-    const association = CollectionUtils.getRelation(this, associationPath.join(':'));
+    const index = path.indexOf(':');
+    if (index === -1) return this.computeds[path];
 
-    return (association as ComputedCollection).computeds[columnPath];
+    const { foreignCollection } = this.schema.fields[path.substring(0, index)] as RelationSchema;
+    const association = this.dataSource.getCollection(foreignCollection);
+
+    return association.getComputed(path.substring(index + 1));
   }
 
   registerComputed(name: string, computed: ComputedDefinition): void {

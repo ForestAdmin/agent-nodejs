@@ -7,7 +7,6 @@ import {
 } from '../../interfaces/schema';
 import { RecordData } from '../../interfaces/record';
 import CollectionDecorator from '../collection-decorator';
-import CollectionUtils from '../../utils/collection';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import DataSourceDecorator from '../datasource-decorator';
 import FieldValidator from '../../validation/field';
@@ -118,10 +117,12 @@ export default class SortEmulate extends CollectionDecorator {
   }
 
   private isEmulated(path: string): boolean {
-    const associationPath = path.split(':');
-    const columnPath = associationPath.pop();
-    const association = CollectionUtils.getRelation(this, associationPath.join(':'));
+    const index = path.indexOf(':');
+    if (index === -1) return this.sorts.has(path);
 
-    return (association as SortEmulate).sorts.has(columnPath);
+    const { foreignCollection } = this.schema.fields[path.substring(0, index)] as RelationSchema;
+    const association = this.dataSource.getCollection(foreignCollection);
+
+    return association.isEmulated(path.substring(index + 1));
   }
 }
