@@ -2,8 +2,8 @@ import http from 'http';
 
 import { AgentOptions, ForestAdminHttpDriver } from '@forestadmin/agent';
 
-import prepareDummyDataSource from './datasources/dummy-library';
-import prepareLiveDataSource from './datasources/live-business';
+import prepareDummyDataSource from './datasources/dummy';
+import prepareLiveDataSource from './datasources/live';
 import prepareMssqlSequelizeDataSource from './datasources/sequelize/mssql';
 import prepareMysqlSequelizeDataSource from './datasources/sequelize/mysql';
 import prepareSequelizeDataSource from './datasources/sequelize/postgres';
