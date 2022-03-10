@@ -60,6 +60,7 @@ describe('SortEmulationDecoratorCollection', () => {
         let rows = records.slice();
         if (filter.conditionTree) rows = filter.conditionTree.apply(rows, books, 'Europe/Paris');
         if (filter.sort) rows = filter.sort.apply(rows);
+        if (filter.page) rows = filter.page.apply(rows);
 
         return projection.apply(rows);
       }),
