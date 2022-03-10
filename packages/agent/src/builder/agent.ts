@@ -70,11 +70,12 @@ export default class AgentBuilder {
    * Create a new Agent Builder.
    * If any options are missing, the default will be applied:
    * ```
-   * logger: console.log,
-   * prefix: '/forest',
-   * forestServerUrl: 'https://api.development.forestadmin.com',
-   * isProduction: false,
-   * schemaPath: '.forestadmin-schema.json',
+   *  clientId: null,
+   *  forestServerUrl: 'https://api.forestadmin.com',
+   *  logger: (level, data) => console.error(OptionsUtils.loggerPrefix[level], data),
+   *  prefix: '/forest',
+   *  schemaPath: '.forestadmin-schema.json',
+   *  permissionsCacheDurationInSeconds: 15 * 60,
    * ```
    * @param {AgentOptions} options options
    * @example
@@ -112,7 +113,7 @@ export default class AgentBuilder {
 
   /**
    * Add a datasource
-   * @param datasource the datasource to add
+   * @param {DataSource} datasource the datasource to add
    */
   addDatasource(datasource: DataSource): this {
     datasource.collections.forEach(collection => {
@@ -125,8 +126,8 @@ export default class AgentBuilder {
   /**
    * Allow to interact with a decorated collection
    * @param {string} name the name of the collection to manipulate
-   * @param {(collection: CollectionBuilder) => unknown} handle a function that provide a collection
-   *   builder on the given collection name
+   * @param {(collection: CollectionBuilder) => unknown} handle a function that provide a
+   *   collection builder on the given collection name
    * @example
    * ```
    * .collection('books', books => books.renameField('xx', 'yy'))
@@ -135,13 +136,6 @@ export default class AgentBuilder {
   collection(name: string, handle: (collection: CollectionBuilder) => unknown): this {
     if (this.action.getCollection(name)) {
       handle(new CollectionBuilder(this, name));
-    } else {
-      const names = this.action.collections.map(c => c.name);
-      const message = names.length
-        ? `'${name}' is not one of the known collections: ${names}`
-        : `No collections are registered`;
-
-      throw new Error(message);
     }
 
     return this;
