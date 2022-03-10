@@ -12,4 +12,15 @@ describe('DataSourceDecorator', () => {
     expect(decorator.collections[0].dataSource).toBe(decorator);
     expect(decorator.collections[0].childCollection).toBe(dataSource.collections[0]);
   });
+
+  test('should add collection to decorator if child datasource add a collection', () => {
+    const dataSource = factories.dataSource.build();
+    const decorator = new DataSourceDecorator(dataSource, DecoratedCollection);
+
+    expect(decorator.collections).toHaveLength(0);
+
+    dataSource.addCollection(factories.collection.build());
+
+    expect(decorator.collections).toHaveLength(1);
+  });
 });
