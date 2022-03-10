@@ -20,10 +20,14 @@ const DEFAULT_PAGE_TO_SKIP = 1;
 export default class QueryStringParser {
   static parseConditionTree(collection: Collection, context: Context): ConditionTree {
     try {
-      const string = context.request.query?.filters || context.request.body?.filters;
-      if (!string) return null;
+      const filters =
+        context.request.body?.data?.attributes?.all_records_subset_query?.filters ??
+        context.request.body?.filters ??
+        context.request.query?.filters;
 
-      const json = JSON.parse(string);
+      if (!filters) return null;
+
+      const json = JSON.parse(filters.toString());
       const conditionTree = ConditionTreeFactory.fromPlainObject(json);
       ConditionTreeValidator.validate(conditionTree, collection);
 
@@ -35,10 +39,7 @@ export default class QueryStringParser {
 
   static parseProjection(collection: Collection, context: Context): Projection {
     try {
-      let rootFields = context.request.query[`fields[${collection.name}]`];
-
-      rootFields = rootFields.toString().split(',');
-
+      const rootFields = context.request.query[`fields[${collection.name}]`].toString().split(',');
       const explicitRequest = rootFields.map(field => {
         const schema = collection.schema.fields[field];
 
@@ -58,23 +59,30 @@ export default class QueryStringParser {
   }
 
   static parseSearch(collection: Collection, context: Context): string {
-    const search = context.request.query.search?.toString() ?? null;
+    const search =
+      context.request.body?.data?.attributes?.all_records_subset_query?.search?.toString() ??
+      context.request.query.search?.toString();
 
     if (search && !collection.schema.searchable) {
       throw new ValidationError(`Collection is not searchable`);
     }
 
-    return search;
+    return search ?? null;
   }
 
   static parseSearchExtended(context: Context): boolean {
-    const extended = context.request.query.searchExtended?.toString?.();
+    const { request } = context;
+    const extended =
+      request.body?.data?.attributes?.all_records_subset_query?.searchExtended?.toString() ??
+      request.query.searchExtended?.toString();
 
     return !!extended && extended !== '0' && extended !== 'false';
   }
 
   static parseSegment(collection: Collection, context: Context): string {
-    const segment = context.request.query.segment?.toString();
+    const segment =
+      context.request.body?.data?.attributes?.all_records_subset_query?.segment?.toString() ??
+      context.request.query.segment?.toString();
 
     if (!segment) {
       return null;
@@ -111,10 +119,14 @@ export default class QueryStringParser {
 
   static parsePagination(context: Context): Page {
     const queryItemsPerPage = (
-      context.request.query['page[size]'] || DEFAULT_ITEMS_PER_PAGE
+      context.request.body?.data?.attributes?.all_records_subset_query?.['page[size]'] ??
+      context.request.query['page[size]'] ??
+      DEFAULT_ITEMS_PER_PAGE
     ).toString();
     const queryPageToSkip = (
-      context.request.query['page[number]'] || DEFAULT_PAGE_TO_SKIP
+      context.request.body?.data?.attributes?.all_records_subset_query?.['page[number]'] ??
+      context.request.query['page[number]'] ??
+      DEFAULT_PAGE_TO_SKIP
     ).toString();
 
     const itemsPerPage = Number.parseInt(queryItemsPerPage, 10);
@@ -136,7 +148,9 @@ export default class QueryStringParser {
   }
 
   static parseSort(collection: Collection, context: Context): Sort {
-    const sortString = context.request.query.sort?.toString();
+    const sortString =
+      context.request.body?.data?.attributes?.all_records_subset_query?.sort?.toString() ??
+      context.request.query.sort?.toString();
 
     try {
       if (!sortString) {
