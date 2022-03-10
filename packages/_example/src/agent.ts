@@ -1,6 +1,7 @@
 import http from 'http';
 
 import { AgentOptions, ForestAdminHttpDriver } from '@forestadmin/agent';
+import { BaseDataSource, Collection } from '@forestadmin/datasource-toolkit';
 
 import prepareDummyDataSource from './datasources/dummy';
 import prepareLiveDataSource from './datasources/live';
@@ -17,7 +18,14 @@ export default async function start(serverPort: number, serverHost: string, opti
     prepareSequelizeDataSource(),
   ]);
 
-  const driver = new ForestAdminHttpDriver(dataSources, options);
+  const compositeDatasource = new BaseDataSource<Collection>();
+  dataSources.forEach(datasource => {
+    datasource.collections.forEach(collection => {
+      compositeDatasource.addCollection(collection);
+    });
+  });
+
+  const driver = new ForestAdminHttpDriver(compositeDatasource, options);
 
   await driver.start();
 

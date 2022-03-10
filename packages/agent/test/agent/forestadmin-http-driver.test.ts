@@ -52,14 +52,6 @@ describe('ForestAdminHttpDriver', () => {
       expect(ForestHttpApi.hasSchema).toHaveBeenCalled();
       expect(makeRoutes).toHaveBeenCalled();
     });
-
-    it('should start with multiple databases', async () => {
-      const httpDriver = new ForestAdminHttpDriver([dataSource, dataSource], options);
-      await httpDriver.start();
-
-      expect(ForestHttpApi.hasSchema).toHaveBeenCalled();
-      expect(makeRoutes).toHaveBeenCalled();
-    });
   });
 
   describe('if forestadmin-server already has the schema', () => {
