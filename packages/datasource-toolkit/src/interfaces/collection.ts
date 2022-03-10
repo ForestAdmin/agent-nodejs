@@ -9,6 +9,7 @@ import Projection from './query/projection';
 export interface DataSource {
   get collections(): Collection[];
   getCollection(name: string): Collection;
+  addCollection(collection: Collection): void;
 }
 
 export interface Collection {
