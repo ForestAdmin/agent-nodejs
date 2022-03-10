@@ -40,6 +40,8 @@ export default class DeleteRoute extends CollectionRoute {
         await this.services.permissions.getScope(this.collection, context),
         selectedIds,
       ),
+      search: QueryStringParser.parseSearch(this.collection, context),
+      searchExtended: QueryStringParser.parseSearchExtended(context),
       segment: QueryStringParser.parseSegment(this.collection, context),
       timezone: QueryStringParser.parseTimezone(context),
     });
