@@ -154,30 +154,7 @@ export default class TypeConverter {
       case 'DATEONLY':
       case 'NOW':
       case 'TIME':
-        return new Set<Operator>([
-          ...this.baseOperators,
-          // Date operators
-          Operator.After,
-          Operator.AfterXHoursAgo,
-          Operator.Before,
-          Operator.BeforeXHoursAgo,
-          Operator.Future,
-          Operator.GreaterThan,
-          Operator.LessThan,
-          Operator.Past,
-          Operator.PreviousMonth,
-          Operator.PreviousMonthToDate,
-          Operator.PreviousQuarter,
-          Operator.PreviousQuarterToDate,
-          Operator.PreviousWeek,
-          Operator.PreviousWeekToDate,
-          Operator.PreviousXDays,
-          Operator.PreviousXDaysToDate,
-          Operator.PreviousYear,
-          Operator.PreviousYearToDate,
-          Operator.Today,
-          Operator.Yesterday,
-        ]);
+        return new Set<Operator>([...this.baseOperators, Operator.GreaterThan, Operator.LessThan]);
       case 'ENUM':
         return new Set<Operator>([...this.baseOperators, Operator.In, Operator.NotIn]);
       case 'JSON':
