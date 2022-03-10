@@ -10,6 +10,7 @@ import CollectionDecorator from '../collection-decorator';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import DataSourceDecorator from '../datasource-decorator';
 import FieldValidator from '../../validation/field';
+import Filter from '../../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
 import RecordUtils from '../../utils/record';
@@ -51,11 +52,12 @@ export default class SortEmulate extends CollectionDecorator {
     if (childFilter.page) referenceRecords = childFilter.page.apply(referenceRecords);
 
     // We now have the information we need to sort by the field
-    childFilter.conditionTree = ConditionTreeFactory.matchRecords(this.schema, referenceRecords);
-    childFilter.sort = null;
+    const newFilter = new Filter({
+      conditionTree: ConditionTreeFactory.matchRecords(this.schema, referenceRecords),
+    });
 
     let records: RecordData[];
-    records = await this.childCollection.list(childFilter, projection.withPks(this));
+    records = await this.childCollection.list(newFilter, projection.withPks(this));
     records = this.sortRecords(referenceRecords, records);
     records = projection.apply(records);
 
