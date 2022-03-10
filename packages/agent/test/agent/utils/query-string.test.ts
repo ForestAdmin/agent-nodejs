@@ -24,7 +24,7 @@ describe('QueryStringParser', () => {
       expect(context.throw).not.toBeCalled();
     });
 
-    test('should work when passed in the querystring', () => {
+    test('should work when passed in the querystring (for list)', () => {
       const context = createMockContext({
         customProperties: {
           query: {
@@ -48,7 +48,7 @@ describe('QueryStringParser', () => {
       });
     });
 
-    test('should work when passed in the body', () => {
+    test('should work when passed in the body (for actions)', () => {
       const context = createMockContext({
         requestBody: {
           filters: JSON.stringify({
@@ -56,6 +56,33 @@ describe('QueryStringParser', () => {
             operator: 'equal',
             value: '123e4567-e89b-12d3-a456-426614174000',
           }),
+        },
+      });
+
+      const conditionTree = QueryStringParser.parseConditionTree(collectionSimple, context);
+
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(conditionTree).toEqual({
+        field: 'id',
+        operator: 'equal',
+        value: '123e4567-e89b-12d3-a456-426614174000',
+      });
+    });
+
+    test('should work when passed in the body (for actions)', () => {
+      const context = createMockContext({
+        requestBody: {
+          data: {
+            attributes: {
+              all_records_subset_query: {
+                filters: JSON.stringify({
+                  field: 'id',
+                  operator: 'equal',
+                  value: '123e4567-e89b-12d3-a456-426614174000',
+                }),
+              },
+            },
+          },
         },
       });
 
@@ -223,6 +250,17 @@ describe('QueryStringParser', () => {
       expect(QueryStringParser.parseSearch(collectionSimple, context)).toEqual('1234');
       expect(context.throw).not.toBeCalled();
     });
+
+    test('should work when passed in the body (actions)', () => {
+      const context = createMockContext({
+        requestBody: {
+          data: { attributes: { all_records_subset_query: { search: 'searched argument' } } },
+        },
+      });
+
+      expect(QueryStringParser.parseSearch(collectionSimple, context)).toEqual('searched argument');
+      expect(context.throw).not.toBeCalled();
+    });
   });
 
   describe('parseSearchExtended', () => {
@@ -278,6 +316,17 @@ describe('QueryStringParser', () => {
       const fn = () => QueryStringParser.parseSegment(collectionSimple, context);
 
       expect(fn).toThrow('Invalid segment: "fake-segment-that-dont-exist"');
+    });
+
+    test('should work when passed in the body (actions)', () => {
+      const context = createMockContext({
+        requestBody: {
+          data: { attributes: { all_records_subset_query: { segment: 'fake-segment' } } },
+        },
+      });
+
+      expect(QueryStringParser.parseSegment(collectionSimple, context)).toEqual('fake-segment');
+      expect(context.throw).not.toBeCalled();
     });
   });
 
