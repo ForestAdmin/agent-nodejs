@@ -22,8 +22,8 @@ export default class CollectionBuilder {
 
   /**
    * Allow to rename a field of a given collection.
-   * @param oldName the current name of the field in a given collection
-   * @param newName the new name of the field
+   * @param {string} oldName the current name of the field in a given collection
+   * @param {string} newName the new name of the field
    * @example
    * ```
    * .renameField('theCurrentNameOfTheFieldIntheCollection', 'theNewNameOfTheField');
@@ -37,7 +37,7 @@ export default class CollectionBuilder {
 
   /**
    * Publish an array of fields by setting its visibility to true.
-   * @param names the array of field to publish
+   * @param {string[]} names the array of field to publish
    * @example
    * ```
    * .publishFields(['aFieldToPublish']);
@@ -52,7 +52,7 @@ export default class CollectionBuilder {
 
   /**
    * Unpublish an array of fields by setting its visibility to false.
-   * @param names the array of field to unpublish
+   * @param {string[]} names the array of field to unpublish
    * @example
    * ```
    * .publishFields(['aFieldToUnpublish']);
@@ -65,6 +65,20 @@ export default class CollectionBuilder {
     return this;
   }
 
+  /**
+   * Register a new "smart" action on the collection
+   * @param {string} name the name of the action
+   * @param {ActionDefinition} definition the definition of the action
+   * @example
+   * ```
+   * .registerAction('is live', {
+        scope: ActionScope.Single,
+        execute: async (context, responseBuilder) => {
+          return responseBuilder.success(`Is live!`);
+        },
+      })
+   * ```
+   */
   registerAction(name: string, definition: ActionDefinition): this {
     this.agentBuilder.action.getCollection(this.name).registerAction(name, definition);
 
@@ -133,7 +147,7 @@ export default class CollectionBuilder {
   /**
    * Enable sorting on a specific field using emulation.
    * As for all the emulation method, the field sorting will be done in-memory.
-   * @param name the name of the field to enable emulation on
+   * @param {string} name the name of the field to enable emulation on
    * @example
    * ```
    * .emulateSort('fullName');
@@ -147,8 +161,8 @@ export default class CollectionBuilder {
 
   /**
    * Allow to provide an implementation for the sorting.
-   * @param name the name of the field to enable sort
-   * @param equivalentSort the sort equivalent
+   * @param {string} name the name of the field to enable sort
+   * @param {SortClause[]} equivalentSort the sort equivalent
    * @example
    * ```
    * .implementSort(
@@ -171,8 +185,8 @@ export default class CollectionBuilder {
   /**
    * Enable filtering on a specific field with a specific operator using emulation.
    * As for all the emulation method, the field filtering will be done in-memory.
-   * @param name the name of the field to enable emulation on
-   * @param operator the operator to emulate
+   * @param {string} name the name of the field to enable emulation on
+   * @param {Operator} operator the operator to emulate
    * @example
    * ```
    * .emulateOperator('aField', Operator.In);
@@ -186,9 +200,9 @@ export default class CollectionBuilder {
 
   /**
    * Allow to provide an implementation for a specific operator on a specific field.
-   * @param name the name of the field to filter on
-   * @param operator the operator to implement
-   * @param replacer the proposed implementation
+   * @param {string} name the name of the field to filter on
+   * @param {Operator} operator the operator to implement
+   * @param {OperatorReplacer} replacer the proposed implementation
    * @example
    * ```
    * .implementOperator('booksCount', Operator.Equal, async (value: unknown) => {
