@@ -384,14 +384,9 @@ describe('ConditionTreeValidation', () => {
       });
     });
 
-    describe('when the operator is yesterday', () => {
-      it('should throw an error when a date is given', () => {
-        const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.Yesterday,
-          value: new Date(),
-          field: 'dateField',
-        });
-        const collection = factories.collection.build({
+    describe('date operator', () => {
+      const setupCollectionWithDateColumn = () => {
+        return factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
               dateField: factories.columnSchema.build({
@@ -401,114 +396,82 @@ describe('ConditionTreeValidation', () => {
             },
           }),
         });
+      };
 
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow();
+      describe('when it does not support a value', () => {
+        const operators = [
+          Operator.Blank,
+          Operator.Missing,
+          Operator.Present,
+          Operator.Yesterday,
+          Operator.Today,
+          Operator.PreviousQuarter,
+          Operator.PreviousYear,
+          Operator.PreviousMonth,
+          Operator.PreviousWeek,
+          Operator.Past,
+          Operator.Future,
+          Operator.PreviousWeekToDate,
+          Operator.PreviousMonthToDate,
+          Operator.PreviousQuarterToDate,
+          Operator.PreviousYearToDate,
+        ];
+
+        test.each(operators)('[%s] should throw an error when a date is given', operator => {
+          const collection = setupCollectionWithDateColumn();
+          const conditionTree = factories.conditionTreeLeaf.build({
+            operator,
+            value: new Date(),
+            field: 'dateField',
+          });
+
+          expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow();
+        });
+
+        test.each(operators)('[%s] should not throw an error when the value is empty', operator => {
+          const collection = setupCollectionWithDateColumn();
+          const conditionTree = factories.conditionTreeLeaf.build({
+            operator,
+            value: null,
+            field: 'dateField',
+          });
+
+          expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+        });
       });
 
-      it('should not throw an error when a value is empty', () => {
-        const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.Yesterday,
-          value: null,
-          field: 'dateField',
-        });
-        const collection = factories.collection.build({
-          schema: factories.collectionSchema.build({
-            fields: {
-              dateField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Date,
-                filterOperators: new Set(Object.values(Operator)),
-              }),
-            },
-          }),
+      describe('when it support only a number', () => {
+        const operators = [
+          Operator.PreviousXDays,
+          Operator.BeforeXHoursAgo,
+          Operator.AfterXHoursAgo,
+          Operator.PreviousXDaysToDate,
+        ];
+
+        test.each(operators)('[%s] should throw an error when a date is given', operator => {
+          const collection = setupCollectionWithDateColumn();
+          const conditionTree = factories.conditionTreeLeaf.build({
+            operator,
+            value: new Date(),
+            field: 'dateField',
+          });
+
+          expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow();
         });
 
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
-      });
-    });
+        test.each(operators)(
+          '[%s] should not throw an error when the value is a number',
+          operator => {
+            const collection = setupCollectionWithDateColumn();
+            const conditionTree = factories.conditionTreeLeaf.build({
+              operator,
+              value: 10,
+              field: 'dateField',
+            });
 
-    describe('when the operator is today', () => {
-      it('should throw an error when a date is given', () => {
-        const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.Today,
-          value: new Date(),
-          field: 'dateField',
-        });
-        const collection = factories.collection.build({
-          schema: factories.collectionSchema.build({
-            fields: {
-              dateField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Date,
-                filterOperators: new Set(Object.values(Operator)),
-              }),
-            },
-          }),
-        });
-
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow();
-      });
-
-      it('should not throw an error when a value is empty', () => {
-        const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.Today,
-          value: null,
-          field: 'dateField',
-        });
-        const collection = factories.collection.build({
-          schema: factories.collectionSchema.build({
-            fields: {
-              dateField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Date,
-                filterOperators: new Set(Object.values(Operator)),
-              }),
-            },
-          }),
-        });
-
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
-      });
-    });
-
-    describe('when the operator is PreviousYear', () => {
-      it('should not throw an error when a value is empty', () => {
-        const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.PreviousYear,
-          value: null,
-          field: 'dateField',
-        });
-        const collection = factories.collection.build({
-          schema: factories.collectionSchema.build({
-            fields: {
-              dateField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Date,
-                filterOperators: new Set(Object.values(Operator)),
-              }),
-            },
-          }),
-        });
-
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
-      });
-    });
-
-    describe('when the operator is PreviousQuarter', () => {
-      it('should not throw an error when a value is empty', () => {
-        const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.PreviousQuarter,
-          value: null,
-          field: 'dateField',
-        });
-        const collection = factories.collection.build({
-          schema: factories.collectionSchema.build({
-            fields: {
-              dateField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Date,
-                filterOperators: new Set(Object.values(Operator)),
-              }),
-            },
-          }),
-        });
-
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+            expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+          },
+        );
       });
     });
   });
