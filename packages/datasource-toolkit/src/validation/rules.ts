@@ -31,7 +31,7 @@ const BASE_DATEONLY_OPERATORS: Operator[] = [
   Operator.After,
 ];
 
-export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
+export const MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE: Readonly<
   Record<PrimitiveTypes, readonly Operator[]>
 > = Object.freeze({
   [PrimitiveTypes.String]: [
@@ -66,7 +66,7 @@ export const MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
   [PrimitiveTypes.Uuid]: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
 });
 
-export const MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
+export const MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE: Readonly<
   Record<PrimitiveTypes, readonly (ValidationTypes | PrimitiveTypes)[]>
 > = Object.freeze({
   [PrimitiveTypes.String]: [
@@ -89,8 +89,12 @@ export const MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
     ValidationTypesArray.Enum,
     ValidationPrimaryTypes.Null,
   ],
-  [PrimitiveTypes.Date]: [PrimitiveTypes.Date, ValidationPrimaryTypes.Null],
-  [PrimitiveTypes.Dateonly]: [PrimitiveTypes.Dateonly, ValidationPrimaryTypes.Null],
+  [PrimitiveTypes.Date]: [PrimitiveTypes.Date, PrimitiveTypes.Number, ValidationPrimaryTypes.Null],
+  [PrimitiveTypes.Dateonly]: [
+    PrimitiveTypes.Dateonly,
+    PrimitiveTypes.Number,
+    ValidationPrimaryTypes.Null,
+  ],
   [PrimitiveTypes.Json]: [PrimitiveTypes.Json, ValidationPrimaryTypes.Null],
   [PrimitiveTypes.Point]: [PrimitiveTypes.Point, ValidationPrimaryTypes.Null],
   [PrimitiveTypes.Timeonly]: [PrimitiveTypes.Timeonly, ValidationPrimaryTypes.Null],
@@ -103,7 +107,7 @@ export const MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE: Readonly<
 
 function computeAllowedTypesForOperators(): Record<Operator, PrimitiveTypes[]> {
   return Object.values(PrimitiveTypes).reduce((mapMemo, type) => {
-    const allowedOperators = MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE[type];
+    const allowedOperators = MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE[type];
     allowedOperators.forEach(operator => {
       if (mapMemo[operator]) {
         mapMemo[operator].push(type);
@@ -117,16 +121,32 @@ function computeAllowedTypesForOperators(): Record<Operator, PrimitiveTypes[]> {
 }
 
 const NO_TYPES_ALLOWED: ValidationTypes[] = [ValidationPrimaryTypes.Null];
-export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<
+export const MAP_ALLOWED_TYPES_FOR_OPERATOR: Readonly<
   Record<Operator, readonly (ValidationTypes | PrimitiveTypes)[]>
 > = Object.freeze({
   ...computeAllowedTypesForOperators(),
   [Operator.In]: Object.values(ValidationTypesArray),
   [Operator.NotIn]: Object.values(ValidationTypesArray),
   [Operator.IncludesAll]: Object.values(ValidationTypesArray),
+
   [Operator.Blank]: NO_TYPES_ALLOWED,
   [Operator.Missing]: NO_TYPES_ALLOWED,
   [Operator.Present]: NO_TYPES_ALLOWED,
   [Operator.Yesterday]: NO_TYPES_ALLOWED,
   [Operator.Today]: NO_TYPES_ALLOWED,
+  [Operator.PreviousQuarter]: NO_TYPES_ALLOWED,
+  [Operator.PreviousYear]: NO_TYPES_ALLOWED,
+  [Operator.PreviousMonth]: NO_TYPES_ALLOWED,
+  [Operator.PreviousWeek]: NO_TYPES_ALLOWED,
+  [Operator.Past]: NO_TYPES_ALLOWED,
+  [Operator.Future]: NO_TYPES_ALLOWED,
+  [Operator.PreviousWeekToDate]: NO_TYPES_ALLOWED,
+  [Operator.PreviousMonthToDate]: NO_TYPES_ALLOWED,
+  [Operator.PreviousQuarterToDate]: NO_TYPES_ALLOWED,
+  [Operator.PreviousYearToDate]: NO_TYPES_ALLOWED,
+
+  [Operator.PreviousXDaysToDate]: [PrimitiveTypes.Number],
+  [Operator.PreviousXDays]: [PrimitiveTypes.Number],
+  [Operator.BeforeXHoursAgo]: [PrimitiveTypes.Number],
+  [Operator.AfterXHoursAgo]: [PrimitiveTypes.Number],
 });

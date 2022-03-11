@@ -1,7 +1,7 @@
 import { Factory } from 'fishery';
 
 import { ColumnSchema, FieldTypes, PrimitiveTypes } from '../../../src/interfaces/schema';
-import { MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE } from '../../../src/validation/rules';
+import { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE } from '../../../src/validation/rules';
 import { Operator } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 
 export class ColumnSchemaFactory extends Factory<ColumnSchema> {
@@ -10,9 +10,7 @@ export class ColumnSchemaFactory extends Factory<ColumnSchema> {
       isPrimaryKey: true,
       type: FieldTypes.Column,
       columnType: PrimitiveTypes.Uuid,
-      filterOperators: new Set(
-        MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE[PrimitiveTypes.Uuid],
-      ),
+      filterOperators: new Set(MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE[PrimitiveTypes.Uuid]),
     });
   }
 }

@@ -1,9 +1,9 @@
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 import {
-  MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE,
-  MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER,
-  MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE,
+  MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE,
+  MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE,
+  MAP_ALLOWED_TYPES_FOR_OPERATOR,
 } from './rules';
 import CollectionUtils from '../utils/collection';
 import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
@@ -52,7 +52,7 @@ export default class ConditionTreeValidator {
     const { value } = conditionTree;
     const valueType = TypeGetter.get(value, columnSchema.columnType as PrimitiveTypes);
 
-    const allowedTypes = MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER[conditionTree.operator];
+    const allowedTypes = MAP_ALLOWED_TYPES_FOR_OPERATOR[conditionTree.operator];
 
     if (!allowedTypes.includes(valueType)) {
       throw new ValidationError(
@@ -74,7 +74,7 @@ export default class ConditionTreeValidator {
     columnSchema: ColumnSchema,
   ): void {
     const allowedOperators =
-      MAP_ALLOWED_OPERATORS_IN_FILTER_FOR_COLUMN_TYPE[columnSchema.columnType as PrimitiveTypes];
+      MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE[columnSchema.columnType as PrimitiveTypes];
 
     if (!allowedOperators.includes(conditionTree.operator)) {
       throw new ValidationError(
@@ -91,7 +91,7 @@ export default class ConditionTreeValidator {
   ): void {
     const { value, field } = conditionTree;
     const { columnType } = columnSchema;
-    const allowedTypes = MAP_ALLOWED_TYPES_IN_FILTER_FOR_COLUMN_TYPE[columnType as PrimitiveTypes];
+    const allowedTypes = MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE[columnType as PrimitiveTypes];
 
     FieldValidator.validateValue(field, columnSchema, value, allowedTypes);
   }
