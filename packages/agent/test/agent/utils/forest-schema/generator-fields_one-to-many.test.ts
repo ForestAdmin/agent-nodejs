@@ -27,7 +27,8 @@ describe('SchemaGeneratorFields > One to Many', () => {
           id: factories.columnSchema.isPrimaryKey().build(),
           writtenBooks: factories.oneToManySchema.build({
             foreignCollection: 'books',
-            foreignKey: 'authorId',
+            originKey: 'authorId',
+            originKeyTarget: 'id',
           }),
         },
       }),

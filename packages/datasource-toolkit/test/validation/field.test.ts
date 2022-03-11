@@ -11,7 +11,7 @@ describe('FieldValidator', () => {
           id: factories.columnSchema.isPrimaryKey().build(),
           owner: factories.oneToOneSchema.build({
             foreignCollection: 'owner',
-            foreignKey: 'id',
+            originKey: 'id',
           }),
         },
       }),

@@ -45,11 +45,11 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
         // Many to one, one to one and one to many need the foreign key to be published
         (field.type === FieldTypes.ManyToOne && this.isPublished(field.foreignKey)) ||
         ((field.type === FieldTypes.OneToOne || field.type === FieldTypes.OneToMany) &&
-          this.dataSource.getCollection(field.foreignCollection).isPublished(field.foreignKey)) ||
-        // Many to many relations depend on both foreignKey and otherField to be published
+          this.dataSource.getCollection(field.foreignCollection).isPublished(field.originKey)) ||
+        // Many to many relations depend on both foreignKey and originKey to be published
         (field.type === FieldTypes.ManyToMany &&
           this.dataSource.getCollection(field.throughCollection).isPublished(field.foreignKey) &&
-          this.dataSource.getCollection(field.throughCollection).isPublished(field.otherField)))
+          this.dataSource.getCollection(field.throughCollection).isPublished(field.originKey)))
     );
   }
 }

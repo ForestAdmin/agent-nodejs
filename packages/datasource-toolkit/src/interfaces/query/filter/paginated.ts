@@ -20,4 +20,13 @@ export default class PaginatedFilter extends Filter {
   override override(fields: PaginatedFilterComponents): PaginatedFilter {
     return new PaginatedFilter({ ...this, ...fields });
   }
+
+  override nest(prefix: string): PaginatedFilter {
+    if (!this.isNestable) throw new Error("Filter can't be nested");
+
+    return this.override({
+      conditionTree: this.conditionTree?.nest(prefix),
+      sort: this.sort?.nest(prefix),
+    });
+  }
 }

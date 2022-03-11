@@ -1,11 +1,13 @@
 import {
-  Collection,
+  CollectionUtils,
+  CompositeId,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   FieldTypes,
   Filter,
+  ManyToOneSchema,
+  OneToOneSchema,
   Operator,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
@@ -19,57 +21,82 @@ export default class UpdateRelation extends RelationRoute {
   setupRoutes(router: Router): void {
     router.put(
       `/${this.collection.name}/:parentId/relationships/${this.relationName}`,
-
       this.handleUpdateRelationRoute.bind(this),
     );
   }
 
   public async handleUpdateRelationRoute(context: Context): Promise<void> {
-    const data = context.request.body?.data;
-    const { id, type } = data;
-    const foreignKey = SchemaUtils.getForeignKeyName(this.collection.schema, type);
-    const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const relation = this.collection.schema.fields[this.relationName];
     const timezone = QueryStringParser.parseTimezone(context);
+    const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
+    const linkedId = IdUtils.unpackId(this.foreignCollection.schema, context.request.body?.data.id);
 
-    let targetCollection;
-    let conditions;
-
-    if (relation.type === FieldTypes.OneToOne) {
-      targetCollection = this.foreignCollection;
-      conditions = new ConditionTreeLeaf(foreignKey, Operator.Equal, parentId[0]);
-      await this.services.permissions.can(context, `edit:${targetCollection.name}`);
-      await this.removePreviousRelation(foreignKey, id, timezone, targetCollection, context);
-    } else {
-      targetCollection = this.collection;
-      conditions = ConditionTreeFactory.matchIds(this.collection.schema, [parentId]);
-      await this.services.permissions.can(context, `edit:${targetCollection.name}`);
+    if (relation.type === FieldTypes.ManyToOne) {
+      await this.updateManyToOne(context, relation, parentId, linkedId, timezone);
+    } else if (relation.type === FieldTypes.OneToOne) {
+      await this.updateOneToOne(context, relation, parentId, linkedId, timezone);
     }
-
-    const conditionTree = ConditionTreeFactory.intersect(
-      conditions,
-      await this.services.permissions.getScope(targetCollection, context),
-    );
-    await targetCollection.update(new Filter({ conditionTree, timezone }), {
-      [foreignKey]: IdUtils.unpackId(this.foreignCollection.schema, id),
-    });
 
     context.response.status = HttpCode.NoContent;
   }
 
-  private async removePreviousRelation(
-    foreignKey: string,
-    id: string,
-    timezone: string,
-    targetCollection: Collection,
+  private async updateManyToOne(
     context: Context,
-  ) {
-    const conditionTree = ConditionTreeFactory.intersect(
-      new ConditionTreeLeaf(foreignKey, Operator.Equal, id),
-      await this.services.permissions.getScope(targetCollection, context),
+    relation: ManyToOneSchema,
+    parentId: CompositeId,
+    linkedId: CompositeId,
+    timezone: string,
+  ): Promise<void> {
+    // Perms
+    const scope = await this.services.permissions.getScope(this.collection, context);
+    await this.services.permissions.can(context, `edit:${this.collection.name}`);
+
+    // Load the value that will be used as foreignKey (=== linkedId[0] most of the time)
+    const foreignValue = await CollectionUtils.getValue(
+      this.foreignCollection,
+      linkedId,
+      relation.foreignKeyTarget,
     );
-    await targetCollection.update(new Filter({ conditionTree, timezone }), {
-      [foreignKey]: null,
-    });
+
+    // Overwrite old foreignkey with new one (only one query needed).
+    const fkOwner = ConditionTreeFactory.matchIds(this.collection.schema, [parentId]);
+
+    await this.collection.update(
+      new Filter({ conditionTree: ConditionTreeFactory.intersect(fkOwner, scope), timezone }),
+      { [relation.foreignKey]: foreignValue },
+    );
+  }
+
+  private async updateOneToOne(
+    context: Context,
+    relation: OneToOneSchema,
+    parentId: CompositeId,
+    linkedId: CompositeId,
+    timezone: string,
+  ): Promise<void> {
+    // Permissions
+    const scope = await this.services.permissions.getScope(this.foreignCollection, context);
+    await this.services.permissions.can(context, `edit:${this.foreignCollection.name}`);
+
+    // Load the value that will be used as originKey (=== parentId[0] most of the time)
+    const originValue = await CollectionUtils.getValue(
+      this.collection,
+      parentId,
+      relation.originKeyTarget,
+    );
+
+    // Break old relation (may update zero or one records).
+    const oldFkOwner = new ConditionTreeLeaf(relation.originKey, Operator.Equal, originValue);
+    await this.foreignCollection.update(
+      new Filter({ conditionTree: ConditionTreeFactory.intersect(oldFkOwner, scope), timezone }),
+      { [relation.originKey]: null },
+    );
+
+    // Create new relation (will update exactly one record).
+    const newFkOwner = ConditionTreeFactory.matchIds(this.foreignCollection.schema, [linkedId]);
+    await this.foreignCollection.update(
+      new Filter({ conditionTree: ConditionTreeFactory.intersect(newFkOwner, scope), timezone }),
+      { [relation.originKey]: originValue },
+    );
   }
 }

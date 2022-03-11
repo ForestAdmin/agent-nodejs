@@ -38,9 +38,10 @@ const syndicateCollection: CollectionSchema = {
     users: {
       foreignCollection: 'user',
       foreignKey: 'userId',
-      originRelation: 'syndicate',
-      otherField: 'syndicateId',
-      targetRelation: 'users',
+      foreignKeyTarget: 'id',
+      foreignRelation: 'user',
+      originKey: 'syndicateId',
+      originKeyTarget: 'id',
       throughCollection: 'userSyndicate',
       type: FieldTypes.ManyToMany,
     },
@@ -66,21 +67,28 @@ const userCollection: CollectionSchema = {
       type: FieldTypes.Column,
     },
     companyId: {
+      columnType: PrimitiveTypes.Number,
+      type: FieldTypes.Column,
+    },
+    company: {
       foreignCollection: 'companie',
-      foreignKey: 'id',
+      foreignKey: 'companyId',
+      foreignKeyTarget: 'id',
       type: FieldTypes.ManyToOne,
     },
     items: {
       foreignCollection: 'item',
-      foreignKey: 'userId',
+      originKey: 'userId',
+      originKeyTarget: 'id',
       type: FieldTypes.OneToMany,
     },
-    syndicate: {
+    syndicates: {
       foreignCollection: 'syndicate',
       foreignKey: 'syndicateId',
-      originRelation: 'user',
-      otherField: 'userId',
-      targetRelation: 'syndicate',
+      foreignKeyTarget: 'id',
+      foreignRelation: 'syndicate',
+      originKey: 'userId',
+      originKeyTarget: 'id',
       throughCollection: 'userSyndicate',
       type: FieldTypes.ManyToMany,
     },
@@ -92,18 +100,33 @@ const userCollection: CollectionSchema = {
 const userSyndicateCollection: CollectionSchema = {
   actions: {},
   fields: {
-    rating2: {
+    id: {
+      columnType: PrimitiveTypes.Number,
+      isPrimaryKey: true,
+      type: FieldTypes.Column,
+    },
+    rating: {
+      columnType: PrimitiveTypes.Number,
+      type: FieldTypes.Column,
+    },
+    userId: {
+      columnType: PrimitiveTypes.Number,
+      type: FieldTypes.Column,
+    },
+    syndicateId: {
       columnType: PrimitiveTypes.Number,
       type: FieldTypes.Column,
     },
     user: {
       foreignCollection: 'user',
-      foreignKey: 'id',
+      foreignKey: 'userId',
+      foreignKeyTarget: 'id',
       type: FieldTypes.ManyToOne,
     },
     syndicate: {
       foreignCollection: 'syndicate',
-      foreignKey: 'id',
+      foreignKey: 'syndicateId',
+      foreignKeyTarget: 'id',
       type: FieldTypes.ManyToOne,
     },
   },
@@ -128,9 +151,20 @@ const itemCollection: CollectionSchema = {
       type: FieldTypes.Column,
     },
     userId: {
+      columnType: PrimitiveTypes.Number,
+      type: FieldTypes.Column,
+    },
+    user: {
       foreignCollection: 'user',
-      foreignKey: 'id',
+      foreignKey: 'userId',
+      foreignKeyTarget: 'id',
       type: FieldTypes.ManyToOne,
+    },
+    reference: {
+      foreignCollection: 'itemReference',
+      originKey: 'itemId',
+      originKeyTarget: 'id',
+      type: FieldTypes.OneToOne,
     },
   },
   searchable: false,
@@ -145,9 +179,14 @@ const itemReferenceCollection: CollectionSchema = {
       type: FieldTypes.Column,
     },
     itemId: {
+      columnType: PrimitiveTypes.Number,
+      type: FieldTypes.Column,
+    },
+    item: {
       foreignCollection: 'item',
-      foreignKey: 'id',
-      type: FieldTypes.OneToOne,
+      foreignKey: 'itemId',
+      foreignKeyTarget: 'id',
+      type: FieldTypes.ManyToOne,
     },
   },
   searchable: false,

@@ -13,7 +13,7 @@ export default function makeDummyDataSource(): DataSource {
   jointures.getCollection('persons').addJointure('books', {
     type: FieldTypes.OneToMany,
     foreignCollection: 'books',
-    foreignKey: 'authorId',
+    originKey: 'authorId',
   });
 
   jointures.getCollection('books').addJointure('author', {
@@ -24,22 +24,20 @@ export default function makeDummyDataSource(): DataSource {
 
   jointures.getCollection('books').addJointure('librairies', {
     type: FieldTypes.ManyToMany,
-    foreignKey: 'libraryId',
-    throughCollection: 'librariesBooks',
     foreignCollection: 'libraries',
-    originRelation: 'book',
-    targetRelation: 'library',
-    otherField: 'bookId',
+    throughCollection: 'librariesBooks',
+    originKey: 'bookId',
+    foreignKey: 'libraryId',
+    foreignRelation: 'library',
   });
 
   jointures.getCollection('libraries').addJointure('books', {
     type: FieldTypes.ManyToMany,
-    otherField: 'libraryId',
+    originKey: 'libraryId',
     foreignKey: 'bookId',
     throughCollection: 'librariesBooks',
     foreignCollection: 'books',
-    originRelation: 'library',
-    targetRelation: 'book',
+    foreignRelation: 'book',
   });
 
   jointures.getCollection('librariesBooks').addJointure('book', {

@@ -27,7 +27,7 @@ describe('PublicationCollectionDecorator', () => {
           id: factories.columnSchema.isPrimaryKey().build(),
           myBookPerson: factories.oneToOneSchema.build({
             foreignCollection: 'bookPersons',
-            foreignKey: 'personId',
+            originKey: 'personId',
           }),
         },
       }),
@@ -61,12 +61,12 @@ describe('PublicationCollectionDecorator', () => {
           myPersons: factories.manyToManySchema.build({
             foreignCollection: 'persons',
             foreignKey: 'personId',
-            otherField: 'bookId',
+            originKey: 'bookId',
             throughCollection: 'bookPersons',
           }),
           myBookPersons: factories.oneToManySchema.build({
             foreignCollection: 'bookPersons',
-            foreignKey: 'bookId',
+            originKey: 'bookId',
           }),
         },
       }),

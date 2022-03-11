@@ -1,10 +1,8 @@
 import {
   Aggregator,
+  Filter,
   Operator,
-  Page,
-  PaginatedFilter,
   PrimitiveTypes,
-  Sort,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
@@ -25,9 +23,12 @@ export const setupWithManyToManyRelation = () => {
         id: factories.columnSchema.isPrimaryKey().build(),
         manyToManyRelationField: factories.manyToManySchema.build({
           throughCollection: 'librariesBooks',
-          originRelation: 'myLibrary',
-          targetRelation: 'myBook',
+          foreignRelation: 'myBook',
           foreignCollection: 'books',
+          foreignKey: 'bookId',
+          foreignKeyTarget: 'id',
+          originKey: 'libraryId',
+          originKeyTarget: 'id',
         }),
       },
     }),
@@ -42,10 +43,12 @@ export const setupWithManyToManyRelation = () => {
         myBook: factories.manyToOneSchema.build({
           foreignCollection: 'books',
           foreignKey: 'bookId',
+          foreignKeyTarget: 'id',
         }),
         myLibrary: factories.manyToOneSchema.build({
           foreignCollection: 'libraries',
           foreignKey: 'libraryId',
+          foreignKeyTarget: 'id',
         }),
       },
     }),
@@ -58,9 +61,12 @@ export const setupWithManyToManyRelation = () => {
         id: factories.columnSchema.isPrimaryKey().build(),
         manyToManyRelationField: factories.manyToManySchema.build({
           throughCollection: 'librariesBooks',
-          originRelation: 'myBook',
-          targetRelation: 'myLibrary',
+          foreignRelation: 'myLibrary',
           foreignCollection: 'libraries',
+          foreignKey: 'libraryId',
+          foreignKeyTarget: 'id',
+          originKey: 'bookId',
+          originKeyTarget: 'id',
         }),
       },
     }),
@@ -99,7 +105,8 @@ export const setupWithOneToManyRelation = () => {
         id: factories.columnSchema.isPrimaryKey().build(),
         myBookPersons: factories.oneToManySchema.build({
           foreignCollection: 'bookPersons',
-          foreignKey: 'bookId',
+          originKey: 'bookId',
+          originKeyTarget: 'id',
         }),
       },
     }),
@@ -201,7 +208,7 @@ describe('DissociateDeleteRelatedRoute', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
-        new PaginatedFilter({
+        new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: Aggregator.And,
             conditions: expect.arrayContaining([
@@ -213,10 +220,10 @@ describe('DissociateDeleteRelatedRoute', () => {
               }),
             ]),
           }),
+          search: null,
+          searchExtended: false,
           segment: 'a-valid-segment',
           timezone: 'Europe/Paris',
-          page: new Page(0, 15),
-          sort: new Sort({ field: 'id', ascending: true }),
         }),
         expect.any(Object),
       );

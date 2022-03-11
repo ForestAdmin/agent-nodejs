@@ -1,4 +1,4 @@
-import { Aggregator, Filter, Operator, PaginatedFilter } from '@forestadmin/datasource-toolkit';
+import { Aggregator, Filter, Operator } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -40,7 +40,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
-        new PaginatedFilter({
+        new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: Aggregator.And,
             conditions: [
@@ -59,10 +59,10 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               }),
             ],
           }),
-          timezone: 'Europe/Paris',
+          search: null,
+          searchExtended: false,
           segment: null,
-          sort: expect.any(Object),
-          page: expect.any(Object),
+          timezone: 'Europe/Paris',
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -104,7 +104,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
-          new PaginatedFilter({
+          new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: Aggregator.And,
               conditions: [
@@ -123,10 +123,10 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
                 }),
               ],
             }),
-            timezone: 'Europe/Paris',
+            search: null,
+            searchExtended: false,
             segment: null,
-            sort: expect.any(Object),
-            page: expect.any(Object),
+            timezone: 'Europe/Paris',
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -165,16 +165,16 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           await count.handleDissociateDeleteRelatedRoute(context);
 
           expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
-            new PaginatedFilter({
+            new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: Operator.Equal,
                 value: '123e4567-e89b-12d3-a456-426614174088',
                 field: 'bookId',
               }),
-              timezone: 'Europe/Paris',
+              search: null,
+              searchExtended: false,
               segment: null,
-              sort: expect.any(Object),
-              page: expect.any(Object),
+              timezone: 'Europe/Paris',
             }),
           );
           expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -204,20 +204,20 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
       };
       const requestBody = {
         data: [
-          { id: '123e4567-e89b-12d3-a456-426614174001' },
-          { id: '123e4567-e89b-12d3-a456-426614174000' },
+          { id: '123e4567-e89b-12d3-a456-111111111111' },
+          { id: '123e4567-e89b-12d3-a456-222222222222' },
         ],
       };
       const context = createMockContext({ customProperties, requestBody });
 
       dataSource.getCollection('librariesBooks').list = jest
         .fn()
-        .mockReturnValue(requestBody.data.map(r => ({ libraryId: r.id })));
+        .mockReturnValue([{ libraryId: '123e4567-e89b-12d3-a456-000000000000' }]);
 
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
-        new PaginatedFilter({
+        new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: Aggregator.And,
             conditions: [
@@ -229,26 +229,41 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               factories.conditionTreeLeaf.build({
                 operator: Operator.In,
                 value: requestBody.data.map(r => r.id),
-                field: 'libraryId',
+                field: 'myLibrary:id',
               }),
             ],
           }),
-          timezone: 'Europe/Paris',
+          search: null,
+          searchExtended: false,
           segment: null,
-          sort: expect.any(Object),
-          page: expect.any(Object),
+          timezone: 'Europe/Paris',
         }),
       );
 
       expect(dataSource.getCollection('libraries').delete).toHaveBeenCalledWith(
         new Filter({
-          conditionTree: factories.conditionTreeLeaf.build({
-            operator: Operator.In,
-            value: requestBody.data.map(r => r.id),
-            field: 'id',
+          conditionTree: factories.conditionTreeBranch.build({
+            aggregator: Aggregator.And,
+            conditions: [
+              // user selection
+              factories.conditionTreeLeaf.build({
+                operator: Operator.In,
+                value: requestBody.data.map(r => r.id),
+                field: 'id',
+              }),
+
+              // parent-child restriction (on a related data context)
+              factories.conditionTreeLeaf.build({
+                operator: Operator.In,
+                value: ['123e4567-e89b-12d3-a456-000000000000'],
+                field: 'id',
+              }),
+            ],
           }),
-          timezone: 'Europe/Paris',
+          search: null,
+          searchExtended: false,
           segment: null,
+          timezone: 'Europe/Paris',
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -298,7 +313,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
-          new PaginatedFilter({
+          new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: Aggregator.And,
               conditions: [
@@ -313,26 +328,44 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
                     '123e4567-e89b-12d3-a456-426614174001',
                     '123e4567-e89b-12d3-a456-426614174002',
                   ],
-                  field: 'libraryId',
+                  field: 'myLibrary:id',
                 }),
               ],
             }),
-            timezone: 'Europe/Paris',
+            search: null,
+            searchExtended: false,
             segment: null,
-            sort: expect.any(Object),
-            page: expect.any(Object),
+            timezone: 'Europe/Paris',
           }),
         );
 
         expect(dataSource.getCollection('libraries').delete).toHaveBeenCalledWith(
           new Filter({
-            conditionTree: factories.conditionTreeLeaf.build({
-              operator: Operator.In,
-              value: idsToRemove.map(r => r.libraryId),
-              field: 'id',
+            conditionTree: factories.conditionTreeBranch.build({
+              aggregator: Aggregator.And,
+              conditions: [
+                // remove only selected ids
+                factories.conditionTreeLeaf.build({
+                  operator: Operator.NotIn,
+                  value: [
+                    '123e4567-e89b-12d3-a456-426614174001',
+                    '123e4567-e89b-12d3-a456-426614174002',
+                  ],
+                  field: 'id',
+                }),
+
+                // remove only children of the parent record
+                factories.conditionTreeLeaf.build({
+                  operator: Operator.In,
+                  value: idsToRemove.map(r => r.libraryId),
+                  field: 'id',
+                }),
+              ],
             }),
-            timezone: 'Europe/Paris',
+            search: null,
+            searchExtended: false,
             segment: null,
+            timezone: 'Europe/Paris',
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -377,16 +410,16 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           await count.handleDissociateDeleteRelatedRoute(context);
 
           expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
-            new PaginatedFilter({
+            new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: Operator.Equal,
                 value: '123e4567-e89b-12d3-a456-426614174088',
                 field: 'bookId',
               }),
-              timezone: 'Europe/Paris',
+              search: null,
+              searchExtended: false,
               segment: null,
-              sort: expect.any(Object),
-              page: expect.any(Object),
+              timezone: 'Europe/Paris',
             }),
           );
 
@@ -397,8 +430,10 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
                 value: idsToRemove.map(r => r.libraryId),
                 field: 'id',
               }),
-              timezone: 'Europe/Paris',
+              search: null,
+              searchExtended: false,
               segment: null,
+              timezone: 'Europe/Paris',
             }),
           );
 

@@ -30,9 +30,13 @@ describe('CollectionUtils', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
+          id: factories.columnSchema.build({
+            isPrimaryKey: true,
+            columnType: PrimitiveTypes.Number,
+          }),
           oneToManyRelationField: factories.oneToManySchema.build({
             foreignCollection: 'reviews',
-            foreignKey: 'bookId',
+            originKey: 'bookId',
           }),
         },
       }),
@@ -70,8 +74,7 @@ describe('CollectionUtils', () => {
           name: factories.columnSchema.build(),
           manyToManyRelationField: factories.manyToManySchema.build({
             throughCollection: 'librariesBooks',
-            originRelation: 'myBook',
-            targetRelation: 'myLibrary',
+            foreignRelation: 'myLibrary',
           }),
         },
       }),
@@ -177,12 +180,12 @@ describe('CollectionUtils', () => {
               myPersons: factories.manyToManySchema.build({
                 foreignCollection: 'persons',
                 foreignKey: 'personId',
-                otherField: 'bookId',
+                originKey: 'bookId',
                 throughCollection: 'bookPersons',
               }),
               myBookPersons: factories.oneToManySchema.build({
                 foreignCollection: 'bookPersons',
-                foreignKey: 'bookId',
+                originKey: 'bookId',
               }),
             },
           }),
@@ -211,12 +214,12 @@ describe('CollectionUtils', () => {
               id: factories.columnSchema.isPrimaryKey().build(),
               myBookPerson: factories.oneToOneSchema.build({
                 foreignCollection: 'bookPersons',
-                foreignKey: 'personId',
+                originKey: 'personId',
               }),
               myBooks: factories.manyToManySchema.build({
                 foreignCollection: 'books',
                 foreignKey: 'bookId',
-                otherField: 'personId',
+                originKey: 'personId',
                 throughCollection: 'bookPersons',
               }),
             },
@@ -314,6 +317,7 @@ describe('CollectionUtils', () => {
           'oneToManyRelationField',
           baseFilter,
           aggregation,
+          55,
         );
 
         const expectedCondition = ConditionTreeFactory.intersect(
@@ -323,6 +327,7 @@ describe('CollectionUtils', () => {
         expect(dataSource.getCollection('reviews').aggregate).toHaveBeenCalledWith(
           baseFilter.override({ conditionTree: expectedCondition }),
           aggregation,
+          55,
         );
       });
     });
@@ -348,11 +353,12 @@ describe('CollectionUtils', () => {
           'manyToManyRelationField',
           baseFilter,
           aggregation,
+          55,
         );
 
         const expectedCondition = ConditionTreeFactory.intersect(
-          baseFilter.conditionTree.nest('myLibrary'),
           new ConditionTreeLeaf('bookId', Operator.Equal, 2),
+          baseFilter.conditionTree.nest('myLibrary'),
         );
 
         expect(dataSource.getCollection('librariesBooks').aggregate).toHaveBeenCalledWith(
@@ -361,33 +367,10 @@ describe('CollectionUtils', () => {
             operation: AggregationOperation.Max,
             field: 'myLibrary:aField',
           }),
+          55,
         );
 
         expect(aggregateResults).toEqual([{ group: { id: 1, aField: '1' }, value: 34 }]);
-      });
-
-      describe('when any aggregate results has not the right prefix', () => {
-        test('should throw an error', async () => {
-          const { dataSource } = setupWithManyToManyRelation();
-
-          jest
-            .spyOn(dataSource.getCollection('librariesBooks'), 'aggregate')
-            .mockResolvedValue([
-              { value: 34, group: { 'myBook:id': 1, 'BAD_PREFIX:aField': '1' } },
-            ]);
-
-          await expect(() =>
-            CollectionUtils.aggregateRelation(
-              dataSource.getCollection('books'),
-              [2],
-              'manyToManyRelationField',
-              factories.filter.build(),
-              factories.aggregation.build(),
-            ),
-          ).rejects.toThrowError(
-            'This field BAD_PREFIX:aField does not have the right expected prefix: myBook',
-          );
-        });
       });
     });
   });
@@ -465,8 +448,8 @@ describe('CollectionUtils', () => {
         );
 
         const expectedCondition = ConditionTreeFactory.intersect(
-          paginatedFilter.conditionTree.nest('myLibrary'),
           new ConditionTreeLeaf('bookId', Operator.Equal, 2),
+          paginatedFilter.conditionTree.nest('myLibrary'),
         );
         expect(dataSource.getCollection('librariesBooks').list).toHaveBeenCalledWith(
           paginatedFilter.override({
@@ -478,6 +461,32 @@ describe('CollectionUtils', () => {
 
         expect(listResults).toEqual([{ id: 1, aField: 'aValue' }]);
       });
+    });
+  });
+
+  describe('getValue', () => {
+    test('it should return directly when called with one of the pks', async () => {
+      const { dataSource } = setupWithOneToManyRelation();
+      const books = dataSource.getCollection('books');
+
+      const value = await CollectionUtils.getValue(books, ['=[id-value]='], 'id');
+
+      expect(value).toEqual('=[id-value]=');
+      expect(books.list).not.toHaveBeenCalled();
+    });
+
+    test('it should return directly when called with one of the pks', async () => {
+      const { dataSource } = setupWithOneToManyRelation();
+      const books = dataSource.getCollection('books');
+      (books.list as jest.Mock).mockResolvedValue([{ field: 123 }]);
+
+      const value = await CollectionUtils.getValue(books, ['=[id-value]='], 'field');
+
+      expect(value).toEqual(123);
+      expect(books.list).toHaveBeenCalledWith(
+        { conditionTree: { field: 'id', operator: 'equal', value: '=[id-value]=' } },
+        ['field'],
+      );
     });
   });
 });

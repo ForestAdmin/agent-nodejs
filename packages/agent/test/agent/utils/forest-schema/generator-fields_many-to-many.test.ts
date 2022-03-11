@@ -11,7 +11,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
           reviewers: factories.manyToManySchema.build({
             foreignCollection: 'persons',
             foreignKey: 'personId',
-            otherField: 'bookId',
+            originKey: 'bookId',
             throughCollection: 'bookPersons',
           }),
         },
@@ -34,7 +34,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
           books: factories.manyToManySchema.build({
             foreignCollection: 'books',
             foreignKey: 'bookId',
-            otherField: 'personId',
+            originKey: 'personId',
             throughCollection: 'bookPersons',
           }),
         },

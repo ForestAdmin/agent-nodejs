@@ -4,5 +4,6 @@ import { FieldTypes, ManyToOneSchema } from '../../../src/interfaces/schema';
 export default Factory.define<ManyToOneSchema>(() => ({
   type: FieldTypes.ManyToOne,
   foreignKey: 'reviewId',
+  foreignKeyTarget: 'id',
   foreignCollection: 'review',
 }));

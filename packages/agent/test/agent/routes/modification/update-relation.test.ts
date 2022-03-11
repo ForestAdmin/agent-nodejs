@@ -65,10 +65,10 @@ describe('UpdateRelationRoute', () => {
 
         const customProperties = {
           query: { timezone: 'Europe/Paris' },
-          params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
+          params: { parentId: '00000000-0000-4000-8000-000000000000' },
         };
         const requestBody = {
-          data: { id: '123e4567-e89b-12d3-a456-426614174089', type: 'myPersons' },
+          data: { id: '11111111-1111-4111-8111-111111111111', type: 'myPersons' },
         };
         const context = createMockContext({ customProperties, requestBody });
 
@@ -85,14 +85,14 @@ describe('UpdateRelationRoute', () => {
               conditions: [
                 factories.conditionTreeLeaf.build({
                   operator: Operator.Equal,
-                  value: '123e4567-e89b-12d3-a456-426614174088',
+                  value: '00000000-0000-4000-8000-000000000000',
                   field: 'id',
                 }),
                 scopeCondition,
               ],
             }),
           }),
-          { personId: ['123e4567-e89b-12d3-a456-426614174089'] },
+          { personId: '11111111-1111-4111-8111-111111111111' },
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -113,7 +113,8 @@ describe('UpdateRelationRoute', () => {
                 id: factories.columnSchema.isPrimaryKey().build(),
                 owner: factories.oneToOneSchema.build({
                   foreignCollection: 'owner',
-                  foreignKey: 'bookId',
+                  originKey: 'bookId',
+                  originKeyTarget: 'id',
                 }),
               },
             }),
@@ -148,37 +149,39 @@ describe('UpdateRelationRoute', () => {
 
         const customProperties = {
           query: { timezone: 'Europe/Paris' },
-          params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
+          params: { parentId: '00000000-0000-4000-8000-000000000000' },
         };
         const requestBody = {
-          data: { id: '123e4567-e89b-12d3-a456-426614174089', type: 'owner' },
+          data: { id: '11111111-1111-4111-8111-111111111111', type: 'owner' },
         };
         const context = createMockContext({ customProperties, requestBody });
 
         await update.handleUpdateRelationRoute(context);
 
-        expect(dataSource.getCollection('owner').update).toHaveBeenCalledWith(
+        expect(dataSource.getCollection('owner').update).toHaveBeenNthCalledWith(
+          1,
           new Filter({
             timezone: 'Europe/Paris',
             conditionTree: factories.conditionTreeLeaf.build({
               operator: Operator.Equal,
-              value: '123e4567-e89b-12d3-a456-426614174089',
+              value: '00000000-0000-4000-8000-000000000000',
               field: 'bookId',
             }),
           }),
           { bookId: null },
         );
 
-        expect(dataSource.getCollection('owner').update).toHaveBeenCalledWith(
+        expect(dataSource.getCollection('owner').update).toHaveBeenNthCalledWith(
+          2,
           new Filter({
             timezone: 'Europe/Paris',
             conditionTree: factories.conditionTreeLeaf.build({
               operator: Operator.Equal,
-              value: '123e4567-e89b-12d3-a456-426614174088',
-              field: 'bookId',
+              value: '11111111-1111-4111-8111-111111111111',
+              field: 'id',
             }),
           }),
-          { bookId: ['123e4567-e89b-12d3-a456-426614174089'] },
+          { bookId: '00000000-0000-4000-8000-000000000000' },
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);

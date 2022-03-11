@@ -2,29 +2,6 @@ import * as factories from '../__factories__';
 import SchemaUtils from '../../src/utils/schema';
 
 describe('SchemaUtils', () => {
-  describe('getForeignKeyName', () => {
-    const schema = factories.collectionSchema.build({
-      fields: {
-        firstKey: factories.columnSchema.isPrimaryKey().build(),
-        relationField: factories.manyToOneSchema.build({
-          foreignKey: 'firstKey',
-        }),
-      },
-    });
-
-    test('should return the primary key name when the relation exist', () => {
-      const result = SchemaUtils.getForeignKeyName(schema, 'relationField');
-
-      expect(result).toStrictEqual('firstKey');
-    });
-
-    test('should return null when the relation does not exist', () => {
-      const result = SchemaUtils.getForeignKeyName(schema, 'badRelationField');
-
-      expect(result).toStrictEqual(null);
-    });
-  });
-
   describe('getPrimaryKeys', () => {
     const schema = factories.collectionSchema.build({
       fields: {

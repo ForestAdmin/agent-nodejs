@@ -22,8 +22,8 @@ export default class Serializer {
     this.prefix = options.prefix;
   }
 
-  serialize(collection: Collection, record: RecordData | RecordData[]): unknown {
-    const result = this.getSerializer(collection).serialize(collection.name, record);
+  serialize(collection: Collection, data: RecordData | RecordData[]): unknown {
+    const result = this.getSerializer(collection).serialize(collection.name, data);
     this.stripUndefinedsInPlace(result);
 
     return result;
@@ -86,12 +86,10 @@ export default class Serializer {
       if (field.type === FieldTypes.ManyToOne || field.type === FieldTypes.OneToOne) {
         relationships[name] = {
           type: field.foreignCollection,
-          alternativeKey: field.foreignKey,
           deserialize: (data: Record<string, unknown>) => {
-            return IdUtils.unpackId(
-              collection.dataSource.getCollection(field.foreignCollection).schema,
-              data.id as string,
-            )[0];
+            const foreignCollection = collection.dataSource.getCollection(field.foreignCollection);
+
+            return IdUtils.unpackId(foreignCollection.schema, data.id as string);
           },
         };
       }

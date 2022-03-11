@@ -122,7 +122,8 @@ describe('Projection', () => {
               name: factories.columnSchema.build(),
               owner: factories.oneToOneSchema.build({
                 foreignCollection: 'owner',
-                foreignKey: 'id',
+                originKey: 'id', // the ids of both collection are the same
+                originKeyTarget: 'id',
               }),
             },
           }),

@@ -32,28 +32,31 @@ export default class ModelToCollectionSchemaConverter {
         return {
           foreignCollection: association.target.name,
           foreignKey: association.foreignKey,
+          foreignKeyTarget: (association as unknown as { targetKey: string }).targetKey,
           type: FieldTypes.ManyToOne,
         };
       case BelongsToMany.name:
         return {
           foreignCollection: association.target.name,
-          foreignKey: association.foreignKey,
-          originRelation: association.source.name,
-          otherField: (association as BelongsToMany).otherKey,
-          targetRelation: association.target.name,
           throughCollection: (association as BelongsToMany).through.model.name,
+          originKey: (association as BelongsToMany).foreignKey,
+          originKeyTarget: (association as BelongsToMany).targetKey,
+          foreignKey: (association as BelongsToMany).otherKey,
+          foreignKeyTarget: (association as BelongsToMany).sourceKey,
           type: FieldTypes.ManyToMany,
         };
       case HasMany.name:
         return {
           foreignCollection: association.target.name,
-          foreignKey: association.foreignKey,
+          originKey: association.foreignKey,
+          originKeyTarget: (association as unknown as { sourceKey: string }).sourceKey,
           type: FieldTypes.OneToMany,
         };
       case HasOne.name:
         return {
           foreignCollection: association.target.name,
-          foreignKey: association.foreignKey,
+          originKey: association.foreignKey,
+          originKeyTarget: (association as unknown as { sourceKey: string }).sourceKey,
           type: FieldTypes.OneToOne,
         };
       default:

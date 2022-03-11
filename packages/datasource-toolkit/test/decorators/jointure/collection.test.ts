@@ -154,7 +154,7 @@ describe('JointureCollectionDecorator', () => {
         newPersons.addJointure('passport', {
           type: FieldTypes.OneToOne,
           foreignCollection: 'passports',
-          foreignKey: 'ownerId',
+          originKey: 'ownerId',
         }),
       ).not.toThrow();
     });
@@ -164,7 +164,7 @@ describe('JointureCollectionDecorator', () => {
         newPersons.addJointure('passport', {
           type: FieldTypes.OneToMany,
           foreignCollection: 'passports',
-          foreignKey: 'ownerId',
+          originKey: 'ownerId',
         }),
       ).not.toThrow();
     });
@@ -185,7 +185,7 @@ describe('JointureCollectionDecorator', () => {
           type: FieldTypes.ManyToMany,
           foreignCollection: 'passports',
           foreignKey: 'ownerId',
-          otherField: 'ownerId',
+          originKey: 'ownerId',
           throughCollection: 'passports',
         } as ManyToManySchema),
       ).not.toThrow();
@@ -219,7 +219,7 @@ describe('JointureCollectionDecorator', () => {
           newPersons.addJointure('persons', {
             type: FieldTypes.OneToOne,
             foreignCollection: 'passports',
-            foreignKey: '__nonExisting__',
+            originKey: '__nonExisting__',
           }),
         ).toThrow("Column not found: 'passports.__nonExisting__'");
       });
@@ -230,10 +230,22 @@ describe('JointureCollectionDecorator', () => {
             type: FieldTypes.ManyToMany,
             foreignCollection: 'passports',
             foreignKey: 'ownerId',
-            otherField: 'ownerId',
+            originKey: 'ownerId',
             throughCollection: '__nonExisting__',
           } as ManyToManySchema),
         ).toThrow('Collection "__nonExisting__" not found.');
+      });
+
+      test('should throw with a non existent originKey (many to many)', () => {
+        expect(() =>
+          newPersons.addJointure('persons', {
+            type: FieldTypes.ManyToMany,
+            foreignCollection: 'passports',
+            foreignKey: 'ownerId',
+            originKey: '__nonExisting__',
+            throughCollection: 'passports',
+          } as ManyToManySchema),
+        ).toThrow("Column not found: 'passports.__nonExisting__'");
       });
 
       test('should throw with a non existent fk (many to many)', () => {
@@ -241,20 +253,8 @@ describe('JointureCollectionDecorator', () => {
           newPersons.addJointure('persons', {
             type: FieldTypes.ManyToMany,
             foreignCollection: 'passports',
-            foreignKey: 'ownerId',
-            otherField: '__nonExisting__',
-            throughCollection: 'passports',
-          } as ManyToManySchema),
-        ).toThrow("Column not found: 'passports.__nonExisting__'");
-      });
-
-      test('should throw with a non existent otherkey (many to many)', () => {
-        expect(() =>
-          newPersons.addJointure('persons', {
-            type: FieldTypes.ManyToMany,
-            foreignCollection: 'passports',
             foreignKey: '__nonExisting__',
-            otherField: 'ownerId',
+            originKey: 'ownerId',
             throughCollection: 'passports',
           } as ManyToManySchema),
         ).toThrow("Column not found: 'passports.__nonExisting__'");
@@ -267,21 +267,21 @@ describe('JointureCollectionDecorator', () => {
           newPersons.addJointure('passport', {
             type: FieldTypes.OneToOne,
             foreignCollection: 'passports',
-            foreignKey: 'issueDate',
+            originKey: 'issueDate',
           }),
-        ).toThrow('Types from source foreignKey and target primary key do not match.');
+        ).toThrow("Types from 'passports.issueDate' and 'persons.id' do not match.");
       });
 
-      test('should throw when otherfield type does not match pk (many to many)', () => {
+      test('should throw when originKey type does not match pk (many to many)', () => {
         expect(() =>
           newPersons.addJointure('persons', {
             type: FieldTypes.ManyToMany,
             foreignCollection: 'passports',
             foreignKey: 'id',
-            otherField: 'filename',
+            originKey: 'filename',
             throughCollection: 'pictures',
           } as ManyToManySchema),
-        ).toThrow('Types from source otherField and target primary key do not match.');
+        ).toThrow("Types from 'pictures.filename' and 'persons.id' do not match.");
       });
     });
 
@@ -296,10 +296,7 @@ describe('JointureCollectionDecorator', () => {
             foreignCollection: 'persons',
             foreignKey: 'ownerId',
           }),
-        ).toThrow(
-          'Jointure emulation requires target collection primary and foreign key to ' +
-            'support the In operator',
-        );
+        ).toThrow("Column does not support the In operator: 'persons.id'");
       });
 
       test('should throw when In is not supported by the fk in the target (one to one)', () => {
@@ -310,12 +307,9 @@ describe('JointureCollectionDecorator', () => {
           newPersons.addJointure('passport', {
             type: FieldTypes.OneToOne,
             foreignCollection: 'passports',
-            foreignKey: 'ownerId',
+            originKey: 'ownerId',
           }),
-        ).toThrow(
-          'Jointure emulation requires target collection primary and foreign key to ' +
-            'support the In operator',
-        );
+        ).toThrow("Column does not support the In operator: 'passports.ownerId'");
       });
     });
   });
@@ -325,7 +319,7 @@ describe('JointureCollectionDecorator', () => {
       newPersons.addJointure('passport', {
         type: FieldTypes.OneToOne,
         foreignCollection: 'passports',
-        foreignKey: 'ownerId',
+        originKey: 'ownerId',
       });
 
       newPassports.addJointure('owner', {
