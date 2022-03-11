@@ -467,5 +467,49 @@ describe('ConditionTreeValidation', () => {
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
       });
     });
+
+    describe('when the operator is PreviousYear', () => {
+      it('should not throw an error when a value is empty', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.PreviousYear,
+          value: null,
+          field: 'dateField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              dateField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Date,
+                filterOperators: new Set(Object.values(Operator)),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+      });
+    });
+
+    describe('when the operator is PreviousQuarter', () => {
+      it('should not throw an error when a value is empty', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: Operator.PreviousQuarter,
+          value: null,
+          field: 'dateField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              dateField: factories.columnSchema.build({
+                columnType: PrimitiveTypes.Date,
+                filterOperators: new Set(Object.values(Operator)),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+      });
+    });
   });
 });

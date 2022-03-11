@@ -129,4 +129,6 @@ export const MAP_ALLOWED_TYPES_FOR_OPERATOR_IN_FILTER: Readonly<
   [Operator.Present]: NO_TYPES_ALLOWED,
   [Operator.Yesterday]: NO_TYPES_ALLOWED,
   [Operator.Today]: NO_TYPES_ALLOWED,
+  [Operator.PreviousQuarter]: NO_TYPES_ALLOWED,
+  [Operator.PreviousYear]: NO_TYPES_ALLOWED,
 });
