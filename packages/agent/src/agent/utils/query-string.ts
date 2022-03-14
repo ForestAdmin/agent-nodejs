@@ -57,15 +57,11 @@ export default class QueryStringParser {
   }
 
   static parseProjectionWithPks(collection: Collection, context: Context): Projection {
-    try {
-      const projection = QueryStringParser.parseProjection(collection, context);
+    const projection = QueryStringParser.parseProjection(collection, context);
 
-      // Primary keys are not explicitly listed in the projections that the frontend
-      // is sending, but are still required for the frontend to work.
-      return projection.withPks(collection);
-    } catch (e) {
-      throw new ValidationError(`Invalid projection`);
-    }
+    // Primary keys are not explicitly listed in the projections that the frontend
+    // is sending, but are still required for the frontend to work.
+    return projection.withPks(collection);
   }
 
   static parseSearch(collection: Collection, context: Context): string {
