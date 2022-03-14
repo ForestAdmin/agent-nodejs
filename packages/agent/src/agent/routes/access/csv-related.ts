@@ -3,6 +3,7 @@ import { Context } from 'koa';
 import Router from '@koa/router';
 
 import { Readable } from 'stream';
+import ContextFilterFactory from '../../utils/context-filter-factory';
 import CsvCommon from './csv-common';
 import CsvGenerator from '../../../utils/csv-generator';
 import IdUtils from '../../utils/id';
@@ -26,7 +27,7 @@ export default class ListRelatedRoute extends RelationRoute {
 
     const projection = QueryStringParser.parseProjection(this.foreignCollection, context);
     const scope = await this.services.permissions.getScope(this.foreignCollection, context);
-    const filter = CsvCommon.buildFilter(context, this.foreignCollection, scope);
+    const filter = ContextFilterFactory.buildPaginated(this.foreignCollection, context, scope);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 
     const list = async (paginatedFilter: PaginatedFilter, projectionParam: Projection) =>

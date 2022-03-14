@@ -1,7 +1,5 @@
 import {
-  Aggregator,
   CollectionUtils,
-  Operator,
   PaginatedFilter,
   PrimitiveTypes,
   Projection,
@@ -10,6 +8,7 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
 import { readCsv } from '../../utils/csv-generator.test';
+import ContextFilterFactory from '../../../../src/agent/utils/context-filter-factory';
 import CsvGenerator from '../../../../src/utils/csv-generator';
 import CsvRoute from '../../../../src/agent/routes/access/csv-related';
 
@@ -22,7 +21,6 @@ describe('CsvRelatedRoute', () => {
     const persons = factories.collection.build({
       name: 'persons',
       schema: factories.collectionSchema.build({
-        segments: ['a-valid-segment'],
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
           name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
@@ -92,44 +90,35 @@ describe('CsvRelatedRoute', () => {
       const { options, services, dataSource } = setupWithOneToManyRelation();
       const csvRoute = new CsvRoute(services, options, dataSource, 'books', 'myPersons');
 
-      const conditionTreeParams = {
-        filters: JSON.stringify({
-          aggregator: 'and',
-          conditions: [
-            { field: 'id', operator: 'equal', value: '123e4567-e89b-12d3-a456-426614174000' },
-          ],
-        }),
-      };
       const projectionParams = { 'fields[persons]': 'id,name' };
       const customProperties = {
         query: {
           ...projectionParams,
-          ...conditionTreeParams,
-          search: 'searched argument',
           header: 'id,name',
-          filename: 'csv_file_name',
-          segment: 'a-valid-segment',
-          timezone: 'Europe/Paris',
         },
-        params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
+        params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
       };
       const requestBody = { data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }] };
       const scopeCondition = factories.conditionTreeLeaf.build();
       services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
+      const personsCollection = dataSource.getCollection('persons');
       const context = createMockContext({ customProperties, requestBody });
 
-      const listRelation = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([
-        { id: 1, name: 'a' },
-        { id: 2, name: 'ab' },
-        { id: 3, name: 'abc' },
-      ]);
+      const listRelation = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
       const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
+
+      const paginatedFilter = factories.filter.build();
+      const buildPaginated = jest
+        .spyOn(ContextFilterFactory, 'buildPaginated')
+        .mockReturnValue(paginatedFilter);
 
       // when
       await csvRoute.handleRelatedCsv(context);
 
       // then
+      expect(buildPaginated).toHaveBeenCalledWith(personsCollection, context, scopeCondition);
+
       expect(services.permissions.can).toHaveBeenCalledWith(context, 'browse:books');
       expect(services.permissions.can).toHaveBeenCalledWith(context, 'export:books');
 
@@ -137,32 +126,14 @@ describe('CsvRelatedRoute', () => {
       expect(csvGenerator).toHaveBeenCalledWith(
         new Projection('id', 'name'),
         'id,name',
-        new PaginatedFilter({
-          conditionTree: factories.conditionTreeBranch.build({
-            aggregator: Aggregator.And,
-            conditions: [
-              factories.conditionTreeLeaf.build({
-                field: 'id',
-                operator: Operator.Equal,
-                value: '123e4567-e89b-12d3-a456-426614174000',
-              }),
-              scopeCondition,
-            ],
-          }),
-          timezone: 'Europe/Paris',
-          segment: 'a-valid-segment',
-          search: 'searched argument',
-          sort: expect.any(Object),
-          page: expect.any(Object),
-        }),
-        dataSource.getCollection('persons'),
+        paginatedFilter,
+        personsCollection,
         expect.any(Function),
       );
 
-      const parentId = ['123e4567-e89b-12d3-a456-426614174088'];
       expect(listRelation).toHaveBeenCalledWith(
         dataSource.getCollection('books'),
-        parentId,
+        ['123e4567-e89b-12d3-a456-111111111111'],
         'myPersons',
         expect.any(PaginatedFilter),
         expect.any(Projection),

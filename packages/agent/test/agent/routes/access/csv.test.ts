@@ -1,13 +1,9 @@
-import {
-  Aggregator,
-  Operator,
-  PaginatedFilter,
-  PrimitiveTypes,
-} from '@forestadmin/datasource-toolkit';
+import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
 import { readCsv } from '../../utils/csv-generator.test';
+import ContextFilterFactory from '../../../../src/agent/utils/context-filter-factory';
 import CsvGenerator from '../../../../src/utils/csv-generator';
 import CsvRoute from '../../../../src/agent/routes/access/csv';
 
@@ -20,7 +16,6 @@ describe('CsvRoute', () => {
       factories.collection.build({
         name: 'books',
         schema: factories.collectionSchema.build({
-          segments: ['a-valid-segment'],
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
             name: factories.columnSchema.build({
@@ -69,24 +64,11 @@ describe('CsvRoute', () => {
 
       const csvRoute = new CsvRoute(services, options, dataSource, 'books');
 
-      const conditionTreeParams = {
-        filters: JSON.stringify({
-          aggregator: 'and',
-          conditions: [
-            { field: 'id', operator: 'equal', value: '123e4567-e89b-12d3-a456-426614174000' },
-          ],
-        }),
-      };
       const projectionParams = { 'fields[books]': 'id,name' };
       const customProperties = {
         query: {
           ...projectionParams,
-          ...conditionTreeParams,
-          search: 'searched argument',
           header: 'id,name',
-          filename: 'csv_file_name',
-          segment: 'a-valid-segment',
-          timezone: 'Europe/Paris',
         },
       };
       const requestBody = { data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }] };
@@ -96,40 +78,29 @@ describe('CsvRoute', () => {
 
       const context = createMockContext({ customProperties, requestBody });
 
-      dataSource.getCollection('books').list = jest.fn().mockReturnValue([
-        { id: 1, name: 'a' },
-        { id: 2, name: 'ab' },
-        { id: 3, name: 'abc' },
-      ]);
+      const booksCollection = dataSource.getCollection('books');
+      booksCollection.list = jest.fn().mockReturnValue([]);
       const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
 
+      const paginatedFilter = factories.filter.build();
+      const buildPaginated = jest
+        .spyOn(ContextFilterFactory, 'buildPaginated')
+        .mockReturnValue(paginatedFilter);
       // when
       await csvRoute.handleCsv(context);
 
       // then
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'read:books');
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'export:books');
+
+      expect(buildPaginated).toHaveBeenCalledWith(booksCollection, context, scopeCondition);
+
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
         ['id', 'name'],
         'id,name',
-        new PaginatedFilter({
-          conditionTree: factories.conditionTreeBranch.build({
-            aggregator: Aggregator.And,
-            conditions: [
-              factories.conditionTreeLeaf.build({
-                field: 'id',
-                operator: Operator.Equal,
-                value: '123e4567-e89b-12d3-a456-426614174000',
-              }),
-              scopeCondition,
-            ],
-          }),
-          timezone: 'Europe/Paris',
-          segment: 'a-valid-segment',
-          search: 'searched argument',
-          sort: expect.any(Object),
-          page: expect.any(Object),
-        }),
-        dataSource.getCollection('books'),
+        paginatedFilter,
+        booksCollection,
         expect.any(Function),
       );
     });
@@ -144,7 +115,6 @@ describe('CsvRoute', () => {
         query: {
           ...projectionParams,
           header: 'name',
-          filename: 'csv_file_name',
           timezone: 'Europe/Paris',
         },
       };
@@ -158,9 +128,6 @@ describe('CsvRoute', () => {
       ]);
 
       await csvRoute.handleCsv(context);
-
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'read:books');
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'export:books');
 
       const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvResult).toEqual(['name\n', 'a,1\nab,2\nabc,3\n']);

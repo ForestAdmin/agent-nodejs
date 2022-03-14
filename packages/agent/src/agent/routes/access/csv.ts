@@ -3,6 +3,7 @@ import Router from '@koa/router';
 
 import { Readable } from 'stream';
 import CollectionRoute from '../collection-route';
+import ContextFilterFactory from '../../utils/context-filter-factory';
 import CsvCommon from './csv-common';
 import CsvGenerator from '../../../utils/csv-generator';
 import QueryStringParser from '../../utils/query-string';
@@ -21,7 +22,7 @@ export default class CsvRoute extends CollectionRoute {
 
     const projection = QueryStringParser.parseProjection(this.collection, context);
     const scope = await this.services.permissions.getScope(this.collection, context);
-    const filter = CsvCommon.buildFilter(context, this.collection, scope);
+    const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
 
     const list = this.collection.list.bind(this.collection);
     const generator = CsvGenerator.generate(projection, header, filter, this.collection, list);
