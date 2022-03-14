@@ -1,6 +1,18 @@
+import {
+  ActionDefinition,
+  ActionScope,
+  ConditionTreeLeaf,
+  Operator,
+  PrimitiveTypes,
+  Sort,
+  SortClause,
+} from '@forestadmin/datasource-toolkit';
+
 import * as factories from '../agent/__factories__';
+import { FieldDefinition } from '../../src/builder/types';
 import Agent from '../../src/builder/agent';
 import CollectionBuilder from '../../src/builder/collection';
+import FrontendFilterableUtils from '../../src/agent/utils/forest-schema/filterable';
 
 describe('Builder > Agent', () => {
   const setup = () => {
@@ -75,51 +87,194 @@ describe('Builder > Agent', () => {
     });
   });
 
-  // describe('registerAction', () => {
-  //   it('should do something', () => {
-  //     const { agent, collectionBuilder } = setup();
+  describe('registerAction', () => {
+    it('should register an action', () => {
+      const { agent, collectionBuilder, collectionName } = setup();
 
-  //     collectionBuilder.registerAction();
-  //   });
-  // });
+      const collection = agent.action.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'registerAction');
 
-  // describe('registerField', () => {
-  //   it('should do something', () => {
-  //     const { agent, collectionBuilder } = setup();
+      const actionDefinition: ActionDefinition = {
+        scope: ActionScope.Global,
+        execute: () => {},
+      };
 
-  //     collectionBuilder.registerField();
-  //   });
-  // });
+      collectionBuilder.registerAction('action name', actionDefinition);
 
-  // describe('emulateSort', () => {
-  //   it('should do something', () => {
-  //     const { agent, collectionBuilder } = setup();
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('action name', actionDefinition);
+      expect(collection.schema.actions['action name']).toBeDefined();
+    });
+  });
 
-  //     collectionBuilder.emulateSort();
-  //   });
-  // });
+  describe('registerField', () => {
+    it('should register a field', () => {
+      const { agent, collectionBuilder, collectionName } = setup();
 
-  // describe('implementSort', () => {
-  //   it('should do something', () => {
-  //     const { agent, collectionBuilder } = setup();
+      const collection = agent.computed.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'registerComputed');
 
-  //     collectionBuilder.implementSort();
-  //   });
-  // });
+      const fieldDefinition: FieldDefinition = {
+        columnType: PrimitiveTypes.String,
+        dependencies: [],
+        getValues: () => [],
+      };
 
-  // describe('emulateOperator', () => {
-  //   it('should do something', () => {
-  //     const { agent, collectionBuilder } = setup();
+      collectionBuilder.registerField('new field', fieldDefinition);
 
-  //     collectionBuilder.emulateOperator();
-  //   });
-  // });
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
+      expect(collection.schema.fields['new field']).toBeDefined();
+    });
 
-  // describe('implementOperator', () => {
-  //   it('should do something', () => {
-  //     const { agent, collectionBuilder } = setup();
+    describe('when sort by is defined to "emulate"', () => {
+      it('should register a field with sort emulation', () => {
+        const { agent, collectionBuilder, collectionName } = setup();
 
-  //     collectionBuilder.implementOperator();
-  //   });
-  // });
+        const collection = agent.sortEmulate.getCollection(collectionName);
+        const spy = jest.spyOn(collection, 'emulateSort');
+
+        const fieldDefinition: FieldDefinition = {
+          columnType: PrimitiveTypes.String,
+          dependencies: [],
+          getValues: () => [],
+          sortBy: 'emulate',
+        };
+
+        collectionBuilder.registerField('new field', fieldDefinition);
+
+        expect(spy).toBeCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith('new field');
+        expect(collection.schema.fields['new field']).toBeDefined();
+      });
+    });
+
+    describe('when sort by is defined to "firstName"', () => {
+      it('should register a field with sorting clause', () => {
+        const { agent, collectionBuilder, collectionName } = setup();
+
+        const collection = agent.sortEmulate.getCollection(collectionName);
+        const spy = jest.spyOn(collection, 'implementSort');
+
+        const fieldDefinition: FieldDefinition = {
+          columnType: PrimitiveTypes.String,
+          dependencies: [],
+          getValues: () => [],
+          sortBy: [{ field: 'firstName', ascending: true }],
+        };
+
+        collectionBuilder.registerField('new field', fieldDefinition);
+
+        expect(spy).toBeCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith(
+          'new field',
+          new Sort(...(fieldDefinition.sortBy as SortClause[])),
+        );
+        expect(collection.schema.fields['new field']).toBeDefined();
+      });
+    });
+
+    describe('when filter by is defined to "emulate"', () => {
+      it('should register a field with filter emulate', () => {
+        const { agent, collectionBuilder, collectionName } = setup();
+
+        const collection = agent.operatorEmulate.getCollection(collectionName);
+        const spy = jest.spyOn(collection, 'emulateOperator');
+
+        const fieldDefinition: FieldDefinition = {
+          columnType: PrimitiveTypes.String,
+          dependencies: [],
+          getValues: () => [],
+          filterBy: 'emulate',
+        };
+
+        collectionBuilder.registerField('new field', fieldDefinition);
+
+        const requiredOperator = FrontendFilterableUtils.getRequiredOperators(
+          PrimitiveTypes.String,
+        );
+
+        expect(spy).toBeCalledTimes(requiredOperator.length);
+        expect(spy.mock.calls).toEqual(requiredOperator.map(operator => ['new field', operator]));
+        expect(collection.schema.fields['new field']).toBeDefined();
+      });
+    });
+  });
+
+  describe('registerSegment', () => {
+    it('should register a segment', () => {
+      const { agent, collectionBuilder, collectionName } = setup();
+
+      const collection = agent.segment.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'registerSegment');
+
+      const generator = async () => new ConditionTreeLeaf('fieldName', Operator.Present);
+
+      collectionBuilder.registerSegment('new segment', generator);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('new segment', generator);
+      expect(collection.schema.segments).toEqual(expect.arrayContaining(['new segment']));
+    });
+  });
+
+  describe('emulateSort', () => {
+    it('should emulate sort on field', () => {
+      const { agent, collectionBuilder, collectionName } = setup();
+
+      const collection = agent.sortEmulate.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'emulateSort');
+
+      collectionBuilder.emulateSort('firstName');
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstName');
+    });
+  });
+
+  describe('implementSort', () => {
+    it('should implement sort on field', () => {
+      const { agent, collectionBuilder, collectionName } = setup();
+
+      const collection = agent.sortEmulate.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'implementSort');
+
+      const sortClauses: SortClause[] = [{ field: 'firstName', ascending: true }];
+
+      collectionBuilder.implementSort('firstName', sortClauses);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstName', new Sort(...sortClauses));
+    });
+  });
+
+  describe('emulateOperator', () => {
+    it('should emulate operator on field', () => {
+      const { agent, collectionBuilder, collectionName } = setup();
+
+      const collection = agent.operatorEmulate.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'emulateOperator');
+
+      collectionBuilder.emulateOperator('firstName', Operator.Present);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstName', Operator.Present);
+    });
+  });
+
+  describe('implementOperator', () => {
+    it('should implement operator on field', () => {
+      const { agent, collectionBuilder, collectionName } = setup();
+
+      const collection = agent.operatorEmulate.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'implementOperator');
+
+      const replacer = async () => new ConditionTreeLeaf('fieldName', Operator.NotEqual, null);
+
+      collectionBuilder.implementOperator('firstName', Operator.Present, replacer);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstName', Operator.Present, replacer);
+    });
+  });
 });
