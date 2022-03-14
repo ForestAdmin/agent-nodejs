@@ -35,7 +35,7 @@ export default class ListRelatedRoute extends RelationRoute {
       segment: QueryStringParser.parseSegment(this.foreignCollection, context),
     });
 
-    const projection = QueryStringParser.parseProjection(this.foreignCollection, context);
+    const projection = QueryStringParser.parseProjectionWithPks(this.foreignCollection, context);
 
     const records = await CollectionUtils.listRelation(
       this.collection,

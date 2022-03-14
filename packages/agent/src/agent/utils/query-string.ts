@@ -50,9 +50,19 @@ export default class QueryStringParser {
 
       ProjectionValidator.validate(collection, explicitRequest);
 
+      return new Projection(...explicitRequest);
+    } catch (e) {
+      throw new ValidationError(`Invalid projection`);
+    }
+  }
+
+  static parseProjectionWithPks(collection: Collection, context: Context): Projection {
+    try {
+      const projection = QueryStringParser.parseProjection(collection, context);
+
       // Primary keys are not explicitly listed in the projections that the frontend
       // is sending, but are still required for the frontend to work.
-      return new Projection(...explicitRequest).withPks(collection);
+      return projection.withPks(collection);
     } catch (e) {
       throw new ValidationError(`Invalid projection`);
     }

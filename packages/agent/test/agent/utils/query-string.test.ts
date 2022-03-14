@@ -109,7 +109,7 @@ describe('QueryStringParser', () => {
     });
   });
 
-  describe('parseProjection', () => {
+  describe('parseProjectionWithPks', () => {
     describe('on a flat collection', () => {
       describe('on a well formed request', () => {
         test('should convert the request to a valid projection', () => {
@@ -117,7 +117,7 @@ describe('QueryStringParser', () => {
             customProperties: { query: { 'fields[books]': 'id' } },
           });
 
-          const projection = QueryStringParser.parseProjection(collectionSimple, context);
+          const projection = QueryStringParser.parseProjectionWithPks(collectionSimple, context);
 
           expect(projection).toEqual(['id']);
         });
@@ -128,7 +128,7 @@ describe('QueryStringParser', () => {
               customProperties: { query: { 'fields[books]': 'name' } },
             });
 
-            const projection = QueryStringParser.parseProjection(collectionSimple, context);
+            const projection = QueryStringParser.parseProjectionWithPks(collectionSimple, context);
 
             expect(projection).toEqual(['name', 'id']);
           });
@@ -142,7 +142,7 @@ describe('QueryStringParser', () => {
               customProperties: { query: { 'fields[books]': 'field-that-do-not-exist' } },
             });
 
-            const fn = () => QueryStringParser.parseProjection(collectionSimple, context);
+            const fn = () => QueryStringParser.parseProjectionWithPks(collectionSimple, context);
 
             expect(fn).toThrow('Invalid projection');
           });
@@ -154,7 +154,7 @@ describe('QueryStringParser', () => {
               customProperties: { query: {} },
             });
 
-            const fn = () => QueryStringParser.parseProjection(collectionSimple, context);
+            const fn = () => QueryStringParser.parseProjectionWithPks(collectionSimple, context);
 
             expect(fn).toThrow('Invalid projection');
           });
@@ -193,7 +193,7 @@ describe('QueryStringParser', () => {
           customProperties: { query: { 'fields[cars]': 'id,owner', 'fields[owner]': 'name' } },
         });
 
-        const projection = QueryStringParser.parseProjection(
+        const projection = QueryStringParser.parseProjectionWithPks(
           dataSource.getCollection('cars'),
           context,
         );
