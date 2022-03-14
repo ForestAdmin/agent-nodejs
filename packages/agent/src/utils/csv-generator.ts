@@ -8,7 +8,7 @@ import {
   SortFactory,
 } from '@forestadmin/datasource-toolkit';
 
-export const PAGE_SIZE = 1000;
+export const CHUNK_SIZE = 1000;
 
 export default class CsvGenerator {
   /**
@@ -29,23 +29,24 @@ export default class CsvGenerator {
     let skip = filter.page?.skip || 0;
 
     let areAllRecordsFetched = false;
+    const copiedFilter = { ...filter };
 
     while (!areAllRecordsFetched) {
-      let currentPageSize = PAGE_SIZE;
+      let currentPageSize = CHUNK_SIZE;
       if (limit < skip) currentPageSize = skip - limit;
 
-      filter.page = new Page(skip, currentPageSize);
+      copiedFilter.page = new Page(skip, currentPageSize);
 
-      if (!filter.sort || filter.sort.length === 0) {
-        filter.sort = SortFactory.byPrimaryKeys(collection);
+      if (!copiedFilter.sort || copiedFilter.sort.length === 0) {
+        copiedFilter.sort = SortFactory.byPrimaryKeys(collection);
       }
 
       // eslint-disable-next-line no-await-in-loop
-      const records = await list(new PaginatedFilter(filter), projection);
+      const records = await list(new PaginatedFilter(copiedFilter), projection);
 
       yield CsvGenerator.convert(records, projection);
 
-      areAllRecordsFetched = records.length < PAGE_SIZE;
+      areAllRecordsFetched = records.length < CHUNK_SIZE;
       skip += currentPageSize;
     }
   }

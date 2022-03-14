@@ -10,7 +10,7 @@ import {
 import { Readable } from 'stream';
 
 import * as factories from '../__factories__';
-import CsvGenerator, { PAGE_SIZE } from '../../../src/utils/csv-generator';
+import CsvGenerator, { CHUNK_SIZE } from '../../../src/utils/csv-generator';
 
 // eslint-disable-next-line import/prefer-default-export
 export const readCsv = async (generator: AsyncGenerator<string>) => {
@@ -95,11 +95,16 @@ describe('CsvGenerator', () => {
       expect(await readCsv(generator)).toEqual(['id,name\n', 'ab,1\nabc,2\nabd,3\nabe,4\n']);
     });
 
-    test('should filter the fields by given a projection in the generated csv', async () => {
+    test('should apply the projection in the generated csv', async () => {
       const { filter, collection } = setup();
       const projection = new Projection('name');
 
-      const records = [{ name: 'ab' }, { name: 'abc' }, { name: 'abd' }, { name: 'abe' }];
+      const records = [
+        { name: 'ab', otherField: '1' },
+        { name: 'abc', otherField: '1' },
+        { name: 'abd', otherField: '1' },
+        { name: 'abe', otherField: '1' },
+      ];
       collection.list = jest.fn().mockResolvedValue(records);
 
       const generator = CsvGenerator.generate(
@@ -113,11 +118,11 @@ describe('CsvGenerator', () => {
       expect(await readCsv(generator)).toEqual(['name\n', 'ab\nabc\nabd\nabe\n']);
     });
 
-    describe('when there are more records than the PAGE_SIZE', () => {
-      const setupWith2PageSizeRecords = () => {
+    describe('when there are more records than the CHUNK_SIZE', () => {
+      const setupWith2ChunkOfRecords = () => {
         const projection = new Projection('name', 'id');
 
-        const records = Array.from({ length: PAGE_SIZE * 2 }, (_, n: number) => [
+        const records = Array.from({ length: CHUNK_SIZE }, (_, n: number) => [
           { name: 'ab', id: n },
         ]);
         const filter = new PaginatedFilter({
@@ -128,13 +133,13 @@ describe('CsvGenerator', () => {
         return { records, filter, collection, projection };
       };
 
-      test('should call list collection 3 times', async () => {
-        const { records, filter, collection, projection } = setupWith2PageSizeRecords();
+      test('should return all the records by fetching several time the list', async () => {
+        const { records, filter, collection, projection } = setupWith2ChunkOfRecords();
 
         collection.list = jest
           .fn()
-          .mockReturnValueOnce(records.slice(0, PAGE_SIZE))
-          .mockReturnValueOnce(records.slice(PAGE_SIZE, PAGE_SIZE * 2))
+          .mockReturnValueOnce(records)
+          .mockReturnValueOnce(records)
           .mockReturnValueOnce([]);
 
         const generator = CsvGenerator.generate(
@@ -150,8 +155,9 @@ describe('CsvGenerator', () => {
         expect(collection.list).toHaveBeenNthCalledWith(
           1,
           factories.filter.build({
+            page: new Page(0, CHUNK_SIZE),
+
             conditionTree: expect.any(ConditionTreeLeaf),
-            page: new Page(0, PAGE_SIZE),
             sort: expect.any(Sort),
           }),
           expect.any(Projection),
@@ -159,8 +165,9 @@ describe('CsvGenerator', () => {
         expect(collection.list).toHaveBeenNthCalledWith(
           2,
           factories.filter.build({
+            page: new Page(CHUNK_SIZE, CHUNK_SIZE),
+
             conditionTree: expect.any(ConditionTreeLeaf),
-            page: new Page(PAGE_SIZE, PAGE_SIZE),
             sort: expect.any(Sort),
           }),
           expect.any(Projection),
@@ -168,40 +175,40 @@ describe('CsvGenerator', () => {
         expect(collection.list).toHaveBeenNthCalledWith(
           3,
           factories.filter.build({
+            page: new Page(CHUNK_SIZE * 2, CHUNK_SIZE),
+
             conditionTree: expect.any(ConditionTreeLeaf),
-            page: new Page(PAGE_SIZE * 2, PAGE_SIZE),
             sort: expect.any(Sort),
           }),
           expect.any(Projection),
         );
       });
 
-      describe('when there are a given sort and a page more bigger than the PAGE_SIZE', () => {
-        const setupWith2PageSizeRecordsAndPageFilter = () => {
+      describe('when there is a page who ask a range of existing records', () => {
+        const setupWith2ChunkOfRecordsAndPageFilter = () => {
           const projection = new Projection('name', 'id');
 
-          const records = Array.from({ length: PAGE_SIZE * 2 }, (_, n: number) => [
+          const records = Array.from({ length: CHUNK_SIZE }, (_, n: number) => [
             { name: 'ab', id: n },
           ]);
           const filter = new PaginatedFilter({
             conditionTree: factories.conditionTreeLeaf.build(),
-            sort: new Sort({ field: 'id', ascending: true }),
-            page: new Page(500, PAGE_SIZE * 2),
+            page: new Page(500, CHUNK_SIZE * 2),
           });
           const collection = factories.collection.build();
 
           return { records, filter, collection, projection };
         };
 
-        test('should call list collection 3 times', async () => {
+        test('should export all the records asked by the page condition', async () => {
           const { records, filter, collection, projection } =
-            setupWith2PageSizeRecordsAndPageFilter();
+            setupWith2ChunkOfRecordsAndPageFilter();
 
           collection.list = jest
             .fn()
-            .mockReturnValueOnce(records.slice(0, PAGE_SIZE))
-            .mockReturnValueOnce(records.slice(PAGE_SIZE, PAGE_SIZE * 2))
-            .mockReturnValueOnce([]);
+            .mockReturnValueOnce(records)
+            .mockReturnValueOnce(records)
+            .mockReturnValueOnce(records.slice(0, 500));
 
           const generator = CsvGenerator.generate(
             projection,
@@ -218,8 +225,9 @@ describe('CsvGenerator', () => {
           expect(collection.list).toHaveBeenNthCalledWith(
             1,
             factories.filter.build({
+              page: new Page(startedSkipFromGivenPage, CHUNK_SIZE),
+
               conditionTree: expect.any(ConditionTreeLeaf),
-              page: new Page(startedSkipFromGivenPage, PAGE_SIZE),
               sort: expect.any(Sort),
             }),
             expect.any(Projection),
@@ -227,8 +235,9 @@ describe('CsvGenerator', () => {
           expect(collection.list).toHaveBeenNthCalledWith(
             2,
             factories.filter.build({
+              page: new Page(startedSkipFromGivenPage + CHUNK_SIZE, CHUNK_SIZE),
+
               conditionTree: expect.any(ConditionTreeLeaf),
-              page: new Page(startedSkipFromGivenPage + PAGE_SIZE, PAGE_SIZE),
               sort: expect.any(Sort),
             }),
             expect.any(Projection),
@@ -236,8 +245,9 @@ describe('CsvGenerator', () => {
           expect(collection.list).toHaveBeenNthCalledWith(
             3,
             factories.filter.build({
+              page: new Page(startedSkipFromGivenPage + CHUNK_SIZE * 2, startedSkipFromGivenPage),
+
               conditionTree: expect.any(ConditionTreeLeaf),
-              page: new Page(startedSkipFromGivenPage + PAGE_SIZE * 2, startedSkipFromGivenPage),
               sort: expect.any(Sort),
             }),
             expect.any(Projection),

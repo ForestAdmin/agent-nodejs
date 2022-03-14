@@ -88,6 +88,7 @@ describe('CsvRelatedRoute', () => {
     });
 
     it('calls the csv generator with the right params', async () => {
+      // given
       const { options, services, dataSource } = setupWithOneToManyRelation();
       const csvRoute = new CsvRoute(services, options, dataSource, 'books', 'myPersons');
 
@@ -113,7 +114,6 @@ describe('CsvRelatedRoute', () => {
         params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
       };
       const requestBody = { data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }] };
-
       const scopeCondition = factories.conditionTreeLeaf.build();
       services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
@@ -126,7 +126,12 @@ describe('CsvRelatedRoute', () => {
       ]);
       const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
 
+      // when
       await csvRoute.handleRelatedCsv(context);
+
+      // then
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'browse:books');
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'export:books');
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(

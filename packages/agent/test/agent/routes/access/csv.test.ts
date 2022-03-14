@@ -46,13 +46,12 @@ describe('CsvRoute', () => {
   describe('handleCsv', () => {
     it('should set the response headers correctly', async () => {
       const { options, services, dataSource } = setup();
-
       const csvRoute = new CsvRoute(services, options, dataSource, 'books');
-
       const customProperties = {
         query: { filename: 'csv_file_name', 'fields[books]': 'name', timezone: 'Europe/Paris' },
       };
       const context = createMockContext({ customProperties });
+
       await csvRoute.handleCsv(context);
 
       expect(context.response.headers).toEqual({
@@ -65,6 +64,7 @@ describe('CsvRoute', () => {
     });
 
     it('calls the csv generator with the right params', async () => {
+      // given
       const { options, services, dataSource } = setup();
 
       const csvRoute = new CsvRoute(services, options, dataSource, 'books');
@@ -103,8 +103,10 @@ describe('CsvRoute', () => {
       ]);
       const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
 
+      // when
       await csvRoute.handleCsv(context);
 
+      // then
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
         ['id', 'name'],
@@ -156,6 +158,9 @@ describe('CsvRoute', () => {
       ]);
 
       await csvRoute.handleCsv(context);
+
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'read:books');
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'export:books');
 
       const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvResult).toEqual(['name\n', 'a,1\nab,2\nabc,3\n']);

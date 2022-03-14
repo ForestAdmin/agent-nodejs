@@ -13,6 +13,9 @@ export default class CsvRoute extends CollectionRoute {
   }
 
   async handleCsv(context: Context): Promise<void> {
+    await this.services.permissions.can(context, `read:${this.collection.name}`);
+    await this.services.permissions.can(context, `export:${this.collection.name}`);
+
     const { header } = context.request.query as Record<string, string>;
     CsvCommon.buildResponseContext(context);
 
