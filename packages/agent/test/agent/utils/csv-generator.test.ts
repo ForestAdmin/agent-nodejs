@@ -118,6 +118,26 @@ describe('CsvGenerator', () => {
       expect(await readCsv(generator)).toEqual(['name\n', 'ab\nabc\nabd\nabe\n']);
     });
 
+    describe('when there is a coma in field value', () => {
+      it('should add " between the value', async () => {
+        const { filter, collection } = setup();
+        const projection = new Projection('name');
+
+        const records = [{ name: 'value with coma,' }, { name: 'abc' }];
+        collection.list = jest.fn().mockResolvedValue(records);
+
+        const generator = CsvGenerator.generate(
+          projection,
+          'name',
+          filter,
+          collection,
+          collection.list,
+        );
+
+        expect(await readCsv(generator)).toEqual(['name\n', '"value with coma,"\nabc\n']);
+      });
+    });
+
     describe('when there are more records than the CHUNK_SIZE', () => {
       const setupWith2ChunkOfRecords = () => {
         const projection = new Projection('name', 'id');
