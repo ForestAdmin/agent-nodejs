@@ -6,7 +6,7 @@ import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import Page from '../../../src/interfaces/query/page';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Projection from '../../../src/interfaces/query/projection';
-import Sort from '../../../src/interfaces/query/sort/sort';
+import Sort from '../../../src/interfaces/query/sort/index';
 import SortEmulationDecorator from '../../../src/decorators/sort-emulate/collection';
 
 describe('SortEmulationDecoratorCollection', () => {

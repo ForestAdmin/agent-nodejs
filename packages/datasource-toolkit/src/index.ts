@@ -25,7 +25,7 @@ export { default as FilterFactory } from './interfaces/query/filter/factory';
 export { default as Page } from './interfaces/query/page';
 export { default as PaginatedFilter } from './interfaces/query/filter/paginated';
 export { default as Projection } from './interfaces/query/projection';
-export { default as Sort } from './interfaces/query/sort/sort';
+export { default as Sort } from './interfaces/query/sort/index';
 export { default as SortFactory } from './interfaces/query/sort/factory';
 
 export * from './interfaces/action';
@@ -35,7 +35,7 @@ export * from './interfaces/query/condition-tree/nodes/branch';
 export * from './interfaces/query/condition-tree/nodes/leaf';
 export * from './interfaces/query/filter/paginated';
 export * from './interfaces/query/filter/unpaginated';
-export * from './interfaces/query/sort/sort';
+export * from './interfaces/query/sort/index';
 export * from './interfaces/record';
 export * from './interfaces/schema';
 

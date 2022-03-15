@@ -4,13 +4,13 @@ import Router from '@koa/router';
 
 import { Readable } from 'stream';
 import ContextFilterFactory from '../../utils/context-filter-factory';
-import CsvCommon from './csv-common';
 import CsvGenerator from '../../../utils/csv-generator';
+import CsvRouteContext from '../../utils/csv-route-context';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';
 
-export default class ListRelatedRoute extends RelationRoute {
+export default class CsvRelatedRoute extends RelationRoute {
   setupRoutes(router: Router): void {
     router.get(
       `/${this.collection.name}/:parentId/relationships/${this.relationName}.csv`,
@@ -23,7 +23,7 @@ export default class ListRelatedRoute extends RelationRoute {
     await this.services.permissions.can(context, `export:${this.collection.name}`);
 
     const { header } = context.request.query as Record<string, string>;
-    CsvCommon.buildResponseContext(context);
+    CsvRouteContext.buildResponse(context);
 
     const projection = QueryStringParser.parseProjection(this.foreignCollection, context);
     const scope = await this.services.permissions.getScope(this.foreignCollection, context);

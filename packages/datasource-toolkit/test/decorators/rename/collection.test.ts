@@ -13,7 +13,7 @@ import Filter from '../../../src/interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Projection from '../../../src/interfaces/query/projection';
 import RenameCollectionDecorator from '../../../src/decorators/rename/collection';
-import Sort from '../../../src/interfaces/query/sort/sort';
+import Sort from '../../../src/interfaces/query/sort/index';
 
 describe('RenameCollectionDecorator', () => {
   // State

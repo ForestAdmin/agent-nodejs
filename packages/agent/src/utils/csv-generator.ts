@@ -22,7 +22,7 @@ export default class CsvGenerator {
     header: string,
     filter: PaginatedFilter,
     collection: Collection,
-    list: (paginatedFilter: PaginatedFilter, Projection: Projection) => Promise<RecordData[]>,
+    list: Collection['list'],
   ): AsyncGenerator<string> {
     yield writeToString([header.split(',')], { headers: true, includeEndRowDelimiter: true });
 
