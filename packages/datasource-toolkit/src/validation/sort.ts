@@ -1,5 +1,5 @@
 import { Collection } from '../interfaces/collection';
-import { SortClause } from '../interfaces/query/sort/index';
+import { SortClause } from '../interfaces/query/sort';
 import FieldValidator from './field';
 import ValidationError from '../errors';
 

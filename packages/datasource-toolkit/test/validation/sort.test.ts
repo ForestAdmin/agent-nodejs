@@ -1,5 +1,5 @@
 import * as factories from '../__factories__';
-import Sort from '../../src/interfaces/query/sort/index';
+import Sort from '../../src/interfaces/query/sort';
 import SortValidator from '../../src/validation/sort';
 
 describe('SortValidator', () => {

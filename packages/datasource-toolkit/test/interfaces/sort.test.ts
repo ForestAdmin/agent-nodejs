@@ -1,6 +1,6 @@
 import * as factories from '../__factories__';
 import { SortFactory } from '../../src';
-import Sort from '../../src/interfaces/query/sort/index';
+import Sort from '../../src/interfaces/query/sort';
 
 describe('Sort', () => {
   const sort = new Sort(
