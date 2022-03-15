@@ -38,6 +38,7 @@ export default class CsvRelatedRoute extends RelationRoute {
         paginatedFilter,
         projectionParam,
       );
+
     const gen = CsvGenerator.generate(projection, header, filter, this.foreignCollection, list);
     context.response.body = Readable.from(gen);
   }
