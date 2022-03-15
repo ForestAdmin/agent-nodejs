@@ -92,7 +92,7 @@ describe('CsvGenerator', () => {
         collection.list,
       );
 
-      expect(await readCsv(generator)).toEqual(['id,name\n', 'ab,1\nabc,2\nabd,3\nabe,4\n']);
+      expect(await readCsv(generator)).toEqual(['id,name\n', 'ab,1\nabc,2\nabd,3\nabe,4']);
     });
 
     test('should apply the projection in the generated csv', async () => {
@@ -115,27 +115,7 @@ describe('CsvGenerator', () => {
         collection.list,
       );
 
-      expect(await readCsv(generator)).toEqual(['name\n', 'ab\nabc\nabd\nabe\n']);
-    });
-
-    describe('when there is a coma in field value', () => {
-      it('should add " between the value', async () => {
-        const { filter, collection } = setup();
-        const projection = new Projection('name');
-
-        const records = [{ name: 'value with coma,' }, { name: 'abc' }];
-        collection.list = jest.fn().mockResolvedValue(records);
-
-        const generator = CsvGenerator.generate(
-          projection,
-          'name',
-          filter,
-          collection,
-          collection.list,
-        );
-
-        expect(await readCsv(generator)).toEqual(['name\n', '"value with coma,"\nabc\n']);
-      });
+      expect(await readCsv(generator)).toEqual(['name\n', 'ab\nabc\nabd\nabe']);
     });
 
     describe('when there are more records than the CHUNK_SIZE', () => {

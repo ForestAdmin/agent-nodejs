@@ -7,6 +7,7 @@ import {
   RecordUtils,
   SortFactory,
 } from '@forestadmin/datasource-toolkit';
+import { writeToString } from '@fast-csv/format';
 
 export const CHUNK_SIZE = 1000;
 
@@ -23,7 +24,7 @@ export default class CsvGenerator {
     collection: Collection,
     list: (paginatedFilter: PaginatedFilter, Projection: Projection) => Promise<RecordData[]>,
   ): AsyncGenerator<string> {
-    yield `${header}\n`;
+    yield writeToString([header.split(',')], { headers: true, includeEndRowDelimiter: true });
 
     const limit = filter.page?.limit;
     let skip = filter.page?.skip || 0;
@@ -51,18 +52,9 @@ export default class CsvGenerator {
     }
   }
 
-  private static convert(records: RecordData[], projection: Projection): string {
-    return records.map(record => CsvGenerator.buildLine(record, projection)).join('');
-  }
-
-  private static buildLine(record: RecordData, projection: Projection) {
-    return `${projection
-      .map(field => {
-        let value = String(RecordUtils.getFieldValue(record, field));
-        if (value.includes(',')) value = `"${value.replace('"', '""')}"`;
-
-        return value;
-      })
-      .join(',')}\n`;
+  private static convert(records: RecordData[], projection: Projection): Promise<string> {
+    return writeToString(
+      records.map(record => projection.map(field => RecordUtils.getFieldValue(record, field))),
+    );
   }
 }

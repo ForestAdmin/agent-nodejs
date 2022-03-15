@@ -166,7 +166,7 @@ describe('CsvRelatedRoute', () => {
       await csvRoute.handleRelatedCsv(context);
 
       const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
-      expect(csvResult).toEqual(['name\n', 'a,1\nab,2\nabc,3\n']);
+      expect(csvResult).toEqual(['name\n', 'a,1\nab,2\nabc,3']);
     });
   });
 });
