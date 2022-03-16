@@ -149,7 +149,7 @@ describe('CsvRelatedRoute', () => {
         params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
         query: {
           ...projectionParams,
-          header: 'name',
+          header: 'name,id',
           filename: 'csv_file_name',
           timezone: 'Europe/Paris',
         },
@@ -166,7 +166,7 @@ describe('CsvRelatedRoute', () => {
       await csvRoute.handleRelatedCsv(context);
 
       const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
-      expect(csvResult).toEqual(['name\n', 'a,1\nab,2\nabc,3']);
+      expect(csvResult).toEqual(['name,id\n', 'a,1\nab,2\nabc,3']);
     });
   });
 });

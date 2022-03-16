@@ -114,7 +114,7 @@ describe('CsvRoute', () => {
       const customProperties = {
         query: {
           ...projectionParams,
-          header: 'name',
+          header: 'name,id',
           timezone: 'Europe/Paris',
         },
       };
@@ -130,7 +130,7 @@ describe('CsvRoute', () => {
       await csvRoute.handleCsv(context);
 
       const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
-      expect(csvResult).toEqual(['name\n', 'a,1\nab,2\nabc,3']);
+      expect(csvResult).toEqual(['name,id\n', 'a,1\nab,2\nabc,3']);
     });
   });
 });
