@@ -12,6 +12,8 @@ import Chart from '../../../src/agent/routes/access/chart';
 import Count from '../../../src/agent/routes/access/count';
 import CountRelated from '../../../src/agent/routes/access/count-related';
 import Create from '../../../src/agent/routes/modification/create';
+import Csv from '../../../src/agent/routes/access/csv';
+import CsvRelated from '../../../src/agent/routes/access/csv-related';
 import Delete from '../../../src/agent/routes/modification/delete';
 import DissociateDeleteRelated from '../../../src/agent/routes/modification/dissociate-delete-related';
 import ErrorHandling from '../../../src/agent/routes/system/error-handling';
@@ -19,7 +21,7 @@ import Get from '../../../src/agent/routes/access/get';
 import HealthCheck from '../../../src/agent/routes/system/healthcheck';
 import IpWhitelist from '../../../src/agent/routes/security/ip-whitelist';
 import List from '../../../src/agent/routes/access/list';
-import ListRelatedRoute from '../../../src/agent/routes/access/list-related';
+import ListRelated from '../../../src/agent/routes/access/list-related';
 import Logger from '../../../src/agent/routes/system/logger';
 import ScopeInvalidation from '../../../src/agent/routes/security/scope-invalidation';
 import Update from '../../../src/agent/routes/modification/update';
@@ -35,8 +37,13 @@ describe('Route index', () => {
       Logger,
       ScopeInvalidation,
     ]);
-    expect(COLLECTION_ROUTES_CTOR).toEqual([Chart, Count, Create, Delete, Get, List, Update]);
-    expect(RELATED_ROUTES_CTOR).toEqual([CountRelated, DissociateDeleteRelated, ListRelatedRoute]);
+    expect(COLLECTION_ROUTES_CTOR).toEqual([Chart, Count, Create, Csv, Delete, Get, List, Update]);
+    expect(RELATED_ROUTES_CTOR).toEqual([
+      CountRelated,
+      CsvRelated,
+      DissociateDeleteRelated,
+      ListRelated,
+    ]);
     expect(RELATED_RELATION_ROUTES_CTOR).toEqual([UpdateRelation]);
   });
 

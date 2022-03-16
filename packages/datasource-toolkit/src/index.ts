@@ -26,6 +26,7 @@ export { default as Page } from './interfaces/query/page';
 export { default as PaginatedFilter } from './interfaces/query/filter/paginated';
 export { default as Projection } from './interfaces/query/projection';
 export { default as Sort } from './interfaces/query/sort';
+export { default as SortFactory } from './interfaces/query/sort/factory';
 
 export * from './interfaces/action';
 export * from './interfaces/collection';

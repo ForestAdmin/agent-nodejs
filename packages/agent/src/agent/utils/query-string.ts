@@ -7,8 +7,8 @@ import {
   Page,
   Projection,
   ProjectionValidator,
-  SchemaUtils,
   Sort,
+  SortFactory,
   SortValidator,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -50,12 +50,18 @@ export default class QueryStringParser {
 
       ProjectionValidator.validate(collection, explicitRequest);
 
-      // Primary keys are not explicitly listed in the projections that the frontend
-      // is sending, but are still required for the frontend to work.
-      return new Projection(...explicitRequest).withPks(collection);
+      return new Projection(...explicitRequest);
     } catch (e) {
       throw new ValidationError(`Invalid projection`);
     }
+  }
+
+  static parseProjectionWithPks(collection: Collection, context: Context): Projection {
+    const projection = QueryStringParser.parseProjection(collection, context);
+
+    // Primary keys are not explicitly listed in the projections that the frontend
+    // is sending, but are still required for the frontend to work.
+    return projection.withPks(collection);
   }
 
   static parseSearch(collection: Collection, context: Context): string {
@@ -153,14 +159,7 @@ export default class QueryStringParser {
       context.request.query.sort?.toString();
 
     try {
-      if (!sortString) {
-        return new Sort(
-          ...SchemaUtils.getPrimaryKeys(collection.schema).map(pk => ({
-            field: pk,
-            ascending: true,
-          })),
-        );
-      }
+      if (!sortString) return SortFactory.byPrimaryKeys(collection);
 
       const sort = new Sort({
         field: sortString.replace(/^-/, '').replace('.', ':'),

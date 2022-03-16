@@ -123,14 +123,14 @@ describe('QueryStringParser', () => {
         });
 
         describe('when the request does not contain the primary keys', () => {
-          test('should return the requested project with the primary keys', () => {
+          test('should return the requested project without the primary keys', () => {
             const context = createMockContext({
               customProperties: { query: { 'fields[books]': 'name' } },
             });
 
             const projection = QueryStringParser.parseProjection(collectionSimple, context);
 
-            expect(projection).toEqual(['name', 'id']);
+            expect(projection).toEqual(['name']);
           });
         });
       });
@@ -193,7 +193,61 @@ describe('QueryStringParser', () => {
           customProperties: { query: { 'fields[cars]': 'id,owner', 'fields[owner]': 'name' } },
         });
 
-        const projection = QueryStringParser.parseProjection(
+        const projection = QueryStringParser.parseProjectionWithPks(
+          dataSource.getCollection('cars'),
+          context,
+        );
+
+        expect(projection).toEqual(['id', 'owner:name', 'owner:id']);
+      });
+    });
+  });
+
+  describe('parseProjectionWithPks', () => {
+    describe('when the request does not contain the primary keys', () => {
+      test('should return the requested project with the primary keys', () => {
+        const context = createMockContext({
+          customProperties: { query: { 'fields[books]': 'name' } },
+        });
+
+        const projection = QueryStringParser.parseProjectionWithPks(collectionSimple, context);
+
+        expect(projection).toEqual(['name', 'id']);
+      });
+    });
+
+    describe('on a collection with relationships', () => {
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'cars',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.isPrimaryKey().build(),
+              name: factories.columnSchema.build(),
+              owner: factories.oneToOneSchema.build({
+                foreignCollection: 'owner',
+                foreignKey: 'id',
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'owner',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.isPrimaryKey().build(),
+              name: factories.columnSchema.build(),
+            },
+          }),
+        }),
+      ]);
+
+      test('should convert the request to a valid projection', () => {
+        const context = createMockContext({
+          customProperties: { query: { 'fields[cars]': 'id,owner', 'fields[owner]': 'name' } },
+        });
+
+        const projection = QueryStringParser.parseProjectionWithPks(
           dataSource.getCollection('cars'),
           context,
         );

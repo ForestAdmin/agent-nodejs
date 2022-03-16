@@ -9,6 +9,8 @@ import Chart from './access/chart';
 import Count from './access/count';
 import CountRelated from './access/count-related';
 import Create from './modification/create';
+import Csv from './access/csv';
+import CsvRelated from './access/csv-related';
 import Delete from './modification/delete';
 import DissociateDeleteRelated from './modification/dissociate-delete-related';
 import ErrorHandling from './system/error-handling';
@@ -16,7 +18,7 @@ import Get from './access/get';
 import HealthCheck from './system/healthcheck';
 import IpWhitelist from './security/ip-whitelist';
 import List from './access/list';
-import ListRelatedRoute from './access/list-related';
+import ListRelated from './access/list-related';
 import Logger from './system/logger';
 import ScopeInvalidation from './security/scope-invalidation';
 import Update from './modification/update';
@@ -30,8 +32,8 @@ export const ROOT_ROUTES_CTOR = [
   Logger,
   ScopeInvalidation,
 ];
-export const COLLECTION_ROUTES_CTOR = [Chart, Count, Create, Delete, Get, List, Update];
-export const RELATED_ROUTES_CTOR = [CountRelated, DissociateDeleteRelated, ListRelatedRoute];
+export const COLLECTION_ROUTES_CTOR = [Chart, Count, Create, Csv, Delete, Get, List, Update];
+export const RELATED_ROUTES_CTOR = [CountRelated, CsvRelated, DissociateDeleteRelated, ListRelated];
 export const RELATED_RELATION_ROUTES_CTOR = [UpdateRelation];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {

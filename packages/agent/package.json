@@ -4,6 +4,7 @@
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "dependencies": {
+    "@fast-csv/format": "^4.3.5",
     "@forestadmin/datasource-toolkit": "^1.0.0",
     "@koa/cors": "^3.1.0",
     "@koa/router": "^10.1.1",

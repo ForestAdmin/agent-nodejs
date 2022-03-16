@@ -26,7 +26,7 @@ export default class ListRoute extends CollectionRoute {
       sort: QueryStringParser.parseSort(this.collection, context),
     });
 
-    const projection = QueryStringParser.parseProjection(this.collection, context);
+    const projection = QueryStringParser.parseProjectionWithPks(this.collection, context);
     const records = await this.collection.list(paginatedFilter, projection);
 
     context.response.body = this.services.serializer.serialize(this.collection, records);
