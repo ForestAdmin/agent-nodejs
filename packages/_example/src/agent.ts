@@ -15,6 +15,6 @@ export default async function makeAgent(options: AgentOptions) {
     .addDatasource(await prepareMysqlDataSource())
     .addDatasource(await preparePostgresDataSource())
 
-    .collection('persons', customizePersons)
-    .collection('user', customizeUsers);
+    .customizeCollection('persons', customizePersons)
+    .customizeCollection('user', customizeUsers);
 }

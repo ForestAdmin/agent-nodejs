@@ -55,7 +55,7 @@ export default class CollectionBuilder {
    * @param {string[]} names the array of field to unpublish
    * @example
    * ```
-   * .publishFields(['aFieldToUnpublish']);
+   * .unpublishFields(['aFieldToUnpublish']);
    * ```
    */
   unpublishFields(names: string[]): this {
@@ -66,7 +66,7 @@ export default class CollectionBuilder {
   }
 
   /**
-   * Register a new "smart" action on the collection
+   * Register a new action on the collection
    * @param {string} name the name of the action
    * @param {ActionDefinition} definition the definition of the action
    * @example
@@ -86,8 +86,8 @@ export default class CollectionBuilder {
   }
 
   /**
-   * Register a new "smart" field on the collection.
-   * @param {string} name the name of the "smart" field
+   * Register a new field on the collection.
+   * @param {string} name the name of the field
    * @param {RawComputedDefinition} definition The definition of the field
    * @example
    * ```
@@ -123,7 +123,7 @@ export default class CollectionBuilder {
   }
 
   /**
-   * Register a new "smart" segment on the collection.
+   * Register a new segment on the collection.
    * @param {string} name the name of the segment
    * @param {(timezone: string) => Promise<ConditionTree>} conditionTreeGenerator a function used
    *   to generate a condition tree
@@ -131,7 +131,7 @@ export default class CollectionBuilder {
    * ```
    * .registerSegment(
    *    'Wrote more than 2 books',
-   *    async () => new ConditionTreeLeaf('booksCount', Operator.GreaterThan, 2),
+   *    async (timezone) => new ConditionTreeLeaf('booksCount', Operator.GreaterThan, 2),
    * );
    * ```
    */
@@ -207,7 +207,7 @@ export default class CollectionBuilder {
    * ```
    * .implementOperator('booksCount', Operator.Equal, async (value: unknown) => {
    *    return new ConditionTreeNot(
-   *      new ConditionTreeLeaf('booksCount', Operator.NotEqual, value),
+   *      new ConditionTreeLeaf('booksCount', Operator.Equal, value),
    *    );
    * });
    * ```

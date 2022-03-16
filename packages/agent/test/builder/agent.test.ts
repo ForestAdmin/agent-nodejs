@@ -54,13 +54,13 @@ describe('Builder > Agent', () => {
   });
 
   describe('collection', () => {
-    describe('when designed collection is unknow', () => {
+    describe('when designed collection is unknown', () => {
       it('should throw an error', () => {
         const options = factories.forestAdminHttpDriverOptions.build();
         const agent = new Agent(options);
 
-        expect(() => agent.collection('unknow', () => {})).toThrowError(
-          'Collection "unknow" not found',
+        expect(() => agent.customizeCollection('unknown', () => {})).toThrowError(
+          'Collection "unknown" not found',
         );
       });
     });
@@ -74,7 +74,7 @@ describe('Builder > Agent', () => {
 
       const spy = jest.fn();
 
-      agent.addDatasource(dataSource).collection('collection', spy);
+      agent.addDatasource(dataSource).customizeCollection('collection', spy);
 
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith(new CollectionBuilder(agent, 'collection'));

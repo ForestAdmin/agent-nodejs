@@ -82,7 +82,6 @@ export default class AgentBuilder {
    * ```
    * new AgentBuilder(options)
    *  .addDatasource(new Datasource())
-   *  .decorate()
    *  .start();
    * ```
    */
@@ -130,10 +129,10 @@ export default class AgentBuilder {
    *   collection builder on the given collection name
    * @example
    * ```
-   * .collection('books', books => books.renameField('xx', 'yy'))
+   * .customizeCollection('books', books => books.renameField('xx', 'yy'))
    * ```
    */
-  collection(name: string, handle: (collection: CollectionBuilder) => unknown): this {
+  customizeCollection(name: string, handle: (collection: CollectionBuilder) => unknown): this {
     if (this.action.getCollection(name)) {
       handle(new CollectionBuilder(this, name));
     }

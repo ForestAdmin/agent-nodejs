@@ -14,7 +14,7 @@ import Agent from '../../src/builder/agent';
 import CollectionBuilder from '../../src/builder/collection';
 import FrontendFilterableUtils from '../../src/agent/utils/forest-schema/filterable';
 
-describe('Builder > Agent', () => {
+describe('Builder > Collection', () => {
   const setup = () => {
     const options = factories.forestAdminHttpDriverOptions.build();
     const agent = new Agent(options);
@@ -127,7 +127,7 @@ describe('Builder > Agent', () => {
       expect(collection.schema.fields['new field']).toBeDefined();
     });
 
-    describe('when sort by is defined to "emulate"', () => {
+    describe('when sort by is emulated', () => {
       it('should register a field with sort emulation', () => {
         const { agent, collectionBuilder, collectionName } = setup();
 
@@ -149,7 +149,7 @@ describe('Builder > Agent', () => {
       });
     });
 
-    describe('when sort by is defined to "firstName"', () => {
+    describe('when sort by has a defined definition', () => {
       it('should register a field with sorting clause', () => {
         const { agent, collectionBuilder, collectionName } = setup();
 
@@ -174,7 +174,7 @@ describe('Builder > Agent', () => {
       });
     });
 
-    describe('when filter by is defined to "emulate"', () => {
+    describe('when filter by is emulated', () => {
       it('should register a field with filter emulate', () => {
         const { agent, collectionBuilder, collectionName } = setup();
 
