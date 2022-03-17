@@ -43,7 +43,7 @@ export default class DateAggregationConverter {
         dateToConvert = col(field);
         break;
       default:
-        throw new Error(`Unknow Date operation: "${operation}"`);
+        throw new Error(`Unknown Date operation: "${operation}"`);
     }
 
     // eslint-disable-next-line max-len
@@ -68,7 +68,7 @@ export default class DateAggregationConverter {
       case DateOperation.ToDay:
         break;
       default:
-        throw new Error(`Unknow Date operation: "${operation}"`);
+        throw new Error(`Unknown Date operation: "${operation}"`);
     }
 
     return fn('DATE_FORMAT', dateToConvert, format);
@@ -92,7 +92,7 @@ export default class DateAggregationConverter {
         format = '%Y-%m-%d';
         break;
       default:
-        throw new Error(`Unknow Date operation: "${operation}"`);
+        throw new Error(`Unknown Date operation: "${operation}"`);
     }
 
     return fn('STRFTIME', format, col(field));

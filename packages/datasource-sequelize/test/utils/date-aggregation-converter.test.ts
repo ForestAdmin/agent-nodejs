@@ -46,7 +46,7 @@ describe('Utils > DateAggregationConverter', () => {
             'a__field',
             'unknown' as DateOperation,
           ),
-        ).toThrowError('Unknow Date operation: "unknown"');
+        ).toThrowError('Unknown Date operation: "unknown"');
       });
 
       it('should return the right aggregation function for Year operation', () => {
@@ -135,7 +135,7 @@ describe('Utils > DateAggregationConverter', () => {
             'a__field',
             'unknown' as DateOperation,
           ),
-        ).toThrowError('Unknow Date operation: "unknown"');
+        ).toThrowError('Unknown Date operation: "unknown"');
       });
 
       it.each([
@@ -198,7 +198,7 @@ describe('Utils > DateAggregationConverter', () => {
             'a__field',
             'unknown' as DateOperation,
           ),
-        ).toThrowError('Unknow Date operation: "unknown"');
+        ).toThrowError('Unknown Date operation: "unknown"');
       });
 
       it.each([
