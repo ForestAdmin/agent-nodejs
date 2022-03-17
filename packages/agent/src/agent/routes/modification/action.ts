@@ -48,7 +48,7 @@ export default class ActionRoute extends CollectionRoute {
     // As forms are dynamic, we don't have any way to ensure that we're parsing the data correctly
     // => better send invalid data to the getForm() customer handler than to the execute() one.
     const unsafeData = ForestValueConverter.makeFormDataUnsafe(rawData);
-    const fields = await this.collection.getForm(this.actionName, unsafeData);
+    const fields = await this.collection.getForm(this.actionName, unsafeData, filter);
 
     // Now that we have the field list, we can parse the data again.
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);

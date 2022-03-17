@@ -1,7 +1,7 @@
 import nock from 'nock';
 import superagent from 'superagent';
 
-import agent from '../src/agent';
+import agent from '../src/index';
 
 describe('agent', () => {
   test('should start a server on port 3352', async () => {
@@ -31,6 +31,7 @@ describe('agent', () => {
       schemaPath: '/tmp/.testschema.json',
       logger: () => {},
     });
+
     const response = await superagent.get('http://localhost:3352/forest/');
 
     stop();

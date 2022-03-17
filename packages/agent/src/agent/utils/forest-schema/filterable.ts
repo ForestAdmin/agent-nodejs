@@ -70,7 +70,7 @@ export default class FrontendFilterableUtils {
     return neededOperators && neededOperators.every(op => supportedOperators.has(op));
   }
 
-  private static getRequiredOperators(type: ColumnType): Operator[] | null {
+  static getRequiredOperators(type: ColumnType): Operator[] | null {
     if (typeof type === 'string' && FrontendFilterableUtils.operatorByType[type]) {
       return FrontendFilterableUtils.operatorByType[type];
     }

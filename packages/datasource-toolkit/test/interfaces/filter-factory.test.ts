@@ -81,8 +81,7 @@ describe('FilterFactory', () => {
         jest.clearAllMocks();
       });
 
-      // eslint-disable-next-line max-len
-      it(`should replace ${Operator.PreviousXDays} operator by a greater/less than operator`, () => {
+      it(`should replace ${Operator.PreviousXDays} operator by a greater/less than`, () => {
         const time = DateTime.fromISO(TEST_DATE);
         DateTime.now = jest.fn(() => time);
 
@@ -114,8 +113,7 @@ describe('FilterFactory', () => {
         jest.clearAllMocks();
       });
 
-      // eslint-disable-next-line max-len
-      it(`should replace ${Operator.PreviousXDaysToDate} operator by a greater/less than operator`, () => {
+      it(`should replace ${Operator.PreviousXDaysToDate} operator by a greater/less than`, () => {
         const time = DateTime.fromISO(TEST_DATE);
         DateTime.now = jest.fn(() => time);
 
