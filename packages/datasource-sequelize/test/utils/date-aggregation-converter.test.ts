@@ -127,11 +127,11 @@ describe('Utils > DateAggregationConverter', () => {
       });
     });
 
-    describe.each(['mysql', 'mariadb'])('with %s', dialect => {
+    describe.each(['mysql', 'mariadb'] as Dialect[])('with %s', dialect => {
       it('should throw an error for an unknown operation', () => {
         expect(() =>
           DateAggregationConverter.convertToDialect(
-            dialect as Dialect,
+            dialect,
             'a__field',
             'unknown' as DateOperation,
           ),
@@ -146,7 +146,7 @@ describe('Utils > DateAggregationConverter', () => {
         'should return the right aggregation function for %s operation',
         (dateOperation, format) => {
           const aggregationFunction = DateAggregationConverter.convertToDialect(
-            dialect as Dialect,
+            dialect,
             'a__field',
             dateOperation,
           );
@@ -165,7 +165,7 @@ describe('Utils > DateAggregationConverter', () => {
 
       it('should return the right aggregation function for Week operation', () => {
         const aggregationFunction = DateAggregationConverter.convertToDialect(
-          dialect as Dialect,
+          dialect,
           'a__field',
           DateOperation.ToWeek,
         );
