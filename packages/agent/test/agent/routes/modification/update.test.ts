@@ -1,4 +1,4 @@
-import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { Operator, PrimitiveTypes, Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -35,6 +35,7 @@ describe('UpdateRoute', () => {
           },
         }),
       });
+      bookCollection.list = jest.fn().mockResolvedValue([{ id: '1523', name: 'foo name' }]);
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
@@ -44,16 +45,23 @@ describe('UpdateRoute', () => {
 
       await updateRoute.handleUpdate(context);
 
-      expect(context.throw).not.toHaveBeenCalled();
-      expect(bookCollection.update).toHaveBeenCalledWith(
-        factories.filter.build({
-          conditionTree: factories.conditionTreeLeaf.build({
-            operator: Operator.Equal,
-            value: 1523,
-            field: 'id',
-          }),
+      const expectedFilter = factories.filter.build({
+        conditionTree: factories.conditionTreeLeaf.build({
+          operator: Operator.Equal,
+          value: 1523,
+          field: 'id',
         }),
-        { name: 'foo name' },
+      });
+
+      expect(bookCollection.update).toHaveBeenCalledWith(expectedFilter, { name: 'foo name' });
+      expect(bookCollection.list).toHaveBeenCalledWith(
+        expectedFilter,
+        new Projection('id', 'name'),
+      );
+      expect(context.response.body).toEqual(
+        expect.objectContaining({
+          data: expect.objectContaining({ attributes: { id: '1523', name: 'foo name' } }),
+        }),
       );
     });
 
@@ -68,6 +76,7 @@ describe('UpdateRoute', () => {
           },
         }),
       });
+      bookCollection.list = jest.fn().mockResolvedValue([{ id: '1523' }]);
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
