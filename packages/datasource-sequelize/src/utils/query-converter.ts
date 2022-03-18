@@ -16,7 +16,11 @@ import {
   OrderItem,
   WhereOperators,
   WhereOptions,
+  col,
+  fn,
+  where,
 } from 'sequelize';
+import { Where } from 'sequelize/dist/lib/utils';
 
 export default class QueryConverter {
   private static asArray(value: unknown) {
@@ -25,17 +29,23 @@ export default class QueryConverter {
     return value;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private static makeWhereClause(operator: Operator, value?: any): WhereOperators | OrOperator {
+  private static makeWhereClause(
+    operator: Operator,
+    field: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    value?: any,
+  ): WhereOperators | OrOperator | Where {
     if (operator === null) throw new Error('Invalid (null) operator.');
 
     switch (operator) {
       case Operator.Blank:
-        return { [Op.or]: [this.makeWhereClause(Operator.Missing), { [Op.eq]: '' }] };
+        return {
+          [Op.or]: [this.makeWhereClause(Operator.Missing, field) as OrOperator, { [Op.eq]: '' }],
+        };
       case Operator.Contains:
-        return { [Op.like]: `%${value}%` };
+        return where(fn('LOWER', col(field)), 'LIKE', fn('LOWER', `%${value}%`));
       case Operator.EndsWith:
-        return { [Op.like]: `%${value}` };
+        return where(fn('LOWER', col(field)), 'LIKE', fn('LOWER', `%${value}`));
       case Operator.Equal:
         return { [Op.eq]: value };
       case Operator.GreaterThan:
@@ -49,7 +59,7 @@ export default class QueryConverter {
       case Operator.Missing:
         return { [Op.is]: null };
       case Operator.NotContains:
-        return { [Op.notILike]: `%${value}%` };
+        return where(fn('LOWER', col(field)), 'NOT LIKE', fn('LOWER', `%${value}%`));
       case Operator.NotEqual:
         return { [Op.ne]: value };
       case Operator.NotIn:
@@ -57,7 +67,7 @@ export default class QueryConverter {
       case Operator.Present:
         return { [Op.ne]: null };
       case Operator.StartsWith:
-        return { [Op.like]: `${value}%` };
+        return where(fn('LOWER', col(field)), 'LIKE', fn('LOWER', `${value}%`));
       default:
         throw new Error(`Unsupported operator: "${operator}".`);
     }
@@ -101,19 +111,24 @@ export default class QueryConverter {
       );
     } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
+      const isRelation = field.includes(':');
 
       let safeField = field;
 
-      if (field.includes(':')) {
+      if (isRelation) {
         const paths = field.split(':');
         const fieldName = paths.pop();
         const safeFieldName = paths
           .reduce((acc, path) => acc.associations[path].target, model)
           .getAttributes()[fieldName].field;
-        safeField = `$${paths.join('.')}.${safeFieldName}$`;
+        safeField = `${paths.join('.')}.${safeFieldName}`;
       }
 
-      sequelizeWhereClause[safeField] = this.makeWhereClause(operator, value);
+      sequelizeWhereClause[isRelation ? `$${safeField}$` : safeField] = this.makeWhereClause(
+        operator,
+        safeField,
+        value,
+      );
     } else {
       throw new Error('Invalid ConditionTree.');
     }

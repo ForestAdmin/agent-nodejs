@@ -88,28 +88,20 @@ describe('Utils > QueryConverter', () => {
         const defaultIntegerValue = 42;
 
         it.each([
-          ['Operator.Blank', undefined, { [Op.or]: [{ [Op.is]: null }, { [Op.eq]: '' }] }],
-          ['Operator.Contains', '__value__', { [Op.like]: '%__value__%' }],
-          ['Operator.EndsWith', '__value__', { [Op.like]: '%__value__' }],
-          ['Operator.Equal', defaultIntegerValue, { [Op.eq]: defaultIntegerValue }],
-          ['Operator.GreaterThan', defaultIntegerValue, { [Op.gt]: defaultIntegerValue }],
-          ['Operator.In', defaultArrayValue, { [Op.in]: defaultArrayValue }],
-          ['Operator.IncludesAll', defaultArrayValue, { [Op.contains]: defaultArrayValue }],
-          ['Operator.LessThan', defaultIntegerValue, { [Op.lt]: defaultIntegerValue }],
-          ['Operator.Missing', undefined, { [Op.is]: null }],
-          ['Operator.NotContains', '__value__', { [Op.notILike]: '%__value__%' }],
-          ['Operator.NotEqual', defaultIntegerValue, { [Op.ne]: defaultIntegerValue }],
-          ['Operator.NotIn', defaultArrayValue, { [Op.notIn]: defaultArrayValue }],
-          ['Operator.Present', undefined, { [Op.ne]: null }],
-          ['Operator.StartsWith', '__value__', { [Op.like]: '__value__%' }],
+          ['Blank', undefined, { [Op.or]: [{ [Op.is]: null }, { [Op.eq]: '' }] }],
+          ['Equal', defaultIntegerValue, { [Op.eq]: defaultIntegerValue }],
+          ['GreaterThan', defaultIntegerValue, { [Op.gt]: defaultIntegerValue }],
+          ['In', defaultArrayValue, { [Op.in]: defaultArrayValue }],
+          ['IncludesAll', defaultArrayValue, { [Op.contains]: defaultArrayValue }],
+          ['LessThan', defaultIntegerValue, { [Op.lt]: defaultIntegerValue }],
+          ['Missing', undefined, { [Op.is]: null }],
+          ['NotEqual', defaultIntegerValue, { [Op.ne]: defaultIntegerValue }],
+          ['NotIn', defaultArrayValue, { [Op.notIn]: defaultArrayValue }],
+          ['Present', undefined, { [Op.ne]: null }],
         ])(
-          'should generate a "where" Sequelize filter from a "%s" ConditionTreeLeaf',
+          'should generate a "where" Sequelize filter from a "%s" operator',
           (operator, value, where) => {
-            const conditionTree = new ConditionTreeLeaf(
-              '__field__',
-              Operator[operator.split('.')[1]],
-              value,
-            );
+            const conditionTree = new ConditionTreeLeaf('__field__', Operator[operator], value);
 
             const sequelizeFilter = QueryConverter.getWhereFromConditionTree(
               {} as ModelDefined<any, any>,
@@ -123,6 +115,38 @@ describe('Utils > QueryConverter', () => {
             );
           },
         );
+
+        describe('using operator translate to SQL "LIKE" clause', () => {
+          it.each([
+            ['StartsWith', '__value__', 'LIKE', '__value__%'],
+            ['EndsWith', '__value__', 'LIKE', '%__value__'],
+            ['Contains', '__value__', 'LIKE', '%__value__%'],
+            ['NotContains', '__value__', 'NOT LIKE', '%__value__%'],
+          ])('should ', (operator, value, sqlClause, like) => {
+            const conditionTree = new ConditionTreeLeaf('__field__', Operator[operator], value);
+
+            const sequelizeFilter = QueryConverter.getWhereFromConditionTree(
+              {} as ModelDefined<any, any>,
+              conditionTree,
+            );
+
+            expect(sequelizeFilter).toEqual(
+              expect.objectContaining({
+                __field__: {
+                  attribute: {
+                    fn: 'LOWER',
+                    args: [{ col: '__field__' }],
+                  },
+                  comparator: sqlClause,
+                  logic: {
+                    fn: 'LOWER',
+                    args: [like],
+                  },
+                },
+              }),
+            );
+          });
+        });
 
         it('should fail with a null operator', () => {
           expect(() =>
