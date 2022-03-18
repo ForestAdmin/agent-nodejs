@@ -1,8 +1,12 @@
-import { ConditionTreeFactory, Filter, RecordValidator } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeFactory,
+  Filter,
+  Projection,
+  RecordValidator,
+} from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { HttpCode } from '../../types';
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 
@@ -31,6 +35,11 @@ export default class UpdateRoute extends CollectionRoute {
     );
 
     await this.collection.update(new Filter({ conditionTree }), record);
-    context.response.status = HttpCode.NoContent;
+    const [updateResult] = await this.collection.list(
+      new Filter({ conditionTree }),
+      new Projection(...Object.keys(this.collection.schema.fields)),
+    );
+
+    context.response.body = this.services.serializer.serialize(this.collection, updateResult);
   }
 }
