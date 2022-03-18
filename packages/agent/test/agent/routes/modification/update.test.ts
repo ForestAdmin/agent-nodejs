@@ -53,7 +53,6 @@ describe('UpdateRoute', () => {
         }),
       });
 
-      expect(context.throw).not.toHaveBeenCalled();
       expect(bookCollection.update).toHaveBeenCalledWith(expectedFilter, { name: 'foo name' });
       expect(bookCollection.list).toHaveBeenCalledWith(
         expectedFilter,
