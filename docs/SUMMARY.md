@@ -1,7 +1,5 @@
 ‌# Summary​
 
-Forest Admin
-
 ## Getting started
 
 - [Bootstrapping](01-getting-started/01-bootstraping.md)
