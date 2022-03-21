@@ -27,6 +27,37 @@ export default class CollectionBuilder {
   }
 
   /**
+   * Import a field from a many to one or one to one relation.
+   *
+   * @param name the name of the field that will be created on the collection
+   * @param options options to import the field
+   * @example
+   * ```
+   * .importField('authorName', { path: 'author:fullName' })
+   * ```
+   */
+  importField(name: string, options: { path: string; beforeJointures?: boolean }): this {
+    const collection = this.agentBuilder.lateComputed.getCollection(this.name);
+    const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
+    const filterBy: Partial<Record<Operator, OperatorReplacer>> = {};
+
+    for (const operator of schema.filterOperators) {
+      filterBy[operator] = async value => new ConditionTreeLeaf(options.path, operator, value);
+    }
+
+    return this.registerField(name, {
+      beforeJointures: options.beforeJointures,
+      columnType: schema.columnType,
+      defaultValue: schema.defaultValue,
+      dependencies: [options.path],
+      getValues: records => records.map(r => RecordUtils.getFieldValue(r, options.path)),
+      enumValues: schema.enumValues,
+      filterBy,
+      sortBy: [{ field: options.path, ascending: true }],
+    });
+  }
+
+  /**
    * Allow to rename a field of a given collection.
    * @param {string} oldName the current name of the field in a given collection
    * @param {string} newName the new name of the field
@@ -91,26 +122,6 @@ export default class CollectionBuilder {
     return this;
   }
 
-  importField(name: string, options: { path: string }): this {
-    const collection = this.agentBuilder.lateComputed.getCollection(this.name);
-    const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
-    const filterBy: Partial<Record<Operator, OperatorReplacer>> = {};
-
-    for (const operator of schema.filterOperators) {
-      filterBy[operator] = async value => new ConditionTreeLeaf(options.path, operator, value);
-    }
-
-    return this.registerField(name, {
-      columnType: schema.columnType,
-      defaultValue: schema.defaultValue,
-      dependencies: [options.path],
-      getValues: records => records.map(r => RecordUtils.getFieldValue(r, options.path)),
-      enumValues: schema.enumValues,
-      filterBy,
-      sortBy: [{ field: options.path, ascending: true }],
-    });
-  }
-
   /**
    * Register a new field on the collection.
    * @param {string} name the name of the field
@@ -164,6 +175,19 @@ export default class CollectionBuilder {
     return this;
   }
 
+  /**
+   * Create a jointure between two collections.
+   * @param name name of the new jointure
+   * @param definition definition of the new jointure
+   * @example
+   * ```
+   * .registerJointure('author', {
+   *   type: FieldTypes.ManyToOne,
+   *   foreignCollection: 'persons',
+   *   foreignKey: 'authorId'
+   * });
+   * ```
+   */
   registerJointure(name: string, definition: PartialRelationSchema): this {
     this.agentBuilder.jointure.getCollection(this.name).addJointure(name, definition);
 

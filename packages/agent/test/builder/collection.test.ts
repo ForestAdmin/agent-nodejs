@@ -2,6 +2,7 @@ import {
   ActionDefinition,
   ActionScope,
   ConditionTreeLeaf,
+  FieldTypes,
   Operator,
   PrimitiveTypes,
   Sort,
@@ -107,6 +108,24 @@ describe('Builder > Collection', () => {
     });
   });
 
+  describe('importField', () => {
+    it('should call registerField', () => {
+      const { collectionBuilder } = setup();
+      const spy = jest.spyOn(collectionBuilder, 'registerField');
+
+      collectionBuilder.importField('firstNameCopy', { path: 'firstName' });
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstNameCopy', {
+        columnType: PrimitiveTypes.String,
+        dependencies: ['firstName'],
+        filterBy: expect.anything(),
+        getValues: expect.any(Function),
+        sortBy: [{ ascending: true, field: 'firstName' }],
+      });
+    });
+  });
+
   describe('registerField', () => {
     it('should register a field', () => {
       const { agent, collectionBuilder, collectionName } = setup();
@@ -198,6 +217,28 @@ describe('Builder > Collection', () => {
         expect(spy.mock.calls).toEqual(requiredOperator.map(operator => ['new field', operator]));
         expect(collection.schema.fields['new field']).toBeDefined();
       });
+    });
+  });
+
+  describe('registerJointure', () => {
+    it('should register a jointure', () => {
+      const { agent, collectionBuilder, collectionName } = setup();
+
+      const collection = agent.jointure.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'addJointure');
+
+      const jointureDefinition = {
+        type: FieldTypes.ManyToOne as const,
+        foreignCollection: collectionName,
+        foreignKey: 'firstName',
+        foreignKeyTarget: 'firstName',
+      };
+
+      collectionBuilder.registerJointure('myself', jointureDefinition);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('myself', jointureDefinition);
+      expect(collection.schema.fields.myself).toBeDefined();
     });
   });
 

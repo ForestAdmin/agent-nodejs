@@ -1,4 +1,3 @@
-/* eslint-disable no-multi-assign */
 import {
   ActionCollectionDecorator,
   BaseDataSource,
@@ -91,6 +90,7 @@ export default class AgentBuilder {
   constructor(options: AgentOptions) {
     let last: DataSource;
 
+    /* eslint-disable no-multi-assign */
     last = this.compositeDatasource = new BaseDataSource<Collection>();
     last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
@@ -105,6 +105,7 @@ export default class AgentBuilder {
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
     last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
     last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
+    /* eslint-enable no-multi-assign */
 
     this.forestAdminHttpDriver = new ForestAdminHttpDriver(last, options);
   }
