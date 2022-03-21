@@ -42,8 +42,28 @@ export default (collection: Collection) =>
           }),
         );
 
+        // TO REMOVE
+        let a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+        a = 'a';
+
         return persons.map(person => {
-          const count = counts.find(c => c.group['author:id'] === person.id);
+          const count = counts.find(c => c.group['author:id'] === person.id + a);
 
           return count?.value ?? 0;
         });
