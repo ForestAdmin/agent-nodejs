@@ -8,11 +8,11 @@
 
 ## Customization
 
-- [Actions](02-customization/actions.md)
-- [Charts](02-customization/charts.md)
-- [Fields](02-customization/fields.md)
-- [Hooks](02-customization/hooks.md)
-- [Segments](02-customization/segments.md)
+- [Actions](02-customization/01-actions.md)
+- [Charts](02-customization/02-charts.md)
+- [Fields](02-customization/03-fields.md)
+- [Hooks](02-customization/04-hooks.md)
+- [Segments](02-customization/05-segments.md)
 
 ## Custom connectors
 
