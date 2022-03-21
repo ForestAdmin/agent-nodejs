@@ -154,7 +154,7 @@ describe('RecordValidator', () => {
   });
 
   describe('when the given field is a oneToMany relation', () => {
-    test('should not throw an error when the record data match the collection', () => {
+    test('should throw an error', () => {
       const dataSourceBook = factories.dataSource.buildWithCollections([
         factories.collection.build({
           name: 'book',
@@ -179,7 +179,37 @@ describe('RecordValidator', () => {
         RecordValidator.validate(dataSourceBook.getCollection('book'), {
           relation: { name: 'a name' },
         }),
-      ).not.toThrow();
+      ).toThrowError();
+    });
+  });
+
+  describe('when the given field is a manyToOne relation', () => {
+    test('should not throw an error', () => {
+      const dataSourceBook = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'book',
+          schema: factories.collectionSchema.build({
+            fields: {
+              relation: factories.manyToOneSchema.build({
+                foreignCollection: 'owner',
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'owner',
+          schema: factories.collectionSchema.build({
+            fields: {
+              name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+            },
+          }),
+        }),
+      ]);
+      expect(() =>
+        RecordValidator.validate(dataSourceBook.getCollection('book'), {
+          relation: { name: 'a name' },
+        }),
+      ).not.toThrowError();
     });
   });
 
