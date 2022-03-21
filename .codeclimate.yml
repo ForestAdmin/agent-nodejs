@@ -6,5 +6,5 @@ checks:
     config:
       threshold: 10
 exclude_patterns:
-  - '**/packages/_example/'
+  - 'packages/_example/'
   - '**/test/'
