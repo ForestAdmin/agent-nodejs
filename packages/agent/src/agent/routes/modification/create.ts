@@ -109,7 +109,7 @@ export default class CreateRoute extends CollectionRoute {
     await Promise.all(promises);
   }
 
-  getRelationRecord(field: string, id: CompositeId): RecordData {
+  private getRelationRecord(field: string, id: CompositeId): RecordData {
     const schema = this.collection.schema.fields[field] as RelationSchema;
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
     const pkName = SchemaUtils.getPrimaryKeys(foreignCollection.schema);
@@ -117,7 +117,7 @@ export default class CreateRoute extends CollectionRoute {
     return pkName.reduce((memo, key, index) => ({ ...memo, [key]: id[index] }), {});
   }
 
-  async getManyToOneTarget(field: string, id: CompositeId): Promise<unknown> {
+  private async getManyToOneTarget(field: string, id: CompositeId): Promise<unknown> {
     const schema = this.collection.schema.fields[field] as ManyToOneSchema;
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
 
