@@ -17,7 +17,7 @@ export default class RecordValidator {
         throw new ValidationError(`Unknown field "${key}"`);
       } else if (schema.type === FieldTypes.Column) {
         FieldValidator.validate(collection, key, [recordData[key]]);
-      } else if (schema.type === FieldTypes.OneToOne || schema.type === FieldTypes.OneToMany) {
+      } else if (schema.type === FieldTypes.OneToOne || schema.type === FieldTypes.ManyToOne) {
         const subRecord = recordData[key] as RecordData;
 
         const association = collection.dataSource.getCollection(schema.foreignCollection);
