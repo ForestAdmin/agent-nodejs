@@ -118,10 +118,10 @@ describe('Utils > QueryConverter', () => {
 
         describe('using operator translate to SQL "LIKE" clause', () => {
           it.each([
-            ['StartsWith', '__value__', 'LIKE', '__value__%'],
-            ['EndsWith', '__value__', 'LIKE', '%__value__'],
-            ['Contains', '__value__', 'LIKE', '%__value__%'],
-            ['NotContains', '__value__', 'NOT LIKE', '%__value__%'],
+            ['StartsWith', '__Value__', 'LIKE', '__value__%'],
+            ['EndsWith', '__vAlue__', 'LIKE', '%__value__'],
+            ['Contains', '__vaLue__', 'LIKE', '%__value__%'],
+            ['NotContains', '__valUe__', 'NOT LIKE', '%__value__%'],
           ])('should ', (operator, value, sqlClause, like) => {
             const conditionTree = new ConditionTreeLeaf('__field__', Operator[operator], value);
 
@@ -138,10 +138,7 @@ describe('Utils > QueryConverter', () => {
                     args: [{ col: '__field__' }],
                   },
                   comparator: sqlClause,
-                  logic: {
-                    fn: 'LOWER',
-                    args: [like],
-                  },
+                  logic: like,
                 },
               }),
             );

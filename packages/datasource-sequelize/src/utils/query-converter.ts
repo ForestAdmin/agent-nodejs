@@ -43,9 +43,9 @@ export default class QueryConverter {
           [Op.or]: [this.makeWhereClause(Operator.Missing, field) as OrOperator, { [Op.eq]: '' }],
         };
       case Operator.Contains:
-        return where(fn('LOWER', col(field)), 'LIKE', fn('LOWER', `%${value}%`));
+        return where(fn('LOWER', col(field)), 'LIKE', `%${value.toLocaleLowerCase()}%`);
       case Operator.EndsWith:
-        return where(fn('LOWER', col(field)), 'LIKE', fn('LOWER', `%${value}`));
+        return where(fn('LOWER', col(field)), 'LIKE', `%${value.toLocaleLowerCase()}`);
       case Operator.Equal:
         return { [Op.eq]: value };
       case Operator.GreaterThan:
@@ -59,7 +59,7 @@ export default class QueryConverter {
       case Operator.Missing:
         return { [Op.is]: null };
       case Operator.NotContains:
-        return where(fn('LOWER', col(field)), 'NOT LIKE', fn('LOWER', `%${value}%`));
+        return where(fn('LOWER', col(field)), 'NOT LIKE', `%${value.toLocaleLowerCase()}%`);
       case Operator.NotEqual:
         return { [Op.ne]: value };
       case Operator.NotIn:
@@ -67,7 +67,7 @@ export default class QueryConverter {
       case Operator.Present:
         return { [Op.ne]: null };
       case Operator.StartsWith:
-        return where(fn('LOWER', col(field)), 'LIKE', fn('LOWER', `${value}%`));
+        return where(fn('LOWER', col(field)), 'LIKE', `${value.toLocaleLowerCase()}%`);
       default:
         throw new Error(`Unsupported operator: "${operator}".`);
     }
