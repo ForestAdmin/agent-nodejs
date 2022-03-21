@@ -9,7 +9,7 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 import * as factories from '../../__factories__';
 import { readCsv } from '../../utils/csv-generator.test';
 import ContextFilterFactory from '../../../../src/agent/utils/context-filter-factory';
-import CsvGenerator from '../../../../src/utils/csv-generator';
+import CsvGenerator from '../../../../src/agent/utils/csv-generator';
 import CsvRoute from '../../../../src/agent/routes/access/csv-related';
 
 describe('CsvRelatedRoute', () => {
