@@ -66,7 +66,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:bookPersons');
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
     });
 
     describe('when all records mode is activated', () => {
@@ -267,8 +267,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:libraries');
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:librariesBooks');
+      expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
     });
 
     describe('when the given ids should be excluded', () => {

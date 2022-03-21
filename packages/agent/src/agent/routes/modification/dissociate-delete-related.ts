@@ -27,6 +27,8 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
   }
 
   public async handleDissociateDeleteRelatedRoute(context: Context): Promise<void> {
+    await this.services.permissions.can(context, `delete:${this.collection.name}`);
+
     // Parse route params
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const isDeleteMode = Boolean(context.request.query?.delete);
@@ -55,10 +57,8 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     const foreignFilter = await this.makeForeignFilter(parentId, baseTargetFilter);
 
     if (isDeleteMode) {
-      await this.services.permissions.can(context, `delete:${this.foreignCollection.name}`);
       await this.foreignCollection.delete(foreignFilter);
     } else {
-      await this.services.permissions.can(context, `edit:${this.foreignCollection.name}`);
       await this.foreignCollection.update(foreignFilter, { [schema.originKey]: null });
     }
   }
@@ -72,13 +72,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
   ): Promise<void> {
     const throughCollection = this.collection.dataSource.getCollection(schema.throughCollection);
 
-    // Check permissions before deleting anything.
-    await this.services.permissions.can(context, `delete:${schema.throughCollection}`);
-
     if (isDeleteMode) {
-      // We need an extra permission in the delete case.
-      await this.services.permissions.can(context, `delete:${this.foreignCollection.name}`);
-
       // Generate filters _BEFORE_ deleting stuff, otherwise things break.
       const throughFilter = await this.makeThroughFilter(parentId, baseTargetFilter);
       const foreignFilter = await this.makeForeignFilter(parentId, baseTargetFilter);
