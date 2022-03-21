@@ -111,7 +111,7 @@ describe('Builder > Collection', () => {
     it('should register a field', () => {
       const { agent, collectionBuilder, collectionName } = setup();
 
-      const collection = agent.computed.getCollection(collectionName);
+      const collection = agent.lateComputed.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'registerComputed');
 
       const fieldDefinition: FieldDefinition = {
@@ -178,7 +178,7 @@ describe('Builder > Collection', () => {
       it('should register a field with filter emulate', () => {
         const { agent, collectionBuilder, collectionName } = setup();
 
-        const collection = agent.operatorEmulate.getCollection(collectionName);
+        const collection = agent.lateOpEmulate.getCollection(collectionName);
         const spy = jest.spyOn(collection, 'emulateOperator');
 
         const fieldDefinition: FieldDefinition = {
@@ -252,7 +252,7 @@ describe('Builder > Collection', () => {
     it('should emulate operator on field', () => {
       const { agent, collectionBuilder, collectionName } = setup();
 
-      const collection = agent.operatorEmulate.getCollection(collectionName);
+      const collection = agent.lateOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateOperator');
 
       collectionBuilder.emulateOperator('firstName', Operator.Present);
@@ -266,7 +266,7 @@ describe('Builder > Collection', () => {
     it('should implement operator on field', () => {
       const { agent, collectionBuilder, collectionName } = setup();
 
-      const collection = agent.operatorEmulate.getCollection(collectionName);
+      const collection = agent.lateOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'implementOperator');
 
       const replacer = async () => new ConditionTreeLeaf('fieldName', Operator.NotEqual, null);
