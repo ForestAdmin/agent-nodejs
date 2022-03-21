@@ -4,7 +4,7 @@ import Router from '@koa/router';
 import { Readable } from 'stream';
 import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
-import CsvGenerator from '../../../utils/csv-generator';
+import CsvGenerator from '../../utils/csv-generator';
 import CsvRouteContext from '../../utils/csv-route-context';
 import QueryStringParser from '../../utils/query-string';
 
