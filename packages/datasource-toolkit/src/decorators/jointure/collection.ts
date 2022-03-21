@@ -3,12 +3,9 @@ import {
   CollectionSchema,
   ColumnSchema,
   FieldTypes,
-  ManyToManySchema,
-  ManyToOneSchema,
-  OneToManySchema,
-  OneToOneSchema,
   RelationSchema,
 } from '../../interfaces/schema';
+import { PartialRelationSchema } from './types';
 import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionDecorator from '../collection-decorator';
@@ -20,12 +17,6 @@ import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
 import RecordUtils from '../../utils/record';
 import SchemaUtils from '../../utils/schema';
-
-type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-type PartialRelationSchema =
-  | PartialBy<ManyToOneSchema, 'foreignKeyTarget'>
-  | PartialBy<OneToManySchema | OneToOneSchema, 'originKeyTarget'>
-  | PartialBy<ManyToManySchema, 'foreignKeyTarget' | 'originKeyTarget'>;
 
 export default class JointureCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<JointureCollectionDecorator>;
@@ -186,9 +177,17 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
     let result = [] as string[];
 
     if (!this.jointures[prefix]) {
-      result = [`${prefix}:${relation.rewriteField(field.substring(prefix.length + 1))}`];
+      result = relation
+        .rewriteField(field.substring(prefix.length + 1))
+        .map(subField => `${prefix}:${subField}`);
     } else if (schema.type === FieldTypes.ManyToOne) {
       result = [schema.foreignKey];
+    } else if (
+      schema.type === FieldTypes.OneToOne ||
+      schema.type === FieldTypes.OneToMany ||
+      schema.type === FieldTypes.ManyToMany
+    ) {
+      result = [schema.originKeyTarget];
     }
 
     return result;

@@ -16,6 +16,7 @@ export { default as SortEmulateCollectionDecorator } from './decorators/sort-emu
 
 export { Action as ActionDefinition } from './decorators/actions/types/actions';
 export * from './decorators/computed/types';
+export * from './decorators/jointure/types';
 export * from './decorators/operators-emulate/types';
 
 export { default as Aggregation } from './interfaces/query/aggregation';

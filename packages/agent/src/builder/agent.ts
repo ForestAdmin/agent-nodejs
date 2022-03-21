@@ -1,3 +1,4 @@
+/* eslint-disable no-multi-assign */
 import {
   ActionCollectionDecorator,
   BaseDataSource,
@@ -5,6 +6,7 @@ import {
   ComputedCollectionDecorator,
   DataSource,
   DataSourceDecorator,
+  JointureCollectionDecorator,
   OperatorsEmulateCollectionDecorator,
   OperatorsReplaceCollectionDecorator,
   PublicationCollectionDecorator,
@@ -33,23 +35,24 @@ import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-d
 export default class AgentBuilder {
   compositeDatasource: BaseDataSource<Collection>;
 
-  operatorEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
+  earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
+  earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
+  earlyOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
 
-  operatorReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
+  jointure: DataSourceDecorator<JointureCollectionDecorator>;
 
-  computed: DataSourceDecorator<ComputedCollectionDecorator>;
-
-  segment: DataSourceDecorator<SegmentCollectionDecorator>;
-
-  rename: DataSourceDecorator<RenameCollectionDecorator>;
-
-  publication: DataSourceDecorator<PublicationCollectionDecorator>;
+  lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
+  lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
+  lateOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
 
   sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
 
+  segment: DataSourceDecorator<SegmentCollectionDecorator>;
+  action: DataSourceDecorator<ActionCollectionDecorator>;
   search: DataSourceDecorator<SearchCollectionDecorator>;
 
-  action: DataSourceDecorator<ActionCollectionDecorator>;
+  rename: DataSourceDecorator<RenameCollectionDecorator>;
+  publication: DataSourceDecorator<PublicationCollectionDecorator>;
 
   forestAdminHttpDriver: ForestAdminHttpDriver;
 
@@ -86,28 +89,24 @@ export default class AgentBuilder {
    * ```
    */
   constructor(options: AgentOptions) {
-    this.compositeDatasource = new BaseDataSource<Collection>();
+    let last: DataSource;
 
-    this.computed = new DataSourceDecorator(this.compositeDatasource, ComputedCollectionDecorator);
-    this.operatorEmulate = new DataSourceDecorator(
-      this.computed,
-      OperatorsEmulateCollectionDecorator,
-    );
-    this.operatorReplace = new DataSourceDecorator(
-      this.operatorEmulate,
-      OperatorsReplaceCollectionDecorator,
-    );
-    this.sortEmulate = new DataSourceDecorator(
-      this.operatorReplace,
-      SortEmulateCollectionDecorator,
-    );
-    this.segment = new DataSourceDecorator(this.sortEmulate, SegmentCollectionDecorator);
-    this.rename = new DataSourceDecorator(this.segment, RenameCollectionDecorator);
-    this.publication = new DataSourceDecorator(this.rename, PublicationCollectionDecorator);
-    this.search = new DataSourceDecorator(this.publication, SearchCollectionDecorator);
-    this.action = new DataSourceDecorator(this.search, ActionCollectionDecorator);
+    last = this.compositeDatasource = new BaseDataSource<Collection>();
+    last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
+    last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
+    last = this.earlyOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
+    last = this.jointure = new DataSourceDecorator(last, JointureCollectionDecorator);
+    last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
+    last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
+    last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
+    last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
+    last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
+    last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
+    last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
+    last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
+    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
 
-    this.forestAdminHttpDriver = new ForestAdminHttpDriver(this.action, options);
+    this.forestAdminHttpDriver = new ForestAdminHttpDriver(last, options);
   }
 
   /**
@@ -133,7 +132,7 @@ export default class AgentBuilder {
    * ```
    */
   customizeCollection(name: string, handle: (collection: CollectionBuilder) => unknown): this {
-    if (this.action.getCollection(name)) {
+    if (this.publication.getCollection(name)) {
       handle(new CollectionBuilder(this, name));
     }
 

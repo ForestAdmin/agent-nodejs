@@ -1,20 +1,13 @@
-import {
-  CollectionSchema,
-  ColumnSchema,
-  FieldTypes,
-  RelationSchema,
-} from '../../interfaces/schema';
-import { ComputedDefinition, ProxyDefinition } from './types';
+import { CollectionSchema, FieldTypes, RelationSchema } from '../../interfaces/schema';
+import { ComputedDefinition } from './types';
 import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionDecorator from '../collection-decorator';
-import CollectionUtils from '../../utils/collection';
 import DataSourceDecorator from '../datasource-decorator';
 import FieldValidator from '../../validation/field';
 import Filter from '../../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
-import ProxyField from './fields/proxy';
 import computeFromRecords from './helpers/compute-fields';
 import rewriteField from './helpers/rewrite-projection';
 
@@ -41,13 +34,6 @@ export default class ComputedCollection extends CollectionDecorator {
     }
 
     this.computeds[name] = computed;
-  }
-
-  registerProxy(name: string, proxy: ProxyDefinition): void {
-    FieldValidator.validate(this, proxy.path);
-    const schema = CollectionUtils.getFieldSchema(this, proxy.path) as ColumnSchema;
-
-    this.registerComputed(name, new ProxyField(this, { ...proxy, type: schema.columnType }));
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {

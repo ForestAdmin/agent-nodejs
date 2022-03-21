@@ -1,13 +1,19 @@
 import {
   ActionDefinition,
+  CollectionUtils,
+  ColumnSchema,
   ConditionTree,
+  ConditionTreeLeaf,
   Operator,
   OperatorReplacer,
+  PartialRelationSchema,
   Projection,
+  RecordUtils,
   Sort,
   SortClause,
 } from '@forestadmin/datasource-toolkit';
 import { FieldDefinition } from './types';
+
 import AgentBuilder from './agent';
 import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
 
@@ -85,6 +91,26 @@ export default class CollectionBuilder {
     return this;
   }
 
+  importField(name: string, options: { path: string }): this {
+    const collection = this.agentBuilder.lateComputed.getCollection(this.name);
+    const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
+    const filterBy: Partial<Record<Operator, OperatorReplacer>> = {};
+
+    for (const operator of schema.filterOperators) {
+      filterBy[operator] = async value => new ConditionTreeLeaf(options.path, operator, value);
+    }
+
+    return this.registerField(name, {
+      columnType: schema.columnType,
+      defaultValue: schema.defaultValue,
+      dependencies: [options.path],
+      getValues: records => records.map(r => RecordUtils.getFieldValue(r, options.path)),
+      enumValues: schema.enumValues,
+      filterBy,
+      sortBy: [{ field: options.path, ascending: true }],
+    });
+  }
+
   /**
    * Register a new field on the collection.
    * @param {string} name the name of the field
@@ -99,9 +125,10 @@ export default class CollectionBuilder {
    * ```
    */
   registerField(name: string, definition: FieldDefinition): this {
-    const computed = this.agentBuilder.computed.getCollection(this.name);
-    const sort = this.agentBuilder.sortEmulate.getCollection(this.name);
-    const filter = this.agentBuilder.operatorEmulate.getCollection(this.name);
+    // Compute
+    const computed = definition.beforeJointures
+      ? this.agentBuilder.earlyComputed.getCollection(this.name)
+      : this.agentBuilder.lateComputed.getCollection(this.name);
 
     computed.registerComputed(name, {
       columnType: definition.columnType,
@@ -110,14 +137,35 @@ export default class CollectionBuilder {
     });
 
     // Sort
-    if (definition.sortBy === 'emulate') sort.emulateSort(name);
-    if (Array.isArray(definition.sortBy)) sort.implementSort(name, new Sort(...definition.sortBy));
+    if (definition.sortBy) {
+      const sort = this.agentBuilder.sortEmulate.getCollection(this.name);
+      if (definition.sortBy === 'emulate') sort.emulateSort(name);
+
+      if (Array.isArray(definition.sortBy)) {
+        sort.implementSort(name, new Sort(...definition.sortBy));
+      }
+    }
 
     // Filter
-    if (definition.filterBy === 'emulate') {
+    if (definition.filterBy) {
+      const { filterBy } = definition;
       const operators = FrontendFilterableUtils.getRequiredOperators(definition.columnType) ?? [];
-      for (const operator of operators) filter.emulateOperator(name, operator);
+      const operatorEmulate = definition.beforeJointures
+        ? this.agentBuilder.earlyOpEmulate.getCollection(this.name)
+        : this.agentBuilder.lateOpEmulate.getCollection(this.name);
+
+      for (const operator of operators) {
+        const implementation = filterBy === 'emulate' ? 'emulate' : filterBy[operator] ?? 'emulate';
+        if (implementation === 'emulate') operatorEmulate.emulateOperator(name, operator);
+        else operatorEmulate.implementOperator(name, operator as Operator, implementation);
+      }
     }
+
+    return this;
+  }
+
+  registerJointure(name: string, definition: PartialRelationSchema): this {
+    this.agentBuilder.jointure.getCollection(this.name).addJointure(name, definition);
 
     return this;
   }
@@ -193,7 +241,7 @@ export default class CollectionBuilder {
    * ```
    */
   emulateOperator(name: string, operator: Operator): this {
-    this.agentBuilder.operatorEmulate.getCollection(this.name).emulateOperator(name, operator);
+    this.agentBuilder.lateOpEmulate.getCollection(this.name).emulateOperator(name, operator);
 
     return this;
   }
@@ -213,7 +261,7 @@ export default class CollectionBuilder {
    * ```
    */
   implementOperator(name: string, operator: Operator, replacer: OperatorReplacer): this {
-    this.agentBuilder.operatorEmulate
+    this.agentBuilder.lateOpEmulate
       .getCollection(this.name)
       .implementOperator(name, operator, replacer);
 
