@@ -212,9 +212,7 @@ describe('Serializer', () => {
             },
           );
 
-          expect(result).toStrictEqual({
-            editor: [42],
-          });
+          expect(result).toStrictEqual({ editor: [42] });
         });
       });
     });

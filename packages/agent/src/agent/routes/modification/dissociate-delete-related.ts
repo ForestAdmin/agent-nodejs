@@ -54,7 +54,6 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     // Restrict baseTargetFilter to match only records under the parent record
     const foreignFilter = await this.makeForeignFilter(parentId, baseTargetFilter);
 
-    // Handling delete mode is the same for many to many and one to many.
     if (isDeleteMode) {
       await this.services.permissions.can(context, `delete:${this.foreignCollection.name}`);
       await this.foreignCollection.delete(foreignFilter);
@@ -127,7 +126,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     });
   }
 
-  /** Wrapper around the util to avoid duplicating the call */
+  /** Wrapper around the util to simplify the call */
   private makeForeignFilter(parentId: CompositeId, baseForeignFilter: Filter): Promise<Filter> {
     return FilterFactory.makeForeignFilter(
       this.collection,
@@ -137,7 +136,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     );
   }
 
-  /** Wrapper around the util to avoid duplicating the call */
+  /** Wrapper around the util to simplify the call */
   private makeThroughFilter(parentId: CompositeId, baseForeignFilter: Filter): Promise<Filter> {
     return FilterFactory.makeThroughFilter(
       this.collection,
