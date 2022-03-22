@@ -136,4 +136,4 @@ In the above snippet, notice how we import the **D3js** library. Of course, you 
 This bar chart is inspired by [this one](https://observablehq.com/@d3/bar-chart).
 {% endhint %}
 
-The resulting chart can be resized to fit your use:
+The resulting chart can be resized to fit your use.
