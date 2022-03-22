@@ -12,8 +12,7 @@ Forest Admin has you covered: if your application depends on multiple SaaS provi
 
 ## Example
 
-Importing collections from new data sources is as simple as using the `importCollections` method on the
-main `Agent` instance.
+Importing collections from new data sources is as simple as using the `importCollections` method on the main `Agent` instance.
 
 ```javascript
 const SqlConnector = require('@forestadmin/connector-sql');
