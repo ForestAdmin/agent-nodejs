@@ -1,6 +1,6 @@
 ‌# Summary​
 
-- [Forest Admin](home/README.md)
+- [Forest Admin](README.md)
 
 ## Getting started
 
@@ -10,6 +10,7 @@
 ## Connectors
 
 - [Usage](connectors/README.md)
+- [Relationships](connectors/relationships.md)
 - [Standard connectors](connectors/standard/README.md)
 
   - [SQL](connectors/standard/sql.md)
@@ -34,7 +35,6 @@
 - [Charts](agent-customization/charts.md)
 - [Fields](agent-customization/fields.md)
 - [Hooks](agent-customization/hooks.md)
-- [Relationships](agent-customization/relationships.md)
 - [Segments](agent-customization/segments.md)
 
 ## Frontend customization
