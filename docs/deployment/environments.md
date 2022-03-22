@@ -12,18 +12,18 @@ Click "Deploy to production" on the top banner or in the _Environments_ tab of y
 
 ![](../assets/screenshot-2020-02-21-15-52-52.png)
 
-#### Deploy your admin backend
+#### Deploy your agent
 
-On the first step, you need to input your admin backend's URL. This is the URL of the server onto which you have deployed (or will soon deploy) your admin backend's code base:
+On the first step, you need to input your agent's URL. This is the URL of the server onto which you have deployed (or will soon deploy) your agent's code base:
 
 {% hint style="info" %}
-If you need help deploying your admin backend's codebase, here are 2 step-by-step guides showing how it can be done [on Heroku](../../how-tos/setup/deploy-to-production-on-heroku.md) or [on a standard ubuntu server](../../how-tos/setup/deploy-to-production-to-ubuntu-server.md).
+If you need help deploying your agent's codebase, here are 2 step-by-step guides showing how it can be done [on Heroku](../../how-tos/setup/deploy-to-production-on-heroku.md) or [on a standard ubuntu server](../../how-tos/setup/deploy-to-production-to-ubuntu-server.md).
 {% endhint %}
 
 ![](<../assets/image (323).png>)
 
 {% hint style="warning" %}
-Note that for **security reasons**, your admin backend must use the **HTTPS** protocol.
+Note that for **security reasons**, your agent must use the **HTTPS** protocol.
 {% endhint %}
 
 {% hint style="info" %}
@@ -72,9 +72,9 @@ You'll first be asked to input the name of the remote environment you wish to cr
 
 ![](<../assets/image (408).png>)
 
-#### Enter your admin backend's URL for that environment
+#### Enter your agent's URL for that environment
 
-Deploy your admin backend to your new server - your staging server for instance - then input its URL:
+Deploy your agent to your new server - your staging server for instance - then input its URL:
 
 ![](<../assets/image (409).png>)
 

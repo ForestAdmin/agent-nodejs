@@ -12,7 +12,7 @@
 
 ## Connectors
 
-- [Integrated connectors](data-model/integrated-connectors/README.md)
+- [Standard connectors](data-model/standard-connectors/README.md)
 
   - [SQL](data-model/integrated-connectors/sql.md)
   - [Sequelize](data-model/integrated-connectors/sequelize.md)
@@ -30,14 +30,32 @@
     - [Native search and segments](data-model/custom-connectors/advanced-topics/native-search-segments.md)
   - [Contribute](data-model/custom-connectors/contribute.md)
 
-## Admin panel customization
+## Agent customization
 
-- [Actions](customization/actions.md)
-- [Charts](customization/charts.md)
-- [Fields](customization/fields.md)
-- [Hooks](customization/hooks.md)
-- [Relationships](customization/relationships.md)
-- [Segments](customization/segments.md)
+- [Actions](agent-customization/actions.md)
+- [Charts](agent-customization/charts.md)
+- [Fields](agent-customization/fields.md)
+- [Hooks](agent-customization/hooks.md)
+- [Relationships](agent-customization/relationships.md)
+- [Segments](agent-customization/segments.md)
+
+## Frontend customization
+
+- [Smart Charts](frontend-customization/smart-charts/README.md)
+
+  - [Create a table chart](frontend-customization/smart-charts/create-a-table-chart.md)
+  - [Create a bar chart](frontend-customization/smart-charts/create-a-bar-chart.md)
+  - [Create a density map](frontend-customization/smart-charts/create-a-density-map.md)
+  - [Create a cohort chart](frontend-customization/smart-charts/create-a-cohort-chart.md)
+
+- [Smart Views](frontend-customization/smart-views/README.md)
+  - [Create a Map view](frontend-customization/smart-views/create-a-map-view.md)
+  - [Create a Calendar view](frontend-customization/smart-views/create-a-calendar-view.md)
+  - [Create a Shipping view](frontend-customization/smart-views/create-a-shipping-view.md)
+  - [Create a Gallery view](frontend-customization/smart-views/create-a-gallery-view.md)
+  - [Create a custom tinder-like validation view](frontend-customization/smart-views/create-a-custom-tinder-like-validation-view.md)
+  - [Create a dynamic calendar view for an event-booking use case](frontend-customization/smart-views/create-a-dynamic-calendar-view-for-an-event-booking-use-case.md)
+  - [Create a custom moderation view](frontend-customization/smart-views/create-a-custom-moderation-view.md)
 
 ## Deploying to production
 
