@@ -130,6 +130,5 @@ jobs:
         run: |
           git config --local user.email ${{ secrets.GIT_COMMITTER_EMAIL }}
           git config --local user.name ${{ secrets.GIT_COMMITTER_NAME }}
-          git add .
-          git commit -m "Update api-reference on github wiki"
+          git commit -am "docs: update api-reference on github wiki"
           git push
