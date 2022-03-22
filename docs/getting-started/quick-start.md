@@ -1,17 +1,4 @@
-# How it works
-
-Before you start writing a single line of code, it’s a good idea to get an overview of how Forest Admin works. The magic lies in its architecture.
-
-Forest Admin provides you with:
-
-- An API hosted on your server to retrieve your data. We call it the Admin Backend
-- A user interface to access and manage your data from your browser. This Forest Admin User Interface is built and managed through ressources hosted on Forest Admin's servers.
-
-![The Admin Backend is a Node.JS REST API hosted on your servers](../assets/admin-backend.png)
-
-# Quick start
-
-## Creating your agent
+# Creating your agent
 
 {% code title="/forest/agent.js" %}
 
@@ -35,7 +22,7 @@ module.exports = agent;
 
 {% endcode %}
 
-## Exposing your agent to the outside world
+# Exposing your agent to the outside world
 
 {% tabs %} {% tab title="Standalone Agent" %}
 

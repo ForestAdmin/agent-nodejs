@@ -1,8 +1,8 @@
 ‌# Summary​
 
-- [Forest Admin](README.md)
-- [How it works](how-it-works.md)
-- [Security & Privacy](security-privacy.md)
+- [Forest Admin](home/README.md)
+  - [How it works](home/how-it-works.md)
+  - [Security & Privacy](home/security-privacy.md)
 
 ## Getting started
 
