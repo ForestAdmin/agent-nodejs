@@ -1,34 +1,32 @@
 ‌# Summary​
 
 - [Forest Admin](home/README.md)
-  - [How it works](home/how-it-works.md)
-  - [Security & Privacy](home/security-privacy.md)
 
 ## Getting started
 
+- [How it works](getting-started/how-it-works.md)
 - [Quick start](getting-started/quick-start.md)
-- [Connect datasources](getting-started/connect-datasources.md)
-- [Linking data together](getting-started/linking-data-together.md)
 
 ## Connectors
 
-- [Standard connectors](data-model/standard-connectors/README.md)
+- [Usage](connectors/README.md)
+- [Standard connectors](connectors/standard/README.md)
 
-  - [SQL](data-model/integrated-connectors/sql.md)
-  - [Sequelize](data-model/integrated-connectors/sequelize.md)
-  - [Mongoose](data-model/integrated-connectors/mongoose.md)
+  - [SQL](connectors/standard/sql.md)
+  - [Sequelize](connectors/standard/sequelize.md)
+  - [Mongoose](connectors/standard/mongoose.md)
 
-- [Custom connectors](data/custom-connectors/README.md)
-  - [Basics](data-model/custom-connectors/basics.md)
-  - [Filters and projection explained](data-model/custom-connectors/filters-projection.md)
-  - [Weak APIs](data-model/custom-connectors/weak-apis/README.md)
-    - [Emulation & Decorators](data-model/custom-connectors/weak-apis/decorators.md)
-    - [Local cache](data-model/custom-connectors/weak-apis/local-cache.md)
-  - [Advanced Topics](data-model/custom-connectors/advanced-topics/README.md)
-    - [Native actions](data-model/custom-connectors/advanced-topics/native-actions.md)
-    - [Native relations](data-model/custom-connectors/advanced-topics/native-relations.md)
-    - [Native search and segments](data-model/custom-connectors/advanced-topics/native-search-segments.md)
-  - [Contribute](data-model/custom-connectors/contribute.md)
+- [Custom connectors](connectors/custom/README.md)
+  - [Basics](connectors/custom/basics.md)
+  - [Filters and projection explained](connectors/custom/filters-projection.md)
+  - [Weak APIs](connectors/custom/weak-apis/README.md)
+    - [Emulation & Decorators](connectors/custom/weak-apis/decorators.md)
+    - [Local cache](connectors/custom/weak-apis/local-cache.md)
+  - [Advanced Topics](connectors/custom/advanced-topics/README.md)
+    - [Native actions](connectors/custom/advanced-topics/native-actions.md)
+    - [Native relations](connectors/custom/advanced-topics/native-relations.md)
+    - [Native search and segments](connectors/custom/advanced-topics/native-search-segments.md)
+  - [Contribute](connectors/custom/contribute.md)
 
 ## Agent customization
 
@@ -71,3 +69,12 @@
   - [push](deployment/forest-cli-commands/push.md)
   - [environments:reset](deployment/forest-cli-commands/environments-reset.md)
   - [deploy](deployment/forest-cli-commands/deploy.md)
+
+## Maintenance
+
+- [Logging](maintenance/logging.md)
+- [Performance](maintenance/performance.md)
+
+## Under the hood
+
+- [Security & Privacy](under-the-hood/security-privacy.md)

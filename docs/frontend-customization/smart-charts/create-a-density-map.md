@@ -1,3 +1,5 @@
+![](https://gblobscdn.gitbook.com/assets%2F-LR7SWfEwsNtj_ZiSkSA%2F-MZlnG8W0zyohS4OAZnN%2F-MZlntfMEVbnDWAqJPC2%2Fimage.png?alt=media&token=609f7438-d7ae-4610-87f4-98eee5488e5c)
+
 This last example shows how you can achieve virtually anything, since you are basically coding in a sandbox. There's no limit to what you can do with Smart charts.
 
 {% code title="Template tab" %}
@@ -137,6 +139,4 @@ In the above snippet, notice how we import the **D3js** library. Of course, you 
 This density map chart is inspired from [this one](https://observablehq.com/@d3/bubble-map).
 {% endhint %}
 
-The resulting chart can be resized to fit your use:
-
-![](https://gblobscdn.gitbook.com/assets%2F-LR7SWfEwsNtj_ZiSkSA%2F-MZlnG8W0zyohS4OAZnN%2F-MZlntfMEVbnDWAqJPC2%2Fimage.png?alt=media&token=609f7438-d7ae-4610-87f4-98eee5488e5c)
+The resulting chart can be resized to fit your use.

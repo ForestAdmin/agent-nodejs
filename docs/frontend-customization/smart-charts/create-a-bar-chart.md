@@ -1,3 +1,5 @@
+![](https://gblobscdn.gitbook.com/assets%2F-LR7SWfEwsNtj_ZiSkSA%2F-MZlj4t_3ZRkMF_s0vjK%2F-MZljyVpyui77zuDOBGx%2Fimage.png?alt=media&token=3f5a6400-127c-486c-b7ad-18c989275bd1)
+
 This second example shows how you can achieve any format of charts, as you can benefit from external libraries like D3js.
 
 {% code title="Template tab" %}
@@ -134,6 +136,4 @@ In the above snippet, notice how we import the **D3js** library. Of course, you 
 This bar chart is inspired by [this one](https://observablehq.com/@d3/bar-chart).
 {% endhint %}
 
-The resulting chart can be resized to fit your use:
-
-![](https://gblobscdn.gitbook.com/assets%2F-LR7SWfEwsNtj_ZiSkSA%2F-MZlj4t_3ZRkMF_s0vjK%2F-MZljyVpyui77zuDOBGx%2Fimage.png?alt=media&token=3f5a6400-127c-486c-b7ad-18c989275bd1)
+The resulting chart can be resized to fit your use.
