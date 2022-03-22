@@ -4,7 +4,6 @@
   "hideGenerator": true,
   "entryPointStrategy": "packages",
   "entryPoints": ["packages/agent", "packages/datasource-toolkit", "packages/datasource-sequelize"],
-  "includes": [""],
   "out": "api-reference",
   "theme": "github-wiki"
 }
