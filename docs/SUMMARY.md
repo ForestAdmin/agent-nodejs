@@ -10,22 +10,7 @@
 - [Connect datasources](getting-started/connect-datasources.md)
 - [Linking data together](getting-started/linking-data-together.md)
 
-## Development on Forest Admin
-
-- [Environments](development/environments.md)
-- [Development workflow](development/development-workflow.md)
-- [Using branches](development/using-branches.md)
-- [Deploying your changes](development/deploying-your-changes.md)
-- [Forest CLI commands](development/forest-cli-commands/README.md)
-  - [init](development/forest-cli-commands/init.md)
-  - [login](development/forest-cli-commands/login.md)
-  - [branch](development/forest-cli-commands/branch.md)
-  - [switch](development/forest-cli-commands/switch.md)
-  - [push](development/forest-cli-commands/push.md)
-  - [environments:reset](development/forest-cli-commands/environments-reset.md)
-  - [deploy](development/forest-cli-commands/deploy.md)
-
-## Linking data
+## Connectors
 
 - [Integrated connectors](data-model/integrated-connectors/README.md)
 
@@ -45,7 +30,7 @@
     - [Native search and segments](data-model/custom-connectors/advanced-topics/native-search-segments.md)
   - [Contribute](data-model/custom-connectors/contribute.md)
 
-## Customizations
+## Admin panel customization
 
 - [Actions](customization/actions.md)
 - [Charts](customization/charts.md)
@@ -53,3 +38,18 @@
 - [Hooks](customization/hooks.md)
 - [Relationships](customization/relationships.md)
 - [Segments](customization/segments.md)
+
+## Deploying to production
+
+- [Environments](deployment/environments.md)
+- [Development workflow](deployment/development-workflow.md)
+- [Using branches](deployment/using-branches.md)
+- [Deploying your changes](deployment/deploying-your-changes.md)
+- [Forest CLI commands](deployment/forest-cli-commands/README.md)
+  - [init](deployment/forest-cli-commands/init.md)
+  - [login](deployment/forest-cli-commands/login.md)
+  - [branch](deployment/forest-cli-commands/branch.md)
+  - [switch](deployment/forest-cli-commands/switch.md)
+  - [push](deployment/forest-cli-commands/push.md)
+  - [environments:reset](deployment/forest-cli-commands/environments-reset.md)
+  - [deploy](deployment/forest-cli-commands/deploy.md)
