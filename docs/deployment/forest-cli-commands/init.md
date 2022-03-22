@@ -2,8 +2,8 @@
 
 The `forest init` command provides an all-in-one initialisation command that will:
 
-* allow you to log in if you haven't already done so with [forest login](login.md)
-* set up your own development environment on a given project.
+- allow you to log in if you haven't already done so with [forest login](login.md)
+- set up your own development environment on a given project.
 
 ```
 $ forest init --help
@@ -51,13 +51,13 @@ If you're seeing the above message, please refer to this [migration guide](../..
 
 #### Endpoint selection
 
-If you're using `forest init`, it means your admin backend should already be running **locally**. If you used the default values used during installation, your endpoint should be _http://localhost:3310_&#x20;
+If you're using `forest init`, it means your agent should already be running **locally**. If you used the default values used during installation, your endpoint should be _http://localhost:3310_&#x20;
 
 Since we need to know your project's local endpoint in order to create your development environment, we've left the same default values. You can just hit "Enter" to use those; otherwise simply fill the _host_ and _port_ to fit your situation.
 
 ```
-[? Enter your local admin backend host: (localhost) localhost
-[? Enter your local admin backend port: (3310)
+[? Enter your local agent host: (localhost) localhost
+[? Enter your local agent port: (3310)
 ```
 
 {% hint style="success" %}
