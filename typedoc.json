@@ -5,6 +5,6 @@
   "entryPointStrategy": "packages",
   "entryPoints": ["packages/agent", "packages/datasource-toolkit", "packages/datasource-sequelize"],
   "includes": [""],
-  "out": "docs/99-api-reference",
-  "theme": "markdown"
+  "out": "api-reference",
+  "theme": "github-wiki"
 }

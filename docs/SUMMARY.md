@@ -24,8 +24,3 @@
 - [Connector performance](03-custom-connectors/04-performance.md)
   - [Native relations](03-custom-connectors/04-performance/01-native-relations.md)
   - [Native search and segments](03-custom-connectors/04-performance/02-native-search-segments.md)
-
-## API Reference
-
-- [Modules](99-api-reference/modules.md)
-- [Classes](99-api-reference/classes/forestadmin_agent.Collection.md)
