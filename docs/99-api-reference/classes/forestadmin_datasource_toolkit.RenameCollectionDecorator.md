@@ -64,7 +64,7 @@ CollectionDecorator.constructor
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:14](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L14)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:14](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L14)
 
 ## Properties
 
@@ -78,7 +78,7 @@ CollectionDecorator.childCollection
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L12)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L12)
 
 ___
 
@@ -92,7 +92,7 @@ CollectionDecorator.dataSource
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/rename/collection.ts:18](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/rename/collection.ts#L18)
+[packages/datasource-toolkit/src/decorators/rename/collection.ts:18](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/rename/collection.ts#L18)
 
 ## Accessors
 
@@ -110,7 +110,7 @@ CollectionDecorator.name
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:19](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L19)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:19](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L19)
 
 ___
 
@@ -128,7 +128,7 @@ CollectionDecorator.schema
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:23](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L23)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:23](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L23)
 
 ## Methods
 
@@ -154,7 +154,7 @@ CollectionDecorator.aggregate
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/rename/collection.ts:100](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/rename/collection.ts#L100)
+[packages/datasource-toolkit/src/decorators/rename/collection.ts:100](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/rename/collection.ts#L100)
 
 ___
 
@@ -178,7 +178,7 @@ CollectionDecorator.create
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/rename/collection.ts:81](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/rename/collection.ts#L81)
+[packages/datasource-toolkit/src/decorators/rename/collection.ts:81](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/rename/collection.ts#L81)
 
 ___
 
@@ -202,7 +202,7 @@ CollectionDecorator.delete
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:55](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L55)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:55](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L55)
 
 ___
 
@@ -228,7 +228,7 @@ CollectionDecorator.execute
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:27](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L27)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:27](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L27)
 
 ___
 
@@ -254,7 +254,7 @@ CollectionDecorator.getForm
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:33](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L33)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:33](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L33)
 
 ___
 
@@ -279,7 +279,7 @@ CollectionDecorator.list
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/rename/collection.ts:89](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/rename/collection.ts#L89)
+[packages/datasource-toolkit/src/decorators/rename/collection.ts:89](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/rename/collection.ts#L89)
 
 ___
 
@@ -303,7 +303,7 @@ CollectionDecorator.refineFilter
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/rename/collection.ts:69](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/rename/collection.ts#L69)
+[packages/datasource-toolkit/src/decorators/rename/collection.ts:69](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/rename/collection.ts#L69)
 
 ___
 
@@ -327,7 +327,7 @@ CollectionDecorator.refineSchema
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/rename/collection.ts:46](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/rename/collection.ts#L46)
+[packages/datasource-toolkit/src/decorators/rename/collection.ts:46](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/rename/collection.ts#L46)
 
 ___
 
@@ -350,7 +350,7 @@ Rename a field from the collection
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/rename/collection.ts:24](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/rename/collection.ts#L24)
+[packages/datasource-toolkit/src/decorators/rename/collection.ts:24](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/rename/collection.ts#L24)
 
 ___
 
@@ -375,4 +375,4 @@ CollectionDecorator.update
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/rename/collection.ts:96](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/rename/collection.ts#L96)
+[packages/datasource-toolkit/src/decorators/rename/collection.ts:96](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/rename/collection.ts#L96)

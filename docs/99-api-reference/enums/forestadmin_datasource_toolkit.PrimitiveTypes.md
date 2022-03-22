@@ -27,7 +27,7 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/schema.ts:72](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/schema.ts#L72)
+[packages/datasource-toolkit/src/interfaces/schema.ts:72](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/schema.ts#L72)
 
 ___
 
@@ -37,7 +37,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/schema.ts:73](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/schema.ts#L73)
+[packages/datasource-toolkit/src/interfaces/schema.ts:73](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/schema.ts#L73)
 
 ___
 
@@ -47,7 +47,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/schema.ts:74](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/schema.ts#L74)
+[packages/datasource-toolkit/src/interfaces/schema.ts:74](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/schema.ts#L74)
 
 ___
 
@@ -57,7 +57,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/schema.ts:75](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/schema.ts#L75)
+[packages/datasource-toolkit/src/interfaces/schema.ts:75](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/schema.ts#L75)
 
 ___
 
@@ -67,7 +67,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/schema.ts:76](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/schema.ts#L76)
+[packages/datasource-toolkit/src/interfaces/schema.ts:76](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/schema.ts#L76)
 
 ___
 
@@ -77,7 +77,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/schema.ts:77](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/schema.ts#L77)
+[packages/datasource-toolkit/src/interfaces/schema.ts:77](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/schema.ts#L77)
 
 ___
 
@@ -87,7 +87,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/schema.ts:78](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/schema.ts#L78)
+[packages/datasource-toolkit/src/interfaces/schema.ts:78](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/schema.ts#L78)
 
 ___
 
@@ -97,7 +97,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/schema.ts:79](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/schema.ts#L79)
+[packages/datasource-toolkit/src/interfaces/schema.ts:79](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/schema.ts#L79)
 
 ___
 
@@ -107,7 +107,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/schema.ts:80](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/schema.ts#L80)
+[packages/datasource-toolkit/src/interfaces/schema.ts:80](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/schema.ts#L80)
 
 ___
 
@@ -117,4 +117,4 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/schema.ts:81](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/schema.ts#L81)
+[packages/datasource-toolkit/src/interfaces/schema.ts:81](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/schema.ts#L81)

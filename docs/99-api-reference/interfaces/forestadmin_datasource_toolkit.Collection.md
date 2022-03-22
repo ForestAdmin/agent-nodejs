@@ -38,7 +38,7 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:16](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L16)
+[packages/datasource-toolkit/src/interfaces/collection.ts:16](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L16)
 
 ___
 
@@ -52,7 +52,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:17](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L17)
+[packages/datasource-toolkit/src/interfaces/collection.ts:17](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L17)
 
 ___
 
@@ -66,7 +66,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:18](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L18)
+[packages/datasource-toolkit/src/interfaces/collection.ts:18](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L18)
 
 ## Methods
 
@@ -88,7 +88,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:32](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L32)
+[packages/datasource-toolkit/src/interfaces/collection.ts:32](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L32)
 
 ___
 
@@ -108,7 +108,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:24](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L24)
+[packages/datasource-toolkit/src/interfaces/collection.ts:24](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L24)
 
 ___
 
@@ -128,7 +128,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:30](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L30)
+[packages/datasource-toolkit/src/interfaces/collection.ts:30](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L30)
 
 ___
 
@@ -150,7 +150,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:20](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L20)
+[packages/datasource-toolkit/src/interfaces/collection.ts:20](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L20)
 
 ___
 
@@ -172,7 +172,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:22](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L22)
+[packages/datasource-toolkit/src/interfaces/collection.ts:22](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L22)
 
 ___
 
@@ -193,7 +193,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:26](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L26)
+[packages/datasource-toolkit/src/interfaces/collection.ts:26](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L26)
 
 ___
 
@@ -214,4 +214,4 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:28](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L28)
+[packages/datasource-toolkit/src/interfaces/collection.ts:28](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L28)

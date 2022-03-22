@@ -31,7 +31,7 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:10](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L10)
+[packages/datasource-toolkit/src/interfaces/collection.ts:10](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L10)
 
 ## Methods
 
@@ -51,7 +51,7 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L12)
+[packages/datasource-toolkit/src/interfaces/collection.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L12)
 
 ___
 
@@ -71,4 +71,4 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/collection.ts:11](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/collection.ts#L11)
+[packages/datasource-toolkit/src/interfaces/collection.ts:11](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/collection.ts#L11)

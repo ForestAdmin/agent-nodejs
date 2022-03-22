@@ -38,7 +38,7 @@
 
 #### Defined in
 
-[packages/agent/src/builder/collection.ts:18](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/collection.ts#L18)
+[packages/agent/src/builder/collection.ts:18](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/collection.ts#L18)
 
 ## Methods
 
@@ -67,7 +67,7 @@ As for all the emulation method, the field filtering will be done in-memory.
 
 #### Defined in
 
-[packages/agent/src/builder/collection.ts:195](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/collection.ts#L195)
+[packages/agent/src/builder/collection.ts:195](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/collection.ts#L195)
 
 ___
 
@@ -95,7 +95,7 @@ As for all the emulation method, the field sorting will be done in-memory.
 
 #### Defined in
 
-[packages/agent/src/builder/collection.ts:156](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/collection.ts#L156)
+[packages/agent/src/builder/collection.ts:156](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/collection.ts#L156)
 
 ___
 
@@ -128,7 +128,7 @@ Allow to provide an implementation for a specific operator on a specific field.
 
 #### Defined in
 
-[packages/agent/src/builder/collection.ts:215](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/collection.ts#L215)
+[packages/agent/src/builder/collection.ts:215](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/collection.ts#L215)
 
 ___
 
@@ -162,7 +162,7 @@ Allow to provide an implementation for the sorting.
 
 #### Defined in
 
-[packages/agent/src/builder/collection.ts:177](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/collection.ts#L177)
+[packages/agent/src/builder/collection.ts:177](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/collection.ts#L177)
 
 ___
 
@@ -189,7 +189,7 @@ Publish an array of fields by setting its visibility to true.
 
 #### Defined in
 
-[packages/agent/src/builder/collection.ts:46](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/collection.ts#L46)
+[packages/agent/src/builder/collection.ts:46](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/collection.ts#L46)
 
 ___
 
@@ -222,7 +222,7 @@ return responseBuilder.success(`Is live!`);
 
 #### Defined in
 
-[packages/agent/src/builder/collection.ts:82](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/collection.ts#L82)
+[packages/agent/src/builder/collection.ts:82](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/collection.ts#L82)
 
 ___
 
@@ -254,7 +254,7 @@ Register a new field on the collection.
 
 #### Defined in
 
-[packages/agent/src/builder/collection.ts:101](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/collection.ts#L101)
+[packages/agent/src/builder/collection.ts:101](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/collection.ts#L101)
 
 ___
 
@@ -285,7 +285,7 @@ Register a new segment on the collection.
 
 #### Defined in
 
-[packages/agent/src/builder/collection.ts:138](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/collection.ts#L138)
+[packages/agent/src/builder/collection.ts:138](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/collection.ts#L138)
 
 ___
 
@@ -313,7 +313,7 @@ Allow to rename a field of a given collection.
 
 #### Defined in
 
-[packages/agent/src/builder/collection.ts:32](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/collection.ts#L32)
+[packages/agent/src/builder/collection.ts:32](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/collection.ts#L32)
 
 ___
 
@@ -340,4 +340,4 @@ Unpublish an array of fields by setting its visibility to false.
 
 #### Defined in
 
-[packages/agent/src/builder/collection.ts:61](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/collection.ts#L61)
+[packages/agent/src/builder/collection.ts:61](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/collection.ts#L61)

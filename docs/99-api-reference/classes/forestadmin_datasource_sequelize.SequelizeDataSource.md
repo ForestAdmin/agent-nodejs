@@ -48,7 +48,7 @@ BaseDataSource&lt;SequelizeCollection\&gt;.constructor
 
 #### Defined in
 
-[packages/datasource-sequelize/src/datasource.ts:10](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/datasource.ts#L10)
+[packages/datasource-sequelize/src/datasource.ts:10](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/datasource.ts#L10)
 
 ## Properties
 
@@ -76,7 +76,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-sequelize/src/datasource.ts:8](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/datasource.ts#L8)
+[packages/datasource-sequelize/src/datasource.ts:8](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/datasource.ts#L8)
 
 ## Accessors
 

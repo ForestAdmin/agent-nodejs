@@ -38,4 +38,4 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/filter/factory.ts:34](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/filter/factory.ts#L34)
+[packages/datasource-toolkit/src/interfaces/query/filter/factory.ts:34](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/filter/factory.ts#L34)

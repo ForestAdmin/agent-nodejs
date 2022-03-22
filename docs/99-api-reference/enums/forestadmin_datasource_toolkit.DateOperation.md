@@ -21,7 +21,7 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:20](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L20)
+[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:20](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L20)
 
 ___
 
@@ -31,7 +31,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:18](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L18)
+[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:18](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L18)
 
 ___
 
@@ -41,7 +41,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:19](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L19)
+[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:19](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L19)
 
 ___
 
@@ -51,4 +51,4 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:17](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L17)
+[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:17](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L17)

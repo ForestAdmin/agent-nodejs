@@ -19,7 +19,7 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/branch.ts:8](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/branch.ts#L8)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/branch.ts:8](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/branch.ts#L8)
 
 ___
 
@@ -29,4 +29,4 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/branch.ts:9](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/branch.ts#L9)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/branch.ts:9](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/branch.ts#L9)

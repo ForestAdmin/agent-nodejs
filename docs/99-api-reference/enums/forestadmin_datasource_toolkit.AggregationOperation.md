@@ -22,7 +22,7 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:11](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L11)
+[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:11](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L11)
 
 ___
 
@@ -32,7 +32,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:9](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L9)
+[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:9](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L9)
 
 ___
 
@@ -42,7 +42,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L12)
+[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L12)
 
 ___
 
@@ -52,7 +52,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:13](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L13)
+[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:13](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L13)
 
 ___
 
@@ -62,4 +62,4 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:10](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L10)
+[packages/datasource-toolkit/src/interfaces/query/aggregation.ts:10](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/aggregation.ts#L10)

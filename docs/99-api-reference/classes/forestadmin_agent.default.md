@@ -78,7 +78,7 @@ new AgentBuilder(options)
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:88](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L88)
+[packages/agent/src/builder/agent.ts:88](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L88)
 
 ## Properties
 
@@ -88,7 +88,7 @@ new AgentBuilder(options)
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:52](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L52)
+[packages/agent/src/builder/agent.ts:52](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L52)
 
 ___
 
@@ -98,7 +98,7 @@ ___
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:34](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L34)
+[packages/agent/src/builder/agent.ts:34](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L34)
 
 ___
 
@@ -108,7 +108,7 @@ ___
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:40](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L40)
+[packages/agent/src/builder/agent.ts:40](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L40)
 
 ___
 
@@ -118,7 +118,7 @@ ___
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:54](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L54)
+[packages/agent/src/builder/agent.ts:54](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L54)
 
 ___
 
@@ -128,7 +128,7 @@ ___
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:36](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L36)
+[packages/agent/src/builder/agent.ts:36](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L36)
 
 ___
 
@@ -138,7 +138,7 @@ ___
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:38](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L38)
+[packages/agent/src/builder/agent.ts:38](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L38)
 
 ___
 
@@ -148,7 +148,7 @@ ___
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:46](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L46)
+[packages/agent/src/builder/agent.ts:46](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L46)
 
 ___
 
@@ -158,7 +158,7 @@ ___
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:44](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L44)
+[packages/agent/src/builder/agent.ts:44](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L44)
 
 ___
 
@@ -168,7 +168,7 @@ ___
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:50](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L50)
+[packages/agent/src/builder/agent.ts:50](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L50)
 
 ___
 
@@ -178,7 +178,7 @@ ___
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:42](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L42)
+[packages/agent/src/builder/agent.ts:42](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L42)
 
 ___
 
@@ -188,7 +188,7 @@ ___
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:48](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L48)
+[packages/agent/src/builder/agent.ts:48](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L48)
 
 ## Accessors
 
@@ -211,7 +211,7 @@ const server = http.createServer(agent.httpCallback);
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:65](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L65)
+[packages/agent/src/builder/agent.ts:65](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L65)
 
 ## Methods
 
@@ -233,7 +233,7 @@ Add a datasource
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:117](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L117)
+[packages/agent/src/builder/agent.ts:117](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L117)
 
 ___
 
@@ -261,7 +261,7 @@ Allow to interact with a decorated collection
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:135](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L135)
+[packages/agent/src/builder/agent.ts:135](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L135)
 
 ___
 
@@ -277,7 +277,7 @@ Start the agent.
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:146](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L146)
+[packages/agent/src/builder/agent.ts:146](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L146)
 
 ___
 
@@ -293,4 +293,4 @@ Stop the agent gracefully.
 
 #### Defined in
 
-[packages/agent/src/builder/agent.ts:153](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/builder/agent.ts#L153)
+[packages/agent/src/builder/agent.ts:153](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/builder/agent.ts#L153)

@@ -40,7 +40,7 @@
 
 #### Defined in
 
-[packages/datasource-sequelize/src/utils/type-converter.ts:21](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/utils/type-converter.ts#L21)
+[packages/datasource-sequelize/src/utils/type-converter.ts:21](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/utils/type-converter.ts#L21)
 
 ___
 
@@ -60,7 +60,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-sequelize/src/utils/type-converter.ts:67](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/utils/type-converter.ts#L67)
+[packages/datasource-sequelize/src/utils/type-converter.ts:67](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/utils/type-converter.ts#L67)
 
 ___
 
@@ -80,4 +80,4 @@ ___
 
 #### Defined in
 
-[packages/datasource-sequelize/src/utils/type-converter.ts:93](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/utils/type-converter.ts#L93)
+[packages/datasource-sequelize/src/utils/type-converter.ts:93](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/utils/type-converter.ts#L93)

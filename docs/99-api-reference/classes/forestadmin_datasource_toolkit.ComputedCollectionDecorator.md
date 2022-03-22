@@ -62,7 +62,7 @@ CollectionDecorator.constructor
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:14](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L14)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:14](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L14)
 
 ## Properties
 
@@ -76,7 +76,7 @@ CollectionDecorator.childCollection
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L12)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L12)
 
 ___
 
@@ -86,7 +86,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/collection.ts:24](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/collection.ts#L24)
+[packages/datasource-toolkit/src/decorators/computed/collection.ts:24](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/collection.ts#L24)
 
 ___
 
@@ -100,7 +100,7 @@ CollectionDecorator.dataSource
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/collection.ts:23](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/collection.ts#L23)
+[packages/datasource-toolkit/src/decorators/computed/collection.ts:23](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/collection.ts#L23)
 
 ## Accessors
 
@@ -118,7 +118,7 @@ CollectionDecorator.name
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:19](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L19)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:19](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L19)
 
 ___
 
@@ -136,7 +136,7 @@ CollectionDecorator.schema
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:23](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L23)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:23](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L23)
 
 ## Methods
 
@@ -162,7 +162,7 @@ CollectionDecorator.aggregate
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/collection.ts:60](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/collection.ts#L60)
+[packages/datasource-toolkit/src/decorators/computed/collection.ts:60](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/collection.ts#L60)
 
 ___
 
@@ -186,7 +186,7 @@ CollectionDecorator.create
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:39](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L39)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:39](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L39)
 
 ___
 
@@ -210,7 +210,7 @@ CollectionDecorator.delete
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:55](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L55)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:55](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L55)
 
 ___
 
@@ -236,7 +236,7 @@ CollectionDecorator.execute
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:27](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L27)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:27](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L27)
 
 ___
 
@@ -262,7 +262,7 @@ CollectionDecorator.getForm
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:33](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L33)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:33](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L33)
 
 ___
 
@@ -287,7 +287,7 @@ CollectionDecorator.list
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/collection.ts:53](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/collection.ts#L53)
+[packages/datasource-toolkit/src/decorators/computed/collection.ts:53](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/collection.ts#L53)
 
 ___
 
@@ -311,7 +311,7 @@ CollectionDecorator.refineFilter
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:71](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L71)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:71](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L71)
 
 ___
 
@@ -335,7 +335,7 @@ CollectionDecorator.refineSchema
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/collection.ts:74](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/collection.ts#L74)
+[packages/datasource-toolkit/src/decorators/computed/collection.ts:74](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/collection.ts#L74)
 
 ___
 
@@ -356,7 +356,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/collection.ts:37](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/collection.ts#L37)
+[packages/datasource-toolkit/src/decorators/computed/collection.ts:37](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/collection.ts#L37)
 
 ___
 
@@ -377,7 +377,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/collection.ts:46](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/collection.ts#L46)
+[packages/datasource-toolkit/src/decorators/computed/collection.ts:46](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/collection.ts#L46)
 
 ___
 
@@ -402,4 +402,4 @@ CollectionDecorator.update
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/collection-decorator.ts:49](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L49)
+[packages/datasource-toolkit/src/decorators/collection-decorator.ts:49](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/collection-decorator.ts#L49)

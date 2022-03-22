@@ -43,7 +43,7 @@ Options to configure behavior of an agent's forestadmin driver
 
 #### Defined in
 
-[packages/agent/src/types.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/types.ts#L12)
+[packages/agent/src/types.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/types.ts#L12)
 
 ___
 
@@ -70,4 +70,4 @@ Logger
 
 #### Defined in
 
-[packages/agent/src/types.ts:9](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/types.ts#L9)
+[packages/agent/src/types.ts:9](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/types.ts#L9)

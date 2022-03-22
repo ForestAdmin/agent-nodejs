@@ -39,4 +39,4 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/validation/record.ts:8](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/validation/record.ts#L8)
+[packages/datasource-toolkit/src/validation/record.ts:8](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/validation/record.ts#L8)

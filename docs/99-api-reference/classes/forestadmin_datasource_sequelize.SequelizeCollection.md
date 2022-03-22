@@ -58,7 +58,7 @@ BaseCollection.constructor
 
 #### Defined in
 
-[packages/datasource-sequelize/src/collection.ts:25](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/collection.ts#L25)
+[packages/datasource-sequelize/src/collection.ts:25](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/collection.ts#L25)
 
 ## Properties
 
@@ -82,7 +82,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-sequelize/src/collection.ts:21](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/collection.ts#L21)
+[packages/datasource-sequelize/src/collection.ts:21](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/collection.ts#L21)
 
 ___
 
@@ -234,7 +234,7 @@ BaseCollection.aggregate
 
 #### Defined in
 
-[packages/datasource-sequelize/src/collection.ts:82](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/collection.ts#L82)
+[packages/datasource-sequelize/src/collection.ts:82](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/collection.ts#L82)
 
 ___
 
@@ -258,7 +258,7 @@ BaseCollection.create
 
 #### Defined in
 
-[packages/datasource-sequelize/src/collection.ts:39](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/collection.ts#L39)
+[packages/datasource-sequelize/src/collection.ts:39](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/collection.ts#L39)
 
 ___
 
@@ -282,7 +282,7 @@ BaseCollection.delete
 
 #### Defined in
 
-[packages/datasource-sequelize/src/collection.ts:76](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/collection.ts#L76)
+[packages/datasource-sequelize/src/collection.ts:76](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/collection.ts#L76)
 
 ___
 
@@ -367,7 +367,7 @@ BaseCollection.list
 
 #### Defined in
 
-[packages/datasource-sequelize/src/collection.ts:45](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/collection.ts#L45)
+[packages/datasource-sequelize/src/collection.ts:45](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/collection.ts#L45)
 
 ___
 
@@ -392,4 +392,4 @@ BaseCollection.update
 
 #### Defined in
 
-[packages/datasource-sequelize/src/collection.ts:69](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-sequelize/src/collection.ts#L69)
+[packages/datasource-sequelize/src/collection.ts:69](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-sequelize/src/collection.ts#L69)

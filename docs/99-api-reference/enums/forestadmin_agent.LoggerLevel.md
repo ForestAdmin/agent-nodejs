@@ -22,7 +22,7 @@ Logger Level
 
 #### Defined in
 
-[packages/agent/src/types.ts:5](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/types.ts#L5)
+[packages/agent/src/types.ts:5](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/types.ts#L5)
 
 ___
 
@@ -32,7 +32,7 @@ ___
 
 #### Defined in
 
-[packages/agent/src/types.ts:3](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/types.ts#L3)
+[packages/agent/src/types.ts:3](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/types.ts#L3)
 
 ___
 
@@ -42,4 +42,4 @@ ___
 
 #### Defined in
 
-[packages/agent/src/types.ts:4](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/agent/src/types.ts#L4)
+[packages/agent/src/types.ts:4](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/agent/src/types.ts#L4)

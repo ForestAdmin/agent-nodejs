@@ -148,7 +148,7 @@ node_modules/typescript/lib/lib.es2015.symbol.wellknown.d.ts:314
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:8](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L8)
+[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:8](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L8)
 
 ## Methods
 
@@ -219,7 +219,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:41](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L41)
+[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:41](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L41)
 
 ___
 
@@ -734,7 +734,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:24](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L24)
+[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:24](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L24)
 
 ___
 
@@ -860,7 +860,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:18](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L18)
+[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:18](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L18)
 
 ___
 
@@ -1079,7 +1079,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L12)
+[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L12)
 
 ___
 
@@ -1313,7 +1313,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:28](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L28)
+[packages/datasource-toolkit/src/interfaces/query/sort/index.ts:28](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/sort/index.ts#L28)
 
 ___
 

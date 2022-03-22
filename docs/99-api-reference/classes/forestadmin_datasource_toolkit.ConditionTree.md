@@ -56,7 +56,7 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:17](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L17)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:17](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L17)
 
 ## Methods
 
@@ -78,7 +78,7 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:19](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L19)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:19](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L19)
 
 ___
 
@@ -98,7 +98,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:14](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L14)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:14](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L14)
 
 ___
 
@@ -118,7 +118,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:13](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L13)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:13](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L13)
 
 ___
 
@@ -132,7 +132,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:7](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L7)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:7](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L7)
 
 ___
 
@@ -154,7 +154,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:11](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L11)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:11](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L11)
 
 ___
 
@@ -174,7 +174,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:23](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L23)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:23](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L23)
 
 ___
 
@@ -194,7 +194,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:46](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L46)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:46](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L46)
 
 ___
 
@@ -215,7 +215,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:8](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L8)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:8](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L8)
 
 ___
 
@@ -236,7 +236,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:9](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L9)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:9](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L9)
 
 ___
 
@@ -256,7 +256,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:15](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L15)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:15](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L15)
 
 ___
 
@@ -270,4 +270,4 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:29](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L29)
+[packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts:29](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/condition-tree/nodes/base.ts#L29)

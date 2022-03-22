@@ -26,7 +26,7 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/types.ts:11](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/types.ts#L11)
+[packages/datasource-toolkit/src/decorators/computed/types.ts:11](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/types.ts#L11)
 
 ___
 
@@ -36,7 +36,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/types.ts:14](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/types.ts#L14)
+[packages/datasource-toolkit/src/decorators/computed/types.ts:14](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/types.ts#L14)
 
 ___
 
@@ -46,7 +46,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/types.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/types.ts#L12)
+[packages/datasource-toolkit/src/decorators/computed/types.ts:12](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/types.ts#L12)
 
 ___
 
@@ -56,7 +56,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/types.ts:15](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/types.ts#L15)
+[packages/datasource-toolkit/src/decorators/computed/types.ts:15](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/types.ts#L15)
 
 ___
 
@@ -66,7 +66,7 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/types.ts:13](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/types.ts#L13)
+[packages/datasource-toolkit/src/decorators/computed/types.ts:13](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/types.ts#L13)
 
 ## Methods
 
@@ -87,4 +87,4 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/decorators/computed/types.ts:17](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/decorators/computed/types.ts#L17)
+[packages/datasource-toolkit/src/decorators/computed/types.ts:17](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/decorators/computed/types.ts#L17)

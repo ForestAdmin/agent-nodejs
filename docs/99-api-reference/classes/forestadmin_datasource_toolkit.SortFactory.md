@@ -38,4 +38,4 @@
 
 #### Defined in
 
-[packages/datasource-toolkit/src/interfaces/query/sort/factory.ts:6](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/interfaces/query/sort/factory.ts#L6)
+[packages/datasource-toolkit/src/interfaces/query/sort/factory.ts:6](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/interfaces/query/sort/factory.ts#L6)

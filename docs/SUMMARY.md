@@ -28,3 +28,4 @@
 ## API Reference
 
 - [Modules](99-api-reference/modules.md)
+- [Classes](99-api-reference/classes/forestadmin_agent.Collection.md)

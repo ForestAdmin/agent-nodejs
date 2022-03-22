@@ -42,7 +42,7 @@ Get value of field from record
 
 #### Defined in
 
-[packages/datasource-toolkit/src/utils/record.ts:17](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/utils/record.ts#L17)
+[packages/datasource-toolkit/src/utils/record.ts:17](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/utils/record.ts#L17)
 
 ___
 
@@ -63,4 +63,4 @@ ___
 
 #### Defined in
 
-[packages/datasource-toolkit/src/utils/record.ts:6](https://github.com/ForestAdmin/agent-nodejs/blob/0eb369e/packages/datasource-toolkit/src/utils/record.ts#L6)
+[packages/datasource-toolkit/src/utils/record.ts:6](https://github.com/ForestAdmin/agent-nodejs/blob/fba2435/packages/datasource-toolkit/src/utils/record.ts#L6)
