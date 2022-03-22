@@ -12,6 +12,7 @@
 
 ## Development on Forest Admin
 
+- [Environments](development/environments.md)
 - [Development workflow](development/development-workflow.md)
 - [Using branches](development/using-branches.md)
 - [Deploying your changes](development/deploying-your-changes.md)
