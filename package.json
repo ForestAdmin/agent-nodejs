@@ -25,6 +25,7 @@
     "prettier-eslint": "^13.0.0",
     "ts-jest": "^27.1.2",
     "typedoc": "^0.22.10",
+    "typedoc-plugin-markdown": "^3.11.14",
     "typescript": "^4.5.4"
   },
   "scripts": {
@@ -32,7 +33,7 @@
     "build:watch": "lerna run --parallel --no-bail --no-prefix build:watch",
     "build": "lerna run build",
     "clean": "lerna run clean && rm -rf coverage dist-docs",
-    "docs": "yarn build && typedoc",
+    "docs": "yarn build && typedoc --theme markdown",
     "lint": "lerna exec eslint src test",
     "lint:fix": "lerna exec eslint src test -- --fix",
     "prepare": "husky install",

@@ -3,11 +3,7 @@
   "excludePrivate": true,
   "hideGenerator": true,
   "entryPointStrategy": "packages",
-  "entryPoints": [
-    "packages/agent",
-    "packages/datasource-toolkit",
-    "packages/datasource-sequelize"
-  ],
+  "entryPoints": ["packages/agent", "packages/datasource-toolkit", "packages/datasource-sequelize"],
   "includes": [""],
-  "out": "dist-docs"
+  "out": "docs/99-api-reference"
 }

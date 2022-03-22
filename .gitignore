@@ -1,7 +1,7 @@
 .DS_Store
 coverage
 dist
-dist-docs
+docs/99-api-reference
 node_modules
 
 # IDE
