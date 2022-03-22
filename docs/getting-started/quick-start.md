@@ -1,4 +1,12 @@
-# Creating your agent
+---
+description: Let's get you up and running on Forest Admin in minutes!
+---
+
+### Step 1: Create an account
+
+Go to [https://app.forestadmin.com/signup](https://app.forestadmin.com/signup), create an account and create a new project.
+
+### Step 2: Instantiate your agent with a dummy datasource
 
 {% code title="/forest/agent.js" %}
 
