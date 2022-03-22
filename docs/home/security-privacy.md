@@ -59,15 +59,7 @@ The **Forest Admin UI** has an option to completely disable any 3rd-party provid
 
 The [IP whitelisting](broken-reference) feature allows you to create a list of trusted IP addresses or IP ranges from which your admin users can both access to the **Forest Admin UI** and interact with your **Admin Backend**.
 
-{% tabs %}
-{% tab title="SQL/Mongodb" %}
 ![](../assets/IPWhitelist.png)
-{% endtab %}
-
-{% tab title="Rails" %}
-![](../assets/base-IP-whitelisting.png)
-{% endtab %}
-{% endtabs %}
 
 ### **DMZ & VPN**
 

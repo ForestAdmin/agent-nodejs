@@ -4,9 +4,7 @@ Before you start writing a single line of code, it’s a good idea to get an ove
 
 Forest Admin provides you with:
 
-- An API hosted on your server to retrieve your data. We call it the **Admin Backend**
-  - if you chose a database as a datasource (PostgreSQLL, MySQL, MSSQL, MongoDB), your Admin Backend will be generated as a **standalone folder**.
-  - if you chose an existing app as a datasource (Rails, Django, Express/Sequelize, Express/Mongoose), your Admin Backend will be generated **within your app**.
+- An API hosted on your server to retrieve your data. We call it the **Admin Backend**. It can be a **standalone project** or embedded **within your app**.
 - A user interface to access and manage your data from your browser. This **Forest Admin User Interface** is built and managed through ressources hosted on Forest Admin's servers.
 
 ![The Admin Backend is a Node.JS REST API hosted on your servers](../assets/Base.png)
