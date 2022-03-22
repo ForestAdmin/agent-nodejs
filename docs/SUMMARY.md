@@ -9,6 +9,9 @@
 ## Customization
 
 - [Actions](02-customization/01-actions.md)
+  - [Basics](02-customization/01-actions/01-basics.md)
+  - [Form and hooks](02-customization/01-actions/02-forms-and-hooks.md)
+  - [Examples](02-customization/01-actions/99-examples.md)
 - [Charts](02-customization/02-charts.md)
 - [Fields](02-customization/03-fields.md)
 - [Hooks](02-customization/04-hooks.md)
@@ -24,3 +27,4 @@
 - [Connector performance](03-custom-connectors/04-performance.md)
   - [Native relations](03-custom-connectors/04-performance/01-native-relations.md)
   - [Native search and segments](03-custom-connectors/04-performance/02-native-search-segments.md)
+- [Api Reference](99/)
