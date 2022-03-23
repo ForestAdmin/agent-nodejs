@@ -143,7 +143,7 @@ SELECT books.title, books.authorId FROM books WHERE books.title LIKE 'Found%';
 ```
 
 {% hint style="warning" %}
-Automatic query splitting so that they can transparently run across incompatible data sources is a very powerful tool however not all queries are created equal.
+Automatic query splitting is a very powerful tool however not all queries are created equal.
 
 In this simple example, it is a straighforward three step process, but the feature can come at the cost of performance on more complex queries.
 {% endhint %}
