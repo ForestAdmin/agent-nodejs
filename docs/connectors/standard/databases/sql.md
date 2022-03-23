@@ -1,3 +1,6 @@
+SQL support is coming soon!
+
+<!--
 The SQL connector allows to import tables from SQL databases.
 
 It supports the following vendors:
@@ -25,3 +28,4 @@ const SqlConnector = require('@forestadmin/connector-sql');
 const agent = new Agent(options);
 agent.importCollectionsFrom(new SqlConnector('postgres://user:pass@localhost:5432/mySchema'));
 ```
+-->

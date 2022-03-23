@@ -1,3 +1,7 @@
+Mongoose support is coming soon!
+
+<!--
+
 The sequelize connector allows to import collections from a mongoose connection.
 
 Note that:
@@ -23,3 +27,4 @@ const agent = new Agent(options);
 
 agent.importCollectionsFrom(new MongooseConnector(mongoose.connection));
 ```
+-->
