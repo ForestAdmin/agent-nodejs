@@ -3,7 +3,7 @@ After doing the quickstart, you should have a development project which is up an
 Now, that's already useful and can be built upon, but what if you want your panel to display and act on
 
 - `Stripe` payments?
-- `Intercom` conversations
+- `Intercom` conversations?
 - Customer data that your sales team track in `Google Spreadsheet`?
 
 Forest Admin has you covered: if your application depends on multiple SaaS providers, so should your admin panel.
@@ -62,7 +62,7 @@ When adding many datasources to an admin panel, it is easy to encounter naming c
 
 You can tackle them by either only adding the collections that you need, or by renaming some collections.
 
-Dont worry if you leave naming collisions, your development agent will warn you while starting.
+Don't worry if you leave naming collisions, your development agent will warn you while starting.
 
 ## Native actions and segments
 
