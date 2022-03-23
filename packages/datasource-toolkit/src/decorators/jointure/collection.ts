@@ -108,7 +108,7 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
 
   private checkForeignKeys(joint: RelationSchema): void {
     if (joint.type === FieldTypes.ManyToOne || joint.type === FieldTypes.ManyToMany) {
-      this.checkKeys(
+      JointureCollectionDecorator.checkKeys(
         joint.type === FieldTypes.ManyToMany
           ? this.dataSource.getCollection(joint.throughCollection)
           : this,
@@ -125,7 +125,7 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
       joint.type === FieldTypes.OneToOne ||
       joint.type === FieldTypes.ManyToMany
     ) {
-      this.checkKeys(
+      JointureCollectionDecorator.checkKeys(
         joint.type === FieldTypes.ManyToMany
           ? this.dataSource.getCollection(joint.throughCollection)
           : this.dataSource.getCollection(joint.foreignCollection),
@@ -136,27 +136,27 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
     }
   }
 
-  private checkKeys(
-    keyOwner: Collection,
+  private static checkKeys(
+    owner: Collection,
     targetOwner: Collection,
     keyName: string,
     targetName: string,
   ): void {
-    this.checkColumn(keyOwner, keyName);
-    this.checkColumn(targetOwner, targetName);
+    JointureCollectionDecorator.checkColumn(owner, keyName);
+    JointureCollectionDecorator.checkColumn(targetOwner, targetName);
 
-    const key = keyOwner.schema.fields[keyName] as ColumnSchema;
+    const key = owner.schema.fields[keyName] as ColumnSchema;
     const target = targetOwner.schema.fields[targetName] as ColumnSchema;
 
     if (key.columnType !== target.columnType) {
       throw new Error(
-        `Types from '${keyOwner.name}.${keyName}' and ` +
+        `Types from '${owner.name}.${keyName}' and ` +
           `'${targetOwner.name}.${targetName}' do not match.`,
       );
     }
   }
 
-  private checkColumn(owner: Collection, name: string): void {
+  private static checkColumn(owner: Collection, name: string): void {
     const column = owner.schema.fields[name];
 
     if (!column || column.type !== FieldTypes.Column) {
