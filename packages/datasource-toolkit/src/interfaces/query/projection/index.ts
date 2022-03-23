@@ -1,7 +1,7 @@
-import { Collection } from '../collection';
-import { RecordData } from '../record';
-import { RelationSchema } from '../schema';
-import SchemaUtils from '../../utils/schema';
+import { Collection } from '../../collection';
+import { RecordData } from '../../record';
+import { RelationSchema } from '../../schema';
+import SchemaUtils from '../../../utils/schema';
 
 export default class Projection extends Array<string> {
   get columns(): string[] {

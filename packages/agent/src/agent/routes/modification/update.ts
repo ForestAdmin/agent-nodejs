@@ -1,7 +1,7 @@
 import {
   ConditionTreeFactory,
   Filter,
-  Projection,
+  ProjectionFactory,
   RecordValidator,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
@@ -37,7 +37,7 @@ export default class UpdateRoute extends CollectionRoute {
     await this.collection.update(new Filter({ conditionTree }), record);
     const [updateResult] = await this.collection.list(
       new Filter({ conditionTree }),
-      new Projection(...Object.keys(this.collection.schema.fields)),
+      ProjectionFactory.all(this.collection),
     );
 
     context.response.body = this.services.serializer.serialize(this.collection, updateResult);
