@@ -86,7 +86,7 @@ export default class CreateRoute extends CollectionRoute {
       // Permissions
       const foreignCollection = this.dataSource.getCollection(relation.foreignCollection);
       const scope = await this.services.permissions.getScope(foreignCollection, context);
-      await this.services.permissions.can(context, `edit:${foreignCollection.name}`);
+      await this.services.permissions.can(context, `edit:${this.collection.name}`);
 
       // Load the value that will be used as originKey (=== parentId[0] most of the time)
       const originValue = record[relation.originKeyTarget];

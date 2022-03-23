@@ -3,8 +3,6 @@ import superagent from 'superagent';
 
 import agent from '../src/index';
 
-jest.setTimeout(30000);
-
 describe('agent', () => {
   test('should start a server on port 3352', async () => {
     nock('https://api.development.forestadmin.com')
@@ -37,5 +35,5 @@ describe('agent', () => {
     stop();
 
     expect(response.status).toBe(200);
-  });
+  }, 30000);
 });

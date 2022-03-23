@@ -58,7 +58,7 @@ export default class UpdateRelation extends RelationRoute {
       relation.foreignKeyTarget,
     );
 
-    // Overwrite old foreignkey with new one (only one query needed).
+    // Overwrite old foreign key with new one (only one query needed).
     const fkOwner = ConditionTreeFactory.matchIds(this.collection.schema, [parentId]);
 
     await this.collection.update(
