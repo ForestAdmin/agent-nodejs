@@ -40,7 +40,7 @@ agent
 
       // ... to stripe customers
       .registerJointure('myStripeCustomer', {
-        type: FieldType.OneToMany,
+        type: FieldType.ManyToOne,
         foreignCollection: 'stripeCustomers',
         foreignKey: 'stripeId', // field on Postgres
       }),
@@ -48,6 +48,8 @@ agent
 ```
 
 ## Jointure types
+
+A jointure is used to combine rows from two or more tables, based on a related column between them.
 
 Four jointure types are available: `ManyToOne`, `ManyToMany`, `OneToMany` and `OneToOne`.
 
@@ -60,16 +62,47 @@ Four jointure types are available: `ManyToOne`, `ManyToMany`, `OneToMany` and `O
 
 When defining jointures, if no `foreignKeyTarget` or `originKeyTarget` is provided, the primary keys of respectively the origin and foreign models will be used.
 
-## Preconditions & Limitations
+## Preconditions
 
 Cross-datasource relationships can only work when
 
 - All fields which are used as either `originKey`, `originKeyTarget`, `foreignKey` and `foreignKeyTarget` are filterable with the `In` operator.
 - The underlying datasource ensures that values in columns used as `originKeyTarget` and `foreignKeyTarget` are unique across the collection.
 
-{% hint style="warning" %}
-Automatic query splitting so that they can transparently run across incompatible data sources is a very powerful tool however not all queries are created equal and using the feature extensively can come at the cost of performance for some operations (most notably cross-datasource charts).
-{% endhint %}
+## Advanced use-cases
+
+On some situations you may need to create a relation between two collections which do not share a common key.
+
+This can be achieved by using computed fields to create the needed foreign keys.
+
+```javascript
+const agent = new Agent(options);
+
+agent.customizeCollection('customers', collection =>
+  collection
+    // Create foreign key
+    .registerField('myForeignKey', {
+      // Compute foreign key value from other fields
+      dependencies: [...],
+      getValues: (records) => record.map(r => ...),
+
+      // Ensure this field is accesible for the jointure
+      beforeJointures: true,
+
+      // Implement the In operator, so that the foreign key can be used as a jointure
+      filterBy: {
+        [Operator.In]: (value) => ({field: 'xxx', operator: 'xxx', value: 'xxx'})
+      }
+    })
+
+    // Use the foreign key we just created in a jointure
+    .registerJointure('myRelation', {
+      type: FieldType.ManyToOne,
+      foreignCollection: 'someOtherCollection',
+      foreignKey: 'myForeignKey', // field on Postgres
+    }),
+);
+```
 
 # Under the hood
 
@@ -90,7 +123,7 @@ INNER JOIN authors ON authors.id = books.id
 WHERE books.title LIKE 'Found%'
 ```
 
-In that simple case, the request will be transparently split and its result merged in a three step process.
+The request will be transparently split and its result merged to produce the same output that if the origin query was run.
 
 ```sql
 -- Step 1: Query database containing books (including foreign key)
@@ -107,5 +140,10 @@ SELECT books.title, books.authorId FROM books WHERE books.title LIKE 'Found%';
 -- Step 3: Merge results (using books.authorId === authors.id)
 > | title      | authorId | firstName | lastName |
 > | Foundation | 83948934 | Isaac     | Asimov   |
-
 ```
+
+{% hint style="warning" %}
+Automatic query splitting so that they can transparently run across incompatible data sources is a very powerful tool however not all queries are created equal.
+
+In this simple example, it is a straighforward three step process, but the feature can come at the cost of performance on more complex queries.
+{% endhint %}

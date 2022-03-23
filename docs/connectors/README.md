@@ -8,11 +8,20 @@ Now, that's already useful and can be built upon, but what if you want your pane
 
 Forest Admin has you covered: if your application depends on multiple SaaS providers, so should your admin panel.
 
+Connectors are independent `NPM` packages which can be loaded into your `agent` to import collections into your admin panel.
+
 # Usage
 
 ## Example
 
-Importing collections from new data sources is as simple as using the `importCollections` method on the main `Agent` instance.
+Forest Admin collection map to any of those concepts:
+
+- Database collections/tables
+- ORM collections
+- Endpoints on supported SaaS providers
+- Endpoints on your own API (by writing a custom connector)
+
+Importing collection from new data sources is as simple as using the `importCollections` method on the main `Agent` instance.
 
 ```javascript
 const SqlConnector = require('@forestadmin/connector-sql');
@@ -46,17 +55,6 @@ agent
     rename: name => `intercom${name[0].toUpperCase()}${name.substring(1)}`,
   });
 ```
-
-## Collections are more than database tables
-
-Connectors are independent `NPM` packages which can be loaded into your `agent` to import collections into your admin panel.
-
-Forest Admin collection map to any of those concepts:
-
-- Database collections/tables
-- ORM collections
-- Endpoints on supported SaaS providers
-- Endpoints on your own API (by writing a custom connector)
 
 ## Naming conflicts
 
