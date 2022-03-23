@@ -8,7 +8,7 @@ Note that:
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const SequelizeConnector = require('@forestadmin/connector-sql');
+const SequelizeConnector = require('@forestadmin/connector-sequelize');
 const { Sequelize, Model, DataTypes } = require('@sequelize/core');
 
 // Create a sequelize instance
