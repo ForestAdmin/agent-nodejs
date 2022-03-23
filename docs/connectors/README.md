@@ -61,7 +61,7 @@ agent
 
 ## Naming conflicts
 
-When adding many datasources to an admin panel, it is easy to encounter naming collisions.
+When importing collections to an admin panel, it is easy to encounter naming collisions.
 
 You can tackle them by either only adding the collections that you need, or by renaming some collections.
 

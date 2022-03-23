@@ -12,7 +12,11 @@ It supports the following vendors:
 - DB2
 - IBM i
 
-Each table will be mapped to a collection in Forest Admin.
+Each table in the database will be mapped to a collection in Forest Admin.
+
+Note that, to be able to work, the credentials which are provided to the connector must be able to access the `information_schema`, as the agent will need it to extract the list of tables, columns and relations when the agent starts.
+
+Taking database structure changes into account will require restarting the agent.
 
 ```javascript
 const SqlConnector = require('@forestadmin/connector-sql');
