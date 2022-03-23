@@ -21,7 +21,7 @@ Forest Admin collection map to any of those concepts:
 - Endpoints on supported SaaS providers
 - Endpoints on your own API (by writing a custom connector)
 
-Importing collection from new data sources is as simple as using the `importCollections` method on the main `Agent` instance.
+Importing collection from new data sources is as simple as using the `importCollectionsFrom` method on the main `Agent` instance.
 
 ```javascript
 const SqlConnector = require('@forestadmin/connector-sql');
@@ -33,21 +33,24 @@ const agent = new Agent(options);
 // Create a Forest Admin collection ...
 agent
   // ... for all table in a database
-  .importCollections(new SqlConnector('postgres://user:pass@localhost:5432/mySchema'))
+  .importCollectionsFrom(new SqlConnector('postgres://user:pass@localhost:5432/mySchema'))
 
   // ... for a couple of stripe endpoints (charges & customers)
-  .importCollections(new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' }), {
+  .importCollectionsFrom(new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' }), {
     // restrict what gets imported
-    actions: [], // Do not import any action
-    collections: ['charges', 'customers'], // Import only 'charges' and 'customers'
-    segments: ['charges.*'], // Import only segments of the 'charges' collection
+    restrict: {
+      collections: ['charges', 'customers'], // Import only 'charges' and 'customers' collections
+      actions: [], // Do not import any action
+      fields: ['*'], // Import all fields (this is the default)
+      segments: ['charges.*'], // Import only segments of the 'charges' collection
+    },
 
     // rename customers (to avoid naming collision)
     rename: { customers: 'stripeCustomer' },
   })
 
   // ... for all intercom endpoints (companies, contacts, visitors, ...)
-  .importCollections(new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' }), {
+  .importCollectionsFrom(new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' }), {
     // import all collections besides visitors
     collections: ['!visitors'],
 

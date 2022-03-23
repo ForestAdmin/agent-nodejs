@@ -20,11 +20,11 @@ const agent = new Agent(options);
 
 agent
   // Import collections
-  .importCollections(new SqlConnector('postgres://user:pass@localhost:5432/mySchema'))
-  .importCollections(new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' }), {
+  .importCollectionsFrom(new SqlConnector('postgres://user:pass@localhost:5432/mySchema'))
+  .importCollectionsFrom(new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' }), {
     rename: { customers: 'stripeCustomers' },
   })
-  .importCollections(new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' }), {
+  .importCollectionsFrom(new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' }), {
     rename: { contacts: 'intercomContacts' },
   })
 
@@ -73,7 +73,7 @@ Cross-datasource relationships can only work when:
 
 On some situations you may need to create a relation between two collections which do not share a common key.
 
-This can be achieved by using computed fields to create the needed foreign keys.
+This can be achieved by [creating a new field](../agent-customization/fields.md) that will serve as a foreign key.
 
 ```javascript
 const agent = new Agent(options);
