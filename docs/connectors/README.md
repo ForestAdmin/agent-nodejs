@@ -1,6 +1,6 @@
 After doing the quickstart, you should have a development project which is up and running and connected to your main data storage system.
 
-Now, that's already useful and can be built upon, but what if you want your panel to display and act on
+Now, that's already useful and can be built upon, but what if you want your panel to display and act on:
 
 - `Stripe` payments?
 - `Intercom` conversations?
