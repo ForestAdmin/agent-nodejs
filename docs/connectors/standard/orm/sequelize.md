@@ -7,6 +7,7 @@ Note that:
 - Sequelize association, field aliasing, relationships and validation will be respected
 
 ```javascript
+const Agent = require('@forestadmin/agent');
 const SequelizeConnector = require('@forestadmin/connector-sql');
 const { Sequelize, Model, DataTypes } = require('@sequelize/core');
 

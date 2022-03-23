@@ -24,6 +24,7 @@ Forest Admin collection map to any of those concepts:
 Importing collection from new data sources is as simple as using the `importCollectionsFrom` method on the main `Agent` instance.
 
 ```javascript
+const Agent = require('@forestadmin/agent');
 const SqlConnector = require('@forestadmin/connector-sql');
 const StripeConnector = require('@forestadmin/connector-stripe');
 const IntercomConnector = require('@forestadmin/connector-intercom');

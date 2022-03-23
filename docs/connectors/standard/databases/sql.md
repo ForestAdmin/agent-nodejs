@@ -22,6 +22,7 @@ Note that, to be able to work, the credentials which are provided to the connect
 Taking database structure changes into account will require restarting the agent.
 
 ```javascript
+const Agent = require('@forestadmin/agent');
 const SqlConnector = require('@forestadmin/connector-sql');
 
 // Create agent and import collections from SQL database

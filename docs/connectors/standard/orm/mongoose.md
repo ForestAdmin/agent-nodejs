@@ -11,6 +11,7 @@ Note that:
 - Sequelize association, field aliasing, relationships and validation will be respected
 
 ```javascript
+const Agent = require('@forestadmin/agent');
 const MongooseConnector = require('@forestadmin/connector-mongoose');
 const mongoose = require('mongoose');
 
