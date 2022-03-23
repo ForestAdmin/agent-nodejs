@@ -108,8 +108,12 @@ agent
   // import the collection we just defined
   .importCollection(new MyConnectorCollection())
 
-  // We can now customize it, and it will appear on the admin panel!
-  .customizeCollection('myCollection', collection => collection);
+  // We can now customize it like any other collection
+  .customizeCollection('myCollection', collection =>
+    collection
+      .registerField('aNewField', { ... })
+      .registerSegment('aNewSegment', { ... })
+  );
 ```
 
 {% endtab %} {% endtabs %}
