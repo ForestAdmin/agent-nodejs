@@ -16,34 +16,27 @@ Which means that:
 ## Example
 
 ```javascript
+const SqlConnector = require('@forestadmin/connector-sql');
+const IntercomConnector = require('@forestadmin/connector-intercom');
+const Agent = require('@forestadmin/agent');
+
 const agent = new Agent(options);
 
 agent
   // Import collections
   .importCollectionsFrom(new SqlConnector('postgres://user:pass@localhost:5432/mySchema'))
-  .importCollectionsFrom(new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' }), {
-    rename: { customers: 'stripeCustomers' },
-  })
   .importCollectionsFrom(new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' }), {
     rename: { contacts: 'intercomContacts' },
   })
 
   // Link customer records ...
   .customizeCollection('customers', collection =>
-    collection
-      // ... to intercom contacts
-      .registerJointure('myIntercomContact', {
-        type: FieldType.OneToOne,
-        foreignCollection: 'intercomContacts',
-        originKey: 'external_id', // field on Intercom
-      })
-
-      // ... to stripe customers
-      .registerJointure('myStripeCustomer', {
-        type: FieldType.ManyToOne,
-        foreignCollection: 'stripeCustomers',
-        foreignKey: 'stripeId', // field on Postgres
-      }),
+    // ... to intercom contacts
+    collection.registerJointure('myIntercomContact', {
+      type: FieldType.OneToOne,
+      foreignCollection: 'intercomContacts',
+      originKey: 'external_id', // field on Intercom
+    }),
   );
 ```
 
