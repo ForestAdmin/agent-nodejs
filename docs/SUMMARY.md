@@ -1,6 +1,6 @@
 ‌# Summary​
 
-- [Forest Admin](home/README.md)
+- [Forest Admin](README.md)
 
 ## Getting started
 
@@ -10,11 +10,17 @@
 ## Connectors
 
 - [Usage](connectors/README.md)
+- [Relationships](connectors/relationships.md)
 - [Standard connectors](connectors/standard/README.md)
 
-  - [SQL](connectors/standard/sql.md)
-  - [Sequelize](connectors/standard/sequelize.md)
-  - [Mongoose](connectors/standard/mongoose.md)
+  - [Databases](connectors/standard/databases/README.md)
+    - [SQL](connectors/standard/databases/sql.md)
+  - [Object Relational Mappers](connectors/standard/orm/README.md)
+    - [Sequelize](connectors/standard/orm/sequelize.md)
+    - [Mongoose](connectors/standard/orm/mongoose.md)
+  - [SaaS](connectors/standard/saas/README.md)
+    - [Intercom](connectors/standard/saas/intercom.md)
+    - [Stripe](connectors/standard/saas/stripe.md)
 
 - [Custom connectors](connectors/custom/README.md)
   - [Basics](connectors/custom/basics.md)
@@ -34,7 +40,6 @@
 - [Charts](agent-customization/charts.md)
 - [Fields](agent-customization/fields.md)
 - [Hooks](agent-customization/hooks.md)
-- [Relationships](agent-customization/relationships.md)
 - [Segments](agent-customization/segments.md)
 
 ## Frontend customization
