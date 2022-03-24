@@ -126,7 +126,7 @@ SELECT books.title, books.authorId FROM books WHERE books.title LIKE 'Found%';
 > | Foundation | 83948934 |
 
 -- Step 2: Query database containing authors (including pk)
-> SELECT authors.id, authors.firstName, authors.lastName FROM authors WHERE id IN (83948934);
+SELECT authors.id, authors.firstName, authors.lastName FROM authors WHERE id IN (83948934);
 > | id       | firstName | lastName |
 > | 83948934 | Isaac     | Asimov   |
 
