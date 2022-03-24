@@ -1,15 +1,57 @@
-Your admin panel is up and running. It's connected to your main data storage system and some of the SaaS that your company is using, but something is missing.
+Custom connectors are the answer to the need to import collections from either
 
-Custom connectors are the answer to the need to import collections from either unsupported databases, unsupported SaaS providers, or simply to your own in-house APIs.
+- Unsupported databases
+- Unsupported SaaS providers
+- Your own in-house APIs.
 
-Creating a custom connector is a three steps process:
+Forest Admin is built so that it does not know need the nature of the datasource it is speaking to, at long as it exposes a given interface.
 
-- Declaring the structure of the data
+That interface is only there to abstract away differences between backends so that they can be used as forest admin collections, it was built to allow for the minimal feature set which allow forest admin to work.
 
-  - Which collections are present?
-  - What fields to they contain?
-  - What are their types?
-  - Are some collections related to others? Where are the foreign keys?
+# Tooling
+
+In order to make your journey easier, a `npm` package which contains tooling is provided: [npmjs://@forestadmin/connector-toolkit](https://www.npmjs.com/package/@forestadmin/connector-toolkit)
+
+It contains:
+
+- All interfaces that you'll be either using or implementing while making your connector
+- An implementation of a caching connector, which implements all forest admin features.
+- Aggregation, filtering, projection and sorting emulators which can be called from inside your collection
+  - This is a perfect match during development
+  - It allows to be up and running with all features in minutes (with low performance)
+  - You can then translate forest admin concepts one by one, and improve performance gradually
+- Decorators which can be loaded on top of your collections to add new behaviors
+  - This is a good match to implement features which are not natively supported by the target
+  - It allows to bundle reusable behaviors in your connector, that would otherwise need to be added on the configuration of agents by using `customizeCollection`.
+
+Take note that all connectors which are provided by Forest Admin were actually coded using this same toolkit, so you'll be using the same tools as we are.
+
+# Getting started
+
+When creating a custom connector two routes can be taken:
+
+|                  | Using a local cache                                                                                                                                                                                                                      | Implement query translation                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| How does it work | All data from the target API/Database is copied and kept up to date on the agent server.<br><br>Then:<br>- Read operations are run in the local cache (implemented by forestadmin)<br>- Write operations are forwarded to the target API | The connector translates all forest admin queries to the target API.                                                                                           |
+| Preconditions    | Sort records by last modification                                                                                                                                                                                                        |                                                                                                                                                                |
+| Pros             | Fast (uses sqlite under the hood)                                                                                                                                                                                                        | - No disk usage<br>- No limits on quantity of data                                                                                                             |
+| Cons             | - Slow agent first start (need to load all API data)<br>- Disk Usage<br><br>- For some applications, quantity of data may be too large                                                                                                   | When the feature gap between forest admin query system and the target API is large the connector would need to rely a lot on emulation which hurts performance |
+
+# A quick peek at code (for readonly, single-collection connectors)
+
+Creating a custom connector always starts with declaring the structure of the data
+
+- Which collections are present?
+- What fields to they contain?
+- What are their types?
+- Are some collections related to others? Where are the foreign keys?
+
+Then, when using the local cache route:
+
+- Implement a method which loads all records changed since a given date
+- When relevant, implement methods for record creation, update and delete.
+
+When using the query translation route, it will be a bit longer:
 
 - Declaring the API capabilities
 
@@ -23,36 +65,93 @@ Creating a custom connector is a three steps process:
   - Can records be deleted?
   - Can records be aggregated? (for charts / counting)
 
-- Coding a translation layer between how queries are expressed in Forest Admin API versus the target API
+- Coding a translation layer
+  - Implement a method which, given a forest admin filter and projection retrieve the records
+  - Implement a method which, given a forest admin filter and aggregation query, compute the aggregated values
+  - When relevant, implement methods for record creation, update and delete.
 
-# Tooling
-
-In order to make your journey easier, a `npm` package which contains tooling is provided: [npmjs://@forestadmin/connector-toolkit](https://www.npmjs.com/package/@forestadmin/connector-toolkit)
-
-It contains:
-
-- All interfaces that you'll be either using or implementing while making your connector
-- Aggregation, filtering, projection and sorting emulators which can be called from inside your collection
-  - This is a perfect match during development
-  - It allows to be up and running with all features in minutes (with low performance)
-  - You can then translate forest admin concepts one by one, and improve performance gradually
-- Decorators which can be loaded on top of your collections to add new behaviors
-  - This is a good match to implement features which are not natively supported by the target
-  - It allows to bundle reusable behaviors in your connector, that would otherwise need to be added on the configuration of agents by using `customizeCollection`.
-
-Take note that all connectors which are provided by Forest Admin were actually coded using this same toolkit, so you'll be using the same tools as we are.
-
-# A quick peek at code
-
-A collection in Forest Admin can be anything as long as it implements the contract which is defined by the `BaseCollection` abstract class.
-
-{% tabs %} {% tab title="Creating a single collection connector" %}
+{% tabs %} {% tab title="Using a local cache" %}
 
 ```javascript
 const { BaseCollection, FieldTypes, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
-const MyApiClient = require('my-api-client'); // client for the target API
+const axios = require('my-api-client'); // client for the target API
+
+class MyCollection extends LocallyCachedCollection {
+  constructor() {
+    super(
+      'myCollection', // Set name of the collection once imported
+      '/tmp/cache-my-collection.db', // Set path of the caching file
+    );
+
+    // Add fields
+    this.addField('id', {
+      // As we are using a local cache, we only need to specify structure, not capabilities
+      type: FieldsType.Column,
+      columnType: PrimitiveType.Number,
+      isPrimaryKey: true,
+    });
+
+    this.addField('title', {
+      type: FieldsType.Column,
+      columnType: PrimitiveType.String,
+    });
+  }
+
+  /**
+   * Example generator which
+   * - yields all records modified since it was last called
+   * - returns the next threshold value which should be used
+   *
+   * You are free to tune this generator as you see fit, depending on the capabilities and
+   * performance of the API that you are targeting.
+   *
+   * In this example, the target API does not supports filters at all, but does support setting
+   * sorting, skip and limit clauses.
+   * For the sake of simplicity, we are assuming that no records get created while we're fetching
+   * changes.
+   */
+  async *lastModified(lastThreshold) {
+    let skip = 0;
+    let limit = 1; // we'll increase this on subsequent calls
+    let nextThreshold = lastThreshold; // null on first agent start
+
+    while (true) {
+      // Load batch of records from targeted data source
+      const response = await axios.get(`https://myapi/resources/my-collection`, {
+        params: { sort: '-updatedAt', skip, limit },
+      });
+      const records = response.body.items;
+
+      // Save the threshold that should be used for the next call
+      if (records.length && (nextThreshold === null || nextThreshold < records[0].updatedAt)) {
+        nextThreshold = records[0].updatedAt;
+      }
+
+      // Do we have all modified records?
+      const index = records.findIndex(record => record.updatedAt < lastThreshold);
+      if (index === -1) {
+        // We don't have all modified records (yet).
+        yield records; // send everything we have to forest admin
+        skip += records.length; // update skip to make sure we don't fetch the same records in a loop
+        limit = Math.min(2000, limit * 2); // make limit larger
+      } else {
+        // We are done!
+        yield records.slice(0, index); // send only modified records to forest admin
+        return nextThreshold; // set parameter that will be provided for the next call
+      }
+    }
+  }
+}
+```
+
+{% endtab %} {% tab title="Using query translation" %}
+
+```javascript
+const { BaseCollection, FieldTypes, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
+const axios = require('axios'); // client for the target API
 
 // The real work is in writing this module
+// Expect a full featured query translation module to be over 1000 LOCs
 const QueryGenerator = require('./forest-query-translation');
 
 /** Minimal implementation of a readonly connector */
@@ -61,17 +160,25 @@ class MyCollection extends BaseCollection {
     // Set name of the collection once imported
     super('myCollection');
 
-    // Add a single field to the collection
+    // As we are using the query translation technique, we need to define capabilities for every field
     this.addField('id', {
       // Structure
       type: FieldsType.Column,
       columnType: PrimitiveType.Number,
       isPrimaryKey: true,
 
-      // Capabilities
+      // Capabilities (tell forest admin to which extend complex filters can be used).
       isReadOnly: true, // field is readonly
       filterOperators: new Set(), // field is not filterable
       isSortable: false, // field is not sortable
+    });
+
+    this.addField('title', {
+      type: FieldsType.Column,
+      columnType: PrimitiveType.String,
+      isReadOnly: true,
+      filterOperators: new Set(),
+      isSortable: false,
     });
   }
 
@@ -81,7 +188,10 @@ class MyCollection extends BaseCollection {
    * - projection: which fields are wanted in the records?
    */
   async list(filter, projection) {
-    return MyApiClient.query(QueryGenerator.translateList(filter, projection));
+    const params = QueryGenerator.generateListQueryString(filter, projection);
+    const response = axios.get('https://myapi/resources/my-collection', { params });
+
+    return response.body.items;
   }
 
   /**
@@ -91,7 +201,10 @@ class MyCollection extends BaseCollection {
    * - limit: how many rows?
    */
   async aggregate(filter, aggregation, limit) {
-    return MyApiClient.query(QueryGenerator.translateAggregate(filter, aggregation, limit));
+    const params = QueryGenerator.generateAggregateQueryString(filter, projection);
+    const response = axios.get('https://myapi/stats/my-collection', { params });
+
+    return response.body.items;
   }
 }
 
@@ -101,7 +214,7 @@ module.exports = MyCollection;
 {% endtab %} {% tab title="Using the connector" %}
 
 ```javascript
-const MyConnectorCollection = require('./');
+const MyConnectorCollection = require('./connector-collection');
 
 const agent = new Agent(options);
 agent
