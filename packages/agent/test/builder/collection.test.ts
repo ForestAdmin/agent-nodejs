@@ -287,7 +287,7 @@ describe('Builder > Collection', () => {
   });
 
   describe('implementSort', () => {
-    it('should register sort on field', () => {
+    it('should implement sort on field', () => {
       const { agent, collectionBuilder, collectionName } = setup();
 
       const collection = agent.sortEmulate.getCollection(collectionName);
@@ -334,7 +334,7 @@ describe('Builder > Collection', () => {
   });
 
   describe('implementOperator', () => {
-    it('should register operator on field', () => {
+    it('should implement operator on field', () => {
       const { agent, collectionBuilder, collectionName } = setup();
 
       const collection = agent.lateOpEmulate.getCollection(collectionName);
