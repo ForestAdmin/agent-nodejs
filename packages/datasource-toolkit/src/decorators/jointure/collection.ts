@@ -121,7 +121,7 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
 
   private checkOriginKeys(joint: RelationSchema): void {
     if (
-      joint.type === FieldTypes.OneToMany || // no test
+      joint.type === FieldTypes.OneToMany ||
       joint.type === FieldTypes.OneToOne ||
       joint.type === FieldTypes.ManyToMany
     ) {

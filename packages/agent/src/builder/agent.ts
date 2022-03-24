@@ -95,7 +95,6 @@ export default class AgentBuilder {
     last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.earlyOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
-    last = this.jointure = new DataSourceDecorator(last, JointureCollectionDecorator);
     last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
@@ -105,6 +104,8 @@ export default class AgentBuilder {
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
     last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
     last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
+    last = this.jointure = new DataSourceDecorator(last, JointureCollectionDecorator);
+
     /* eslint-enable no-multi-assign */
 
     this.forestAdminHttpDriver = new ForestAdminHttpDriver(last, options);
