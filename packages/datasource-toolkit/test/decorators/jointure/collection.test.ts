@@ -74,6 +74,9 @@ describe('JointureCollectionDecorator', () => {
               columnType: PrimitiveTypes.Number,
             }),
             filename: factories.columnSchema.build(),
+            otherId: factories.columnSchema.build({
+              columnType: PrimitiveTypes.Number,
+            }),
           },
         }),
         list: jest.fn().mockRejectedValue(new Error('should never be called')),
@@ -149,46 +152,117 @@ describe('JointureCollectionDecorator', () => {
   });
 
   describe('builder valid cases', () => {
-    test('should not throw with a one to one', () => {
-      expect(() =>
-        newPersons.addJointure('passport', {
-          type: FieldTypes.OneToOne,
-          foreignCollection: 'passports',
-          originKey: 'ownerId',
-        }),
-      ).not.toThrow();
+    describe('when a one to one is declared', () => {
+      describe('when there is a given originKeyTarget', () => {
+        test('should register the jointure', () => {
+          expect(() =>
+            newPersons.addJointure('passport', {
+              type: FieldTypes.OneToOne,
+              foreignCollection: 'passports',
+              originKey: 'ownerId',
+              originKeyTarget: 'id',
+            }),
+          ).not.toThrow();
+        });
+      });
+
+      describe('when there is not a given originKeyTarget', () => {
+        test('should register the jointure', () => {
+          expect(() =>
+            newPersons.addJointure('passport', {
+              type: FieldTypes.OneToOne,
+              foreignCollection: 'passports',
+              originKey: 'ownerId',
+            }),
+          ).not.toThrow();
+        });
+      });
     });
 
-    test('should not throw with a one to many', () => {
-      expect(() =>
-        newPersons.addJointure('passport', {
-          type: FieldTypes.OneToMany,
-          foreignCollection: 'passports',
-          originKey: 'ownerId',
-        }),
-      ).not.toThrow();
+    describe('when a one to many is declared', () => {
+      describe('when there is a given originKeyTarget', () => {
+        test('should register the jointure', () => {
+          expect(() =>
+            newPersons.addJointure('passport', {
+              type: FieldTypes.OneToMany,
+              foreignCollection: 'passports',
+              originKey: 'ownerId',
+              originKeyTarget: 'id',
+            }),
+          ).not.toThrow();
+        });
+      });
+
+      describe('when there is not a given originKeyTarget', () => {
+        test('should register the jointure', () => {
+          expect(() =>
+            newPersons.addJointure('passport', {
+              type: FieldTypes.OneToMany,
+              foreignCollection: 'passports',
+              originKey: 'ownerId',
+            }),
+          ).not.toThrow();
+        });
+      });
     });
 
-    test('should not throw with a many to one', () => {
-      expect(() =>
-        newPassports.addJointure('owner', {
-          type: FieldTypes.ManyToOne,
-          foreignCollection: 'persons',
-          foreignKey: 'ownerId',
-        }),
-      ).not.toThrow();
+    describe('when a many to one is declared', () => {
+      describe('when there is a given foreignKeyTarget', () => {
+        test('should register the jointure', () => {
+          expect(() =>
+            newPassports.addJointure('owner', {
+              type: FieldTypes.ManyToOne,
+              foreignCollection: 'persons',
+              foreignKey: 'ownerId',
+              foreignKeyTarget: 'id',
+            }),
+          ).not.toThrow();
+        });
+      });
+
+      describe('when there is not a given foreignKeyTarget', () => {
+        test('should register the jointure', () => {
+          expect(() =>
+            newPassports.addJointure('owner', {
+              type: FieldTypes.ManyToOne,
+              foreignCollection: 'persons',
+              foreignKey: 'ownerId',
+            }),
+          ).not.toThrow();
+        });
+      });
     });
 
-    test('should not throw with a very convoluted many to many', () => {
-      expect(() =>
-        newPersons.addJointure('persons', {
-          type: FieldTypes.ManyToMany,
-          foreignCollection: 'passports',
-          foreignKey: 'ownerId',
-          originKey: 'ownerId',
-          throughCollection: 'passports',
-        } as ManyToManySchema),
-      ).not.toThrow();
+    describe('when a many to many is declared', () => {
+      describe('when there are a given originKeyTarget and foreignKeyTarget', () => {
+        test('should register the jointure', () => {
+          expect(() =>
+            newPersons.addJointure('persons', {
+              type: FieldTypes.ManyToMany,
+              foreignCollection: 'passports',
+              foreignKey: 'ownerId',
+              originKey: 'ownerId',
+              throughCollection: 'passports',
+              originKeyTarget: 'id',
+              foreignKeyTarget: 'id',
+            } as ManyToManySchema),
+          ).not.toThrow();
+        });
+      });
+
+      describe('when there are not a given originKeyTarget and foreignKeyTarget', () => {
+        test('should register the jointure', () => {
+          expect(() =>
+            newPersons.addJointure('persons', {
+              type: FieldTypes.ManyToMany,
+              foreignCollection: 'passports',
+              foreignKey: 'ownerId',
+              originKey: 'ownerId',
+              throughCollection: 'passports',
+            } as ManyToManySchema),
+          ).not.toThrow();
+        });
+      });
     });
   });
 
