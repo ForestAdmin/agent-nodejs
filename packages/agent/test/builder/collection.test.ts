@@ -7,6 +7,7 @@ import {
   PrimitiveTypes,
   Sort,
   SortClause,
+  WriteHandlerDefinition,
 } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../agent/__factories__';
@@ -286,7 +287,7 @@ describe('Builder > Collection', () => {
   });
 
   describe('implementSort', () => {
-    it('should implement sort on field', () => {
+    it('should register sort on field', () => {
       const { agent, collectionBuilder, collectionName } = setup();
 
       const collection = agent.sortEmulate.getCollection(collectionName);
@@ -299,6 +300,21 @@ describe('Builder > Collection', () => {
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', new Sort(...sortClauses));
       expect(self).toEqual(collectionBuilder);
+    });
+  });
+
+  describe('implementWrite', () => {
+    it('should implement write on field', () => {
+      const { agent, collectionBuilder, collectionName } = setup();
+
+      const collection = agent.write.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'implement');
+
+      const definition: WriteHandlerDefinition = jest.fn();
+      collectionBuilder.implementWrite('firstName', definition);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstName', definition);
     });
   });
 
@@ -318,7 +334,7 @@ describe('Builder > Collection', () => {
   });
 
   describe('implementOperator', () => {
-    it('should implement operator on field', () => {
+    it('should register operator on field', () => {
       const { agent, collectionBuilder, collectionName } = setup();
 
       const collection = agent.lateOpEmulate.getCollection(collectionName);

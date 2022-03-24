@@ -11,10 +11,12 @@ export { default as OperatorsReplaceCollectionDecorator } from './decorators/ope
 export { default as PublicationCollectionDecorator } from './decorators/publication/collection';
 export { default as RenameCollectionDecorator } from './decorators/rename/collection';
 export { default as SearchCollectionDecorator } from './decorators/search/collection';
+export { default as WriteCollectionDecorator } from './decorators/write/collection';
 export { default as SegmentCollectionDecorator } from './decorators/segment/collection';
 export { default as SortEmulateCollectionDecorator } from './decorators/sort-emulate/collection';
 
 export { Action as ActionDefinition } from './decorators/actions/types/actions';
+export { WriteHandlerDefinition } from './decorators/write/types';
 export * from './decorators/computed/types';
 export * from './decorators/jointure/types';
 export * from './decorators/operators-emulate/types';

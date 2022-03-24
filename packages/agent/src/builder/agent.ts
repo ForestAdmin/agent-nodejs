@@ -13,6 +13,7 @@ import {
   SearchCollectionDecorator,
   SegmentCollectionDecorator,
   SortEmulateCollectionDecorator,
+  WriteCollectionDecorator,
 } from '@forestadmin/datasource-toolkit';
 
 import { AgentOptions } from '../types';
@@ -52,6 +53,8 @@ export default class AgentBuilder {
 
   rename: DataSourceDecorator<RenameCollectionDecorator>;
   publication: DataSourceDecorator<PublicationCollectionDecorator>;
+
+  write: DataSourceDecorator<WriteCollectionDecorator>;
 
   forestAdminHttpDriver: ForestAdminHttpDriver;
 
@@ -106,6 +109,7 @@ export default class AgentBuilder {
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
     last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
     last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
+    last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
 
     /* eslint-enable no-multi-assign */
 
