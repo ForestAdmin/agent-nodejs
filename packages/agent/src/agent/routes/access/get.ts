@@ -1,8 +1,7 @@
 import {
   ConditionTreeFactory,
-  FieldTypes,
   PaginatedFilter,
-  Projection,
+  ProjectionFactory,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
@@ -27,37 +26,12 @@ export default class GetRoute extends CollectionRoute {
       ),
     });
 
-    const records = await this.collection.list(filter, this.buildProjection());
+    const records = await this.collection.list(filter, ProjectionFactory.all(this.collection));
 
     if (!records.length) {
       context.throw(HttpCode.NotFound, 'Record does not exists');
     }
 
     context.response.body = this.services.serializer.serialize(this.collection, records[0]);
-  }
-
-  private buildProjection(): Projection {
-    const schemaFields = this.collection.schema.fields;
-    const projectionFields = Object.entries(schemaFields).reduce((memo, [columnName, column]) => {
-      if (column.type === FieldTypes.Column) {
-        return [...memo, columnName];
-      }
-
-      if (column.type === FieldTypes.OneToOne || column.type === FieldTypes.ManyToOne) {
-        const relation = this.dataSource.getCollection(column.foreignCollection);
-        const relationFields = relation.schema.fields;
-
-        return [
-          ...memo,
-          ...Object.keys(relationFields)
-            .filter(relColumnName => relationFields[relColumnName].type === FieldTypes.Column)
-            .map(relColumnName => `${columnName}:${relColumnName}`),
-        ];
-      }
-
-      return memo;
-    }, [] as string[]);
-
-    return new Projection(...projectionFields);
   }
 }
