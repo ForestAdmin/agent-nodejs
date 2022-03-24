@@ -110,7 +110,7 @@ class MyCollection extends LocallyCachedCollection {
    * For the sake of simplicity, we are assuming that no records get created while we're fetching
    * changes.
    */
-  async *lastModified(lastThreshold) {
+  async *loadLastModified(lastThreshold) {
     let skip = 0;
     let limit = 1; // we'll increase this on subsequent calls
     let nextThreshold = lastThreshold; // null on first agent start
