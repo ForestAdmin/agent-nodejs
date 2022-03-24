@@ -121,7 +121,7 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
 
   private checkOriginKeys(joint: RelationSchema): void {
     if (
-      joint.type === FieldTypes.OneToMany ||
+      joint.type === FieldTypes.OneToMany || // no test
       joint.type === FieldTypes.OneToOne ||
       joint.type === FieldTypes.ManyToMany
     ) {
@@ -269,7 +269,7 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
         );
         record[name] = subRecord.length ? subRecord[0] : null;
       }
-    } else if (schema.type === FieldTypes.OneToOne) {
+    } else if (schema.type === FieldTypes.OneToOne || schema.type === FieldTypes.OneToMany) {
       const ids = records.map(record => record[schema.originKeyTarget]);
       const subFilter = new Filter({
         conditionTree: new ConditionTreeLeaf(schema.originKey, Operator.In, [...new Set(ids)]),

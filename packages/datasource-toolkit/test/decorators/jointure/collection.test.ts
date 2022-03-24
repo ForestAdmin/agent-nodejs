@@ -56,9 +56,9 @@ describe('JointureCollectionDecorator', () => {
 
     // Build persons
     const personsRecords = [
-      { id: 201, name: 'Sharon J. Whalen' },
-      { id: 202, name: 'Mae S. Waldron' },
-      { id: 203, name: 'Joseph P. Rodriguez' },
+      { id: 201, otherId: 201, name: 'Sharon J. Whalen' },
+      { id: 202, otherId: 202, name: 'Mae S. Waldron' },
+      { id: 203, otherId: 203, name: 'Joseph P. Rodriguez' },
     ];
 
     dataSource = factories.dataSource.buildWithCollections([
@@ -121,6 +121,7 @@ describe('JointureCollectionDecorator', () => {
               isPrimaryKey: true,
               columnType: PrimitiveTypes.Number,
             }),
+            otherId: factories.columnSchema.build({ columnType: PrimitiveTypes.Number }),
             name: factories.columnSchema.build(),
           },
         }),
@@ -388,6 +389,121 @@ describe('JointureCollectionDecorator', () => {
     });
   });
 
+  describe('emulated projection', () => {
+    test('should fetch fields from a many to one relation', async () => {
+      newPassports.addJointure('owner', {
+        type: FieldTypes.ManyToOne,
+        foreignCollection: 'persons',
+        foreignKey: 'ownerId',
+      });
+
+      const records = await newPassports.list(new Filter({}), new Projection('id', 'owner:name'));
+
+      expect(records).toStrictEqual([
+        { id: 101, owner: { name: 'Mae S. Waldron' } },
+        { id: 102, owner: { name: 'Sharon J. Whalen' } },
+        { id: 103, owner: null },
+      ]);
+    });
+
+    test('should fetch fields from a one to one relation', async () => {
+      newPersons.addJointure('passport', {
+        type: FieldTypes.OneToOne,
+        foreignCollection: 'passports',
+        originKey: 'ownerId',
+        originKeyTarget: 'otherId',
+      });
+
+      const records = await newPersons.list(
+        new Filter({}),
+        new Projection('id', 'name', 'passport:issueDate'),
+      );
+
+      expect(records).toStrictEqual([
+        { id: 201, name: 'Sharon J. Whalen', passport: { issueDate: '2017-01-01' } },
+        { id: 202, name: 'Mae S. Waldron', passport: { issueDate: '2010-01-01' } },
+        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+      ]);
+    });
+
+    test('should fetch fields from a one to many relation', async () => {
+      newPersons.addJointure('passport', {
+        type: FieldTypes.OneToMany,
+        foreignCollection: 'passports',
+        originKey: 'ownerId',
+        originKeyTarget: 'otherId',
+      });
+
+      const records = await newPersons.list(
+        new Filter({}),
+        new Projection('id', 'name', 'passport:issueDate'),
+      );
+
+      expect(records).toStrictEqual([
+        { id: 201, name: 'Sharon J. Whalen', passport: { issueDate: '2017-01-01' } },
+        { id: 202, name: 'Mae S. Waldron', passport: { issueDate: '2010-01-01' } },
+        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+      ]);
+    });
+
+    test('should fetch fields from a native behind an emulated one', async () => {
+      newPersons.addJointure('passport', {
+        type: FieldTypes.OneToOne,
+        foreignCollection: 'passports',
+        originKey: 'ownerId',
+      });
+      newPassports.addJointure('owner', {
+        type: FieldTypes.ManyToOne,
+        foreignCollection: 'persons',
+        foreignKey: 'ownerId',
+      });
+      const records = await newPersons.list(
+        new Filter({}),
+        new Projection('id', 'name', 'passport:picture:filename'),
+      );
+
+      expect(records).toStrictEqual([
+        { id: 201, name: 'Sharon J. Whalen', passport: { picture: { filename: 'pic2.jpg' } } },
+        { id: 202, name: 'Mae S. Waldron', passport: { picture: { filename: 'pic1.jpg' } } },
+        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+      ]);
+
+      // make sure that the emulator did not trigger on native relation
+      expect(pictures.list).not.toHaveBeenCalled();
+    });
+
+    test('should not break with deep reprojection', async () => {
+      newPersons.addJointure('passport', {
+        type: FieldTypes.OneToOne,
+        foreignCollection: 'passports',
+        originKey: 'ownerId',
+      });
+      newPassports.addJointure('owner', {
+        type: FieldTypes.ManyToOne,
+        foreignCollection: 'persons',
+        foreignKey: 'ownerId',
+      });
+      const records = await newPersons.list(
+        new Filter({}),
+        new Projection('id', 'name', 'passport:owner:passport:issueDate'),
+      );
+
+      expect(records).toStrictEqual([
+        {
+          id: 201,
+          name: 'Sharon J. Whalen',
+          passport: { owner: { passport: { issueDate: '2017-01-01' } } },
+        },
+        {
+          id: 202,
+          name: 'Mae S. Waldron',
+          passport: { owner: { passport: { issueDate: '2010-01-01' } } },
+        },
+        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+      ]);
+    });
+  });
+
   describe('with two emulated relations', () => {
     beforeEach(() => {
       newPersons.addJointure('passport', {
@@ -465,68 +581,6 @@ describe('JointureCollectionDecorator', () => {
         );
 
         expect(records).toStrictEqual([{ id: 201, name: 'Sharon J. Whalen' }]);
-      });
-    });
-
-    describe('emulated projection', () => {
-      test('should fetch fields from a many to one relation', async () => {
-        const records = await newPassports.list(new Filter({}), new Projection('id', 'owner:name'));
-
-        expect(records).toStrictEqual([
-          { id: 101, owner: { name: 'Mae S. Waldron' } },
-          { id: 102, owner: { name: 'Sharon J. Whalen' } },
-          { id: 103, owner: null },
-        ]);
-      });
-
-      test('should fetch fields from a one to one relation', async () => {
-        const records = await newPersons.list(
-          new Filter({}),
-          new Projection('id', 'name', 'passport:issueDate'),
-        );
-
-        expect(records).toStrictEqual([
-          { id: 201, name: 'Sharon J. Whalen', passport: { issueDate: '2017-01-01' } },
-          { id: 202, name: 'Mae S. Waldron', passport: { issueDate: '2010-01-01' } },
-          { id: 203, name: 'Joseph P. Rodriguez', passport: null },
-        ]);
-      });
-
-      test('should fetch fields from a native behind an emulated one', async () => {
-        const records = await newPersons.list(
-          new Filter({}),
-          new Projection('id', 'name', 'passport:picture:filename'),
-        );
-
-        expect(records).toStrictEqual([
-          { id: 201, name: 'Sharon J. Whalen', passport: { picture: { filename: 'pic2.jpg' } } },
-          { id: 202, name: 'Mae S. Waldron', passport: { picture: { filename: 'pic1.jpg' } } },
-          { id: 203, name: 'Joseph P. Rodriguez', passport: null },
-        ]);
-
-        // make sure that the emulator did not trigger on native relation
-        expect(pictures.list).not.toHaveBeenCalled();
-      });
-
-      test('should not break with deep reprojection', async () => {
-        const records = await newPersons.list(
-          new Filter({}),
-          new Projection('id', 'name', 'passport:owner:passport:issueDate'),
-        );
-
-        expect(records).toStrictEqual([
-          {
-            id: 201,
-            name: 'Sharon J. Whalen',
-            passport: { owner: { passport: { issueDate: '2017-01-01' } } },
-          },
-          {
-            id: 202,
-            name: 'Mae S. Waldron',
-            passport: { owner: { passport: { issueDate: '2010-01-01' } } },
-          },
-          { id: 203, name: 'Joseph P. Rodriguez', passport: null },
-        ]);
       });
     });
 
