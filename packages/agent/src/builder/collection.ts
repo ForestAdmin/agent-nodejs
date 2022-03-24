@@ -298,7 +298,7 @@ export default class CollectionBuilder {
   /**
    * Allow override the write behavior of a field.
    * @param {string} name the name of the field
-   * {WriteHandlerDefinition} handler the function represent the write behavior.
+   * @param {WriteHandlerDefinition} handler the function represent the write behavior.
    * @example
    * ```
    * .implementWrite('fullName', async (patch: unknown, context: WriteHandlerContext) => {
