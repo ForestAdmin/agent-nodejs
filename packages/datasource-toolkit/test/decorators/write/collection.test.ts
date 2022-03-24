@@ -47,7 +47,7 @@ describe('WriteDecorator', () => {
     const decoratedCollection = new WriteDecorator(collection, dataSource);
 
     expect(() => decoratedCollection.implement('NOT EXIST', setValue)).toThrowError(
-      'The given field NOT EXIST does not exist on the book collection',
+      'The given field NOT EXIST does not exist on the book collection.',
     );
   });
 
@@ -277,7 +277,7 @@ describe('WriteDecorator', () => {
             decoratedCollection.update(factories.filter.build(), {
               age: '10',
             }),
-          ).rejects.toThrowError('The definition of age does not return an object or undefined');
+          ).rejects.toThrowError('The write handler of age should return an object or nothing.');
         });
       });
 
@@ -553,7 +553,7 @@ describe('WriteDecorator', () => {
                 age: '10',
               }),
             ).rejects.toThrow(
-              new ValidationError('There is a cyclic dependency on the "age" column'),
+              new ValidationError('There is a cyclic dependency on the "age" column.'),
             );
           });
         });

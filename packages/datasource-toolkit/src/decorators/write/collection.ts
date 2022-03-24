@@ -19,7 +19,9 @@ export default class WriteDecorator extends CollectionDecorator {
 
   implement(fieldName: string, definition: WriteHandlerDefinition): void {
     if (!Object.keys(this.schema.fields).includes(fieldName)) {
-      throw new Error(`The given field ${fieldName} does not exist on the ${this.name} collection`);
+      throw new Error(
+        `The given field ${fieldName} does not exist on the ${this.name} collection.`,
+      );
     }
 
     this.implemented[fieldName] = definition;
@@ -290,7 +292,9 @@ export default class WriteDecorator extends CollectionDecorator {
     stackCalls.push(...columns);
 
     if (stackCalls.length !== [...new Set(stackCalls)].length) {
-      throw new ValidationError(`There is a cyclic dependency on the "${stackCalls.pop()}" column`);
+      throw new ValidationError(
+        `There is a cyclic dependency on the "${stackCalls.pop()}" column.`,
+      );
     }
   }
 
