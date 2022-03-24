@@ -9,19 +9,19 @@ It is used to restrict the records which will be targeted by specific actions (l
   "conditionTree": { "field": "createdAt", "operator": "today" },
   "timezone": "Europe/Paris",
 
-  // Search
-  "search": "John Smith",
-  "searchExtended": false,
-
-  // Segment
-  "segment": "Active Records",
-
   // Paging
   "page": { "limit": 30, "skip": 0 },
   "sort": [
     { "field": "title", "ascending": true },
     { "field": "id", "ascending": true }
-  ]
+  ],
+
+  // Search [advanced]
+  "search": "John Smith",
+  "searchExtended": false,
+
+  // Segment [advanced]
+  "segment": "Active Records"
 }
 ```
 
@@ -36,6 +36,40 @@ Forest Admin will then ensure that only filters using feature that you have expl
 All other features will either be disabled from your admin panel (or emulated with lower performance when specified).
 
 # Condition trees
+
+A condition tree, as it names imply, is a set of conditions which apply on the records themselves and tells which records should be included or excluded from a given query.
+
+## Examples
+
+Simple condition tree
+
+```json
+{ "field": "title", "operator": "starts_with", "value": "Found" }
+```
+
+With multiple conditions
+
+```json
+{
+  "aggregator": "and",
+  "conditions": [
+    { "field": "title", "operator": "equal", "value": "Foundation" },
+    { "field": "subTitle", "operator": "equal", "value": "The Psychohistorians" }
+  ]
+}
+```
+
+With multiple conditions and not node
+
+```json
+{
+  "aggregator": "and",
+  "conditions": [
+    { "field": "title", "operator": "like", "value": "found%" },
+    { "not": { "field": "createdAt", "operator": "today" } }
+  ]
+}
+```
 
 ## Structure
 
@@ -89,43 +123,11 @@ Here is the list of operators which are supported by forest admin.
 | yesterday                | Date          | ∅                   |
 | includes_all             | Array         | Array               |
 
-## Examples
-
-Simple condition tree
-
-```json
-{ "field": "title", "operator": "starts_with", "value": "Found" }
-```
-
-With multiple conditions
-
-```json
-{
-  "aggregator": "and",
-  "conditions": [
-    { "field": "title", "operator": "equal", "value": "Foundation" },
-    { "field": "subTitle", "operator": "equal", "value": "The Psychohistorians" }
-  ]
-}
-```
-
-With multiple conditions and not node
-
-```json
-{
-  "aggregator": "and",
-  "conditions": [
-    { "field": "title", "operator": "like", "value": "found%" },
-    { "not": { "field": "createdAt", "operator": "today" } }
-  ]
-}
-```
-
-## Feature set
+## Implementation
 
 ### Declaration of capabilities
 
-Forest Admin does not need all of those operators to work on every field.
+Forest Admin does not need all operators to work on every field.
 Actually it needs very few operators to work: implementing them will unlock features as you go.
 
 When declaring a connector, the first step is to declare the structure and capabilities of the collections it contains.
@@ -151,8 +153,6 @@ class MyCollection extends BaseCollection {
 
 ### How high should you aim?
 
-Not everything can be declared in the capabilities of any given collection, and some operations **must** be supported for your connector to work.
-
 | Unlocked feature                                             | Needed capabilities                                              |
 | ------------------------------------------------------------ | ---------------------------------------------------------------- |
 | Minimal feature set                                          | `and` + `or` nodes<br/>`equal` on primary keys and foreign keys  |
@@ -162,33 +162,6 @@ Not everything can be declared in the capabilities of any given collection, and 
 | Using search emulation                                       | `contains` on string fields, `equal` on numbers, uuids and enums |
 | Using `select all` feature for actions, delete or dissociate | `in` and `not_in` on the primary key                             |
 | Frontend filters, scopes, segments                           | See list defined below (depends on column type)                  |
-
-### Limitations
-
-Forest Admin frontend implements filtering, scopes and segments with a "per-field", not on a "per-field-and-operator" granularity.
-
-This means that filtering for a given field is either enabled or not from the frontend perspective. Forest Admin admin panel will enable the feature only once enough operators are supported depending on the type of the field.
-
-| Unlocked feature | Needed capabilities                                                                            |
-| ---------------- | ---------------------------------------------------------------------------------------------- |
-| Boolean          | `equal`,`not_equal`,`present`,`blank`,                                                         |
-| Date             | All dates operators                                                                            |
-| Enum             | `equal`,`not_equal`,`present`,`blank`, `in`                                                    |
-| Number           | `equal`,`not_equal`,`present`,`blank`,`in`,`greater_than`,`less_than`                          |
-| String           | `equal`,`not_equal`,`present`,`blank`,`in`,`starts_with`,`ends_with`,`contains`,`not_contains` |
-| Uuid             | `equal`, `not_equal`, `present`, `blank`                                                       |
-
-{% hint style="info" %}
-Translating the `or` node is a strong contraint, as many backends will not allow it and providing a working implementation requires making multiple queries and recombining the results.
-
-That node is used solely to:
-
-- Implement the search emulation feature (which can be disabled)
-- Implement user filters `or` (which cannot be disabled: user can select `or` in their admin panel when building filters).
-
-As it is seldomly used recurring to emulation when `or` nodes are used can be considered an acceptable trade-off
-
-{% endhint %}
 
 ### Operator equivalence
 
@@ -242,6 +215,29 @@ The minimal list of operators which should be supported to have them all is the 
 - `like` (unlocks `starts_with`, `ends_with` and `contains`)
 - `not_contains`, `longer_than`, `shorter_than` and `includes_all`
 
+### Limitations
+
+Forest Admin frontend implements filtering, scopes and segments with a "per-field", not on a "per-field-and-operator" granularity.
+
+This means that filtering for a given field is either enabled or not from the frontend perspective. Forest Admin admin panel will enable the feature only once enough operators are supported depending on the type of the field.
+
+| Unlocked feature | Needed capabilities                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| Boolean          | `equal`,`not_equal`,`present`,`blank`,                                                         |
+| Date             | All dates operators                                                                            |
+| Enum             | `equal`,`not_equal`,`present`,`blank`, `in`                                                    |
+| Number           | `equal`,`not_equal`,`present`,`blank`,`in`,`greater_than`,`less_than`                          |
+| String           | `equal`,`not_equal`,`present`,`blank`,`in`,`starts_with`,`ends_with`,`contains`,`not_contains` |
+| Uuid             | `equal`, `not_equal`, `present`, `blank`                                                       |
+
+{% hint style="info" %}
+Translating the `or` node is a strong contraint, as many backends will not allow it and providing a working implementation requires making multiple queries and recombining the results.
+
+- Implement the search emulation feature
+- Implement user filters `or`
+
+{% endhint %}
+
 ### Emulation
 
 Developing your query translation layer is much easier when you can preview your work and have intermediary deliverables.
@@ -255,6 +251,9 @@ This enables to be up and running in minutes by overfetching data, and then opti
 ```javascript
 const { ConditionTreeFactory } = require('@forestadmin/connector-toolkit');
 
+
+const collection = ...;
+const timezone = ...;
 const tree = ConditionTreeFactory.fromPlainObject({
   aggregator: 'and',
   conditions: [
@@ -270,6 +269,158 @@ const records = [
   { id: 89, title: 'The Last Question' },
 ];
 
-const filteredRecords = tree.apply(records);
+const filteredRecords = tree.apply(records, collection, timezone);
 // => [{ id: 67, title: 'Foundation and Empire' }];
 ```
+
+# Paging
+
+## Examples
+
+```json
+{
+  "page": { "limit": 30, "skip": 0 },
+  "sort": [
+    { "field": "title", "ascending": true },
+    { "field": "id", "ascending": true }
+  ]
+}
+```
+
+## Implementation
+
+### Declaration of capabilities
+
+There is no declaration of capabilities for paging, as the feature is **mandatory** for all connectors.
+
+### Emulation
+
+Emulation is available to help you during the early stages of your translating connector.
+
+```javascript
+const sort = new Sort({ field: 'title', ascending: true }, { field: 'id', ascending: true });
+const page = new Page(3, 2); // skip, limit
+
+const records = [
+  { id: 17, title: 'Foundation' },
+  { id: 35, title: 'I, Robot' },
+  { id: 67, title: 'Foundation and Empire' },
+  { id: 89, title: 'The Last Question' },
+];
+
+const sortedRecords = sort.apply(records);
+// => [
+//   { id: 17, title: 'Foundation' },
+//   { id: 67, title: 'Foundation and Empire' },
+//   { id: 35, title: 'I, Robot' },
+//   { id: 89, title: 'The Last Question' },
+// ]
+
+const paginatedRecords = page.apply(sortedRecords);
+// => [{ id: 89, title: 'The Last Question' }]
+```
+
+# Search
+
+The `search` field in a filter simply is what the final user typed in the search bar in the admin panel, an can be used to restrict records.
+
+Likewise `searchExtended` boolean is an action which can be triggered by end-users when a given search returns no results and its implementation can vary from connector to connector.
+
+For instance, in `@forestadmin/connector-sql`, the `searchExtended` flag is used to also search content into all collections which are linked with a `many to one` or `one to one` relation to the current one.
+
+{% hint style="info" %}
+This is an advanced concept.
+
+If this feature is not enabled in the connector definition, you can consider this field to always be `null` and the feature will be handled by Forest Admin for you.
+
+Enabling this feature allows you to have more control on how search works for your connector for datasources were native full text indexes are available (elasticsearch, ...)
+{% endhint %}
+
+## Examples
+
+Search into current collection
+
+```json
+{ "search": "Isaac", "searchExtended": false }
+```
+
+Search into current and linked collections
+
+```json
+{ "search": "Isaac", "searchExtended": true }
+```
+
+## Implementation
+
+### Declaration of capabilities
+
+Implementation of search in a connector is actually opt-out.
+Is you want forest admin to use the fields in the filters which are sent to your connector, your should opt-in by using the `enableSearch` method.
+
+Not implementing it will simply hide the search bar fron the admin panel on the relevant collections.
+
+```javascript
+class MyCollection extends BaseCollection {
+  constructor() {
+    // [...]
+
+    // If you want to implement search youself
+    this.enableSearch();
+  }
+}
+```
+
+### Emulation
+
+If the datasource you are targeting supports the `equal` and `contains` operators on at least some fields, the search bar will be displayed.
+
+Using it will add conditions to the condition tree.
+
+# Segments
+
+The `segment` field in a filter contains the name of the segment which is being targeted.
+
+{% hint style="info" %}
+This is an advanced concept.
+
+If this feature is not enabled in the connector definition, you can consider this field to always be `null` and the feature will be handled by Forest Admin for you.
+
+This can be useful on three situations:
+
+- In some use-cases, implementing segments in the connector can be more efficient than using condition tree based segments, at the cost of configurability (i.e. using complex SQL queries which cannot be expressed as a condition tree)
+- The underlying datasource has a concept which maps to forest admin segments (i.e. Sequelize scopes)
+- Your connector is used in multiple Forest Admin projects, and the segment should be shared across all deployments (i.e. segments coming from a public SaaS)
+
+{% endhint %}
+
+## Examples
+
+```json
+{ "segment": "Active records" }
+```
+
+## Implementation
+
+### Declaration of capabilities
+
+In order to implement **connector defined** segments, you have to opt in, and provide the list of segment which will be under the responsibility of the connector
+
+The only values which will be provided to your connectors in that fields, are the same values which are defined when declaring capabilities.
+
+```javascript
+class MyCollection extends BaseCollection {
+  constructor() {
+    // [...]
+
+    // If you want to implement segments at the connector level
+    this.addSegments(['Active records', 'Deleted records']);
+
+    // From now on, all methods which take a filter as parameter *MUST* not ignore its segment
+    // field.
+  }
+}
+```
+
+### Emulation
+
+There is no emulation for connector defined segments, as that feature can be safely ignored without any impact on the final admin panel functionalities.
