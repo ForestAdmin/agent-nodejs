@@ -48,26 +48,21 @@ const agent = new Agent(options);
 const stripe = new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
 const intercom = new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' });
 
-agent
-  .importCollectionsFrom(stripe, {
-    restrict: {
-      // Import only 'charges' and 'customers' collections
-      collections: ['charges', 'customers'],
-
-      // Do not import any action
-      actions: [],
-
-      // Import all fields (this is the default)
-      fields: ['*'],
-
-      // Import only segments of the 'charges' collection
-      segments: ['charges.*'],
-    },
-  })
-  .importCollectionsFrom(intercom, {
-    // import all collections besides visitors
+agent.importCollectionsFrom(stripe, {
+  restrict: {
+    // Import besides visitors
     collections: ['!visitors'],
-  });
+
+    // Do not import any action
+    actions: [],
+
+    // Import all fields (this is the default)
+    fields: ['*'],
+
+    // Import only segments of the 'charges' collection
+    segments: ['charges.*'],
+  },
+});
 ```
 
 ## Naming conflicts
@@ -87,16 +82,15 @@ const agent = new Agent(options);
 const stripe = new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
 const intercom = new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' });
 
-// Create a Forest Admin collection ...
-agent
-  .importCollectionsFrom(stripe, {
-    // rename customers collections (to avoid naming collision)
-    rename: {
-      customers: 'stripeCustomer',
-    },
-  })
-  .importCollectionsFrom(intercom, {
-    // renaming can also done with a function
-    rename: name => `intercom${name[0].toUpperCase()}${name.substring(1)}`,
-  });
+// Rename stripe collections by providing replacements
+agent.importCollectionsFrom(stripe, {
+  rename: {
+    customers: 'stripeCustomer',
+  },
+});
+
+// Rename intercom collections with a function
+agent.importCollectionsFrom(intercom, {
+  rename: name => `intercom${name[0].toUpperCase()}${name.substring(1)}`,
+});
 ```
