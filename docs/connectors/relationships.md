@@ -1,8 +1,6 @@
-When importing collections from a data source which supports relationships, all collections should be linked together from the get go.
-
 Out of the box, Forest Admin will not create relations between different data sources.
 
-This is a strong limitation which is solved by defining `jointures`.
+This is solved by defining `jointures`.
 
 When a jointure is defined between two collections, from both the user and agent developer point of view, Forest Admin will act as if the two collections were linked with a native relationships (i.e. like two collections within the same SQL database).
 
