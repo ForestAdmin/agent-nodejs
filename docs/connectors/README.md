@@ -8,7 +8,7 @@ Now, that's already useful and can be built upon, but what if you want your pane
 
 Forest Admin has you covered: if your application depends on multiple SaaS providers, so should your admin panel.
 
-# Usage
+# What can I connect to?
 
 Forest Admin collection map to any of those concepts:
 
@@ -50,7 +50,7 @@ const intercom = new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' });
 
 agent.importCollectionsFrom(stripe, {
   restrict: {
-    // Import besides visitors
+    // Skip 'visitors' collections
     collections: ['!visitors'],
 
     // Do not import any action
