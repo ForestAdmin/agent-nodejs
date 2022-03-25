@@ -38,7 +38,7 @@ Query Translation:
 
 When using the query translation route, it will be a bit longer:
 
-## Minimal examples
+## Minimal example
 
 {% tabs %} {% tab title="Using a local cache" %}
 
