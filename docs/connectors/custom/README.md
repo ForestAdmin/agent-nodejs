@@ -8,24 +8,6 @@ Forest Admin is built so that it does not know need the nature of the datasource
 
 That interface is only there to abstract away differences between backends so that they can be used as forest admin collections, it was built to allow for the minimal feature set which allow forest admin to work.
 
-# Tooling
-
-In order to make your journey easier, a `npm` package which contains tooling is provided: [npmjs://@forestadmin/connector-toolkit](https://www.npmjs.com/package/@forestadmin/connector-toolkit)
-
-It contains:
-
-- All interfaces that you'll be either using or implementing while making your connector
-- An implementation of a caching connector, which implements all forest admin features.
-- Aggregation, filtering, projection and sorting emulators which can be called from inside your collection
-  - This is a perfect match during development
-  - It allows to be up and running with all features in minutes (with low performance)
-  - You can then translate forest admin concepts one by one, and improve performance gradually
-- Decorators which can be loaded on top of your collections to add new behaviors
-  - This is a good match to implement features which are not natively supported by the target
-  - It allows to bundle reusable behaviors in your connector, that would otherwise need to be added on the configuration of agents by using `customizeCollection`.
-
-Take note that all connectors which are provided by Forest Admin were actually coded using this same toolkit, so you'll be using the same tools as we are.
-
 # Getting started
 
 When creating a custom connector two routes can be taken:
@@ -38,7 +20,7 @@ When creating a custom connector two routes can be taken:
 | Cons             | - Slower agent start (need to synchronize all API data since last start)<br>- Disk Usage<br><br>- For some applications, quantity of data may be too large                                                  | - More difficult to implement<br>- When the feature gap between forest admin query system and the target API is large the connector would need to rely a lot on emulation which hurts performance |
 | Recommended for  | SaaS and APIs                                                                                                                                                                                               | Databases or APIs with advanced query capabilities                                                                                                                                                |
 
-# A quick peek at code (readonly, single-collection connectors)
+## Steps
 
 Creating a custom connector always starts with declaring the structure of the data
 
@@ -70,6 +52,8 @@ When using the query translation route, it will be a bit longer:
   - Implement a method which, given a forest admin filter and projection retrieve the records
   - Implement a method which, given a forest admin filter and aggregation query, compute the aggregated values
   - When relevant, implement methods for record creation, update and delete.
+
+## Minimal examples
 
 {% tabs %} {% tab title="Using a local cache" %}
 
@@ -231,3 +215,21 @@ agent
 ```
 
 {% endtab %} {% endtabs %}
+
+# Tooling
+
+In order to make your journey easier, a `npm` package which contains tooling is provided: [npmjs://@forestadmin/connector-toolkit](https://www.npmjs.com/package/@forestadmin/connector-toolkit)
+
+It contains:
+
+- All interfaces that you'll be either using or implementing while making your connector
+- An implementation of a caching connector, which implements all forest admin features.
+- Aggregation, filtering, projection and sorting emulators which can be called from inside your collection
+  - This is a perfect match during development
+  - It allows to be up and running with all features in minutes (with low performance)
+  - You can then translate forest admin concepts one by one, and improve performance gradually
+- Decorators which can be loaded on top of your collections to add new behaviors
+  - This is a good match to implement features which are not natively supported by the target
+  - It allows to bundle reusable behaviors in your connector, that would otherwise need to be added on the configuration of agents by using `customizeCollection`.
+
+Take note that all connectors which are provided by Forest Admin were actually coded using this same toolkit, so you'll be using the same tools as we are.
