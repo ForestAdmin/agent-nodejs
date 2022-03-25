@@ -11,8 +11,6 @@ Which means that:
 - The relation can be traversed in the user interface
 - Actions, charts, fields and segments which use information from both collections can be built with no changes in the API that is used.
 
-# Usage
-
 ## Example
 
 ```javascript
@@ -21,23 +19,22 @@ const IntercomConnector = require('@forestadmin/connector-intercom');
 const Agent = require('@forestadmin/agent');
 
 const agent = new Agent(options);
+const database = new SqlConnector('postgres://user:pass@localhost:5432/mySchema');
+const intercom = new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' });
 
-agent
-  // Import collections
-  .importCollectionsFrom(new SqlConnector('postgres://user:pass@localhost:5432/mySchema'))
-  .importCollectionsFrom(new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' }), {
-    rename: { contacts: 'intercomContacts' },
-  })
+// Plug connectors
+agent.importCollectionsFrom(database);
+agent.importCollectionsFrom(intercom);
 
-  // Link customer records ...
-  .customizeCollection('customers', collection =>
-    // ... to intercom contacts
-    collection.registerJointure('myIntercomContact', {
-      type: FieldType.OneToOne,
-      foreignCollection: 'intercomContacts',
-      originKey: 'external_id', // field on Intercom
-    }),
-  );
+// Link 'customer' from database ...
+agent.customizeCollection('customers', collection =>
+  // ... to 'contacts' from intercom
+  collection.registerJointure('myIntercomContact', {
+    type: FieldType.OneToOne,
+    foreignCollection: 'contacts', // this collection is in intercom
+    originKey: 'external_id', // field on Intercom
+  }),
+);
 ```
 
 ## Jointure types
@@ -57,10 +54,7 @@ When defining jointures, if no `foreignKeyTarget` or `originKeyTarget` is provid
 
 ## Preconditions
 
-Cross-datasource relationships can only work when:
-
-- All fields which are used as either `originKey`, `originKeyTarget`, `foreignKey` and `foreignKeyTarget` are filterable with the `In` operator.
-- The underlying datasource ensures that values in columns used as `originKeyTarget` and `foreignKeyTarget` are unique across the collection.
+Cross-datasource relationships can only work when the underlying datasource ensures that values in columns used as `originKeyTarget` and `foreignKeyTarget` are unique.
 
 ## Advanced use-cases
 

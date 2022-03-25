@@ -1,0 +1,11 @@
+- Declaring the API capabilities
+
+  - Can records be listed?
+    - Is the output filterable? On which fields? With which operators?
+    - Is the output sortable? On which fields?
+    - Do we need to fetch all fields on each request? Or can we query partial records?
+    - Can the underlying data source load relations?
+  - Can records be created?
+  - Can records be updated?
+  - Can records be deleted?
+  - Can records be aggregated? (for charts / counting)

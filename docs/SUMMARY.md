@@ -23,12 +23,14 @@
     - [Stripe](connectors/provided/saas/stripe.md)
 
 - [Write your own](connectors/custom/README.md)
+  - [Declaring the structure](connectors/custom/structure.md)
   - [Using a local cache](connectors/custom/local-cache/README.md)
   - [Using query translation](connectors/custom/query-translation/README.md)
     - [Understanding filters](connectors/custom/query-translation/filters.md)
     - [Understanding projections](connectors/custom/query-translation/projections.md)
     - [Understanding aggregations](connectors/custom/query-translation/aggregations.md)
-    - [Making a connector](connectors/custom/query-translation/making-a-connector.md)
+    - [Declaring capabilities](connectors/custom/query-translation/capabilities.md)
+    - [Translating queries](connectors/custom/query-translation/translating-queries.md)
   - [Implementing relationships](connectors/custom/relationships.md)
   - [Contribute](connectors/custom/contribute.md)
 
