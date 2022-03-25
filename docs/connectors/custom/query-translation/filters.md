@@ -140,12 +140,11 @@ class MyCollection extends BaseCollection {
     // [...]
 
     this.addField('id', {
+      // [...]
       filterOperators: new Set([
         Operator.Equal, // Tell forest admin that it can use the equal operator on the id field
         // ...
       ]),
-
-      // [...]
     });
   }
 }
@@ -161,15 +160,35 @@ class MyCollection extends BaseCollection {
 | Using operator emulation on any field                        | `in` on the primary key                                          |
 | Using search emulation                                       | `contains` on string fields, `equal` on numbers, uuids and enums |
 | Using `select all` feature for actions, delete or dissociate | `in` and `not_in` on the primary key                             |
-| Frontend filters, scopes, segments                           | See list defined below (depends on column type)                  |
+| Frontend filters, scopes and segments                        | See below                                                        |
+
+{% hint style="warning" %}
+Translating the `or` node is a strong contraint, as many backends will not allow it and providing a working implementation requires making multiple queries and recombining the results.
+{% endhint %}
+
+{% hint style="warning" %}
+Forest Admin frontend implements filtering, scopes and segments with a "per-field", not on a "per-field-and-operator" granularity.
+
+This means that filtering for a given field is either enabled or not from the frontend perspective. Forest Admin admin panel will enable the feature only once enough operators are supported depending on the type of the field.
+
+| Field type | Needed operators to unlock frontend filters, scopes and segments                               |
+| ---------- | ---------------------------------------------------------------------------------------------- |
+| Boolean    | `equal`,`not_equal`,`present`,`blank`,                                                         |
+| Date       | All dates operators                                                                            |
+| Enum       | `equal`,`not_equal`,`present`,`blank`, `in`                                                    |
+| Number     | `equal`,`not_equal`,`present`,`blank`,`in`,`greater_than`,`less_than`                          |
+| String     | `equal`,`not_equal`,`present`,`blank`,`in`,`starts_with`,`ends_with`,`contains`,`not_contains` |
+| Uuid       | `equal`, `not_equal`, `present`, `blank`                                                       |
+
+{% endhint %}
 
 ### Operator equivalence
 
-You may have noticed that many operators overlap.
-
-In order to make it quicker to implement connectors, forest admin supports automatic operator replacement.
+You may have noticed that many operators overlap. In order to make it quicker to implement connectors, forest admin supports automatic operator replacement.
 
 What that means, is that when an operator can be expressed using a combination of other operators, forest admin will perform the substitution automatically using the following table.
+
+Among all operators, the following tables shows those which have equivalence rules.
 
 | Operator                 | Types         | Automatic replacement                                                |
 | ------------------------ | ------------- | -------------------------------------------------------------------- |
@@ -214,29 +233,6 @@ The minimal list of operators which should be supported to have them all is the 
 - `less_than` and `greater_than` (unlocks all dates operators)
 - `like` (unlocks `starts_with`, `ends_with` and `contains`)
 - `not_contains`, `longer_than`, `shorter_than` and `includes_all`
-
-### Limitations
-
-Forest Admin frontend implements filtering, scopes and segments with a "per-field", not on a "per-field-and-operator" granularity.
-
-This means that filtering for a given field is either enabled or not from the frontend perspective. Forest Admin admin panel will enable the feature only once enough operators are supported depending on the type of the field.
-
-| Unlocked feature | Needed capabilities                                                                            |
-| ---------------- | ---------------------------------------------------------------------------------------------- |
-| Boolean          | `equal`,`not_equal`,`present`,`blank`,                                                         |
-| Date             | All dates operators                                                                            |
-| Enum             | `equal`,`not_equal`,`present`,`blank`, `in`                                                    |
-| Number           | `equal`,`not_equal`,`present`,`blank`,`in`,`greater_than`,`less_than`                          |
-| String           | `equal`,`not_equal`,`present`,`blank`,`in`,`starts_with`,`ends_with`,`contains`,`not_contains` |
-| Uuid             | `equal`, `not_equal`, `present`, `blank`                                                       |
-
-{% hint style="info" %}
-Translating the `or` node is a strong contraint, as many backends will not allow it and providing a working implementation requires making multiple queries and recombining the results.
-
-- Implement the search emulation feature
-- Implement user filters `or`
-
-{% endhint %}
 
 ### Emulation
 
