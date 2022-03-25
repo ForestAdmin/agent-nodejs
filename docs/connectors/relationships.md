@@ -1,4 +1,4 @@
-Out of the box, Forest Admin will not create relations between different data sources.
+Out of the box, Forest Admin will not interconnect collection from different connectors.
 
 This is solved by defining `jointures`.
 

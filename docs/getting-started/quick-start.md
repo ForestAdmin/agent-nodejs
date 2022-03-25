@@ -9,9 +9,7 @@ Go to [https://app.forestadmin.com/signup](https://app.forestadmin.com/signup), 
 {% hint style="info" %}
 If you want to test Forest Admin but don't have a database on hand, here is one!
 
-```
-docker run -p 5432:5432 --name forest_demo_database forestadmin/meals-database
-```
+`docker run -p 5432:5432 --name forest_demo_database forestadmin/meals-database`
 
 {% endhint %}
 
