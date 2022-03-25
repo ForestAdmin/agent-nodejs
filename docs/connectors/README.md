@@ -8,11 +8,7 @@ Now, that's already useful and can be built upon, but what if you want your pane
 
 Forest Admin has you covered: if your application depends on multiple SaaS providers, so should your admin panel.
 
-Connectors are independent `NPM` packages which can be loaded into your `agent` to import collections into your admin panel.
-
 # Usage
-
-## Example
 
 Forest Admin collection map to any of those concepts:
 
@@ -21,42 +17,56 @@ Forest Admin collection map to any of those concepts:
 - Endpoints on supported SaaS providers
 - Endpoints on your own API (by writing a custom connector)
 
-Importing collection from new data sources is as simple as using the `importCollectionsFrom` method on the main `Agent` instance.
+## Example
+
+In this example, we import a all tables from a PostgreSQL database into Forest Admin.
+
+Take note that connectors are defined in independant NPM packages (here `@forestadmin/connector-sql`).
 
 ```javascript
 const Agent = require('@forestadmin/agent');
 const SqlConnector = require('@forestadmin/connector-sql');
+
+const agent = new Agent(options);
+const database = new SqlConnector('postgres://user:pass@localhost:5432/mySchema');
+
+agent.importCollectionsFrom(database);
+```
+
+## Partial imports
+
+Some connector may implement more collections, and associated actions and segments that you want.
+
+By provided options when pluging a connector, you can specify what you want to include into
+
+```javascript
+const Agent = require('@forestadmin/agent');
 const StripeConnector = require('@forestadmin/connector-stripe');
 const IntercomConnector = require('@forestadmin/connector-intercom');
 
 const agent = new Agent(options);
+const stripe = new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
+const intercom = new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' });
 
-// Create a Forest Admin collection ...
 agent
-  // ... for all table in a database
-  .importCollectionsFrom(new SqlConnector('postgres://user:pass@localhost:5432/mySchema'))
-
-  // ... for a couple of stripe endpoints (charges & customers)
-  .importCollectionsFrom(new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' }), {
-    // restrict what gets imported
+  .importCollectionsFrom(stripe, {
     restrict: {
-      collections: ['charges', 'customers'], // Import only 'charges' and 'customers' collections
-      actions: [], // Do not import any action
-      fields: ['*'], // Import all fields (this is the default)
-      segments: ['charges.*'], // Import only segments of the 'charges' collection
+      // Import only 'charges' and 'customers' collections
+      collections: ['charges', 'customers'],
+
+      // Do not import any action
+      actions: [],
+
+      // Import all fields (this is the default)
+      fields: ['*'],
+
+      // Import only segments of the 'charges' collection
+      segments: ['charges.*'],
     },
-
-    // rename customers (to avoid naming collision)
-    rename: { customers: 'stripeCustomer' },
   })
-
-  // ... for all intercom endpoints (companies, contacts, visitors, ...)
-  .importCollectionsFrom(new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' }), {
+  .importCollectionsFrom(intercom, {
     // import all collections besides visitors
     collections: ['!visitors'],
-
-    // renaming can also done with a function
-    rename: name => `intercom${name[0].toUpperCase()}${name.substring(1)}`,
   });
 ```
 
@@ -68,6 +78,25 @@ You can tackle them by either only adding the collections that you need, or by r
 
 Don't worry if you leave naming collisions, your development agent will warn you while starting.
 
-## Native actions and segments
+```javascript
+const Agent = require('@forestadmin/agent');
+const StripeConnector = require('@forestadmin/connector-stripe');
+const IntercomConnector = require('@forestadmin/connector-intercom');
 
-Depending on the data source, collections imported from connectors may already implement `native actions` and `native segments`.
+const agent = new Agent(options);
+const stripe = new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
+const intercom = new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' });
+
+// Create a Forest Admin collection ...
+agent
+  .importCollectionsFrom(stripe, {
+    // rename customers collections (to avoid naming collision)
+    rename: {
+      customers: 'stripeCustomer',
+    },
+  })
+  .importCollectionsFrom(intercom, {
+    // renaming can also done with a function
+    rename: name => `intercom${name[0].toUpperCase()}${name.substring(1)}`,
+  });
+```
