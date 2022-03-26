@@ -27,16 +27,14 @@ Depending on your choice between "Local Cache" or "Query Translation", creating 
 Local Cache:
 
 1. Declaring the structure of the data
-2. Implement a method which loads all records changed since a provided date
-3. When relevant, implement methods for record creation, update and delete.
+2. Implement a method which loads all records which changed since a provided date
+3. When relevant, implement methods for record creation, update and delete
 
 Query Translation:
 
 1. Declaring the structure of the data
 2. Declaring the API capabilities
 3. Coding a translation layer
-
-When using the query translation route, it will be a bit longer:
 
 ## Minimal example
 

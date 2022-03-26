@@ -27,14 +27,6 @@ It is used to restrict the records which will be targeted by specific actions (l
 
 This is quite complex! Let's break it down to small understandable pieces.
 
-Before starting, note that as a connector implementer, **you won't have to translate every possible filter.**
-On most datasources, it is **not feasible**, as you will be restricted by the API that you will be translating forest admin filters to.
-
-On construction each of your collections and fields will declare capabilities.
-Forest Admin will then ensure that only filters using feature that you have explicitely enabled are used.
-
-All other features will either be disabled from your admin panel (or emulated with lower performance when specified).
-
 # Condition trees
 
 A condition tree, as it names imply, is a set of conditions which apply on the records themselves and tells which records should be included or excluded from a given query.
