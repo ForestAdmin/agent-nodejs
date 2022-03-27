@@ -1,4 +1,4 @@
-Out of the box, Forest Admin will not interconnect collection from different connectors.
+Out of the box, Forest Admin will not link collection from different connectors.
 
 This is solved by defining `jointures`.
 

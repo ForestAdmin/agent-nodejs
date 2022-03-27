@@ -14,7 +14,7 @@ As a connector implementer, **you won't have to translate every possible query**
 
 On construction each of your collections will declare per-field capabilities.
 
-Forest Admin will then ensure that only queries using feature that you have explicitely enabled are used.
+Forest Admin will then ensure that only queries using features that you have explicitely enabled are used.
 
 # Required features
 
@@ -23,8 +23,8 @@ All connectors need to be able to
 - List and count records
 - Understand `And` nodes in condition trees
 - Understand `Or` nodes in conditions trees
-- Understand `equal` operators on primary and foreign keys
-- Understand paging (`skip` + `limit`)
+- Understand the `equal` operator on primary and foreign keys
+- Understand paging (`skip`, `limit`)
 
 {% hint style="warning" %}
 Translating the `or` node is a strong contraint, as many backends will not allow it and providing a working implementation requires making multiple queries and recombining the results.
@@ -36,7 +36,7 @@ All optional features are opt-in, and need to be specified when constructing a c
 
 ## How to unlock features
 
-However the more complete your query translation is, the more forest admin features will be unlocked on your connector
+The more complete your query translator is, the most forest admin features will be unlocked on your connector
 
 | Unlocked feature                                             | Needed capabilities                                              |
 | ------------------------------------------------------------ | ---------------------------------------------------------------- |
@@ -62,8 +62,6 @@ This means that filtering for a given field is either enabled or not from the GU
 | String     | `equal`,`not_equal`,`present`,`blank`,`in`,`starts_with`,`ends_with`,`contains`,`not_contains` |
 | Uuid       | `equal`, `not_equal`, `present`, `blank`                                                       |
 
-{% endhint %}
-
 ## Filtering: Condition trees
 
 When declaring a field, the `filterOperators` set allows to tell Forest Admin which operators are supported by any given field.
@@ -86,7 +84,30 @@ class MyCollection extends BaseCollection {
 }
 ```
 
+## Filtering: Paging
+
+Supporting `skip` and `limit` on filters is a required feature, so there is no declaration for that.
+
+However, not all fields need to be sortable.
+
+```javascript
+class MyCollection extends BaseCollection {
+  constructor() {
+    // [...]
+
+    this.addField('id', {
+      // [...]
+      isSortable: true,
+    });
+  }
+}
+```
+
 ## Filtering: Search
+
+{% hint style="info" %}
+If this feature is not enabled in the connector definition, users of your connector can still use the search bar in their admin panel.
+{% endhint %}
 
 If this feature is not explicitly enabled in the connector definition, Forest Admin will use condition trees to implement the search bar in the admin panel. When that is not possible, because the condition tree implementation itself is not sufficient, the search bar will be disabled.
 
@@ -108,11 +129,11 @@ class MyCollection extends BaseCollection {
 }
 ```
 
-{% hint style="info" %}
-If this feature is not enabled in the connector definition, users of your connector can still use the search bar in their admin panel.
-{% endhint %}
-
 ## Filtering: Segments
+
+{% hint style="info" %}
+If this feature is not enabled in the connector definition, users of your connector can still create segments in both their admin panels and agent customization.
+{% endhint %}
 
 Defining segments from your connectors can be relevant on three situations:
 
@@ -133,7 +154,3 @@ class MyCollection extends BaseCollection {
   }
 }
 ```
-
-{% hint style="info" %}
-If this feature is not enabled in the connector definition, users of your connector can still create segments in both their admin panels and agent customization.
-{% endhint %}

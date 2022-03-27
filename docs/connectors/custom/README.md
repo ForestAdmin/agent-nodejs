@@ -66,10 +66,6 @@ class MyCollection extends LocallyCachedCollection {
   }
 
   /**
-   * Example generator which
-   * - yields all records modified since it was last called
-   * - returns the next threshold value which should be used
-   *
    * You are free to tune this generator as you see fit, depending on the capabilities and
    * performance of the API that you are targeting.
    *
