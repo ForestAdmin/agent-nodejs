@@ -40,6 +40,7 @@ The more complete your query translator is, the most forest admin features will 
 
 | Unlocked feature                                             | Needed capabilities                                              |
 | ------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Using charts                                                 | Support all field in `Aggregation`                               |
 | Using relations                                              | `in` on primary keys and foreign keys                            |
 | Using `select all` feature for actions, delete or dissociate | `in` and `not_in` on the primary key                             |
 | Frontend filters, scopes and segments                        | See below                                                        |
@@ -88,7 +89,7 @@ class MyCollection extends BaseCollection {
 
 Supporting `skip` and `limit` on filters is a required feature, so there is no declaration for that.
 
-However, not all fields need to be sortable.
+However, not all fields need to be sortable. Fields which are sortable should be flagged in the following way.
 
 ```javascript
 class MyCollection extends BaseCollection {
@@ -106,17 +107,15 @@ class MyCollection extends BaseCollection {
 ## Filtering: Search
 
 {% hint style="info" %}
-If this feature is not enabled in the connector definition, users of your connector can still use the search bar in their admin panel.
+If this feature is not enabled in the connector definition, users of your connector can still use the search bar in their admin panel (Forest Admin will default to building condition trees).
 {% endhint %}
 
-If this feature is not explicitly enabled in the connector definition, Forest Admin will use condition trees to implement the search bar in the admin panel. When that is not possible, because the condition tree implementation itself is not sufficient, the search bar will be disabled.
-
-Therefor, enabling this feature allows you to either:
+Enabling this feature allows you to either:
 
 - Gain control on how search works for your connector instead of relying on the default implementation
 - Allow full text search on connectors were the condition tree implementation is not strong enought
 
-Is you want forest admin to use the fields in the filters which are sent to your connector, your should opt-in by using the `enableSearch` method.
+This is relevant mostly for connectors which target data sources which have native full text search capabilities (ElasticSearch, ...)
 
 ```javascript
 class MyCollection extends BaseCollection {

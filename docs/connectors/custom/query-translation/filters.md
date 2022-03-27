@@ -115,6 +115,58 @@ Here is the list of operators which are supported by forest admin.
 | yesterday                | Date          | ∅                   |
 | includes_all             | Array         | Array               |
 
+## Operator equivalence
+
+You may have noticed that many operators overlap. In order to make connectors quicker to implement, forest admin supports automatic operator replacement.
+
+What that means, is that when an operator can be expressed using a combination of other operators, forest admin will perform the substitution automatically using the following table.
+
+Among all operators, the following tables shows those which have equivalence rules.
+
+| Operator                 | Types         | Automatic replacement                                                |
+| ------------------------ | ------------- | -------------------------------------------------------------------- |
+| present                  | All           | not_equal null and not_equal ''                                      |
+| blank                    | All           | equal null or equal ''                                               |
+| missing                  | All           | equal null                                                           |
+| equal                    | All           | in [$value]                                                          |
+| not_equal                | All but array | not_in [$value]                                                      |
+| in                       | All but array | equal $value or equal $2 or ...                                      |
+| not_in                   | All but array | not_equal $value and not_equal $2 and ...                            |
+| starts_with              | String        | like '$value%'                                                       |
+| ends_with                | String        | like '%$value'                                                       |
+| contains                 | String        | like '%$value%'                                                      |
+| before                   | Date          | less_than $value                                                     |
+| after                    | Date          | greater_than $value                                                  |
+| after_x_hours_ago        | Date          | greater_than $hours_ago($value)                                      |
+| before_x_hours_ago       | Date          | less_than $hours_ago($value)                                         |
+| past                     | Date          | less_than $now                                                       |
+| future                   | Date          | greater_than $now                                                    |
+| previous_month_to_date   | Date          | greater_than $start_of_month & less_than $now                        |
+| previous_month           | Date          | greater_than $start_of_last_month & less_than $end_of_last_month     |
+| previous_quarter_to_date | Date          | greater_than $start_of_quarter & less_than $now                      |
+| previous_quarter         | Date          | greater_than $start_of_last_quarter & less_than $end_of_last_quarter |
+| previous_week_to_date    | Date          | greater_than $start_of_week & less_than $now                         |
+| previous_week            | Date          | greater_than $start_of_last_week & less_than $end_of_last_week       |
+| previous_x_days_to_date  | Date          | greater_than $x_days_ago($value) & less_than $now                    |
+| previous_x_days          | Date          | greater_than $x_days_ago($value) & less_than $start_of_today         |
+| previous_year_to_date    | Date          | greater_than $start_of_year & less_than $now                         |
+| previous_year            | Date          | greater_than $start_of_last_year & less_than $end_of_last_year       |
+| today                    | Date          | greater_than $start_of_today and less_than $end_of_today             |
+| yesterday                | Date          | greater_than $start_of_yesterday and less_than $end_of_yesterday     |
+
+In practice:
+
+- if a field supports `equal`, it will automatically support `blank`, `missing` and `in`
+- if a field support `less_than`, it will automatically support `before`, `before_x_hours_ago` and `past`
+- ... and so on
+
+The minimal list of operators which is sufficient to have them all is the following:
+
+- `in` and `not_in` (unlocks `present`, `blank`, `missing`, `equal` and `not_equal`)
+- `less_than` and `greater_than` (unlocks all dates operators)
+- `like` (unlocks `starts_with`, `ends_with` and `contains`)
+- `not_contains`, `longer_than`, `shorter_than` and `includes_all`
+
 # Paging
 
 A paging clause tells your connector which page of the data should be retrieved.
