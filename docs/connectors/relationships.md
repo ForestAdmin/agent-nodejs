@@ -63,30 +63,29 @@ This can be achieved by [creating a new field](../agent-customization/fields.md)
 ```javascript
 const agent = new Agent(options);
 
-agent.customizeCollection('customers', collection =>
-  collection
-    // Create foreign key
-    .registerField('myForeignKey', {
-      // Compute foreign key value from other fields
-      dependencies: [...],
-      getValues: (records) => record.map(r => ...),
+agent.customizeCollection('customers', collection => {
+  // Create foreign key
+  collection.registerField('myForeignKey', {
+    // Compute foreign key value from other fields
+    dependencies: [...],
+    getValues: records => record.map(r => ...),
 
-      // Ensure this field is accesible for the jointure
-      beforeJointures: true,
+    // Ensure this field is accesible for the jointure
+    beforeJointures: true,
 
-      // Implement the In operator, so that the foreign key can be used as a jointure
-      filterBy: {
-        [Operator.In]: (value) => ({field: 'xxx', operator: 'xxx', value: 'xxx'})
-      }
-    })
+    // Implement the In operator, so that the foreign key can be used as a jointure
+    filterBy: {
+      [Operator.In]: value => ({ field: 'xxx', operator: 'xxx', value: 'xxx' }),
+    },
+  });
 
-    // Use the foreign key we just created in a jointure
-    .registerJointure('myRelation', {
-      type: FieldType.ManyToOne,
-      foreignCollection: 'someOtherCollection',
-      foreignKey: 'myForeignKey', // field on Postgres
-    }),
-);
+  // Use the foreign key we just created in a jointure
+  collection.registerJointure('myRelation', {
+    type: FieldType.ManyToOne,
+    foreignCollection: 'someOtherCollection',
+    foreignKey: 'myForeignKey', // field on Postgres
+  });
+});
 ```
 
 # Under the hood
