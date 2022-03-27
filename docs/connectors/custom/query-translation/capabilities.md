@@ -12,17 +12,19 @@
 
 As a connector implementer, **you won't have to translate every possible query**: on most datasources, it is **not feasible**, as you will be restricted by the API that you will be translating forest admin filters to.
 
-On construction each of your collections and fields will declare capabilities.
+On construction each of your collections will declare per-field capabilities.
 
 Forest Admin will then ensure that only queries using feature that you have explicitely enabled are used.
 
 # Required features
 
-The minimal implementation should allow to list and count records matching
+All connectors need to be able to
 
-- Condition trees: `and` + `or` nodes
-- Condition trees: `equal` operators on all primary keys and foreign keys
-- Paging
+- List and count records
+- Understand `And` nodes in condition trees
+- Understand `Or` nodes in conditions trees
+- Understand `equal` operators on primary and foreign keys
+- Understand paging (`skip` + `limit`)
 
 {% hint style="warning" %}
 Translating the `or` node is a strong contraint, as many backends will not allow it and providing a working implementation requires making multiple queries and recombining the results.
@@ -31,6 +33,8 @@ Translating the `or` node is a strong contraint, as many backends will not allow
 # Optional features
 
 All optional features are opt-in, and need to be specified when constructing a connector, so that Forest Admin can know that they are available.
+
+## How to unlock features
 
 However the more complete your query translation is, the more forest admin features will be unlocked on your connector
 
@@ -43,12 +47,13 @@ However the more complete your query translation is, the more forest admin featu
 | Using search emulation                                       | `contains` on string fields, `equal` on numbers, uuids and enums |
 | Using `not` node in your code                                | `not` node                                                       |
 
-{% hint style="warning" %}
-Forest Admin frontend implements filtering, scopes and segments with a "per-field", not on a "per-field-and-operator" granularity.
+## Unlock filtering, scopes and segments on GUI
 
-This means that filtering for a given field is either enabled or not from the frontend perspective. Forest Admin admin panel will enable the feature only once enough operators are supported depending on the type of the field.
+Forest Admin GUI implements filtering, scopes and segments with a "per-field", not on a "per-field-and-operator" granularity.
 
-| Field type | Needed operators to unlock frontend filters, scopes and segments                               |
+This means that filtering for a given field is either enabled or not from the GUI perspective. Forest Admin admin panel will enable the feature only once enough operators are supported depending on the type of the field.
+
+| Field type | Needed operators to unlock GUI filters, scopes and segments                                    |
 | ---------- | ---------------------------------------------------------------------------------------------- |
 | Boolean    | `equal`,`not_equal`,`present`,`blank`,                                                         |
 | Date       | All dates operators                                                                            |
