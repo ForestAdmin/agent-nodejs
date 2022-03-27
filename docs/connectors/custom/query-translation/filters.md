@@ -139,14 +139,6 @@ Likewise `searchExtended` boolean is an action which can be triggered by end-use
 
 For instance, in `@forestadmin/connector-sql`, the `searchExtended` flag is used to also search content into all collections which are linked with a `many to one` or `one to one` relation to the current one.
 
-{% hint style="info" %}
-This is an advanced concept.
-
-If this feature is not enabled in the connector definition, you can consider this field to always be `null` and the feature will be handled by Forest Admin for you.
-
-Enabling this feature allows you to have more control on how search works for your connector for datasources were native full text indexes are available (elasticsearch, ...)
-{% endhint %}
-
 ## Examples
 
 Search into current collection
@@ -164,19 +156,6 @@ Search into current and linked collections
 # Segments
 
 The `segment` field in a filter contains the name of the segment which is being targeted.
-
-{% hint style="info" %}
-This is an advanced concept.
-
-If this feature is not enabled in the connector definition, you can consider this field to always be `null` and the feature will be handled by Forest Admin for you.
-
-This can be useful on three situations:
-
-- In some use-cases, implementing segments in the connector can be more efficient than using condition tree based segments, at the cost of configurability (i.e. using complex SQL queries which cannot be expressed as a condition tree)
-- The underlying datasource has a concept which maps to forest admin segments (i.e. Sequelize scopes)
-- Your connector is used in multiple Forest Admin projects, and the segment should be shared across all deployments (i.e. segments coming from a public SaaS)
-
-{% endhint %}
 
 ## Examples
 

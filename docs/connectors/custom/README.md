@@ -185,16 +185,8 @@ module.exports = MyCollection;
 const MyConnectorCollection = require('./connector-collection');
 
 const agent = new Agent(options);
-agent
-  // import the collection we just defined
-  .importCollection(new MyConnectorCollection())
 
-  // We can now customize it like any other collection
-  .customizeCollection('myCollection', collection =>
-    collection
-      .registerField('aNewField', { ... })
-      .registerSegment('aNewSegment', { ... })
-  );
+agent.importCollection(new MyConnectorCollection());
 ```
 
 {% endtab %} {% endtabs %}
