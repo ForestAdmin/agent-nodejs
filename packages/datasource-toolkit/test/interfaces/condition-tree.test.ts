@@ -130,12 +130,6 @@ describe('ConditionTree', () => {
 
           expect(condition).toEqual({ field: 'col1', operator: Operator.In, value: [1, 2] });
         });
-
-        test('should generate matchNone', () => {
-          expect(ConditionTreeFactory.matchIds(collection.schema, [])).toBe(
-            ConditionTreeFactory.MatchNone,
-          );
-        });
       });
 
       describe('with a composite pk', () => {

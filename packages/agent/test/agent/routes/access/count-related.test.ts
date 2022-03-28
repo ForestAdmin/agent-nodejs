@@ -140,7 +140,7 @@ describe('CountRelatedRoute', () => {
       });
 
       describe('when there is empty aggregate result', () => {
-        test('should return 0 ', async () => {
+        test('should return 0', async () => {
           const { services, dataSource, options } = setupWithOneToManyRelation();
 
           const oneToManyRelationName = 'myBookPersons';
@@ -183,7 +183,7 @@ describe('CountRelatedRoute', () => {
         const context = createMockContext({ customProperties });
         const result = count.handleCountRelated(context);
 
-        expect(result).rejects.toThrowError(ValidationError);
+        await expect(result).rejects.toThrowError(ValidationError);
       });
 
       test('should return an HTTP 500 response when the aggregate has a problem', async () => {

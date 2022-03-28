@@ -6,7 +6,7 @@ import { HttpCode } from '../../../../src/agent/types';
 import {
   setupWithManyToManyRelation,
   setupWithOneToManyRelation,
-} from './dissociate-delete-related.test';
+} from '../../__helper__/setup-with-relation';
 import DissociateDeleteRoute from '../../../../src/agent/routes/modification/dissociate-delete-related';
 
 describe('DissociateDeleteRelatedRoute > delete', () => {

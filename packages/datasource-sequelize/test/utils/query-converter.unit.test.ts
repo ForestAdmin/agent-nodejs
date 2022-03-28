@@ -122,27 +122,30 @@ describe('Utils > QueryConverter', () => {
             ['EndsWith', '__vAlue__', 'LIKE', '%__value__'],
             ['Contains', '__vaLue__', 'LIKE', '%__value__%'],
             ['NotContains', '__valUe__', 'NOT LIKE', '%__value__%'],
-          ])('should ', (operator, value, sqlClause, like) => {
-            const conditionTree = new ConditionTreeLeaf('__field__', Operator[operator], value);
+          ])(
+            'should generate a "where" Sequelize filter from a "%s" operator',
+            (operator, value, sqlClause, like) => {
+              const conditionTree = new ConditionTreeLeaf('__field__', Operator[operator], value);
 
-            const sequelizeFilter = QueryConverter.getWhereFromConditionTree(
-              {} as ModelDefined<any, any>,
-              conditionTree,
-            );
+              const sequelizeFilter = QueryConverter.getWhereFromConditionTree(
+                {} as ModelDefined<any, any>,
+                conditionTree,
+              );
 
-            expect(sequelizeFilter).toEqual(
-              expect.objectContaining({
-                __field__: {
-                  attribute: {
-                    fn: 'LOWER',
-                    args: [{ col: '__field__' }],
+              expect(sequelizeFilter).toEqual(
+                expect.objectContaining({
+                  __field__: {
+                    attribute: {
+                      fn: 'LOWER',
+                      args: [{ col: '__field__' }],
+                    },
+                    comparator: sqlClause,
+                    logic: like,
                   },
-                  comparator: sqlClause,
-                  logic: like,
-                },
-              }),
-            );
-          });
+                }),
+              );
+            },
+          );
         });
 
         it('should fail with a null operator', () => {

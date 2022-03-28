@@ -465,20 +465,27 @@ describe('CollectionUtils', () => {
   });
 
   describe('getValue', () => {
-    test('it should return directly when called with one of the pks', async () => {
+    const setupGetValue = () => {
       const { dataSource } = setupWithOneToManyRelation();
       const books = dataSource.getCollection('books');
+      jest.spyOn(books, 'list').mockResolvedValue([{ id: 1, field: 123 }]);
 
-      const value = await CollectionUtils.getValue(books, ['=[id-value]='], 'id');
+      return books;
+    };
 
-      expect(value).toEqual('=[id-value]=');
-      expect(books.list).not.toHaveBeenCalled();
+    describe('when called with one of the pks', () => {
+      test('it should return directly', async () => {
+        const books = setupGetValue();
+
+        const value = await CollectionUtils.getValue(books, ['=[id-value]='], 'id');
+
+        expect(value).toEqual('=[id-value]=');
+        expect(books.list).not.toHaveBeenCalled();
+      });
     });
 
-    test('it should return directly when called with one of the pks', async () => {
-      const { dataSource } = setupWithOneToManyRelation();
-      const books = dataSource.getCollection('books');
-      (books.list as jest.Mock).mockResolvedValue([{ field: 123 }]);
+    test('it should call collection list', async () => {
+      const books = setupGetValue();
 
       const value = await CollectionUtils.getValue(books, ['=[id-value]='], 'field');
 

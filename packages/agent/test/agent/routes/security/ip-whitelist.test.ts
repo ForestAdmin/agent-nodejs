@@ -28,7 +28,7 @@ describe('IpWhitelist', () => {
 
   describe('bootstrap', () => {
     describe('when the http call succeeds', () => {
-      test('should not throw an error ', async () => {
+      test('should not throw an error', async () => {
         const services = factories.forestAdminHttpDriverServices.build();
         const options = factories.forestAdminHttpDriverOptions.build();
 

@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 import sortBy from 'lodash/sortBy';
 
 import {
@@ -303,13 +303,22 @@ describe('LiveDataSource > Collection', () => {
 
       await liveCollection.update(filter, patch);
 
-      const allRecords = await plainRecords(sequelize.model(liveCollection.name).findAll());
+      const allRecords = await plainRecords(
+        sequelize
+          .model(liveCollection.name)
+          .findAll({ where: { id: { [Op.not]: originalRecord.id } } }),
+      );
 
       allRecords.forEach(record => {
         expect(record.fixed).toEqual(fixedValue);
-        if (record.id === originalRecord.id) expect(record.value).toEqual('__new__value__');
-        else expect(record.value).toMatch(/^record_[0-9]$/);
+        expect(record.value).toMatch(/^record_[0-9]$/);
       });
+
+      const [updatedRecord] = await plainRecords(
+        sequelize.model(liveCollection.name).findAll({ where: { id: originalRecord.id } }),
+      );
+      expect(updatedRecord.fixed).toEqual(fixedValue);
+      expect(updatedRecord.value).toEqual('__new__value__');
     });
   });
 
