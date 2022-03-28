@@ -5,7 +5,7 @@ Implementing a connector using the "local cache" strategy is much quicker than u
 
 In order to do that, Forest Admin needs to be able to always maintain an up-to-date local copy of the data which is stored in the target.
 
-This is achieved by implementing a single method which allow to access _all records which have changed since it was last-called_.
+This is achieved by implementing a single method which allow to access _records which have changed_.
 
 The strategy to write this method can vary depending on the feature set of the API which you are targeting
 
@@ -16,7 +16,7 @@ The strategy to write this method can vary depending on the feature set of the A
 If the API you are targeting supports filtering, the implementation should be trivial.
 
 ```javascript
-const { BaseCollection, FieldTypes, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
+const { BaseCollection } = require('@forestadmin/connector-toolkit');
 const axios = require('my-api-client'); // client for the target API
 
 class MyCollection extends LocallyCachedCollection {
@@ -24,7 +24,7 @@ class MyCollection extends LocallyCachedCollection {
 
   async *loadLastModified(lastThreshold) {
     while (true) {
-      const response = await axios.get(`https://myapi/resources/my-collection`, {
+      const response = await axios.get(`https://my-api/my-collection`, {
         params: { filter: `updatedAt > '${lastThreshold}'`, limit: 1000 },
       });
 
@@ -43,18 +43,15 @@ class MyCollection extends LocallyCachedCollection {
 
 When filtering is not supported, this can be worked around by using the sorting ability of the API you are targeting.
 
-The important fact that should be taken into consideration when writing this, is that the method may be called very often, to ensure that Forest Admin is in sync with the API you are targeting. The consequence of that is that you should optimize the method so that it is fast when called often.
+The method may be called very often. You should optimize the method so that the method is fast when nothing has changed on the target API.
 
 In this example we choose to:
 
 - Fetch only one record on the first request
-  - On most calls of this method, nothing will have changed since last call
-  - This ensure that calling the method when nothing has changed on the target API will be fast.
-- Gradually increase the page size up to a limit when we are late
-  - This ensure that starting a new agent instance will be able to catch-up all data without loading them one by one.
+- Gradually increase the page size up to a limit when we need to catch-up
 
 ```javascript
-const { BaseCollection, FieldTypes, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
+const { BaseCollection } = require('@forestadmin/connector-toolkit');
 const axios = require('axios'); // client for the target API
 
 class MyCollection extends LocallyCachedCollection {
@@ -66,7 +63,7 @@ class MyCollection extends LocallyCachedCollection {
 
     while (true) {
       // Load batch of records from targeted data source
-      const response = await axios.get(`https://myapi/resources/my-collection`, {
+      const response = await axios.get(`https://my-api/my-collection`, {
         params: { sort: '-updatedAt', skip, limit },
       });
       const records = response.body.items;

@@ -41,7 +41,7 @@ Query Translation:
 {% tabs %} {% tab title="Using a local cache" %}
 
 ```javascript
-const { BaseCollection, FieldTypes, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
+const { BaseCollection, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
 const axios = require('my-api-client'); // client for the target API
 
 class MyCollection extends LocallyCachedCollection {
@@ -54,13 +54,11 @@ class MyCollection extends LocallyCachedCollection {
     // Add fields
     this.addField('id', {
       // As we are using a local cache, we only need to specify structure, not capabilities
-      type: FieldsType.Column,
       columnType: PrimitiveType.Number,
       isPrimaryKey: true,
     });
 
     this.addField('title', {
-      type: FieldsType.Column,
       columnType: PrimitiveType.String,
     });
   }
@@ -73,20 +71,13 @@ class MyCollection extends LocallyCachedCollection {
    * threshold
    */
   async *loadLastModified(lastThreshold) {
-    const response = await axios.get(`https://myapi/resources/my-collection`, {
+    const response = await axios.get(`https://my-api/my-collection`, {
       params: { filter: `updatedAt > '${lastThreshold}'` },
     });
-    const records = response.body.items;
 
-    // yield records
-    yield records;
+    yield response.body.items;
 
-    // Compute threshold for next call
-    return records.reduce(
-      (threshold, record) =>
-        threshold && threshold > record.updatedAt ? threshold : record.updatedAt,
-      lastThreshold,
-    );
+    return new Date().toISOString();
   }
 }
 ```
@@ -94,7 +85,7 @@ class MyCollection extends LocallyCachedCollection {
 {% endtab %} {% tab title="Using query translation" %}
 
 ```javascript
-const { BaseCollection, FieldTypes, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
+const { BaseCollection, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
 const axios = require('axios'); // client for the target API
 
 // The real work is in writing this module
@@ -110,7 +101,6 @@ class MyCollection extends BaseCollection {
     // As we are using the query translation technique, we need to define capabilities for every field
     this.addField('id', {
       // Structure
-      type: FieldsType.Column,
       columnType: PrimitiveType.Number,
       isPrimaryKey: true,
 
@@ -121,7 +111,6 @@ class MyCollection extends BaseCollection {
     });
 
     this.addField('title', {
-      type: FieldsType.Column,
       columnType: PrimitiveType.String,
       isReadOnly: true,
       filterOperators: new Set(),
@@ -136,7 +125,7 @@ class MyCollection extends BaseCollection {
    */
   async list(filter, projection) {
     const params = QueryGenerator.generateListQueryString(filter, projection);
-    const response = axios.get('https://myapi/resources/my-collection', { params });
+    const response = axios.get('https://my-api/my-collection', { params });
 
     return response.body.items;
   }
@@ -149,7 +138,7 @@ class MyCollection extends BaseCollection {
    */
   async aggregate(filter, aggregation, limit) {
     const params = QueryGenerator.generateAggregateQueryString(filter, projection);
-    const response = axios.get('https://myapi/stats/my-collection', { params });
+    const response = axios.get('https://my-api/my-collection', { params });
 
     return response.body.items;
   }
