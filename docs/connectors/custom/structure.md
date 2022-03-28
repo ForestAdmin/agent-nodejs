@@ -13,7 +13,6 @@ This is needed when using both the "local cache" and "query translation" strateg
 ```javascript
 const { BaseCollection, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
 
-/** Minimal implementation of a readonly connector */
 class MovieCollection extends BaseCollection {
   constructor() {
     // [...]
@@ -91,6 +90,8 @@ When using composite types, the data in the UI may not be displayed as you expec
 | array of object                       | [{ title: "the shawshank redemption"}]        | As a new collection in related data page |
 | array of object (with nested objects) | [{ rating: { kind: 'MPA", value: "PG-13" } }] | JSON editor in the edition form          |
 | anything else                         |                                               | JSON editor in the edition form          |
+
+If you want to force displaying your data as a new collection in the related data page, but can't because your data model contains nested objects, you may consider type all nested objects as `PrimitiveType.JSON`.
 
 ## Validation
 
