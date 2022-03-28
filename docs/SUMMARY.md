@@ -86,7 +86,7 @@
   - [Typing](under-the-hood/data-model/typing.md)
   - [Relationships](under-the-hood/data-model/relationships.md)
 - [Query interface](under-the-hood/queries/README.md)
+  - [Fields and projections](under-the-hood/queries/fields-projections.md)
   - [Filters](under-the-hood/queries/filters.md)
-  - [Projections](under-the-hood/queries/projections.md)
   - [Aggregations](under-the-hood/queries/aggregations.md)
 - [Security & Privacy](under-the-hood/security-privacy.md)
