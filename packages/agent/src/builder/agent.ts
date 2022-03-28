@@ -92,19 +92,20 @@ export default class AgentBuilder {
 
     /* eslint-disable no-multi-assign */
     last = this.compositeDatasource = new BaseDataSource<Collection>();
+
+    last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.earlyOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
+    last = this.jointure = new DataSourceDecorator(last, JointureCollectionDecorator);
     last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
-    last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
-    last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
-    last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
-    last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
-    last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
     last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
-    last = this.jointure = new DataSourceDecorator(last, JointureCollectionDecorator);
+    last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
+    last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
+    last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
+    last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
 
     /* eslint-enable no-multi-assign */
 
