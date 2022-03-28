@@ -783,7 +783,7 @@ describe('WriteDecorator', () => {
       });
     });
 
-    describe('create ', () => {
+    describe('create', () => {
       it('calls create on child collection with the result of the definition', async () => {
         // given
         const dataSource = factories.dataSource.buildWithCollection(
