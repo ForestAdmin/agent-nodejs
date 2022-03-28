@@ -68,7 +68,8 @@ export default class MyCollection extends BaseCollection {
 
   async count(filter) {
     const response = await axios.get(
-      `https://my-api/my-collection/count?filter=${this._translateFilter(filter)}`,
+      `https://my-api/my-collection/count`,
+      { params: { filter: this._translateFilter(filter) } }
     );
 
     return response.body.count;
