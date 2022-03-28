@@ -1,15 +1,3 @@
-<!-- - Declaring the API capabilities
-
-  - Can records be listed?
-    - Is the output filterable? On which fields? With which operators?
-    - Is the output sortable? On which fields?
-    - Do we need to fetch all fields on each request? Or can we query partial records?
-    - Can the underlying data source load relations?
-  - Can records be created?
-  - Can records be updated?
-  - Can records be deleted?
-  - Can records be aggregated? (for charts / counting) -->
-
 As a connector implementer, **you won't have to translate every possible query**: on most datasources, it is **not feasible**, as you will be restricted by the API that you will be translating forest admin filters to.
 
 On construction each of your collections will declare per-field capabilities.

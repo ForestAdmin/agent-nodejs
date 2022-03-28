@@ -30,8 +30,8 @@
     - [Understanding projections](connectors/custom/query-translation/projections.md)
     - [Understanding aggregations](connectors/custom/query-translation/aggregations.md)
     - [Capabilities declaration](connectors/custom/query-translation/capabilities.md)
-    - [Minimal implementation](connectors/custom/query-translation/minimal-implementation.md)
-    - [Translating queries](connectors/custom/query-translation/translating-queries.md)
+    - [Read implementation](connectors/custom/query-translation/read-only.md)
+    - [Write implementation](connectors/custom/query-translation/read-write.md)
   - [Implementing relationships](connectors/custom/relationships.md)
   - [Contribute](connectors/custom/contribute.md)
 
