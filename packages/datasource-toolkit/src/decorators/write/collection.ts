@@ -247,7 +247,7 @@ export default class WriteDecorator extends CollectionDecorator {
       for (const [columnName, value] of Object.entries(recordData)) {
         if (copyPatch[columnName]) {
           throw new ValidationError(
-            `Conflict value on the column "${columnName}". It receives several values.`,
+            `Conflict value on the field "${columnName}". It receives several values.`,
           );
         }
 

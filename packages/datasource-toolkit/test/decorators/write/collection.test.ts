@@ -7,6 +7,72 @@ import ValidationError from '../../../src/errors';
 import WriteDecorator from '../../../src/decorators/write/collection';
 
 describe('WriteDecorator', () => {
+  describe('when the a field has an handler', () => {
+    describe('when the field is updated', () => {
+      it('should provide an handler with a patch and a context', async () => {
+        // given
+        const dataSource = factories.dataSource.buildWithCollection(
+          factories.collection.build({
+            name: 'books',
+            schema: factories.collectionSchema.build({
+              fields: {
+                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              },
+            }),
+          }),
+        );
+        const collection = dataSource.getCollection('books');
+        collection.update = jest.fn().mockResolvedValue({ name: 'a name' });
+
+        const decoratedCollection = new WriteDecorator(collection, dataSource);
+        const handler = jest.fn().mockImplementation();
+        decoratedCollection.implement('name', handler);
+
+        // when
+        await decoratedCollection.update(new Filter({}), { name: 'a name' });
+
+        // then
+        expect(handler).toHaveBeenCalledWith('a name', {
+          dataSource,
+          action: 'update',
+          record: { name: 'a name' },
+        });
+      });
+    });
+
+    describe('when the field is created', () => {
+      it('should provide a definition with a patch and a context', async () => {
+        // given
+        const dataSource = factories.dataSource.buildWithCollection(
+          factories.collection.build({
+            name: 'books',
+            schema: factories.collectionSchema.build({
+              fields: {
+                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              },
+            }),
+          }),
+        );
+        const collection = dataSource.getCollection('books');
+        collection.create = jest.fn().mockResolvedValue([{ name: 'a name' }]);
+
+        const decoratedCollection = new WriteDecorator(collection, dataSource);
+        const handler = jest.fn().mockImplementation();
+        decoratedCollection.implement('name', handler);
+
+        // when
+        await decoratedCollection.create([{ name: 'a name' }]);
+
+        // then
+        expect(handler).toHaveBeenCalledWith('a name', {
+          dataSource,
+          action: 'create',
+          record: { name: 'a name' },
+        });
+      });
+    });
+  });
+
   describe('when there is a read only field', () => {
     it('should set as false a isReadOnly schema attribute', () => {
       // given
@@ -25,9 +91,9 @@ describe('WriteDecorator', () => {
       const collection = dataSource.getCollection('books');
 
       // when
-      const definition = jest.fn().mockImplementation();
+      const handler = jest.fn().mockImplementation();
       const decoratedCollection = new WriteDecorator(collection, dataSource);
-      decoratedCollection.implement('name', definition);
+      decoratedCollection.implement('name', handler);
 
       // then
       const name = decoratedCollection.schema.fields.name as ColumnSchema;
@@ -40,14 +106,14 @@ describe('WriteDecorator', () => {
       factories.collection.build({ name: 'books' }),
       factories.dataSource.build(),
     );
-    const definition = jest.fn().mockImplementation();
+    const handler = jest.fn().mockImplementation();
 
-    expect(() => decoratedCollection.implement('NOT EXIST', definition)).toThrowError(
+    expect(() => decoratedCollection.implement('NOT EXIST', handler)).toThrowError(
       'The given field "NOT EXIST" does not exist on the books collection.',
     );
   });
 
-  describe('definition(): void', () => {
+  describe('when handler returns nothing', () => {
     it('should trigger the definition function to update it', async () => {
       // given
       const dataSource = factories.dataSource.buildWithCollection(
@@ -66,21 +132,21 @@ describe('WriteDecorator', () => {
         factories.collection.build(collection),
         dataSource,
       );
-      const definition = jest.fn().mockImplementation();
-      decoratedCollection.implement('name', definition);
+      const handler = jest.fn().mockImplementation();
+      decoratedCollection.implement('name', handler);
 
       // when
       await decoratedCollection.update(factories.filter.build(), { name: 'orius' });
 
       // then
-      expect(definition).toHaveBeenCalledWith('orius', {
+      expect(handler).toHaveBeenCalledWith('orius', {
         dataSource,
         action: 'update',
         record: { name: 'orius' },
       });
     });
 
-    it('updates child collection without the triggered definition column', async () => {
+    it('updates child collection without the triggered definition field', async () => {
       // given
       const dataSource = factories.dataSource.buildWithCollection(
         factories.collection.build({
@@ -94,22 +160,22 @@ describe('WriteDecorator', () => {
       );
       const collection = dataSource.getCollection('books');
       const decoratedCollection = new WriteDecorator(collection, dataSource);
-      const definition = jest.fn().mockImplementation();
-      decoratedCollection.implement('name', definition);
+      const handler = jest.fn().mockImplementation();
+      decoratedCollection.implement('name', handler);
 
       // when
       await decoratedCollection.update(factories.filter.build(), {
         name: 'jean',
-        otherColumn: 'aValue',
+        otherField: 'aValue',
       });
 
       // then
       expect(collection.update).toHaveBeenCalledWith(expect.any(PaginatedFilter), {
-        otherColumn: 'aValue',
+        otherField: 'aValue',
       });
     });
 
-    describe('when many columns have a definition', () => {
+    describe('when many fields have a definition', () => {
       it('should trigger all the definition function to update it', async () => {
         // given
         const dataSource = factories.dataSource.buildWithCollection(
@@ -190,7 +256,7 @@ describe('WriteDecorator', () => {
         );
       });
 
-      it('updates child collection without the columns where there ars definitions', async () => {
+      it('updates child collection without the triggered fields', async () => {
         // given
         const dataSource = factories.dataSource.buildWithCollection(
           factories.collection.build({
@@ -217,12 +283,12 @@ describe('WriteDecorator', () => {
         });
 
         // then
-        expect(collection.update).toHaveBeenCalledWith(expect.any(PaginatedFilter), {});
+        expect(collection.update).toHaveBeenCalledWith(expect.any(Filter), {});
       });
     });
   });
 
-  describe('definition(): patch', () => {
+  describe('when handler returns a patch', () => {
     const setupWithManyToOneRelation = () => {
       const prices = factories.collection.build({
         name: 'prices',
@@ -299,36 +365,6 @@ describe('WriteDecorator', () => {
     };
 
     describe('update', () => {
-      it('should provide a definition method with a patch and a context', async () => {
-        // given
-        const dataSource = factories.dataSource.buildWithCollection(
-          factories.collection.build({
-            name: 'books',
-            schema: factories.collectionSchema.build({
-              fields: {
-                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-              },
-            }),
-          }),
-        );
-        const collection = dataSource.getCollection('books');
-        collection.update = jest.fn().mockResolvedValue({ name: 'a name' });
-
-        const decoratedCollection = new WriteDecorator(collection, dataSource);
-        const definition = jest.fn().mockImplementation();
-        decoratedCollection.implement('name', definition);
-
-        // when
-        await decoratedCollection.update(new Filter({}), { name: 'a name' });
-
-        // then
-        expect(definition).toHaveBeenCalledWith('a name', {
-          dataSource,
-          action: 'update',
-          record: { name: 'a name' },
-        });
-      });
-
       it('updates child collection with the result of the definition', async () => {
         // given
         const dataSource = factories.dataSource.buildWithCollection(
@@ -350,13 +386,13 @@ describe('WriteDecorator', () => {
         // when
         await decoratedCollection.update(factories.filter.build(), {
           name: 'orius',
-          otherColumn: 'a value',
+          otherField: 'a value',
         });
 
         // then
         expect(collection.update).toHaveBeenCalledWith(expect.any(PaginatedFilter), {
           name: 'changed name',
-          otherColumn: 'a value',
+          otherField: 'a value',
         });
       });
 
@@ -389,7 +425,7 @@ describe('WriteDecorator', () => {
       });
 
       describe('when the definition returns a relation value', () => {
-        describe('when it returns a unknown relation', () => {
+        describe('when it returns an unknown relation', () => {
           it('should throw an error', async () => {
             // given
             const dataSource = factories.dataSource.buildWithCollection(
@@ -580,7 +616,7 @@ describe('WriteDecorator', () => {
           });
         });
 
-        describe('when many columns have a write definition', () => {
+        describe('when the definition returns a relation value', () => {
           it('updates child collection with the definition results', async () => {
             // given
             const dataSource = factories.dataSource.buildWithCollection(
@@ -616,7 +652,7 @@ describe('WriteDecorator', () => {
           });
         });
 
-        describe('when the definition returns a column value with a write definition', () => {
+        describe('when the handler returns a field value with an other handler', () => {
           it('should trigger the targeted definition', async () => {
             // given
             const dataSource = factories.dataSource.buildWithCollection(
@@ -647,7 +683,7 @@ describe('WriteDecorator', () => {
             });
           });
 
-          it('should trigger as long as there is definition targeted', async () => {
+          it('should trigger as long as there is definition handler targeted', async () => {
             // given
             const dataSource = factories.dataSource.buildWithCollection(
               factories.collection.build({
@@ -709,7 +745,7 @@ describe('WriteDecorator', () => {
               }),
             ).rejects.toThrow(
               new ValidationError(
-                'Conflict value on the column "name". It receives several values.',
+                'Conflict value on the field "name". It receives several values.',
               ),
             );
           });
@@ -749,36 +785,6 @@ describe('WriteDecorator', () => {
     });
 
     describe('create ', () => {
-      it('should provide a definition with a patch and a context', async () => {
-        // given
-        const dataSource = factories.dataSource.buildWithCollection(
-          factories.collection.build({
-            name: 'books',
-            schema: factories.collectionSchema.build({
-              fields: {
-                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-              },
-            }),
-          }),
-        );
-        const collection = dataSource.getCollection('books');
-        collection.create = jest.fn().mockResolvedValue([{ name: 'a name' }]);
-
-        const decoratedCollection = new WriteDecorator(collection, dataSource);
-        const definition = jest.fn().mockImplementation();
-        decoratedCollection.implement('name', definition);
-
-        // when
-        await decoratedCollection.create([{ name: 'a name' }]);
-
-        // then
-        expect(definition).toHaveBeenCalledWith('a name', {
-          dataSource,
-          action: 'create',
-          record: { name: 'a name' },
-        });
-      });
-
       it('calls create on child collection with the result of the definition', async () => {
         // given
         const dataSource = factories.dataSource.buildWithCollection(
@@ -800,27 +806,27 @@ describe('WriteDecorator', () => {
         collection.create = jest.fn().mockResolvedValue([
           {
             name: 'changed name',
-            otherColumn: 'other value',
+            otherField: 'other value',
           },
         ]);
 
         // when
         await decoratedCollection.create([
-          { name: 'orius', otherColumn: 'other value' },
-          { name: 'orius', otherColumn: 'other value' },
+          { name: 'orius', otherField: 'other value 1' },
+          { name: 'orius', otherField: 'other value 2' },
         ]);
 
         // then
         expect(collection.create).toHaveBeenNthCalledWith(1, [
           {
             name: 'changed name',
-            otherColumn: 'other value',
+            otherField: 'other value 1',
           },
         ]);
         expect(collection.create).toHaveBeenNthCalledWith(2, [
           {
             name: 'changed name',
-            otherColumn: 'other value',
+            otherField: 'other value 2',
           },
         ]);
       });
