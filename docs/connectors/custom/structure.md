@@ -62,38 +62,49 @@ The primitive types which are supported by Forest Admin are the following:
 ### Composite types
 
 {% hint style="info" %}
-Fields using composite types are not filterable, sortable and do not implement validation.
+
+- Fields using composite types are not sortable and do not implement validation
+- Only fields which are an array of a primitive type are filterable (depending on connector)
+
 {% endhint %}
 
 ```javascript
 // Object containing two strings
-{
-  firstName: PrimitiveType.String,
-  lastName: PrimitiveType.String
-}
+{ firstName: PrimitiveType.String, lastName: PrimitiveType.String }
 
 // Array of strings
 [PrimitiveType.String]
 
 // Array of objects
-[
-  { content: PrimitiveType.String }
-]
+[{ content: PrimitiveType.String }]
 
 // Object containing an array of array of numbers
-{
-  content: [[PrimitiveType.Number]]
-}
+{ content: [[PrimitiveType.Number]] }
 ```
 
-When using composite types, the widgets in the UI will vary
+When using composite types, the data in the UI may not be displayed as you expect!
 
-| Composite Type | How it gets displayed |
-| -------------- | --------------------- |
-|                |                       |
+| Composite Type                        | Example                                       | How it gets displayed                    |
+| ------------------------------------- | --------------------------------------------- | ---------------------------------------- |
+| array of primitive type               | [ 'array', 'of', 'strings']                   | As a custom widget in the edition form   |
+| object                                | { title: "the godfather"}                     | As a nested form in the edition form     |
+| array of object                       | [{ title: "the shawshank redemption"}]        | As a new collection in related data page |
+| array of object (with nested objects) | [{ rating: { kind: 'MPA", value: "PG-13" } }] | JSON editor in the edition form          |
+| anything else                         |                                               | JSON editor in the edition form          |
 
 ## Validation
 
 When using primitive type fields, Forest Admin supports declaring a validation clause, which will be imported into the UI of the admin panel to validate records before creating / updating them.
 
 The API for validation is the same than with [condition trees](../custom/query-translation/filters.md#condition-trees), besides the fact than the
+
+```json
+{
+  "aggregator": "and",
+  "conditions": [
+    { "operator": "present" }
+    { "operator": "like", "value": "found%" },
+    { "not": { "operator": "today" } },
+  ]
+}
+```
