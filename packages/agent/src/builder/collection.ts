@@ -214,6 +214,8 @@ export default class CollectionBuilder {
     this.agentBuilder.segment
       .getCollection(this.name)
       .registerSegment(name, conditionTreeGenerator);
+
+    return this;
   }
 
   /**
