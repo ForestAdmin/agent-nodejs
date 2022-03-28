@@ -97,7 +97,7 @@ If you want to force displaying your data as a new collection in the related dat
 
 When using primitive type fields, Forest Admin supports declaring a validation clause, which will be imported into the UI of the admin panel to validate records before creating / updating them.
 
-The API for validation is the same than with [condition trees](../custom/query-translation/filters.md#condition-trees), besides the fact than the
+The API for validation is the same than with [condition trees](../custom/query-translation/filters.md#condition-trees), besides the fact than their is no `"field"` entry.
 
 ```json
 {
