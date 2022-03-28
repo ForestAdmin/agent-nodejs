@@ -16,7 +16,7 @@ When creating a custom connector two routes can be taken:
 | ---------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | Recommended for  | SaaS and APIs                                                                                | Databases or APIs with advanced query capabilities                                |
 | How does it work | All data is cached locally for read operations, write operations are forwarded to the target | The connector translates all forest admin queries to the target API on real time. |
-| Preconditions    | Low: Target API can sort records by last modification                                        | High: Target API is capable of expressing filters, aggregating data, ...          |
+| Preconditions    | Low: Target API can either sort or filter by last modification                               | High: Target API is capable of expressing filters, aggregating data, ...          |
 | Pros             | Easy to implement and fast (uses sqlite under the hood)                                      | No disk usage and no limits on quantity of data                                   |
 | Cons             | Slower agent start, Disk Usage, Quantity of data may be too large                            | More difficult to implement, and can be slow depending on target                  |
 
@@ -69,41 +69,24 @@ class MyCollection extends LocallyCachedCollection {
    * You are free to tune this generator as you see fit, depending on the capabilities and
    * performance of the API that you are targeting.
    *
-   * In this example, the target API does not supports filters at all, but does support setting
-   * sorting, skip and limit clauses.
-   * For the sake of simplicity, we are assuming that no records get created while we're fetching
-   * changes.
+   * It should yield records updated since `lastThreshold` in any order, and return the new
+   * threshold
    */
   async *loadLastModified(lastThreshold) {
-    let skip = 0;
-    let limit = 1; // we'll increase this on subsequent calls
-    let nextThreshold = lastThreshold; // null on first agent start
+    const response = await axios.get(`https://myapi/resources/my-collection`, {
+      params: { filter: `updatedAt > '${lastThreshold}'` },
+    });
+    const records = response.body.items;
 
-    while (true) {
-      // Load batch of records from targeted data source
-      const response = await axios.get(`https://myapi/resources/my-collection`, {
-        params: { sort: '-updatedAt', skip, limit },
-      });
-      const records = response.body.items;
+    // yield records
+    yield records;
 
-      // Save the threshold that should be used for the next call
-      if (records.length && (nextThreshold === null || nextThreshold < records[0].updatedAt)) {
-        nextThreshold = records[0].updatedAt;
-      }
-
-      // Do we have all modified records?
-      const index = records.findIndex(record => record.updatedAt < lastThreshold);
-      if (index === -1) {
-        // We don't have all modified records (yet).
-        yield records; // send everything we have to forest admin
-        skip += records.length; // update skip to make sure we don't fetch the same records in a loop
-        limit = Math.min(2000, limit * 2); // make limit larger
-      } else {
-        // We are done!
-        yield records.slice(0, index); // send only modified records to forest admin
-        return nextThreshold; // set parameter that will be provided for the next call
-      }
-    }
+    // Compute threshold for next call
+    return records.reduce(
+      (threshold, record) =>
+        threshold && threshold > record.updatedAt ? threshold : record.updatedAt,
+      lastThreshold,
+    );
   }
 }
 ```

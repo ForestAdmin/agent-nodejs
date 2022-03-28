@@ -15,8 +15,9 @@ export default class MyCollection extends BaseCollection {
   }
 
   async list(filter, projection) {
-    // Fetch all records on all requests.
-    let result = await this._getRecords();
+    // Fetch all records on all requests (this is _very_ inefficient)
+    const response = await axios.get('https://my-api/my-collection');
+    const records = response.body.items;
 
     // Use "in-process emulation" for everything else.
     if (filter.conditionTree) result = filter.conditionTree.apply(result, this, filter.timezone);
@@ -37,9 +38,43 @@ export default class MyCollection extends BaseCollection {
     return limit ? rows.slice(0, limit) : rows;
   }
 
-  _getRecords() {
-    const response = await axios.get('https://myapi/all-records');
-    return response.body.items;
+  async create(records) {
+    // Create records on target api
+    const promises = records.map(async record => {
+      const response = await axios.post('https://my-api/my-collection', record);
+      return response.body;
+    });
+
+    // Return newly created records
+    return Promise.all(promises);
+  }
+
+  async update(filter: Filter, patch: RecordData) {
+    // Fetch id of records which should be updated
+    const records = await this.list(filter, ['id']);
+
+    // Update records
+    await Promise.all(
+      records.map(async ({ id }) => {
+        await axios.patch(`https://my-api/my-collection/${id}`, patch);
+      }),
+    );
+
+    // Returns void
+  }
+
+  async delete(filter: Filter) {
+    // Fetch id of records which should be deleted
+    const records = await this.list(filter, ['id']);
+
+    // Delete records
+    await Promise.all(
+      records.map(async ({ id }) => {
+        await axios.delete(`https://my-api/my-collection/${id}`);
+      }),
+    );
+
+    // Returns void
   }
 }
 ```

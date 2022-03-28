@@ -121,8 +121,6 @@ You may have noticed that many operators overlap. In order to make connectors qu
 
 What that means, is that when an operator can be expressed using a combination of other operators, forest admin will perform the substitution automatically using the following table.
 
-Among all operators, the following tables shows those which have equivalence rules.
-
 | Operator                 | Types         | Automatic replacement                                                |
 | ------------------------ | ------------- | -------------------------------------------------------------------- |
 | present                  | All           | not_equal null and not_equal ''                                      |
