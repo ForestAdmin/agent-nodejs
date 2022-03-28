@@ -10,7 +10,7 @@ That interface is only there to abstract away differences between backends so th
 
 # Getting started
 
-When creating a custom connector two routes can be taken:
+When creating a custom connector two strategies can be used:
 
 | -                | Using a local cache                                                                          | Implement query translation                                                       |
 | ---------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -53,9 +53,12 @@ class MyCollection extends LocallyCachedCollection {
 
     // Add fields
     this.addField('id', {
-      // As we are using a local cache, we only need to specify structure, not capabilities
+      // Structure
       columnType: PrimitiveType.Number,
       isPrimaryKey: true,
+
+      // Capabilities (no need for filterOperators or isSortable in the local-cache strategy)
+      isReadOnly: true,
     });
 
     this.addField('title', {
@@ -104,7 +107,7 @@ class MyCollection extends BaseCollection {
       columnType: PrimitiveType.Number,
       isPrimaryKey: true,
 
-      // Capabilities (tell forest admin to which extend complex filters can be used).
+      // Capabilities
       isReadOnly: true, // field is readonly
       filterOperators: new Set(), // field is not filterable
       isSortable: false, // field is not sortable
