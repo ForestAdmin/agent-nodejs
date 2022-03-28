@@ -87,29 +87,23 @@ export default class WriteDecorator extends CollectionDecorator {
     const refinedPatch = { ...patch };
     const manyToOneRelations = this.getRelationFields(patch, [FieldTypes.ManyToOne]);
 
-    if (manyToOneRecords.length > 0) {
-      for (const [record] of manyToOneRecords) {
-        const relationName = manyToOneRelations.shift();
-        const relationSchema = this.schema.fields[relationName] as ManyToOneSchema;
+    for (const [record] of manyToOneRecords) {
+      const relationName = manyToOneRelations.shift();
+      const relationSchema = this.schema.fields[relationName] as ManyToOneSchema;
 
-        delete refinedPatch[relationName];
+      delete refinedPatch[relationName];
 
-        const relation = this.dataSource.getCollection(relationSchema.foreignCollection);
-        const [pk] = SchemaUtils.getPrimaryKeys(relation.schema);
-        refinedPatch[relationSchema.foreignKey] = record[pk];
-      }
+      const relation = this.dataSource.getCollection(relationSchema.foreignCollection);
+      const [pk] = SchemaUtils.getPrimaryKeys(relation.schema);
+      refinedPatch[relationSchema.foreignKey] = record[pk];
     }
 
-    const oneToOneRelations = this.getRelationFields(patch, [FieldTypes.OneToOne]);
+    for (const relationName of this.getRelationFields(patch, [FieldTypes.OneToOne])) {
+      const relationSchema = this.schema.fields[relationName] as OneToOneSchema;
 
-    if (oneToOneRelations.length > 0) {
-      for (const relationName of oneToOneRelations) {
-        const relationSchema = this.schema.fields[relationName] as OneToOneSchema;
+      delete refinedPatch[relationName];
 
-        delete refinedPatch[relationName];
-
-        if (patch[relationSchema.originKey]) delete refinedPatch[relationSchema.originKey];
-      }
+      if (patch[relationSchema.originKey]) delete refinedPatch[relationSchema.originKey];
     }
 
     const result = await this.childCollection.create([refinedPatch]);
