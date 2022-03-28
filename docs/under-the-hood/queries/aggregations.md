@@ -29,7 +29,7 @@ Equivalent in SQL : `SELECT AVG(rating) FROM books`
 ### Average rating by author
 
 ```json
-{ "operation": "Average", "field": "rating", "groups": [{ "field": "authorName" }] }
+{ "operation": "Average", "field": "rating", "groups": [{ "field": "author:name" }] }
 ```
 
 Equivalent in SQL : `SELECT authorName, AVG(rating) FROM books GROUP BY 1`
