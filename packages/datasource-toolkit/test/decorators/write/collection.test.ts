@@ -7,8 +7,6 @@ import ValidationError from '../../../src/errors';
 import WriteDecorator from '../../../src/decorators/write/collection';
 
 describe('WriteDecorator', () => {
-  const definition = jest.fn().mockImplementation();
-
   describe('when there is a read only field', () => {
     it('should set as false a isReadOnly schema attribute', () => {
       // given
@@ -27,6 +25,7 @@ describe('WriteDecorator', () => {
       const collection = dataSource.getCollection('books');
 
       // when
+      const definition = jest.fn().mockImplementation();
       const decoratedCollection = new WriteDecorator(collection, dataSource);
       decoratedCollection.implement('name', definition);
 
@@ -41,6 +40,7 @@ describe('WriteDecorator', () => {
       factories.collection.build({ name: 'books' }),
       factories.dataSource.build(),
     );
+    const definition = jest.fn().mockImplementation();
 
     expect(() => decoratedCollection.implement('NOT EXIST', definition)).toThrowError(
       'The given field "NOT EXIST" does not exist on the books collection.',
@@ -49,6 +49,7 @@ describe('WriteDecorator', () => {
 
   describe('definition(): void', () => {
     it('should trigger the definition function to update it', async () => {
+      // given
       const dataSource = factories.dataSource.buildWithCollection(
         factories.collection.build({
           name: 'books',
@@ -65,10 +66,13 @@ describe('WriteDecorator', () => {
         factories.collection.build(collection),
         dataSource,
       );
+      const definition = jest.fn().mockImplementation();
       decoratedCollection.implement('name', definition);
 
+      // when
       await decoratedCollection.update(factories.filter.build(), { name: 'orius' });
 
+      // then
       expect(definition).toHaveBeenCalledWith('orius', {
         dataSource,
         action: 'update',
@@ -90,6 +94,7 @@ describe('WriteDecorator', () => {
       );
       const collection = dataSource.getCollection('books');
       const decoratedCollection = new WriteDecorator(collection, dataSource);
+      const definition = jest.fn().mockImplementation();
       decoratedCollection.implement('name', definition);
 
       // when
@@ -310,6 +315,7 @@ describe('WriteDecorator', () => {
         collection.update = jest.fn().mockResolvedValue({ name: 'a name' });
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
+        const definition = jest.fn().mockImplementation();
         decoratedCollection.implement('name', definition);
 
         // when
@@ -759,6 +765,7 @@ describe('WriteDecorator', () => {
         collection.create = jest.fn().mockResolvedValue([{ name: 'a name' }]);
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
+        const definition = jest.fn().mockImplementation();
         decoratedCollection.implement('name', definition);
 
         // when
