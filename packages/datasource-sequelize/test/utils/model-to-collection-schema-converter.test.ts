@@ -128,6 +128,13 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             ],
             type: FieldTypes.Column,
           },
+          myEnum: {
+            columnType: PrimitiveTypes.Enum,
+            filterOperators: TypeConverter.operatorsForDataType(DataTypes.ENUM),
+            enumValues: ['enum1', 'enum2', 'enum3'],
+            validation: [],
+            type: FieldTypes.Column,
+          },
         },
         searchable: false,
         segments: [],
@@ -151,6 +158,9 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           myRequired: {
             type: DataTypes.UUID,
             allowNull: false,
+          },
+          myEnum: {
+            type: DataTypes.ENUM('enum1', 'enum2', 'enum3'),
           },
         },
         { timestamps: true },
