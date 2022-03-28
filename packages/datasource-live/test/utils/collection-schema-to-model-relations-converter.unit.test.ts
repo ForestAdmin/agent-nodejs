@@ -87,12 +87,12 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
 
           schema.fields.a = {
             foreignCollection: '__collection__',
-            foreignKey: '__key__',
-            otherField: '__other_field__',
-            throughCollection: '__through__collection__',
+            foreignKey: '__fk__',
+            originKey: '__origin__',
+            foreignKeyTarget: '__fk_target__',
+            originKeyTarget: '__origin_target__',
+            throughCollection: '__through_collection__',
             type: FieldTypes.ManyToMany,
-            originRelation: '__key_NOT_USED__',
-            targetRelation: '__key_NOT_USED__',
           };
 
           const relations = CollectionSchemaToModelRelationsConverter.convert(
@@ -101,37 +101,29 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
             sequelize,
           );
 
-          expect(relations).toBeArrayOfSize(2);
+          expect(relations).toBeArrayOfSize(1);
           expect(relations[0]).toBe(belongsToManyRelation);
-          expect(relations[1]).toBe(belongsToManyRelation);
           expect(sequelize.model).toHaveBeenCalledTimes(2);
-          expect(belongsToMany).toHaveBeenCalledTimes(2);
+          expect(belongsToMany).toHaveBeenCalledTimes(1);
           expect(belongsToMany).toHaveBeenNthCalledWith(1, model, {
-            otherKey: schema.fields.a.otherField,
-            through: schema.fields.a.throughCollection,
-          });
-          expect(belongsToMany).toHaveBeenNthCalledWith(2, model, {
-            foreignKey: schema.fields.a.foreignKey,
-            through: schema.fields.a.throughCollection,
+            as: 'a',
+            through: '__through_collection__',
+            foreignKey: '__origin__',
+            targetKey: '__origin_target__',
+            otherKey: '__fk__',
+            sourceKey: '__fk_target__',
           });
         });
       });
 
       describe('with ManyToOne fields', () => {
         it('should generate a reference', () => {
-          const {
-            belongsTo,
-            belongsToRelation,
-            hasMany,
-            hasManyRelation,
-            model,
-            schema,
-            sequelize,
-          } = setup();
+          const { belongsTo, belongsToRelation, model, schema, sequelize } = setup();
 
           schema.fields.a = {
             foreignCollection: '__collection__',
             foreignKey: '__key__',
+            foreignKeyTarget: '__target__',
             type: FieldTypes.ManyToOne,
           };
 
@@ -141,32 +133,27 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
             sequelize,
           );
 
-          expect(relations).toBeArrayOfSize(2);
+          expect(relations).toBeArrayOfSize(1);
           expect(relations[0]).toBe(belongsToRelation);
-          expect(relations[1]).toBe(hasManyRelation);
           expect(sequelize.model).toHaveBeenCalledTimes(2);
           expect(belongsTo).toHaveBeenCalledTimes(1);
-          expect(belongsTo).toHaveBeenCalledWith(model, { targetKey: schema.fields.a.foreignKey });
-          expect(hasMany).toHaveBeenCalledTimes(1);
-          expect(hasMany).toHaveBeenCalledWith(model);
+          expect(belongsTo).toHaveBeenCalledWith(model, {
+            as: 'a',
+            foreignKey: schema.fields.a.foreignKey,
+            targetKey: schema.fields.a.foreignKeyTarget,
+          });
         });
       });
 
       describe('with OneToMany fields', () => {
         it('should generate a reference', () => {
-          const {
-            belongsTo,
-            belongsToRelation,
-            hasMany,
-            hasManyRelation,
-            model,
-            schema,
-            sequelize,
-          } = setup();
+          const { hasMany, hasManyRelation, model, schema, sequelize } = setup();
 
           schema.fields.a = {
             foreignCollection: '__collection__',
-            foreignKey: '__key__',
+            originKey: '__key__',
+            originKeyTarget: '__target__',
+
             type: FieldTypes.OneToMany,
           };
 
@@ -176,25 +163,26 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
             sequelize,
           );
 
-          expect(relations).toBeArrayOfSize(2);
+          expect(relations).toBeArrayOfSize(1);
           expect(relations[0]).toBe(hasManyRelation);
-          expect(relations[1]).toBe(belongsToRelation);
           expect(sequelize.model).toHaveBeenCalledTimes(2);
-          expect(belongsTo).toHaveBeenCalledTimes(1);
-          expect(belongsTo).toHaveBeenCalledWith(model);
           expect(hasMany).toHaveBeenCalledTimes(1);
-          expect(hasMany).toHaveBeenCalledWith(model, { foreignKey: schema.fields.a.foreignKey });
+          expect(hasMany).toHaveBeenCalledWith(model, {
+            as: 'a',
+            foreignKey: '__key__',
+            sourceKey: '__target__',
+          });
         });
       });
 
       describe('with OneToOne fields', () => {
         it('should generate a reference', () => {
-          const { belongsTo, belongsToRelation, hasOne, hasOneRelation, model, schema, sequelize } =
-            setup();
+          const { hasOne, hasOneRelation, model, schema, sequelize } = setup();
 
           schema.fields.a = {
             foreignCollection: '__collection__',
-            foreignKey: '__key__',
+            originKey: '__key__',
+            originKeyTarget: '__target__',
             type: FieldTypes.OneToOne,
           };
 
@@ -204,14 +192,15 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
             sequelize,
           );
 
-          expect(relations).toBeArrayOfSize(2);
+          expect(relations).toBeArrayOfSize(1);
           expect(relations[0]).toBe(hasOneRelation);
-          expect(relations[1]).toBe(belongsToRelation);
           expect(sequelize.model).toHaveBeenCalledTimes(2);
-          expect(belongsTo).toHaveBeenCalledTimes(1);
-          expect(belongsTo).toHaveBeenCalledWith(model);
           expect(hasOne).toHaveBeenCalledTimes(1);
-          expect(hasOne).toHaveBeenCalledWith(model, { foreignKey: schema.fields.a.foreignKey });
+          expect(hasOne).toHaveBeenCalledWith(model, {
+            as: 'a',
+            foreignKey: '__key__',
+            sourceKey: '__target__',
+          });
         });
       });
     });

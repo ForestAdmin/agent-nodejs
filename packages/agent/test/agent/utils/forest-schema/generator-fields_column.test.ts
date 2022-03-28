@@ -36,7 +36,7 @@ describe('SchemaGeneratorFields > Column', () => {
 
             validation: [{ operator: Operator.Present }],
           }),
-          otherField: factories.columnSchema.build({
+          originKey: factories.columnSchema.build({
             columnType: PrimitiveTypes.Number,
             filterOperators: new Set(),
             isPrimaryKey: false,
@@ -64,10 +64,10 @@ describe('SchemaGeneratorFields > Column', () => {
     });
 
     test('is should generate the proper schema for the other field', () => {
-      const schema = SchemaGeneratorFields.buildSchema(collection, 'otherField');
+      const schema = SchemaGeneratorFields.buildSchema(collection, 'originKey');
 
       expect(schema).toMatchObject({
-        field: 'otherField',
+        field: 'originKey',
         isFilterable: false,
         isPrimaryKey: false,
         isReadOnly: false,

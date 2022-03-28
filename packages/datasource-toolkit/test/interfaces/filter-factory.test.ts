@@ -2,11 +2,74 @@ import { DateTime, DateTimeUnit } from 'luxon';
 
 import * as factories from '../__factories__';
 import { Aggregator } from '../../src/interfaces/query/condition-tree/nodes/branch';
-import { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import { PrimitiveTypes } from '../../src/interfaces/schema';
+import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import Filter from '../../src/interfaces/query/filter/unpaginated';
 import FilterFactory from '../../src/interfaces/query/filter/factory';
 
 const TEST_TIMEZONE = 'Europe/Dublin';
 const TEST_DATE = '2022-02-16T10:00:00.000Z';
+
+function setup() {
+  return factories.dataSource.buildWithCollections([
+    factories.collection.build({
+      name: 'books',
+      schema: {
+        fields: {
+          id: factories.columnSchema.build({
+            isPrimaryKey: true,
+            columnType: PrimitiveTypes.Number,
+          }),
+          reviews: factories.manyToManySchema.build({
+            foreignCollection: 'reviews',
+            originKey: 'bookId',
+            originKeyTarget: 'id',
+            foreignKey: 'reviewId',
+            foreignKeyTarget: 'id',
+            throughCollection: 'bookReview',
+            foreignRelation: 'review',
+          }),
+          bookReviews: factories.oneToManySchema.build({
+            foreignCollection: 'reviews',
+            originKey: 'bookId',
+            originKeyTarget: 'id',
+          }),
+        },
+      },
+    }),
+    factories.collection.build({
+      name: 'reviews',
+      schema: {
+        fields: {
+          id: factories.columnSchema.build({
+            isPrimaryKey: true,
+            columnType: PrimitiveTypes.Number,
+          }),
+        },
+      },
+    }),
+    factories.collection.build({
+      name: 'bookReview',
+      schema: {
+        fields: {
+          bookId: factories.columnSchema.build({
+            isPrimaryKey: true,
+            columnType: PrimitiveTypes.Number,
+          }),
+          reviewId: factories.columnSchema.build({
+            isPrimaryKey: true,
+            columnType: PrimitiveTypes.Number,
+          }),
+          review: factories.manyToOneSchema.build({
+            foreignCollection: 'reviews',
+            foreignKey: 'reviewId',
+            foreignKeyTarget: 'id',
+          }),
+        },
+      },
+    }),
+  ]);
+}
 
 describe('FilterFactory', () => {
   describe('getPreviousPeriodFilter', () => {
@@ -143,6 +206,100 @@ describe('FilterFactory', () => {
         });
 
         jest.clearAllMocks();
+      });
+    });
+  });
+
+  describe('makeThroughFilter', () => {
+    test('should nest the provided filter [many to many]', async () => {
+      const dataSource = setup();
+      const [books] = dataSource.collections;
+      const baseFilter = new Filter({
+        conditionTree: new ConditionTreeLeaf('someField', Operator.Equal, 1),
+      });
+      const filter = await FilterFactory.makeThroughFilter(books, [1], 'reviews', baseFilter);
+
+      expect(filter).toEqual({
+        conditionTree: {
+          aggregator: 'and',
+          conditions: [
+            { field: 'bookId', operator: 'equal', value: 1 },
+            { field: 'review:someField', operator: 'equal', value: 1 },
+          ],
+        },
+      });
+    });
+
+    test('should make two queries [many to many]', async () => {
+      const dataSource = setup();
+      const [books, reviews, bookReviews] = dataSource.collections;
+      // first query to list the linked records
+      (bookReviews.list as jest.Mock).mockResolvedValue([{ id: 123 }, { id: 124 }]);
+
+      // second query to restrict the segment
+      (reviews.list as jest.Mock).mockResolvedValue([{ id: 123 }]);
+
+      const baseFilter = new Filter({
+        conditionTree: new ConditionTreeLeaf('someField', Operator.Equal, 1),
+        segment: 'someSegment',
+      });
+
+      const filter = await FilterFactory.makeThroughFilter(books, [1], 'reviews', baseFilter);
+
+      expect(filter).toEqual({
+        conditionTree: {
+          aggregator: 'and',
+          conditions: [
+            { field: 'bookId', operator: 'equal', value: 1 },
+            { field: 'reviewId', operator: 'in', value: [123] },
+          ],
+        },
+      });
+    });
+  });
+
+  describe('makeForeignFilter', () => {
+    test('should add the fk condition [one to many]', async () => {
+      const dataSource = setup();
+      const [books] = dataSource.collections;
+      const baseFilter = new Filter({
+        conditionTree: new ConditionTreeLeaf('someField', Operator.Equal, 1),
+        segment: 'some-segment',
+      });
+      const filter = await FilterFactory.makeForeignFilter(books, [1], 'bookReviews', baseFilter);
+
+      expect(filter).toEqual({
+        conditionTree: {
+          aggregator: 'and',
+          conditions: [
+            { field: 'someField', operator: 'equal', value: 1 },
+            { field: 'bookId', operator: 'equal', value: 1 },
+          ],
+        },
+        segment: 'some-segment',
+      });
+    });
+
+    test('should query the through collection [many to many]', async () => {
+      const dataSource = setup();
+      const [books, , bookReviews] = dataSource.collections;
+      (bookReviews.list as jest.Mock).mockResolvedValue([{ reviewId: 123 }, { reviewId: 124 }]);
+
+      const baseFilter = new Filter({
+        conditionTree: new ConditionTreeLeaf('someField', Operator.Equal, 1),
+        segment: 'some-segment',
+      });
+      const filter = await FilterFactory.makeForeignFilter(books, [1], 'reviews', baseFilter);
+
+      expect(filter).toEqual({
+        conditionTree: {
+          aggregator: 'and',
+          conditions: [
+            { field: 'someField', operator: 'equal', value: 1 },
+            { field: 'id', operator: 'in', value: [123, 124] },
+          ],
+        },
+        segment: 'some-segment',
       });
     });
   });

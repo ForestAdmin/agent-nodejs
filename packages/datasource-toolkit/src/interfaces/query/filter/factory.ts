@@ -1,9 +1,16 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
+import { Collection } from '../../collection';
+import { CompositeId } from '../../record';
+import { FieldTypes, ManyToManySchema } from '../../schema';
+import CollectionUtils from '../../../utils/collection';
 import ConditionTree from '../condition-tree/nodes/base';
 import ConditionTreeFactory from '../condition-tree/factory';
 import ConditionTreeLeaf, { Operator } from '../condition-tree/nodes/leaf';
 import Filter from './unpaginated';
+import PaginatedFilter from './paginated';
+import Projection from '../projection';
+import SchemaUtils from '../../../utils/schema';
 
 export default class FilterFactory {
   private static getPreviousConditionTree(
@@ -78,6 +85,96 @@ export default class FilterFactory {
             return leaf;
         }
       }),
+    });
+  }
+
+  /**
+   * Make a filter targeting the through collection of a many to many relationship from the relation
+   * and a filter to the target collection.
+   */
+  static async makeThroughFilter(
+    collection: Collection,
+    id: CompositeId,
+    relationName: string,
+    baseForeignFilter: PaginatedFilter,
+  ): Promise<PaginatedFilter> {
+    const relation = collection.schema.fields[relationName] as ManyToManySchema;
+    const originValue = await CollectionUtils.getValue(collection, id, relation.originKeyTarget);
+
+    // Optimization for many to many when there is not search/segment (saves one query)
+    if (relation.foreignRelation && baseForeignFilter.isNestable) {
+      const baseThroughFilter = baseForeignFilter.nest(relation.foreignRelation);
+
+      return baseThroughFilter.override({
+        conditionTree: ConditionTreeFactory.intersect(
+          new ConditionTreeLeaf(relation.originKey, Operator.Equal, originValue),
+          baseThroughFilter.conditionTree,
+        ),
+      });
+    }
+
+    // Otherwise we have no choice but to call the target collection so that search and segment
+    // are correctly apply, and then match ids in the though collection.
+    const target = collection.dataSource.getCollection(relation.foreignCollection);
+    const records = await target.list(
+      await FilterFactory.makeForeignFilter(collection, id, relationName, baseForeignFilter),
+      new Projection(relation.foreignKeyTarget),
+    );
+
+    return new Filter({
+      conditionTree: ConditionTreeFactory.intersect(
+        // only children of parent
+        new ConditionTreeLeaf(relation.originKey, Operator.Equal, originValue),
+
+        // only the children which match the conditions in baseForeignFilter
+        new ConditionTreeLeaf(
+          relation.foreignKey,
+          Operator.In,
+          records.map(r => r[relation.foreignKeyTarget]),
+        ),
+      ),
+    });
+  }
+
+  /**
+   * Given a collection and a OneToMany/ManyToMany relation, generate a filter which
+   * - match only children of the provided recordId
+   * - can apply on the target collection of the relation
+   */
+  static async makeForeignFilter(
+    collection: Collection,
+    id: CompositeId,
+    relationName: string,
+    baseForeignFilter: PaginatedFilter,
+  ): Promise<Filter> {
+    const relation = SchemaUtils.getToManyRelation(collection.schema, relationName);
+    const originValue = await CollectionUtils.getValue(collection, id, relation.originKeyTarget);
+
+    // Compute condition tree to match parent record.
+    let originTree: ConditionTree;
+
+    if (relation.type === FieldTypes.OneToMany) {
+      // OneToMany case (can be done in one request all the time)
+      originTree = new ConditionTreeLeaf(relation.originKey, Operator.Equal, originValue);
+    } else {
+      // ManyToMany case (more complicated...)
+      const through = collection.dataSource.getCollection(relation.throughCollection);
+      const throughTree = new ConditionTreeLeaf(relation.originKey, Operator.Equal, originValue);
+      const records = await through.list(
+        new Filter({ conditionTree: throughTree }),
+        new Projection(relation.foreignKey),
+      );
+
+      originTree = new ConditionTreeLeaf(
+        relation.foreignKeyTarget,
+        Operator.In,
+        records.map(r => r[relation.foreignKey]),
+      );
+    }
+
+    // Merge with existing filter.
+    return baseForeignFilter.override({
+      conditionTree: ConditionTreeFactory.intersect(baseForeignFilter.conditionTree, originTree),
     });
   }
 }

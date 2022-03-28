@@ -18,7 +18,8 @@ describe('GetRoute', () => {
           }),
           author: factories.oneToOneSchema.build({
             foreignCollection: 'persons',
-            foreignKey: 'bookId',
+            originKey: 'bookId',
+            originKeyTarget: 'id',
           }),
         },
       }),

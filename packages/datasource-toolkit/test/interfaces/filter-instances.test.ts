@@ -27,6 +27,24 @@ describe('Filter', () => {
         sort: [{ ascending: true, field: 'column2' }],
       });
     });
+
+    test('nest should work', () => {
+      const nestedFilter = paginatedFilter.nest('prefix');
+
+      expect(paginatedFilter.isNestable).toBeTruthy();
+      expect(nestedFilter).toEqual({
+        conditionTree: { field: 'prefix:column', operator: Operator.GreaterThan, value: 0 },
+        page: { limit: null, skip: 0 },
+        sort: [{ ascending: true, field: 'prefix:column' }],
+      });
+    });
+
+    test('nest should crash with a segment', () => {
+      const filter = new PaginatedFilter({ segment: 'someSegment' });
+
+      expect(filter.isNestable).toBeFalsy();
+      expect(() => filter.nest('prefix')).toThrow();
+    });
   });
 
   describe('Unpaginated', () => {
@@ -42,6 +60,21 @@ describe('Filter', () => {
       expect(newFilter).toEqual({
         conditionTree: { field: 'column', operator: 'less_than', value: 0 },
       });
+    });
+
+    test('nest should work', () => {
+      const nestedFilter = filter.nest('prefix');
+
+      expect(nestedFilter).toEqual({
+        conditionTree: { field: 'prefix:column', operator: Operator.GreaterThan, value: 0 },
+      });
+    });
+
+    test('nest should crash with a segment', () => {
+      const segmentFilter = new Filter({ segment: 'someSegment' });
+
+      expect(segmentFilter.isNestable).toBeFalsy();
+      expect(() => segmentFilter.nest('prefix')).toThrow();
     });
   });
 });

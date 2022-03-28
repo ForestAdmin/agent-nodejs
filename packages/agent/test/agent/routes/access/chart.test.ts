@@ -33,7 +33,8 @@ describe('ChartRoute', () => {
           bookId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
           books: factories.oneToManySchema.build({
             foreignCollection: 'books',
-            foreignKey: 'personsId',
+            originKey: 'personsId',
+            originKeyTarget: 'id',
           }),
         },
       }),

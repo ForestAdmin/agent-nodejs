@@ -1,16 +1,10 @@
 import { Collection } from '../interfaces/collection';
 import { CompositeId, RecordData } from '../interfaces/record';
-import {
-  FieldSchema,
-  FieldTypes,
-  ManyToManySchema,
-  OneToManySchema,
-  RelationSchema,
-} from '../interfaces/schema';
+import { FieldSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
-import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
-import ConditionTreeLeaf, { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
+import Filter from '../interfaces/query/filter/unpaginated';
+import FilterFactory from '../interfaces/query/filter/factory';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Projection from '../interfaces/query/projection';
 import SchemaUtils from './schema';
@@ -53,19 +47,19 @@ export default class CollectionUtils {
         const isManyToManyInverse =
           field.type === FieldTypes.ManyToMany &&
           relation.type === FieldTypes.ManyToMany &&
-          field.otherField === relation.foreignKey &&
+          field.originKey === relation.foreignKey &&
           field.throughCollection === relation.throughCollection &&
-          field.foreignKey === relation.otherField;
+          field.foreignKey === relation.originKey;
 
         const isManyToOneInverse =
           field.type === FieldTypes.ManyToOne &&
           (relation.type === FieldTypes.OneToMany || relation.type === FieldTypes.OneToOne) &&
-          field.foreignKey === relation.foreignKey;
+          field.foreignKey === relation.originKey;
 
         const isOtherInverse =
           (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne) &&
           relation.type === FieldTypes.ManyToOne &&
-          field.foreignKey === relation.foreignKey;
+          field.originKey === relation.foreignKey;
 
         return (
           (isManyToManyInverse || isManyToOneInverse || isOtherInverse) &&
@@ -81,117 +75,84 @@ export default class CollectionUtils {
     collection: Collection,
     id: CompositeId,
     relationName: string,
-    paginatedFilter: PaginatedFilter,
+    foreignFilter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
     const relation = SchemaUtils.getToManyRelation(collection.schema, relationName);
-    const relationCollection = CollectionUtils.getCollectionFromToManyRelation(
-      collection,
-      relation,
-    );
-    const conditionTree = CollectionUtils.buildConditionTreeFromRelation(
-      relation,
-      id,
-      paginatedFilter.conditionTree,
-    );
+    const foreign = collection.dataSource.getCollection(relation.foreignCollection);
 
-    if (relation.type === FieldTypes.OneToMany) {
-      return relationCollection.list(paginatedFilter.override({ conditionTree }), projection);
+    // Optimization for many to many when there is not search/segment.
+    if (
+      relation.type === FieldTypes.ManyToMany &&
+      relation.foreignRelation &&
+      foreignFilter.isNestable
+    ) {
+      const through = collection.dataSource.getCollection(relation.throughCollection);
+      const records = await through.list(
+        await FilterFactory.makeThroughFilter(collection, id, relationName, foreignFilter),
+        projection.nest(relation.foreignRelation),
+      );
+
+      return records.map(r => r[relation.foreignRelation] as RecordData);
     }
 
-    const records = await relationCollection.list(
-      paginatedFilter.override({
-        conditionTree,
-        sort: paginatedFilter.sort?.nest(relation.targetRelation),
-      }),
-      projection.nest(relation.targetRelation),
+    // Otherwise fetch the target table (this works with both relation types)
+    return foreign.list(
+      await FilterFactory.makeForeignFilter(collection, id, relationName, foreignFilter),
+      projection,
     );
-
-    return records.map(r => r[relation.targetRelation] as RecordData);
   }
 
   static async aggregateRelation(
     collection: Collection,
     id: CompositeId,
     relationName: string,
-    paginatedFilter: PaginatedFilter,
+    foreignFilter: PaginatedFilter,
     aggregation: Aggregation,
+    limit?: number,
   ): Promise<AggregateResult[]> {
     const relation = SchemaUtils.getToManyRelation(collection.schema, relationName);
-    const relationCollection = CollectionUtils.getCollectionFromToManyRelation(
-      collection,
-      relation,
-    );
-    const conditionTree = CollectionUtils.buildConditionTreeFromRelation(
-      relation,
-      id,
-      paginatedFilter.conditionTree,
-    );
+    const foreign = collection.dataSource.getCollection(relation.foreignCollection);
 
-    if (relation.type === FieldTypes.OneToMany) {
-      return relationCollection.aggregate(paginatedFilter.override({ conditionTree }), aggregation);
+    // Optimization for many to many when there is not search/segment (saves one query)
+    if (
+      relation.type === FieldTypes.ManyToMany &&
+      relation.foreignRelation &&
+      foreignFilter.isNestable
+    ) {
+      const through = collection.dataSource.getCollection(relation.throughCollection);
+      const records = await through.aggregate(
+        await FilterFactory.makeThroughFilter(collection, id, relationName, foreignFilter),
+        aggregation.nest(relation.foreignRelation),
+        limit,
+      );
+
+      // unnest aggregation result
+      return records.map(({ value, group }) => ({
+        value,
+        group: Object.entries(group)
+          .map<[string, unknown]>(([key, v]) => [key.substring(key.indexOf(':') + 1), v])
+          .reduce((memo, [key, v]) => ({ ...memo, [key]: v }), {}),
+      }));
     }
 
-    const aggregateResults = await relationCollection.aggregate(
-      paginatedFilter.override({ conditionTree }),
-      aggregation.nest(relation.targetRelation),
+    // Otherwise fetch the target table (this works with both relation types)
+    return foreign.aggregate(
+      await FilterFactory.makeForeignFilter(collection, id, relationName, foreignFilter),
+      aggregation,
+      limit,
+    );
+  }
+
+  static async getValue(collection: Collection, id: CompositeId, field: string): Promise<unknown> {
+    const index = SchemaUtils.getPrimaryKeys(collection.schema).indexOf(field);
+    if (index !== -1) return id[index];
+
+    const [record] = await collection.list(
+      new Filter({ conditionTree: ConditionTreeFactory.matchIds(collection.schema, [id]) }),
+      new Projection(field),
     );
 
-    return CollectionUtils.removePrefixesInResults(aggregateResults, relation);
-  }
-
-  static getCollectionFromToManyRelation(
-    collection: Collection,
-    relation: ManyToManySchema | OneToManySchema,
-  ): Collection {
-    if (relation.type === FieldTypes.OneToMany) {
-      return collection.dataSource.getCollection(relation.foreignCollection);
-    }
-
-    return collection.dataSource.getCollection(relation.throughCollection);
-  }
-
-  private static buildConditionTreeFromRelation(
-    relation: ManyToManySchema | OneToManySchema,
-    id: CompositeId,
-    conditionTree: ConditionTree,
-  ): ConditionTree {
-    const isOneToMany = relation.type === FieldTypes.OneToMany;
-    const conditionToMatchId = new ConditionTreeLeaf(
-      isOneToMany ? relation.foreignKey : relation.otherField,
-      Operator.Equal,
-      id[0],
-    );
-
-    const computedConditionTree = isOneToMany
-      ? conditionTree
-      : conditionTree?.nest(relation.targetRelation);
-
-    return ConditionTreeFactory.intersect(computedConditionTree, conditionToMatchId);
-  }
-
-  private static removePrefixesInResults(
-    aggregateResults: AggregateResult[],
-    schema: ManyToManySchema,
-  ): AggregateResult[] {
-    return aggregateResults.map(aggregateResult => {
-      const newResult: AggregateResult = {
-        value: aggregateResult.value,
-        group: {},
-      };
-
-      Object.entries(aggregateResult.group).forEach(([field, result]) => {
-        if (field.startsWith(schema.originRelation)) {
-          const suffix = field.substring(schema.originRelation.length + ':'.length);
-          newResult.group[suffix] = result;
-        } else {
-          throw new Error(
-            `This field ${field} does not have the right expected prefix: ${schema.originRelation}`,
-          );
-        }
-      });
-
-      return newResult;
-    });
+    return record[field];
   }
 }

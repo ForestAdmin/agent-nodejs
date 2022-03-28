@@ -56,9 +56,9 @@ describe('JointureCollectionDecorator', () => {
 
     // Build persons
     const personsRecords = [
-      { id: 201, name: 'Sharon J. Whalen' },
-      { id: 202, name: 'Mae S. Waldron' },
-      { id: 203, name: 'Joseph P. Rodriguez' },
+      { id: 201, otherId: 201, name: 'Sharon J. Whalen' },
+      { id: 202, otherId: 202, name: 'Mae S. Waldron' },
+      { id: 203, otherId: 203, name: 'Joseph P. Rodriguez' },
     ];
 
     dataSource = factories.dataSource.buildWithCollections([
@@ -74,6 +74,9 @@ describe('JointureCollectionDecorator', () => {
               columnType: PrimitiveTypes.Number,
             }),
             filename: factories.columnSchema.build(),
+            otherId: factories.columnSchema.build({
+              columnType: PrimitiveTypes.Number,
+            }),
           },
         }),
         list: jest.fn().mockRejectedValue(new Error('should never be called')),
@@ -118,6 +121,7 @@ describe('JointureCollectionDecorator', () => {
               isPrimaryKey: true,
               columnType: PrimitiveTypes.Number,
             }),
+            otherId: factories.columnSchema.build({ columnType: PrimitiveTypes.Number }),
             name: factories.columnSchema.build(),
           },
         }),
@@ -148,51 +152,114 @@ describe('JointureCollectionDecorator', () => {
     newPersons = decoratedDataSource.getCollection('persons');
   });
 
-  describe('builder valid cases', () => {
-    test('should not throw with a one to one', () => {
-      expect(() =>
-        newPersons.addJointure('passport', {
-          type: FieldTypes.OneToOne,
-          foreignCollection: 'passports',
-          foreignKey: 'ownerId',
-        }),
-      ).not.toThrow();
+  describe('when a one to one is declared', () => {
+    describe('missing dependencies', () => {
+      test('should throw with a non existent fk', () => {
+        expect(() =>
+          newPersons.addJointure('persons', {
+            type: FieldTypes.OneToOne,
+            foreignCollection: 'passports',
+            originKey: '__nonExisting__',
+          }),
+        ).toThrow("Column not found: 'passports.__nonExisting__'");
+      });
     });
 
-    test('should not throw with a one to many', () => {
-      expect(() =>
-        newPersons.addJointure('passport', {
-          type: FieldTypes.OneToMany,
-          foreignCollection: 'passports',
-          foreignKey: 'ownerId',
-        }),
-      ).not.toThrow();
+    describe('missing operators', () => {
+      test('should throw when In is not supported by the fk in the target', () => {
+        const schema = passports.schema.fields.ownerId as ColumnSchema;
+        schema.filterOperators.clear();
+
+        expect(() =>
+          newPersons.addJointure('passport', {
+            type: FieldTypes.OneToOne,
+            foreignCollection: 'passports',
+            originKey: 'ownerId',
+          }),
+        ).toThrow("Column does not support the In operator: 'passports.ownerId'");
+      });
     });
 
-    test('should not throw with a many to one', () => {
-      expect(() =>
-        newPassports.addJointure('owner', {
-          type: FieldTypes.ManyToOne,
-          foreignCollection: 'persons',
-          foreignKey: 'ownerId',
-        }),
-      ).not.toThrow();
+    describe('when there is a given originKeyTarget that does not match the target type', () => {
+      test('should register the jointure', () => {
+        expect(() =>
+          newPersons.addJointure('passport', {
+            type: FieldTypes.OneToOne,
+            foreignCollection: 'passports',
+            originKey: 'ownerId',
+            originKeyTarget: 'name',
+          }),
+        ).toThrow("Types from 'passports.ownerId' and 'persons.name' do not match.");
+      });
     });
 
-    test('should not throw with a very convoluted many to many', () => {
-      expect(() =>
-        newPersons.addJointure('persons', {
-          type: FieldTypes.ManyToMany,
-          foreignCollection: 'passports',
-          foreignKey: 'ownerId',
-          otherField: 'ownerId',
-          throughCollection: 'passports',
-        } as ManyToManySchema),
-      ).not.toThrow();
+    describe('when there is a given originKeyTarget', () => {
+      test('should register the jointure', () => {
+        expect(() =>
+          newPersons.addJointure('passport', {
+            type: FieldTypes.OneToOne,
+            foreignCollection: 'passports',
+            originKey: 'ownerId',
+            originKeyTarget: 'id',
+          }),
+        ).not.toThrow();
+      });
+    });
+
+    describe('when there is not a given originKeyTarget', () => {
+      test('should register the jointure', () => {
+        expect(() =>
+          newPersons.addJointure('passport', {
+            type: FieldTypes.OneToOne,
+            foreignCollection: 'passports',
+            originKey: 'ownerId',
+          }),
+        ).not.toThrow();
+      });
     });
   });
 
-  describe('builder error cases', () => {
+  describe('when a one to many is declared', () => {
+    describe('when there is a given originKeyTarget that does not match the target type', () => {
+      test('should throw an error', () => {
+        expect(() =>
+          newPersons.addJointure('passport', {
+            type: FieldTypes.OneToMany,
+            foreignCollection: 'passports',
+            originKey: 'ownerId',
+            originKeyTarget: 'name',
+          }),
+        ).toThrow("Types from 'passports.ownerId' and 'persons.name' do not match.");
+      });
+    });
+
+    describe('when there is a given originKeyTarget', () => {
+      test('should register the jointure', () => {
+        expect(() =>
+          newPersons.addJointure('passport', {
+            type: FieldTypes.OneToMany,
+            foreignCollection: 'passports',
+            originKey: 'ownerId',
+            originKeyTarget: 'id',
+          }),
+        ).not.toThrow();
+      });
+    });
+
+    describe('when there is not a given originKeyTarget', () => {
+      test('should register the jointure', () => {
+        expect(() =>
+          newPersons.addJointure('passport', {
+            type: FieldTypes.OneToMany,
+            foreignCollection: 'passports',
+            originKey: 'ownerId',
+          }),
+        ).not.toThrow();
+      });
+    });
+  });
+
+  describe('when a many to one is declared', () => {
     describe('missing dependencies', () => {
       test('should throw with a non existent collection', () => {
         expect(() =>
@@ -204,7 +271,7 @@ describe('JointureCollectionDecorator', () => {
         ).toThrow('Collection "__nonExisting__" not found.');
       });
 
-      test('should throw with a non existent fk (many to one)', () => {
+      test('should throw with a non existent fk', () => {
         expect(() =>
           newPassports.addJointure('owner', {
             type: FieldTypes.ManyToOne,
@@ -213,80 +280,10 @@ describe('JointureCollectionDecorator', () => {
           }),
         ).toThrow("Column not found: 'passports.__nonExisting__'");
       });
-
-      test('should throw with a non existent fk (one to one)', () => {
-        expect(() =>
-          newPersons.addJointure('persons', {
-            type: FieldTypes.OneToOne,
-            foreignCollection: 'passports',
-            foreignKey: '__nonExisting__',
-          }),
-        ).toThrow("Column not found: 'passports.__nonExisting__'");
-      });
-
-      test('should throw with a non existent though collection (many to many)', () => {
-        expect(() =>
-          newPersons.addJointure('persons', {
-            type: FieldTypes.ManyToMany,
-            foreignCollection: 'passports',
-            foreignKey: 'ownerId',
-            otherField: 'ownerId',
-            throughCollection: '__nonExisting__',
-          } as ManyToManySchema),
-        ).toThrow('Collection "__nonExisting__" not found.');
-      });
-
-      test('should throw with a non existent fk (many to many)', () => {
-        expect(() =>
-          newPersons.addJointure('persons', {
-            type: FieldTypes.ManyToMany,
-            foreignCollection: 'passports',
-            foreignKey: 'ownerId',
-            otherField: '__nonExisting__',
-            throughCollection: 'passports',
-          } as ManyToManySchema),
-        ).toThrow("Column not found: 'passports.__nonExisting__'");
-      });
-
-      test('should throw with a non existent otherkey (many to many)', () => {
-        expect(() =>
-          newPersons.addJointure('persons', {
-            type: FieldTypes.ManyToMany,
-            foreignCollection: 'passports',
-            foreignKey: '__nonExisting__',
-            otherField: 'ownerId',
-            throughCollection: 'passports',
-          } as ManyToManySchema),
-        ).toThrow("Column not found: 'passports.__nonExisting__'");
-      });
-    });
-
-    describe('type mismatch', () => {
-      test('should throw when fk type does not match pk (one to one)', () => {
-        expect(() =>
-          newPersons.addJointure('passport', {
-            type: FieldTypes.OneToOne,
-            foreignCollection: 'passports',
-            foreignKey: 'issueDate',
-          }),
-        ).toThrow('Types from source foreignKey and target primary key do not match.');
-      });
-
-      test('should throw when otherfield type does not match pk (many to many)', () => {
-        expect(() =>
-          newPersons.addJointure('persons', {
-            type: FieldTypes.ManyToMany,
-            foreignCollection: 'passports',
-            foreignKey: 'id',
-            otherField: 'filename',
-            throughCollection: 'pictures',
-          } as ManyToManySchema),
-        ).toThrow('Types from source otherField and target primary key do not match.');
-      });
     });
 
     describe('missing operators', () => {
-      test('should throw when In is not supported by the pk in the target (many to one)', () => {
+      test('should throw when In is not supported by the pk in the target', () => {
         const schema = persons.schema.fields.id as ColumnSchema;
         schema.filterOperators.clear();
 
@@ -296,27 +293,257 @@ describe('JointureCollectionDecorator', () => {
             foreignCollection: 'persons',
             foreignKey: 'ownerId',
           }),
-        ).toThrow(
-          'Jointure emulation requires target collection primary and foreign key to ' +
-            'support the In operator',
-        );
+        ).toThrow("Column does not support the In operator: 'persons.id'");
       });
+    });
 
-      test('should throw when In is not supported by the fk in the target (one to one)', () => {
-        const schema = passports.schema.fields.ownerId as ColumnSchema;
-        schema.filterOperators.clear();
-
+    describe('when there is a given foreignKeyTarget', () => {
+      test('should register the jointure', () => {
         expect(() =>
-          newPersons.addJointure('passport', {
-            type: FieldTypes.OneToOne,
-            foreignCollection: 'passports',
+          newPassports.addJointure('owner', {
+            type: FieldTypes.ManyToOne,
+            foreignCollection: 'persons',
+            foreignKey: 'ownerId',
+            foreignKeyTarget: 'id',
+          }),
+        ).not.toThrow();
+      });
+    });
+
+    describe('when there is not a given foreignKeyTarget', () => {
+      test('should register the jointure', () => {
+        expect(() =>
+          newPassports.addJointure('owner', {
+            type: FieldTypes.ManyToOne,
+            foreignCollection: 'persons',
             foreignKey: 'ownerId',
           }),
-        ).toThrow(
-          'Jointure emulation requires target collection primary and foreign key to ' +
-            'support the In operator',
-        );
+        ).not.toThrow();
       });
+    });
+  });
+
+  describe('when a many to many is declared', () => {
+    describe('missing dependencies', () => {
+      test('should throw with a non existent though collection', () => {
+        expect(() =>
+          newPersons.addJointure('persons', {
+            type: FieldTypes.ManyToMany,
+            foreignCollection: 'passports',
+            foreignKey: 'ownerId',
+            originKey: 'ownerId',
+            throughCollection: '__nonExisting__',
+          } as ManyToManySchema),
+        ).toThrow('Collection "__nonExisting__" not found.');
+      });
+
+      test('should throw with a non existent originKey', () => {
+        expect(() =>
+          newPersons.addJointure('persons', {
+            type: FieldTypes.ManyToMany,
+            foreignCollection: 'passports',
+            foreignKey: 'ownerId',
+            originKey: '__nonExisting__',
+            throughCollection: 'passports',
+          } as ManyToManySchema),
+        ).toThrow("Column not found: 'passports.__nonExisting__'");
+      });
+
+      test('should throw with a non existent fk', () => {
+        expect(() =>
+          newPersons.addJointure('persons', {
+            type: FieldTypes.ManyToMany,
+            foreignCollection: 'passports',
+            foreignKey: '__nonExisting__',
+            originKey: 'ownerId',
+            throughCollection: 'passports',
+          } as ManyToManySchema),
+        ).toThrow("Column not found: 'passports.__nonExisting__'");
+      });
+    });
+
+    describe('when there is a given originKeyTarget that does not match the target type', () => {
+      test('should register the jointure', () => {
+        expect(() =>
+          newPersons.addJointure('persons', {
+            type: FieldTypes.ManyToMany,
+            foreignCollection: 'passports',
+            foreignKey: 'ownerId',
+            originKey: 'ownerId',
+            throughCollection: 'passports',
+            originKeyTarget: 'name',
+            foreignKeyTarget: 'id',
+          } as ManyToManySchema),
+        ).toThrow("Types from 'passports.ownerId' and 'persons.name' do not match.");
+      });
+    });
+
+    describe('when there are a given originKeyTarget and foreignKeyTarget', () => {
+      test('should register the jointure', () => {
+        expect(() =>
+          newPersons.addJointure('persons', {
+            type: FieldTypes.ManyToMany,
+            foreignCollection: 'passports',
+            foreignKey: 'ownerId',
+            originKey: 'ownerId',
+            throughCollection: 'passports',
+            originKeyTarget: 'id',
+            foreignKeyTarget: 'id',
+          } as ManyToManySchema),
+        ).not.toThrow();
+      });
+    });
+
+    describe('when there are not a given originKeyTarget and foreignKeyTarget', () => {
+      test('should register the jointure', () => {
+        expect(() =>
+          newPersons.addJointure('persons', {
+            type: FieldTypes.ManyToMany,
+            foreignCollection: 'passports',
+            foreignKey: 'ownerId',
+            originKey: 'ownerId',
+            throughCollection: 'passports',
+          } as ManyToManySchema),
+        ).not.toThrow();
+      });
+    });
+  });
+
+  describe('emulated projection', () => {
+    test('should fetch fields from a many to one relation', async () => {
+      newPassports.addJointure('owner', {
+        type: FieldTypes.ManyToOne,
+        foreignCollection: 'persons',
+        foreignKey: 'ownerId',
+      });
+
+      const records = await newPassports.list(new Filter({}), new Projection('id', 'owner:name'));
+
+      expect(records).toStrictEqual([
+        { id: 101, owner: { name: 'Mae S. Waldron' } },
+        { id: 102, owner: { name: 'Sharon J. Whalen' } },
+        { id: 103, owner: null },
+      ]);
+    });
+
+    test('should fetch fields from a one to one relation', async () => {
+      newPersons.addJointure('passport', {
+        type: FieldTypes.OneToOne,
+        foreignCollection: 'passports',
+        originKey: 'ownerId',
+        originKeyTarget: 'otherId',
+      });
+
+      const records = await newPersons.list(
+        new Filter({}),
+        new Projection('id', 'name', 'passport:issueDate'),
+      );
+
+      expect(records).toStrictEqual([
+        { id: 201, name: 'Sharon J. Whalen', passport: { issueDate: '2017-01-01' } },
+        { id: 202, name: 'Mae S. Waldron', passport: { issueDate: '2010-01-01' } },
+        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+      ]);
+    });
+
+    test('should fetch fields from a one to many relation', async () => {
+      newPersons.addJointure('passport', {
+        type: FieldTypes.OneToMany,
+        foreignCollection: 'passports',
+        originKey: 'ownerId',
+        originKeyTarget: 'otherId',
+      });
+
+      const records = await newPersons.list(
+        new Filter({}),
+        new Projection('id', 'name', 'passport:issueDate'),
+      );
+
+      expect(records).toStrictEqual([
+        { id: 201, name: 'Sharon J. Whalen', passport: { issueDate: '2017-01-01' } },
+        { id: 202, name: 'Mae S. Waldron', passport: { issueDate: '2010-01-01' } },
+        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+      ]);
+    });
+
+    test('should fetch fields from a many to many relation', async () => {
+      newPersons.addJointure('persons', {
+        type: FieldTypes.ManyToMany,
+        foreignCollection: 'persons',
+        foreignKey: 'ownerId',
+        originKey: 'ownerId',
+        throughCollection: 'passports',
+        originKeyTarget: 'otherId',
+        foreignKeyTarget: 'id',
+      } as ManyToManySchema);
+
+      const records = await newPersons.list(
+        new Filter({}),
+        new Projection('id', 'name', 'persons:name'),
+      );
+
+      expect(records).toStrictEqual([
+        { id: 201, name: 'Sharon J. Whalen', persons: null },
+        { id: 202, name: 'Mae S. Waldron', persons: null },
+        { id: 203, name: 'Joseph P. Rodriguez', persons: null },
+      ]);
+    });
+
+    test('should fetch fields from a native behind an emulated one', async () => {
+      newPersons.addJointure('passport', {
+        type: FieldTypes.OneToOne,
+        foreignCollection: 'passports',
+        originKey: 'ownerId',
+      });
+      newPassports.addJointure('owner', {
+        type: FieldTypes.ManyToOne,
+        foreignCollection: 'persons',
+        foreignKey: 'ownerId',
+      });
+      const records = await newPersons.list(
+        new Filter({}),
+        new Projection('id', 'name', 'passport:picture:filename'),
+      );
+
+      expect(records).toStrictEqual([
+        { id: 201, name: 'Sharon J. Whalen', passport: { picture: { filename: 'pic2.jpg' } } },
+        { id: 202, name: 'Mae S. Waldron', passport: { picture: { filename: 'pic1.jpg' } } },
+        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+      ]);
+
+      // make sure that the emulator did not trigger on native relation
+      expect(pictures.list).not.toHaveBeenCalled();
+    });
+
+    test('should not break with deep reprojection', async () => {
+      newPersons.addJointure('passport', {
+        type: FieldTypes.OneToOne,
+        foreignCollection: 'passports',
+        originKey: 'ownerId',
+      });
+      newPassports.addJointure('owner', {
+        type: FieldTypes.ManyToOne,
+        foreignCollection: 'persons',
+        foreignKey: 'ownerId',
+      });
+      const records = await newPersons.list(
+        new Filter({}),
+        new Projection('id', 'name', 'passport:owner:passport:issueDate'),
+      );
+
+      expect(records).toStrictEqual([
+        {
+          id: 201,
+          name: 'Sharon J. Whalen',
+          passport: { owner: { passport: { issueDate: '2017-01-01' } } },
+        },
+        {
+          id: 202,
+          name: 'Mae S. Waldron',
+          passport: { owner: { passport: { issueDate: '2010-01-01' } } },
+        },
+        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+      ]);
     });
   });
 
@@ -325,7 +552,7 @@ describe('JointureCollectionDecorator', () => {
       newPersons.addJointure('passport', {
         type: FieldTypes.OneToOne,
         foreignCollection: 'passports',
-        foreignKey: 'ownerId',
+        originKey: 'ownerId',
       });
 
       newPassports.addJointure('owner', {
@@ -397,68 +624,6 @@ describe('JointureCollectionDecorator', () => {
         );
 
         expect(records).toStrictEqual([{ id: 201, name: 'Sharon J. Whalen' }]);
-      });
-    });
-
-    describe('emulated projection', () => {
-      test('should fetch fields from a many to one relation', async () => {
-        const records = await newPassports.list(new Filter({}), new Projection('id', 'owner:name'));
-
-        expect(records).toStrictEqual([
-          { id: 101, owner: { name: 'Mae S. Waldron' } },
-          { id: 102, owner: { name: 'Sharon J. Whalen' } },
-          { id: 103, owner: null },
-        ]);
-      });
-
-      test('should fetch fields from a one to one relation', async () => {
-        const records = await newPersons.list(
-          new Filter({}),
-          new Projection('id', 'name', 'passport:issueDate'),
-        );
-
-        expect(records).toStrictEqual([
-          { id: 201, name: 'Sharon J. Whalen', passport: { issueDate: '2017-01-01' } },
-          { id: 202, name: 'Mae S. Waldron', passport: { issueDate: '2010-01-01' } },
-          { id: 203, name: 'Joseph P. Rodriguez', passport: null },
-        ]);
-      });
-
-      test('should fetch fields from a native behind an emulated one', async () => {
-        const records = await newPersons.list(
-          new Filter({}),
-          new Projection('id', 'name', 'passport:picture:filename'),
-        );
-
-        expect(records).toStrictEqual([
-          { id: 201, name: 'Sharon J. Whalen', passport: { picture: { filename: 'pic2.jpg' } } },
-          { id: 202, name: 'Mae S. Waldron', passport: { picture: { filename: 'pic1.jpg' } } },
-          { id: 203, name: 'Joseph P. Rodriguez', passport: null },
-        ]);
-
-        // make sure that the emulator did not trigger on native relation
-        expect(pictures.list).not.toHaveBeenCalled();
-      });
-
-      test('should not break with deep reprojection', async () => {
-        const records = await newPersons.list(
-          new Filter({}),
-          new Projection('id', 'name', 'passport:owner:passport:issueDate'),
-        );
-
-        expect(records).toStrictEqual([
-          {
-            id: 201,
-            name: 'Sharon J. Whalen',
-            passport: { owner: { passport: { issueDate: '2017-01-01' } } },
-          },
-          {
-            id: 202,
-            name: 'Mae S. Waldron',
-            passport: { owner: { passport: { issueDate: '2010-01-01' } } },
-          },
-          { id: 203, name: 'Joseph P. Rodriguez', passport: null },
-        ]);
       });
     });
 

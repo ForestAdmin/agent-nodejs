@@ -180,6 +180,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               __model2__: {
                 foreignCollection: '__model2__',
                 foreignKey: 'Model2Id',
+                foreignKeyTarget: 'id',
                 type: FieldTypes.ManyToOne,
               },
               id: {
@@ -212,11 +213,11 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             fields: {
               __model2__s: {
                 foreignCollection: '__model2__',
-                foreignKey: 'ModelId',
-                originRelation: '__model__',
-                otherField: 'Model2Id',
-                targetRelation: '__model2__',
+                foreignKey: 'Model2Id',
+                originKey: 'ModelId',
                 throughCollection: 'ss',
+                originKeyTarget: 'id',
+                foreignKeyTarget: 'id',
                 type: FieldTypes.ManyToMany,
               },
               id: {
@@ -248,7 +249,8 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             fields: {
               __model2__s: {
                 foreignCollection: '__model2__',
-                foreignKey: 'ModelId',
+                originKey: 'ModelId',
+                originKeyTarget: 'id',
                 type: FieldTypes.OneToMany,
               },
               id: {
@@ -280,7 +282,8 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             fields: {
               __model2__: {
                 foreignCollection: '__model2__',
-                foreignKey: 'ModelId',
+                originKey: 'ModelId',
+                originKeyTarget: 'id',
                 type: FieldTypes.OneToOne,
               },
               id: {

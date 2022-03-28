@@ -1,12 +1,13 @@
-import { AggregateResult } from '../../interfaces/query/aggregation';
-import { Aggregation, FieldValidator } from '../..';
+import { Collection } from '../../interfaces/collection';
 import {
   CollectionSchema,
   ColumnSchema,
   FieldTypes,
   RelationSchema,
 } from '../../interfaces/schema';
+import { PartialRelationSchema } from './types';
 import { RecordData } from '../../interfaces/record';
+import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
@@ -21,11 +22,10 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<JointureCollectionDecorator>;
   protected jointures: Record<string, RelationSchema> = {};
 
-  addJointure(name: string, joint: RelationSchema): void {
-    this.checkDependenciesExist(joint);
-    this.checkForeignKeyType(joint);
-    this.checkOtherKeyType(joint);
-    this.checkOperators(joint);
+  addJointure(name: string, partialJoint: PartialRelationSchema): void {
+    const joint = this.jointWithOptionalFields(partialJoint);
+    this.checkForeignKeys(joint);
+    this.checkOriginKeys(joint);
 
     this.jointures[name] = joint;
   }
@@ -90,87 +90,81 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
     });
   }
 
-  private checkDependenciesExist(joint: RelationSchema): void {
-    // @fixme we should add an optional parameter in FieldValidator.validate() to ensure
-    // that the field in in the collection, not in a relation.
-
+  private jointWithOptionalFields(partialJoint: PartialRelationSchema): RelationSchema {
+    const joint = { ...partialJoint };
     const target = this.dataSource.getCollection(joint.foreignCollection);
 
     if (joint.type === FieldTypes.ManyToOne) {
-      FieldValidator.validate(this, joint.foreignKey);
+      joint.foreignKeyTarget ??= SchemaUtils.getPrimaryKeys(target.schema)[0];
+    } else if (joint.type === FieldTypes.OneToOne || joint.type === FieldTypes.OneToMany) {
+      joint.originKeyTarget ??= SchemaUtils.getPrimaryKeys(this.schema)[0];
+    } else if (joint.type === FieldTypes.ManyToMany) {
+      joint.originKeyTarget ??= SchemaUtils.getPrimaryKeys(this.schema)[0];
+      joint.foreignKeyTarget ??= SchemaUtils.getPrimaryKeys(target.schema)[0];
     }
 
-    if (joint.type === FieldTypes.OneToMany || joint.type === FieldTypes.OneToOne) {
-      FieldValidator.validate(target, joint.foreignKey);
-    }
-
-    if (joint.type === FieldTypes.ManyToMany) {
-      const through = this.dataSource.getCollection(joint.throughCollection);
-      FieldValidator.validate(through, joint.foreignKey);
-      FieldValidator.validate(through, joint.otherField);
-    }
+    return joint as RelationSchema;
   }
 
-  private checkForeignKeyType(joint: RelationSchema): void {
-    const target = this.dataSource.getCollection(joint.foreignCollection);
-    let foreignKey: ColumnSchema;
-    let primaryKey: ColumnSchema;
-
-    if (joint.type === FieldTypes.ManyToOne) {
-      foreignKey = this.schema.fields[joint.foreignKey] as ColumnSchema;
-      primaryKey = target.schema.fields[
-        SchemaUtils.getPrimaryKeys(target.schema)[0]
-      ] as ColumnSchema;
-    }
-
-    if (joint.type === FieldTypes.OneToMany || joint.type === FieldTypes.OneToOne) {
-      foreignKey = target.schema.fields[joint.foreignKey] as ColumnSchema;
-      primaryKey = this.schema.fields[SchemaUtils.getPrimaryKeys(this.schema)[0]] as ColumnSchema;
-    }
-
-    if (joint.type === FieldTypes.ManyToMany) {
-      const through = this.dataSource.getCollection(joint.throughCollection);
-      foreignKey = through.schema.fields[joint.foreignKey] as ColumnSchema;
-      primaryKey = target.schema.fields[SchemaUtils.getPrimaryKeys(this.schema)[0]] as ColumnSchema;
-    }
-
-    if (foreignKey.columnType !== primaryKey.columnType) {
-      throw new Error('Types from source foreignKey and target primary key do not match.');
-    }
-  }
-
-  private checkOtherKeyType(joint: RelationSchema): void {
-    if (joint.type !== FieldTypes.ManyToMany) return;
-
-    const through = this.dataSource.getCollection(joint.throughCollection);
-    const otherKey = through.schema.fields[joint.otherField] as ColumnSchema;
-    const primaryKey = this.schema.fields[
-      SchemaUtils.getPrimaryKeys(this.schema)[0]
-    ] as ColumnSchema;
-
-    if (otherKey.columnType !== primaryKey.columnType) {
-      throw new Error('Types from source otherField and target primary key do not match.');
-    }
-  }
-
-  private checkOperators(joint: RelationSchema): void {
-    const target = this.dataSource.getCollection(joint.foreignCollection);
-    const primaryKey = target.schema.fields[
-      SchemaUtils.getPrimaryKeys(target.schema)[0]
-    ] as ColumnSchema;
-    const foreignKey = target.schema.fields[joint.foreignKey] as ColumnSchema;
-
-    const isValid =
-      joint.type === FieldTypes.ManyToMany ||
-      joint.type === FieldTypes.OneToMany ||
-      (joint.type === FieldTypes.OneToOne && foreignKey.filterOperators.has(Operator.In)) ||
-      (joint.type === FieldTypes.ManyToOne && primaryKey.filterOperators.has(Operator.In));
-
-    if (!isValid) {
-      throw new Error(
-        'Jointure emulation requires target collection primary and ' +
-          'foreign key to support the In operator',
+  private checkForeignKeys(joint: RelationSchema): void {
+    if (joint.type === FieldTypes.ManyToOne || joint.type === FieldTypes.ManyToMany) {
+      JointureCollectionDecorator.checkKeys(
+        joint.type === FieldTypes.ManyToMany
+          ? this.dataSource.getCollection(joint.throughCollection)
+          : this,
+        this.dataSource.getCollection(joint.foreignCollection),
+        joint.foreignKey,
+        joint.foreignKeyTarget,
       );
+    }
+  }
+
+  private checkOriginKeys(joint: RelationSchema): void {
+    if (
+      joint.type === FieldTypes.OneToMany ||
+      joint.type === FieldTypes.OneToOne ||
+      joint.type === FieldTypes.ManyToMany
+    ) {
+      JointureCollectionDecorator.checkKeys(
+        joint.type === FieldTypes.ManyToMany
+          ? this.dataSource.getCollection(joint.throughCollection)
+          : this.dataSource.getCollection(joint.foreignCollection),
+        this,
+        joint.originKey,
+        joint.originKeyTarget,
+      );
+    }
+  }
+
+  private static checkKeys(
+    owner: Collection,
+    targetOwner: Collection,
+    keyName: string,
+    targetName: string,
+  ): void {
+    JointureCollectionDecorator.checkColumn(owner, keyName);
+    JointureCollectionDecorator.checkColumn(targetOwner, targetName);
+
+    const key = owner.schema.fields[keyName] as ColumnSchema;
+    const target = targetOwner.schema.fields[targetName] as ColumnSchema;
+
+    if (key.columnType !== target.columnType) {
+      throw new Error(
+        `Types from '${owner.name}.${keyName}' and ` +
+          `'${targetOwner.name}.${targetName}' do not match.`,
+      );
+    }
+  }
+
+  private static checkColumn(owner: Collection, name: string): void {
+    const column = owner.schema.fields[name];
+
+    if (!column || column.type !== FieldTypes.Column) {
+      throw new Error(`Column not found: '${owner.name}.${name}'`);
+    }
+
+    if (!column.filterOperators.has(Operator.In)) {
+      throw new Error(`Column does not support the In operator: '${owner.name}.${name}'`);
     }
   }
 
@@ -183,9 +177,17 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
     let result = [] as string[];
 
     if (!this.jointures[prefix]) {
-      result = [`${prefix}:${relation.rewriteField(field.substring(prefix.length + 1))}`];
+      result = relation
+        .rewriteField(field.substring(prefix.length + 1))
+        .map(subField => `${prefix}:${subField}`);
     } else if (schema.type === FieldTypes.ManyToOne) {
       result = [schema.foreignKey];
+    } else if (
+      schema.type === FieldTypes.OneToOne ||
+      schema.type === FieldTypes.OneToMany ||
+      schema.type === FieldTypes.ManyToMany
+    ) {
+      result = [schema.originKeyTarget];
     }
 
     return result;
@@ -210,18 +212,18 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
       result = new ConditionTreeLeaf(
         schema.foreignKey,
         Operator.In,
-        records.map(record => RecordUtils.getPrimaryKey(relation.schema, record)[0]),
+        records.map(record => RecordUtils.getFieldValue(record, schema.foreignKeyTarget)),
       );
     } else if (schema.type === FieldTypes.OneToOne) {
       const records = await relation.list(
         new Filter({ conditionTree: leaf.unnest() }),
-        new Projection(schema.foreignKey),
+        new Projection(schema.originKey),
       );
 
       result = new ConditionTreeLeaf(
-        SchemaUtils.getPrimaryKeys(this.schema)[0],
+        schema.originKeyTarget,
         Operator.In,
-        records.map(record => RecordUtils.getFieldValue(record, schema.foreignKey)),
+        records.map(record => RecordUtils.getFieldValue(record, schema.originKey)),
       );
     }
 
@@ -238,40 +240,47 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
 
   private async reprojectRelationInPlace(
     records: RecordData[],
-    prefix: string,
-    subProjection: Projection,
+    name: string,
+    projection: Projection,
   ): Promise<void> {
-    const { foreignCollection, foreignKey, type } = this.schema.fields[prefix] as RelationSchema;
-    const association = this.dataSource.getCollection(foreignCollection);
+    const schema = this.schema.fields[name] as RelationSchema;
+    const association = this.dataSource.getCollection(schema.foreignCollection);
 
-    if (!this.jointures[prefix]) {
+    if (!this.jointures[name]) {
       await association.reprojectInPlace(
-        records.map(r => r[prefix]).filter(Boolean) as RecordData[],
-        subProjection,
+        records.map(r => r[name]).filter(Boolean) as RecordData[],
+        projection,
       );
-    } else if (type === FieldTypes.ManyToOne) {
-      const [associationPk] = SchemaUtils.getPrimaryKeys(association.schema);
-      const ids = records.map(record => record[foreignKey]).filter(fk => fk !== null);
+    } else if (schema.type === FieldTypes.ManyToOne) {
+      const ids = records.map(record => record[schema.foreignKey]).filter(fk => fk !== null);
       const subFilter = new Filter({
-        conditionTree: new ConditionTreeLeaf(associationPk, Operator.In, [...new Set(ids)]),
+        conditionTree: new ConditionTreeLeaf(schema.foreignKeyTarget, Operator.In, [
+          ...new Set(ids),
+        ]),
       });
-      const subRecords = await association.list(subFilter, subProjection.union([associationPk]));
+      const subRecords = await association.list(
+        subFilter,
+        projection.union([schema.foreignKeyTarget]),
+      );
 
       for (const record of records) {
-        const subRecord = subRecords.filter(sr => sr[associationPk] === record[foreignKey]);
-        record[prefix] = subRecord.length ? subRecord[0] : null;
+        const subRecord = subRecords.filter(
+          sr => sr[schema.foreignKeyTarget] === record[schema.foreignKey],
+        );
+        record[name] = subRecord.length ? subRecord[0] : null;
       }
-    } else if (type === FieldTypes.OneToOne) {
-      const [myPk] = SchemaUtils.getPrimaryKeys(this.schema);
-      const ids = records.map(record => record[myPk]);
+    } else if (schema.type === FieldTypes.OneToOne || schema.type === FieldTypes.OneToMany) {
+      const ids = records.map(record => record[schema.originKeyTarget]);
       const subFilter = new Filter({
-        conditionTree: new ConditionTreeLeaf(foreignKey, Operator.In, [...new Set(ids)]),
+        conditionTree: new ConditionTreeLeaf(schema.originKey, Operator.In, [...new Set(ids)]),
       });
-      const subRecords = await association.list(subFilter, subProjection.union([foreignKey]));
+      const subRecords = await association.list(subFilter, projection.union([schema.originKey]));
 
       for (const record of records) {
-        const subRecord = subRecords.filter(sr => sr[foreignKey] === record[myPk]);
-        record[prefix] = subRecord.length ? subRecord[0] : null;
+        const subRecord = subRecords.filter(
+          sr => sr[schema.originKey] === record[schema.originKeyTarget],
+        );
+        record[name] = subRecord.length ? subRecord[0] : null;
       }
     }
   }

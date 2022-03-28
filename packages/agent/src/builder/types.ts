@@ -8,6 +8,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 export type FieldDefinition = {
+  beforeJointures?: boolean;
   columnType: ColumnType;
   dependencies: string[];
   isRequired?: boolean;
@@ -17,5 +18,5 @@ export type FieldDefinition = {
   getValues(records: RecordData[], context: ComputedContext): Promise<unknown[]> | unknown[];
 
   sortBy?: 'emulate' | SortClause[];
-  filterBy?: 'emulate' | Partial<Record<keyof typeof Operator, 'emulate' | OperatorReplacer>>;
+  filterBy?: 'emulate' | Partial<Record<Operator, 'emulate' | OperatorReplacer>>;
 };

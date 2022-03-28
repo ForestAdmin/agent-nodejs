@@ -99,13 +99,7 @@ describe('ComputedDecorator', () => {
     }).toThrow("Unexpected field type: 'books.author' (found 'ManyToOne' expected 'Column')");
   });
 
-  test('should throw if defining a proxy with invalid dependency', () => {
-    expect(() => {
-      newBooks.registerProxy('newField', { path: 'author' });
-    }).toThrow("Unexpected field type: 'books.author' (found 'ManyToOne' expected 'Column')");
-  });
-
-  describe('With a computed and a proxy which depend on it', () => {
+  describe('With a computed', () => {
     beforeEach(() => {
       newPersons.registerComputed('fullName', {
         columnType: PrimitiveTypes.String,
@@ -117,12 +111,10 @@ describe('ComputedDecorator', () => {
           });
         },
       });
-
-      newBooks.registerProxy('authorFullName', { path: 'author:fullName' });
     });
 
     test('the schemas should contain the field', () => {
-      expect(newBooks.schema.fields.authorFullName).toEqual({
+      expect(newPersons.schema.fields.fullName).toEqual({
         columnType: PrimitiveTypes.String,
         filterOperators: new Set(),
         isReadOnly: true,
@@ -130,23 +122,6 @@ describe('ComputedDecorator', () => {
         isPrimaryKey: false,
         type: FieldTypes.Column,
       });
-    });
-
-    test('list() result should contain the proxy', async () => {
-      const records = await newBooks.list(null, new Projection('title', 'authorFullName'));
-
-      // Result should be ok
-      expect(records).toStrictEqual([
-        { title: 'Foundation', authorFullName: 'Isaac Asimov' },
-        { title: 'Beat the dealer', authorFullName: 'Edward O. Thorp' },
-      ]);
-
-      // the parameters of the child list should not contain anything extra
-      expect(books.list).toHaveBeenCalledWith(null, [
-        'title',
-        'author:firstName',
-        'author:lastName',
-      ]);
     });
 
     test('list() result should contain the computed', async () => {

@@ -3,6 +3,7 @@ import { FieldTypes, OneToOneSchema } from '../../../src/interfaces/schema';
 
 export default Factory.define<OneToOneSchema>(() => ({
   type: FieldTypes.OneToOne,
-  foreignKey: 'reviewId',
+  originKey: 'reviewId',
+  originKeyTarget: 'id',
   foreignCollection: 'review',
 }));

@@ -41,18 +41,21 @@ export type ColumnSchema = {
 export type ManyToOneSchema = {
   foreignCollection: string;
   foreignKey: string;
+  foreignKeyTarget: string;
   type: FieldTypes.ManyToOne;
 };
 
 export type OneToManySchema = {
   foreignCollection: string;
-  foreignKey: string;
+  originKey: string;
+  originKeyTarget: string;
   type: FieldTypes.OneToMany;
 };
 
 export type OneToOneSchema = {
   foreignCollection: string;
-  foreignKey: string;
+  originKey: string;
+  originKeyTarget: string;
   type: FieldTypes.OneToOne;
 };
 
@@ -60,10 +63,11 @@ export type ManyToManySchema = {
   throughCollection: string;
   foreignCollection: string;
   foreignKey: string;
-  otherField: string;
+  foreignKeyTarget: string;
+  foreignRelation?: string;
+  originKey: string;
+  originKeyTarget: string;
   type: FieldTypes.ManyToMany;
-  originRelation: string;
-  targetRelation: string;
 };
 
 export type ColumnType = PrimitiveTypes | { [key: string]: ColumnType } | [ColumnType];

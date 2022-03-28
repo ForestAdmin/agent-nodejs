@@ -1,10 +1,10 @@
 import {
   Aggregation,
   Aggregator,
-  CollectionUtils,
   ConditionTreeBranch,
   ConditionTreeFactory,
   DateOperation,
+  FieldTypes,
   Filter,
   FilterFactory,
   SchemaUtils,
@@ -168,8 +168,12 @@ export default class Chart extends CollectionRoute {
 
     if (!aggregateField) {
       const relation = SchemaUtils.getToManyRelation(this.collection.schema, relationshipField);
+      const collection = this.dataSource.getCollection(
+        relation.type === FieldTypes.OneToMany
+          ? relation.foreignCollection
+          : relation.throughCollection,
+      );
 
-      const collection = CollectionUtils.getCollectionFromToManyRelation(this.collection, relation);
       [aggregateField] = SchemaUtils.getPrimaryKeys(collection.schema);
     }
 

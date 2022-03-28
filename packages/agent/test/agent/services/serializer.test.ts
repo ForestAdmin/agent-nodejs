@@ -82,7 +82,8 @@ describe('Serializer', () => {
               name: factories.columnSchema.build(),
               books: factories.oneToManySchema.build({
                 foreignCollection: 'book',
-                foreignKey: 'authorId',
+                originKey: 'authorId',
+                originKeyTarget: 'id',
               }),
             },
           }),
@@ -126,10 +127,10 @@ describe('Serializer', () => {
               name: 'book',
               schema: factories.collectionSchema.build({
                 fields: {
-                  authorId: factories.columnSchema.build(),
-                  author: factories.manyToOneSchema.build({
+                  authorId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+                  author: factories.oneToOneSchema.build({
                     foreignCollection: 'person',
-                    foreignKey: 'authorId',
+                    originKey: 'authorId',
                   }),
                 },
               }),
@@ -160,8 +161,9 @@ describe('Serializer', () => {
             },
           );
 
+          // provide the PK in the relation key
           expect(result).toStrictEqual({
-            authorId: '1d162304-78bf-599e-b197-93590ac3d314',
+            author: ['1d162304-78bf-599e-b197-93590ac3d314'],
           });
         });
       });
@@ -210,9 +212,7 @@ describe('Serializer', () => {
             },
           );
 
-          expect(result).toStrictEqual({
-            editorId: 42,
-          });
+          expect(result).toStrictEqual({ editor: [42] });
         });
       });
     });

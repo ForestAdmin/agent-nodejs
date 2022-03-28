@@ -13,7 +13,7 @@ describe('ProjectionFactory', () => {
                 id: factories.columnSchema.isPrimaryKey().build(),
                 myAuthor: factories.oneToOneSchema.build({
                   foreignCollection: 'authors',
-                  foreignKey: 'bookId',
+                  originKey: 'bookId',
                 }),
                 formatId: factories.columnSchema.build(),
                 myFormat: factories.manyToOneSchema.build({

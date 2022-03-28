@@ -294,7 +294,7 @@ describe('SearchCollectionDecorator', () => {
               schema: factories.collectionSchema.unsearchable().build({
                 fields: {
                   fieldName: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
-                  otherField: factories.columnSchema.build({
+                  originKey: factories.columnSchema.build({
                     columnType: PrimitiveTypes.String,
                     filterOperators: null,
                   }),
@@ -360,7 +360,7 @@ describe('SearchCollectionDecorator', () => {
                     id: factories.columnSchema.isPrimaryKey().build(),
                     myPersons: factories.oneToOneSchema.build({
                       foreignCollection: 'persons',
-                      foreignKey: 'personId',
+                      originKey: 'personId',
                     }),
                     myBookPersons: factories.manyToOneSchema.build({
                       foreignCollection: 'bookPersons',

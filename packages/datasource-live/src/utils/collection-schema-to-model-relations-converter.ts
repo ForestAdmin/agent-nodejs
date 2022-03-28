@@ -8,7 +8,7 @@ export default class CollectionSchemaToModelRelationsConverter {
 
     const sourceModel = sequelize.model(name);
 
-    Object.values(schema.fields).forEach(field => {
+    Object.entries(schema.fields).forEach(([fieldName, field]) => {
       if (field.type === FieldTypes.Column) return;
 
       const targetModel = sequelize.model(field.foreignCollection);
@@ -16,28 +16,37 @@ export default class CollectionSchemaToModelRelationsConverter {
       if (field.type === FieldTypes.ManyToMany) {
         relations.push(
           sourceModel.belongsToMany(targetModel, {
+            as: fieldName,
             through: field.throughCollection,
-            otherKey: field.otherField,
-          }),
-          targetModel.belongsToMany(sourceModel, {
-            through: field.throughCollection,
-            foreignKey: field.foreignKey,
+            foreignKey: field.originKey,
+            targetKey: field.originKeyTarget,
+            otherKey: field.foreignKey,
+            sourceKey: field.foreignKeyTarget,
           }),
         );
       } else if (field.type === FieldTypes.ManyToOne) {
         relations.push(
-          sourceModel.belongsTo(targetModel, { targetKey: field.foreignKey }),
-          targetModel.hasMany(sourceModel),
+          sourceModel.belongsTo(targetModel, {
+            as: fieldName,
+            foreignKey: field.foreignKey,
+            targetKey: field.foreignKeyTarget,
+          }),
         );
       } else if (field.type === FieldTypes.OneToMany) {
         relations.push(
-          sourceModel.hasMany(targetModel, { foreignKey: field.foreignKey }),
-          targetModel.belongsTo(sourceModel),
+          sourceModel.hasMany(targetModel, {
+            as: fieldName,
+            foreignKey: field.originKey,
+            sourceKey: field.originKeyTarget,
+          }),
         );
       } else if (field.type === FieldTypes.OneToOne) {
         relations.push(
-          sourceModel.hasOne(targetModel, { foreignKey: field.foreignKey }),
-          targetModel.belongsTo(sourceModel),
+          sourceModel.hasOne(targetModel, {
+            as: fieldName,
+            foreignKey: field.originKey,
+            sourceKey: field.originKeyTarget,
+          }),
         );
       }
     });

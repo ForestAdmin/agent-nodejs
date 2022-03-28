@@ -15,6 +15,10 @@ export default class Filter {
   segment?: string;
   timezone?: string;
 
+  get isNestable(): boolean {
+    return !this.search && !this.segment;
+  }
+
   constructor(parts: FilterComponents) {
     this.conditionTree = parts.conditionTree;
     this.search = parts.search;
@@ -25,5 +29,11 @@ export default class Filter {
 
   override(fields: FilterComponents): Filter {
     return new Filter({ ...this, ...fields });
+  }
+
+  nest(prefix: string): Filter {
+    if (!this.isNestable) throw new Error("Filter can't be nested");
+
+    return this.override({ conditionTree: this.conditionTree?.nest(prefix) });
   }
 }

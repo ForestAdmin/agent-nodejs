@@ -49,7 +49,7 @@ describe('RenameCollectionDecorator', () => {
           id: factories.columnSchema.isPrimaryKey().build(),
           myBookPerson: factories.oneToOneSchema.build({
             foreignCollection: 'bookPersons',
-            foreignKey: 'personId',
+            originKey: 'personId',
           }),
         },
       }),
@@ -82,12 +82,12 @@ describe('RenameCollectionDecorator', () => {
           myPersons: factories.manyToManySchema.build({
             foreignCollection: 'persons',
             foreignKey: 'personId',
-            otherField: 'bookId',
+            originKey: 'bookId',
             throughCollection: 'bookPersons',
           }),
           myBookPersons: factories.oneToManySchema.build({
             foreignCollection: 'bookPersons',
-            foreignKey: 'bookId',
+            originKey: 'bookId',
           }),
         },
       }),
@@ -324,11 +324,11 @@ describe('RenameCollectionDecorator', () => {
       const bookPersonFields = newBookPersons.schema.fields;
       const personFields = newPersons.schema.fields;
 
-      expect(bookFields.myPersons).toMatchObject({ foreignKey: 'authorId', otherField: 'novelId' });
-      expect(bookFields.myBookPersons).toMatchObject({ foreignKey: 'novelId' });
+      expect(bookFields.myPersons).toMatchObject({ foreignKey: 'authorId', originKey: 'novelId' });
+      expect(bookFields.myBookPersons).toMatchObject({ originKey: 'novelId' });
       expect(bookPersonFields.myBook).toMatchObject({ foreignKey: 'novelId' });
       expect(bookPersonFields.myPerson).toMatchObject({ foreignKey: 'authorId' });
-      expect(personFields.myBookPerson).toMatchObject({ foreignKey: 'authorId' });
+      expect(personFields.myBookPerson).toMatchObject({ originKey: 'authorId' });
     });
   });
 });
