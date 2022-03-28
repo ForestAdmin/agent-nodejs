@@ -18,15 +18,11 @@ class MyCollection extends LocallyCachedCollection {
   // [... Declare structure]
 
   async *loadLastModified(lastThreshold) {
-    while (true) {
-      const response = await axios.get(`https://my-api/my-collection`, {
-        params: { filter: `updatedAt > '${lastThreshold}'`, limit: 1000 },
-      });
+    const response = await axios.get(`https://my-api/my-collection`, {
+      params: { filter: `updatedAt > '${lastThreshold}'` },
+    });
 
-      yield response.body.items;
-
-      if (response.body.items < 1000) break;
-    }
+    yield response.body.items;
 
     // Compute threshold for next call
     return new Date().toISOString();
