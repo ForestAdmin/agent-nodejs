@@ -11,7 +11,7 @@ All connectors need to be able to
 - List and count records
 - Understand `And` nodes in condition trees
 - Understand `Or` nodes in conditions trees
-- Understand the `equal` operator on primary and foreign keys
+- Understand the `equal` operator on primary keys
 - Understand paging (`skip`, `limit`)
 
 {% hint style="warning" %}
@@ -24,7 +24,7 @@ All optional features are opt-in, and need to be specified when constructing a c
 
 ## How to unlock features
 
-The more complete your query translator is, the most forest admin features will be unlocked on your connector
+The more complete your query translator is, the most forest admin features will be unlocked
 
 | Unlocked feature                                             | Needed capabilities                                              |
 | ------------------------------------------------------------ | ---------------------------------------------------------------- |
