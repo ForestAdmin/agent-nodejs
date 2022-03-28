@@ -9,7 +9,7 @@ When logging into the **Forest Admin UI** in your browser, you will connect to:
 As your data transits directly from the agent hosted on your end and the user browser, **it never transits through our servers**.
 {% endhint %}
 
-![](<../assets/Base-documented (1).png>)
+![](<../assets/imported/Base-documented (1).png>)
 
 ## Security
 
@@ -18,7 +18,7 @@ The connection to both servers to the **agent** and the **Forest Admin Servers**
 1. `FOREST_ENV_SECRET` to authenticate all requests made to the **Forest Admin Servers**
 2. `FOREST_AUTH_SECRET` to authenticate all requests made to the **agent**
 
-![](../assets/JWT.png)
+![](../assets/imported/JWT.png)
 
 {% hint style="warning" %}
 `FOREST_ENV_SECRET` is provided by Forest Admin and ensures your **agent** interacts with the relevant environment configuration on our end**.**
@@ -53,22 +53,22 @@ The JWT Data Token contains all the details of the requesting user. On any authe
 
 The **Forest Admin UI** has an option to completely disable any 3rd-party provider that could track data available from your browser to guarantee the respect of data privacy.
 
-![](../assets/No3rdPartyTracking.png)
+![](../assets/imported/No3rdPartyTracking.png)
 
 ### IP Whitelisting
 
 The [IP whitelisting](broken-reference) feature allows you to create a list of trusted IP addresses or IP ranges from which your admin users can both access to the **Forest Admin UI** and interact with your **agent**.
 
-![](../assets/IPWhitelist.png)
+![](../assets/imported/IPWhitelist.png)
 
 ### **DMZ & VPN**
 
 You're free to host your **agent** in the cloud architecture you want to be compliant with your security infrastructure (DMZ, VPN, etc.).
 
-![](<../assets/image (403).png>)
+![](<../assets/imported/image (403).png>)
 
 ## Credentials
 
 We’re already working with companies compliant with the following Industry Standard Certifications.
 
-![](<../assets/image (338).png>)
+![](<../assets/imported/image (338).png>)

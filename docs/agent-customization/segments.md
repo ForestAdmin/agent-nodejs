@@ -4,7 +4,7 @@ A **Segment** is a subset of a collection: it's basically a saved filter of your
 
 Segments are designed for those who want to _systematically_ visualize data according to specific sets of filters. It allows you to save your filters configuration so you don’t have to compute the same actions every day.
 
-![](../assets/screenshot-2019-07-01-17-38-24.png)
+![](../assets/imported/screenshot-2019-07-01-17-38-24.png)
 
 ## Creating a segment from your admin panel
 

@@ -4,13 +4,13 @@
 
 Smart Views lets you code your view using JS, HTML, and CSS. They are taking data visualization to the next level. Ditch the table view and display your orders on a Map, your events in a Calendar, your movies, pictures and profiles in a Gallery. All of that with the easiness of Forest Admin.
 
-![](<../../assets/image (280).png>)
+![](<../../assets/imported/image (280).png>)
 
 ## Creating a Smart View
 
 Forest Admin provides an online editor to inject your Smart View code. The editor is available on the collection’s settings, then in the “Smart views” tab.
 
-![](<../../assets/image (252).png>)
+![](<../../assets/imported/image (252).png>)
 
 The code of a Smart View is an [Ember Component](https://www.emberjs.com/api/ember/2.15.0/classes/Ember.Component) and simply consists of a Template and Javascript code.
 
@@ -290,11 +290,11 @@ Forest Admin automatically injects into your Smart View some actions to trigger 
 
 To apply a Smart view you created, turn on the Layout Editor mode **(1)**, click on the table button **(2)** and drag & drop your Smart View's name in first position inside the dropdown **(3)**:
 
-![](../../assets/screenshot-2019-07-09-11-51-33.png)
+![](../../assets/imported/screenshot-2019-07-09-11-51-33.png)
 
 Your view will refresh automatically. You can now turn off the Layout Editor mode **(4)**.
 
-![](../../assets/screenshot-2019-07-09-11-59-12.png)
+![](../../assets/imported/screenshot-2019-07-09-11-59-12.png)
 
 ### Impact on related data
 
@@ -302,11 +302,11 @@ Once your Smart view is applied, it will also be displayed in your record's rela
 
 #### In the related data section
 
-![](<../../assets/image (281).png>)
+![](<../../assets/imported/image (281).png>)
 
 #### In the summary view
 
-![](<../../assets/image (282).png>)
+![](<../../assets/imported/image (282).png>)
 
 {% hint style="info" %}
 As of today, it's **not** possible to set different views for your table/summary/related data views.

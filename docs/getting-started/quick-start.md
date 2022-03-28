@@ -22,4 +22,4 @@ At the end of your onboarding, you will **out-of-the-box** be able to:
 - Edit your UI **(5)**
 - Search and filter **(6)**
 
-![](<../assets/image (547).png>)
+![](<../assets/imported/image (547).png>)

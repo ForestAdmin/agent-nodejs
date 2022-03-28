@@ -26,8 +26,8 @@ For a simple and hands-on **example** of how to develop on Forest Admin accordin
 
 For a more complete view showcasing each possible scenario of the recommended development workflow, we've drawn the following state **diagram**:
 
-![](<../assets/image (412).png>)
+![](<../assets/imported/image (412).png>)
 
-![](<../assets/image (415).png>)
+![](<../assets/imported/image (415).png>)
 
 In the next pages, we'll cover each step in details.

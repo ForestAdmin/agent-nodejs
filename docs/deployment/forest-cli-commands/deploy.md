@@ -22,7 +22,7 @@ OPTIONS
 
 It is paramount to understand this command before using it:
 
-![](<../../assets/image (425).png>)
+![](<../../assets/imported/image (425).png>)
 
 As you can see in the above figure, the layout changes (Δ) located in your local branch `my-branch` will be **irreversibly applied** to your Production layout. Since your remotes' layout are based on your production's layout, the changes will appear there too.
 
@@ -40,6 +40,6 @@ Staging 2
 
 This is possible **only from a remote** environment:
 
-![](<../../assets/image (426).png>)
+![](<../../assets/imported/image (426).png>)
 
 To deploy your latest layout changes from a remote environment, you may use the **top banner link**: "Deploy to production".
