@@ -41,12 +41,12 @@ agent.customizeCollection('products', collection =>
   // Register segment using raw SQL query
   collection.registerSegment('Bestsellers', async context => {
     const { rows } = await client.query(`
-          SELECT orders.product_id, COUNT(orders.*)
-          FROM orders
-          GROUP BY orders.product_id
-          ORDER BY count DESC
-          LIMIT 10;
-        `);
+      SELECT orders.product_id, COUNT(orders.*)
+      FROM orders
+      GROUP BY orders.product_id
+      ORDER BY count DESC
+      LIMIT 10;
+    `);
 
     return { field: 'id', operator: 'in', value: rows.map(r => r['id']) };
   }),

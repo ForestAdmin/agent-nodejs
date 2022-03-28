@@ -121,36 +121,36 @@ You may have noticed that many operators overlap. In order to make connectors qu
 
 What that means, is that when an operator can be expressed using a combination of other operators, forest admin will perform the substitution automatically using the following table.
 
-| Operator                 | Types         | Automatic replacement                                                |
-| ------------------------ | ------------- | -------------------------------------------------------------------- |
-| present                  | All           | not_equal null and not_equal ''                                      |
-| blank                    | All           | equal null or equal ''                                               |
-| missing                  | All           | equal null                                                           |
-| equal                    | All           | in [$value]                                                          |
-| not_equal                | All but array | not_in [$value]                                                      |
-| in                       | All but array | equal $value or equal $2 or ...                                      |
-| not_in                   | All but array | not_equal $value and not_equal $2 and ...                            |
-| starts_with              | String        | like '$value%'                                                       |
-| ends_with                | String        | like '%$value'                                                       |
-| contains                 | String        | like '%$value%'                                                      |
-| before                   | Date          | less_than $value                                                     |
-| after                    | Date          | greater_than $value                                                  |
-| after_x_hours_ago        | Date          | greater_than $hours_ago($value)                                      |
-| before_x_hours_ago       | Date          | less_than $hours_ago($value)                                         |
-| past                     | Date          | less_than $now                                                       |
-| future                   | Date          | greater_than $now                                                    |
-| previous_month_to_date   | Date          | greater_than $start_of_month & less_than $now                        |
-| previous_month           | Date          | greater_than $start_of_last_month & less_than $end_of_last_month     |
-| previous_quarter_to_date | Date          | greater_than $start_of_quarter & less_than $now                      |
-| previous_quarter         | Date          | greater_than $start_of_last_quarter & less_than $end_of_last_quarter |
-| previous_week_to_date    | Date          | greater_than $start_of_week & less_than $now                         |
-| previous_week            | Date          | greater_than $start_of_last_week & less_than $end_of_last_week       |
-| previous_x_days_to_date  | Date          | greater_than $x_days_ago($value) & less_than $now                    |
-| previous_x_days          | Date          | greater_than $x_days_ago($value) & less_than $start_of_today         |
-| previous_year_to_date    | Date          | greater_than $start_of_year & less_than $now                         |
-| previous_year            | Date          | greater_than $start_of_last_year & less_than $end_of_last_year       |
-| today                    | Date          | greater_than $start_of_today and less_than $end_of_today             |
-| yesterday                | Date          | greater_than $start_of_yesterday and less_than $end_of_yesterday     |
+| Operator                 | Automatic replacement                                                |
+| ------------------------ | -------------------------------------------------------------------- |
+| present                  | not_equal null and not_equal ""                                      |
+| blank                    | equal null or equal ""                                               |
+| missing                  | equal null                                                           |
+| equal                    | in [$value]                                                          |
+| not_equal                | not_in [$value]                                                      |
+| in                       | equal $value or equal $2 or ...                                      |
+| not_in                   | not_equal $value and not_equal $2 and ...                            |
+| starts_with              | like '$value%'                                                       |
+| ends_with                | like '%$value'                                                       |
+| contains                 | like '%$value%'                                                      |
+| before                   | less_than $value                                                     |
+| after                    | greater_than $value                                                  |
+| after_x_hours_ago        | greater_than $hours_ago($value)                                      |
+| before_x_hours_ago       | less_than $hours_ago($value)                                         |
+| past                     | less_than $now                                                       |
+| future                   | greater_than $now                                                    |
+| previous_month_to_date   | greater_than $start_of_month & less_than $now                        |
+| previous_month           | greater_than $start_of_last_month & less_than $end_of_last_month     |
+| previous_quarter_to_date | greater_than $start_of_quarter & less_than $now                      |
+| previous_quarter         | greater_than $start_of_last_quarter & less_than $end_of_last_quarter |
+| previous_week_to_date    | greater_than $start_of_week & less_than $now                         |
+| previous_week            | greater_than $start_of_last_week & less_than $end_of_last_week       |
+| previous_x_days_to_date  | greater_than $x_days_ago($value) & less_than $now                    |
+| previous_x_days          | greater_than $x_days_ago($value) & less_than $start_of_today         |
+| previous_year_to_date    | greater_than $start_of_year & less_than $now                         |
+| previous_year            | greater_than $start_of_last_year & less_than $end_of_last_year       |
+| today                    | greater_than $start_of_today and less_than $end_of_today             |
+| yesterday                | greater_than $start_of_yesterday and less_than $end_of_yesterday     |
 
 In practice:
 
