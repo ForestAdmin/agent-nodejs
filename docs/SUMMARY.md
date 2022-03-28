@@ -35,7 +35,7 @@
     - [Read implementation](connectors/custom/query-translation/read-only.md)
     - [Write implementation](connectors/custom/query-translation/read-write.md)
   - [Implementing relationships](connectors/custom/relationships.md)
-  - [Contribute](connectors/custom/contribute.md)
+  - [Contribute](connectors/contribute.md)
 
 ## Agent customization
 
