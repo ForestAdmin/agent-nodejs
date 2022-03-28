@@ -26,6 +26,9 @@ export async function prepareDatabase(
         defaultValue: Sequelize.fn(dialect === 'mssql' ? 'getdate' : 'now'),
         allowNull: false,
       },
+      capital: {
+        type: DataTypes.ENUM('civil', 'economic', 'cultural'),
+      },
     },
     {
       tableName: 'city',

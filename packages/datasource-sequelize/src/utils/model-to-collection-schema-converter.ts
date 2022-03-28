@@ -106,6 +106,10 @@ export default class ModelToCollectionSchemaConverter {
     )
       column.defaultValue = attribute.defaultValue;
 
+    if (attribute.values) {
+      column.enumValues = [...attribute.values];
+    }
+
     return column;
   }
 
