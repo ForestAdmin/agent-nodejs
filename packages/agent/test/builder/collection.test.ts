@@ -46,11 +46,12 @@ describe('Builder > Collection', () => {
       const collection = agent.rename.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'renameField');
 
-      collectionBuilder.renameField('firstName', 'renamed');
+      const self = collectionBuilder.renameField('firstName', 'renamed');
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'renamed');
       expect(collection.schema.fields.renamed).toBeDefined();
+      expect(self).toEqual(collectionBuilder);
     });
   });
 
@@ -65,11 +66,12 @@ describe('Builder > Collection', () => {
 
       const spy = jest.spyOn(collection, 'changeFieldVisibility');
 
-      collectionBuilder.publishFields(['firstName']);
+      const self = collectionBuilder.publishFields(['firstName']);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', true);
       expect(collection.schema.fields.firstName).toBeDefined();
+      expect(self).toEqual(collectionBuilder);
     });
   });
 
@@ -80,11 +82,12 @@ describe('Builder > Collection', () => {
       const collection = agent.publication.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'changeFieldVisibility');
 
-      collectionBuilder.unpublishFields(['firstName']);
+      const self = collectionBuilder.unpublishFields(['firstName']);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', false);
       expect(collection.schema.fields.firstName).toBeUndefined();
+      expect(self).toEqual(collectionBuilder);
     });
   });
 
@@ -100,11 +103,12 @@ describe('Builder > Collection', () => {
         execute: () => {},
       };
 
-      collectionBuilder.registerAction('action name', actionDefinition);
+      const self = collectionBuilder.registerAction('action name', actionDefinition);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('action name', actionDefinition);
       expect(collection.schema.actions['action name']).toBeDefined();
+      expect(self).toEqual(collectionBuilder);
     });
   });
 
@@ -113,7 +117,7 @@ describe('Builder > Collection', () => {
       const { collectionBuilder } = setup();
       const spy = jest.spyOn(collectionBuilder, 'registerField');
 
-      collectionBuilder.importField('firstNameCopy', { path: 'firstName' });
+      const self = collectionBuilder.importField('firstNameCopy', { path: 'firstName' });
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstNameCopy', {
@@ -123,6 +127,7 @@ describe('Builder > Collection', () => {
         getValues: expect.any(Function),
         sortBy: [{ ascending: true, field: 'firstName' }],
       });
+      expect(self).toEqual(collectionBuilder);
     });
   });
 
@@ -139,11 +144,12 @@ describe('Builder > Collection', () => {
         getValues: () => [],
       };
 
-      collectionBuilder.registerField('new field', fieldDefinition);
+      const self = collectionBuilder.registerField('new field', fieldDefinition);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
       expect(collection.schema.fields['new field']).toBeDefined();
+      expect(self).toEqual(collectionBuilder);
     });
 
     describe('when sort by is emulated', () => {
@@ -160,11 +166,12 @@ describe('Builder > Collection', () => {
           sortBy: 'emulate',
         };
 
-        collectionBuilder.registerField('new field', fieldDefinition);
+        const self = collectionBuilder.registerField('new field', fieldDefinition);
 
         expect(spy).toBeCalledTimes(1);
         expect(spy).toHaveBeenCalledWith('new field');
         expect(collection.schema.fields['new field']).toBeDefined();
+        expect(self).toEqual(collectionBuilder);
       });
     });
 
@@ -182,7 +189,7 @@ describe('Builder > Collection', () => {
           sortBy: [{ field: 'firstName', ascending: true }],
         };
 
-        collectionBuilder.registerField('new field', fieldDefinition);
+        const self = collectionBuilder.registerField('new field', fieldDefinition);
 
         expect(spy).toBeCalledTimes(1);
         expect(spy).toHaveBeenCalledWith(
@@ -190,6 +197,7 @@ describe('Builder > Collection', () => {
           new Sort(...(fieldDefinition.sortBy as SortClause[])),
         );
         expect(collection.schema.fields['new field']).toBeDefined();
+        expect(self).toEqual(collectionBuilder);
       });
     });
 
@@ -207,7 +215,7 @@ describe('Builder > Collection', () => {
           filterBy: 'emulate',
         };
 
-        collectionBuilder.registerField('new field', fieldDefinition);
+        const self = collectionBuilder.registerField('new field', fieldDefinition);
 
         const requiredOperator = FrontendFilterableUtils.getRequiredOperators(
           PrimitiveTypes.String,
@@ -216,6 +224,7 @@ describe('Builder > Collection', () => {
         expect(spy).toBeCalledTimes(requiredOperator.length);
         expect(spy.mock.calls).toEqual(requiredOperator.map(operator => ['new field', operator]));
         expect(collection.schema.fields['new field']).toBeDefined();
+        expect(self).toEqual(collectionBuilder);
       });
     });
   });
@@ -234,11 +243,12 @@ describe('Builder > Collection', () => {
         foreignKeyTarget: 'firstName',
       };
 
-      collectionBuilder.registerJointure('myself', jointureDefinition);
+      const self = collectionBuilder.registerJointure('myself', jointureDefinition);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myself', jointureDefinition);
       expect(collection.schema.fields.myself).toBeDefined();
+      expect(self).toEqual(collectionBuilder);
     });
   });
 
@@ -251,11 +261,12 @@ describe('Builder > Collection', () => {
 
       const generator = async () => new ConditionTreeLeaf('fieldName', Operator.Present);
 
-      collectionBuilder.registerSegment('new segment', generator);
+      const self = collectionBuilder.registerSegment('new segment', generator);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new segment', generator);
       expect(collection.schema.segments).toEqual(expect.arrayContaining(['new segment']));
+      expect(self).toEqual(collectionBuilder);
     });
   });
 
@@ -266,10 +277,11 @@ describe('Builder > Collection', () => {
       const collection = agent.sortEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateSort');
 
-      collectionBuilder.emulateSort('firstName');
+      const self = collectionBuilder.emulateSort('firstName');
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName');
+      expect(self).toEqual(collectionBuilder);
     });
   });
 
@@ -282,10 +294,11 @@ describe('Builder > Collection', () => {
 
       const sortClauses: SortClause[] = [{ field: 'firstName', ascending: true }];
 
-      collectionBuilder.implementSort('firstName', sortClauses);
+      const self = collectionBuilder.implementSort('firstName', sortClauses);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', new Sort(...sortClauses));
+      expect(self).toEqual(collectionBuilder);
     });
   });
 
@@ -296,10 +309,11 @@ describe('Builder > Collection', () => {
       const collection = agent.lateOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateOperator');
 
-      collectionBuilder.emulateOperator('firstName', Operator.Present);
+      const self = collectionBuilder.emulateOperator('firstName', Operator.Present);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', Operator.Present);
+      expect(self).toEqual(collectionBuilder);
     });
   });
 
@@ -312,10 +326,11 @@ describe('Builder > Collection', () => {
 
       const replacer = async () => new ConditionTreeLeaf('fieldName', Operator.NotEqual, null);
 
-      collectionBuilder.implementOperator('firstName', Operator.Present, replacer);
+      const self = collectionBuilder.implementOperator('firstName', Operator.Present, replacer);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', Operator.Present, replacer);
+      expect(self).toEqual(collectionBuilder);
     });
   });
 });
