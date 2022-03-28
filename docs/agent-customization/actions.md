@@ -34,15 +34,15 @@ An action is displayed in the UI only if:
 
 You must make the action visible there if you wish users to be able to see it.
 
-![](../assets/screenshot smart action visibility.png)
+![](../assets/actions-visibility.png)
 
 It will then show in the actions dropdown button:
 
-![](../assets/Capture d’écran 2019-11-27 à 17.00.24.png)
+![](../assets/actions-dropdown.png)
 
 {% hint style='info' %}
 
-At this point, the action does nothing, because no route in your Admin backend handles the API call yet.
+At this point, the action only displays a notification, because no business logic handles is present.
 
 {% endhint %}
 
@@ -71,7 +71,7 @@ Action response can be configured to achieve different types of results.
 return responseBuilder.success();
 ```
 
-![](../assets/Screenshot 2020-05-25 at 17.34.54.png)
+![](../assets/actions-default-success-response.png)
 
 ### Custom success notification
 
@@ -79,7 +79,7 @@ return responseBuilder.success();
 return responseBuilder.success('Company is now live!');
 ```
 
-![](../assets/Screenshot 2020-05-25 at 17.35.40.png)
+![](../assets/actions-custom-success-response.png)
 
 ### Custom error notification
 
@@ -87,4 +87,4 @@ return responseBuilder.success('Company is now live!');
 return responseBuilder.error('The company was already live!');
 ```
 
-![](../assets/Screenshot 2020-05-25 at 17.36.04.png)
+![](../assets/actions-custom-error-response.png)
