@@ -66,11 +66,12 @@ describe('Builder > Collection', () => {
 
       const spy = jest.spyOn(collection, 'changeFieldVisibility');
 
-      collectionBuilder.publishFields(['firstName']);
+      const self = collectionBuilder.publishFields(['firstName']);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', true);
       expect(collection.schema.fields.firstName).toBeDefined();
+      expect(self).toEqual(collectionBuilder);
     });
   });
 
