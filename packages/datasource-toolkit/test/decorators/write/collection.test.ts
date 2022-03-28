@@ -7,8 +7,8 @@ import ValidationError from '../../../src/errors';
 import WriteDecorator from '../../../src/decorators/write/collection';
 
 describe('WriteDecorator', () => {
-  describe('when the a field has an handler', () => {
-    describe('when the field is updated', () => {
+  describe('when the field has an handler', () => {
+    describe('when it is updated', () => {
       it('should provide an handler with a patch and a context', async () => {
         // given
         const dataSource = factories.dataSource.buildWithCollection(
@@ -40,7 +40,7 @@ describe('WriteDecorator', () => {
       });
     });
 
-    describe('when the field is created', () => {
+    describe('when it is created', () => {
       it('should provide a definition with a patch and a context', async () => {
         // given
         const dataSource = factories.dataSource.buildWithCollection(
