@@ -117,6 +117,47 @@ export default (collection: Collection) =>
       },
     })
 
+    .registerAction('Mark as available (Webhook)', {
+      scope: ActionScope.Global,
+      execute: async (context, responseBuilder) => {
+        return responseBuilder.webhook(
+          'http://my-company-name', // The url of the company providing the service.
+          'POST', // The method you would like to use (typically a POST).
+          {}, // You can add some headers if needed.
+          { adminToken: 'your-admin-token' }, // A body to send to the url (only JSON supported).
+        );
+      },
+    })
+
+    .registerAction('Mark as available (File download)', {
+      scope: ActionScope.Global,
+      generateFile: true,
+      execute: async (context, responseBuilder) => {
+        return responseBuilder.file('streamOrBufferOrString', 'filename.txt', 'text/plain');
+      },
+    })
+
+    .registerAction('Mark as available (Refresh related)', {
+      scope: ActionScope.Global,
+      generateFile: true,
+      execute: async (context, responseBuilder) => {
+        return responseBuilder.success('New transaction emitted', {
+          type: 'text',
+          invalidated: ['emitted_transactions'],
+        });
+      },
+    })
+
+    .registerAction('Mark as available (Redirect to)', {
+      scope: ActionScope.Global,
+      generateFile: true,
+      execute: async (context, responseBuilder) => {
+        return responseBuilder.redirectTo(
+          '/MyProject/MyEnvironment/MyTeam/data/20/index/record/20/108/activity',
+        );
+      },
+    })
+
     .registerSegment(
       'Wrote more than 2 books',
       async () => new ConditionTreeLeaf('booksCount', Operator.GreaterThan, 2),
