@@ -51,6 +51,8 @@ This means that filtering for a given field is either enabled or not from the GU
 | String     | `equal`,`not_equal`,`present`,`blank`,`in`,`starts_with`,`ends_with`,`contains`,`not_contains` |
 | Uuid       | `equal`, `not_equal`, `present`, `blank`                                                       |
 
+# Capabilities
+
 ## Write support
 
 Fields may or may not be writable. To make a readonly use the `isReadOnly` flag.
