@@ -25,6 +25,8 @@
 - [Write your own](connectors/custom/README.md)
   - [Structure declaration](connectors/custom/structure.md)
   - [Using a local cache](connectors/custom/local-cache/README.md)
+    - [Read implementation](connectors/custom/local-cache/read-only.md)
+    - [Write implementation](connectors/custom/local-cache/read-write.md)
   - [Using query translation](connectors/custom/query-translation/README.md)
     - [Understanding filters](connectors/custom/query-translation/filters.md)
     - [Understanding projections](connectors/custom/query-translation/projections.md)

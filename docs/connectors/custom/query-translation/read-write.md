@@ -7,9 +7,7 @@ Note that unlike the `list` method, there is no need to support paging here.
 ```javascript
 /** Naive implementation of create, update and delete on a REST API */
 export default class MyCollection extends BaseCollection {
-  constructor() {
-    // [... Declare structure and capabilities]
-  }
+  // [... Declare structure and capabilities]
 
   async list(filter, projection) {
     // [... Implement list]

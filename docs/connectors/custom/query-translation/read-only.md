@@ -5,14 +5,15 @@ Emulation comes to the rescue: all features which are to be implemented when mak
 This enables to be up and running in minutes, and then optimizing your code as you go.
 
 ```javascript
+const { BaseCollection } = require('@forestadmin/connector-toolkit');
+const axios = require('axios');
+
 /**
  * This collection will have terrible performance, but is perfect to test that the structure
  * declaration is well done.
  */
 export default class MyCollection extends BaseCollection {
-  constructor() {
-    // [... Declare structure and capabilities]
-  }
+  // [... Declare structure and capabilities]
 
   async list(filter, projection) {
     // Fetch all records on all requests (this is _very_ inefficient)
@@ -49,14 +50,11 @@ The `aggregate` method is used by forest admin both to count records and to extr
 If the API/Database you are targeting have an efficient API which is made for counting records, you may want to handle this case first: performance-wise the return over investment will be larger as count queries are frequent.
 
 ```javascript
-export default class MyCollection extends BaseCollection {
-  constructor() {
-    // [... Declare structure and capabilities]
-  }
+const { BaseCollection } = require('@forestadmin/connector-toolkit');
+const axios = require('axios');
 
-  async list(filter, projection) {
-    // [... Implement list]
-  }
+export default class MyCollection extends BaseCollection {
+  // [... Declare structure, capabilities and list method]
 
   async aggregate(filter, aggregation, limit) {
     const isCountQuery =
