@@ -167,7 +167,7 @@ The minimal list of operators which is sufficient to have them all is the follow
 
 # Paging
 
-A paging clause tells your connector which page of the data should be retrieved.
+A paging clause tells the connector which page of the data should be retrieved.
 
 ## Examples
 

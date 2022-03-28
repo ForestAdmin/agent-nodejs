@@ -28,9 +28,6 @@
     - [Read implementation](connectors/custom/local-cache/read-only.md)
     - [Write implementation](connectors/custom/local-cache/read-write.md)
   - [Using query translation](connectors/custom/query-translation/README.md)
-    - [Understanding filters](connectors/custom/query-translation/filters.md)
-    - [Understanding projections](connectors/custom/query-translation/projections.md)
-    - [Understanding aggregations](connectors/custom/query-translation/aggregations.md)
     - [Capabilities declaration](connectors/custom/query-translation/capabilities.md)
     - [Read implementation](connectors/custom/query-translation/read-only.md)
     - [Write implementation](connectors/custom/query-translation/read-write.md)
@@ -85,4 +82,8 @@
 
 ## Under the hood
 
+- [Understanding Queries](under-the-hood/queries/README.md)
+  - [Filters](under-the-hood/queries/filters.md)
+  - [Projections](under-the-hood/queries/projections.md)
+  - [Aggregations](under-the-hood/queries/aggregations.md)
 - [Security & Privacy](under-the-hood/security-privacy.md)
