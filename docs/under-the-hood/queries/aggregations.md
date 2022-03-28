@@ -1,10 +1,10 @@
 An aggregation represents a query to a collection which aggregates on records.
 
-Aggregations are simple three entries objects:
+They are simple three keys objects:
 
-- An operation which specify how the data should be aggregated (`Count`, `Sum`, `Avg`, `Max`, `Min`)
-- A field, which specify the data that should be aggregated
-- Groups, which may be rounded when they are Dates
+- An `operation` which specify how the data should be aggregated (`Count`, `Sum`, `Avg`, `Max`, `Min`)
+- A `field`, which specify the data that should be aggregated
+- `Groups`, which may be rounded when they are Dates
 
 Supported group rounding operations are: `Year`, `Month`, `Week`, `Day` and `null` (let the field as it is).
 

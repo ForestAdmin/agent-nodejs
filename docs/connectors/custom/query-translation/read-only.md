@@ -47,7 +47,7 @@ export default class MyCollection extends BaseCollection {
 
 The `aggregate` method is used by forest admin both to count records and to extract the data which is needed to generate charts.
 
-If the API/Database you are targeting have an efficient API which is made for counting records, you may want to handle this case first: performance-wise the return over investment will be larger as count queries are frequent.
+If the API/Database you are targeting have an efficient API which is made for counting records, you may want to handle this case first.
 
 ```javascript
 const { BaseCollection } = require('@forestadmin/connector-toolkit');
@@ -57,23 +57,21 @@ export default class MyCollection extends BaseCollection {
   // [... Declare structure, capabilities and list method]
 
   async aggregate(filter, aggregation, limit) {
-    const isCountQuery =
-      aggregation.operation === 'Count' && aggregation.groups.length === 0 && !aggregation.field;
+    const { operation, fields, groups } = aggregation;
 
-    if (isCountQuery) {
-      const response = await axios.get(
-        `https://my-api/my-collection/count?filter=${this._translateFilter(filter)}`,
-      );
-
-      return response.body.count;
-    } else {
-      // Fetch all records which should be aggregated
-      const records = await this.list(filter, aggregation.projection);
-
-      // Use "in-process emulation" to aggregate the results
-      const rows = aggregation.apply(records, filter.timezone);
-      return limit ? rows.slice(0, limit) : rows;
+    if (operation === 'Count' && groups.length === 0 && !field) {
+      return [{ value: await this.count(filter) }];
     }
+
+    // [... handle the general case]
+  }
+
+  async count(filter) {
+    const response = await axios.get(
+      `https://my-api/my-collection/count?filter=${this._translateFilter(filter)}`,
+    );
+
+    return response.body.count;
   }
 
   private _translateFilter(filter) {
