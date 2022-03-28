@@ -4,7 +4,7 @@ Field identifiers simply are strings that identify a column in the context of a 
 
 If we consider the following collections
 
-![books, author and reviews](../../assets/collection-relations.png)
+![books, authors and reviews](../../assets/collection-relations.png)
 
 | Context | Field                | Valid ?                                                               |
 | ------- | -------------------- | --------------------------------------------------------------------- |
