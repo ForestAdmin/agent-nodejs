@@ -46,7 +46,7 @@ In this example we choose to:
 - Gradually increase the page size up to a limit when we need to catch-up
 
 ```javascript
-const { BaseCollection } = require('@forestadmin/connector-toolkit');
+const { LocallyCachedCollection } = require('@forestadmin/connector-toolkit');
 const axios = require('axios'); // client for the target API
 
 class MyCollection extends LocallyCachedCollection {

@@ -1,12 +1,12 @@
 Making your records editable is achieved by implementing the `create`, `update` and `delete` methods.
 
-The three methods take a [filter](./filters.md) as parameter, but note that unlike the `list` method, there is no need to support paging.
-
 ```javascript
-/** Naive implementation of create, update and delete on a REST API */
-export default class MyCollection extends BaseCollection {
+const { LocallyCachedCollection } = require('@forestadmin/connector-toolkit');
+const axios = require('axios'); // client for the target API
+
+class MyCollection extends LocallyCachedCollection {
   constructor() {
-    // [... Declare structure and capabilities]
+    // [... Declare structure]
 
     // Tell Forest Admin which fields can be edited
     this.addField('id', {
@@ -20,6 +20,8 @@ export default class MyCollection extends BaseCollection {
     });
   }
 
+  // [... Declare list and aggregation methods]
+
   async create(records) {
     const promises = records.map(async record => {
       const response = await axios.post('https://my-api/my-collection', record);
@@ -29,8 +31,7 @@ export default class MyCollection extends BaseCollection {
     return Promise.all(promises); // Must return newly created records
   }
 
-  async update(filter, patch) {
-    const records = await this.list(filter, ['id']); // Retrieve ids
+  async update(ids, patch) {
     const promises = records.map(async ({ id }) => {
       await axios.patch(`https://my-api/my-collection/${id}`, patch);
     });
@@ -38,8 +39,7 @@ export default class MyCollection extends BaseCollection {
     await Promise.all(promises);
   }
 
-  async delete(filter) {
-    const records = await this.list(filter, ['id']); // Retrieve ids
+  async delete(ids) {
     const promises = records.map(async ({ id }) => {
       await axios.delete(`https://my-api/my-collection/${id}`);
     });

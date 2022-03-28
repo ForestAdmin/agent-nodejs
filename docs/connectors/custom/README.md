@@ -41,7 +41,7 @@ Query Translation:
 {% tabs %} {% tab title="Using a local cache" %}
 
 ```javascript
-const { BaseCollection, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
+const { LocallyCachedCollection, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
 const axios = require('my-api-client'); // client for the target API
 
 class MyCollection extends LocallyCachedCollection {
