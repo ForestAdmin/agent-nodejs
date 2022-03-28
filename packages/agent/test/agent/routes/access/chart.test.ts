@@ -69,7 +69,7 @@ describe('ChartRoute', () => {
   });
 
   describe('on value chart', () => {
-    test('should call the collection aggregate with the correct parameters ', async () => {
+    test('should call the collection aggregate with the correct parameters', async () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'aggregate')
         .mockResolvedValue([{ value: 1234, group: null }]);
@@ -284,7 +284,7 @@ describe('ChartRoute', () => {
   });
 
   describe('on objective chart', () => {
-    test('it should call the collection aggregate with the correct parameters ', async () => {
+    test('it should call the collection aggregate with the correct parameters', async () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'aggregate')
         .mockResolvedValueOnce([{ value: 1234, group: null }]);
@@ -328,7 +328,7 @@ describe('ChartRoute', () => {
   });
 
   describe('on pie chart', () => {
-    test('it should call the collection aggregate with the correct parameters ', async () => {
+    test('it should call the collection aggregate with the correct parameters', async () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'aggregate')
         .mockResolvedValueOnce([{ value: 1234, group: { 'author:firstName': 'Victor Hugo' } }]);
@@ -376,7 +376,7 @@ describe('ChartRoute', () => {
   });
 
   describe('on line chart', () => {
-    test('it should call the collection aggregate with the correct parameters ', async () => {
+    test('it should call the collection aggregate with the correct parameters', async () => {
       jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
         {
           value: 1234,

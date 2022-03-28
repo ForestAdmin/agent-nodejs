@@ -7,21 +7,10 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-import { Readable } from 'stream';
 
 import * as factories from '../__factories__';
 import CsvGenerator, { CHUNK_SIZE } from '../../../src/agent/utils/csv-generator';
-
-// eslint-disable-next-line import/prefer-default-export
-export const readCsv = async (generator: AsyncGenerator<string>) => {
-  const csvResult = [];
-
-  for await (const csv of Readable.from(generator) as Readable) {
-    csvResult.push(csv);
-  }
-
-  return csvResult;
-};
+import readCsv from '../__helper__/read-csv';
 
 describe('CsvGenerator', () => {
   describe('generate', () => {
