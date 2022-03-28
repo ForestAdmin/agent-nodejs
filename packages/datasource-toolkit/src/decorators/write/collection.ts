@@ -22,7 +22,7 @@ export default class WriteDecorator extends CollectionDecorator {
   implement(fieldName: string, definition: WriteHandlerDefinition): void {
     if (!Object.keys(this.schema.fields).includes(fieldName)) {
       throw new Error(
-        `The given field ${fieldName} does not exist on the ${this.name} collection.`,
+        `The given field "${fieldName}" does not exist on the ${this.name} collection.`,
       );
     }
 

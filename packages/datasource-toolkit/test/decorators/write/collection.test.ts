@@ -43,7 +43,7 @@ describe('WriteDecorator', () => {
     );
 
     expect(() => decoratedCollection.implement('NOT EXIST', definition)).toThrowError(
-      'The given field NOT EXIST does not exist on the books collection.',
+      'The given field "NOT EXIST" does not exist on the books collection.',
     );
   });
 
