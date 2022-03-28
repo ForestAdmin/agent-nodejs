@@ -570,9 +570,8 @@ describe('WriteDecorator', () => {
 
         describe('with one to one relation', () => {
           it('updates the right relation collection with the right params', async () => {
-            const { collection, dataSource } = setupWithOneToOneRelation();
-
             // given
+            const { collection, dataSource } = setupWithOneToOneRelation();
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const titleDefinition = jest
               .fn()
@@ -941,10 +940,10 @@ describe('WriteDecorator', () => {
 
         describe('when the foreign key is given', () => {
           it('updates the relation and attaches to the new collection', async () => {
+            // given
             const { collection, dataSource } = setupWithOneToOneRelation();
             const ownersCollection = dataSource.getCollection('owners');
 
-            // given
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const titleDefinition = jest
               .fn()
@@ -976,6 +975,7 @@ describe('WriteDecorator', () => {
       describe('with many to one relation', () => {
         describe('when the relation does not exist', () => {
           it('creates the relation and attaches to the new collection', async () => {
+            // given
             const { collection, dataSource } = setupWithManyToOneRelation();
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
@@ -1054,6 +1054,7 @@ describe('WriteDecorator', () => {
             };
 
             it('creates the relations and attaches to the new collection', async () => {
+              // given
               const { collection, dataSource } = setupWithTwoManyToOneRelations();
               const authorsCollection = dataSource.getCollection('authors');
               const formatsCollection = dataSource.getCollection('formats');
@@ -1094,6 +1095,7 @@ describe('WriteDecorator', () => {
 
         describe('when the foreign key is given', () => {
           it('updates the relation and attaches to the new collection', async () => {
+            // given
             const { collection, dataSource } = setupWithManyToOneRelation();
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
