@@ -1,9 +1,4 @@
-Implementing a connector using the "local cache" strategy is much quicker than using the "query translation" strategy:
-
-- Forest Admin will take care of implementing all read operations (no need to translate queries)
-- Your connectors natively supports all query operations (no need to declare capabilities)
-
-In order to do that, Forest Admin needs to be able to always maintain an up-to-date local copy of the data which is stored in the target.
+With the "local cache" strategy, Forest Admin needs to be able to always maintain an up-to-date copy of the data which is stored in the target API.
 
 This is achieved by implementing a single method which allow to access _records which have changed_.
 
