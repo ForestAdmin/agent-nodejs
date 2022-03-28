@@ -9,7 +9,7 @@ import WriteDecorator from '../../../src/decorators/write/collection';
 describe('WriteDecorator', () => {
   const definition = jest.fn().mockImplementation();
 
-  const setupWithDecoratedBookCollectionAsReadOnly = () => {
+  const setupWithReadOnlyFields = () => {
     const dataSource = factories.dataSource.buildWithCollection(
       factories.collection.build({
         name: 'books',
@@ -33,7 +33,7 @@ describe('WriteDecorator', () => {
   };
 
   it('should set as false a isReadOnly schema attribute', () => {
-    const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+    const { collection, dataSource } = setupWithReadOnlyFields();
 
     const decoratedCollection = new WriteDecorator(collection, dataSource);
     decoratedCollection.implement('name', definition);
@@ -43,7 +43,7 @@ describe('WriteDecorator', () => {
   });
 
   it('should throw an error when the registered name does not exist', () => {
-    const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+    const { collection, dataSource } = setupWithReadOnlyFields();
 
     const decoratedCollection = new WriteDecorator(collection, dataSource);
 
@@ -54,7 +54,7 @@ describe('WriteDecorator', () => {
 
   describe('definition(): void', () => {
     it('should trigger the definition function to update it', async () => {
-      const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+      const { collection, dataSource } = setupWithReadOnlyFields();
 
       const decoratedCollection = new WriteDecorator(collection, dataSource);
       decoratedCollection.implement('name', definition);
@@ -69,7 +69,7 @@ describe('WriteDecorator', () => {
     });
 
     it('updates child collection without the triggered definition column', async () => {
-      const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+      const { collection, dataSource } = setupWithReadOnlyFields();
 
       const decoratedCollection = new WriteDecorator(collection, dataSource);
       decoratedCollection.implement('name', definition);
@@ -86,7 +86,7 @@ describe('WriteDecorator', () => {
 
     describe('when many columns have a definition', () => {
       it('should trigger all the definition function to update it', async () => {
-        const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+        const { collection, dataSource } = setupWithReadOnlyFields();
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
         const nameDefinition = jest.fn();
@@ -109,7 +109,7 @@ describe('WriteDecorator', () => {
       });
 
       it('the given record in the context of the definition should be a copy', async () => {
-        const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+        const { collection, dataSource } = setupWithReadOnlyFields();
         const decoratedCollection = new WriteDecorator(collection, dataSource);
 
         const nameDefinition = jest.fn().mockImplementation((patch, context) => {
@@ -137,7 +137,7 @@ describe('WriteDecorator', () => {
       });
 
       it('updates child collection without the columns where there ars definitions', async () => {
-        const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+        const { collection, dataSource } = setupWithReadOnlyFields();
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
         const nameDefinition = jest.fn();
@@ -233,7 +233,7 @@ describe('WriteDecorator', () => {
 
     describe('update', () => {
       it('should provide a definition method with a patch and a context', async () => {
-        const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+        const { collection, dataSource } = setupWithReadOnlyFields();
         collection.update = jest.fn().mockResolvedValue({ name: 'a name' });
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
@@ -248,7 +248,7 @@ describe('WriteDecorator', () => {
       });
 
       it('updates child collection with the result of the definition', async () => {
-        const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+        const { collection, dataSource } = setupWithReadOnlyFields();
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
 
@@ -268,7 +268,7 @@ describe('WriteDecorator', () => {
 
       describe('when the definition does not return a valid record', () => {
         it('should throw an error', async () => {
-          const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+          const { collection, dataSource } = setupWithReadOnlyFields();
 
           const decoratedCollection = new WriteDecorator(collection, dataSource);
           const ageDefinition = jest.fn().mockResolvedValue('RETURN_SHOULD_FAIL');
@@ -285,7 +285,7 @@ describe('WriteDecorator', () => {
       describe('when the definition returns a relation value', () => {
         describe('when it returns a unknown relation', () => {
           it('should throw an error', async () => {
-            const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+            const { collection, dataSource } = setupWithReadOnlyFields();
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const ageDefinition = jest.fn().mockResolvedValue({ book: { title: 'A title' } });
@@ -464,7 +464,7 @@ describe('WriteDecorator', () => {
 
         describe('when many columns have a write definition', () => {
           it('updates child collection with the definition results', async () => {
-            const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+            const { collection, dataSource } = setupWithReadOnlyFields();
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const nameDefinition = jest.fn().mockResolvedValue({ name: 'changed name' });
@@ -486,7 +486,7 @@ describe('WriteDecorator', () => {
 
         describe('when the definition returns a column value with a write definition', () => {
           it('should trigger the targeted definition', async () => {
-            const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+            const { collection, dataSource } = setupWithReadOnlyFields();
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const nameDefinition = jest.fn().mockResolvedValue({ name: 'triggeredChangedName' });
@@ -502,7 +502,7 @@ describe('WriteDecorator', () => {
           });
 
           it('should trigger as long as there is definition targeted', async () => {
-            const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+            const { collection, dataSource } = setupWithReadOnlyFields();
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const pricedefinition = jest.fn().mockResolvedValue({ price: 'triggeredChangedPrice' });
@@ -520,7 +520,7 @@ describe('WriteDecorator', () => {
           });
 
           it('throws an error if the same definition is triggered several times', async () => {
-            const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+            const { collection, dataSource } = setupWithReadOnlyFields();
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const nameDefinition = jest.fn().mockResolvedValue({ name: 'triggeredSecondTime' });
@@ -541,7 +541,7 @@ describe('WriteDecorator', () => {
           });
 
           it('should throw an error if there is a cyclic dependency', async () => {
-            const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+            const { collection, dataSource } = setupWithReadOnlyFields();
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const nameDefinition = jest.fn().mockResolvedValue({ age: 'cyclic dependency' });
@@ -563,7 +563,7 @@ describe('WriteDecorator', () => {
 
     describe('create ', () => {
       it('should provide a definition with a patch and a context', async () => {
-        const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+        const { collection, dataSource } = setupWithReadOnlyFields();
         collection.create = jest.fn().mockResolvedValue([{ name: 'a name' }]);
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
@@ -578,7 +578,7 @@ describe('WriteDecorator', () => {
       });
 
       it('calls create on child collection with the result of the definition', async () => {
-        const { collection, dataSource } = setupWithDecoratedBookCollectionAsReadOnly();
+        const { collection, dataSource } = setupWithReadOnlyFields();
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
 

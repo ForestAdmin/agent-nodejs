@@ -16,20 +16,5 @@ export default async function makeAgent(options: AgentOptions) {
     .addDatasource(await preparePostgresDataSource())
 
     .customizeCollection('persons', customizePersons)
-    .customizeCollection('user', customizeUsers)
-
-    .customizeCollection('mysqlCity', collection => {
-      collection.implementWrite('city', async patch => {
-        return {
-          mysqlCountry: { country: `${patch}-edited`, mysqlPresident: { president: patch } },
-          countryId: 101,
-          city: 'lignan',
-        };
-      });
-    })
-    .customizeCollection('mysqlPresident', collection => {
-      collection.implementWrite('president', async patch => {
-        return { president: `${patch}-MONSTER-modified` };
-      });
-    });
+    .customizeCollection('user', customizeUsers);
 }

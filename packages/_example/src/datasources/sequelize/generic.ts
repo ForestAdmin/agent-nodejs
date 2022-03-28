@@ -63,32 +63,6 @@ export async function prepareDatabase(
     },
   );
 
-  const President = sequelize.define(
-    `${dialect}President`,
-    {
-      presidentId: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-        allowNull: false,
-      },
-      president: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      lastUpdate: {
-        type: DataTypes.DATE,
-        defaultValue: Sequelize.fn(dialect === 'mssql' ? 'getdate' : 'now'),
-        allowNull: false,
-      },
-    },
-    {
-      tableName: 'president',
-      underscored: true,
-      timestamps: false,
-    },
-  );
-
   const Address = sequelize.define(
     `${dialect}Address`,
     {
@@ -121,7 +95,6 @@ export async function prepareDatabase(
     },
   );
 
-  Country.hasOne(President, { foreignKey: 'countryId', sourceKey: 'countryId' });
   Country.hasMany(City, { foreignKey: 'countryId', sourceKey: 'countryId' });
   City.belongsTo(Country, { foreignKey: 'countryId', targetKey: 'countryId' });
   City.hasMany(Address, { foreignKey: 'cityId', sourceKey: 'cityId' });
