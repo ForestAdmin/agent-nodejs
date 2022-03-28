@@ -8,7 +8,7 @@ import ProjectionValidator from '../../../validation/projection';
 export default class ActionContext {
   readonly collection: Collection;
   readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  protected filter: Filter;
+  public filter: Filter;
 
   private queries: Array<{ projection: Projection; deferred: Deferred<RecordData[]> }>;
   private projection: Projection;

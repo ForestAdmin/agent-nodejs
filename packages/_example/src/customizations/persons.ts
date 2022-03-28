@@ -83,9 +83,37 @@ export default (collection: Collection) =>
         },
       ],
       execute: async (context, responseBuilder) => {
+        context.collection.update(context.filter, { status: 'Live' });
+
         return responseBuilder.success(
           `Hello ${context.formValues['How should we refer to you?']}!`,
         );
+      },
+    })
+
+    .registerAction('Mark as available (Single)', {
+      scope: ActionScope.Single,
+      execute: async (context, responseBuilder) => {
+        await context.collection.update(context.filter, { firstName: 'Anonymized' });
+
+        return responseBuilder.success('Book marked as available!');
+      },
+    })
+
+    .registerAction('Mark as available (Bulk)', {
+      scope: ActionScope.Bulk,
+      execute: async (context, responseBuilder) => {
+        return responseBuilder.success('Book marked as available!');
+      },
+    })
+
+    .registerAction('Mark as available (Global)', {
+      scope: ActionScope.Global,
+      execute: async (context, responseBuilder) => {
+        // @ts-ignore
+        console.log(context.filter);
+
+        return responseBuilder.success('Book marked as available!');
       },
     })
 
