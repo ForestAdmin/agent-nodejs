@@ -18,6 +18,8 @@ The simplest possible query is to count records from a collection
 
 Equivalent in SQL : `SELECT COUNT(*) FROM books`
 
+Equivalent in Mongo: `{ $count: 'value' }`
+
 ### Average rating
 
 ```json
@@ -26,6 +28,8 @@ Equivalent in SQL : `SELECT COUNT(*) FROM books`
 
 Equivalent in SQL : `SELECT AVG(rating) FROM books`
 
+Equivalent in Mongo: `{ $group: { _id: null, rating: { $avg: "$rating" } } }`
+
 ### Average rating by author
 
 ```json
@@ -33,6 +37,8 @@ Equivalent in SQL : `SELECT AVG(rating) FROM books`
 ```
 
 Equivalent in SQL : `SELECT authorName, AVG(rating) FROM books GROUP BY 1`
+
+Equivalent in Mongo: `{ $group: { _id: "$authorName", rating: { $avg: "$rating" } } }`
 
 ### Average rating by author and year
 
@@ -45,3 +51,5 @@ Equivalent in SQL : `SELECT authorName, AVG(rating) FROM books GROUP BY 1`
 ```
 
 Equivalent in SQL : `SELECT authorName, TO_YEAR(createdAt), AVG(rating) FROM books GROUP BY 1, 2`
+
+Equivalent in Mongo: `{ $group: { _id: { author: "$authorName", created: { $year: "$createdAt" }, rating: { $avg: "$rating" } } }`

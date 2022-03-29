@@ -49,15 +49,10 @@ Which one should you use?
 | Learning curve           | Use the same query interface for any SaaS | Different API for each database / SaaS |
 | Differentiating features | Can make cross-connector requests         | Use all features of the underlying API |
 
-# Examples
+## Read operations
 
 ```javascript
-const { SqlDataSource } = require('@forestadmin/datasource-sql');
-
-const datasource = new SqlDataSource('postgres://localhost:5432/myDb');
-const books = datasource.getCollection('books');
-
-const lastBooks = await books.list(
+const lastBooks = await dataSource.getCollection('books').list(
   {
     sort: [{ field: 'createdAt', ascending: false }],
     page: { skip: 0, limit: 2 },
@@ -68,11 +63,15 @@ const lastBooks = await books.list(
 //   { id: 1, title: 'Foudation', author: { name: 'Asimov' } }
 //   { id: 2, title: 'Beat the dealer', author: { name: 'Thorp' } }
 // ]
+```
 
-const numBooks = await books.aggregate({}, { operation: 'Count' });
+```javascript
+const numBooks = await dataSource.getCollection('books').aggregate({}, { operation: 'Count' });
 // => 45
+```
 
-const avgRatingByAuthor = await books.aggregate(
+```javascript
+const avgRatingByAuthor = await dataSource.getCollection('books').aggregate(
   {
     conditionTree: { field: 'createdAt', operator: 'less_than', value: '2010-01-01' },
   },
@@ -84,16 +83,10 @@ const avgRatingByAuthor = await books.aggregate(
   3,
 );
 // => [
-//   { rating: 23, group: { 'author:name': 'Asimov' } },
-//   { rating: 33, group: { 'author:name': 'Thorp' } },
-//   { rating: 44, group: { 'author:name': 'Hugo' } }
+// { rating: 23, group: { 'author:name': 'Asimov' } },
+// { rating: 33, group: { 'author:name': 'Thorp' } },
+// { rating: 44, group: { 'author:name': 'Hugo' } }
 // ]
 ```
 
-# Datasour
-
-## Listing records
-
-```javascript
-
-```
+## Writing operations
