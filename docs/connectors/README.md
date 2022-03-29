@@ -30,7 +30,7 @@ const SqlConnector = require('@forestadmin/datasource-sql');
 const agent = new Agent(options);
 const database = new SqlConnector('postgres://user:pass@localhost:5432/mySchema');
 
-agent.importCollectionsFrom(database);
+agent.addDataSource(database);
 ```
 
 ## Partial imports
@@ -46,9 +46,8 @@ const IntercomConnector = require('@forestadmin/datasource-intercom');
 
 const agent = new Agent(options);
 const stripe = new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
-const intercom = new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' });
 
-agent.importCollectionsFrom(stripe, {
+agent.addDataSource(stripe, {
   restrict: {
     // Skip 'visitors' collections
     collections: ['!visitors'],
@@ -57,7 +56,7 @@ agent.importCollectionsFrom(stripe, {
     actions: [],
 
     // Import all fields (this is the default)
-    fields: ['*'],
+    fields: ['users.*', 'books.id', 'books.title'],
 
     // Import only segments of the 'charges' collection
     segments: ['charges.*'],
@@ -83,14 +82,14 @@ const stripe = new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' 
 const intercom = new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' });
 
 // Rename stripe collections by providing replacements
-agent.importCollectionsFrom(stripe, {
+agent.addDataSource(stripe, {
   rename: {
     customers: 'stripeCustomer',
   },
 });
 
 // Rename intercom collections with a function
-agent.importCollectionsFrom(intercom, {
+agent.addDataSource(intercom, {
   rename: name => `intercom${name[0].toUpperCase()}${name.substring(1)}`,
 });
 ```

@@ -7,7 +7,7 @@ const { BaseCollection } = require('@forestadmin/datasource-toolkit');
 const axios = require('axios'); // client for the target API
 
 /** Naive implementation of create, update and delete on a REST API */
-export default class MyCollection extends BaseCollection {
+class MyCollection extends BaseCollection {
   constructor() {
     this.addField('id', { /* ... */ isReadOnly: true });
     this.addField('title', { /* ... */ isReadOnly: false });

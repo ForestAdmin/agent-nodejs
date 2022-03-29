@@ -27,6 +27,6 @@ const SqlConnector = require('@forestadmin/datasource-sql');
 
 // Create agent and import collections from SQL database
 const agent = new Agent(options);
-agent.importCollectionsFrom(new SqlConnector('postgres://user:pass@localhost:5432/mySchema'));
+agent.addDataSource(new SqlConnector('postgres://user:pass@localhost:5432/mySchema'));
 ```
 -->

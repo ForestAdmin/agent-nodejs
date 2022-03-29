@@ -1,8 +1,8 @@
 Custom connectors are the answer to the need to import collections from either
 
+- Your own in-house APIs.
 - Unsupported databases
 - Unsupported SaaS providers
-- Your own in-house APIs.
 
 Forest Admin is built so that it does not know need the nature of the datasource it is speaking to, at long as it exposes a given interface.
 
@@ -17,7 +17,7 @@ When creating a custom connector two strategies can be used:
 | Recommended for  | SaaS and APIs                                                                                | Databases or APIs with advanced query capabilities                                |
 | How does it work | All data is cached locally for read operations, write operations are forwarded to the target | The connector translates all forest admin queries to the target API on real time. |
 | Preconditions    | Low: Target API can either sort or filter by last modification                               | High: Target API is capable of expressing filters, aggregating data, ...          |
-| Pros             | Easy to implement and fast (uses sqlite under the hood)                                      | No disk usage and no limits on quantity of data                                   |
+| Pros             | Easy to implement and fast                                                                   | No disk usage and no limits on quantity of data                                   |
 | Cons             | Slower agent start, Disk Usage, Quantity of data may be too large                            | More difficult to implement, and can be slow depending on target                  |
 
 ## Steps
@@ -38,16 +38,16 @@ Query Translation:
 
 ## Minimal example
 
-{% tabs %} {% tab title="Using a local cache" %}
+{% tabs %} {% tab title="Connector: Using a local cache" %}
 
 ```javascript
 const { CachedCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
 const axios = require('my-api-client'); // client for the target API
 
 class MyCollection extends CachedCollection {
-  constructor() {
+  constructor(dataSource) {
     // Set name of the collection once imported
-    super('myCollection');
+    super('myCollection', dataSource);
 
     // Add fields
     this.addField('id', {
@@ -81,9 +81,20 @@ class MyCollection extends CachedCollection {
     return new Date().toISOString();
   }
 }
+
+class MyDataSource extends CachedDataSource {
+  constructor() {
+    super(
+      'sqlite::memory:', // Cache data in memory (avoid in production)
+      [new MyCollection(this)], // List of your collections
+    );
+  }
+}
+
+module.exports = MyDataSource;
 ```
 
-{% endtab %} {% tab title="Using query translation" %}
+{% endtab %} {% tab title="Connector: Using query translation" %}
 
 ```javascript
 const { BaseCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
@@ -145,17 +156,25 @@ class MyCollection extends BaseCollection {
   }
 }
 
-module.exports = MyCollection;
+class MyDataSource extends BaseDataSource {
+  constructor() {
+    super(
+      [new MyCollection(this)], // List of your collections
+    );
+  }
+}
+
+module.exports = MyDataSource;
 ```
 
-{% endtab %} {% tab title="Using the connector" %}
+{% endtab %} {% tab title="Agent: Using the connector" %}
 
 ```javascript
-const MyConnectorCollection = require('./datasource-collection');
+const MyDataSource = require('./connector');
 
 const agent = new Agent(options);
 
-agent.importCollection(new MyConnectorCollection());
+agent.addDatasource(new MyDataSource());
 ```
 
 {% endtab %} {% endtabs %}

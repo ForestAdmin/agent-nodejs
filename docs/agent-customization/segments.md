@@ -32,7 +32,7 @@ client.connect();
 const agent = new Agent(options);
 
 // Import collections from database
-agent.importCollectionsFrom(new SqlConnector('postgres://localhost:5432/myDb'));
+agent.addDataSource(new SqlConnector('postgres://localhost:5432/myDb'));
 
 // Customize collection (we want to add a segment)
 agent.customizeCollection('products', collection =>

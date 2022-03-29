@@ -21,8 +21,8 @@ const database = new SqlConnector('postgres://user:pass@localhost:5432/mySchema'
 const intercom = new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' });
 
 // Plug connectors
-agent.importCollectionsFrom(database);
-agent.importCollectionsFrom(intercom);
+agent.addDataSource(database);
+agent.addDataSource(intercom);
 
 // Link 'customer' from database ...
 agent.customizeCollection('customers', collection =>

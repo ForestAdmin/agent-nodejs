@@ -26,5 +26,5 @@ User.init(
 // Create agent and import collections from sequelize
 const agent = new Agent(options);
 
-agent.importCollectionsFrom(new SequelizeConnector(sequelize));
+agent.addDataSource(new SequelizeConnector(sequelize));
 ```

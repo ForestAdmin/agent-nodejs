@@ -12,7 +12,7 @@ const axios = require('axios');
  * This collection will have terrible performance, but is perfect to test that the structure
  * declaration is well done.
  */
-export default class MyCollection extends BaseCollection {
+class MyCollection extends BaseCollection {
   // [... Declare structure and capabilities]
 
   async list(filter, projection) {
@@ -53,7 +53,7 @@ If the API/Database you are targeting have an efficient API which is made for co
 const { BaseCollection } = require('@forestadmin/datasource-toolkit');
 const axios = require('axios');
 
-export default class MyCollection extends BaseCollection {
+ class MyCollection extends BaseCollection {
   // [... Declare structure, capabilities and list method]
 
   async aggregate(filter, aggregation, limit) {

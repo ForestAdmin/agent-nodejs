@@ -26,6 +26,6 @@ const User = mongoose.model('User', {
 // Create agent and import collections from mongoose
 const agent = new Agent(options);
 
-agent.importCollectionsFrom(new MongooseConnector(mongoose.connection));
+agent.addDataSource(new MongooseConnector(mongoose.connection));
 ```
 -->
