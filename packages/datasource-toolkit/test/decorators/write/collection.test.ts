@@ -9,7 +9,7 @@ import WriteDecorator from '../../../src/decorators/write/collection';
 describe('WriteDecorator', () => {
   describe('when the field has an handler', () => {
     describe('when it is updated', () => {
-      it('should provide an handler with a patch and a context', async () => {
+      it('should provide a handler definition with a patch and a context', async () => {
         // given
         const dataSource = factories.dataSource.buildWithCollection(
           factories.collection.build({
@@ -41,7 +41,7 @@ describe('WriteDecorator', () => {
     });
 
     describe('when it is created', () => {
-      it('should provide a definition with a patch and a context', async () => {
+      it('should provide a handler definition with a patch and a context', async () => {
         // given
         const dataSource = factories.dataSource.buildWithCollection(
           factories.collection.build({
@@ -615,8 +615,8 @@ describe('WriteDecorator', () => {
           });
         });
 
-        describe('when the definition returns a relation value', () => {
-          it('updates child collection with the definition results', async () => {
+        describe('when the handler definition returns a relation value', () => {
+          it('updates child collection with the handler definitions results', async () => {
             // given
             const dataSource = factories.dataSource.buildWithCollection(
               factories.collection.build({
@@ -652,7 +652,7 @@ describe('WriteDecorator', () => {
         });
 
         describe('when the handler returns a field value with an other handler', () => {
-          it('should trigger the targeted definition', async () => {
+          it('should trigger the targeted handler definition', async () => {
             // given
             const dataSource = factories.dataSource.buildWithCollection(
               factories.collection.build({
@@ -682,7 +682,7 @@ describe('WriteDecorator', () => {
             });
           });
 
-          it('should trigger as long as there is definition handler targeted', async () => {
+          it('should trigger as long as there is handler definition targeted', async () => {
             // given
             const dataSource = factories.dataSource.buildWithCollection(
               factories.collection.build({
@@ -715,7 +715,7 @@ describe('WriteDecorator', () => {
             });
           });
 
-          it('throws an error if the same definition is triggered several times', async () => {
+          it('throws an error if the same handler is triggered several times', async () => {
             // given
             const dataSource = factories.dataSource.buildWithCollection(
               factories.collection.build({
@@ -784,7 +784,7 @@ describe('WriteDecorator', () => {
     });
 
     describe('create', () => {
-      it('calls create on child collection with the result of the definition', async () => {
+      it('calls create on the child collection with the result of the handler', async () => {
         // given
         const dataSource = factories.dataSource.buildWithCollection(
           factories.collection.build({
@@ -858,7 +858,7 @@ describe('WriteDecorator', () => {
             expect(collection.create).toHaveBeenCalledWith([{ title: 'name' }]);
           });
 
-          describe('when the definition returns several relations', () => {
+          describe('when the handler definition returns several relations', () => {
             const setupWithTwoOneToOneRelations = () => {
               const dataSource = factories.dataSource.buildWithCollections([
                 factories.collection.build({
@@ -1002,7 +1002,7 @@ describe('WriteDecorator', () => {
             expect(personsCollection.create).toHaveBeenCalledWith([{ name: 'NAME TO CHANGE' }]);
           });
 
-          describe('when the definition returns several relations', () => {
+          describe('when the handler definition returns several relations', () => {
             const setupWithTwoManyToOneRelations = () => {
               const formats = factories.collection.build({
                 name: 'formats',
