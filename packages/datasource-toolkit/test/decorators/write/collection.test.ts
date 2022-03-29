@@ -128,10 +128,7 @@ describe('WriteDecorator', () => {
       );
       const collection = dataSource.getCollection('books');
 
-      const decoratedCollection = new WriteDecorator(
-        factories.collection.build(collection),
-        dataSource,
-      );
+      const decoratedCollection = new WriteDecorator(collection, dataSource);
       const handler = jest.fn().mockImplementation();
       decoratedCollection.implement('name', handler);
 
