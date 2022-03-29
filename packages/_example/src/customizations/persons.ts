@@ -52,6 +52,12 @@ export default (collection: Collection) =>
       filterBy: 'emulate',
     })
 
+    .implementWrite('fullName', async patch => {
+      const [firstName, lastName] = (patch as string).split(' ');
+
+      return { firstName, lastName };
+    })
+
     .registerAction('Tell me a greeting', {
       scope: ActionScope.Single,
       form: [

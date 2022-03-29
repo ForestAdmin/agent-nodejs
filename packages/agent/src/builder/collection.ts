@@ -11,6 +11,7 @@ import {
   RecordUtils,
   Sort,
   SortClause,
+  WriteHandlerDefinition,
 } from '@forestadmin/datasource-toolkit';
 import { FieldDefinition } from './types';
 
@@ -290,6 +291,24 @@ export default class CollectionBuilder {
     this.agentBuilder.lateOpEmulate
       .getCollection(this.name)
       .implementOperator(name, operator, replacer);
+
+    return this;
+  }
+
+  /**
+   * Allow override the write behavior of a field.
+   * @param {string} name the name of the field
+   * @param {WriteHandlerDefinition} handler the function represent the write behavior.
+   * @example
+   * ```
+   * .implementWrite('fullName', async (patch: unknown, context: WriteHandlerContext) => {
+   *   const [firstName, lastName] = patch.split(' ');
+   *   return { firstName, lastName };
+   * });
+   * ```
+   */
+  implementWrite(name: string, handler: WriteHandlerDefinition): this {
+    this.agentBuilder.write.getCollection(this.name).implement(name, handler);
 
     return this;
   }
