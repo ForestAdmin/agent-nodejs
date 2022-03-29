@@ -10,6 +10,7 @@ import { RecordData } from '../../interfaces/record';
 import { WriteHandlerContext, WriteHandlerDefinition } from './types';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
+import DataSourceDecorator from '../datasource-decorator';
 import Filter from '../../interfaces/query/filter/unpaginated';
 import Projection from '../../interfaces/query/projection';
 import RecordValidator from '../../validation/record';
@@ -18,6 +19,7 @@ import ValidationError from '../../errors';
 
 export default class WriteDecorator extends CollectionDecorator {
   private implemented: Record<string, WriteHandlerDefinition> = {};
+  override readonly dataSource: DataSourceDecorator<WriteDecorator>;
 
   implement(fieldName: string, definition: WriteHandlerDefinition): void {
     if (!Object.keys(this.schema.fields).includes(fieldName)) {
