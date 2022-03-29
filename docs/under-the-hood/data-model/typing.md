@@ -1,5 +1,7 @@
 Fields on forest admin can either use `Primitive Types` or `Composite Types`.
 
+## Primitive types
+
 The primitive types which are supported by Forest Admin are the following:
 
 | Forest Admin Type      | Javascript Type                                           |
@@ -8,13 +10,14 @@ The primitive types which are supported by Forest Admin are the following:
 | PrimitiveType.Date     | String with format "1985-10-26T01:22:00-08:00" (ISO-8601) |
 | PrimitiveType.Dateonly | String with format "1985-10-26"                           |
 | PrimitiveType.Enum     | String                                                    |
+| PrimitiveType.JSON     | Any JSON compatible value                                 |
 | PrimitiveType.Number   | Number                                                    |
 | PrimitiveType.Point    | Array of two numbers                                      |
 | PrimitiveType.String   | String                                                    |
 | PrimitiveType.Timeonly | String with format "01:22:00"                             |
 | PrimitiveType.Uuid     | String with uuid v4 format                                |
 
-### Composite types
+## Composite types
 
 {% hint style="info" %}
 
