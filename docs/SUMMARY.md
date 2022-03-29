@@ -37,6 +37,9 @@
 ## Agent customization
 
 - [Actions](agent-customization/actions.md)
+  - [Basics](agent-customization/actions/basics.md)
+  - [Forms](agent-customization/actions/forms.md)
+  - [Hooks](agent-customization/actions/hooks.md)
 - [Charts](agent-customization/charts.md)
 - [Fields](agent-customization/fields.md)
 - [Hooks](agent-customization/hooks.md)

@@ -42,7 +42,7 @@ It will then show in the actions dropdown button:
 
 {% hint style='info' %}
 
-At this point, the action only displays a notification, because no business logic handles is present.
+At this point, the action only displays a notification, because no business logic is present.
 
 {% endhint %}
 
