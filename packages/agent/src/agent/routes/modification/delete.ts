@@ -1,10 +1,11 @@
-import { ConditionTreeFactory, Filter } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
 import { HttpCode, SelectionIds } from '../../types';
 import BodyParser from '../../utils/body-parser';
 import CollectionRoute from '../collection-route';
+import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 
@@ -34,16 +35,12 @@ export default class DeleteRoute extends CollectionRoute {
     let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
     if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
 
-    const filter = new Filter({
+    const filter = ContextFilterFactory.build(this.collection, context, null, {
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(this.collection, context),
         await this.services.permissions.getScope(this.collection, context),
         selectedIds,
       ),
-      search: QueryStringParser.parseSearch(this.collection, context),
-      searchExtended: QueryStringParser.parseSearchExtended(context),
-      segment: QueryStringParser.parseSegment(this.collection, context),
-      timezone: QueryStringParser.parseTimezone(context),
     });
 
     await this.collection.delete(filter);

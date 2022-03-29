@@ -11,6 +11,7 @@ import { AgentOptionsWithDefaults, HttpCode } from '../../types';
 import { ForestAdminHttpDriverServices } from '../../services';
 import BodyParser from '../../utils/body-parser';
 import CollectionRoute from '../collection-route';
+import ContextFilterFactory from '../../utils/context-filter-factory';
 import ForestValueConverter from '../../utils/forest-schema/action-values';
 import QueryStringParser from '../../utils/query-string';
 import SchemaGeneratorActions from '../../utils/forest-schema/generator-actions';
@@ -114,12 +115,8 @@ export default class ActionRoute extends CollectionRoute {
       await this.services.permissions.getScope(this.collection, context),
     );
 
-    return new Filter({
+    return ContextFilterFactory.build(this.collection, context, null, {
       conditionTree,
-      search: QueryStringParser.parseSearch(this.collection, context),
-      searchExtended: QueryStringParser.parseSearchExtended(context),
-      segment: QueryStringParser.parseSegment(this.collection, context),
-      timezone: QueryStringParser.parseTimezone(context),
     });
   }
 }
