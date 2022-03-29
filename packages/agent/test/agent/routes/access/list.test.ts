@@ -39,7 +39,6 @@ describe('ListRoute', () => {
 
       await list.handleList(context);
 
-      expect(context.throw).not.toHaveBeenCalled();
       expect(services.serializer.serialize).toHaveBeenCalled();
       expect(partialCollection.list).toHaveBeenCalledWith(
         {

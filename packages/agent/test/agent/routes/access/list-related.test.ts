@@ -117,7 +117,6 @@ describe('ListRelatedRoute', () => {
           }),
           ['id', 'name'],
         );
-        expect(context.throw).not.toHaveBeenCalled();
         expect(context.response.body).toEqual({
           data: [
             { attributes: { id: 1, name: 'aName' }, id: '1', type: 'persons' },

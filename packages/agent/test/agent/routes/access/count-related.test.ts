@@ -3,8 +3,8 @@ import {
   AggregationOperation,
   CollectionUtils,
   ConditionTreeLeaf,
+  Filter,
   Operator,
-  PaginatedFilter,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
@@ -121,7 +121,7 @@ describe('CountRelatedRoute', () => {
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myBookPersons',
-          new PaginatedFilter({
+          new Filter({
             search: 'searched argument',
             searchExtended: false,
             timezone: 'Europe/Paris',
@@ -135,7 +135,6 @@ describe('CountRelatedRoute', () => {
           new Aggregation({ operation: AggregationOperation.Count }),
         );
 
-        expect(context.throw).not.toHaveBeenCalled();
         expect(context.response.body).toEqual({ count: 1568 });
       });
 
@@ -157,7 +156,6 @@ describe('CountRelatedRoute', () => {
           const context = setupContext();
           await count.handleCountRelated(context);
 
-          expect(context.throw).not.toHaveBeenCalled();
           expect(context.response.body).toEqual({ count: 0 });
         });
       });
