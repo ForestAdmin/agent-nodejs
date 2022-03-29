@@ -3,21 +3,14 @@ Making your records editable is achieved by implementing the `create`, `update` 
 The three methods take a [filter](./filters.md) as parameter, but note that unlike the `list` method, there is no need to support paging.
 
 ```javascript
+const { BaseCollection } = require('@forestadmin/datasource-toolkit');
+const axios = require('axios'); // client for the target API
+
 /** Naive implementation of create, update and delete on a REST API */
 export default class MyCollection extends BaseCollection {
   constructor() {
-    // [... Declare structure and capabilities]
-
-    // Tell Forest Admin which fields can be edited
-    this.addField('id', {
-      // [...]
-      isReadOnly: true,
-    });
-
-    this.addField('title', {
-      // [...]
-      isReadOnly: false,
-    });
+    this.addField('id', { /* ... */ isReadOnly: true });
+    this.addField('title', { /* ... */ isReadOnly: false });
   }
 
   async create(records) {

@@ -4,23 +4,11 @@ Making your records editable is achieved by implementing the `create`, `update` 
 const { CachedCollection } = require('@forestadmin/datasource-toolkit');
 const axios = require('axios'); // client for the target API
 
-class MyCollection extends CachedCollection {
+export default class MyCollection extends CachedCollection {
   constructor() {
-    // [... Declare structure]
-
-    // Tell Forest Admin which fields can be edited
-    this.addField('id', {
-      // [...]
-      isReadOnly: true,
-    });
-
-    this.addField('title', {
-      // [...]
-      isReadOnly: false,
-    });
+    this.addField('id', { /* ... */ isReadOnly: true });
+    this.addField('title', { /* ... */ isReadOnly: false });
   }
-
-  // [... Declare list and aggregation methods]
 
   async create(records) {
     const promises = records.map(async record => {
