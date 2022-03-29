@@ -107,7 +107,7 @@ export default class CollectionUtils {
     collection: Collection,
     id: CompositeId,
     relationName: string,
-    foreignFilter: PaginatedFilter,
+    foreignFilter: Filter,
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
