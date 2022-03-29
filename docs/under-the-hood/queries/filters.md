@@ -187,7 +187,7 @@ The `search` field in a filter simply is what the final user typed in the search
 
 Likewise `searchExtended` boolean is an action which can be triggered by end-users when a given search returns no results and its implementation can vary from connector to connector.
 
-For instance, in `@forestadmin/connector-sql`, the `searchExtended` flag is used to also search content into all collections which are linked with a `many to one` or `one to one` relation to the current one.
+For instance, in `@forestadmin/datasource-sql`, the `searchExtended` flag is used to also search content into all collections which are linked with a `many to one` or `one to one` relation to the current one.
 
 ## Examples
 

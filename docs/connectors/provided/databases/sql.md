@@ -23,7 +23,7 @@ Taking database structure changes into account will require restarting the agent
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const SqlConnector = require('@forestadmin/connector-sql');
+const SqlConnector = require('@forestadmin/datasource-sql');
 
 // Create agent and import collections from SQL database
 const agent = new Agent(options);

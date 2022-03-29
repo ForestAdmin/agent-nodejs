@@ -41,15 +41,13 @@ Query Translation:
 {% tabs %} {% tab title="Using a local cache" %}
 
 ```javascript
-const { LocallyCachedCollection, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
+const { CachedCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
 const axios = require('my-api-client'); // client for the target API
 
-class MyCollection extends LocallyCachedCollection {
+class MyCollection extends CachedCollection {
   constructor() {
-    super(
-      'myCollection', // Set name of the collection once imported
-      '/tmp/cache-my-collection.db', // Set path of the caching file
-    );
+    // Set name of the collection once imported
+    super('myCollection');
 
     // Add fields
     this.addField('id', {
@@ -73,7 +71,7 @@ class MyCollection extends LocallyCachedCollection {
    * It should yield records updated since `lastThreshold` in any order, and return the new
    * threshold
    */
-  async *loadLastModified(lastThreshold) {
+  async *listChangedRecords(lastThreshold) {
     const response = await axios.get(`https://my-api/my-collection`, {
       params: { filter: `updatedAt > '${lastThreshold}'` },
     });
@@ -88,7 +86,7 @@ class MyCollection extends LocallyCachedCollection {
 {% endtab %} {% tab title="Using query translation" %}
 
 ```javascript
-const { BaseCollection, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
+const { BaseCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
 const axios = require('axios'); // client for the target API
 
 // The real work is in writing this module
@@ -153,7 +151,7 @@ module.exports = MyCollection;
 {% endtab %} {% tab title="Using the connector" %}
 
 ```javascript
-const MyConnectorCollection = require('./connector-collection');
+const MyConnectorCollection = require('./datasource-collection');
 
 const agent = new Agent(options);
 

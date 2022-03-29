@@ -11,7 +11,7 @@ This is needed when using both the "local cache" and "query translation" strateg
 ## Examples
 
 ```javascript
-const { BaseCollection, PrimitiveTypes } = require('@forestadmin/connector-toolkit');
+const { BaseCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
 
 class MovieCollection extends BaseCollection {
   constructor() {
@@ -40,15 +40,13 @@ class MovieCollection extends BaseCollection {
 }
 ```
 
-## Columns
+## Typing
 
-### Typing
+The typing system when writing a connector is the same than the one used when declaring fields in the agent customization step.
 
-The typing system when writing a connector is the same than the one used when declaring fields in the [agent customization step](../../agent-customization/fields.md).
+You can read all about it in ["Under the hood > Data Model > Typing"](../../under-the-hood/data-model/typing.md).
 
-You can read all about it in the [Under the hood > Data Model > Typing](../../under-the-hood/data-model/typing.md).
-
-### Validation
+## Validation
 
 When using primitive type fields, Forest Admin supports declaring a validation clause, which will be imported into the UI of the admin panel to validate records before creating / updating them.
 
@@ -65,6 +63,6 @@ The API for validation is the same than with [condition trees](../custom/query-t
 }
 ```
 
-## Relationships
+# Relationships
 
 // FIXME

@@ -12,7 +12,7 @@ Note that:
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const MongooseConnector = require('@forestadmin/connector-mongoose');
+const MongooseConnector = require('@forestadmin/datasource-mongoose');
 const mongoose = require('mongoose');
 
 // Create a mongoose instance

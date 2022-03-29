@@ -1,10 +1,10 @@
 Making your records editable is achieved by implementing the `create`, `update` and `delete` methods.
 
 ```javascript
-const { LocallyCachedCollection } = require('@forestadmin/connector-toolkit');
+const { CachedCollection } = require('@forestadmin/datasource-toolkit');
 const axios = require('axios'); // client for the target API
 
-class MyCollection extends LocallyCachedCollection {
+class MyCollection extends CachedCollection {
   constructor() {
     // [... Declare structure]
 

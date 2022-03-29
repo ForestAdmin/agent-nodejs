@@ -11,13 +11,13 @@ The strategy to write this method can vary depending on the feature set of the A
 If the API you are targeting supports filtering, the implementation should be trivial.
 
 ```javascript
-const { BaseCollection } = require('@forestadmin/connector-toolkit');
+const { BaseCollection } = require('@forestadmin/datasource-toolkit');
 const axios = require('my-api-client'); // client for the target API
 
-class MyCollection extends LocallyCachedCollection {
+class MyCollection extends CachedCollection {
   // [... Declare structure]
 
-  async *loadLastModified(lastThreshold) {
+  async *listChangedRecords(lastThreshold) {
     const response = await axios.get(`https://my-api/my-collection`, {
       params: { filter: `updatedAt > '${lastThreshold}'` },
     });
@@ -42,13 +42,13 @@ In this example we choose to:
 - Gradually increase the page size up to a limit when we need to catch-up
 
 ```javascript
-const { LocallyCachedCollection } = require('@forestadmin/connector-toolkit');
+const { CachedCollection } = require('@forestadmin/datasource-toolkit');
 const axios = require('axios'); // client for the target API
 
-class MyCollection extends LocallyCachedCollection {
+class MyCollection extends CachedCollection {
   // [... Declare structure]
 
-  async *loadLastModified(lastThreshold) {
+  async *listChangedRecords(lastThreshold) {
     let skip = 0;
     let limit = 1; // we'll increase this on subsequent calls
 

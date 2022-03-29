@@ -12,8 +12,8 @@ Which means that:
 ## Example
 
 ```javascript
-const SqlConnector = require('@forestadmin/connector-sql');
-const IntercomConnector = require('@forestadmin/connector-intercom');
+const SqlConnector = require('@forestadmin/datasource-sql');
+const IntercomConnector = require('@forestadmin/datasource-intercom');
 const Agent = require('@forestadmin/agent');
 
 const agent = new Agent(options);

@@ -5,7 +5,7 @@ Emulation comes to the rescue: all features which are to be implemented when mak
 This enables to be up and running in minutes, and then optimizing your code as you go.
 
 ```javascript
-const { BaseCollection } = require('@forestadmin/connector-toolkit');
+const { BaseCollection } = require('@forestadmin/datasource-toolkit');
 const axios = require('axios');
 
 /**
@@ -50,7 +50,7 @@ The `aggregate` method is used by forest admin both to count records and to extr
 If the API/Database you are targeting have an efficient API which is made for counting records, you may want to handle this case first.
 
 ```javascript
-const { BaseCollection } = require('@forestadmin/connector-toolkit');
+const { BaseCollection } = require('@forestadmin/datasource-toolkit');
 const axios = require('axios');
 
 export default class MyCollection extends BaseCollection {

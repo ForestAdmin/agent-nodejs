@@ -23,7 +23,7 @@ You’re free to implement the business logic you need. The only requirement is 
 On this example, we use a raw SQL query to filter and sort the product that was sold the most.
 
 ```javascript
-const SqlConnector = require('@forestadmin/connector-sql');
+const SqlConnector = require('@forestadmin/datasource-sql');
 const { Client } = require('pg');
 
 // Connect to postgres
@@ -41,14 +41,14 @@ agent.customizeCollection('products', collection =>
   // Register segment using raw SQL query
   collection.registerSegment('Bestsellers', async context => {
     const { rows } = await client.query(`
-      SELECT orders.product_id, COUNT(orders.*)
+      SELECT product_id, COUNT(*)
       FROM orders
-      GROUP BY orders.product_id
+      GROUP BY product_id
       ORDER BY count DESC
       LIMIT 10;
     `);
 
-    return { field: 'id', operator: 'in', value: rows.map(r => r['id']) };
+    return { field: 'id', operator: 'in', value: rows.map(r => r['product_id']) };
   }),
 );
 ```

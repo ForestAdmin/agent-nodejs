@@ -21,11 +21,11 @@ Forest Admin collection map to any of those concepts:
 
 In this example, we import a all tables from a PostgreSQL database into Forest Admin.
 
-Take note that connectors are defined in independant NPM packages (here `@forestadmin/connector-sql`).
+Take note that connectors are defined in independant NPM packages (here `@forestadmin/datasource-sql`).
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const SqlConnector = require('@forestadmin/connector-sql');
+const SqlConnector = require('@forestadmin/datasource-sql');
 
 const agent = new Agent(options);
 const database = new SqlConnector('postgres://user:pass@localhost:5432/mySchema');
@@ -41,8 +41,8 @@ By provided options when pluging a connector, you can specify what you want to i
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const StripeConnector = require('@forestadmin/connector-stripe');
-const IntercomConnector = require('@forestadmin/connector-intercom');
+const StripeConnector = require('@forestadmin/datasource-stripe');
+const IntercomConnector = require('@forestadmin/datasource-intercom');
 
 const agent = new Agent(options);
 const stripe = new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
@@ -75,8 +75,8 @@ Don't worry if you leave naming collisions, your development agent will warn you
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const StripeConnector = require('@forestadmin/connector-stripe');
-const IntercomConnector = require('@forestadmin/connector-intercom');
+const StripeConnector = require('@forestadmin/datasource-stripe');
+const IntercomConnector = require('@forestadmin/datasource-intercom');
 
 const agent = new Agent(options);
 const stripe = new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
