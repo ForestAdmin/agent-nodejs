@@ -12,7 +12,6 @@ When customizing your forest admin with custom code (creating new actions, field
 
 | -                        | Forest Admin Query Interface              | Native Driver                          |
 | ------------------------ | ----------------------------------------- | -------------------------------------- |
-| Capabilities             | Less capable                              | More capable                           |
 | Learning curve           | Use the same query interface for any SaaS | Different API for each database / SaaS |
 | Differentiating features | Can make cross data-source requests       | Use all features of the underlying API |
 
@@ -54,6 +53,12 @@ collection.registerSegment('mySegment', context => {
 # Interface
 
 More detail about those methods can be found in the [API Reference](https://github.com/ForestAdmin/agent-nodejs/wiki/@forestadmin.datasource-toolkit.Collection)
+
+All parameters are explained in depth in the following pages:
+
+- [Fields and projections](./fields-projections.md)
+- [Filters](./filters.md)
+- [Aggregations](./aggregations.md)
 
 ```typescript
 interface DataSource {

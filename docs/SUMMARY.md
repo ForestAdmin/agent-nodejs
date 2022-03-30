@@ -10,7 +10,7 @@
 ## Data Sources
 
 - [Usage](datasources/README.md)
-- [Relationships](datasources/relationships.md)
+- [Inter-datasource relationships](datasources/relationships.md)
 - [Provided datasources](datasources/provided/README.md)
 
   - [Databases](datasources/provided/databases/README.md)
@@ -31,7 +31,7 @@
     - [Capabilities declaration](datasources/custom/query-translation/capabilities.md)
     - [Read implementation](datasources/custom/query-translation/read-only.md)
     - [Write implementation](datasources/custom/query-translation/read-write.md)
-  - [Relationships](datasources/custom/relationships.md)
+    - [ Relationships](datasources/custom/relationships.md)
   - [Contribute](datasources/contribute.md)
 
 ## Agent customization
