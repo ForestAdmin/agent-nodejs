@@ -28,7 +28,7 @@ agent.addDataSource(intercom);
 agent.customizeCollection('customers', collection =>
   // ... to 'contacts' from intercom
   collection.registerJointure('myIntercomContact', {
-    type: FieldType.OneToOne,
+    type: FieldTypes.OneToOne,
     foreignCollection: 'contacts', // this collection is in intercom
     originKey: 'external_id', // field on Intercom
   }),
@@ -72,7 +72,7 @@ agent.customizeCollection('customers', collection => {
 
   // Use the foreign key we just created in a jointure
   collection.registerJointure('myRelation', {
-    type: FieldType.ManyToOne,
+    type: FieldTypes.ManyToOne,
     foreignCollection: 'someOtherCollection',
     foreignKey: 'myForeignKey', // field on Postgres
   });

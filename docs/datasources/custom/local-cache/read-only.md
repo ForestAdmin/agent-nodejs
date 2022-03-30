@@ -2,9 +2,9 @@ With the "local cache" strategy, Forest Admin needs to be able to always maintai
 
 This is achieved by implementing a single method which allow to access _records which have changed_.
 
-The strategy to write this method can vary depending on the feature set of the API which you are targeting
+How to implement it can vary a lot depending on the feature set of the API which you are targeting, however keep in mind that in order to avoid sending stale data, Forest Admin will call the method **before each read and write operation**.
 
-# Examples
+You should optimize the method to be fast when nothing has changed on the target API.
 
 ## API supports filtering
 
@@ -38,8 +38,6 @@ class MyCollection extends CachedCollection {
 ## API supports descending sort
 
 When filtering is not supported, this can be worked around by using the sorting ability of the API you are targeting.
-
-The method may be called very often. You should optimize the method so that the method is fast when nothing has changed on the target API.
 
 In this example we choose to:
 

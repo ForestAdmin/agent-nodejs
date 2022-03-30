@@ -4,8 +4,6 @@ Creating a custom data source always starts with declaring the structure of the 
 - What fields to they contain?
 - What are their types?
 
-This is needed when using both the "local cache" and "query translation" strategies.
-
 # Columns
 
 ## Examples
@@ -73,7 +71,7 @@ For **inter**-datasource relationships, you should use [jointures at the customi
 
 You can declare relationships at the collection level, but that means that the datasource you are making is responsible from handling them.
 
-This has no consequence for datasources using the "local-cache" strategy and will work out of the box, however please read ["Using query translation > Intra-datasource Relationships"](./query-translation/relationships.md), before getting started if declaring relations on a translating datasource.
+This will work out of the box for datasources using the "local-cache" strategy, however please read ["Using query translation > Intra-datasource Relationships"](./query-translation/relationships.md), before getting started if declaring relations the "query translation" strategy.
 
 ## Examples
 
@@ -85,14 +83,14 @@ class MovieCollection extends BaseCollection {
     // [...]
 
     this.addRelation('director', {
-      type: FieldType.ManyToOne,
+      type: FieldTypes.ManyToOne,
       foreignCollection: 'people',
       foreignKey: 'directorId',
       foreignKeyTarget: 'id',
     });
 
     this.addRelation('actors', {
-      type: FieldType.ManyToMany,
+      type: FieldTypes.ManyToMany,
       foreignCollection: 'people',
       throughCollection: 'actorsOnMovies',
       originKey: 'movieId',

@@ -31,7 +31,7 @@
     - [Capabilities declaration](datasources/custom/query-translation/capabilities.md)
     - [Read implementation](datasources/custom/query-translation/read-only.md)
     - [Write implementation](datasources/custom/query-translation/read-write.md)
-    - [ Relationships](datasources/custom/relationships.md)
+    - [Intra-datasource Relationships](datasources/custom/query-translation/relationships.md)
   - [Contribute](datasources/contribute.md)
 
 ## Agent customization
