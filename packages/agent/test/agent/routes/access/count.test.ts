@@ -26,7 +26,7 @@ describe('CountRoute', () => {
   });
 
   describe('handleCount', () => {
-    test('should the aggregate implementation', async () => {
+    test('should aggregate the data and return the result', async () => {
       const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
       dataSource.getCollection('books').aggregate = aggregateSpy;
       const count = new Count(services, options, dataSource, collection.name);
@@ -36,7 +36,6 @@ describe('CountRoute', () => {
 
       await count.handleCount(context);
 
-      expect(context.throw).not.toHaveBeenCalled();
       expect(aggregateSpy).toHaveBeenCalledWith(
         {
           conditionTree: null,

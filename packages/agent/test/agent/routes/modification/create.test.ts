@@ -57,7 +57,7 @@ describe('CreateRoute', () => {
       });
 
       await create.handleCreate(context);
-      expect(context.throw).not.toHaveBeenCalled();
+
       expect(collection.create).toHaveBeenCalledWith([attributes]);
 
       expect(context.response.body).toEqual({

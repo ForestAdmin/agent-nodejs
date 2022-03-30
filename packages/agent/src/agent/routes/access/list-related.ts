@@ -1,11 +1,8 @@
-import {
-  CollectionUtils,
-  ConditionTreeFactory,
-  PaginatedFilter,
-} from '@forestadmin/datasource-toolkit';
+import { CollectionUtils } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';
@@ -22,18 +19,12 @@ export default class ListRelatedRoute extends RelationRoute {
     await this.services.permissions.can(context, `browse:${this.collection.name}`);
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-    const paginatedFilter = new PaginatedFilter({
-      search: QueryStringParser.parseSearch(this.foreignCollection, context),
-      conditionTree: ConditionTreeFactory.intersect(
-        QueryStringParser.parseConditionTree(this.foreignCollection, context),
-        await this.services.permissions.getScope(this.foreignCollection, context),
-      ),
-      searchExtended: QueryStringParser.parseSearchExtended(context),
-      timezone: QueryStringParser.parseTimezone(context),
-      page: QueryStringParser.parsePagination(context),
-      sort: QueryStringParser.parseSort(this.foreignCollection, context),
-      segment: QueryStringParser.parseSegment(this.foreignCollection, context),
-    });
+    const scope = await this.services.permissions.getScope(this.foreignCollection, context);
+    const paginatedFilter = ContextFilterFactory.buildPaginated(
+      this.foreignCollection,
+      context,
+      scope,
+    );
 
     const projection = QueryStringParser.parseProjectionWithPks(this.foreignCollection, context);
 

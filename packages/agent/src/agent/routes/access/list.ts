@@ -1,8 +1,8 @@
-import { ConditionTreeFactory, PaginatedFilter } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
 import CollectionRoute from '../collection-route';
+import ContextFilterFactory from '../../utils/context-filter-factory';
 import QueryStringParser from '../../utils/query-string';
 
 export default class ListRoute extends CollectionRoute {
@@ -13,19 +13,8 @@ export default class ListRoute extends CollectionRoute {
   public async handleList(context: Context) {
     await this.services.permissions.can(context, `browse:${this.collection.name}`);
 
-    const paginatedFilter = new PaginatedFilter({
-      conditionTree: ConditionTreeFactory.intersect(
-        QueryStringParser.parseConditionTree(this.collection, context),
-        await this.services.permissions.getScope(this.collection, context),
-      ),
-      search: QueryStringParser.parseSearch(this.collection, context),
-      searchExtended: QueryStringParser.parseSearchExtended(context),
-      segment: QueryStringParser.parseSegment(this.collection, context),
-      timezone: QueryStringParser.parseTimezone(context),
-      page: QueryStringParser.parsePagination(context),
-      sort: QueryStringParser.parseSort(this.collection, context),
-    });
-
+    const scope = await this.services.permissions.getScope(this.collection, context);
+    const paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
     const projection = QueryStringParser.parseProjectionWithPks(this.collection, context);
     const records = await this.collection.list(paginatedFilter, projection);
 

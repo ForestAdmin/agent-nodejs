@@ -1,14 +1,9 @@
-import {
-  Aggregation,
-  AggregationOperation,
-  ConditionTreeFactory,
-  PaginatedFilter,
-} from '@forestadmin/datasource-toolkit';
+import { Aggregation, AggregationOperation } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
 import CollectionRoute from '../collection-route';
-import QueryStringParser from '../../utils/query-string';
+import ContextFilterFactory from '../../utils/context-filter-factory';
 
 export default class CountRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
@@ -18,19 +13,11 @@ export default class CountRoute extends CollectionRoute {
   public async handleCount(context: Context): Promise<void> {
     await this.services.permissions.can(context, `browse:${this.collection.name}`);
 
-    const paginatedFilter = new PaginatedFilter({
-      conditionTree: ConditionTreeFactory.intersect(
-        QueryStringParser.parseConditionTree(this.collection, context),
-        await this.services.permissions.getScope(this.collection, context),
-      ),
-      search: QueryStringParser.parseSearch(this.collection, context),
-      searchExtended: QueryStringParser.parseSearchExtended(context),
-      segment: QueryStringParser.parseSegment(this.collection, context),
-      timezone: QueryStringParser.parseTimezone(context),
-    });
+    const scope = await this.services.permissions.getScope(this.collection, context);
+    const filter = ContextFilterFactory.build(this.collection, context, scope);
 
     const aggregation = new Aggregation({ operation: AggregationOperation.Count });
-    const aggregationResult = await this.collection.aggregate(paginatedFilter, aggregation);
+    const aggregationResult = await this.collection.aggregate(filter, aggregation);
     const count = aggregationResult?.[0]?.value ?? 0;
 
     context.response.body = { count };

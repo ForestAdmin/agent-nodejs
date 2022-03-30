@@ -51,7 +51,6 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleDelete(context);
 
-        expect(context.throw).not.toHaveBeenCalled();
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
@@ -101,7 +100,6 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleDelete(context);
 
-        expect(context.throw).not.toHaveBeenCalled();
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
@@ -146,7 +144,6 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleListDelete(context);
 
-        expect(context.throw).not.toHaveBeenCalled();
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
@@ -193,7 +190,6 @@ describe('DeleteRoute', () => {
           });
           await deleteRoute.handleListDelete(context);
 
-          expect(context.throw).not.toHaveBeenCalled();
           expect(bookCollection.delete).toHaveBeenCalledWith(
             factories.filter.build({
               conditionTree: factories.conditionTreeLeaf.build({
@@ -243,7 +239,6 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleListDelete(context);
 
-        expect(context.throw).not.toHaveBeenCalled();
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
@@ -325,7 +320,6 @@ describe('DeleteRoute', () => {
           });
           await deleteRoute.handleListDelete(context);
 
-          expect(context.throw).not.toHaveBeenCalled();
           expect(bookCollection.delete).toHaveBeenCalledWith(
             factories.filter.build({
               conditionTree: factories.conditionTreeBranch.build({

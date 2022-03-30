@@ -14,6 +14,7 @@ import Router from '@koa/router';
 
 import { HttpCode } from '../../types';
 import BodyParser from '../../utils/body-parser';
+import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';
@@ -107,16 +108,12 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
       throw new ValidationError('Expected no empty id list');
     }
 
-    return new Filter({
+    return ContextFilterFactory.build(this.foreignCollection, context, null, {
       conditionTree: ConditionTreeFactory.intersect(
         await this.services.permissions.getScope(this.foreignCollection, context),
         QueryStringParser.parseConditionTree(this.foreignCollection, context),
         selectedIds,
       ),
-      search: QueryStringParser.parseSearch(this.foreignCollection, context),
-      searchExtended: QueryStringParser.parseSearchExtended(context),
-      segment: QueryStringParser.parseSegment(this.foreignCollection, context),
-      timezone: QueryStringParser.parseTimezone(context),
     });
   }
 

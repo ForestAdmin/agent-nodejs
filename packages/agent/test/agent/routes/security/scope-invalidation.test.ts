@@ -53,7 +53,7 @@ describe('ScopeInvalidation', () => {
       const context = createMockContext({ requestBody: { renderingId: 1 } });
 
       await invalidateCache.call(route, context);
-      expect(context.throw).not.toHaveBeenCalled();
+
       expect(services.permissions.invalidateCache).toHaveBeenCalledWith(1);
     });
   });

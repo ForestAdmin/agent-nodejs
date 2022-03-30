@@ -2,6 +2,7 @@ import {
   Collection,
   ConditionTree,
   ConditionTreeFactory,
+  Filter,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
@@ -15,11 +16,23 @@ export default class ContextFilterFactory {
     partialFilter?: Partial<PaginatedFilter>,
   ): PaginatedFilter {
     return new PaginatedFilter({
+      sort: QueryStringParser.parseSort(collection, context),
+      page: QueryStringParser.parsePagination(context),
+      ...ContextFilterFactory.build(collection, context, scope),
+      ...partialFilter,
+    });
+  }
+
+  static build(
+    collection: Collection,
+    context: Context,
+    scope: ConditionTree,
+    partialFilter?: Partial<Filter>,
+  ): PaginatedFilter {
+    return new Filter({
       search: QueryStringParser.parseSearch(collection, context),
       segment: QueryStringParser.parseSegment(collection, context),
       timezone: QueryStringParser.parseTimezone(context),
-      sort: QueryStringParser.parseSort(collection, context),
-      page: QueryStringParser.parsePagination(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(collection, context),

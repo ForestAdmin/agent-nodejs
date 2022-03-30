@@ -79,7 +79,7 @@ describe('Permissions', () => {
       const context = createMockContext({ state: { user: { renderingId: 1, id: 1 } } });
 
       await expect(service.can(context, 'read:books')).resolves.not.toThrow();
-      expect(context.throw).not.toHaveBeenCalled();
+
       expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(1);
     });
 
@@ -87,7 +87,7 @@ describe('Permissions', () => {
       const context = createMockContext({ state: { user: { renderingId: 1, id: 1 } } });
 
       await expect(service.can(context, 'browse:books')).resolves.not.toThrow();
-      expect(context.throw).not.toHaveBeenCalled();
+
       expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(1);
     });
 
@@ -111,7 +111,7 @@ describe('Permissions', () => {
       });
 
       await expect(service.canChart(context)).resolves.not.toThrow();
-      expect(context.throw).not.toHaveBeenCalled();
+
       expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(1);
     });
 
