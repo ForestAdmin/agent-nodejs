@@ -1,6 +1,6 @@
 # Create a Gallery view
 
-![](<../../assets/image (256).png>)
+![](<../../assets/imported/image (256).png>)
 
 {% tabs %}
 {% tab title="Ember" %}

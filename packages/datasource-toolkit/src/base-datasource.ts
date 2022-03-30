@@ -1,6 +1,6 @@
 import { Collection, DataSource } from './interfaces/collection';
 
-export default class BaseDataSource<T extends Collection> implements DataSource {
+export default class BaseDataSource<T extends Collection = Collection> implements DataSource {
   protected _collections: { [collectionName: string]: T } = {};
 
   public get collections(): T[] {

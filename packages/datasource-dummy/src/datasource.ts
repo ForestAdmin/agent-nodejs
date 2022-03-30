@@ -1,10 +1,10 @@
-import { BaseDataSource, Collection } from '@forestadmin/datasource-toolkit';
+import { BaseDataSource } from '@forestadmin/datasource-toolkit';
 import BooksCollection from './collections/books';
 import LibrariesBooksCollection from './collections/libraries-books';
 import LibrariesCollection from './collections/libraries';
 import PersonsCollection from './collections/persons';
 
-export default class DummyDataSource extends BaseDataSource<Collection> {
+export default class DummyDataSource extends BaseDataSource {
   constructor() {
     super();
 

@@ -21,4 +21,4 @@ Sometimes though, there comes a time when you've stacked too many layout changes
 
 Unlike a branch which you can just dispose of, for a remote environment you need a way to clean it easily, this is where the `forest environments:reset` command comes in.
 
-![](<../../assets/image (535).png>)
+![](<../../assets/imported/image (535).png>)

@@ -2,7 +2,7 @@ Mongoose support is coming soon!
 
 <!--
 
-The sequelize connector allows to import collections from a mongoose connection.
+The sequelize data source allows to import collections from a mongoose connection.
 
 Note that:
 
@@ -12,7 +12,7 @@ Note that:
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const MongooseConnector = require('@forestadmin/connector-mongoose');
+const MongooseDataSource = require('@forestadmin/datasource-mongoose');
 const mongoose = require('mongoose');
 
 // Create a mongoose instance
@@ -26,6 +26,6 @@ const User = mongoose.model('User', {
 // Create agent and import collections from mongoose
 const agent = new Agent(options);
 
-agent.importCollectionsFrom(new MongooseConnector(mongoose.connection));
+agent.addDataSource(new MongooseDataSource(mongoose.connection));
 ```
 -->

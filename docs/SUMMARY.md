@@ -7,32 +7,32 @@
 - [How it works](getting-started/how-it-works.md)
 - [Quick start](getting-started/quick-start.md)
 
-## Connectors
+## Data Sources
 
-- [Usage](connectors/README.md)
-- [Relationships](connectors/relationships.md)
-- [Standard connectors](connectors/standard/README.md)
+- [Usage](datasources/README.md)
+- [Inter-datasource relationships](datasources/relationships.md)
+- [Provided datasources](datasources/provided/README.md)
 
-  - [Databases](connectors/standard/databases/README.md)
-    - [SQL](connectors/standard/databases/sql.md)
-  - [Object Relational Mappers](connectors/standard/orm/README.md)
-    - [Sequelize](connectors/standard/orm/sequelize.md)
-    - [Mongoose](connectors/standard/orm/mongoose.md)
-  - [SaaS](connectors/standard/saas/README.md)
-    - [Intercom](connectors/standard/saas/intercom.md)
-    - [Stripe](connectors/standard/saas/stripe.md)
+  - [Databases](datasources/provided/databases/README.md)
+    - [SQL](datasources/provided/databases/sql.md)
+  - [Object Relational Mappers](datasources/provided/orm/README.md)
+    - [Sequelize](datasources/provided/orm/sequelize.md)
+    - [Mongoose](datasources/provided/orm/mongoose.md)
+  - [SaaS](datasources/provided/saas/README.md)
+    - [Intercom](datasources/provided/saas/intercom.md)
+    - [Stripe](datasources/provided/saas/stripe.md)
 
-- [Custom connectors](connectors/custom/README.md)
-  - [Basics](connectors/custom/basics.md)
-  - [Filters and projection explained](connectors/custom/filters-projection.md)
-  - [Weak APIs](connectors/custom/weak-apis/README.md)
-    - [Emulation & Decorators](connectors/custom/weak-apis/decorators.md)
-    - [Local cache](connectors/custom/weak-apis/local-cache.md)
-  - [Advanced Topics](connectors/custom/advanced-topics/README.md)
-    - [Native actions](connectors/custom/advanced-topics/native-actions.md)
-    - [Native relations](connectors/custom/advanced-topics/native-relations.md)
-    - [Native search and segments](connectors/custom/advanced-topics/native-search-segments.md)
-  - [Contribute](connectors/custom/contribute.md)
+- [Write your own](datasources/custom/README.md)
+  - [Structure declaration](datasources/custom/structure.md)
+  - [Using a local cache](datasources/custom/local-cache/README.md)
+    - [Read implementation](datasources/custom/local-cache/read-only.md)
+    - [Write implementation](datasources/custom/local-cache/read-write.md)
+  - [Using query translation](datasources/custom/query-translation/README.md)
+    - [Capabilities declaration](datasources/custom/query-translation/capabilities.md)
+    - [Read implementation](datasources/custom/query-translation/read-only.md)
+    - [Write implementation](datasources/custom/query-translation/read-write.md)
+    - [Intra-datasource Relationships](datasources/custom/query-translation/relationships.md)
+  - [Contribute](datasources/contribute.md)
 
 ## Agent customization
 
@@ -82,4 +82,11 @@
 
 ## Under the hood
 
+- [Data Model](under-the-hood/data-model/README.md)
+  - [Typing](under-the-hood/data-model/typing.md)
+  - [Relationships](under-the-hood/data-model/relationships.md)
+- [Query interface](under-the-hood/queries/README.md)
+  - [Fields and projections](under-the-hood/queries/fields-projections.md)
+  - [Filters](under-the-hood/queries/filters.md)
+  - [Aggregations](under-the-hood/queries/aggregations.md)
 - [Security & Privacy](under-the-hood/security-privacy.md)

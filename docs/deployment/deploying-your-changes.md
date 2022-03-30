@@ -4,7 +4,7 @@ You're building a great feature which requires tweaking your layout (UI), you've
 
 Imagine this is your current situation:
 
-![](<../assets/image (421).png>)
+![](<../assets/imported/image (421).png>)
 
 Your branch `my-branch` is based on your [origin ](using-branches.md#what-is-a-branch)environment (production in this case) and you have made **layout changes (Δ)** over it.
 
@@ -18,7 +18,7 @@ forest deploy my-branch
 
 The end result is the following:
 
-![](<../assets/image (422).png>)
+![](<../assets/imported/image (422).png>)
 
 {% hint style="danger" %}
 Don't forget to **deploy your backend changes** as well (if any), as showcased on [this flowchart](./#development-workflow).
@@ -40,7 +40,7 @@ forest push
 Note that you'll be pushing your **current** branch. To select another branch, use [switch](forest-cli-commands/switch.md).
 {% endhint %}
 
-![](<../assets/image (423).png>)
+![](<../assets/imported/image (423).png>)
 
 #### Deploying from your remote's interface
 
@@ -48,7 +48,7 @@ Once you have tested your new feature on "Remote 1", you can't deploy your branc
 
 To deploy it from there, simply **click on "Deploy to production" in the top banner**!
 
-![](<../assets/image (424).png>)
+![](<../assets/imported/image (424).png>)
 
 #### Making changes directly from the remote
 

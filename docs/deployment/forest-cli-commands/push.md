@@ -20,7 +20,7 @@ OPTIONS
 
 It is paramount to understand this command before using it:
 
-![](<../../assets/image (427).png>)
+![](<../../assets/imported/image (427).png>)
 
 Pushing a branch to a remote means applying your latest layout changes to your origin environment. In the above figure, your layout changes (Δ) will be moved from `my-branch` to `Staging`.
 

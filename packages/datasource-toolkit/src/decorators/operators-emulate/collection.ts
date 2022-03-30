@@ -30,7 +30,7 @@ export default class OperatorsEmulate extends CollectionDecorator {
       const schema = this.childCollection.schema.fields[pk] as ColumnSchema;
       const operators = schema.filterOperators;
 
-      if (!operators?.has(Operator.Equal) || !operators?.has(Operator.Equal)) {
+      if (!operators?.has(Operator.Equal) || !operators?.has(Operator.In)) {
         throw new Error(
           `Cannot override operators on collection '${this.name}': ` +
             `the primary key columns must support 'equal' and 'in' operators`,

@@ -7,7 +7,7 @@ Forest Admin provides you with:
 - An API hosted on your server to retrieve your data. We call it the **Agent**. It can be a **standalone project** or embedded **within your app**.
 - A user interface to access and manage your data from your browser. This **Forest Admin User Interface** is built and managed through ressources hosted on Forest Admin's servers.
 
-![The agent is a Node.JS REST API hosted on your servers](../assets/Base.png)
+![The agent is a Node.JS REST API hosted on your servers](../assets/imported/Base.png)
 
 {% hint style="info" %}
 For a more in-depth explanation of Forest Admin's architecture (the Node.JS agent version), please read the [following article](https://medium.com/forest-admin/a-deep-dive-into-forest-admins-architecture-and-its-benefits-for-the-developers-who-trust-it-1d49212fb4b).
