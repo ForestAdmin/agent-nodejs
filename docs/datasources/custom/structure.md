@@ -1,4 +1,4 @@
-Creating a custom connector always starts with declaring the structure of the data
+Creating a custom data source always starts with declaring the structure of the data
 
 - Which collections are present?
 - What fields to they contain?
@@ -42,7 +42,7 @@ class MovieCollection extends BaseCollection {
 
 ## Typing
 
-The typing system when writing a connector is the same than the one used when declaring fields in the agent customization step.
+The typing system when writing a data source is the same than the one used when declaring fields in the agent customization step.
 
 You can read all about it in ["Under the hood > Data Model > Typing"](../../under-the-hood/data-model/typing.md).
 

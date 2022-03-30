@@ -1,4 +1,4 @@
-Custom connectors are the answer to the need to import collections from either
+Custom data sources are the answer to the need to import collections from either
 
 - Your own in-house APIs.
 - Unsupported databases
@@ -10,19 +10,19 @@ That interface is only there to abstract away differences between backends so th
 
 # Getting started
 
-When creating a custom connector two strategies can be used:
+When creating a custom data source two strategies can be used:
 
-| -                | Using a local cache                                                                          | Implement query translation                                                       |
-| ---------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Recommended for  | SaaS and APIs                                                                                | Databases or APIs with advanced query capabilities                                |
-| How does it work | All data is cached locally for read operations, write operations are forwarded to the target | The connector translates all forest admin queries to the target API on real time. |
-| Preconditions    | Low: Target API can either sort or filter by last modification                               | High: Target API is capable of expressing filters, aggregating data, ...          |
-| Pros             | Easy to implement and fast                                                                   | No disk usage and no limits on quantity of data                                   |
-| Cons             | Slower agent start, Disk Usage, Quantity of data may be too large                            | More difficult to implement, and can be slow depending on target                  |
+| -                | Using a local cache                                                                          | Implement query translation                                                         |
+| ---------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Recommended for  | SaaS and APIs                                                                                | Databases or APIs with advanced query capabilities                                  |
+| How does it work | All data is cached locally for read operations, write operations are forwarded to the target | The data source translates all forest admin queries to the target API on real time. |
+| Preconditions    | Low: Target API can either sort or filter by last modification                               | High: Target API is capable of expressing filters, aggregating data, ...            |
+| Pros             | Easy to implement and fast                                                                   | No disk usage and no limits on quantity of data                                     |
+| Cons             | Slower agent start, Disk Usage, Quantity of data may be too large                            | More difficult to implement, and can be slow depending on target                    |
 
 ## Steps
 
-Depending on your choice between "Local Cache" or "Query Translation", creating a connector is a very different task.
+Depending on your choice between "Local Cache" or "Query Translation", creating a data source is a very different task.
 
 Local Cache:
 
@@ -38,7 +38,7 @@ Query Translation:
 
 ## Minimal example
 
-{% tabs %} {% tab title="Connector: Using a local cache" %}
+{% tabs %} {% tab title="DataSource: Using a local cache" %}
 
 ```javascript
 const { CachedCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
@@ -94,7 +94,7 @@ class MyDataSource extends CachedDataSource {
 module.exports = MyDataSource;
 ```
 
-{% endtab %} {% tab title="Connector: Using query translation" %}
+{% endtab %} {% tab title="DataSource: Using query translation" %}
 
 ```javascript
 const { BaseCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
@@ -104,7 +104,7 @@ const axios = require('axios'); // client for the target API
 // Expect a full featured query translation module to be over 1000 LOCs
 const QueryGenerator = require('./forest-query-translation');
 
-/** Minimal implementation of a readonly connector */
+/** Minimal implementation of a readonly data source */
 class MyCollection extends BaseCollection {
   constructor() {
     // Set name of the collection once imported
@@ -167,10 +167,10 @@ class MyDataSource extends BaseDataSource {
 module.exports = MyDataSource;
 ```
 
-{% endtab %} {% tab title="Agent: Using the connector" %}
+{% endtab %} {% tab title="Agent: Using the data source" %}
 
 ```javascript
-const MyDataSource = require('./connector');
+const MyDataSource = require('./data source');
 
 const agent = new Agent(options);
 

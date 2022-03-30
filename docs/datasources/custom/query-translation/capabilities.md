@@ -1,4 +1,4 @@
-As a connector implementer, **you won't have to translate every possible query**: on most datasources, it is **not feasible**, as you will be restricted by the API that you will be translating forest admin filters to.
+As a data source implementer, **you won't have to translate every possible query**: on most datasources, it is **not feasible**, as you will be restricted by the API that you will be translating forest admin filters to.
 
 On construction each of your collections will declare per-field capabilities.
 
@@ -6,7 +6,7 @@ Forest Admin will then ensure that only queries using features that you have exp
 
 # Required features
 
-All connectors need to be able to
+All data sources need to be able to
 
 - List and count records
 - Understand `And` nodes in condition trees
@@ -20,7 +20,7 @@ Translating the `or` node is a strong contraint, as many backends will not allow
 
 # Optional features
 
-All optional features are opt-in, and need to be specified when constructing a connector, so that Forest Admin can know that they are available.
+All optional features are opt-in, and need to be specified when constructing a data source, so that Forest Admin can know that they are available.
 
 ## How to unlock features
 
@@ -114,15 +114,15 @@ class MyCollection extends BaseCollection {
 ## Filtering: Search
 
 {% hint style="info" %}
-If this feature is not enabled in the connector definition, users of your connector can still use the search bar in their admin panel (Forest Admin will default to building condition trees).
+If this feature is not enabled in the data source definition, users of your data source can still use the search bar in their admin panel (Forest Admin will default to building condition trees).
 {% endhint %}
 
 Enabling this feature allows you to either:
 
-- Gain control on how search works for your connector instead of relying on the default implementation
-- Allow full text search on connectors were the condition tree implementation is not strong enought
+- Gain control on how search works for your data source instead of relying on the default implementation
+- Allow full text search on data sources were the condition tree implementation is not strong enought
 
-This is relevant mostly for connectors which target data sources which have native full text search capabilities (ElasticSearch, ...)
+This is relevant mostly for data sources which target data sources which have native full text search capabilities (ElasticSearch, ...)
 
 ```javascript
 class MyCollection extends BaseCollection {
@@ -138,21 +138,21 @@ class MyCollection extends BaseCollection {
 ## Filtering: Segments
 
 {% hint style="info" %}
-If this feature is not enabled in the connector definition, users of your connector can still create segments in both their admin panels and agent customization.
+If this feature is not enabled in the data source definition, users of your data source can still create segments in both their admin panels and agent customization.
 {% endhint %}
 
-Defining segments from your connectors can be relevant on three situations:
+Defining segments from your data sources can be relevant on three situations:
 
-- Implementing segments in the connector can be more efficient than using the default condition tree based segments, at the cost of configurability (i.e. using complex SQL queries which cannot be expressed as a condition tree)
+- Implementing segments in the data source can be more efficient than using the default condition tree based segments, at the cost of configurability (i.e. using complex SQL queries which cannot be expressed as a condition tree)
 - The underlying datasource has a concept which maps to forest admin segments (i.e. ["scopes" in Sequelize](https://sequelize.org/master/manual/scopes.html))
-- Your connector is used in multiple Forest Admin projects, and the segment should be shared across all deployments (i.e. segments coming from a public SaaS)
+- Your data source is used in multiple Forest Admin projects, and the segment should be shared across all deployments (i.e. segments coming from a public SaaS)
 
 ```javascript
 class MyCollection extends BaseCollection {
   constructor() {
     // [...]
 
-    // If you want to implement segments at the connector level
+    // If you want to implement segments at the data source level
     this.addSegments(['Active records', 'Deleted records']);
 
     // From now on, all methods which take a filter as parameter *MUST* not ignore its segment

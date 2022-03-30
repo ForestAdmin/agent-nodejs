@@ -16,12 +16,12 @@ Sometimes, segment filters are complicated and closely tied to your business. Fo
 
 On our Live Demo example, we’ve implemented a Segment on the collection `products` to allow admin users to see the bestsellers at a glance.
 
-You’re free to implement the business logic you need. The only requirement is to return a valid `ConditionTree` (see [Understanding Filters](../connectors/custom/query-translation/filters.md)).
+You’re free to implement the business logic you need. The only requirement is to return a valid `ConditionTree` (see [Understanding Filters](../under-the-hood/queries/filters.md)).
 
 On this example, we use a raw SQL query to filter and sort the product that was sold the most.
 
 ```javascript
-const SqlConnector = require('@forestadmin/datasource-sql');
+const SqlDataSource = require('@forestadmin/datasource-sql');
 const { Client } = require('pg');
 
 // Connect to postgres
@@ -32,7 +32,7 @@ client.connect();
 const agent = new Agent(options);
 
 // Import collections from database
-agent.addDataSource(new SqlConnector('postgres://localhost:5432/myDb'));
+agent.addDataSource(new SqlDataSource('postgres://localhost:5432/myDb'));
 
 // Customize collection (we want to add a segment)
 agent.customizeCollection('products', collection =>

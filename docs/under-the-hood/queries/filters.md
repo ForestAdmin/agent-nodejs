@@ -117,7 +117,7 @@ Here is the list of operators which are supported by forest admin.
 
 ## Operator equivalence
 
-You may have noticed that many operators overlap. In order to make connectors quicker to implement, forest admin supports automatic operator replacement.
+You may have noticed that many operators overlap. In order to make data sources quicker to implement, forest admin supports automatic operator replacement.
 
 What that means, is that when an operator can be expressed using a combination of other operators, forest admin will perform the substitution automatically using the following table.
 
@@ -167,7 +167,7 @@ The minimal list of operators which is sufficient to have them all is the follow
 
 # Paging
 
-A paging clause tells the connector which page of the data should be retrieved.
+A paging clause tells the data source which page of the data should be retrieved.
 
 ## Examples
 
@@ -185,7 +185,7 @@ A paging clause tells the connector which page of the data should be retrieved.
 
 The `search` field in a filter simply is what the final user typed in the search bar in the admin panel, an can be used to restrict records.
 
-Likewise `searchExtended` boolean is an action which can be triggered by end-users when a given search returns no results and its implementation can vary from connector to connector.
+Likewise `searchExtended` boolean is an action which can be triggered by end-users when a given search returns no results and its implementation can vary between data sources.
 
 For instance, in `@forestadmin/datasource-sql`, the `searchExtended` flag is used to also search content into all collections which are linked with a `many to one` or `one to one` relation to the current one.
 

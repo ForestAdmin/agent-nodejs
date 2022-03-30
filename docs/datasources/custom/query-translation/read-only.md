@@ -1,6 +1,6 @@
 Developing your query translation layer is much easier when you can preview your work and have intermediary deliverables.
 
-Emulation comes to the rescue: all features which are to be implemented when making a translating connector can be emulated inside your NodeJS, at the cost of performance.
+Emulation comes to the rescue: all features which are to be implemented when making a translating data source can be emulated inside your NodeJS, at the cost of performance.
 
 This enables to be up and running in minutes, and then optimizing your code as you go.
 

@@ -1,4 +1,4 @@
-Out of the box, Forest Admin will not link collection from different connectors.
+Out of the box, Forest Admin will not link collection from different data sources.
 
 This is solved by defining `jointures`.
 
@@ -12,15 +12,15 @@ Which means that:
 ## Example
 
 ```javascript
-const SqlConnector = require('@forestadmin/datasource-sql');
-const IntercomConnector = require('@forestadmin/datasource-intercom');
+const SqlDataSource = require('@forestadmin/datasource-sql');
+const IntercomDataSource = require('@forestadmin/datasource-intercom');
 const Agent = require('@forestadmin/agent');
 
 const agent = new Agent(options);
-const database = new SqlConnector('postgres://user:pass@localhost:5432/mySchema');
-const intercom = new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' });
+const database = new SqlDataSource('postgres://user:pass@localhost:5432/mySchema');
+const intercom = new IntercomDataSource({ accessToken: 'TmljZSB0cnkgOik=' });
 
-// Plug connectors
+// Plug data sources
 agent.addDataSource(database);
 agent.addDataSource(intercom);
 

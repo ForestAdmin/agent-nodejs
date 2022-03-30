@@ -1,4 +1,4 @@
-The sequelize connector allows to import collections from a sequelize instance.
+The sequelize data source allows to import collections from a sequelize instance.
 
 Note that:
 
@@ -8,7 +8,7 @@ Note that:
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const SequelizeConnector = require('@forestadmin/datasource-sequelize');
+const SequelizeDataSource = require('@forestadmin/datasource-sequelize');
 const { Sequelize, Model, DataTypes } = require('@sequelize/core');
 
 // Create a sequelize instance
@@ -26,5 +26,5 @@ User.init(
 // Create agent and import collections from sequelize
 const agent = new Agent(options);
 
-agent.addDataSource(new SequelizeConnector(sequelize));
+agent.addDataSource(new SequelizeDataSource(sequelize));
 ```

@@ -15,37 +15,36 @@ Forest Admin collection map to any of those concepts:
 - Database collections/tables
 - ORM collections
 - Endpoints on supported SaaS providers
-- Endpoints on your own API (by writing a custom connector)
+- Endpoints on your own API (by writing a custom data source)
 
 ## Example
 
 In this example, we import a all tables from a PostgreSQL database into Forest Admin.
 
-Take note that connectors are defined in independant NPM packages (here `@forestadmin/datasource-sql`).
+Take note that data sources are defined in independant NPM packages (here `@forestadmin/datasource-sql`).
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const SqlConnector = require('@forestadmin/datasource-sql');
+const SqlDataSource = require('@forestadmin/datasource-sql');
 
 const agent = new Agent(options);
-const database = new SqlConnector('postgres://user:pass@localhost:5432/mySchema');
+const database = new SqlDataSource('postgres://user:pass@localhost:5432/mySchema');
 
 agent.addDataSource(database);
 ```
 
 ## Partial imports
 
-Some connector may implement more collections, and associated actions and segments that you want.
+Some data source may implement more collections, and associated actions and segments that you want.
 
-By provided options when pluging a connector, you can specify what you want to include into
+By provided options when pluging a data source, you can specify what you want to include into
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const StripeConnector = require('@forestadmin/datasource-stripe');
-const IntercomConnector = require('@forestadmin/datasource-intercom');
+const StripeDataSource = require('@forestadmin/datasource-stripe');
 
 const agent = new Agent(options);
-const stripe = new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
+const stripe = new StripeDataSource({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
 
 agent.addDataSource(stripe, {
   restrict: {
@@ -74,12 +73,12 @@ Don't worry if you leave naming collisions, your development agent will warn you
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const StripeConnector = require('@forestadmin/datasource-stripe');
-const IntercomConnector = require('@forestadmin/datasource-intercom');
+const StripeDataSource = require('@forestadmin/datasource-stripe');
+const IntercomDataSource = require('@forestadmin/datasource-intercom');
 
 const agent = new Agent(options);
-const stripe = new StripeConnector({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
-const intercom = new IntercomConnector({ accessToken: 'TmljZSB0cnkgOik=' });
+const stripe = new StripeDataSource({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
+const intercom = new IntercomDataSource({ accessToken: 'TmljZSB0cnkgOik=' });
 
 // Rename stripe collections by providing replacements
 agent.addDataSource(stripe, {

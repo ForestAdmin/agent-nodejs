@@ -1,6 +1,6 @@
-Implementing a connector using the "query translation" strategy is an advanced concept: you will need to have a deep understanding of forest admin internals.
+Implementing a data source using the "query translation" strategy is an advanced concept: you will need to have a deep understanding of forest admin internals.
 
-This strategy is a good match when writing connectors to full featured databases.
+This strategy is a good match when writing data sources to full featured databases.
 
 Before starting, it is highly advised to read and understand the following section:
 
