@@ -73,7 +73,6 @@ class MyCollection extends CachedCollection {
     const lastUpdate = lastRecords.length ? lastRecords[0].updatedAt : null;
 
     // Fetch everything which changed.
-    const lastUpdate = await this._getLastUpdate();
     const response = await axios.get(`https://my-api/my-collection`, {
       params: { filter: `updatedAt > '${lastUpdate}'` },
     });
