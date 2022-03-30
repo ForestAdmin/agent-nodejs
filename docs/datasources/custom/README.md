@@ -38,7 +38,7 @@ Query Translation:
 
 ## Minimal example
 
-{% tabs %} {% tab title="DataSource: Using a local cache" %}
+{% tabs %} {% tab title="Datasource: Using a local cache" %}
 
 ```javascript
 const { CachedCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
@@ -64,21 +64,21 @@ class MyCollection extends CachedCollection {
     });
   }
 
-  /**
-   * You are free to tune this generator as you see fit, depending on the capabilities and
-   * performance of the API that you are targeting.
-   *
-   * It should yield records updated since `lastThreshold` in any order, and return the new
-   * threshold
-   */
-  async *listChangedRecords(lastThreshold) {
+  async listChangedRecords() {
+    // When was this method last called?
+    const lastRecords = await this.list(
+      { sort: { field: 'updatedAt', ascending: true }, page: { limit: 1 } },
+      ['updatedAt'],
+    );
+    const lastUpdate = lastRecords.length ? lastRecords[0].updatedAt : null;
+
+    // Fetch everything which changed.
+    const lastUpdate = await this._getLastUpdate();
     const response = await axios.get(`https://my-api/my-collection`, {
-      params: { filter: `updatedAt > '${lastThreshold}'` },
+      params: { filter: `updatedAt > '${lastUpdate}'` },
     });
 
-    yield response.body.items;
-
-    return new Date().toISOString();
+    return response.body.items;
   }
 }
 
@@ -94,7 +94,7 @@ class MyDataSource extends CachedDataSource {
 module.exports = MyDataSource;
 ```
 
-{% endtab %} {% tab title="DataSource: Using query translation" %}
+{% endtab %} {% tab title="Datasource: Using query translation" %}
 
 ```javascript
 const { BaseCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');

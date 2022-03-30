@@ -17,15 +17,21 @@ const axios = require('my-api-client'); // client for the target API
 class MyCollection extends CachedCollection {
   // [... Declare structure]
 
-  async *listChangedRecords(lastThreshold) {
+  async listChangedRecords() {
+    // When was this method last called?
+    const lastRecords = await this.list(
+      { sort: { field: 'updatedAt', ascending: true }, page: { limit: 1 } },
+      ['updatedAt'],
+    );
+    const lastUpdate = lastRecords.length ? lastRecords[0].updatedAt : null;
+
+    // Fetch everything which changed.
+    const lastUpdate = await this._getLastUpdate();
     const response = await axios.get(`https://my-api/my-collection`, {
-      params: { filter: `updatedAt > '${lastThreshold}'` },
+      params: { filter: `updatedAt > '${lastUpdate}'` },
     });
 
-    yield response.body.items;
-
-    // Compute threshold for next call
-    return new Date().toISOString();
+    return response.body.items;
   }
 }
 ```
@@ -48,33 +54,38 @@ const axios = require('axios'); // client for the target API
 class MyCollection extends CachedCollection {
   // [... Declare structure]
 
-  async *listChangedRecords(lastThreshold) {
-    let skip = 0;
+  async listChangedRecords() {
+    // When was this method last called?
+    const lastRecords = await this.list(
+      { sort: { field: 'updatedAt', ascending: true }, page: { limit: 1 } },
+      ['updatedAt'],
+    );
+    const lastUpdate = lastRecords.length ? lastRecords[0].updatedAt : null;
+
+    // Fetch records
+    const records = [];
     let limit = 1; // we'll increase this on subsequent calls
 
     while (true) {
       // Load batch of records from targeted data source
       const response = await axios.get(`https://my-api/my-collection`, {
-        params: { sort: '-updatedAt', skip, limit },
+        params: { sort: '-updatedAt', skip: records.length, limit },
       });
-      const records = response.body.items;
 
       // Do we have all modified records?
-      const index = records.findIndex(record => record.updatedAt < lastThreshold);
+      const index = response.body.items.findIndex(record => record.updatedAt < lastUpdate);
       if (index === -1) {
         // We don't have all modified records (yet).
-        yield records; // send everything we have to forest admin
-        skip += records.length; // update skip to make sure we don't fetch the same records in a loop
+        records.push(...response.body.items); // send everything we have to forest admin
         limit = Math.min(1000, limit * 2); // make limit larger
       } else {
         // We are done!
-        yield records.slice(0, index); // send only modified records to forest admin
+        records.push(...response.body.items.slice(0, index));
         break;
       }
     }
 
-    // Compute threshold for next call
-    return new Date().toISOString();
+    return records;
   }
 }
 ```
