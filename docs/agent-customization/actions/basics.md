@@ -1,11 +1,11 @@
 ## What is an Action?
 
 Sooner or later, you will need to perform actions on your data that are specific to your business. Moderating comments, generating an invoice, logging into a customer’s account or banning a user are exactly the kind of important tasks to unlock in order to manage your day-to-day operations.
-On our Live Demo example, our companies collection has many examples of Action. The simplest one is Mark as live.
+On our Live Demo example, our companies collection has many examples of Action. The simplest one is "Mark as live".
 
 ## Creating an Action
 
-In order to create an action, you will first need to declare it in your code for a specific collection. Here we declare a Mark as Live Smart action for the companies collection.
+In order to create an action, you will first need to declare it in your code for a specific collection. Here we declare a Mark as Live action for the companies collection.
 
 ```javascript
 .collection('companies', companiesCollection =>
@@ -20,7 +20,7 @@ In order to create an action, you will first need to declare it in your code for
 );
 ```
 
-After declaring it, your action will appear in the Smart actions tab within your collection settings.
+After declaring it, your action will appear in the "Smart actions" tab within your collection settings.
 
 {% hint style='error' %}
 
@@ -71,7 +71,7 @@ Action response can be configured to achieve different types of results.
 return responseBuilder.success();
 ```
 
-![](../assets/actions-default-success-response.png)
+![](../assets/actions-default-success-response.png | width=300)
 
 ### Custom success notification
 
@@ -79,7 +79,7 @@ return responseBuilder.success();
 return responseBuilder.success('Company is now live!');
 ```
 
-![](../assets/actions-custom-success-response.png)
+![](../assets/actions-custom-success-response.png | width=300)
 
 ### Custom error notification
 
@@ -87,7 +87,7 @@ return responseBuilder.success('Company is now live!');
 return responseBuilder.error('The company was already live!');
 ```
 
-![](../assets/actions-custom-error-response.png)
+![](../assets/actions-custom-error-response.png | width=300)
 
 ### Custom HTML response
 
@@ -98,17 +98,9 @@ For example,
 ```javascript
 const record = await context.getRecord();
 return responseBuilder.success(
-  `
-  <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has been successfuly charged.</p>
+  `<p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has been successfuly charged.</p>
   <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
-  <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
-  <strong class="c-form__label--read c-clr-1-2">Expire</strong>
-  <p class="c-clr-1-4 l-mb">${record.source.exp_month}/${record.source.exp_year}</p>
-  <strong class="c-form__label--read c-clr-1-2">Card type</strong>
-  <p class="c-clr-1-4 l-mb">${record.source.brand}</p>
-  <strong class="c-form__label--read c-clr-1-2">Country</strong>
-  <p class="c-clr-1-4 l-mb">${record.source.country}</p>
-  `,
+  <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>`,
   { type: 'html' },
 );
 ```

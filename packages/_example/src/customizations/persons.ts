@@ -64,6 +64,12 @@ export default (collection: Collection) =>
         {
           label: 'How should we refer to you?',
           type: ActionFieldType.Enum,
+          if: async context => {
+            const person = await context.getRecord(['firstName', 'lastName', 'fullName']);
+
+            return Boolean(person.firstName || person.fullName);
+          },
+          defaultValue: '👋',
           enumValues: async context => {
             const person = await context.getRecord(['firstName', 'lastName', 'fullName']);
 
@@ -76,15 +82,8 @@ export default (collection: Collection) =>
             ];
           },
         },
-        {
-          label: 'Language',
-          type: ActionFieldType.Enum,
-          enumValues: ['French', 'Spanish', 'English'],
-        },
       ],
       execute: async (context, responseBuilder) => {
-        context.collection.update(context.filter, { status: 'Live' });
-
         return responseBuilder.success(
           `Hello ${context.formValues['How should we refer to you?']}!`,
         );
@@ -100,19 +99,39 @@ export default (collection: Collection) =>
       },
     })
 
-    .registerAction('Mark as available (Bulk)', {
+    .registerAction('Charge credit card', {
       scope: ActionScope.Bulk,
+      form: [
+        {
+          label: 'Amount',
+          description: 'The amount (USD) to charge the credit card. Example: 42.50',
+          type: ActionFieldType.Number,
+        },
+        {
+          label: 'Description',
+          description: 'Explain the reason why you want to charge manually the customer here',
+          isRequired: true,
+          type: ActionFieldType.String,
+        },
+        {
+          label: 'stripeId',
+          isRequired: true,
+          type: ActionFieldType.String,
+        },
+      ],
       execute: async (context, responseBuilder) => {
-        return responseBuilder.success('Book marked as available!');
+        // Add your business logic here
+        try {
+          return responseBuilder.success(`Amount charged!`);
+        } catch (error) {
+          return responseBuilder.error(`Failed to charge amount: ${error}`);
+        }
       },
     })
 
     .registerAction('Mark as available (Global)', {
       scope: ActionScope.Global,
       execute: async (context, responseBuilder) => {
-        // @ts-ignore
-        console.log(context.filter);
-
         return responseBuilder.success('Book marked as available!');
       },
     })
