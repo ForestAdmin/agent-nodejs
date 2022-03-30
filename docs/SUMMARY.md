@@ -22,6 +22,7 @@
     - [Intercom](datasources/provided/saas/intercom.md)
     - [Stripe](datasources/provided/saas/stripe.md)
 
+<!--
 - [Write your own](datasources/custom/README.md)
   - [Structure declaration](datasources/custom/structure.md)
   - [Using a local cache](datasources/custom/local-cache/README.md)
@@ -32,7 +33,7 @@
     - [Read implementation](datasources/custom/query-translation/read-only.md)
     - [Write implementation](datasources/custom/query-translation/read-write.md)
   - [Relationships](datasources/custom/relationships.md)
-  - [Contribute](datasources/contribute.md)
+  - [Contribute](datasources/contribute.md) -->
 
 ## Agent customization
 

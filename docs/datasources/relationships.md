@@ -37,16 +37,7 @@ agent.customizeCollection('customers', collection =>
 
 ## Jointure types
 
-A jointure is used to combine rows from two or more tables, based on a related column between them.
-
-Four jointure types are available: `ManyToOne`, `ManyToMany`, `OneToMany` and `OneToOne`.
-
-| Type         | Where are the common keys?                                                                       |
-| ------------ | ------------------------------------------------------------------------------------------------ |
-| Many to One  | origin[foreignKey] == foreign[foreignKeyTarget]                                                  |
-| One to Many  | origin[originKeyTarget] == foreign[originKey]                                                    |
-| Many to Many | origin[originKeyTarget] == through[originKey] && though[foreignKey] == foreign[foreignKeyTarget] |
-| One to One   | origin[originKeyTarget] == foreign[originKey]                                                    |
+All [jointures types](../under-the-hood/data-model/relationships.md) are supported
 
 When defining jointures, if no `foreignKeyTarget` or `originKeyTarget` is provided, the primary keys of respectively the origin and foreign models will be used.
 

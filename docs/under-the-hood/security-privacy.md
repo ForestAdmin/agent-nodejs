@@ -1,4 +1,6 @@
-## Data Privacy
+# Data Privacy
+
+## Private by design
 
 When logging into the **Forest Admin UI** in your browser, you will connect to:
 
@@ -11,7 +13,15 @@ As your data transits directly from the agent hosted on your end and the user br
 
 ![](<../assets/imported/Base-documented (1).png>)
 
-## Security
+## **No 3rd-party Tracking**
+
+The **Forest Admin UI** has an option to completely disable any 3rd-party provider that could track data available from your browser to guarantee the respect of data privacy.
+
+![](../assets/imported/No3rdPartyTracking.png)
+
+# Security
+
+## Tokens
 
 The connection to both servers to the **agent** and the **Forest Admin Servers** are protected using 2 different [**JWT**](https://jwt.io) signed by 2 different keys:
 
@@ -49,19 +59,13 @@ The JWT Data Token contains all the details of the requesting user. On any authe
 {% endcode %}
 {% endhint %}
 
-### **No 3rd-party Tracking**
-
-The **Forest Admin UI** has an option to completely disable any 3rd-party provider that could track data available from your browser to guarantee the respect of data privacy.
-
-![](../assets/imported/No3rdPartyTracking.png)
-
-### IP Whitelisting
+## IP Whitelisting
 
 The [IP whitelisting](broken-reference) feature allows you to create a list of trusted IP addresses or IP ranges from which your admin users can both access to the **Forest Admin UI** and interact with your **agent**.
 
 ![](../assets/imported/IPWhitelist.png)
 
-### **DMZ & VPN**
+## **DMZ & VPN**
 
 You're free to host your **agent** in the cloud architecture you want to be compliant with your security infrastructure (DMZ, VPN, etc.).
 

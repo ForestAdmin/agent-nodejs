@@ -10,7 +10,7 @@ Forest Admin has you covered: if your application depends on multiple SaaS provi
 
 # What can I connect to?
 
-Forest Admin collection map to any of those concepts:
+Forest Admin collections map to any of those concepts:
 
 - Database collections/tables
 - ORM collections
