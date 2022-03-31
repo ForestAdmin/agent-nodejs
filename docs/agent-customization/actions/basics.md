@@ -71,7 +71,7 @@ Action response can be configured to achieve different types of results.
 return responseBuilder.success();
 ```
 
-![](../assets/actions-default-success-response.png | width=300)
+<img src="../assets/actions-default-success-response.png" width="300">
 
 ### Custom success notification
 
@@ -79,7 +79,7 @@ return responseBuilder.success();
 return responseBuilder.success('Company is now live!');
 ```
 
-![](../assets/actions-custom-success-response.png | width=300)
+<img src="../assets/actions-custom-success-response.png" width="300">
 
 ### Custom error notification
 
@@ -87,7 +87,7 @@ return responseBuilder.success('Company is now live!');
 return responseBuilder.error('The company was already live!');
 ```
 
-![](../assets/actions-custom-error-response.png | width=300)
+<img src="../assets/actions-custom-error-response.png" width="300">
 
 ### Custom HTML response
 
