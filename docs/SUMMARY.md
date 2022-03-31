@@ -17,10 +17,6 @@
     - [SQL](datasources/provided/databases/sql.md)
   - [Object Relational Mappers](datasources/provided/orm/README.md)
     - [Sequelize](datasources/provided/orm/sequelize.md)
-    - [Mongoose](datasources/provided/orm/mongoose.md)
-  - [SaaS](datasources/provided/saas/README.md)
-    - [Intercom](datasources/provided/saas/intercom.md)
-    - [Stripe](datasources/provided/saas/stripe.md)
 
 - [Write your own](datasources/custom/README.md)
   - [Structure declaration](datasources/custom/structure.md)
