@@ -1,3 +1,39 @@
-import prepareGenericDatasource from './generic';
+import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
-export default () => prepareGenericDatasource('mysql://example:password@localhost:3306/example');
+import { DataTypes, Sequelize } from 'sequelize';
+
+export async function prepareDatabase(): Promise<Sequelize> {
+  const connectionString = 'mysql://example:password@localhost:3306/example';
+  const sequelize = new Sequelize(connectionString, { logging: false });
+
+  sequelize.define(
+    'store',
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      ownerId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+    },
+    {
+      tableName: 'store',
+      underscored: true,
+      timestamps: false,
+    },
+  );
+
+  return sequelize;
+}
+
+export default async (): Promise<SequelizeDataSource> => {
+  return new SequelizeDataSource(await prepareDatabase());
+};

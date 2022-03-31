@@ -1,73 +1,100 @@
 /* eslint-disable no-console */
-import { Dialect, Sequelize } from 'sequelize';
 import faker from '@faker-js/faker';
 
-import { prepareDatabase } from '../src/datasources/sequelize/generic';
-import databases from '../config/databases';
+import { prepareDatabase as prepareDatabaseMssql } from '../src/datasources/sequelize/mssql';
+import { prepareDatabase as prepareDatabaseMysql } from '../src/datasources/sequelize/mysql';
+import { prepareDatabase as prepareDatabasePostgres } from '../src/datasources/sequelize/postgres';
 
-async function seedData(dialect: Dialect, connectionString: string) {
-  const sequelize = await prepareDatabase(dialect as Dialect, connectionString);
+async function seedData() {
+  const [mssql, mysql, postgres] = await Promise.all([
+    prepareDatabaseMssql(),
+    prepareDatabaseMysql(),
+    prepareDatabasePostgres(),
+  ]);
+
+  for (const db of [mssql, mysql, postgres]) {
+    // eslint-disable-next-line no-await-in-loop
+    await db.sync({ force: true });
+  }
 
   try {
-    await sequelize.sync({ force: true });
+    const ownerRecords = [
+      { id: 0, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
+      { id: 1, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
+      { id: 2, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
+      { id: 3, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
+      { id: 4, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
+      { id: 5, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
+      { id: 6, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
+      { id: 7, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
+      { id: 8, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
+      { id: 9, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
+      { id: 10, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
+    ];
+    await postgres.model('owner').bulkCreate(ownerRecords);
 
-    let cityRecords = [];
-    let countryRecords = [];
-    const addressRecords = [];
-    const ENTRIES = 100;
+    let currentId = 1;
+    const storeRecords = ownerRecords.reduce((records, ownerRecord) => {
+      for (let i = 0; i < faker.datatype.number({ min: 1, max: 2 }); i += 1) {
+        records.push({
+          id: currentId,
+          name: faker.company.companyName(),
+          ownerId: ownerRecord.id,
+        });
+        currentId += 1;
+      }
 
-    for (let i = 0; i < ENTRIES; i += 1) {
-      countryRecords.push({
-        country: faker.address.country(),
-        lastUpdate: faker.datatype.datetime(),
-      });
-    }
+      return records;
+    }, []);
+    await mysql.model('store').bulkCreate(storeRecords);
 
-    countryRecords = await sequelize.model(`${dialect}Country`).bulkCreate(countryRecords);
+    currentId = 1;
+    const dvdRecords = storeRecords.reduce((records, storeRecord) => {
+      for (let i = 0; i < faker.datatype.number({ min: 1, max: 30 }); i += 1) {
+        records.push({
+          id: currentId,
+          title: faker.name.title(),
+          rentalPrice: faker.datatype.number({ min: 1, max: 30 }),
+          storeId: storeRecord.id,
+        });
 
-    for (let i = 0; i < ENTRIES; i += 1) {
-      cityRecords.push({
-        city: faker.address.city(),
-        lastUpdate: faker.datatype.datetime(),
-        countryId: countryRecords[Math.floor(Math.random() * countryRecords.length)].countryId,
-      });
-    }
+        currentId += 1;
+      }
 
-    cityRecords = await sequelize.model(`${dialect}City`).bulkCreate(cityRecords);
+      return records;
+    }, []);
 
-    for (let i = 0; i < ENTRIES; i += 1) {
-      addressRecords.push({
-        address: faker.address.streetAddress(),
-        address2: faker.address.secondaryAddress(),
-        postalCode: faker.address.zipCode(),
-        cityId: cityRecords[Math.floor(Math.random() * cityRecords.length)].cityId,
-      });
-    }
+    await mssql.model('dvd').bulkCreate(dvdRecords);
 
-    await sequelize.model(`${dialect}Address`).bulkCreate(addressRecords);
+    currentId = 1;
+    const dvdRentalRecords = [];
+    const rental = dvdRecords.reduce((records, dvdRecord) => {
+      for (let i = 0; i < faker.datatype.number({ min: 0, max: 30 }); i += 1) {
+        records.push({
+          id: currentId,
+          startDate: faker.date.past(),
+          endDate: faker.date.future(),
+        });
+        dvdRentalRecords.push({ dvdId: dvdRecord.id, rentalId: currentId });
+        currentId += 1;
+      }
+
+      return records;
+    }, []);
+    await mssql.model('rental').bulkCreate(rental);
+    await mssql.model('dvd_rental').bulkCreate(dvdRentalRecords);
+  } catch (e) {
+    console.error(e);
   } finally {
-    await sequelize.close();
+    for (const db of [mssql, mysql, postgres]) {
+      // eslint-disable-next-line no-await-in-loop
+      await db.close();
+    }
   }
 }
 
 (async () => {
-  await Promise.all(
-    databases.map(async ({ dialect, connectionString, dbName, createDatabase }) => {
-      console.log(`Begining seed of ${dialect}`);
+  console.log(`Beginning seed...`);
 
-      if (createDatabase) {
-        let connection: Sequelize;
-
-        try {
-          connection = new Sequelize(`${dialect}://${connectionString}`, { logging: false });
-          await connection.getQueryInterface().createDatabase(dbName);
-        } finally {
-          await connection.close();
-        }
-      }
-
-      await seedData(dialect as Dialect, `${dialect}://${connectionString}/${dbName}`);
-      console.log(`Seed of ${dialect} finished`);
-    }),
-  );
+  await seedData();
 })();
