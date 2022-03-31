@@ -28,7 +28,7 @@ At the end of your onboarding, you will **out-of-the-box** be able to:
 
 ## Deploy to Production
 
-Now that you have a fully functional admin panel, the next logical step is to make it live, with your live (production) data. We've got that covered in a [dedicated section](../deployment/environments#deploying-to-production).
+Now that you have a fully functional admin panel, the next logical step is to make it live, with your live (production) data. We've got that covered in a [dedicated section](../deployment/environments.md#deploying-to-production).
 
 ## Prerequisites
 
