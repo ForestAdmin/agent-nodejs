@@ -1,0 +1,52 @@
+@startuml
+!pragma layout smetana
+!theme cyborg-outline
+
+class STORE {
+  String name
+}
+
+class OWNER {
+  String first-name
+  String last-name
+  String full-name
+}
+
+class ADDRESS {
+  String postal-code
+  String address
+}
+
+class DVD {
+  String title
+  Float duration
+  Int rental-price
+}
+
+class LOCATIONS {
+  String title
+  Float duration
+  Int rental-price
+}
+
+class STORE
+note left: TABLE IN MYSQL
+
+class OWNER
+note bottom: TABLE IN POSTGRES
+
+class ADDRESS
+note bottom: TABLE IN POSTGRES
+
+class DVD
+note bottom: TABLE IN MSSQL
+
+class LOCATIONS
+note bottom: TABLE IN MSSQL
+
+STORE "*" --- "1" OWNER : has
+STORE "1" --- "*" DVD : has
+DVD "*" --- "*" LOCATIONS : has
+STORE "1" --- "1" ADDRESS : has
+
+@enduml
