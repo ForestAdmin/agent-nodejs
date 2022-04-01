@@ -1,10 +1,10 @@
 import { Collection } from '@forestadmin/agent';
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeLeaf, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export default (collection: Collection) =>
   collection
     .registerField('numberOfDays', {
-      columnType: PrimitiveTypes.String,
+      columnType: PrimitiveTypes.Number,
       dependencies: ['startDate', 'endDate'],
       getValues: records =>
         records.map((record: { startDate: Date; endDate: Date }) => {
@@ -14,4 +14,9 @@ export default (collection: Collection) =>
         }),
     })
     .emulateSort('numberOfDays')
-    .unpublishFields(['startDate', 'endDate']);
+    .unpublishFields(['startDate', 'endDate'])
+    .emulateOperator('numberOfDays', Operator.GreaterThan)
+    .registerSegment(
+      'moreThan9Days',
+      async () => new ConditionTreeLeaf('numberOfDays', Operator.GreaterThan, 9),
+    );
