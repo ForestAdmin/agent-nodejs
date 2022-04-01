@@ -13,24 +13,24 @@ Which means that:
 
 ```javascript
 const SqlDataSource = require('@forestadmin/datasource-sql');
-const IntercomDataSource = require('@forestadmin/datasource-intercom');
+const DummyDataSource = require('@forestadmin/datasource-dummy');
 const Agent = require('@forestadmin/agent');
 
 const agent = new Agent(options);
 const database = new SqlDataSource('postgres://user:pass@localhost:5432/mySchema');
-const intercom = new IntercomDataSource({ accessToken: 'TmljZSB0cnkgOik=' });
+const dummy = new DummyDataSource();
 
 // Plug data sources
 agent.addDataSource(database);
-agent.addDataSource(intercom);
+agent.addDataSource(dummy);
 
 // Link 'customer' from database ...
 agent.customizeCollection('customers', collection =>
-  // ... to 'contacts' from intercom
-  collection.registerJointure('myIntercomContact', {
+  // ... to 'city' from dummy data source
+  collection.registerJointure('myDummyCity', {
     type: FieldTypes.OneToOne,
-    foreignCollection: 'contacts', // this collection is in intercom
-    originKey: 'external_id', // field on Intercom
+    foreignCollection: 'cities', // this collection is in the dummy data source
+    originKey: 'external_city_id', // field on dummy
   }),
 );
 ```

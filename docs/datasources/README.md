@@ -33,6 +33,7 @@ const database = new SqlDataSource('postgres://user:pass@localhost:5432/mySchema
 agent.addDataSource(database);
 ```
 
+<!--
 ## Partial imports
 
 Some data source may implement more collections, and associated actions and segments that you want.
@@ -92,3 +93,4 @@ agent.addDataSource(intercom, {
   rename: name => `intercom${name[0].toUpperCase()}${name.substring(1)}`,
 });
 ```
+-->
