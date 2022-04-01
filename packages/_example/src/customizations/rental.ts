@@ -17,6 +17,6 @@ export default (collection: Collection) =>
     .unpublishFields(['startDate', 'endDate'])
     .emulateOperator('numberOfDays', Operator.GreaterThan)
     .registerSegment(
-      'moreThan9Days',
+      'More than 9 Days',
       async () => new ConditionTreeLeaf('numberOfDays', Operator.GreaterThan, 9),
     );
