@@ -45,43 +45,45 @@ async function seedData() {
     }, []);
     await mysql.model('store').bulkCreate(storeRecords);
 
-    currentId = 0;
-    const dvdRecords = storeRecords.reduce((records, storeRecord) => {
-      for (let i = 0; i < faker.datatype.number({ min: 1, max: 30 }); i += 1) {
-        records.push({
-          id: currentId,
-          title: faker.name.title(),
-          rentalPrice: faker.datatype.number({ min: 1, max: 30 }),
-          storeId: storeRecord.id,
-        });
-
-        currentId += 1;
-      }
-
-      return records;
-    }, []);
-
-    await mssql.model('dvd').bulkCreate(dvdRecords);
-
-    currentId = 0;
+    let currentRentalRecordId = 0;
+    let currentDvdRecordId = 0;
+    const dvdRecords = [];
     const dvdRentalRecords = [];
-    const rental = dvdRecords.reduce((records, dvdRecord) => {
-      for (let i = 0; i < faker.datatype.number({ min: 0, max: 30 }); i += 1) {
-        records.push({
-          id: currentId,
-          startDate: faker.date.past(),
-          endDate: faker.date.future(),
+    const rentalRecords = [];
+    storeRecords.forEach(storeRecord => {
+      for (let id = 0; id < faker.datatype.number({ min: 10, max: 50 }); id += 1) {
+        rentalRecords.push({
+          id: currentRentalRecordId,
+          startDate: faker.date.recent(40),
+          endDate: faker.date.soon(40),
         });
-        dvdRentalRecords.push({ dvdId: dvdRecord.id, rentalId: currentId });
-        currentId += 1;
+        currentRentalRecordId += 1;
       }
 
-      return records;
-    }, []);
-    await mssql.model('rental').bulkCreate(rental);
-    await mssql.model('dvd_rental').bulkCreate(dvdRentalRecords);
-  } catch (e) {
-    console.error(e);
+      rentalRecords.forEach(rentalRecord => {
+        for (let id = 0; id < faker.datatype.number({ min: 1, max: 3 }); id += 1) {
+          dvdRecords.push({
+            id: currentDvdRecordId,
+            title: faker.name.title(),
+            rentalPrice: faker.datatype.number({ min: 1, max: 30 }),
+            storeId: storeRecord.id,
+          });
+          dvdRentalRecords.push({ dvdId: currentDvdRecordId, rentalId: rentalRecord.id });
+
+          currentDvdRecordId += 1;
+        }
+      });
+
+      return dvdRecords;
+    });
+
+    await Promise.all([
+      mssql.model('dvd').bulkCreate(dvdRecords),
+      mssql.model('rental').bulkCreate(rentalRecords),
+      mssql.model('dvd_rental').bulkCreate(dvdRentalRecords),
+    ]);
+  } catch {
+    console.error('The seed failed');
   } finally {
     for (const db of [mssql, mysql, postgres]) {
       // eslint-disable-next-line no-await-in-loop
