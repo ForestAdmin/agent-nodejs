@@ -1,4 +1,4 @@
-As a data source implementer, **you won't have to translate every possible query**: on most datasources, it is **not feasible**, as you will be restricted by the API that you will be translating forest admin filters to.
+As a data source implementer, **you won't have to translate every possible query**: on most datasources, it is **not feasible**, as you will be restricted by the API that you will be translating queries for.
 
 On construction each of your collections will declare per-field capabilities.
 

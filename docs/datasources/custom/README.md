@@ -15,7 +15,7 @@ When creating a custom data source two strategies can be used:
 | -                | Using a local cache                                                                          | Implement query translation                                                         |
 | ---------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Recommended for  | SaaS and APIs                                                                                | Databases or APIs with advanced query capabilities                                  |
-| How does it work | All data is cached locally for read operations, write operations are forwarded to the target | The data source translates all forest admin queries to the target API on real time. |
+| How does it work | All data is cached locally for read operations, write operations are forwarded to the target | The data source translates all forest admin queries to the target API in real time. |
 | Preconditions    | Low: Target API can either sort or filter by last modification                               | High: Target API is capable of expressing filters, aggregating data, ...            |
 | Pros             | Easy to implement and fast                                                                   | No disk usage and no limits on quantity of data                                     |
 | Cons             | Slower agent start, Disk Usage, Quantity of data may be too large                            | More difficult to implement, and can be slow depending on target                    |
@@ -51,11 +51,8 @@ class MyCollection extends CachedCollection {
 
     // Add fields
     this.addField('id', {
-      // Structure
       columnType: PrimitiveType.Number,
       isPrimaryKey: true,
-
-      // Capabilities (no need for filterOperators or isSortable in the local-cache strategy)
       isReadOnly: true,
     });
 
@@ -109,14 +106,13 @@ class MyCollection extends BaseCollection {
     // Set name of the collection once imported
     super('myCollection');
 
-    // As we are using the query translation technique, we need to define capabilities for every field
     this.addField('id', {
       // Structure
       columnType: PrimitiveType.Number,
       isPrimaryKey: true,
-
-      // Capabilities
       isReadOnly: true, // field is readonly
+
+      // As we are using the query translation strategy => define capabilities
       filterOperators: new Set(), // field is not filterable
       isSortable: false, // field is not sortable
     });
@@ -129,11 +125,6 @@ class MyCollection extends BaseCollection {
     });
   }
 
-  /**
-   * List data (used by forest admin to fetch records)
-   * - filter: which records are wanted?
-   * - projection: which fields are wanted in the records?
-   */
   async list(filter, projection) {
     const params = QueryGenerator.generateListQueryString(filter, projection);
     const response = axios.get('https://my-api/my-collection', { params });
@@ -141,12 +132,6 @@ class MyCollection extends BaseCollection {
     return response.body.items;
   }
 
-  /**
-   * Aggregate records (used by forest admin to count records, and generate charts)
-   * - filter: which records are wanted?
-   * - aggregation: how should records be aggregated?
-   * - limit: how many rows?
-   */
   async aggregate(filter, aggregation, limit) {
     const params = QueryGenerator.generateAggregateQueryString(filter, projection);
     const response = axios.get('https://my-api/my-collection', { params });
