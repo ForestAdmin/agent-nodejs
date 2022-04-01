@@ -24,7 +24,7 @@ At the end of your onboarding, you will **out-of-the-box** be able to:
 - Edit your UI **(5)**
 - Search and filter **(6)**
 
-![](../assets/imported/quick-start-abilities.png)
+![](../assets/quick-start-abilities.png)
 
 ## Deploy to Production
 
