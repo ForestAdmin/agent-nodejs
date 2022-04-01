@@ -1,13 +1,13 @@
-Out of the box, Forest Admin will not link collection from different data sources.
+Out of the box, Forest Admin will not create links between collections from different data sources.
 
 This is solved by defining `jointures`.
 
-When a jointure is defined between two collections, from both the user and agent developer point of view, Forest Admin will act as if the two collections were linked with a native relationships (i.e. like two collections within the same SQL database).
+When a jointure is defined between two collections Forest Admin will act as if the two collections were linked with a native relationships (i.e. like two collections within the same SQL database).
 
 Which means that:
 
 - The relation can be traversed in the user interface
-- Actions, charts, fields and segments which use information from both collections can be built with no changes in the API that is used.
+- Actions, charts, fields and segments can be created using fields from both sides of the relations.
 
 ## Example
 
@@ -57,12 +57,12 @@ const agent = new Agent(options);
 agent.customizeCollection('customers', collection => {
   // Create foreign key
   collection.registerField('myForeignKey', {
+    // Ensure this field is accesible for the jointure
+    beforeJointures: true,
+
     // Compute foreign key value from other fields
     dependencies: [...],
     getValues: records => record.map(r => ...),
-
-    // Ensure this field is accesible for the jointure
-    beforeJointures: true,
 
     // Implement the In operator, so that the foreign key can be used as a jointure
     filterBy: {

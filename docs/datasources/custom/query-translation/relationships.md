@@ -1,16 +1,16 @@
-We've seen that when building datasources using the "query translation" strategy, collection must fulfill the contract they defined [when declaring their capabilities](./capabilities.md).
+We've seen that when building datasources using the "query translation" strategy, collections must fulfill the contract they defined [when declaring their capabilities](./capabilities.md).
 
-The same is also true for [Intra-datasource relationships](../structure.md#relationships) which are declared on the structure of a collection: declared relations must be handled when processing `filters` and `projection`.
+The same is also true for [Intra-datasource relationships](../structure.md#relationships) which are declared on the structure of a collection: declared relations must be handled when processing `filters`, `projection` and `aggregations`.
 
 # In practice
 
-Relationships which yield more than one record ("one to many" and "many to many") actually don't require additional work, because Forest Admin will automatically call the destination collection with a valid filter.
+"One to many" and "many to many" relationships do not require additional work: Forest Admin will automatically call the destination collection with a valid filter.
 
 On the other hand, "Many to one" and "one to one" relationships require the implementer to make all fields from the target collection available on the source collection (under a prefix).
 
 ## Example
 
-If a collection' structure declaration contains the following statement
+If a structure declaration contains the following statement
 
 ```javascript
 class MovieCollection extends BaseCollection {
@@ -29,7 +29,7 @@ class MovieCollection extends BaseCollection {
 }
 ```
 
-Then the collection must accept references to fields from the `people` collection in `filters`, `projections` and `aggregations` parameters on all methods which are implemented by the collection
+Then the collection must accept references to fields from the `people` collection under the `director` prefix in all method parameters.
 
 ```javascript
 // The following call is using both fields from the "movies" and "people" collection
@@ -51,16 +51,20 @@ await dataSource.getCollection('movies').list(
 should return
 
 ```json
-{ "id": 34, "title": "E.T", "director": { "firstName": "Stephen", "lastName": "Spielberg" } }
+{
+  "id": 34,
+  "title": "E.T",
+  "director": { "firstName": "Stephen", "lastName": "Spielberg" }
+}
 ```
 
 # Alternative: using a decorator
 
 {% hint style='warning' %}
-When using a decorator to emulate behaviors (in this case, relationships), do not duplicate the declaration of the relation
+When using a decorator to emulate behaviors (in this case, relationships), remove the initial declaration (in this case, the relation in the collection structure).
 {% endhint %}
 
-If the API which is being targeted does not support filtering and fetching fields from relationships natively, you may want to use the technique that we're using for "Inter-datasource relations" to define the "Intra-datasource relations" that binds the collections from your data source.
+If the API which is being targeted does not support filtering and fetching fields from relationships natively, you may want to use the same technique that we're using for "Inter-datasource relations" to define the "Intra-datasource relations".
 
 At the cost of performance, everything would then work out of the box.
 

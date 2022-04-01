@@ -4,48 +4,40 @@ Segments are designed for those who want to _systematically_ visualize data acco
 
 ![](../assets/imported/screenshot-2019-07-01-17-38-24.png)
 
-### From your admin panel
+# From your admin panel
 
 Segments can be configured from the interface, without the need to write any code.
 
 This is documented in the [User Guide](https://docs.forestadmin.com/user-guide/collections/segments)
 
-### From your agent
+# From your agent
 
 Sometimes, segment filters are complicated and closely tied to your business. Forest Admin allows you to code how the segment is computed.
 
-On our Live Demo example, we’ve implemented a Segment on the collection `products` to allow admin users to see the bestsellers at a glance.
+For instance, on our Live Demo example, we’ve implemented a Segment on the collection `products` to allow admin users to see the bestsellers at a glance.
 
-You’re free to implement the business logic you need. The only requirement is to return a valid `ConditionTree` (see [Understanding Filters](../under-the-hood/queries/filters.md)).
+## Example
 
-On this example, we use a raw SQL query to filter and sort the product that was sold the most.
+{% hint style='info' %}
+In the following example, we are making queries using the [Forest Admin Query Interface](../under-the-hood/queries/README.md).
+
+As Forest Admin does not impose any restriction on the handler, you are free to call external APIs, or query your database directly instead.
+{% endhint %}
+
+The only requirement when implementing a segment from your agent is to return a valid `ConditionTree` (see [Understanding Filters](../under-the-hood/queries/filters.md)).
 
 ```javascript
-const SqlDataSource = require('@forestadmin/datasource-sql');
-const { Client } = require('pg');
-
-// Connect to postgres
-const client = new Client({ host: 'localhost', database: 'myDb', port: 5432 });
-client.connect();
-
-// Start agent
 const agent = new Agent(options);
 
-// Import collections from database
-agent.addDataSource(new SqlDataSource('postgres://localhost:5432/myDb'));
-
-// Customize collection (we want to add a segment)
+// Register segment
 agent.customizeCollection('products', collection =>
-  // Register segment using raw SQL query
-  collection.registerSegment('Bestsellers', async context => {
-    const { rows } = await client.query(`
-      SELECT product_id, COUNT(*)
-      FROM orders
-      GROUP BY product_id
-      ORDER BY count DESC
-      LIMIT 10;
-    `);
+  collection.registerSegment('mySegment', context => {
+    // Query the ids of the 10 most populate products by looking at the `orders` collection.
+    const rows = await context.dataSource
+      .getCollection('orders')
+      .aggregate({}, { operation: 'Count', groups: [{ field: 'product_id' }] }, 10);
 
+    // Return a condition tree which matches those records
     return { field: 'id', operator: 'in', value: rows.map(r => r['product_id']) };
   }),
 );

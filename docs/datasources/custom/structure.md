@@ -71,7 +71,7 @@ For **inter**-datasource relationships, you should use [jointures at the customi
 
 You can declare relationships at the collection level, but that means that the datasource you are making is responsible from handling them.
 
-This will work out of the box for datasources using the "local-cache" strategy, however please read ["Using query translation > Intra-datasource Relationships"](./query-translation/relationships.md), before getting started if declaring relations the "query translation" strategy.
+This will work out of the box for datasources using the "local-cache" strategy, however please read ["Using query translation > Intra-datasource Relationships"](./query-translation/relationships.md), before starting for the "query translation" strategy.
 
 ## Examples
 

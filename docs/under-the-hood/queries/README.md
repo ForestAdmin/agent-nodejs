@@ -1,4 +1,4 @@
-In order to connect to many different backends, Forest Admin needs to abstract away their differences.
+In order to connect to different backends, Forest Admin abstracts away their differences.
 
 Each one of the availables data sources "speaks" the language of the API it is targeting from one side, and exposes the Forest Admin Query Interface on the other one.
 

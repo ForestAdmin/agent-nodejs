@@ -38,7 +38,7 @@ agent.addDataSource(database);
 
 Some data source may implement more collections, and associated actions and segments that you want.
 
-By provided options when pluging a data source, you can specify what you want to include into
+By provided options when pluging a data source, you can specify which entities should get loaded.
 
 ```javascript
 const Agent = require('@forestadmin/agent');
@@ -66,9 +66,9 @@ agent.addDataSource(stripe, {
 
 ## Naming conflicts
 
-When importing collections to an admin panel, it is easy to encounter naming collisions.
+When importing collections to an admin panel, you may encounter naming collisions.
 
-You can tackle them by either only adding the collections that you need, or by renaming some collections.
+You can tackle them by renaming the collection which are causing issues.
 
 Don't worry if you leave naming collisions, your development agent will warn you while starting.
 
