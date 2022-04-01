@@ -64,6 +64,12 @@ export default (collection: Collection) =>
         {
           label: 'How should we refer to you?',
           type: ActionFieldType.Enum,
+          if: async context => {
+            const person = await context.getRecord(['firstName', 'lastName', 'fullName']);
+
+            return Boolean(person.firstName || person.fullName);
+          },
+          defaultValue: '👋',
           enumValues: async context => {
             const person = await context.getRecord(['firstName', 'lastName', 'fullName']);
 
@@ -76,15 +82,97 @@ export default (collection: Collection) =>
             ];
           },
         },
-        {
-          label: 'Language',
-          type: ActionFieldType.Enum,
-          enumValues: ['French', 'Spanish', 'English'],
-        },
       ],
       execute: async (context, responseBuilder) => {
         return responseBuilder.success(
           `Hello ${context.formValues['How should we refer to you?']}!`,
+        );
+      },
+    })
+
+    .registerAction('Mark as available (Single)', {
+      scope: ActionScope.Single,
+      execute: async (context, responseBuilder) => {
+        await context.collection.update(context.filter, { firstName: 'Anonymized' });
+
+        return responseBuilder.success('Book marked as available!');
+      },
+    })
+
+    .registerAction('Charge credit card', {
+      scope: ActionScope.Bulk,
+      form: [
+        {
+          label: 'Amount',
+          description: 'The amount (USD) to charge the credit card. Example: 42.50',
+          type: ActionFieldType.Number,
+        },
+        {
+          label: 'Description',
+          description: 'Explain the reason why you want to charge manually the customer here',
+          isRequired: true,
+          type: ActionFieldType.String,
+        },
+        {
+          label: 'stripeId',
+          isRequired: true,
+          type: ActionFieldType.String,
+        },
+      ],
+      execute: async (context, responseBuilder) => {
+        // Add your business logic here
+        try {
+          return responseBuilder.success(`Amount charged!`);
+        } catch (error) {
+          return responseBuilder.error(`Failed to charge amount: ${error}`);
+        }
+      },
+    })
+
+    .registerAction('Mark as available (Global)', {
+      scope: ActionScope.Global,
+      execute: async (context, responseBuilder) => {
+        return responseBuilder.success('Book marked as available!');
+      },
+    })
+
+    .registerAction('Mark as available (Webhook)', {
+      scope: ActionScope.Global,
+      execute: async (context, responseBuilder) => {
+        return responseBuilder.webhook(
+          'http://my-company-name', // The url of the company providing the service.
+          'POST', // The method you would like to use (typically a POST).
+          {}, // You can add some headers if needed.
+          { adminToken: 'your-admin-token' }, // A body to send to the url (only JSON supported).
+        );
+      },
+    })
+
+    .registerAction('Mark as available (File download)', {
+      scope: ActionScope.Global,
+      generateFile: true,
+      execute: async (context, responseBuilder) => {
+        return responseBuilder.file('streamOrBufferOrString', 'filename.txt', 'text/plain');
+      },
+    })
+
+    .registerAction('Mark as available (Refresh related)', {
+      scope: ActionScope.Global,
+      generateFile: true,
+      execute: async (context, responseBuilder) => {
+        return responseBuilder.success('New transaction emitted', {
+          type: 'text',
+          invalidated: ['emitted_transactions'],
+        });
+      },
+    })
+
+    .registerAction('Mark as available (Redirect to)', {
+      scope: ActionScope.Global,
+      generateFile: true,
+      execute: async (context, responseBuilder) => {
+        return responseBuilder.redirectTo(
+          '/MyProject/MyEnvironment/MyTeam/data/20/index/record/20/108/activity',
         );
       },
     })
