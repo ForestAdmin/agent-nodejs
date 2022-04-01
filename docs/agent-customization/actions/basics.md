@@ -34,11 +34,11 @@ An action is displayed in the UI only if:
 
 You must make the action visible there if you wish users to be able to see it.
 
-![](../assets/actions-visibility.png)
+![](../../assets/actions-visibility.png)
 
 It will then show in the actions dropdown button:
 
-![](../assets/actions-dropdown.png)
+![](../../assets/actions-dropdown.png)
 
 {% hint style='info' %}
 
@@ -71,7 +71,7 @@ Action response can be configured to achieve different types of results.
 return responseBuilder.success();
 ```
 
-<img src="../assets/actions-default-success-response.png" width="300">
+<img src="../../assets/actions-default-success-response.png" width="300">
 
 ### Custom success notification
 
@@ -79,7 +79,7 @@ return responseBuilder.success();
 return responseBuilder.success('Company is now live!');
 ```
 
-<img src="../assets/actions-custom-success-response.png" width="300">
+<img src="../../assets/actions-custom-success-response.png" width="300">
 
 ### Custom error notification
 
@@ -87,7 +87,7 @@ return responseBuilder.success('Company is now live!');
 return responseBuilder.error('The company was already live!');
 ```
 
-<img src="../assets/actions-custom-error-response.png" width="300">
+<img src="../../assets/actions-custom-error-response.png" width="300">
 
 ### Custom HTML response
 
@@ -105,7 +105,7 @@ return responseBuilder.success(
 );
 ```
 
-![](../assets/actions-html-response.png)
+![](../../assets/actions-html-response.png)
 
 ## Setting up a webhook
 
@@ -142,7 +142,7 @@ If you want to create an action accessible from the details or the summary view 
 
 In the example below, the “Add new transaction” action is accessible from the summary view. This action creates a new transaction and automatically refresh the “Emitted transactions” related data section to see the new transaction.
 
-![](../assets/actions-refresh-related.png)
+![](../../assets/actions-refresh-related.png)
 
 ```javascript
 return responseBuilder.success('New transaction emitted', {

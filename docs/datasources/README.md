@@ -8,7 +8,7 @@ Now, that's already useful and can be built upon, but what if you want your pane
 
 Forest Admin has you covered: if your application depends on multiple SaaS providers, so should your admin panel.
 
-# What can I connect to?
+## What can I connect to?
 
 Forest Admin collections map to any of those concepts:
 

@@ -8,9 +8,9 @@ In Forest Admin, relations are defined as fields and are traversable in only one
 
 Four jointure types are available: `ManyToOne`, `ManyToMany`, `OneToMany` and `OneToOne`.
 
-| Type         | Where are the common keys?                                                                       |
-| ------------ | ------------------------------------------------------------------------------------------------ |
-| Many to One  | origin[foreignKey] == foreign[foreignKeyTarget]                                                  |
-| One to Many  | origin[originKeyTarget] == foreign[originKey]                                                    |
-| Many to Many | origin[originKeyTarget] == through[originKey] && though[foreignKey] == foreign[foreignKeyTarget] |
-| One to One   | origin[originKeyTarget] == foreign[originKey]                                                    |
+| Type       | Where are the common keys?                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------ |
+| ManyToOne  | origin[foreignKey] == foreign[foreignKeyTarget]                                                  |
+| OneToMany  | origin[originKeyTarget] == foreign[originKey]                                                    |
+| ManyToMany | origin[originKeyTarget] == through[originKey] && though[foreignKey] == foreign[foreignKeyTarget] |
+| OneToOne   | origin[originKeyTarget] == foreign[originKey]                                                    |
