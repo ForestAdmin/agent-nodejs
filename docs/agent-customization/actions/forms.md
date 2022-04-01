@@ -37,7 +37,7 @@ In the following example, an action form will be displayed for the "Charge credi
 })
 ```
 
-![](../assets/actions/actions-forms-charge-cc.png)
+![](../../assets/actions-forms-charge-cc.png)
 
 ## Handling input values
 

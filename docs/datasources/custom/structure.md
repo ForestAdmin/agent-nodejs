@@ -66,7 +66,7 @@ The API for validation is the same than with [condition trees](../custom/query-t
 {% hint style='warning' %}
 Only **intra**-datasource relationships should be declared at the collection level.
 
-For **inter**-datasource relationships, you should use [jointures at the customization step](../relationships.md)
+For **inter**-datasource relationships, you should use [jointures at the customization step](../../agent-customization/relationships.md)
 {% endhint %}
 
 You can declare relationships at the collection level, but that means that the datasource you are making is responsible from handling them.

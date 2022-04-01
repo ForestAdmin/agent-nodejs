@@ -10,7 +10,6 @@
 ## Data Sources
 
 - [Usage](datasources/README.md)
-- [Inter-datasource relationships](datasources/relationships.md)
 - [Provided datasources](datasources/provided/README.md)
 
   - [Databases](datasources/provided/databases/README.md)
@@ -38,6 +37,7 @@
 - [Charts](agent-customization/charts.md)
 - [Fields](agent-customization/fields.md)
 - [Hooks](agent-customization/hooks.md)
+- [Relationships](agent-customization/relationships.md)
 - [Segments](agent-customization/segments.md)
 
 ## Frontend customization
