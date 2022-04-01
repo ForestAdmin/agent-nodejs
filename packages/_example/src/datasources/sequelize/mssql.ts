@@ -9,6 +9,8 @@ export async function prepareDatabase(): Promise<Sequelize> {
   try {
     connection = new Sequelize(uri, { logging: false });
     await connection.getQueryInterface().createDatabase('example');
+  } catch (e) {
+    console.error(e);
   } finally {
     await connection.close();
   }
