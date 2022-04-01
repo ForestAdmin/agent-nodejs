@@ -4,7 +4,9 @@ description: Let's get you up and running on Forest Admin in minutes!
 
 # Quick Start
 
-Go to [https://app.forestadmin.com/signup](https://app.forestadmin.com/signup), create an account and install your project.
+## Create an account and follow the onboarding
+
+Go to [https://app.forestadmin.com/signup](https://app.forestadmin.com/signup), and create an account and install your project.
 
 {% hint style="info" %}
 If you want to test Forest Admin but don't have a database on hand, here is one!
@@ -22,4 +24,13 @@ At the end of your onboarding, you will **out-of-the-box** be able to:
 - Edit your UI **(5)**
 - Search and filter **(6)**
 
-![](<../assets/imported/image (547).png>)
+![](../assets/quick-start-abilities.png)
+
+## Prerequisites
+
+- Node.js > 14.0.0
+- NPM > 6.14.4 or yarn > 1.22.17
+
+## Troubleshooting
+
+If you encounter any issue while installing the Forest Admin agent, join our [community](https://community.forestadmin.com/).
