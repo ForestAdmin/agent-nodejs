@@ -37,22 +37,32 @@ const address: CollectionSchema = {
 
 const dataSourceSchema: DataSourceSchema = { collections: { address } };
 
-async function loadLiveDataSource(dataSource: DataSource) {
+// This seed is in this file because the records are loaded in the memory.
+async function runSeed(dataSource: DataSource) {
+  // there are dependencies in this database.
   const mysql = await prepareDatabaseMysql();
-  const storeRecords = await mysql.model('store').findAll({ attributes: ['id'] });
-  const addressRecords = storeRecords.map((storeRecord, index) => ({
-    id: index,
-    zipCode: faker.address.zipCode(),
-    address: faker.address.streetAddress(),
-    storeId: storeRecord.get('id'),
-  }));
-  await dataSource.getCollection('address').create(addressRecords);
+
+  try {
+    const storeRecords = await mysql.model('store').findAll({ attributes: ['id'] });
+    const addressRecords = storeRecords.map((storeRecord, index) => ({
+      id: index,
+      zipCode: faker.address.zipCode(),
+      address: faker.address.streetAddress(),
+      storeId: storeRecord.get('id'),
+    }));
+    await dataSource.getCollection('address').create(addressRecords);
+  } catch {
+    // eslint-disable-next-line no-console
+    console.log('Please run `docker-compose-up -d` to run the db');
+  } finally {
+    await mysql.close();
+  }
 }
 
 export default async (): Promise<LiveDataSource> => {
   const dataSource = await new LiveDataSource(dataSourceSchema);
   await dataSource.syncCollections();
-  await loadLiveDataSource(dataSource);
+  await runSeed(dataSource);
 
   return dataSource;
 };

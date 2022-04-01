@@ -24,7 +24,9 @@
     "start": "nodemon --delay 250ms --watch '../*/dist/' --exec yarn start:agent",
     "start:agent": "node --enable-source-maps --async-stack-traces -e \"require('./dist/index.js').default()\"",
     "test": "jest",
-    "db:seed": "ts-node scripts/db-seed.ts"
+    "db:seed": "ts-node scripts/db-seed.ts",
+    "db:up": "docker-compose up",
+    "db:down": "docker-compose down -v"
   },
   "devDependencies": {
     "fishery": "^2.1.0",

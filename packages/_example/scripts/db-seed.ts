@@ -17,20 +17,17 @@ async function seedData() {
     await db.sync({ force: true });
   }
 
+  const ownerRecords = [];
+
   try {
-    const ownerRecords = [
-      { id: 0, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
-      { id: 1, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
-      { id: 2, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
-      { id: 3, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
-      { id: 4, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
-      { id: 5, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
-      { id: 6, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
-      { id: 7, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
-      { id: 8, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
-      { id: 9, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
-      { id: 10, firstName: faker.name.firstName(), lastName: faker.name.lastName() },
-    ];
+    for (let i = 0; i < 10; i += 1) {
+      ownerRecords.push({
+        id: i,
+        firstName: faker.name.firstName(),
+        lastName: faker.name.lastName(),
+      });
+    }
+
     await postgres.model('owner').bulkCreate(ownerRecords);
 
     let currentId = 1;
@@ -48,7 +45,7 @@ async function seedData() {
     }, []);
     await mysql.model('store').bulkCreate(storeRecords);
 
-    currentId = 1;
+    currentId = 0;
     const dvdRecords = storeRecords.reduce((records, storeRecord) => {
       for (let i = 0; i < faker.datatype.number({ min: 1, max: 30 }); i += 1) {
         records.push({
@@ -66,7 +63,7 @@ async function seedData() {
 
     await mssql.model('dvd').bulkCreate(dvdRecords);
 
-    currentId = 1;
+    currentId = 0;
     const dvdRentalRecords = [];
     const rental = dvdRecords.reduce((records, dvdRecord) => {
       for (let i = 0; i < faker.datatype.number({ min: 0, max: 30 }); i += 1) {

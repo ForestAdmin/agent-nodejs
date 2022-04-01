@@ -2,6 +2,7 @@ import Agent, { AgentOptions } from '@forestadmin/agent';
 import customizeAddress from './customizations/address';
 import customizeDvd from './customizations/dvd';
 import customizeOwner from './customizations/owner';
+import customizeRental from './customizations/rental';
 import customizeStore from './customizations/store';
 import prepareAddressInLive from './datasources/live';
 import prepareDvdRentalsInMssql from './datasources/sequelize/mssql';
@@ -18,5 +19,6 @@ export default async function makeAgent(options: AgentOptions) {
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('address', customizeAddress)
     .customizeCollection('store', customizeStore)
+    .customizeCollection('rental', customizeRental)
     .customizeCollection('dvd', customizeDvd);
 }

@@ -20,4 +20,11 @@ export default (collection: Collection) =>
       foreignCollection: 'dvd',
       originKey: 'storeId',
       originKeyTarget: 'id',
+    })
+    .importField('ownerFullName', { path: 'owner:fullName' })
+    .emulateSort('ownerFullName')
+    .implementWrite('ownerFullName', async (fullName: string, context) => {
+      if (context.action === 'update') {
+        return { owner: { fullName } };
+      }
     });
