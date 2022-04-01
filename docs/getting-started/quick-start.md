@@ -26,10 +26,6 @@ At the end of your onboarding, you will **out-of-the-box** be able to:
 
 ![](../assets/quick-start-abilities.png)
 
-## Deploy to Production
-
-Now that you have a fully functional admin panel, the next logical step is to make it live, with your live (production) data. We've got that covered in a [dedicated section](../deployment/environments.md#deploying-to-production).
-
 ## Prerequisites
 
 - Node.js > 14.0.0
