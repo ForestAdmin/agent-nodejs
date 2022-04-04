@@ -54,13 +54,12 @@ Here is the list of available options to customize the input form. More informat
 
 ## Typing system
 
-Form entries are typed, and the available types are:
+The available field types are:
 
-- Primitives: `Boolean`, `Date`, `Dateonly`, `Json`, `Number`, `String`
-- Lists of primitives: `Number[]`, `String[]`
-- Enums
-- Files: `File` and `File[]` ()
-- Links to records from other collections: `Collection`
+- Primitives: `Boolean`, `Date`, `Dateonly`, `Enum`, `Json`, `Number`, `String`
+- Lists: `Number[]`, `String[]`
+- Files: `File` and `File[]`
+- Records from other collections: `Collection`
 
 Note that:
 
