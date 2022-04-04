@@ -68,7 +68,7 @@ It is possible using the `redirectTo` function.
 
 The redirection works both for internal (\*.forestadmin.com pages) and external links.
 
-{% tabs %} {% tab title="Using an internal link to forestadmin" %}
+{% tabs %} {% tab title="Internal link" %}
 
 ```javascript
 return responseBuilder.redirectTo(
@@ -76,7 +76,7 @@ return responseBuilder.redirectTo(
 );
 ```
 
-{% endtab %} {% tab title="Using an external link" %}
+{% endtab %} {% tab title="External link" %}
 
 ```javascript
 return responseBuilder.redirectTo(

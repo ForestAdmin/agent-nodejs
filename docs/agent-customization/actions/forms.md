@@ -118,7 +118,7 @@ const value = context.formValues['Amount'];
 The following example takes advantage of a few `ContextHandler` properties:
 
 ```javascript
-.registerAction('Tell me a greeting', {
+collection.registerAction('Tell me a greeting', {
   scope: 'Single',
   form: [
     {
@@ -143,12 +143,9 @@ The following example takes advantage of a few `ContextHandler` properties:
     },
   ],
   execute: async (context, responseBuilder) => {
-    return responseBuilder.success(
-      `Hello ${context.formValues['How should we refer to you?']}!`,
-    );
+    return responseBuilder.success(`Hello ${context.formValues['How should we refer to you?']}!`);
   },
-})
-
+});
 ```
 
 Here, the form field `How should we refer to you?` will only be displayed if the action was triggered on a record with either a `firstName` or `fullName`.
@@ -160,7 +157,7 @@ Finally, executing the action will display a notification based on the user choi
 Use the `if` property of a field to allow you to hide or display it upon some logic.
 
 ```javascript
-.registerAction('Leave a review', {
+collection.registerAction('Leave a review', {
   scope: 'Single',
   form: [
     {
@@ -178,5 +175,5 @@ Use the `if` property of a field to allow you to hide or display it upon some lo
     // use context.formValues to save theses informations or trigger an event.
     return responseBuilder.success(`Thank you for your review!`);
   },
-})
+});
 ```
