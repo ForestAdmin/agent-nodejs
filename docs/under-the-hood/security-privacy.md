@@ -11,13 +11,13 @@ When logging into the **Forest Admin UI** in your browser, you will connect to:
 As your data transits directly from the agent hosted on your end and the user browser, **it never transits through our servers**.
 {% endhint %}
 
-![](<../assets/imported/Base-documented (1).png>)
+![](../assets/security-privacy-architecture.png)
 
 ## **No 3rd-party Tracking**
 
 The **Forest Admin UI** has an option to completely disable any 3rd-party provider that could track data available from your browser to guarantee the respect of data privacy.
 
-![](../assets/imported/No3rdPartyTracking.png)
+![](../assets/security-privacy-no-3rd-party.png)
 
 # Security
 
@@ -28,7 +28,7 @@ The connection to both servers to the **agent** and the **Forest Admin Servers**
 1. `FOREST_ENV_SECRET` to authenticate all requests made to the **Forest Admin Servers**
 2. `FOREST_AUTH_SECRET` to authenticate all requests made to the **agent**
 
-![](../assets/imported/JWT.png)
+![](../assets/security-privacy-jwt.png)
 
 {% hint style="warning" %}
 `FOREST_ENV_SECRET` is provided by Forest Admin and ensures your **agent** interacts with the relevant environment configuration on our end**.**
@@ -63,16 +63,16 @@ The JWT Data Token contains all the details of the requesting user. On any authe
 
 The [IP whitelisting](https://docs.forestadmin.com/user-guide/project-settings/other-project-settings/security-tab#ip-whitelisting) feature allows you to create a list of trusted IP addresses or IP ranges from which your admin users can both access to the **Forest Admin UI** and interact with your **agent**.
 
-![](../assets/imported/IPWhitelist.png)
+![](../assets/security-privacy-ip-whitelist.png)
 
 ## **DMZ & VPN**
 
 You're free to host your **agent** in the cloud architecture you want to be compliant with your security infrastructure (DMZ, VPN, etc.).
 
-![](<../assets/imported/image (403).png>)
+![](../assets/security-privacy-dmz-vpn.png)
 
 ## Credentials
 
 We’re already working with companies compliant with the following Industry Standard Certifications.
 
-![](<../assets/imported/image (338).png>)
+![](../assets/security-privacy-credentials.png)
