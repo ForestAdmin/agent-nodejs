@@ -33,30 +33,25 @@ import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-d
  * ```
  */
 export default class AgentBuilder {
+  // Base datasource
   compositeDatasource: BaseDataSource<Collection>;
 
+  // Decorators
+  action: DataSourceDecorator<ActionCollectionDecorator>;
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   earlyOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
-
+  forestAdminHttpDriver: ForestAdminHttpDriver;
   jointure: DataSourceDecorator<JointureCollectionDecorator>;
-
   lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   lateOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
-
-  sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
-
-  segment: DataSourceDecorator<SegmentCollectionDecorator>;
-  action: DataSourceDecorator<ActionCollectionDecorator>;
-  search: DataSourceDecorator<SearchCollectionDecorator>;
-
-  rename: DataSourceDecorator<RenameCollectionDecorator>;
   publication: DataSourceDecorator<PublicationCollectionDecorator>;
-
+  rename: DataSourceDecorator<RenameCollectionDecorator>;
+  search: DataSourceDecorator<SearchCollectionDecorator>;
+  segment: DataSourceDecorator<SegmentCollectionDecorator>;
+  sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
   write: DataSourceDecorator<WriteCollectionDecorator>;
-
-  forestAdminHttpDriver: ForestAdminHttpDriver;
 
   /**
    * Native nodejs HttpCallback object
