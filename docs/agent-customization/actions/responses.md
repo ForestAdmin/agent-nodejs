@@ -1,14 +1,14 @@
 Aside from their actual behavior in the agent, actions can be configured to achieve different results in the frontend.
 
-## Displaying the result
+Most actions will simply perform work on the agent, and display a notification in the admin-panel user, however other behaviors are possible.
 
-Most actions will simply perform work on the agent, and display the result in the admin-panel user.
-
-If not exception is thrown in the handler, Forest Admin will consider the action to have run successfully and display a notification.
+The default behavior, when no exception is thrown in the handler is to display a generic notification.
 
 <img src="../../assets/actions-default-success-response.png" width="300">
 
-### Custom notifications
+## Custom notifications
+
+The notification message and color can be customized
 
 ```javascript
 return responseBuilder.success('Company is now live!');
@@ -22,7 +22,7 @@ return responseBuilder.error('The company was already live!');
 
 <img src="../../assets/actions-custom-error-response.png" width="300">
 
-### Custom HTML response
+## Custom HTML response
 
 You can also return a HTML page as a response to give more feedback to the user who triggered your Action.
 
