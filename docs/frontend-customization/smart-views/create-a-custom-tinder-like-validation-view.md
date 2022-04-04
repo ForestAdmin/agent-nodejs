@@ -61,7 +61,7 @@ This file contains the HTML, JS and CSS needed to build the view.
 {% tabs %}
 {% tab title="Template" %}
 
-```hbs
+```html
 <div class='c-smart-view'>
   <div class='c-smart-view__content'>
     {{#if (eq @recordsCount 0)}}

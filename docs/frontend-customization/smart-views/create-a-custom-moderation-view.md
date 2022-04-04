@@ -22,7 +22,7 @@ This file contains the HTML and CSS needed to build the view.
 {% tabs %}
 {% tab title="Template" %}
 
-```hbs
+```html
 <div class='view-wrapper'>
   <div class='table-wrapper'>
     <table class='c-table-frame'>

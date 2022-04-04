@@ -206,7 +206,7 @@ export default class extends React.Component {
 {% tab title="Ember" %}
 {% code title="Template" %}
 
-```hbs
+```html
 <div class='l-gallery-view-container'>
   <section class='c-gallery'>
     {{#each @records as |record|}}
