@@ -32,11 +32,11 @@ An action is displayed in the UI only if:
 
 You must make the action visible there if you wish users to be able to see it.
 
-![](../assets/actions-visibility.png)
+![](../../assets/actions-visibility.png)
 
 It will then show in the actions dropdown button:
 
-![](../assets/actions-dropdown.png)
+![](../../assets/actions-dropdown.png)
 
 {% hint style='info' %}
 
