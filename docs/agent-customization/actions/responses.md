@@ -2,8 +2,6 @@ Aside from their actual behavior in the agent, actions can be configured to achi
 
 ## Notifications
 
-### Simple notifications
-
 Most actions will simply perform work on the agent, and display a notification to the admin-panel user.
 
 ```javascript
@@ -41,7 +39,7 @@ return responseBuilder.success('New transaction emitted', {
 
 ## HTML panel
 
-You can also return a HTML page as a response to give more feedback to the admin user who has triggered your Action.
+You can also return a HTML page as a response to give more feedback to the user who triggered your Action.
 
 For instance:
 
@@ -99,7 +97,7 @@ return responseBuilder.redirectTo(
 );
 ```
 
-{% endtab %}
+{% endtabs %}
 
 ## Webhooks
 
