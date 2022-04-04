@@ -84,7 +84,7 @@ return responseBuilder.redirectTo(
 );
 ```
 
-{% endtabs %}
+{% endtab %} {% endtabs %}
 
 ### Webhooks
 
