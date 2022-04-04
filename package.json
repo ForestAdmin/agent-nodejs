@@ -34,7 +34,7 @@
     "bootstrap": "lerna bootstrap",
     "build:watch": "lerna run --parallel --no-bail --no-prefix build:watch",
     "build": "lerna run build",
-    "clean": "lerna run clean && rm -rf coverage docs/ api-reference/",
+    "clean": "lerna run clean && rm -rf coverage api-reference/",
     "docs": "yarn build && typedoc",
     "lint": "lerna exec eslint src test",
     "lint:fix": "lerna exec eslint src test -- --fix",
