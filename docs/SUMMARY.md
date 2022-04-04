@@ -32,7 +32,7 @@
 ## Agent customization
 
 - [Actions](agent-customization/actions/README.md)
-  - [Responses](agent-customization/actions/basics.md)
+  - [Responses](agent-customization/actions/responses.md)
   - [Forms](agent-customization/actions/forms.md)
 - [Charts](agent-customization/charts.md)
 - [Fields](agent-customization/fields.md)
