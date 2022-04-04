@@ -115,7 +115,7 @@ export default class AgentBuilder {
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
-    // is coherent.
+    // is consistent.
     last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
 
     /* eslint-enable no-multi-assign */
