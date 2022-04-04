@@ -33,6 +33,9 @@ import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-d
  * ```
  */
 export default class AgentBuilder {
+  // App
+  forestAdminHttpDriver: ForestAdminHttpDriver;
+
   // Base datasource
   compositeDatasource: BaseDataSource<Collection>;
 
@@ -41,7 +44,6 @@ export default class AgentBuilder {
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   earlyOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
-  forestAdminHttpDriver: ForestAdminHttpDriver;
   jointure: DataSourceDecorator<JointureCollectionDecorator>;
   lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
