@@ -1,13 +1,11 @@
-## Opening a Smart Action Form
-
 Very often, you will need to ask user inputs before triggering the logic behind an action.
 For example, you might want to specify a reason if you want to block a user account. Or set the amount to charge a user’s credit card.
 
 In the following example, an action form will be displayed for the "Charge credit card" action.
 
 ```javascript
-.registerAction('Charge credit card', {
-  scope: ActionScope.Bulk,
+collection.registerAction('Charge credit card', {
+  scope: 'Bulk',
   form: [
     {
       label: 'Amount',
@@ -34,19 +32,19 @@ In the following example, an action form will be displayed for the "Charge credi
       return responseBuilder.error(`Failed to charge amount: ${error}`);
     }
   },
-})
+});
 ```
 
 ![](../../assets/actions-forms-charge-cc.png)
 
-## Handling input values
+## Form entries
 
 Here is the list of available options to customize the input form. More informations can be found on our API Reference
 
 | name         | type                                     | description                                                                                                                                                     |
 | ------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | label        | `String`                                 | Label of the input field                                                                                                                                        |
-| type         | `PrimitiveType`                          | The type of the field // @FIXME link to PrimitiveTypes doc                                                                                                      |
+| type         | `String`                                 | The type of the field                                                                                                                                           |
 | description  | `String`                                 | (optional) Add a description for your admin users to help them fill correctly your form                                                                         |
 | isRequired   | `Boolean` or `ContextHandler`            | (optional) If true, your input field will be set as required in the browser. Default is false. `ContextHandler` provide an way to modify the value dynamically  |
 | isReadOnly   | `Boolean` or `ContextHandler`            | (optional) If true, your input field will be set as read only in the browser. Default is false. `ContextHandler` provide an way to modify the value dynamically |
@@ -54,14 +52,28 @@ Here is the list of available options to customize the input form. More informat
 | value        | `ContextHandler`                         | (optional) Provide a way to change the value of the field dynamically                                                                                           |
 | defaultValue | Type matching `type` or `ContextHandler` | (optional) The default input value. `ContextHandler` provide an way to modify the default value dynamically                                                     |
 
-## Making a form dynamic
+## Typing system
 
-Business logic often requires your forms to adapt to its context. Forest Admin makes this possible through a powerful way to extend your form's logic.
-To make action form dynamic, you can use `ContextHandler` instead of static value on compatible properties.
+The available field types are:
 
-`ContextHandler` let you interact with record or the form values to make a dynamic form. The following sections show you how to use it.
+- Primitives: `Boolean`, `Date`, `Dateonly`, `Enum`, `Json`, `Number`, `String`
+- Lists: `Number[]`, `String[]`
+- Files: `File` and `File[]`
+- Records from other collections: `Collection`
 
-### Interact with selected records
+Note that:
+
+- When using `Enum` or `Enum[]`, your form entry must provide an additional `enumValues` key.
+- When using `Collection`, your form entry must provide an additional `collectionName` key.
+
+## Dynamic forms
+
+Business logic often requires your forms to adapt to their context. Forest Admin makes this possible through a powerful way to extend your form's logic.
+To make action form dynamic, you can use a `ContextHandler` instead of static value on the compatible properties.
+
+`ContextHandler` let you interact with record or the form values to make your form dynamic.
+
+### Interacting with selected records
 
 When using action, you'll probably need te get the values or ids of the selected records. See below how this can be achieved.
 Obviously this feature is only available for `Single` or `Bulk` action.
@@ -88,13 +100,13 @@ const records = await context.getRecords(['firstName']);
 const recordIds = await context.getIds();
 ```
 
-{% endtab %}
+{% endtab %} {% endtabs %}
 
-### Interact with form values
+### Interacting with form values
 
-You should probably need to compute values based on form values.
+You will probably need to compute values based on the data entered by the user.
 
-To do that, you can use the `context` object too.
+To do that, you can use the `context.formValues` object.
 
 ```javascript
 // Get the value of "Amount" form field
@@ -106,8 +118,8 @@ const value = context.formValues['Amount'];
 The following example takes advantage of a few `ContextHandler` properties:
 
 ```javascript
-.registerAction('Tell me a greeting', {
-  scope: ActionScope.Single,
+collection.registerAction('Tell me a greeting', {
+  scope: 'Single',
   form: [
     {
       label: 'How should we refer to you?',
@@ -117,7 +129,6 @@ The following example takes advantage of a few `ContextHandler` properties:
 
         return Boolean(person.firstName || person.fullName);
       },
-      defaultValue: '👋',
       enumValues: async context => {
         const person = await context.getRecord(['firstName', 'lastName', 'fullName']);
 
@@ -132,12 +143,9 @@ The following example takes advantage of a few `ContextHandler` properties:
     },
   ],
   execute: async (context, responseBuilder) => {
-    return responseBuilder.success(
-      `Hello ${context.formValues['How should we refer to you?']}!`,
-    );
+    return responseBuilder.success(`Hello ${context.formValues['How should we refer to you?']}!`);
   },
-})
-
+});
 ```
 
 Here, the form field `How should we refer to you?` will only be displayed if the action was triggered on a record with either a `firstName` or `fullName`.
@@ -146,11 +154,11 @@ Finally, executing the action will display a notification based on the user choi
 
 ### Add/remove fields dynamically
 
-use the `if` property of a field to allow you to hidde or display it upon some logic.
+Use the `if` property of a field to allow you to hide or display it upon some logic.
 
 ```javascript
-.registerAction('Leave a review', {
-  scope: ActionScope.Single,
+collection.registerAction('Leave a review', {
+  scope: 'Single',
   form: [
     {
       label: 'Rating',
@@ -167,5 +175,5 @@ use the `if` property of a field to allow you to hidde or display it upon some l
     // use context.formValues to save theses informations or trigger an event.
     return responseBuilder.success(`Thank you for your review!`);
   },
-})
+});
 ```
