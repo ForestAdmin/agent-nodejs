@@ -80,7 +80,8 @@ Obviously this feature is only available for `Single` or `Bulk` action.
 
 To do that, you just need to use the `context` provided object to `ContextHandler` you can defined on each compatible properties of the smart action.
 
-{% tabs %} {% tab title="Using a single action" %}
+{% tabs %}
+{% tab title="Using a single action" %}
 
 ```javascript
 // Get the record with the wanted field
@@ -90,7 +91,8 @@ const record = await context.getRecord(['firstName']);
 const recordId = await context.getId();
 ```
 
-{% endtab %} {% tab title="Using a bulk action" %}
+{% endtab %}
+{% tab title="Using a bulk action" %}
 
 ```javascript
 // Get records with the wanted field
