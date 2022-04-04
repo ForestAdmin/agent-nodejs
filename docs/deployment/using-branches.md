@@ -26,7 +26,7 @@ Once you've created a branch, your layout will look exactly like the layout of y
 
 ### How do branches work?
 
-Any **layout change** you make on your current branch using the [Layout Editor](broken-reference) will be **saved on your current branch** and will not affect your origin environment.
+Any **layout change** you make on your current branch using the [Layout Editor](https://docs.forestadmin.com/user-guide/getting-started/master-your-ui/using-the-layout-editor-mode) will be **saved on your current branch** and will not affect your origin environment.
 
 Imagine the following situation where you have 3 environments:
 

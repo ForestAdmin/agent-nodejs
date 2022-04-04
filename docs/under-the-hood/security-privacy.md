@@ -61,7 +61,7 @@ The JWT Data Token contains all the details of the requesting user. On any authe
 
 ## IP Whitelisting
 
-The [IP whitelisting](broken-reference) feature allows you to create a list of trusted IP addresses or IP ranges from which your admin users can both access to the **Forest Admin UI** and interact with your **agent**.
+The [IP whitelisting](https://docs.forestadmin.com/user-guide/project-settings/other-project-settings/security-tab#ip-whitelisting) feature allows you to create a list of trusted IP addresses or IP ranges from which your admin users can both access to the **Forest Admin UI** and interact with your **agent**.
 
 ![](../assets/imported/IPWhitelist.png)
 
