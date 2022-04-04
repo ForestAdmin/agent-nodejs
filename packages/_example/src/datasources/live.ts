@@ -53,7 +53,7 @@ async function runSeed(dataSource: DataSource) {
     await dataSource.getCollection('address').create(addressRecords);
   } catch {
     // eslint-disable-next-line no-console
-    console.log('Please run `yarn db:seed & yarn db:up` to run the db with data');
+    console.log('Please run `yarn db:up & yarn db:seed` to run the db with data');
   } finally {
     await mysql.close();
   }

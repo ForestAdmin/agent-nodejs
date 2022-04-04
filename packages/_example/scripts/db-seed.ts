@@ -8,33 +8,23 @@ import { prepareDatabase as prepareDatabasePostgres } from '../src/datasources/s
 async function createOwners(db) {
   const ownerRecords = [];
 
-  for (let id = 0; id < 5; id += 1) {
-    ownerRecords.push({ id, firstName: faker.name.firstName(), lastName: faker.name.lastName() });
+  for (let i = 0; i < 5; i += 1) {
+    ownerRecords.push({ firstName: faker.name.firstName(), lastName: faker.name.lastName() });
   }
 
-  await db.model('owner').bulkCreate(ownerRecords);
-
-  return ownerRecords;
+  return db.model('owner').bulkCreate(ownerRecords);
 }
 
 async function createStoreRecords(db, ownerRecords) {
-  let currentId = 1;
+  return db.model('store').bulkCreate(
+    ownerRecords.reduce((records, ownerRecord) => {
+      for (let i = 0; i < faker.datatype.number({ min: 1, max: 2 }); i += 1) {
+        records.push({ name: faker.company.companyName(), ownerId: ownerRecord.id });
+      }
 
-  const storeRecords = ownerRecords.reduce((records, ownerRecord) => {
-    for (let i = 0; i < faker.datatype.number({ min: 1, max: 2 }); i += 1) {
-      records.push({
-        id: currentId,
-        name: faker.company.companyName(),
-        ownerId: ownerRecord.id,
-      });
-      currentId += 1;
-    }
-
-    return records;
-  }, []);
-  await db.model('store').bulkCreate(storeRecords);
-
-  return storeRecords;
+      return records;
+    }, []),
+  );
 }
 
 async function createDvdRentalsRecords(db, storeRecords) {
