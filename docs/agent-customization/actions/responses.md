@@ -6,7 +6,9 @@ The default behavior, when no exception is thrown in the handler is to display a
 
 <img src="../../assets/actions-default-success-response.png" width="300">
 
-## Custom notifications
+## Customizing the response
+
+### Custom notifications
 
 The notification message and color can be customized
 
@@ -22,7 +24,7 @@ return responseBuilder.error('The company was already live!');
 
 <img src="../../assets/actions-custom-error-response.png" width="300">
 
-## Custom HTML response
+### HTML response
 
 You can also return a HTML page as a response to give more feedback to the user who triggered your Action.
 
@@ -42,21 +44,7 @@ return responseBuilder.success(
 
 ![](../../assets/actions-html-response.png)
 
-### Refreshing data on the summary view
-
-If you want to create an action accessible from the details or the summary view of a record involving related data, this section may interest you.
-
-In the example below, the “Add new transaction” action is accessible from the summary view. This action creates a new transaction and automatically refresh the “Emitted transactions” related data section to see the new transaction.
-
-![](../../assets/actions-refresh-related.png)
-
-```javascript
-return responseBuilder.success('New transaction emitted', {
-  invalidated: ['emitted_transactions'],
-});
-```
-
-## File generation
+### File generation
 
 On our Live Demo, the collection customers has an action Generate invoice. In this use case, we want to download the generated PDF invoice after clicking on the action. To indicate an action returns something to download, you have to enable the option `generateFile`.
 
@@ -72,7 +60,7 @@ collection.registerAction('Download a file', {
 });
 ```
 
-## Redirections
+### Redirections
 
 To streamline your operation workflow, it could make sense to redirect to another page after a Smart action was successfully executed.
 
@@ -98,7 +86,7 @@ return responseBuilder.redirectTo(
 
 {% endtabs %}
 
-## Webhooks
+### Webhooks
 
 After an action you can set up a HTTP (or HTTPS) callback - a webhook - to forward information to other applications.
 
@@ -109,4 +97,18 @@ return responseBuilder.webhook(
   {}, // You can add some headers if needed.
   { adminToken: 'your-admin-token' }, // A body to send to the url (only JSON supported).
 );
+```
+
+## Refreshing data on the summary view
+
+If you want to create an action accessible from the details or the summary view of a record involving related data, this section may interest you.
+
+In the example below, the “Add new transaction” action is accessible from the summary view. This action creates a new transaction and automatically refresh the “Emitted transactions” related data section to see the new transaction.
+
+![](../../assets/actions-refresh-related.png)
+
+```javascript
+return responseBuilder.success('New transaction emitted', {
+  invalidated: ['emitted_transactions'],
+});
 ```
