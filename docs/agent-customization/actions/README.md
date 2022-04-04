@@ -14,19 +14,25 @@ As Forest Admin does not impose any restriction on the handler, you are free to 
 
 In order to create an action, you will first need to declare it in your code for a specific collection. Here we declare a Mark as Live action for the companies collection.
 
+The action behavior is implemented in the `execute()` function.
+
 ```javascript
 agent.customizeCollection('companies', collection =>
   collection.registerAction('Mark as live', {
-    scope: ActionScope.Single,
+    scope: 'Single',
     execute: async (context, responseBuilder) => {
+      // Change the company's status to live.
       await context.collection.update(context.filter, { status: 'live' });
-      return responseBuilder.success(`Company is now live!`);
     },
   }),
 );
 ```
 
-The action behavior is implemented in the execute function. Here it simply changes a company's status to live.
+Note that actions can have three different scopes:
+
+- `Single`: the action can be called only on one record at a time
+- `Bulk`: the action can be called on several records at a time
+- `Global`: the action available only in the list-view and is executed on all records
 
 ## In the admin panel
 

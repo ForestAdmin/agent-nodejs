@@ -64,7 +64,7 @@ The example code below will trigger a file download (With the file named `filena
 
 ```javascript
 collection.registerAction('Download a file', {
-  scope: ActionScope.Global,
+  scope: 'Global',
   generateFile: true,
   execute: async (context, responseBuilder) => {
     return responseBuilder.file('StringThatWillBeInTheFile', 'filename.txt', 'text/plain');

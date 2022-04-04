@@ -5,7 +5,7 @@ In the following example, an action form will be displayed for the "Charge credi
 
 ```javascript
 collection.registerAction('Charge credit card', {
-  scope: ActionScope.Bulk,
+  scope: 'Bulk',
   form: [
     {
       label: 'Amount',
@@ -120,7 +120,7 @@ The following example takes advantage of a few `ContextHandler` properties:
 
 ```javascript
 .registerAction('Tell me a greeting', {
-  scope: ActionScope.Single,
+  scope: 'Single',
   form: [
     {
       label: 'How should we refer to you?',
@@ -162,7 +162,7 @@ Use the `if` property of a field to allow you to hide or display it upon some lo
 
 ```javascript
 .registerAction('Leave a review', {
-  scope: ActionScope.Single,
+  scope: 'Single',
   form: [
     {
       label: 'Rating',
