@@ -1,14 +1,14 @@
 Aside from their actual behavior in the agent, actions can be configured to achieve different results in the frontend.
 
-## Notifications
+## Displaying the result
 
-Most actions will simply perform work on the agent, and display a notification to the admin-panel user.
+Most actions will simply perform work on the agent, and display the result in the admin-panel user.
 
-```javascript
-return responseBuilder.success();
-```
+If not exception is thrown in the handler, Forest Admin will consider the action to have run successfully and display a notification.
 
 <img src="../../assets/actions-default-success-response.png" width="300">
+
+### Custom notifications
 
 ```javascript
 return responseBuilder.success('Company is now live!');
@@ -22,22 +22,7 @@ return responseBuilder.error('The company was already live!');
 
 <img src="../../assets/actions-custom-error-response.png" width="300">
 
-### Refreshing data on the summary view
-
-If you want to create an action accessible from the details or the summary view of a record involving related data, this section may interest you.
-
-In the example below, the “Add new transaction” action is accessible from the summary view. This action creates a new transaction and automatically refresh the “Emitted transactions” related data section to see the new transaction.
-
-![](../../assets/actions-refresh-related.png)
-
-```javascript
-return responseBuilder.success('New transaction emitted', {
-  type: 'text',
-  invalidated: ['emitted_transactions'],
-});
-```
-
-## HTML panel
+### Custom HTML response
 
 You can also return a HTML page as a response to give more feedback to the user who triggered your Action.
 
@@ -56,6 +41,20 @@ return responseBuilder.success(
 ```
 
 ![](../../assets/actions-html-response.png)
+
+### Refreshing data on the summary view
+
+If you want to create an action accessible from the details or the summary view of a record involving related data, this section may interest you.
+
+In the example below, the “Add new transaction” action is accessible from the summary view. This action creates a new transaction and automatically refresh the “Emitted transactions” related data section to see the new transaction.
+
+![](../../assets/actions-refresh-related.png)
+
+```javascript
+return responseBuilder.success('New transaction emitted', {
+  invalidated: ['emitted_transactions'],
+});
+```
 
 ## File generation
 

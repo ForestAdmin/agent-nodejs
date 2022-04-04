@@ -1,9 +1,16 @@
 ## What is an Action?
 
 Sooner or later, you will need to perform actions on your data that are specific to your business. Moderating comments, generating an invoice, logging into a customer’s account or banning a user are exactly the kind of important tasks to unlock in order to manage your day-to-day operations.
+
 On our Live Demo example, our companies collection has many examples of Action. The simplest one is "Mark as live".
 
-## Creating an Action
+## In your code
+
+{% hint style='info' %}
+In the following example, we are making queries using the [Forest Admin Query Interface](../under-the-hood/queries/README.md).
+
+As Forest Admin does not impose any restriction on the handler, you are free to call external APIs, or query your database directly instead.
+{% endhint %}
 
 In order to create an action, you will first need to declare it in your code for a specific collection. Here we declare a Mark as Live action for the companies collection.
 
@@ -12,11 +19,16 @@ agent.customizeCollection('companies', collection =>
   collection.registerAction('Mark as live', {
     scope: ActionScope.Single,
     execute: async (context, responseBuilder) => {
+      await context.collection.update(context.filter, { status: 'live' });
       return responseBuilder.success(`Company is now live!`);
     },
   }),
 );
 ```
+
+The action behavior is implemented in the execute function. Here it simply changes a company's status to live.
+
+## In the admin panel
 
 After declaring it, your action will appear in the "Smart actions" tab within your collection settings.
 
@@ -37,24 +49,3 @@ You must make the action visible there if you wish users to be able to see it.
 It will then show in the actions dropdown button:
 
 ![](../../assets/actions-dropdown.png)
-
-{% hint style='info' %}
-
-At this point, the action only displays a notification, because no business logic is present.
-
-{% endhint %}
-
-The action behavior is implemented in the `execute` function.
-In the following example, we've implemented the behavior for the Mark as live Action, which simply changes a company's status to live.
-
-```javascript
-agent.collection('companies', collection =>
-  collection.registerAction('Mark as live', {
-    scope: ActionScope.Single,
-    execute: async (context, responseBuilder) => {
-      await context.collection.update(context.filter, { status: 'live' });
-      return responseBuilder.success(`Company is now live!`);
-    },
-  }),
-);
-```
