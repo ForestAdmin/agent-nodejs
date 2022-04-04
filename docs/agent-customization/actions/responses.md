@@ -66,13 +66,13 @@ On our Live Demo, the collection customers has an action Generate invoice. In th
 The example code below will trigger a file download (With the file named `filename.txt`, containing `StringThatWillBeInTheFile` using `text/plain` mimetype).
 
 ```javascript
-.registerAction('Download a file', {
+collection.registerAction('Download a file', {
   scope: ActionScope.Global,
   generateFile: true,
   execute: async (context, responseBuilder) => {
     return responseBuilder.file('StringThatWillBeInTheFile', 'filename.txt', 'text/plain');
   },
-})
+});
 ```
 
 ## Redirections
