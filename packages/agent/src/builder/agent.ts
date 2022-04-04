@@ -96,7 +96,9 @@ export default class AgentBuilder {
     /* eslint-disable no-multi-assign */
     last = this.compositeDatasource = new BaseDataSource<Collection>();
 
-    last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
+    // Step 1: Computed-Jointure-Computed sandwich (needed because some emulated jointures depend
+    // on computed fields, and some computed fields depend on jointure...)
+    // Note that replacement goes before emulation, as replacements may use emulated operators.
     last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.earlyOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
@@ -104,12 +106,23 @@ export default class AgentBuilder {
     last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
-    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
-    last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
+
+    // Step 2: Those four can be in any order, as long as they are after field manipulation.
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
     last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
     last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
     last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
+
+    // Step 3: Actions have access to all emulation
+    last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
+
+    // Step 4: Publication goes at the end (because we don't want to prohibit customer from using
+    // fields he don't want to publish to be used in his code).
+    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
+
+    // Step 5: We want customers to always use the same nomenclature when they refer to fields
+    // so renaming must be either the very first or very last.
+    last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
 
     /* eslint-enable no-multi-assign */
 
