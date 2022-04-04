@@ -42,12 +42,12 @@ The primitive types which are supported by Forest Admin are the following:
 
 When using composite types, the data in the UI may not be displayed as you expect!
 
-| Composite Type                        | Example                                       | How it gets displayed                    |
-| ------------------------------------- | --------------------------------------------- | ---------------------------------------- |
-| array of primitive type               | [ 'array', 'of', 'strings']                   | As a custom widget in the edition form   |
-| object                                | { title: "the godfather"}                     | As a nested form in the edition form     |
-| array of object                       | [{ title: "the shawshank redemption"}]        | As a new collection in related data page |
-| array of object (with nested objects) | [{ rating: { kind: 'MPA", value: "PG-13" } }] | JSON editor in the edition form          |
-| anything else                         |                                               | JSON editor in the edition form          |
+| Composite Type                        | Example                                         | How it gets displayed                    |
+| ------------------------------------- | ----------------------------------------------- | ---------------------------------------- |
+| array of primitive type               | `[ 'array', 'of', 'strings']`                   | As a custom widget in the edition form   |
+| object                                | `{ title: "the godfather"}`                     | As a nested form in the edition form     |
+| array of object                       | `[{ title: "the shawshank redemption"}]`        | As a new collection in related data page |
+| array of object (with nested objects) | `[{ rating: { kind: 'MPA", value: "PG-13" } }]` | JSON editor in the edition form          |
+| anything else                         |                                                 | JSON editor in the edition form          |
 
 If you want to force displaying your data as a new collection in the related data page, but can't because your data model contains nested objects, you may consider type all nested objects as `PrimitiveType.JSON`.
