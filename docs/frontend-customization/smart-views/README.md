@@ -12,10 +12,10 @@ Forest Admin provides an online editor to inject your Smart View code. The edito
 
 ![](<../../assets/imported/image (252).png>)
 
-The code of a Smart View is an [Ember Component](https://www.emberjs.com/api/ember/2.15.0/classes/Ember.Component) and simply consists of a Template and Javascript code.
+The code of a Smart View is an [Glimmer Component](https://api.emberjs.com/ember/3.28/modules/@glimmer%2Fcomponent) and simply consists of a Template and Javascript code.
 
 {% hint style="info" %}
-You don’t need to know the **Ember.js** framework to create a Smart View. We will guide you here on all the basic requirements. For more advanced usage, you can still refer to the [Ember Component](https://www.emberjs.com/api/ember/2.15.0/classes/Ember.Component) and the [Handlebars Template](https://guides.emberjs.com/v2.15.0/templates/handlebars-basics) documentations.
+You don’t need to know the **Ember.js** framework to create a Smart View. We will guide you here on all the basic requirements. For more advanced usage, you can still refer to the [Glimmer Component](https://api.emberjs.com/ember/3.28/modules/@glimmer%2Fcomponent) and the [Handlebars Template](https://guides.emberjs.com/v3.28.0/components/) documentations.
 {% endhint %}
 
 ### Getting your records
