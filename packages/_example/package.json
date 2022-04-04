@@ -23,9 +23,16 @@
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
     "start": "nodemon --delay 250ms --watch '../*/dist/' --exec yarn start:agent",
+    "start:mssql": "SQL_DIALECT=mssql yarn start",
+    "start:mysql": "SQL_DIALECT=mysql yarn start",
+    "start:postgres": "SQL_DIALECT=postgres yarn start",
     "start:agent": "node --enable-source-maps --async-stack-traces -e \"require('./dist/index.js').default()\"",
     "test": "jest",
-    "db:seed": "ts-node scripts/db-seed.ts"
+    "db:seed": "ts-node scripts/db-seed.ts",
+    "db:seed-direct-sql": "ts-node scripts/db-seed-direct-sql.ts",
+    "db:seed-direct-sql:mssql": "SQL_DIALECT=mssql yarn db:seed-direct-sql",
+    "db:seed-direct-sql:mysql": "SQL_DIALECT=mysql yarn db:seed-direct-sql",
+    "db:seed-direct-sql:postgres": "SQL_DIALECT=postgres yarn db:seed-direct-sql"
   },
   "devDependencies": {
     "fishery": "^2.1.0",

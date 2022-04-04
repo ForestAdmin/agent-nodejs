@@ -1,3 +1,30 @@
+diff --git a/node_modules/sequelize/lib/dialects/mssql/query.js b/node_modules/sequelize/lib/dialects/mssql/query.js
+index 4776d05..108fe7e 100644
+--- a/node_modules/sequelize/lib/dialects/mssql/query.js
++++ b/node_modules/sequelize/lib/dialects/mssql/query.js
+@@ -123,7 +123,7 @@ class Query extends AbstractQuery {
+       const result = {};
+       for (const _result of data) {
+         if (_result.Default) {
+-          _result.Default = _result.Default.replace("('", "").replace("')", "").replace(/'/g, "");
++          _result.Default = _result.Default.replace(/\('|\(N'/, "").replace("')", "").replace(/'/g, "");
+         }
+         result[_result.Name] = {
+           type: _result.Type.toUpperCase(),
+@@ -186,12 +186,7 @@ class Query extends AbstractQuery {
+     return data;
+   }
+   handleShowTablesQuery(results) {
+-    return results.map((resultSet) => {
+-      return {
+-        tableName: resultSet.TABLE_NAME,
+-        schema: resultSet.TABLE_SCHEMA
+-      };
+-    });
++    return results.map((resultSet) => resultSet.TABLE_NAME);
+   }
+   handleShowConstraintsQuery(data) {
+     return data.slice(1).map((result) => {
 diff --git a/node_modules/sequelize/types/associations/belongs-to-many.d.ts b/node_modules/sequelize/types/associations/belongs-to-many.d.ts
 index af3e307..9e5f757 100644
 --- a/node_modules/sequelize/types/associations/belongs-to-many.d.ts
@@ -10,6 +37,18 @@ index af3e307..9e5f757 100644
    constructor(source: ModelCtor<S>, target: ModelCtor<T>, options: BelongsToManyOptions);
  }
  
+diff --git a/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts b/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts
+index 782ee82..7488200 100644
+--- a/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts
++++ b/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts
+@@ -274,6 +274,7 @@ export interface ColumnDescription {
+   primaryKey: boolean;
+   autoIncrement: boolean;
+   comment: string | null;
++  special?: string[];
+ }
+ 
+ export interface ColumnsDescription {
 diff --git a/node_modules/sequelize/types/model.d.ts b/node_modules/sequelize/types/model.d.ts
 index f42f970..de9e144 100644
 --- a/node_modules/sequelize/types/model.d.ts

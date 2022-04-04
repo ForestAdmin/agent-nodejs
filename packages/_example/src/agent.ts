@@ -11,12 +11,15 @@ import prepareSqlDataSource from './datasources/sql';
 import prepareStoreInMysql from './datasources/sequelize/mysql';
 
 export default async function makeAgent(options: AgentOptions) {
+  if (process.env.SQL_DIALECT) {
+    return new Agent(options).addDatasource(await prepareSqlDataSource());
+  }
+
   return new Agent(options)
     .addDatasource(await prepareOwnerInPostgres())
     .addDatasource(await prepareAddressInLive())
     .addDatasource(await prepareStoreInMysql())
     .addDatasource(await prepareDvdRentalsInMssql())
-    .addDatasource(await prepareSqlDataSource())
 
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('address', customizeAddress)
