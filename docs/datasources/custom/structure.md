@@ -54,9 +54,9 @@ The API for validation is the same than with [condition trees](../custom/query-t
 {
   "aggregator": "and",
   "conditions": [
-    { "operator": "present" }
+    { "operator": "present" },
     { "operator": "like", "value": "found%" },
-    { "not": { "operator": "today" } },
+    { "operator": "today" }
   ]
 }
 ```

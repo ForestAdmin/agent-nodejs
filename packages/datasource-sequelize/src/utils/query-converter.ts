@@ -3,7 +3,6 @@ import {
   ConditionTree,
   ConditionTreeBranch,
   ConditionTreeLeaf,
-  ConditionTreeNot,
   Operator,
   Projection,
   Sort,
@@ -97,17 +96,6 @@ export default class QueryConverter {
 
       sequelizeWhereClause[sequelizeOperator] = conditions.map(condition =>
         this.getWhereFromConditionTree(model, condition),
-      );
-    } else if ((conditionTree as ConditionTreeNot).condition !== undefined) {
-      const { condition } = conditionTree as ConditionTreeNot;
-
-      if (condition === null) {
-        throw new Error('Invalid (null) condition.');
-      }
-
-      sequelizeWhereClause[Op.not] = this.getWhereFromConditionTree(
-        model,
-        (conditionTree as ConditionTreeNot).condition,
       );
     } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
