@@ -107,21 +107,18 @@ export default class AgentBuilder {
     last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
 
-    // Step 2: Those four can be in any order, as long as they are after field manipulation.
+    // Step 2: Those five need access to all fields (in no special order).
+    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
     last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
     last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
     last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
 
-    // Step 3: Actions have access to all emulation
+    // Step 3: Access to all fields AND emulated capabilities
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
 
-    // Step 4: Publication goes at the end (because we don't want to prohibit customer from using
-    // fields he don't want to publish to be used in his code).
-    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
-
-    // Step 5: We want customers to always use the same nomenclature when they refer to fields
-    // so renaming must be either the very first or very last.
+    // Step 4: Renaming must be either the very first or very last so that naming in customer code
+    // is coherent.
     last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
 
     /* eslint-enable no-multi-assign */
