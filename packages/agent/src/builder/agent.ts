@@ -107,7 +107,7 @@ export default class AgentBuilder {
     last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
 
-    // Step 2: Those five need access to all fields (in no special order).
+    // Step 2: Those five need access to all fields. They can be loaded in any order.
     last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
     last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
