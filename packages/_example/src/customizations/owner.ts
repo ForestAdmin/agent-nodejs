@@ -18,4 +18,8 @@ export default (collection: Collection) =>
       const [firstName, lastName] = fullName.split(' ');
 
       return { firstName, lastName };
-    });
+    })
+    .implementSort('fullName', [
+      { field: 'firstName', ascending: true },
+      { field: 'lastName', ascending: true },
+    ]);
