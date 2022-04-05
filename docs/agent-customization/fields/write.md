@@ -12,6 +12,6 @@ collection.replaceWriting('fullName', null);
 
 ```javascript
 collection.replaceWriting('fullName', (value, context) => {
-  // ...
+  // ... FIXME
 });
 ```

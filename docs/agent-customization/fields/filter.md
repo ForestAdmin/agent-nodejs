@@ -1,7 +1,3 @@
-## High-level customization
-
-## Working at the filter operator level
-
 You may want to read about the following topics before using those features:
 
 - [Unlocking filtering, scopes and segments on the GUI](./../../datasources/custom/query-translation/capabilities.md#unlock-filtering-scopes-and-segments-on-gui)
@@ -9,7 +5,7 @@ You may want to read about the following topics before using those features:
 - [List of all filtering Operators](../../under-the-hood/queries/filters.md#operators)
 - [Operator equivalence system](../../under-the-hood/queries/filters.md#operator-equivalence)
 
-### Disabling operators
+## Disabling operators
 
 {% hint style="info" %}
 Disabling filtering can be made without any code [in the field settings](https://docs.forestadmin.com/user-guide/collections/customize-your-fields#basic-settings).
@@ -23,7 +19,7 @@ This is used mostly for performance reasons: on big collections, it can be intes
 collection.replaceFieldOperator('fullName', 'equal', null);
 ```
 
-### Substitution
+## Substitution
 
 Operation substitution can be used for two motives:
 
@@ -44,7 +40,7 @@ collection.replaceFieldOperator('fullName', 'equal', (value, context) => {
 });
 ```
 
-### Emulation
+## Emulation
 
 Filtering emulation allows to make fields automatically support a given operator.
 
