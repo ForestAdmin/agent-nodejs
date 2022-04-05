@@ -33,30 +33,27 @@ import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-d
  * ```
  */
 export default class AgentBuilder {
+  // App
+  forestAdminHttpDriver: ForestAdminHttpDriver;
+
+  // Base datasource
   compositeDatasource: BaseDataSource<Collection>;
 
+  // Decorators
+  action: DataSourceDecorator<ActionCollectionDecorator>;
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   earlyOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
-
   jointure: DataSourceDecorator<JointureCollectionDecorator>;
-
   lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   lateOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
-
-  sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
-
-  segment: DataSourceDecorator<SegmentCollectionDecorator>;
-  action: DataSourceDecorator<ActionCollectionDecorator>;
-  search: DataSourceDecorator<SearchCollectionDecorator>;
-
-  rename: DataSourceDecorator<RenameCollectionDecorator>;
   publication: DataSourceDecorator<PublicationCollectionDecorator>;
-
+  rename: DataSourceDecorator<RenameCollectionDecorator>;
+  search: DataSourceDecorator<SearchCollectionDecorator>;
+  segment: DataSourceDecorator<SegmentCollectionDecorator>;
+  sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
   write: DataSourceDecorator<WriteCollectionDecorator>;
-
-  forestAdminHttpDriver: ForestAdminHttpDriver;
 
   /**
    * Native nodejs HttpCallback object
@@ -96,7 +93,9 @@ export default class AgentBuilder {
     /* eslint-disable no-multi-assign */
     last = this.compositeDatasource = new BaseDataSource<Collection>();
 
-    last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
+    // Step 1: Computed-Jointure-Computed sandwich (needed because some emulated jointures depend
+    // on computed fields, and some computed fields depend on jointure...)
+    // Note that replacement goes before emulation, as replacements may use emulated operators.
     last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.earlyOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
@@ -104,12 +103,20 @@ export default class AgentBuilder {
     last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
+
+    // Step 2: Those five need access to all fields. They can be loaded in any order.
     last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
-    last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
     last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
     last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
     last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
+
+    // Step 3: Access to all fields AND emulated capabilities
+    last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
+
+    // Step 4: Renaming must be either the very first or very last so that naming in customer code
+    // is consistent.
+    last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
 
     /* eslint-enable no-multi-assign */
 
