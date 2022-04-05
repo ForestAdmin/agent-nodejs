@@ -37,9 +37,10 @@
 - [Charts](agent-customization/charts.md)
 - [Fields](agent-customization/fields/README.md)
 
-  - [Creation](agent-customization/fields/creation.md)
-  - [Behavior changes](agent-customization/fields/behavior-changes.md)
-  - [Displacement](agent-customization/fields/displacement.md)
+  - [Computed Fields](agent-customization/fields/computed.md)
+  - [Write overrides](agent-customization/fields/write.md)
+  - [Filter overrides](agent-customization/fields/filter.md)
+  - [Sort overrides](agent-customization/fields/sort.md)
 
 - [Relationships](agent-customization/relationships.md)
 - [Segments](agent-customization/segments.md)

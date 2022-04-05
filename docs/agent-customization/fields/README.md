@@ -23,3 +23,18 @@ Your database may contain the list of all payments which where performed by a cu
 
 - Add new fields on the `Customer` collection which summaries their activity (`medianBasket`, `totalSpend`, `numPurchases`...)
 -
+
+# Minimal example
+
+```javascript
+collection
+  .addField('fullName', {
+    type: 'String',
+    dependencies: ['firstName', 'lastName'],
+    getValues: (records, context) => records.map(r => `${r.firstName} ${r.lastName}`),
+  })
+  .replaceFieldWriting()
+  .emulateFiltering('fullName')
+  .emulateSorting('fullName')
+  .removeField('firstName', 'lastName');
+```
