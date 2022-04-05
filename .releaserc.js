@@ -1,6 +1,6 @@
 module.exports = {
   branches: [
-    // 'main', // Main is disabled for now, just to prevent un-wanted stable release
+    'main',
     {
       name: 'beta',
       prerelease: true,
