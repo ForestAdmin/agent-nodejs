@@ -22,14 +22,18 @@ collection.replaceWriting('fullName', (value, context) => {
 
 ## Filtering
 
-Filtering can be customized in many ways with Forest Admin
+Filtering can be customized in many ways with Forest Admin.
 
-You may want to read about the following topics before using those features:
+The customization API works by operator, you may want to read about the following topics before using those features:
 
+- [Unlocking filtering, scopes and segments on the GUI](./../../datasources/custom/query-translation/capabilities.md#unlock-filtering-scopes-and-segments-on-gui)
 - [Structure of a `ConditionTree`](../../under-the-hood/queries/filters.md#examples)
-- []
+- [List of all filtering Operators](../../under-the-hood/queries/filters.md#operators)
+- [Operator equivalence system](../../under-the-hood/queries/filters.md#operator-equivalence)
 
-### Disabling Filtering
+### Disabling operators
+
+Disabling filtering on a field which supports it can be interesting for performance reasons.
 
 ```javascript
 collection.replaceFieldOperator('fullName', 'equal', null);
@@ -67,11 +71,11 @@ Filtering emulation performance cost is **linear** with the number of records in
 
 Depending on the datasource, not all fields may be sortable, or you may want to change what the native sorting works.
 
-By using the `replaceFieldSorting` method, you can change a single column's sorting behavior and replace it by something else.
+By using the `replaceFieldSorting` and `emulateFieldSorting` methods, you can change a single column's sorting behavior.
 
 ### Disabling sort
 
-Disabling sort on a field which supports it can be interesting for performance reasons on selected datasources.
+Disabling sort on a field which supports it can be interesting for performance reasons.
 
 ```javascript
 collection.replaceFieldSorting('fullName', null);
@@ -79,13 +83,22 @@ collection.replaceFieldSorting('fullName', null);
 
 ### Substitution
 
-You can also provide a new sort clause which will replace the existing one. In this example we're telling forest admin "When a user sorts by fullname, I want to sort by lastName first, and then by firstName".
+You can also provide replacement sort clauses. In this example we're telling forest admin "When a user sorts by fullname, I want to sort by lastName first, and then by firstName".
 
 ```javascript
 collection.replaceFieldSorting('fullName', [
   { field: 'lastName', ascending: true },
   { field: 'firstName', ascending: true },
 ]);
+```
+
+Another very common reason is performance. For instance, with auto incrementing ids, sorting by `creationDate` is equivalent to sorting by the primary key in reverse order.
+
+Using sort substitution where needed can save you from adding many indexes on your database.
+
+```javascript
+// Sorting by creationDate ascending === Sorting by id descending
+collection.replaceFieldSorting('creationDate', [{ field: 'id', ascending: false }]);
 ```
 
 ### Emulation
