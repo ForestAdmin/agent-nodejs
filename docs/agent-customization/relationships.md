@@ -10,9 +10,9 @@ When jointures are defined between collections Forest Admin acts as if the two c
 - The relation can be traversed in the user interface
 - Actions, charts, fields and segments can be created using fields from both sides of the relations.
 
-## Example
+# Example
 
-### Inter-Datasource relationship
+## Inter-Datasource relationship
 
 In this simple example, we have two collections which are not linked together:
 

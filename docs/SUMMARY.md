@@ -35,7 +35,12 @@
   - [Responses](agent-customization/actions/responses.md)
   - [Forms](agent-customization/actions/forms.md)
 - [Charts](agent-customization/charts.md)
-- [Fields](agent-customization/fields.md)
+- [Fields](agent-customization/fields/README.md)
+
+  - [Creation](agent-customization/fields/creation.md)
+  - [Behavior changes](agent-customization/fields/behavior-changes.md)
+  - [Displacement](agent-customization/fields/displacement.md)
+
 - [Relationships](agent-customization/relationships.md)
 - [Segments](agent-customization/segments.md)
 
