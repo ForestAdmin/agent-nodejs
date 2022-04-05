@@ -3,7 +3,7 @@ import { ConditionTreeLeaf, Operator, PrimitiveTypes } from '@forestadmin/dataso
 
 export default (collection: Collection) =>
   collection
-    .registerField('numberOfDays', {
+    .addField('numberOfDays', {
       columnType: PrimitiveTypes.Number,
       dependencies: ['startDate', 'endDate'],
       getValues: records =>
@@ -13,10 +13,10 @@ export default (collection: Collection) =>
           return Math.trunc(timeDifference / (1000 * 60 * 60 * 24));
         }),
     })
-    .emulateSort('numberOfDays')
-    .unpublishFields(['startDate', 'endDate'])
-    .emulateOperator('numberOfDays', Operator.GreaterThan)
-    .registerSegment(
+    .emulateFieldSorting('numberOfDays')
+    .removeField('startDate', 'endDate')
+    .emulateOperatorField('numberOfDays', Operator.GreaterThan)
+    .addSegment(
       'More than 50 Days',
-      async () => new ConditionTreeLeaf('numberOfDays', Operator.GreaterThan, 50),
+      new ConditionTreeLeaf('numberOfDays', Operator.GreaterThan, 50),
     );

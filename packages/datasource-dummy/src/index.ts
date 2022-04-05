@@ -2,27 +2,27 @@ import {
   DataSource,
   DataSourceDecorator,
   FieldTypes,
-  JointureCollectionDecorator,
+  RelationCollectionDecorator,
 } from '@forestadmin/datasource-toolkit';
 import DummyDataSource from './datasource';
 
 export default function makeDummyDataSource(): DataSource {
   const dummy = new DummyDataSource();
-  const jointures = new DataSourceDecorator(dummy, JointureCollectionDecorator);
+  const relations = new DataSourceDecorator(dummy, RelationCollectionDecorator);
 
-  jointures.getCollection('persons').addJointure('books', {
+  relations.getCollection('persons').addRelation('books', {
     type: FieldTypes.OneToMany,
     foreignCollection: 'books',
     originKey: 'authorId',
   });
 
-  jointures.getCollection('books').addJointure('author', {
+  relations.getCollection('books').addRelation('author', {
     type: FieldTypes.ManyToOne,
     foreignCollection: 'persons',
     foreignKey: 'authorId',
   });
 
-  jointures.getCollection('books').addJointure('librairies', {
+  relations.getCollection('books').addRelation('librairies', {
     type: FieldTypes.ManyToMany,
     foreignCollection: 'libraries',
     throughCollection: 'librariesBooks',
@@ -31,7 +31,7 @@ export default function makeDummyDataSource(): DataSource {
     foreignRelation: 'library',
   });
 
-  jointures.getCollection('libraries').addJointure('books', {
+  relations.getCollection('libraries').addRelation('books', {
     type: FieldTypes.ManyToMany,
     originKey: 'libraryId',
     foreignKey: 'bookId',
@@ -40,17 +40,17 @@ export default function makeDummyDataSource(): DataSource {
     foreignRelation: 'book',
   });
 
-  jointures.getCollection('librariesBooks').addJointure('book', {
+  relations.getCollection('librariesBooks').addRelation('book', {
     type: FieldTypes.ManyToOne,
     foreignCollection: 'books',
     foreignKey: 'bookId',
   });
 
-  jointures.getCollection('librariesBooks').addJointure('library', {
+  relations.getCollection('librariesBooks').addRelation('library', {
     type: FieldTypes.ManyToOne,
     foreignCollection: 'libraries',
     foreignKey: 'libraryId',
   });
 
-  return jointures;
+  return relations;
 }

@@ -16,7 +16,7 @@ describe('SegmentCollectionDecorator', () => {
   describe('refineFilter', () => {
     describe('when there is no filter', () => {
       it('should return null', async () => {
-        segmentDecorator.registerSegment('segmentName', conditionTreeGenerator);
+        segmentDecorator.addSegment('segmentName', conditionTreeGenerator);
 
         const filter = await segmentDecorator.refineFilter();
         expect(filter).toEqual(null);
@@ -26,7 +26,7 @@ describe('SegmentCollectionDecorator', () => {
     describe('when there is a filter', () => {
       describe('when the segment is not managed by this decorator', () => {
         it('should return the given filter', async () => {
-          segmentDecorator.registerSegment('segmentName', conditionTreeGenerator);
+          segmentDecorator.addSegment('segmentName', conditionTreeGenerator);
 
           const aFilter = factories.filter.build({ segment: 'aSegment' });
           const filter = await segmentDecorator.refineFilter(aFilter);
@@ -46,15 +46,12 @@ describe('SegmentCollectionDecorator', () => {
           });
           segmentDecorator = new SegmentCollectionDecorator(collection, null);
 
-          conditionTreeGenerator = async () =>
-            Promise.resolve(
-              factories.conditionTreeLeaf.build({
-                field: 'name',
-                operator: Operator.Equal,
-                value: 'aNameValue',
-              }),
-            );
-          segmentDecorator.registerSegment('segmentName', conditionTreeGenerator);
+          const conditionTree = factories.conditionTreeLeaf.build({
+            field: 'name',
+            operator: Operator.Equal,
+            value: 'aNameValue',
+          });
+          segmentDecorator.addSegment('segmentName', conditionTree);
 
           const aFilter = factories.filter.build({
             segment: 'segmentName',
@@ -96,7 +93,7 @@ describe('SegmentCollectionDecorator', () => {
             }),
           });
           segmentDecorator = new SegmentCollectionDecorator(collection, null);
-          segmentDecorator.registerSegment('segmentName', conditionTreeGenerator);
+          segmentDecorator.addSegment('segmentName', conditionTreeGenerator);
 
           const aFilterWithNotValidConditionTree = factories.filter.build({
             segment: 'segmentName',

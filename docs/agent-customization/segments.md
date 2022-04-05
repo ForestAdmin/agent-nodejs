@@ -31,7 +31,7 @@ const agent = new Agent(options);
 
 // Register segment
 agent.customizeCollection('products', collection =>
-  collection.registerSegment('mySegment', context => {
+  collection.addSegment('mySegment',  async (context) => {
     // Query the ids of the 10 most populate products by looking at the `orders` collection.
     const rows = await context.dataSource
       .getCollection('orders')

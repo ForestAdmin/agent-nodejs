@@ -19,11 +19,11 @@ export default class OperatorsEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<OperatorsEmulate>;
   private readonly fields: Map<string, Map<Operator, OperatorReplacer>> = new Map();
 
-  emulateOperator(name: string, operator: Operator): void {
-    this.implementOperator(name, operator, null);
+  emulateOperatorField(name: string, operator: Operator): void {
+    this.replaceFieldOperator(name, operator, null);
   }
 
-  implementOperator(name: string, operator: Operator, replaceBy: OperatorReplacer): void {
+  replaceFieldOperator(name: string, operator: Operator, replaceBy: OperatorReplacer): void {
     // Check that the collection can actually support our rewriting
     const pks = SchemaUtils.getPrimaryKeys(this.childCollection.schema);
     pks.forEach(pk => {
@@ -115,7 +115,13 @@ export default class OperatorsEmulate extends CollectionDecorator {
         throw new Error(`Operator replacement cycle: ${subReplacements.join(' -> ')}`);
       }
 
-      let equivalentTree = await handler(leaf.value, this.dataSource);
+      let equivalentTree: ConditionTree;
+
+      if (typeof handler === 'function') {
+        equivalentTree = await handler({ value: leaf.value, dataSource: this.dataSource });
+      } else {
+        equivalentTree = handler;
+      }
 
       if (equivalentTree) {
         equivalentTree = await equivalentTree.replaceLeafsAsync(subLeaf =>

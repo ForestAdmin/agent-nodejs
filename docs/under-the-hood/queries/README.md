@@ -22,7 +22,7 @@ This example shows the same segment implemented using both methods.
 Using the forest admin query interface
 
 ```javascript
-collection.registerSegment('mySegment', context => {
+collection.addSegment('mySegment', async (context) => {
   const rows = await context.dataSource
     .getCollection('orders')
     .aggregate({}, { operation: 'Count', groups: [{ field: 'product_id' }] }, 10);
@@ -37,7 +37,7 @@ Using a native driver
 const client = new Client({ host: 'localhost', database: 'myDb', port: 5432 });
 client.connect();
 
-collection.registerSegment('mySegment', context => {
+collection.addSegment('mySegment',  async (context) => {
   const { rows } = await client.query(`
     SELECT product_id, COUNT(*)
     FROM orders

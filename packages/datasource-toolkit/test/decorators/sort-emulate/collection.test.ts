@@ -88,27 +88,27 @@ describe('SortEmulationDecoratorCollection', () => {
     newPersons = decoratedDataSource.getCollection('persons');
   });
 
-  test('emulateSort() should throw if the field does not exists', () => {
-    expect(() => newBooks.emulateSort('__dontExist')).toThrow(
+  test('emulateFieldSorting() should throw if the field does not exists', () => {
+    expect(() => newBooks.emulateFieldSorting('__dontExist')).toThrow(
       "Column not found: 'books.__dontExist'",
     );
   });
 
-  test('emulateSort() should throw if the field is a relation', () => {
-    expect(() => newBooks.emulateSort('author')).toThrow(
+  test('emulateFieldSorting() should throw if the field is a relation', () => {
+    expect(() => newBooks.emulateFieldSorting('author')).toThrow(
       "Unexpected field type: 'books.author' (found 'ManyToOne' expected 'Column')",
     );
   });
 
-  test('emulateSort() should throw if the field is in a relation', () => {
-    expect(() => newBooks.emulateSort('author:firstName')).toThrow(
+  test('emulateFieldSorting() should throw if the field is in a relation', () => {
+    expect(() => newBooks.emulateFieldSorting('author:firstName')).toThrow(
       'Cannot replace sort on relation',
     );
   });
 
   describe('when emulating sort on book.title (no relations)', () => {
     beforeEach(() => {
-      newBooks.emulateSort('title');
+      newBooks.emulateFieldSorting('title');
     });
 
     test('schema should be updated', () => {
@@ -157,7 +157,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
   describe('when emulating sort on book.author.lastName (relation)', () => {
     beforeEach(() => {
-      newPersons.emulateSort('lastName');
+      newPersons.emulateFieldSorting('lastName');
     });
 
     test('schema should be updated', () => {
@@ -194,7 +194,10 @@ describe('SortEmulationDecoratorCollection', () => {
 
   describe('when telling that sort(book.title) = sort(book.author.lastName)', () => {
     beforeEach(() => {
-      newBooks.implementSort('title', new Sort({ field: 'author:lastName', ascending: true }));
+      newBooks.replaceFieldSorting(
+        'title',
+        new Sort({ field: 'author:lastName', ascending: true }),
+      );
     });
 
     test('schema should be updated', () => {
