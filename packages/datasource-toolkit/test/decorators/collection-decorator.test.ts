@@ -1,3 +1,5 @@
+/* eslint-disable max-classes-per-file */
+
 import * as factories from '../__factories__';
 import { ActionFieldType, ActionResultType } from '../../src';
 import CollectionDecorator from '../../src/decorators/collection-decorator';
@@ -90,9 +92,9 @@ describe('CollectionDecorator', () => {
       expect(decoratedCollection.refineSchema).toHaveBeenCalledWith(schema);
     });
 
-    it('calls refineSchema only if the underlying schema is updated', async () => {
+    it('when the child schema does not change, refine schema should be called once', async () => {
       // "Identity decorator"
-      const refineSchema = jest.fn().mockImplementation(a => a);
+      const refineSchema = jest.fn().mockImplementation(child => child);
       const MyDecorator = class extends CollectionDecorator {
         refineSchema = refineSchema;
       };
@@ -100,18 +102,27 @@ describe('CollectionDecorator', () => {
       // Create collections
       const child = factories.collection.build({ schema: factories.collectionSchema.build() });
       const parent = new MyDecorator(child, null);
-
-      // When the child schema does not change, refine schema should be called only once.
       parent.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
       parent.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
       expect(refineSchema).toHaveBeenCalledTimes(1);
+    });
 
-      // When the child schema changes everytime, refine schema should be called each time.
+    it('when the child schema changes everytime, refine schema should be called', async () => {
+      // "Identity decorator"
+      const refineSchema = jest.fn().mockImplementation(child => child);
+      const MyDecorator = class extends CollectionDecorator {
+        refineSchema = refineSchema;
+      };
+
+      // Create collections
+      const child = factories.collection.build({ schema: factories.collectionSchema.build() });
       Object.defineProperty(child, 'schema', { get: () => factories.collectionSchema.build() });
+
+      const parent = new MyDecorator(child, null);
       parent.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
       parent.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
       parent.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
-      expect(refineSchema).toHaveBeenCalledTimes(4);
+      expect(refineSchema).toHaveBeenCalledTimes(3);
     });
   });
 
