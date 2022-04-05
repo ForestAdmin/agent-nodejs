@@ -29,13 +29,13 @@ Filtering can also be disabled without any code [in the field settings](https://
 {% endhint %}
 
 ```javascript
-collection.replaceFieldOperator('fullName', 'Equal', null);
+collection.replaceFieldOperator('fullName', 'equal', null);
 ```
 
 ### Substitution
 
 ```javascript
-collection.replaceFieldOperator('fullName', 'Equal', (value, context) => {
+collection.replaceFieldOperator('fullName', 'equal', (value, context) => {
   const [firstName, ...lastNames] = value.split(' ');
 
   return {
@@ -57,7 +57,7 @@ Filtering emulation performance cost is **linear** with the number of records in
 Filtering emulation allows to make any field automatically filterable.
 
 ```javascript
-collection.replaceFieldOperator('fullName', 'Equal', 'emulate');
+collection.emulateFieldOperator('fullName', 'equal');
 ```
 
 ## Sorting
@@ -94,5 +94,5 @@ Sorting emulation performance cost is **linear** with the number of records in t
 Sort emulation allows to make any field automatically sortable. It will sort records by lexicographical order.
 
 ```javascript
-collection.replaceFieldSorting('fullName', 'emulate');
+collection.emulateFieldSorting('fullName');
 ```
