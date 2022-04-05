@@ -1,12 +1,12 @@
 When customizing your admin panel, instead of changing the exposed structure of your data, you may want to override default behaviors in Forest Admin.
 
+{% hint style="info" %}
+Disabling writes or filtering can also be made readonly without any code [in the field settings](https://docs.forestadmin.com/user-guide/collections/customize-your-fields#basic-settings).
+{% endhint %}
+
 ## Write operations
 
 ### Disabling writes
-
-{% hint style="info" %}
-Fields can also be made readonly without any code [in the field settings](https://docs.forestadmin.com/user-guide/collections/customize-your-fields#basic-settings).
-{% endhint %}
 
 ```javascript
 collection.replaceWriting('fullName', null);
@@ -22,11 +22,14 @@ collection.replaceWriting('fullName', (value, context) => {
 
 ## Filtering
 
-### Disabling Filtering
+Filtering can be customized in many ways with Forest Admin
 
-{% hint style="info" %}
-Filtering can also be disabled without any code [in the field settings](https://docs.forestadmin.com/user-guide/collections/customize-your-fields#basic-settings).
-{% endhint %}
+You may want to read about the following topics before using those features:
+
+- [Structure of a `ConditionTree`](../../under-the-hood/queries/filters.md#examples)
+- []
+
+### Disabling Filtering
 
 ```javascript
 collection.replaceFieldOperator('fullName', 'equal', null);
@@ -50,15 +53,15 @@ collection.replaceFieldOperator('fullName', 'equal', (value, context) => {
 
 ### Emulation
 
-{% hint style="warning" %}
-Filtering emulation performance cost is **linear** with the number of records in the collection. It is a convenient way to get things working quick for collections which have a low number of records (in the thousands at most).
-{% endhint %}
-
 Filtering emulation allows to make any field automatically filterable.
 
 ```javascript
 collection.emulateFieldOperator('fullName', 'equal');
 ```
+
+{% hint style="warning" %}
+Filtering emulation performance cost is **linear** with the number of records in the collection. It is a convenient way to get things working quick for collections which have a low number of records (in the thousands at most).
+{% endhint %}
 
 ## Sorting
 
