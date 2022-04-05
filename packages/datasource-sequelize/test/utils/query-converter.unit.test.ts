@@ -3,7 +3,6 @@ import {
   Aggregator,
   ConditionTreeBranch,
   ConditionTreeLeaf,
-  ConditionTreeNot,
   Operator,
   Projection,
   Sort,
@@ -164,30 +163,6 @@ describe('Utils > QueryConverter', () => {
               new ConditionTreeLeaf('__field__', '__invalid__' as Operator, '__value__'),
             ),
           ).toThrow('Unsupported operator: "__invalid__".');
-        });
-      });
-
-      describe('with a ConditionTreeNot node', () => {
-        it('should fail with an empty condition', () => {
-          expect(() =>
-            QueryConverter.getWhereFromConditionTree(
-              {} as ModelDefined<any, any>,
-              new ConditionTreeNot(null),
-            ),
-          ).toThrow('Invalid (null) condition.');
-        });
-
-        it('should generate a "where" Sequelize filter from a ConditionTreeNot', () => {
-          const condition = new ConditionTreeLeaf('__field__', Operator.Equal, '__value__');
-          const conditionTree = new ConditionTreeNot(condition);
-
-          expect(
-            QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
-          ).toEqual({
-            [Op.not]: {
-              [condition.field]: { [Op.eq]: condition.value },
-            },
-          });
         });
       });
 

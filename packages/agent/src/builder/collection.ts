@@ -281,9 +281,7 @@ export default class CollectionBuilder {
    * @example
    * ```
    * .implementOperator('booksCount', Operator.Equal, async (value: unknown) => {
-   *    return new ConditionTreeNot(
-   *      new ConditionTreeLeaf('booksCount', Operator.Equal, value),
-   *    );
+   *   return new ConditionTreeLeaf('booksCount', Operator.In, [value]),
    * });
    * ```
    */

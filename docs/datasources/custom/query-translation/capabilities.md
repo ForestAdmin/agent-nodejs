@@ -34,7 +34,6 @@ The more complete your query translator is, the most forest admin features will 
 | Frontend filters, scopes and segments                        | See below                                                        |
 | Using operator emulation                                     | `in` on primary keys                                             |
 | Using search emulation                                       | `contains` on string fields, `equal` on numbers, uuids and enums |
-| Using `not` node in your code                                | `not` node                                                       |
 
 ## Unlock filtering, scopes and segments on GUI
 

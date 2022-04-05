@@ -5,7 +5,6 @@ import CollectionUtils from '../../../../utils/collection';
 import ConditionTree from './base';
 import ConditionTreeEquivalent from '../equivalence';
 import ConditionTreeFactory from '../factory';
-import ConditionTreeNot from './not';
 import Projection from '../../projection';
 import RecordUtils from '../../../../utils/record';
 
@@ -122,7 +121,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case Operator.Present:
         return this.override({ operator: Operator.Blank });
       default:
-        return new ConditionTreeNot(this);
+        throw new Error(`Operator '${this.operator}' cannot be inverted.`);
     }
   }
 

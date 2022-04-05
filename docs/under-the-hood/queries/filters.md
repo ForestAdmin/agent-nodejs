@@ -51,23 +51,10 @@ With multiple conditions
 }
 ```
 
-With multiple conditions and not node
-
-```json
-{
-  "aggregator": "and",
-  "conditions": [
-    { "field": "title", "operator": "like", "value": "found%" },
-    { "not": { "field": "createdAt", "operator": "today" } }
-  ]
-}
-```
-
 ## Structure
 
 Each node of a condition tree can be one of five things:
 
-- A "Not" branch: `{ not: <otherNode> }`
 - An "And" branch: `{ aggregator: 'or', conditions: [<otherNodes>] }`
 - An "Or" branch: `{ aggregator: 'or', conditions: [<otherNodes>] }`
 - A "condition" leaf without parameter: `{ field: 'title', operator: 'present' }`
