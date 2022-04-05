@@ -1,8 +1,8 @@
-When customizing your admin panel, instead of changing the exposed structure of your data, you may want to override default behaviors in Forest Admin.
-
 {% hint style="info" %}
-Disabling writes or filtering can also be made readonly without any code [in the field settings](https://docs.forestadmin.com/user-guide/collections/customize-your-fields#basic-settings).
+Disabling writes or filtering can be made without any code [in the field settings](https://docs.forestadmin.com/user-guide/collections/customize-your-fields#basic-settings).
 {% endhint %}
+
+When customizing your admin panel, in addition to changing the structure of your data, you may want to override existing behaviors.
 
 ## Write operations
 
@@ -20,7 +20,7 @@ collection.replaceWriting('fullName', (value, context) => {
 });
 ```
 
-## Filtering
+## Record filtering, segments and scopes
 
 Filtering can be customized in many ways with Forest Admin.
 
