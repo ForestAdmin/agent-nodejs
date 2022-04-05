@@ -11,18 +11,18 @@ export default abstract class CollectionDecorator implements Collection {
   readonly dataSource: DataSource;
   protected childCollection: Collection;
 
-  private _schema: CollectionSchema;
-  private _lastSubSchema: CollectionSchema;
+  private lastSchema: CollectionSchema;
+  private lastSubSchema: CollectionSchema;
 
   get schema(): CollectionSchema {
     const subSchema = this.childCollection.schema;
 
-    if (!this._schema || this._lastSubSchema !== subSchema) {
-      this._schema = this.refineSchema(subSchema);
-      this._lastSubSchema = subSchema;
+    if (!this.lastSchema || this.lastSubSchema !== subSchema) {
+      this.lastSchema = this.refineSchema(subSchema);
+      this.lastSubSchema = subSchema;
     }
 
-    return this._schema;
+    return this.lastSchema;
   }
 
   get name(): string {
@@ -79,7 +79,7 @@ export default abstract class CollectionDecorator implements Collection {
   }
 
   protected markSchemaAsDirty(): void {
-    this._schema = null;
+    this.lastSchema = null;
   }
 
   protected async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
