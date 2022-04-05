@@ -18,6 +18,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
   registerAction(name: string, action: Action): void {
     this.actions[name] = action;
+    this.markSchemaAsDirty();
   }
 
   override async execute(name: string, data: RecordData, filter: Filter): Promise<ActionResult> {

@@ -12,6 +12,7 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
 
   registerSegment(segmentName: string, getConditionTree: ConditionTreeGenerator): void {
     this.segments[segmentName] = getConditionTree;
+    this.markSchemaAsDirty();
   }
 
   protected refineSchema(subSchema: CollectionSchema): CollectionSchema {

@@ -34,12 +34,14 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
       delete this.toChildCollection[currentName];
       delete this.fromChildCollection[childName];
       initialName = childName;
+      this.markSchemaAsDirty();
     }
 
     // Do not update arrays if renaming is a no-op (ie: customer is cancelling a previous rename).
     if (initialName !== newName) {
       this.fromChildCollection[initialName] = newName;
       this.toChildCollection[newName] = initialName;
+      this.markSchemaAsDirty();
     }
   }
 

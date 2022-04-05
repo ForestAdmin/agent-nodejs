@@ -11,17 +11,27 @@ export default abstract class CollectionDecorator implements Collection {
   readonly dataSource: DataSource;
   protected childCollection: Collection;
 
-  constructor(childCollection: Collection, dataSource: DataSource) {
-    this.childCollection = childCollection;
-    this.dataSource = dataSource;
+  private lastSchema: CollectionSchema;
+  private lastSubSchema: CollectionSchema;
+
+  get schema(): CollectionSchema {
+    const subSchema = this.childCollection.schema;
+
+    if (!this.lastSchema || this.lastSubSchema !== subSchema) {
+      this.lastSchema = this.refineSchema(subSchema);
+      this.lastSubSchema = subSchema;
+    }
+
+    return this.lastSchema;
   }
 
   get name(): string {
     return this.childCollection.name;
   }
 
-  get schema(): CollectionSchema {
-    return this.refineSchema(this.childCollection.schema);
+  constructor(childCollection: Collection, dataSource: DataSource) {
+    this.childCollection = childCollection;
+    this.dataSource = dataSource;
   }
 
   async execute(name: string, data: RecordData, filter?: Filter): Promise<ActionResult> {
@@ -66,6 +76,10 @@ export default abstract class CollectionDecorator implements Collection {
     const refinedFilter = await this.refineFilter(filter);
 
     return this.childCollection.aggregate(refinedFilter, aggregation, limit);
+  }
+
+  protected markSchemaAsDirty(): void {
+    this.lastSchema = null;
   }
 
   protected async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {

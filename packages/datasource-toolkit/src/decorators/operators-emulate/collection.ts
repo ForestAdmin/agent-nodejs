@@ -46,6 +46,7 @@ export default class OperatorsEmulate extends CollectionDecorator {
     // Mark the field operator as replaced.
     if (!this.fields.has(name)) this.fields.set(name, new Map());
     this.fields.get(name).set(operator, replaceBy);
+    this.markSchemaAsDirty();
   }
 
   protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
