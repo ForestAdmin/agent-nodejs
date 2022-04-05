@@ -20,11 +20,11 @@ export default class SortEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<SortEmulate>;
   private readonly sorts: Map<string, Sort> = new Map();
 
-  emulateSort(name: string): void {
-    this.implementSort(name, null);
+  emulateFieldSorting(name: string): void {
+    this.replaceFieldSorting(name, null);
   }
 
-  implementSort(name: string, equivalentSort: Sort): void {
+  replaceFieldSorting(name: string, equivalentSort: Sort): void {
     FieldValidator.validate(this, name);
 
     const field = this.childCollection.schema.fields[name] as ColumnSchema;

@@ -15,7 +15,7 @@ It will rename the field `priceInDollar` to `price`.
 When you want to unpublish the visibility of certain fields.
 
 ```typescript
-    dvdCollection.unpublishFields(['price', 'name']);
+    dvdCollection.removeField('price', 'name');
 ```
 
 The fields `price` and `name` will not be visible by the frontend.
@@ -33,7 +33,7 @@ For example, when you want to compute the new field value from the `name` and th
 ```typescript
     const { PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
 
-    dvdCollection.registerField('nameAndPrice', {
+    dvdCollection.addField('nameAndPrice', {
         columnType: PrimitiveTypes.String,
         dependencies: ['name', 'price'],
         getValues: (records) => records.map(record => `${record.name} - ${record.price}`)
@@ -56,7 +56,7 @@ When you want to make a field sortable easily.
 
 
 ```typescript
-    dvdCollection.emulateSort('nameAndPrice');
+    dvdCollection.emulateFieldSorting('nameAndPrice');
 ```
 
 ### Implement
@@ -68,7 +68,7 @@ When you want to provide your definition to make a field sortable.
 {% endhint %}
 
 ```typescript
-    dvdCollection.implementSort('nameAndPrice', [
+    dvdCollection.replaceFieldSorting('nameAndPrice', [
          { field: 'name', ascending: true },
          { field: 'price',  ascending: true }
     ]);
@@ -86,7 +86,7 @@ You should [register a field](#register-a-field) to get a field with only the `e
 ```typescript
     const { PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
 
-    dvdCollection.registerField('extensionName', {
+    dvdCollection.addField('extensionName', {
         columnType: PrimitiveTypes.String,
         dependencies: ['dvdTitleWithExtensionName'],
         getValues: (records) => records.map(record => {
@@ -100,7 +100,7 @@ You should [register a field](#register-a-field) to get a field with only the `e
 Then you can sort `dvdTitleWithExtensionName` by the `extensionName` field.
 
 ```typescript
-    dvdCollection.implementSort('dvdTitleWithExtensionName', [
+    dvdCollection.replaceFieldSorting('dvdTitleWithExtensionName', [
         { field: 'extensionName', ascending: true },
     ]);
 ```
@@ -123,7 +123,7 @@ When you want to provide a field operator easily.
 ```typescript
     const { Operator } = require('@forestadmin/datasource-toolkit');
     
-    dvdCollection.emulateOperator('nameAndPrice', Operator.In);
+    dvdCollection.emulateOperatorField('nameAndPrice', Operator.In);
 ```
 
 Now `nameAndPrice` field can be filtered with the `In` operator.

@@ -18,16 +18,16 @@ import Projection from '../../interfaces/query/projection';
 import RecordUtils from '../../utils/record';
 import SchemaUtils from '../../utils/schema';
 
-export default class JointureCollectionDecorator extends CollectionDecorator {
-  override readonly dataSource: DataSourceDecorator<JointureCollectionDecorator>;
-  protected jointures: Record<string, RelationSchema> = {};
+export default class RelationCollectionDecorator extends CollectionDecorator {
+  override readonly dataSource: DataSourceDecorator<RelationCollectionDecorator>;
+  protected relations: Record<string, RelationSchema> = {};
 
-  addJointure(name: string, partialJoint: PartialRelationSchema): void {
-    const joint = this.jointWithOptionalFields(partialJoint);
-    this.checkForeignKeys(joint);
-    this.checkOriginKeys(joint);
+  addRelation(name: string, partialJoint: PartialRelationSchema): void {
+    const relation = this.relationWithOptionalFields(partialJoint);
+    this.checkForeignKeys(relation);
+    this.checkOriginKeys(relation);
 
-    this.jointures[name] = joint;
+    this.relations[name] = relation;
     this.markSchemaAsDirty();
   }
 
@@ -48,8 +48,8 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
   ): Promise<AggregateResult[]> {
     const newFilter = await this.refineFilter(filter);
 
-    // No emulated jointures are used in the aggregation
-    if (Object.keys(aggregation.projection.relations).every(prefix => !this.jointures[prefix])) {
+    // No emulated relations are used in the aggregation
+    if (Object.keys(aggregation.projection.relations).every(prefix => !this.relations[prefix])) {
       return this.childCollection.aggregate(newFilter, aggregation, limit);
     }
 
@@ -66,8 +66,8 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
   protected refineSchema(subSchema: CollectionSchema): CollectionSchema {
     const schema = { ...subSchema, fields: { ...subSchema.fields } };
 
-    for (const [name, jointure] of Object.entries(this.jointures)) {
-      schema.fields[name] = jointure;
+    for (const [name, relation] of Object.entries(this.relations)) {
+      schema.fields[name] = relation;
     }
 
     return schema;
@@ -91,48 +91,48 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
     });
   }
 
-  private jointWithOptionalFields(partialJoint: PartialRelationSchema): RelationSchema {
-    const joint = { ...partialJoint };
-    const target = this.dataSource.getCollection(joint.foreignCollection);
+  private relationWithOptionalFields(partialJoint: PartialRelationSchema): RelationSchema {
+    const relation = { ...partialJoint };
+    const target = this.dataSource.getCollection(relation.foreignCollection);
 
-    if (joint.type === FieldTypes.ManyToOne) {
-      joint.foreignKeyTarget ??= SchemaUtils.getPrimaryKeys(target.schema)[0];
-    } else if (joint.type === FieldTypes.OneToOne || joint.type === FieldTypes.OneToMany) {
-      joint.originKeyTarget ??= SchemaUtils.getPrimaryKeys(this.schema)[0];
-    } else if (joint.type === FieldTypes.ManyToMany) {
-      joint.originKeyTarget ??= SchemaUtils.getPrimaryKeys(this.schema)[0];
-      joint.foreignKeyTarget ??= SchemaUtils.getPrimaryKeys(target.schema)[0];
+    if (relation.type === FieldTypes.ManyToOne) {
+      relation.foreignKeyTarget ??= SchemaUtils.getPrimaryKeys(target.schema)[0];
+    } else if (relation.type === FieldTypes.OneToOne || relation.type === FieldTypes.OneToMany) {
+      relation.originKeyTarget ??= SchemaUtils.getPrimaryKeys(this.schema)[0];
+    } else if (relation.type === FieldTypes.ManyToMany) {
+      relation.originKeyTarget ??= SchemaUtils.getPrimaryKeys(this.schema)[0];
+      relation.foreignKeyTarget ??= SchemaUtils.getPrimaryKeys(target.schema)[0];
     }
 
-    return joint as RelationSchema;
+    return relation as RelationSchema;
   }
 
-  private checkForeignKeys(joint: RelationSchema): void {
-    if (joint.type === FieldTypes.ManyToOne || joint.type === FieldTypes.ManyToMany) {
-      JointureCollectionDecorator.checkKeys(
-        joint.type === FieldTypes.ManyToMany
-          ? this.dataSource.getCollection(joint.throughCollection)
+  private checkForeignKeys(relation: RelationSchema): void {
+    if (relation.type === FieldTypes.ManyToOne || relation.type === FieldTypes.ManyToMany) {
+      RelationCollectionDecorator.checkKeys(
+        relation.type === FieldTypes.ManyToMany
+          ? this.dataSource.getCollection(relation.throughCollection)
           : this,
-        this.dataSource.getCollection(joint.foreignCollection),
-        joint.foreignKey,
-        joint.foreignKeyTarget,
+        this.dataSource.getCollection(relation.foreignCollection),
+        relation.foreignKey,
+        relation.foreignKeyTarget,
       );
     }
   }
 
-  private checkOriginKeys(joint: RelationSchema): void {
+  private checkOriginKeys(relation: RelationSchema): void {
     if (
-      joint.type === FieldTypes.OneToMany ||
-      joint.type === FieldTypes.OneToOne ||
-      joint.type === FieldTypes.ManyToMany
+      relation.type === FieldTypes.OneToMany ||
+      relation.type === FieldTypes.OneToOne ||
+      relation.type === FieldTypes.ManyToMany
     ) {
-      JointureCollectionDecorator.checkKeys(
-        joint.type === FieldTypes.ManyToMany
-          ? this.dataSource.getCollection(joint.throughCollection)
-          : this.dataSource.getCollection(joint.foreignCollection),
+      RelationCollectionDecorator.checkKeys(
+        relation.type === FieldTypes.ManyToMany
+          ? this.dataSource.getCollection(relation.throughCollection)
+          : this.dataSource.getCollection(relation.foreignCollection),
         this,
-        joint.originKey,
-        joint.originKeyTarget,
+        relation.originKey,
+        relation.originKeyTarget,
       );
     }
   }
@@ -143,8 +143,8 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
     keyName: string,
     targetName: string,
   ): void {
-    JointureCollectionDecorator.checkColumn(owner, keyName);
-    JointureCollectionDecorator.checkColumn(targetOwner, targetName);
+    RelationCollectionDecorator.checkColumn(owner, keyName);
+    RelationCollectionDecorator.checkColumn(targetOwner, targetName);
 
     const key = owner.schema.fields[keyName] as ColumnSchema;
     const target = targetOwner.schema.fields[targetName] as ColumnSchema;
@@ -177,7 +177,7 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
     const relation = this.dataSource.getCollection(schema.foreignCollection);
     let result = [] as string[];
 
-    if (!this.jointures[prefix]) {
+    if (!this.relations[prefix]) {
       result = relation
         .rewriteField(field.substring(prefix.length + 1))
         .map(subField => `${prefix}:${subField}`);
@@ -202,7 +202,7 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
     const relation = this.dataSource.getCollection(schema.foreignCollection);
     let result = leaf as ConditionTree;
 
-    if (!this.jointures[prefix]) {
+    if (!this.relations[prefix]) {
       result = (await relation.rewriteLeaf(leaf.unnest())).nest(prefix);
     } else if (schema.type === FieldTypes.ManyToOne) {
       const records = await relation.list(
@@ -247,7 +247,7 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
     const schema = this.schema.fields[name] as RelationSchema;
     const association = this.dataSource.getCollection(schema.foreignCollection);
 
-    if (!this.jointures[name]) {
+    if (!this.relations[name]) {
       await association.reprojectInPlace(
         records.map(r => r[name]).filter(Boolean) as RecordData[],
         projection,

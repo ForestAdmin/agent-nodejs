@@ -45,8 +45,8 @@ describe('OperatorsEmulate', () => {
       newBooks = decoratedDataSource.getCollection('books');
     });
 
-    test('emulateOperator() should throw on any case', () => {
-      expect(() => newBooks.emulateOperator('title', Operator.GreaterThan)).toThrow(
+    test('emulateOperatorField() should throw on any case', () => {
+      expect(() => newBooks.emulateOperatorField('title', Operator.GreaterThan)).toThrow(
         "the primary key columns must support 'equal' and 'in' operators",
       );
     });
@@ -108,30 +108,30 @@ describe('OperatorsEmulate', () => {
       newPersons = decoratedDataSource.getCollection('persons');
     });
 
-    test('emulateOperator() should throw if the field does not exists', () => {
-      expect(() => newBooks.emulateOperator('__dontExist', Operator.Equal)).toThrow(
+    test('emulateOperatorField() should throw if the field does not exists', () => {
+      expect(() => newBooks.emulateOperatorField('__dontExist', Operator.Equal)).toThrow(
         "Column not found: 'books.__dontExist'",
       );
     });
 
-    test('emulateOperator() should throw if the field is a relation', () => {
-      expect(() => newBooks.emulateOperator('author', Operator.Equal)).toThrow(
+    test('emulateOperatorField() should throw if the field is a relation', () => {
+      expect(() => newBooks.emulateOperatorField('author', Operator.Equal)).toThrow(
         "Unexpected field type: 'books.author' (found 'ManyToOne' expected 'Column')",
       );
     });
 
-    test('emulateOperator() should throw if the field is in a relation', () => {
-      expect(() => newBooks.emulateOperator('author:firstName', Operator.Equal)).toThrow(
+    test('emulateOperatorField() should throw if the field is in a relation', () => {
+      expect(() => newBooks.emulateOperatorField('author:firstName', Operator.Equal)).toThrow(
         'Cannot replace operator for relation',
       );
     });
 
     describe('when implementing an operator from an unsupported one', () => {
       beforeEach(() => {
-        newBooks.implementOperator(
+        newBooks.replaceFieldOperator(
           'title',
           Operator.StartsWith,
-          async value => new ConditionTreeLeaf('title', Operator.Like, `${value}%`),
+          new ConditionTreeLeaf('title', Operator.Like, 'aTitleValue'),
         );
       });
 
@@ -154,16 +154,16 @@ describe('OperatorsEmulate', () => {
 
     describe('when creating a cycle in the replacements graph', () => {
       beforeEach(() => {
-        newBooks.implementOperator(
+        newBooks.replaceFieldOperator(
           'title',
           Operator.StartsWith,
-          async value => new ConditionTreeLeaf('title', Operator.Like, `${value}%`),
+          async ({ value }) => new ConditionTreeLeaf('title', Operator.Like, `${value}%`),
         );
 
-        newBooks.implementOperator(
+        newBooks.replaceFieldOperator(
           'title',
           Operator.Like,
-          async value => new ConditionTreeLeaf('title', Operator.StartsWith, `${value}%`),
+          async ({ value }) => new ConditionTreeLeaf('title', Operator.StartsWith, `${value}%`),
         );
       });
 
@@ -187,7 +187,7 @@ describe('OperatorsEmulate', () => {
 
     describe('when emulating an operator', () => {
       beforeEach(() => {
-        newPersons.emulateOperator('firstName', Operator.StartsWith);
+        newPersons.emulateOperatorField('firstName', Operator.StartsWith);
       });
 
       test('schema() should support StartWith operator', () => {
@@ -250,11 +250,11 @@ describe('OperatorsEmulate', () => {
     describe('when() implementing an operator in the least efficient way ever', () => {
       beforeEach(() => {
         // Emulate title 'ShorterThan' and 'Contains'
-        newBooks.emulateOperator('title', Operator.ShorterThan);
-        newBooks.emulateOperator('title', Operator.Contains);
+        newBooks.emulateOperatorField('title', Operator.ShorterThan);
+        newBooks.emulateOperatorField('title', Operator.Contains);
 
         // Define 'Equal(x)' to be 'Contains(x) && ShorterThan(x.length + 1)'
-        newBooks.implementOperator('title', Operator.Equal, async value =>
+        newBooks.replaceFieldOperator('title', Operator.Equal, async ({ value }) =>
           ConditionTreeFactory.intersect(
             new ConditionTreeLeaf('title', Operator.Contains, value),
             new ConditionTreeLeaf('title', Operator.ShorterThan, (value as string).length + 1),

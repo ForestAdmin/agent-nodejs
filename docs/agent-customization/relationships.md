@@ -22,7 +22,7 @@ In this simple example, we have two collections which are not linked together:
 ```javascript
 // Link 'customers' to 'payments'
 agent.customizeCollection('customers', collection =>
-  collection.registerJointure('myPayments', {
+  collection.addRelation('myPayments', {
     type: 'OneToMany',
     foreignCollection: 'payments',
     originKey: 'external_id',
@@ -36,7 +36,7 @@ The inverse relation can be declared in a similar way:
 ```javascript
 // Link 'payments' to 'customers'
 agent.customizeCollection('payments', collection =>
-  collection.registerJointure('myCustomer', {
+  collection.addRelation('myCustomer', {
     type: 'ManyToOne',
     foreignCollection: 'customers',
     foreignKey: 'external_id',
@@ -67,7 +67,7 @@ This is done in two steps:
 ```javascript
 agent.customizeCollection('customers', collection => {
   // Create foreign key
-  collection.registerField('lastMessageId', {
+  collection.addField('lastMessageId', {
     // Ensure this field is accesible for the jointure
     beforeJointures: true,
 
@@ -98,7 +98,7 @@ agent.customizeCollection('customers', collection => {
   });
 
   // Use the foreign key we just created in a jointure
-  collection.registerJointure('lastMessage', {
+  collection.addRelation('lastMessage', {
     type: 'ManyToOne',
     foreignCollection: 'messages',
     foreignKey: 'lastMessageId',
@@ -118,7 +118,7 @@ Take note that the inverse of a `OneToOne` is a `ManyToOne`. This may seem count
 
 ```javascript
 agent.customizeCollection('customers', collection => {
-  collection.registerJointure('myPassport', {
+  collection.addRelation('myPassport', {
     type: 'OneToOne',
     foreignCollection: 'passports',
     originKey: 'customer_id',
@@ -126,7 +126,7 @@ agent.customizeCollection('customers', collection => {
 });
 
 agent.customizeCollection('passports', collection => {
-  collection.registerJointure('myOwner', {
+  collection.addRelation('myOwner', {
     type: 'ManyToOne', // ⚠️ Not 'OneToOne'
     foreignCollection: 'customer',
     foreignKey: 'customer_id',
@@ -140,7 +140,7 @@ agent.customizeCollection('passports', collection => {
 
 ```javascript
 agent.customizeCollection('customers', collection => {
-  collection.registerJointure('myLanguages', {
+  collection.addRelation('myLanguages', {
     type: 'ManyToMany',
     foreignCollection: 'languages',
     thoughCollection: 'customerLanguages',
@@ -150,7 +150,7 @@ agent.customizeCollection('customers', collection => {
 });
 
 agent.customizeCollection('languages', collection => {
-  collection.registerJointure('mySpeakers', {
+  collection.addRelation('mySpeakers', {
     type: 'ManyToMany',
     foreignCollection: 'customers',
     thoughCollection: 'customerLanguages',

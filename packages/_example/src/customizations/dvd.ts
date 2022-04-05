@@ -12,14 +12,14 @@ import { Collection } from '@forestadmin/agent';
 
 export default (collection: Collection) =>
   collection
-    .registerJointure('store', {
+    .addRelation('store', {
       type: FieldTypes.ManyToOne,
       foreignKey: 'storeId',
       foreignKeyTarget: 'id',
       foreignCollection: 'store',
     })
     .renameField('rentalPrice', 'rentalPriceInDollar')
-    .registerAction('Increase the rental price', {
+    .addAction('Increase the rental price', {
       scope: ActionScope.Global,
       execute: async (context, responseBuilder) => {
         const records = await context.collection.list(
@@ -46,7 +46,7 @@ export default (collection: Collection) =>
         {
           label: 'percentage',
           type: ActionFieldType.Number,
-          defaultValue: () => 10,
+          defaultValue: 10,
           isRequired: true,
         },
       ],

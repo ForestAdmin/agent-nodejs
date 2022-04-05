@@ -2,16 +2,16 @@ import {
   ActionDefinition,
   CollectionUtils,
   ColumnSchema,
-  ConditionTree,
   ConditionTreeLeaf,
   Operator,
   OperatorReplacer,
   PartialRelationSchema,
   Projection,
   RecordUtils,
+  SegmentDefinition,
   Sort,
   SortClause,
-  WriteHandlerDefinition,
+  WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
 import { FieldDefinition } from './types';
 
@@ -20,7 +20,7 @@ import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
 
 export default class CollectionBuilder {
   private agentBuilder: AgentBuilder;
-  private name: string;
+  private readonly name: string;
 
   constructor(agentBuilder: AgentBuilder, name: string) {
     this.agentBuilder = agentBuilder;
@@ -33,11 +33,9 @@ export default class CollectionBuilder {
    * @param name the name of the field that will be created on the collection
    * @param options options to import the field
    * @example
-   * ```
    * .importField('authorName', { path: 'author:fullName' })
-   * ```
    */
-  importField(name: string, options: { path: string; beforeJointures?: boolean }): this {
+  importField(name: string, options: { path: string; beforeRelations?: boolean }): this {
     const collection = this.agentBuilder.lateComputed.getCollection(this.name);
     const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
     const filterBy: Partial<Record<Operator, OperatorReplacer>> = {};
@@ -46,8 +44,8 @@ export default class CollectionBuilder {
       filterBy[operator] = async value => new ConditionTreeLeaf(options.path, operator, value);
     }
 
-    return this.registerField(name, {
-      beforeJointures: options.beforeJointures,
+    return this.addField(name, {
+      beforeRelations: options.beforeRelations,
       columnType: schema.columnType,
       defaultValue: schema.defaultValue,
       dependencies: [options.path],
@@ -63,9 +61,7 @@ export default class CollectionBuilder {
    * @param {string} oldName the current name of the field in a given collection
    * @param {string} newName the new name of the field
    * @example
-   * ```
-   * .renameField('theCurrentNameOfTheFieldIntheCollection', 'theNewNameOfTheField');
-   * ```
+   * .renameField('theCurrentNameOfTheField', 'theNewNameOfTheField');
    */
   renameField(oldName: string, newName: string): this {
     this.agentBuilder.rename.getCollection(this.name).renameField(oldName, newName);
@@ -74,29 +70,12 @@ export default class CollectionBuilder {
   }
 
   /**
-   * Publish an array of fields by setting its visibility to true.
-   * @param {string[]} names the array of field to publish
+   * Remove field by setting its visibility to false.
+   * @param {...string[]} names the fields to remove
    * @example
-   * ```
-   * .publishFields(['aFieldToPublish']);
-   * ```
+   * .removeField('aFieldToRemove', 'anOtherFieldToRemove');
    */
-  publishFields(names: string[]): this {
-    const collection = this.agentBuilder.publication.getCollection(this.name);
-    for (const name of names) collection.changeFieldVisibility(name, true);
-
-    return this;
-  }
-
-  /**
-   * Unpublish an array of fields by setting its visibility to false.
-   * @param {string[]} names the array of field to unpublish
-   * @example
-   * ```
-   * .unpublishFields(['aFieldToUnpublish']);
-   * ```
-   */
-  unpublishFields(names: string[]): this {
+  removeField(...names: string[]): this {
     const collection = this.agentBuilder.publication.getCollection(this.name);
     for (const name of names) collection.changeFieldVisibility(name, false);
 
@@ -104,41 +83,37 @@ export default class CollectionBuilder {
   }
 
   /**
-   * Register a new action on the collection
+   * Add a new action on the collection.
    * @param {string} name the name of the action
    * @param {ActionDefinition} definition the definition of the action
    * @example
-   * ```
-   * .registerAction('is live', {
-        scope: ActionScope.Single,
-        execute: async (context, responseBuilder) => {
-          return responseBuilder.success(`Is live!`);
-        },
-      })
-   * ```
+   * .addAction('is live', {
+   *    scope: ActionScope.Single,
+   *    execute: async (context, responseBuilder) => {
+   *      return responseBuilder.success(`Is live!`);
+   *    },
+   *  })
    */
-  registerAction(name: string, definition: ActionDefinition): this {
-    this.agentBuilder.action.getCollection(this.name).registerAction(name, definition);
+  addAction(name: string, definition: ActionDefinition): this {
+    this.agentBuilder.action.getCollection(this.name).addAction(name, definition);
 
     return this;
   }
 
   /**
-   * Register a new field on the collection.
+   * Add a new field on the collection.
    * @param {string} name the name of the field
-   * @param {RawComputedDefinition} definition The definition of the field
+   * @param {FieldDefinition} definition The definition of the field
    * @example
-   * ```
-   * .registerField('fullName', {
+   * .addField('fullName', {
    *    columnType: PrimitiveTypes.String,
    *    dependencies: ['firstName', 'lastName'],
    *    getValues: (records) => records.map(record => `${record.lastName} ${record.firstName}`),
    * });
-   * ```
    */
-  registerField(name: string, definition: FieldDefinition): this {
+  addField(name: string, definition: FieldDefinition): this {
     // Compute
-    const computed = definition.beforeJointures
+    const computed = definition.beforeRelations
       ? this.agentBuilder.earlyComputed.getCollection(this.name)
       : this.agentBuilder.lateComputed.getCollection(this.name);
 
@@ -151,10 +126,10 @@ export default class CollectionBuilder {
     // Sort
     if (definition.sortBy) {
       const sort = this.agentBuilder.sortEmulate.getCollection(this.name);
-      if (definition.sortBy === 'emulate') sort.emulateSort(name);
+      if (definition.sortBy === 'emulate') sort.emulateFieldSorting(name);
 
       if (Array.isArray(definition.sortBy)) {
-        sort.implementSort(name, new Sort(...definition.sortBy));
+        sort.replaceFieldSorting(name, new Sort(...definition.sortBy));
       }
     }
 
@@ -162,14 +137,14 @@ export default class CollectionBuilder {
     if (definition.filterBy) {
       const { filterBy } = definition;
       const operators = FrontendFilterableUtils.getRequiredOperators(definition.columnType) ?? [];
-      const operatorEmulate = definition.beforeJointures
+      const operatorEmulate = definition.beforeRelations
         ? this.agentBuilder.earlyOpEmulate.getCollection(this.name)
         : this.agentBuilder.lateOpEmulate.getCollection(this.name);
 
       for (const operator of operators) {
         const implementation = filterBy === 'emulate' ? 'emulate' : filterBy[operator] ?? 'emulate';
-        if (implementation === 'emulate') operatorEmulate.emulateOperator(name, operator);
-        else operatorEmulate.implementOperator(name, operator as Operator, implementation);
+        if (implementation === 'emulate') operatorEmulate.emulateOperatorField(name, operator);
+        else operatorEmulate.replaceFieldOperator(name, operator as Operator, implementation);
       }
     }
 
@@ -177,44 +152,35 @@ export default class CollectionBuilder {
   }
 
   /**
-   * Create a jointure between two collections.
-   * @param name name of the new jointure
-   * @param definition definition of the new jointure
+   * Add a relation between two collections.
+   * @param name name of the new relation
+   * @param definition definition of the new relation
    * @example
-   * ```
-   * .registerJointure('author', {
+   * .addRelation('author', {
    *   type: FieldTypes.ManyToOne,
    *   foreignCollection: 'persons',
    *   foreignKey: 'authorId'
    * });
-   * ```
    */
-  registerJointure(name: string, definition: PartialRelationSchema): this {
-    this.agentBuilder.jointure.getCollection(this.name).addJointure(name, definition);
+  addRelation(name: string, definition: PartialRelationSchema): this {
+    this.agentBuilder.relation.getCollection(this.name).addRelation(name, definition);
 
     return this;
   }
 
   /**
-   * Register a new segment on the collection.
+   * Add a new segment on the collection.
    * @param {string} name the name of the segment
-   * @param {(timezone: string) => Promise<ConditionTree>} conditionTreeGenerator a function used
-   *   to generate a condition tree
+   * @param {SegmentDefinition} definition a function used to generate a condition tree
+   * or a condition tree
    * @example
-   * ```
-   * .registerSegment(
+   * .addSegment(
    *    'Wrote more than 2 books',
-   *    async (timezone) => new ConditionTreeLeaf('booksCount', Operator.GreaterThan, 2),
+   *    new ConditionTreeLeaf('booksCount', Operator.GreaterThan, 2),
    * );
-   * ```
    */
-  registerSegment(
-    name: string,
-    conditionTreeGenerator: (timezone: string) => Promise<ConditionTree>,
-  ) {
-    this.agentBuilder.segment
-      .getCollection(this.name)
-      .registerSegment(name, conditionTreeGenerator);
+  addSegment(name: string, definition: SegmentDefinition) {
+    this.agentBuilder.segment.getCollection(this.name).addSegment(name, definition);
 
     return this;
   }
@@ -224,35 +190,32 @@ export default class CollectionBuilder {
    * As for all the emulation method, the field sorting will be done in-memory.
    * @param {string} name the name of the field to enable emulation on
    * @example
-   * ```
-   * .emulateSort('fullName');
-   * ```
+   * .emulateFieldSorting('fullName');
    */
-  emulateSort(name: string): this {
-    this.agentBuilder.sortEmulate.getCollection(this.name).emulateSort(name);
+  emulateFieldSorting(name: string): this {
+    this.agentBuilder.sortEmulate.getCollection(this.name).emulateFieldSorting(name);
 
     return this;
   }
 
   /**
-   * Allow to provide an implementation for the sorting.
+   * Replace an implementation for the sorting.
+   * The field sorting will be done by the datasource.
    * @param {string} name the name of the field to enable sort
    * @param {SortClause[]} equivalentSort the sort equivalent
    * @example
-   * ```
-   * .implementSort(
+   * .replaceFieldSorting(
    *   'fullName',
    *   [
    *     { field: 'firstName', ascending: true },
    *     { field: 'lastName',  ascending: true },
    *   ]
    * )
-   * ```
    */
-  implementSort(name: string, equivalentSort: SortClause[]): this {
+  replaceFieldSorting(name: string, equivalentSort: SortClause[]): this {
     this.agentBuilder.sortEmulate
       .getCollection(this.name)
-      .implementSort(name, new Sort(...equivalentSort));
+      .replaceFieldSorting(name, new Sort(...equivalentSort));
 
     return this;
   }
@@ -263,50 +226,45 @@ export default class CollectionBuilder {
    * @param {string} name the name of the field to enable emulation on
    * @param {Operator} operator the operator to emulate
    * @example
-   * ```
-   * .emulateOperator('aField', Operator.In);
-   * ```
+   * .emulateOperatorField('aField', Operator.In);
    */
-  emulateOperator(name: string, operator: Operator): this {
-    this.agentBuilder.lateOpEmulate.getCollection(this.name).emulateOperator(name, operator);
+  emulateOperatorField(name: string, operator: Operator): this {
+    this.agentBuilder.lateOpEmulate.getCollection(this.name).emulateOperatorField(name, operator);
 
     return this;
   }
 
   /**
-   * Allow to provide an implementation for a specific operator on a specific field.
+   * Replace an implementation for a specific operator on a specific field.
+   * The operator replacement will be done by the datasource.
    * @param {string} name the name of the field to filter on
-   * @param {Operator} operator the operator to implement
+   * @param {Operator} operator the operator to replace
    * @param {OperatorReplacer} replacer the proposed implementation
    * @example
-   * ```
-   * .implementOperator('booksCount', Operator.Equal, async (value: unknown) => {
-   *   return new ConditionTreeLeaf('booksCount', Operator.In, [value]),
-   * });
-   * ```
+   * .replaceFieldOperator('booksCount', Operator.Equal, ({ value }) => new ConditionTreeNot(
+   *   new ConditionTreeLeaf('booksCount', Operator.Equal, value),
+   * ));
    */
-  implementOperator(name: string, operator: Operator, replacer: OperatorReplacer): this {
+  replaceFieldOperator(name: string, operator: Operator, replacer: OperatorReplacer): this {
     this.agentBuilder.lateOpEmulate
       .getCollection(this.name)
-      .implementOperator(name, operator, replacer);
+      .replaceFieldOperator(name, operator, replacer);
 
     return this;
   }
 
   /**
-   * Allow override the write behavior of a field.
+   * Replace the write behavior of a field.
    * @param {string} name the name of the field
-   * @param {WriteHandlerDefinition} handler the function represent the write behavior.
+   * @param {WriteDefinition} definition the function or a value to represent the write behavior
    * @example
-   * ```
-   * .implementWrite('fullName', async (patch: unknown, context: WriteHandlerContext) => {
-   *   const [firstName, lastName] = patch.split(' ');
+   * .replaceFieldWriting('fullName', ({ patch: fullName }) => {
+   *   const [firstName, lastName] = fullName.split(' ');
    *   return { firstName, lastName };
    * });
-   * ```
    */
-  implementWrite(name: string, handler: WriteHandlerDefinition): this {
-    this.agentBuilder.write.getCollection(this.name).implement(name, handler);
+  replaceFieldWriting(name: string, definition: WriteDefinition): this {
+    this.agentBuilder.write.getCollection(this.name).replaceFieldWriting(name, definition);
 
     return this;
   }

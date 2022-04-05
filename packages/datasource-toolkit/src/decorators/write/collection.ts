@@ -7,7 +7,7 @@ import {
   RelationSchema,
 } from '../../interfaces/schema';
 import { RecordData } from '../../interfaces/record';
-import { WriteHandlerContext, WriteHandlerDefinition } from './types';
+import { WriteContext, WriteDefinition } from './types';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
 import DataSourceDecorator from '../datasource-decorator';
@@ -18,24 +18,24 @@ import SchemaUtils from '../../utils/schema';
 import ValidationError from '../../errors';
 
 export default class WriteDecorator extends CollectionDecorator {
-  private implemented: Record<string, WriteHandlerDefinition> = {};
+  private replacedDefinitions: Record<string, WriteDefinition> = {};
   override readonly dataSource: DataSourceDecorator<WriteDecorator>;
 
-  implement(fieldName: string, definition: WriteHandlerDefinition): void {
+  replaceFieldWriting(fieldName: string, definition: WriteDefinition): void {
     if (!Object.keys(this.schema.fields).includes(fieldName)) {
       throw new Error(
         `The given field "${fieldName}" does not exist on the ${this.name} collection.`,
       );
     }
 
-    this.implemented[fieldName] = definition;
+    this.replacedDefinitions[fieldName] = definition;
     this.markSchemaAsDirty();
   }
 
   protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
     const schema = { ...childSchema, fields: { ...childSchema.fields } };
 
-    for (const name of Object.keys(this.implemented)) {
+    for (const name of Object.keys(this.replacedDefinitions)) {
       (schema.fields[name] as ColumnSchema).isReadOnly = false;
     }
 
@@ -221,20 +221,20 @@ export default class WriteDecorator extends CollectionDecorator {
 
   private async applyDefinitions(
     patch: RecordData,
-    action: WriteHandlerContext['action'],
+    action: WriteContext['action'],
     stackCalls: string[] = [],
   ): Promise<RecordData> {
     if (Object.keys(patch).length === 0) return {};
 
-    const implementedColumns = this.getImplementedColumns(patch);
-    WriteDecorator.checkCyclicDependency(implementedColumns, stackCalls);
-    const patches = await this.getDefinitionResults(patch, implementedColumns, action);
+    const replacedDefinitionsColumns = this.getReplacedDefinitionsColumns(patch);
+    WriteDecorator.checkCyclicDependency(replacedDefinitionsColumns, stackCalls);
+    const patches = await this.getDefinitionResults(patch, replacedDefinitionsColumns, action);
 
     const patchToExplore = {};
     const copyPatch = { ...patch };
 
     patches.forEach(recordData => {
-      const setValueColumn = implementedColumns.shift();
+      const setValueColumn = replacedDefinitionsColumns.shift();
       delete copyPatch[setValueColumn];
 
       if (!recordData) return;
@@ -265,25 +265,32 @@ export default class WriteDecorator extends CollectionDecorator {
     return { ...copyPatch, ...(await this.applyDefinitions(patchToExplore, action, stackCalls)) };
   }
 
-  private getImplementedColumns(patch: RecordData): string[] {
+  private getReplacedDefinitionsColumns(patch: RecordData): string[] {
     const patchKeys = Object.keys(patch);
 
-    return Object.keys(this.implemented).filter(name => patchKeys.includes(name));
+    return Object.keys(this.replacedDefinitions).filter(name => patchKeys.includes(name));
   }
 
   private async getDefinitionResults(
     patch: RecordData,
     columns: string[],
-    action: WriteHandlerContext['action'],
+    action: WriteContext['action'],
   ): Promise<(RecordData | void)[]> {
     return Promise.all(
-      columns.map(column =>
-        this.implemented[column](patch[column], {
-          dataSource: this.dataSource,
-          action,
-          record: { ...patch },
-        }),
-      ),
+      columns.map(column => {
+        const definition = this.replacedDefinitions[column];
+
+        if (typeof definition === 'function') {
+          return definition({
+            action,
+            dataSource: this.dataSource,
+            record: { ...patch },
+            patch: patch[column],
+          });
+        }
+
+        return definition;
+      }),
     );
   }
 

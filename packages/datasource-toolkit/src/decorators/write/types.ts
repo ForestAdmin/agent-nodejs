@@ -1,13 +1,12 @@
 import { DataSource } from '../../interfaces/collection';
 import { RecordData } from '../../interfaces/record';
+import { ValueOrHandler } from '../fields';
 
-export type WriteHandlerContext = {
+export type WriteContext = {
   dataSource: DataSource;
   action: 'update' | 'create';
   record: RecordData;
+  patch?: unknown;
 };
 
-export type WriteHandlerDefinition = (
-  patch?: unknown,
-  context?: WriteHandlerContext,
-) => Promise<RecordData | void>;
+export type WriteDefinition = ValueOrHandler<WriteContext, RecordData | void>;

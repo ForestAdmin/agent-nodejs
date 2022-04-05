@@ -50,7 +50,7 @@ describe('ActionDecorator', () => {
 
   describe('with a bulk action with no form and void result', () => {
     beforeEach(() => {
-      newBooks.registerAction('make photocopy', {
+      newBooks.addAction('make photocopy', {
         scope: ActionScope.Single,
         execute: jest.fn(),
       });
@@ -96,7 +96,7 @@ describe('ActionDecorator', () => {
 
   describe('with a global action with a static form', () => {
     beforeEach(() => {
-      newBooks.registerAction('make photocopy', {
+      newBooks.addAction('make photocopy', {
         scope: ActionScope.Single,
         execute: (context, responseBuilder) => {
           return responseBuilder.error('meeh');
@@ -128,7 +128,7 @@ describe('ActionDecorator', () => {
 
   describe('with single action with both load and change hooks', () => {
     beforeEach(() => {
-      newBooks.registerAction('make photocopy', {
+      newBooks.addAction('make photocopy', {
         scope: ActionScope.Single,
         execute: (context, responseBuilder) => {
           return responseBuilder.error('meeh');
@@ -191,7 +191,7 @@ describe('ActionDecorator', () => {
 
   describe.each(Object.values(ActionScope))('with a %s action with a async dynamic form', scope => {
     beforeEach(() => {
-      newBooks.registerAction('make photocopy', {
+      newBooks.addAction('make photocopy', {
         scope,
         execute: () => {},
         form: [

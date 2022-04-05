@@ -1,8 +1,9 @@
 import { Action, ActionBulk, ActionGlobal, ActionSingle } from './types/actions';
 import { ActionField, ActionResult, ActionResultType } from '../../interfaces/action';
 import { ActionScope, CollectionSchema } from '../../interfaces/schema';
-import { DynamicField, ValueOrHandler } from './types/fields';
+import { DynamicField } from './types/fields';
 import { RecordData } from '../../interfaces/record';
+import { ValueOrHandler } from '../fields';
 import ActionContext from './context/base';
 import ActionContextBulk from './context/bulk';
 import ActionContextSingle from './context/single';
@@ -16,7 +17,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
   private actions: Record<string, Action> = {};
 
-  registerAction(name: string, action: Action): void {
+  addAction(name: string, action: Action): void {
     this.actions[name] = action;
     this.markSchemaAsDirty();
   }

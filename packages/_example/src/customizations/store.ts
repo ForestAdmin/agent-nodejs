@@ -3,27 +3,27 @@ import { FieldTypes } from '@forestadmin/datasource-toolkit';
 
 export default (collection: Collection) =>
   collection
-    .registerJointure('owner', {
+    .addRelation('owner', {
       type: FieldTypes.ManyToOne,
       foreignKey: 'ownerId',
       foreignKeyTarget: 'id',
       foreignCollection: 'owner',
     })
-    .registerJointure('address', {
+    .addRelation('address', {
       type: FieldTypes.OneToOne,
       foreignCollection: 'address',
       originKey: 'storeId',
       originKeyTarget: 'id',
     })
-    .registerJointure('dvd', {
+    .addRelation('dvd', {
       type: FieldTypes.OneToMany,
       foreignCollection: 'dvd',
       originKey: 'storeId',
       originKeyTarget: 'id',
     })
     .importField('ownerFullName', { path: 'owner:fullName' })
-    .implementWrite('ownerFullName', async (fullName: string, context) => {
-      if (context.action === 'update') {
+    .replaceFieldWriting('ownerFullName', ({ action, patch: fullName }) => {
+      if (action === 'update') {
         return { owner: { fullName } };
       }
     });

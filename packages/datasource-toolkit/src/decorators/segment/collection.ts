@@ -1,17 +1,16 @@
 import { CollectionSchema } from '../../interfaces/schema';
+import { SegmentDefinition } from './types';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import ConditionTreeValidator from '../../validation/condition-tree';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 
-type ConditionTreeGenerator = (timezone: string) => Promise<ConditionTree>;
-
 export default class SegmentCollectionDecorator extends CollectionDecorator {
-  private segments: { [name: string]: ConditionTreeGenerator } = {};
+  private segments: { [name: string]: SegmentDefinition } = {};
 
-  registerSegment(segmentName: string, getConditionTree: ConditionTreeGenerator): void {
-    this.segments[segmentName] = getConditionTree;
+  addSegment(segmentName: string, definition: SegmentDefinition): void {
+    this.segments[segmentName] = definition;
     this.markSchemaAsDirty();
   }
 
@@ -30,7 +29,19 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
     let { conditionTree, segment } = filter;
 
     if (segment && this.segments[segment]) {
-      const conditionTreeSegment = await this.segments[segment](filter.timezone);
+      const definition = this.segments[segment];
+
+      let conditionTreeSegment: ConditionTree;
+
+      if (typeof definition === 'function') {
+        conditionTreeSegment = await definition({
+          timezone: filter.timezone,
+          dataSource: this.dataSource,
+        });
+      } else {
+        conditionTreeSegment = definition;
+      }
+
       ConditionTreeValidator.validate(conditionTreeSegment, this);
 
       conditionTree = ConditionTreeFactory.intersect(conditionTree, conditionTreeSegment);

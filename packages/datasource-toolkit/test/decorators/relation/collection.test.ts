@@ -14,19 +14,19 @@ import ConditionTreeLeaf, {
 } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import Filter from '../../../src/interfaces/query/filter/unpaginated';
-import JointureCollectionDecorator from '../../../src/decorators/jointure/collection';
 import Projection from '../../../src/interfaces/query/projection';
+import RelationCollectionDecorator from '../../../src/decorators/relation/collection';
 
-describe('JointureCollectionDecorator', () => {
+describe('RelationCollectionDecorator', () => {
   // State
   let dataSource: DataSource;
-  let decoratedDataSource: DataSourceDecorator<JointureCollectionDecorator>;
+  let decoratedDataSource: DataSourceDecorator<RelationCollectionDecorator>;
 
   let pictures: Collection;
   let passports: Collection;
   let persons: Collection;
-  let newPassports: JointureCollectionDecorator;
-  let newPersons: JointureCollectionDecorator;
+  let newPassports: RelationCollectionDecorator;
+  let newPersons: RelationCollectionDecorator;
 
   beforeEach(() => {
     // Build passports
@@ -146,7 +146,7 @@ describe('JointureCollectionDecorator', () => {
 
   // Build decorator
   beforeEach(() => {
-    decoratedDataSource = new DataSourceDecorator(dataSource, JointureCollectionDecorator);
+    decoratedDataSource = new DataSourceDecorator(dataSource, RelationCollectionDecorator);
 
     newPassports = decoratedDataSource.getCollection('passports');
     newPersons = decoratedDataSource.getCollection('persons');
@@ -156,7 +156,7 @@ describe('JointureCollectionDecorator', () => {
     describe('missing dependencies', () => {
       test('should throw with a non existent fk', () => {
         expect(() =>
-          newPersons.addJointure('persons', {
+          newPersons.addRelation('persons', {
             type: FieldTypes.OneToOne,
             foreignCollection: 'passports',
             originKey: '__nonExisting__',
@@ -171,7 +171,7 @@ describe('JointureCollectionDecorator', () => {
         schema.filterOperators.clear();
 
         expect(() =>
-          newPersons.addJointure('passport', {
+          newPersons.addRelation('passport', {
             type: FieldTypes.OneToOne,
             foreignCollection: 'passports',
             originKey: 'ownerId',
@@ -181,9 +181,9 @@ describe('JointureCollectionDecorator', () => {
     });
 
     describe('when there is a given originKeyTarget that does not match the target type', () => {
-      test('should register the jointure', () => {
+      test('should register the relation', () => {
         expect(() =>
-          newPersons.addJointure('passport', {
+          newPersons.addRelation('passport', {
             type: FieldTypes.OneToOne,
             foreignCollection: 'passports',
             originKey: 'ownerId',
@@ -194,9 +194,9 @@ describe('JointureCollectionDecorator', () => {
     });
 
     describe('when there is a given originKeyTarget', () => {
-      test('should register the jointure', () => {
+      test('should register the relation', () => {
         expect(() =>
-          newPersons.addJointure('passport', {
+          newPersons.addRelation('passport', {
             type: FieldTypes.OneToOne,
             foreignCollection: 'passports',
             originKey: 'ownerId',
@@ -207,9 +207,9 @@ describe('JointureCollectionDecorator', () => {
     });
 
     describe('when there is not a given originKeyTarget', () => {
-      test('should register the jointure', () => {
+      test('should register the relation', () => {
         expect(() =>
-          newPersons.addJointure('passport', {
+          newPersons.addRelation('passport', {
             type: FieldTypes.OneToOne,
             foreignCollection: 'passports',
             originKey: 'ownerId',
@@ -223,7 +223,7 @@ describe('JointureCollectionDecorator', () => {
     describe('when there is a given originKeyTarget that does not match the target type', () => {
       test('should throw an error', () => {
         expect(() =>
-          newPersons.addJointure('passport', {
+          newPersons.addRelation('passport', {
             type: FieldTypes.OneToMany,
             foreignCollection: 'passports',
             originKey: 'ownerId',
@@ -234,9 +234,9 @@ describe('JointureCollectionDecorator', () => {
     });
 
     describe('when there is a given originKeyTarget', () => {
-      test('should register the jointure', () => {
+      test('should register the relation', () => {
         expect(() =>
-          newPersons.addJointure('passport', {
+          newPersons.addRelation('passport', {
             type: FieldTypes.OneToMany,
             foreignCollection: 'passports',
             originKey: 'ownerId',
@@ -247,9 +247,9 @@ describe('JointureCollectionDecorator', () => {
     });
 
     describe('when there is not a given originKeyTarget', () => {
-      test('should register the jointure', () => {
+      test('should register the relation', () => {
         expect(() =>
-          newPersons.addJointure('passport', {
+          newPersons.addRelation('passport', {
             type: FieldTypes.OneToMany,
             foreignCollection: 'passports',
             originKey: 'ownerId',
@@ -263,7 +263,7 @@ describe('JointureCollectionDecorator', () => {
     describe('missing dependencies', () => {
       test('should throw with a non existent collection', () => {
         expect(() =>
-          newPassports.addJointure('someName', {
+          newPassports.addRelation('someName', {
             type: FieldTypes.ManyToOne,
             foreignCollection: '__nonExisting__',
             foreignKey: 'ownerId',
@@ -273,7 +273,7 @@ describe('JointureCollectionDecorator', () => {
 
       test('should throw with a non existent fk', () => {
         expect(() =>
-          newPassports.addJointure('owner', {
+          newPassports.addRelation('owner', {
             type: FieldTypes.ManyToOne,
             foreignCollection: 'persons',
             foreignKey: '__nonExisting__',
@@ -288,7 +288,7 @@ describe('JointureCollectionDecorator', () => {
         schema.filterOperators.clear();
 
         expect(() =>
-          newPassports.addJointure('owner', {
+          newPassports.addRelation('owner', {
             type: FieldTypes.ManyToOne,
             foreignCollection: 'persons',
             foreignKey: 'ownerId',
@@ -298,9 +298,9 @@ describe('JointureCollectionDecorator', () => {
     });
 
     describe('when there is a given foreignKeyTarget', () => {
-      test('should register the jointure', () => {
+      test('should register the relation', () => {
         expect(() =>
-          newPassports.addJointure('owner', {
+          newPassports.addRelation('owner', {
             type: FieldTypes.ManyToOne,
             foreignCollection: 'persons',
             foreignKey: 'ownerId',
@@ -311,9 +311,9 @@ describe('JointureCollectionDecorator', () => {
     });
 
     describe('when there is not a given foreignKeyTarget', () => {
-      test('should register the jointure', () => {
+      test('should register the relation', () => {
         expect(() =>
-          newPassports.addJointure('owner', {
+          newPassports.addRelation('owner', {
             type: FieldTypes.ManyToOne,
             foreignCollection: 'persons',
             foreignKey: 'ownerId',
@@ -327,7 +327,7 @@ describe('JointureCollectionDecorator', () => {
     describe('missing dependencies', () => {
       test('should throw with a non existent though collection', () => {
         expect(() =>
-          newPersons.addJointure('persons', {
+          newPersons.addRelation('persons', {
             type: FieldTypes.ManyToMany,
             foreignCollection: 'passports',
             foreignKey: 'ownerId',
@@ -339,7 +339,7 @@ describe('JointureCollectionDecorator', () => {
 
       test('should throw with a non existent originKey', () => {
         expect(() =>
-          newPersons.addJointure('persons', {
+          newPersons.addRelation('persons', {
             type: FieldTypes.ManyToMany,
             foreignCollection: 'passports',
             foreignKey: 'ownerId',
@@ -351,7 +351,7 @@ describe('JointureCollectionDecorator', () => {
 
       test('should throw with a non existent fk', () => {
         expect(() =>
-          newPersons.addJointure('persons', {
+          newPersons.addRelation('persons', {
             type: FieldTypes.ManyToMany,
             foreignCollection: 'passports',
             foreignKey: '__nonExisting__',
@@ -363,9 +363,9 @@ describe('JointureCollectionDecorator', () => {
     });
 
     describe('when there is a given originKeyTarget that does not match the target type', () => {
-      test('should register the jointure', () => {
+      test('should register the relation', () => {
         expect(() =>
-          newPersons.addJointure('persons', {
+          newPersons.addRelation('persons', {
             type: FieldTypes.ManyToMany,
             foreignCollection: 'passports',
             foreignKey: 'ownerId',
@@ -379,9 +379,9 @@ describe('JointureCollectionDecorator', () => {
     });
 
     describe('when there are a given originKeyTarget and foreignKeyTarget', () => {
-      test('should register the jointure', () => {
+      test('should register the relation', () => {
         expect(() =>
-          newPersons.addJointure('persons', {
+          newPersons.addRelation('persons', {
             type: FieldTypes.ManyToMany,
             foreignCollection: 'passports',
             foreignKey: 'ownerId',
@@ -395,9 +395,9 @@ describe('JointureCollectionDecorator', () => {
     });
 
     describe('when there are not a given originKeyTarget and foreignKeyTarget', () => {
-      test('should register the jointure', () => {
+      test('should register the relation', () => {
         expect(() =>
-          newPersons.addJointure('persons', {
+          newPersons.addRelation('persons', {
             type: FieldTypes.ManyToMany,
             foreignCollection: 'passports',
             foreignKey: 'ownerId',
@@ -411,7 +411,7 @@ describe('JointureCollectionDecorator', () => {
 
   describe('emulated projection', () => {
     test('should fetch fields from a many to one relation', async () => {
-      newPassports.addJointure('owner', {
+      newPassports.addRelation('owner', {
         type: FieldTypes.ManyToOne,
         foreignCollection: 'persons',
         foreignKey: 'ownerId',
@@ -427,7 +427,7 @@ describe('JointureCollectionDecorator', () => {
     });
 
     test('should fetch fields from a one to one relation', async () => {
-      newPersons.addJointure('passport', {
+      newPersons.addRelation('passport', {
         type: FieldTypes.OneToOne,
         foreignCollection: 'passports',
         originKey: 'ownerId',
@@ -447,7 +447,7 @@ describe('JointureCollectionDecorator', () => {
     });
 
     test('should fetch fields from a one to many relation', async () => {
-      newPersons.addJointure('passport', {
+      newPersons.addRelation('passport', {
         type: FieldTypes.OneToMany,
         foreignCollection: 'passports',
         originKey: 'ownerId',
@@ -467,7 +467,7 @@ describe('JointureCollectionDecorator', () => {
     });
 
     test('should fetch fields from a many to many relation', async () => {
-      newPersons.addJointure('persons', {
+      newPersons.addRelation('persons', {
         type: FieldTypes.ManyToMany,
         foreignCollection: 'persons',
         foreignKey: 'ownerId',
@@ -490,12 +490,12 @@ describe('JointureCollectionDecorator', () => {
     });
 
     test('should fetch fields from a native behind an emulated one', async () => {
-      newPersons.addJointure('passport', {
+      newPersons.addRelation('passport', {
         type: FieldTypes.OneToOne,
         foreignCollection: 'passports',
         originKey: 'ownerId',
       });
-      newPassports.addJointure('owner', {
+      newPassports.addRelation('owner', {
         type: FieldTypes.ManyToOne,
         foreignCollection: 'persons',
         foreignKey: 'ownerId',
@@ -516,12 +516,12 @@ describe('JointureCollectionDecorator', () => {
     });
 
     test('should not break with deep reprojection', async () => {
-      newPersons.addJointure('passport', {
+      newPersons.addRelation('passport', {
         type: FieldTypes.OneToOne,
         foreignCollection: 'passports',
         originKey: 'ownerId',
       });
-      newPassports.addJointure('owner', {
+      newPassports.addRelation('owner', {
         type: FieldTypes.ManyToOne,
         foreignCollection: 'persons',
         foreignKey: 'ownerId',
@@ -549,13 +549,13 @@ describe('JointureCollectionDecorator', () => {
 
   describe('with two emulated relations', () => {
     beforeEach(() => {
-      newPersons.addJointure('passport', {
+      newPersons.addRelation('passport', {
         type: FieldTypes.OneToOne,
         foreignCollection: 'passports',
         originKey: 'ownerId',
       });
 
-      newPassports.addJointure('owner', {
+      newPassports.addRelation('owner', {
         type: FieldTypes.ManyToOne,
         foreignCollection: 'persons',
         foreignKey: 'ownerId',

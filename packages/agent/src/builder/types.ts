@@ -8,7 +8,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 export type FieldDefinition = {
-  beforeJointures?: boolean;
+  beforeRelations?: boolean;
   columnType: ColumnType;
   dependencies: string[];
   isRequired?: boolean;

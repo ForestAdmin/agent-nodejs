@@ -26,16 +26,17 @@ describe('WriteDecorator', () => {
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
         const handler = jest.fn().mockImplementation();
-        decoratedCollection.implement('name', handler);
+        decoratedCollection.replaceFieldWriting('name', handler);
 
         // when
         await decoratedCollection.update(new Filter({}), { name: 'a name' });
 
         // then
-        expect(handler).toHaveBeenCalledWith('a name', {
+        expect(handler).toHaveBeenCalledWith({
           dataSource,
           action: 'update',
           record: { name: 'a name' },
+          patch: 'a name',
         });
       });
     });
@@ -58,16 +59,17 @@ describe('WriteDecorator', () => {
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
         const handler = jest.fn().mockImplementation();
-        decoratedCollection.implement('name', handler);
+        decoratedCollection.replaceFieldWriting('name', handler);
 
         // when
         await decoratedCollection.create([{ name: 'a name' }]);
 
         // then
-        expect(handler).toHaveBeenCalledWith('a name', {
+        expect(handler).toHaveBeenCalledWith({
           dataSource,
           action: 'create',
           record: { name: 'a name' },
+          patch: 'a name',
         });
       });
     });
@@ -93,7 +95,7 @@ describe('WriteDecorator', () => {
       // when
       const handler = jest.fn().mockImplementation();
       const decoratedCollection = new WriteDecorator(collection, dataSource);
-      decoratedCollection.implement('name', handler);
+      decoratedCollection.replaceFieldWriting('name', handler);
 
       // then
       const name = decoratedCollection.schema.fields.name as ColumnSchema;
@@ -108,7 +110,7 @@ describe('WriteDecorator', () => {
     );
     const handler = jest.fn().mockImplementation();
 
-    expect(() => decoratedCollection.implement('NOT EXIST', handler)).toThrowError(
+    expect(() => decoratedCollection.replaceFieldWriting('NOT EXIST', handler)).toThrowError(
       'The given field "NOT EXIST" does not exist on the books collection.',
     );
   });
@@ -130,16 +132,17 @@ describe('WriteDecorator', () => {
 
       const decoratedCollection = new WriteDecorator(collection, dataSource);
       const handler = jest.fn().mockImplementation();
-      decoratedCollection.implement('name', handler);
+      decoratedCollection.replaceFieldWriting('name', handler);
 
       // when
       await decoratedCollection.update(factories.filter.build(), { name: 'orius' });
 
       // then
-      expect(handler).toHaveBeenCalledWith('orius', {
+      expect(handler).toHaveBeenCalledWith({
         dataSource,
         action: 'update',
         record: { name: 'orius' },
+        patch: 'orius',
       });
     });
 
@@ -158,7 +161,7 @@ describe('WriteDecorator', () => {
       const collection = dataSource.getCollection('books');
       const decoratedCollection = new WriteDecorator(collection, dataSource);
       const handler = jest.fn().mockImplementation();
-      decoratedCollection.implement('name', handler);
+      decoratedCollection.replaceFieldWriting('name', handler);
 
       // when
       await decoratedCollection.update(factories.filter.build(), {
@@ -190,23 +193,25 @@ describe('WriteDecorator', () => {
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
         const nameDefinition = jest.fn();
-        decoratedCollection.implement('name', nameDefinition);
+        decoratedCollection.replaceFieldWriting('name', nameDefinition);
         const ageDefinition = jest.fn();
-        decoratedCollection.implement('age', ageDefinition);
+        decoratedCollection.replaceFieldWriting('age', ageDefinition);
 
         // when
         await decoratedCollection.update(factories.filter.build(), { name: 'orius', age: '10' });
 
         // then
-        expect(nameDefinition).toHaveBeenCalledWith('orius', {
+        expect(nameDefinition).toHaveBeenCalledWith({
           dataSource,
           action: 'update',
           record: { name: 'orius', age: '10' },
+          patch: 'orius',
         });
-        expect(ageDefinition).toHaveBeenCalledWith('10', {
+        expect(ageDefinition).toHaveBeenCalledWith({
           dataSource,
           action: 'update',
           record: { name: 'orius', age: '10' },
+          patch: '10',
         });
       });
 
@@ -227,27 +232,27 @@ describe('WriteDecorator', () => {
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
 
-        const nameDefinition = jest.fn().mockImplementation((patch, context) => {
+        const nameDefinition = jest.fn().mockImplementation(context => {
           context.record.ADDED_FIELD = 'IS A COPY';
         });
-        decoratedCollection.implement('name', nameDefinition);
+        decoratedCollection.replaceFieldWriting('name', nameDefinition);
 
         const ageDefinition = jest.fn();
-        decoratedCollection.implement('age', ageDefinition);
+        decoratedCollection.replaceFieldWriting('age', ageDefinition);
 
         // when
         await decoratedCollection.update(factories.filter.build(), { name: 'orius', age: '10' });
 
         // then
         expect(nameDefinition).toHaveBeenCalledWith(
-          'orius',
           expect.objectContaining({
             record: { name: 'orius', age: '10', ADDED_FIELD: 'IS A COPY' },
+            patch: 'orius',
           }),
         );
         expect(ageDefinition).toHaveBeenCalledWith(
-          '10',
           expect.objectContaining({
+            patch: '10',
             record: { name: 'orius', age: '10' }, // ADDED_FIELD should not be hear
           }),
         );
@@ -269,9 +274,9 @@ describe('WriteDecorator', () => {
         const collection = dataSource.getCollection('books');
         const decoratedCollection = new WriteDecorator(collection, dataSource);
         const nameDefinition = jest.fn();
-        decoratedCollection.implement('name', nameDefinition);
+        decoratedCollection.replaceFieldWriting('name', nameDefinition);
         const ageDefinition = jest.fn();
-        decoratedCollection.implement('age', ageDefinition);
+        decoratedCollection.replaceFieldWriting('age', ageDefinition);
 
         // when
         await decoratedCollection.update(factories.filter.build(), {
@@ -378,7 +383,7 @@ describe('WriteDecorator', () => {
         const decoratedCollection = new WriteDecorator(collection, dataSource);
 
         const nameDefinition = jest.fn().mockResolvedValue({ name: 'changed name' });
-        decoratedCollection.implement('name', nameDefinition);
+        decoratedCollection.replaceFieldWriting('name', nameDefinition);
 
         // when
         await decoratedCollection.update(factories.filter.build(), {
@@ -410,7 +415,7 @@ describe('WriteDecorator', () => {
 
           const decoratedCollection = new WriteDecorator(collection, dataSource);
           const ageDefinition = jest.fn().mockResolvedValue('RETURN_SHOULD_FAIL');
-          decoratedCollection.implement('age', ageDefinition);
+          decoratedCollection.replaceFieldWriting('age', ageDefinition);
 
           // when/then
           await expect(() =>
@@ -439,7 +444,7 @@ describe('WriteDecorator', () => {
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const ageDefinition = jest.fn().mockResolvedValue({ book: { title: 'A title' } });
-            decoratedCollection.implement('age', ageDefinition);
+            decoratedCollection.replaceFieldWriting('age', ageDefinition);
 
             // when/then
             await expect(() =>
@@ -459,7 +464,7 @@ describe('WriteDecorator', () => {
             const titleDefinition = jest
               .fn()
               .mockResolvedValue({ myAuthor: { name: 'NAME TO CHANGE' } });
-            decoratedCollection.implement('title', titleDefinition);
+            decoratedCollection.replaceFieldWriting('title', titleDefinition);
 
             const personsCollection = dataSource.getCollection('persons');
             collection.list = jest
@@ -513,7 +518,7 @@ describe('WriteDecorator', () => {
             const titleDefinition = jest
               .fn()
               .mockResolvedValue({ myAuthor: { myPrice: { value: 10 } } });
-            decoratedCollection.implement('title', titleDefinition);
+            decoratedCollection.replaceFieldWriting('title', titleDefinition);
 
             decoratedCollection.list = jest
               .fn()
@@ -573,7 +578,7 @@ describe('WriteDecorator', () => {
             const titleDefinition = jest
               .fn()
               .mockResolvedValue({ myOwner: { name: 'NAME TO CHANGE' } });
-            decoratedCollection.implement('title', titleDefinition);
+            decoratedCollection.replaceFieldWriting('title', titleDefinition);
             collection.list = jest
               .fn()
               .mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-111111111111' }]);
@@ -630,9 +635,9 @@ describe('WriteDecorator', () => {
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const nameDefinition = jest.fn().mockResolvedValue({ name: 'changed name' });
-            decoratedCollection.implement('name', nameDefinition);
+            decoratedCollection.replaceFieldWriting('name', nameDefinition);
             const ageDefinition = jest.fn().mockResolvedValue({ age: 'changedAge' });
-            decoratedCollection.implement('age', ageDefinition);
+            decoratedCollection.replaceFieldWriting('age', ageDefinition);
 
             // when
             await decoratedCollection.update(factories.filter.build(), {
@@ -666,9 +671,9 @@ describe('WriteDecorator', () => {
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const nameDefinition = jest.fn().mockResolvedValue({ name: 'triggeredChangedName' });
-            decoratedCollection.implement('name', nameDefinition);
+            decoratedCollection.replaceFieldWriting('name', nameDefinition);
             const ageDefinitionTriggerName = jest.fn().mockResolvedValue({ name: 'changed name' });
-            decoratedCollection.implement('age', ageDefinitionTriggerName);
+            decoratedCollection.replaceFieldWriting('age', ageDefinitionTriggerName);
 
             // when
             await decoratedCollection.update(factories.filter.build(), { age: '10' });
@@ -697,11 +702,11 @@ describe('WriteDecorator', () => {
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const priceDefinition = jest.fn().mockResolvedValue({ price: 'triggeredChangedPrice' });
-            decoratedCollection.implement('price', priceDefinition);
+            decoratedCollection.replaceFieldWriting('price', priceDefinition);
             const nameDefinition = jest.fn().mockResolvedValue({ price: 'triggeredChangedName' });
-            decoratedCollection.implement('name', nameDefinition);
+            decoratedCollection.replaceFieldWriting('name', nameDefinition);
             const ageDefinitionTriggerName = jest.fn().mockResolvedValue({ name: 'changed name' });
-            decoratedCollection.implement('age', ageDefinitionTriggerName);
+            decoratedCollection.replaceFieldWriting('age', ageDefinitionTriggerName);
 
             // when
             await decoratedCollection.update(factories.filter.build(), { age: '10' });
@@ -729,9 +734,9 @@ describe('WriteDecorator', () => {
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const nameDefinition = jest.fn().mockResolvedValue({ name: 'triggeredSecondTime' });
-            decoratedCollection.implement('name', nameDefinition);
+            decoratedCollection.replaceFieldWriting('name', nameDefinition);
             const ageDefinitionTriggerName = jest.fn().mockResolvedValue({ name: 'changed name' });
-            decoratedCollection.implement('age', ageDefinitionTriggerName);
+            decoratedCollection.replaceFieldWriting('age', ageDefinitionTriggerName);
 
             // when/then
             await expect(() =>
@@ -763,9 +768,9 @@ describe('WriteDecorator', () => {
 
             const decoratedCollection = new WriteDecorator(collection, dataSource);
             const nameDefinition = jest.fn().mockResolvedValue({ age: 'cyclic dependency' });
-            decoratedCollection.implement('name', nameDefinition);
+            decoratedCollection.replaceFieldWriting('name', nameDefinition);
             const ageDefinitionTriggerName = jest.fn().mockResolvedValue({ name: 'changed name' });
-            decoratedCollection.implement('age', ageDefinitionTriggerName);
+            decoratedCollection.replaceFieldWriting('age', ageDefinitionTriggerName);
 
             // when/then
             await expect(() =>
@@ -797,8 +802,7 @@ describe('WriteDecorator', () => {
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
 
-        const nameDefinition = jest.fn().mockResolvedValue({ name: 'changed name' });
-        decoratedCollection.implement('name', nameDefinition);
+        decoratedCollection.replaceFieldWriting('name', { name: 'changed name' });
         collection.create = jest.fn().mockResolvedValue([
           {
             name: 'changed name',
@@ -838,7 +842,7 @@ describe('WriteDecorator', () => {
             const titleDefinition = jest
               .fn()
               .mockResolvedValue({ myOwner: { name: 'NAME TO CHANGE' }, title: 'name' });
-            decoratedCollection.implement('title', titleDefinition);
+            decoratedCollection.replaceFieldWriting('title', titleDefinition);
             collection.create = jest
               .fn()
               .mockResolvedValue([
@@ -912,7 +916,7 @@ describe('WriteDecorator', () => {
                 myFormat: { name: 'XXL' },
                 title: 'name',
               });
-              decoratedCollection.implement('title', titleDefinition);
+              decoratedCollection.replaceFieldWriting('title', titleDefinition);
               collection.create = jest
                 .fn()
                 .mockResolvedValue([
@@ -945,7 +949,7 @@ describe('WriteDecorator', () => {
             const titleDefinition = jest
               .fn()
               .mockResolvedValue({ myOwner: { name: 'NAME TO CHANGE' }, title: 'name' });
-            decoratedCollection.implement('title', titleDefinition);
+            decoratedCollection.replaceFieldWriting('title', titleDefinition);
             collection.create = jest.fn().mockResolvedValue([{ title: 'name' }]);
 
             // when
@@ -979,7 +983,7 @@ describe('WriteDecorator', () => {
             const titleDefinition = jest
               .fn()
               .mockResolvedValue({ myAuthor: { name: 'NAME TO CHANGE' } });
-            decoratedCollection.implement('title', titleDefinition);
+            decoratedCollection.replaceFieldWriting('title', titleDefinition);
 
             const personsCollection = dataSource.getCollection('persons');
             personsCollection.create = jest
@@ -1062,7 +1066,7 @@ describe('WriteDecorator', () => {
                 myFormat: { name: 'XXL' },
                 title: 'name',
               });
-              decoratedCollection.implement('title', titleDefinition);
+              decoratedCollection.replaceFieldWriting('title', titleDefinition);
 
               authorsCollection.create = jest
                 .fn()
@@ -1099,7 +1103,7 @@ describe('WriteDecorator', () => {
             const titleDefinition = jest
               .fn()
               .mockResolvedValue({ myAuthor: { name: 'NAME TO CHANGE' } });
-            decoratedCollection.implement('title', titleDefinition);
+            decoratedCollection.replaceFieldWriting('title', titleDefinition);
 
             const personsCollection = dataSource.getCollection('persons');
             personsCollection.create = jest
@@ -1191,7 +1195,7 @@ describe('WriteDecorator', () => {
             myFormat: { name: 'XXL' },
             title: 'a name',
           });
-          decoratedCollection.implement('title', titleDefinition);
+          decoratedCollection.replaceFieldWriting('title', titleDefinition);
 
           collection.create = jest
             .fn()

@@ -5,10 +5,10 @@ import {
   ComputedCollectionDecorator,
   DataSource,
   DataSourceDecorator,
-  JointureCollectionDecorator,
   OperatorsEmulateCollectionDecorator,
   OperatorsReplaceCollectionDecorator,
   PublicationCollectionDecorator,
+  RelationCollectionDecorator,
   RenameCollectionDecorator,
   SearchCollectionDecorator,
   SegmentCollectionDecorator,
@@ -24,13 +24,11 @@ import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-d
  * Allow to create a new Forest Admin agent from scratch.
  * Builds the application by composing and configuring all the collection decorators.
  *
- * @example
  * Minimal code to add a datasource
- * ```
+ * @example
  * new AgentBuilder(options)
  *  .addDatasource(new SomeDatasource())
  *  .start();
- * ```
  */
 export default class AgentBuilder {
   // App
@@ -44,7 +42,7 @@ export default class AgentBuilder {
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   earlyOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
-  jointure: DataSourceDecorator<JointureCollectionDecorator>;
+  relation: DataSourceDecorator<RelationCollectionDecorator>;
   lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   lateOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
@@ -58,11 +56,9 @@ export default class AgentBuilder {
   /**
    * Native nodejs HttpCallback object
    * @example
-   * ```
    * import http from 'http';
    * ...
    * const server = http.createServer(agent.httpCallback);
-   * ```
    */
   get httpCallback(): HttpCallback {
     return this.forestAdminHttpDriver.handler;
@@ -81,11 +77,9 @@ export default class AgentBuilder {
    * ```
    * @param {AgentOptions} options options
    * @example
-   * ```
    * new AgentBuilder(options)
    *  .addDatasource(new Datasource())
    *  .start();
-   * ```
    */
   constructor(options: AgentOptions) {
     let last: DataSource;
@@ -93,13 +87,13 @@ export default class AgentBuilder {
     /* eslint-disable no-multi-assign */
     last = this.compositeDatasource = new BaseDataSource<Collection>();
 
-    // Step 1: Computed-Jointure-Computed sandwich (needed because some emulated jointures depend
-    // on computed fields, and some computed fields depend on jointure...)
+    // Step 1: Computed-Relation-Computed sandwich (needed because some emulated relations depend
+    // on computed fields, and some computed fields depend on relation...)
     // Note that replacement goes before emulation, as replacements may use emulated operators.
     last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.earlyOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
-    last = this.jointure = new DataSourceDecorator(last, JointureCollectionDecorator);
+    last = this.relation = new DataSourceDecorator(last, RelationCollectionDecorator);
     last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
@@ -141,9 +135,7 @@ export default class AgentBuilder {
    * @param {(collection: CollectionBuilder) => unknown} handle a function that provide a
    *   collection builder on the given collection name
    * @example
-   * ```
    * .customizeCollection('books', books => books.renameField('xx', 'yy'))
-   * ```
    */
   customizeCollection(name: string, handle: (collection: CollectionBuilder) => unknown): this {
     if (this.publication.getCollection(name)) {
