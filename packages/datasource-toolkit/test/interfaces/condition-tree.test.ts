@@ -316,7 +316,7 @@ describe('ConditionTree', () => {
     test('inverse() should crash with unsupported operator', () => {
       const today = new ConditionTreeLeaf('column1', Operator.Today);
 
-      expect(() => today.inverse()).toThrow("Operator 'today' has not inverse.");
+      expect(() => today.inverse()).toThrow("Operator 'today' cannot be inverted.");
     });
 
     test('match() should work', () => {

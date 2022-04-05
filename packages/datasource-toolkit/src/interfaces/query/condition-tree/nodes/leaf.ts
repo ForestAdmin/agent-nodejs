@@ -121,7 +121,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case Operator.Present:
         return this.override({ operator: Operator.Blank });
       default:
-        throw new Error(`Operator '${this.operator}' has not inverse.`);
+        throw new Error(`Operator '${this.operator}' cannot be inverted.`);
     }
   }
 
