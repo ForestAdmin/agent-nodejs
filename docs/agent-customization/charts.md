@@ -48,8 +48,6 @@ As Forest Admin does not impose any restriction on the handler, you are free to 
 ![Value chart example](../assets/chart-value.png)
 
 ```javascript
-const agent = new Agent(options);
-
 agent.registerChart('frenchBooks', async (context, responseBuilder) => {
   // Count books which have a french author.
   const rows = await context.dataSource
@@ -70,8 +68,6 @@ agent.registerChart('frenchBooks', async (context, responseBuilder) => {
 Objective charts are very similar to value charts, the only difference being that two numbers should be provided to the `responseBuilder`
 
 ```javascript
-const agent = new Agent(options);
-
 agent.registerChart('frenchBooksObjective', async (context, responseBuilder) => {
   // [...]
 
@@ -90,8 +86,6 @@ Repartition charts should return a plain object in the form
 ```
 
 ```javascript
-const agent = new Agent(options);
-
 agent.registerChart('booksByAuthorCountry', async (context, responseBuilder) => {
   // Count books by their author's country
   const rows = await context.dataSource
@@ -123,8 +117,6 @@ Time-based charts are very similar to repartition charts, the only difference be
 ```
 
 ```javascript
-const agent = new Agent(options);
-
 agent.registerChart('numBooksByReleaseMonth', async (context, responseBuilder) => {
   // Count books by release month
   const rows = await context.dataSource

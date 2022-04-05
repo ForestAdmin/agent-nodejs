@@ -9,8 +9,6 @@ In this first example, we want to display the customer's city in the table-view.
 However, as there is no "city" column on the "customer" database table, we need to retrieve it from the "address" relation.
 
 ```javascript
-const agent = new Agent(options);
-
 agent.customizeCollection('customers', collection =>
   collection.importField('city', { path: 'address:city', readonly: true }),
 );
@@ -21,8 +19,6 @@ Adding our city column into the table does bring functionality, but it created c
 Let's reduce the number of columns in the table-view by merging three columns into one and hiding the extra columns in the admin panel
 
 ```javascript
-const agent = new Agent(options);
-
 agent.customizeCollection('customers', collection =>
   collection.registerField('displayName', {
     type: 'String',
@@ -44,8 +40,6 @@ agent.customizeCollection('customers', collection =>
 A convenient next step would be to display the total spending of customers of our e-commerce website while browsing through them.
 
 ```javascript
-const agent = new Agent(options);
-
 agent.customizeCollection('customers', collection =>
   collection.registerField('totalSpending', {
     type: 'Number',
