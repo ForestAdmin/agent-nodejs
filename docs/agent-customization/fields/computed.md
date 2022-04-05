@@ -15,7 +15,7 @@ Adding our city column into the table does bring functionality, but it created c
 Let's reduce the number of columns in the table-view by merging three columns into one and hiding the extra columns in the admin panel
 
 ```javascript
-collection.registerField('displayName', {
+collection.addField('displayName', {
   type: 'String',
   dependencies: ['firstName', 'lastName', 'address:city'],
   getValues: (records, context) =>
@@ -26,7 +26,7 @@ collection.registerField('displayName', {
 A convenient next step would be to display the total spending of customers of our e-commerce website while browsing through them.
 
 ```javascript
-collection.registerField('totalSpending', {
+collection.addField('totalSpending', {
   type: 'Number',
   dependencies: ['id'],
   getValues: (records, context) => {

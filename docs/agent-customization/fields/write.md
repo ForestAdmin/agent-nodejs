@@ -5,13 +5,13 @@ Disabling writes can be made without any code [in the field settings](https://do
 {% endhint %}
 
 ```javascript
-collection.replaceWriting('fullName', null);
+collection.replaceFieldWriting('fullName', null);
 ```
 
 ### Substitution
 
 ```javascript
-collection.replaceWriting('fullName', (value, context) => {
+collection.replaceFieldWriting('fullName', (value, context) => {
   // ... FIXME
 });
 ```

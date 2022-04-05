@@ -22,8 +22,8 @@ collection
   })
 
   // Make it filterable and sortable
-  .emulateFiltering('fullName')
-  .emulateSorting('fullName')
+  .emulateFieldFiltering('fullName')
+  .emulateFieldSorting('fullName')
 
   // Remove previous fields
   .removeField('firstName', 'lastName');
