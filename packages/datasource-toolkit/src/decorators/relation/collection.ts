@@ -28,6 +28,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     this.checkOriginKeys(relation);
 
     this.relations[name] = relation;
+    this.markSchemaAsDirty();
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
