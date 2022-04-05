@@ -1,34 +1,65 @@
-When customizing your admin panel, instead of changing the exposed structure of your data, you may want to change the behavior of user actions.
+When customizing your admin panel, instead of changing the exposed structure of your data, you may want to override default behaviors in Forest Admin.
 
 ## Write operations
 
 ### Disabling writes
 
-```javascript
+{% hint style="info" %}
+Fields can also be made readonly without any code [in the field settings](https://docs.forestadmin.com/user-guide/collections/customize-your-fields#basic-settings).
+{% endhint %}
 
+```javascript
+collection.replaceWriting('fullName', null);
 ```
 
 ### Substitution
 
 ```javascript
-
+collection.replaceWriting('fullName', (value, context) => {
+  // ...
+});
 ```
 
 ## Filtering
 
+### Disabling Filtering
+
+{% hint style="info" %}
+Filtering can also be disabled without any code [in the field settings](https://docs.forestadmin.com/user-guide/collections/customize-your-fields#basic-settings).
+{% endhint %}
+
 ```javascript
-.replaceFieldOperator('fullName', {
-  Equal: value => {
-    const [firstName, ...lastNames] = value.split(' ');
-    return {
-      aggregation: 'and',
-      conditions: [
-        { field: 'firstName', operator: 'equal', value: firstName },
-        { field: 'lastName', operator: 'equal', value: lastName },
-      ],
-    };
-  },
+collection.replaceFieldOperator('fullName', 'Equal', null);
+```
+
+### Substitution
+
+```javascript
+collection.replaceFieldOperator('fullName', 'Equal', (value, context) => {
+  const [firstName, ...lastNames] = value.split(' ');
+
+  return {
+    aggregation: 'and',
+    conditions: [
+      { field: 'firstName', operator: 'equal', value: firstName },
+      { field: 'lastName', operator: 'equal', value: lastName },
+    ],
+  };
 });
+```
+
+### Emulation
+
+{% hint style="warning" %}
+Filtering emulation performance cost is **linear** with the number of records in the collection. It is a convenient way to get things working quick for collections which have a low number of records (in the thousands at most).
+
+When used, Forest Admin will fetch the relevants columns of the whole collection, and perform the filtering inside of the NodeJS process.
+{% endhint %}
+
+Filtering emulation allows to make any field automatically filterable.
+
+```javascript
+collection.replaceFieldOperator('fullName', 'Equal', 'emulate');
 ```
 
 ## Sorting
@@ -61,7 +92,7 @@ collection.replaceFieldSorting('fullName', [
 {% hint style="warning" %}
 Sorting emulation performance cost is **linear** with the number of records in the collection. It is a convenient way to get things working quick for collections which have a low number of records (in the thousands at most).
 
-When used, Forest Admin will fetch the primary key and target column for the whole collection at each request, and perform the sorting inside of the NodeJS process.
+When used, Forest Admin will fetch the relevants columns of the whole collection, and perform the sorting inside of the NodeJS process.
 {% endhint %}
 
 Sort emulation allows to make any field automatically sortable. It will sort records by lexicographical order.
