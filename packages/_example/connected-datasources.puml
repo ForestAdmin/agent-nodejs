@@ -1,0 +1,40 @@
+@startuml
+!pragma layout smetana
+!theme cyborg-outline
+
+title: Datasources connected with ForestAdmin
+
+class STORE {
+  String name
+  String ownerFullName
+}
+
+class OWNER {
+  String firstName
+  String lastName
+  String fullName
+}
+
+class ADDRESS {
+  String zipCode
+  String address
+}
+
+class DVD {
+  String title
+  Int rentalPriceInDollar
+}
+class DVD
+note bottom: ACTION => Increase the rental price
+
+class RENTALS {
+  Int numberOfDays
+}
+class RENTALS
+note bottom: SEQUENCE => More than 50 days
+
+STORE "*" -- "1" OWNER : has
+STORE "1" -- "*" DVD : has
+DVD "*" -- "*" RENTALS : has
+STORE "1" -- "1" ADDRESS : has
+@enduml

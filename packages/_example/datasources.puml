@@ -1,0 +1,43 @@
+@startuml
+!pragma layout smetana
+!theme cyborg-outline
+
+title: Datasources not connected
+
+class STORE {
+  String name
+}
+class STORE
+note left: TABLE IN MYSQL
+
+class OWNER {
+  String firstName
+  String lastName
+}
+class OWNER
+note bottom: TABLE IN POSTGRES
+
+class ADDRESS {
+  String zipCode
+  String address
+}
+class ADDRESS
+note bottom: TABLE IN LIVE (memory)
+
+class DVD {
+  String title
+  Int rentalPrice
+}
+class DVD
+note bottom: TABLE IN MSSQL
+
+class RENTALS {
+  Date startDate
+  Date endDate
+}
+class RENTALS
+note bottom: TABLE IN MSSQL
+
+DVD "*" -- "*" RENTALS : has
+
+@enduml
