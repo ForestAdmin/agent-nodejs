@@ -36,7 +36,6 @@
   - [Forms](agent-customization/actions/forms.md)
 - [Charts](agent-customization/charts.md)
 - [Fields](agent-customization/fields.md)
-- [Hooks](agent-customization/hooks.md)
 - [Relationships](agent-customization/relationships.md)
 - [Segments](agent-customization/segments.md)
 
@@ -72,11 +71,6 @@
   - [push](deployment/forest-cli-commands/push.md)
   - [environments:reset](deployment/forest-cli-commands/environments-reset.md)
   - [deploy](deployment/forest-cli-commands/deploy.md)
-
-## Maintenance
-
-- [Logging](maintenance/logging.md)
-- [Performance](maintenance/performance.md)
 
 ## Under the hood
 
