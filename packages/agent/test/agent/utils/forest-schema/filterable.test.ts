@@ -5,12 +5,12 @@ describe('FrontendFilterableUtils', () => {
   describe('Normal types need to have defined minimum operators', () => {
     test('With undefined operators', () => {
       const isFilterable = FilterableUtils.isFilterable(PrimitiveTypes.String);
-      expect(isFilterable).toBeFalsy();
+      expect(isFilterable).toBe(false);
     });
 
     test('With no operators', () => {
       const isFilterable = FilterableUtils.isFilterable(PrimitiveTypes.String, new Set());
-      expect(isFilterable).toBeFalsy();
+      expect(isFilterable).toBe(false);
     });
 
     test('With only the relevant operators', () => {
@@ -29,7 +29,7 @@ describe('FrontendFilterableUtils', () => {
         ]),
       );
 
-      expect(isFilterable).toBeTruthy();
+      expect(isFilterable).toBe(true);
     });
 
     test('With all operators', () => {
@@ -45,7 +45,7 @@ describe('FrontendFilterableUtils', () => {
   describe('Arrays need the IncludesAll operator', () => {
     test('With no operators', () => {
       const isFilterable = FilterableUtils.isFilterable([PrimitiveTypes.String], new Set());
-      expect(isFilterable).toBeFalsy();
+      expect(isFilterable).toBe(false);
     });
 
     test('With Operator.IncludeAll', () => {
@@ -61,7 +61,7 @@ describe('FrontendFilterableUtils', () => {
   describe('Point is never filterable', () => {
     test('With no operators', () => {
       const isFilterable = FilterableUtils.isFilterable(PrimitiveTypes.Point, new Set());
-      expect(isFilterable).toBeFalsy();
+      expect(isFilterable).toBe(false);
     });
 
     test('With all operators', () => {
@@ -70,7 +70,7 @@ describe('FrontendFilterableUtils', () => {
         new Set(Object.values(Operator)),
       );
 
-      expect(isFilterable).toBeFalsy();
+      expect(isFilterable).toBe(false);
     });
   });
 
@@ -81,7 +81,7 @@ describe('FrontendFilterableUtils', () => {
         new Set(),
       );
 
-      expect(isFilterable).toBeFalsy();
+      expect(isFilterable).toBe(false);
     });
 
     test('With all operators', () => {
@@ -90,7 +90,7 @@ describe('FrontendFilterableUtils', () => {
         new Set(Object.values(Operator)),
       );
 
-      expect(isFilterable).toBeFalsy();
+      expect(isFilterable).toBe(false);
     });
   });
 });
