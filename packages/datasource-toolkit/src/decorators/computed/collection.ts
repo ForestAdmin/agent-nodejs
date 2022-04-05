@@ -34,6 +34,7 @@ export default class ComputedCollection extends CollectionDecorator {
     }
 
     this.computeds[name] = computed;
+    this.markSchemaAsDirty();
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {

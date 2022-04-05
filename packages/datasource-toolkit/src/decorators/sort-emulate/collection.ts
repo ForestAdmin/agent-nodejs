@@ -31,6 +31,7 @@ export default class SortEmulate extends CollectionDecorator {
     if (!field) throw new Error('Cannot replace sort on relation');
 
     this.sorts.set(name, equivalentSort);
+    this.markSchemaAsDirty();
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {

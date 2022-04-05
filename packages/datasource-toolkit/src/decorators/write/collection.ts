@@ -29,6 +29,7 @@ export default class WriteDecorator extends CollectionDecorator {
     }
 
     this.implemented[fieldName] = definition;
+    this.markSchemaAsDirty();
   }
 
   protected refineSchema(childSchema: CollectionSchema): CollectionSchema {

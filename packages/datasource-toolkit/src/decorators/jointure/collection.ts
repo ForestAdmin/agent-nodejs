@@ -28,6 +28,7 @@ export default class JointureCollectionDecorator extends CollectionDecorator {
     this.checkOriginKeys(joint);
 
     this.jointures[name] = joint;
+    this.markSchemaAsDirty();
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {

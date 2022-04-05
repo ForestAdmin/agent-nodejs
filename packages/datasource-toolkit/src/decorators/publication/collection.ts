@@ -21,6 +21,7 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
 
     if (!visible) this.unpublished.add(name);
     else this.unpublished.delete(name);
+    this.markSchemaAsDirty();
   }
 
   protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
