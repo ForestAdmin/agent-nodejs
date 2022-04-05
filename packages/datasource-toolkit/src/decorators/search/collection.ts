@@ -15,10 +15,6 @@ import TypeGetter from '../../validation/type-getter';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    if (subSchema.searchable) return subSchema;
-
-    this.markSchemaAsDirty();
-
     return { ...subSchema, searchable: true };
   }
 
