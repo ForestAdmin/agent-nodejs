@@ -67,7 +67,7 @@ export default class FrontendFilterableUtils {
     const neededOperators = FrontendFilterableUtils.getRequiredOperators(type);
     const supportedOperators = operators ?? new Set();
 
-    return neededOperators && neededOperators.every(op => supportedOperators.has(op));
+    return Boolean(neededOperators && neededOperators.every(op => supportedOperators.has(op)));
   }
 
   static getRequiredOperators(type: ColumnType): Operator[] | null {
