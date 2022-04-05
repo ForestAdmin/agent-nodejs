@@ -52,8 +52,6 @@ collection.replaceFieldOperator('fullName', 'Equal', (value, context) => {
 
 {% hint style="warning" %}
 Filtering emulation performance cost is **linear** with the number of records in the collection. It is a convenient way to get things working quick for collections which have a low number of records (in the thousands at most).
-
-When used, Forest Admin will fetch the relevants columns of the whole collection, and perform the filtering inside of the NodeJS process.
 {% endhint %}
 
 Filtering emulation allows to make any field automatically filterable.
@@ -91,8 +89,6 @@ collection.replaceFieldSorting('fullName', [
 
 {% hint style="warning" %}
 Sorting emulation performance cost is **linear** with the number of records in the collection. It is a convenient way to get things working quick for collections which have a low number of records (in the thousands at most).
-
-When used, Forest Admin will fetch the relevants columns of the whole collection, and perform the sorting inside of the NodeJS process.
 {% endhint %}
 
 Sort emulation allows to make any field automatically sortable. It will sort records by lexicographical order.
