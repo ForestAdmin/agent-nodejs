@@ -27,7 +27,6 @@ export { default as ConditionTree } from './interfaces/query/condition-tree/node
 export { default as ConditionTreeBranch } from './interfaces/query/condition-tree/nodes/branch';
 export { default as ConditionTreeFactory } from './interfaces/query/condition-tree/factory';
 export { default as ConditionTreeLeaf } from './interfaces/query/condition-tree/nodes/leaf';
-export { default as ConditionTreeNot } from './interfaces/query/condition-tree/nodes/not';
 export { default as Filter } from './interfaces/query/filter/unpaginated';
 export { default as FilterFactory } from './interfaces/query/filter/factory';
 export { default as Page } from './interfaces/query/page';
