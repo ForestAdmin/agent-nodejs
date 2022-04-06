@@ -1,14 +1,10 @@
 Forest Admin is an admin-panel, not a WYSIWYG on top of your database.
 
-As such, to make it user-friendly, it is likely that you will need to bridge the gap between the choices that were made when designing the database powering your app and those which need to be made to design your admin panel.
+When designing databases and APIs, the way to go is usually to push for _normalization_. This means ensuring there is no redundancy of data (all data is stored in only one place), and that data dependencies are logical.
 
-In order to do that customization which target fields can be achieved with the customization API.
+On the other hand graphical user interfaces usually need duplication and shortcuts to be user-friendly.
 
-## Admin-panel and Database, how to fill the gap?
-
-When designing databases and APIs, the way to go is usually to push for _normalization_.
-
-This means ensuring there is no redundancy of data (all data is stored in only one place), and that data dependencies are logical.
+In order to bridge that gap, Forest Admin allows to add, move, remove and override behavior from fields on all collections.
 
 # Minimal example
 
