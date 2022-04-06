@@ -63,7 +63,7 @@ export default class extends Component {
 
 {% code title="template.hbs" %}
 
-```html
+```Handlebars
 <style>
   /* Wrapper styles */
    .wrapper-view {

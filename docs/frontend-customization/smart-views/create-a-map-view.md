@@ -166,7 +166,7 @@ export default class extends Component {
 
 {% code title="template.hbs" %}
 
-```html
+```Handlebars
 <style>
   .c-map {
     width: 100%;
@@ -175,7 +175,7 @@ export default class extends Component {
   }
 </style>
 
-<div id="{{this.mapId}}" class="c-map" {{did-insert this.displayMap}}></div>
+<div id={{this.mapId}} class="c-map" {{did-insert this.displayMap}}></div>
 ```
 
 {% endcode %}

@@ -4,7 +4,7 @@ This is another example to help you build a Cohort Chart.
 
 {% code title="Template tab" %}
 
-```html
+```Handlebars
 <div class="c-smart-chart">
   <div id="demo"></div>
 </div>

@@ -131,7 +131,7 @@ export default class extends Component {
 }
 ```
 
-```html
+```markup
 <style>
   .calendar {
     padding: 20px;
@@ -172,5 +172,5 @@ export default class extends Component {
   }
 </style>
 
-<div id="{{this.calendarId}}" class="calendar" {{did-insert this.onInsert}}></div>
+<div id={{this.calendarId}} class="calendar" {{did-insert this.onInsert}}></div>
 ```

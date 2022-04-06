@@ -4,7 +4,7 @@ Our first Smart Chart example will be a simple table: however you may choose to 
 
 {% code title="" %}
 
-```html
+```Handlebars
 <BetaTable
   @columns={{array 'Username' 'Points'}}
   @rows={{this.users}}

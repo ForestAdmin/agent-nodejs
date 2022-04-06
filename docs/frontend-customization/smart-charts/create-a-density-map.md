@@ -4,7 +4,7 @@ This last example shows how you can achieve virtually anything, since you are ba
 
 {% code title="Template tab" %}
 
-```html
+```Handlebars
 <div class="c-smart-view">{{this.chart}}</div>
 ```
 

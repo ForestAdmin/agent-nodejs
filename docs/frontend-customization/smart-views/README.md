@@ -64,7 +64,7 @@ Accessing a `hasMany` relationship works in exactly the same way as accessing a 
 
 Trigger the `fetchRecords` action in order to refresh the records on the page.
 
-```html
+```Handlebars
 <button {{on 'click' @fetchRecords}}>
   Refresh data
 </button>
@@ -143,15 +143,13 @@ The `deleteRecords` action lets you delete one or multiple records. A pop-up wil
 
 {% code title="template.hbs" %}
 
-```html
+```Handlebars
 {{#each @records as |record|}}
 <Button::BetaButton
   @type="danger"
   @text="Delete record"
-  @action="{{fn"
-  this.deleteRecords
-  record}}
-  @async="{{false}}"
+  @action={{fn this.deleteRecords record}}
+  @async={{false}}
 />
 {{/each}}
 ```
@@ -169,9 +167,12 @@ Here’s how to trigger your [Smart Actions](../actions/create-and-manage-smart-
 {% tabs %}
 {% tab title="template.hbs" %}
 
-```html
-<Button::BetaButton @type="primary" @text="Reschedule appointment" @action={{fn
-this.triggerSmartAction @collection 'Reschedule' record}} />
+```Handlebars
+<Button::BetaButton
+  @type="primary"
+  @text="Reschedule appointment"
+  @action={{fn this.triggerSmartAction @collection 'Reschedule' record}}
+/>
 ```
 
 {% endtab %}
@@ -221,13 +222,11 @@ Here is an example of how to trigger the smart action with the values passed fro
 {% tabs %}
 {% tab title="template.hbs" %}
 
-```html
+```Handlebars
 <Button::BetaButton
   @type="primary"
   @text="Reschedule appointment"
-  @action="{{fn"
-  this.rescheduleToNewTime
-  record}}
+  @action={{fn this.rescheduleToNewTime record}}
 />
 ```
 
