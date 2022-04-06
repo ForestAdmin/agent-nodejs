@@ -1,5 +1,6 @@
+import { Dialect } from 'sequelize/types';
+
 import { DateOperation } from '@forestadmin/datasource-toolkit';
-import { Dialect } from 'sequelize/dist';
 
 import DateAggregationConverter from '../../src/utils/date-aggregation-converter';
 

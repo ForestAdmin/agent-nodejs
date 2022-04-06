@@ -7,7 +7,7 @@ import {
   ProjectionAlias,
   col,
 } from 'sequelize';
-import { Fn } from 'sequelize/dist/lib/utils';
+import { Fn } from 'sequelize/types/utils';
 
 import {
   AggregateResult,
