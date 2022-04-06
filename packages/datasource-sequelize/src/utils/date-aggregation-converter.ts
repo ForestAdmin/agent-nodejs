@@ -1,8 +1,7 @@
+import { Col, Fn } from 'sequelize/types/utils';
 import { Dialect, col, fn, literal } from 'sequelize';
 
 import { DateOperation } from '@forestadmin/datasource-toolkit';
-
-import { Col, Fn } from 'sequelize/dist/lib/utils';
 
 export default class DateAggregationConverter {
   private static convertPostgres(field: string, operation: DateOperation): Fn {

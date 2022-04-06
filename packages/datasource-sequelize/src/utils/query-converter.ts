@@ -1,13 +1,4 @@
 import {
-  Aggregator,
-  ConditionTree,
-  ConditionTreeBranch,
-  ConditionTreeLeaf,
-  Operator,
-  Projection,
-  Sort,
-} from '@forestadmin/datasource-toolkit';
-import {
   IncludeOptions,
   ModelDefined,
   Op,
@@ -19,7 +10,17 @@ import {
   fn,
   where,
 } from 'sequelize';
-import { Where } from 'sequelize/dist/lib/utils';
+import { Where } from 'sequelize/types/utils';
+
+import {
+  Aggregator,
+  ConditionTree,
+  ConditionTreeBranch,
+  ConditionTreeLeaf,
+  Operator,
+  Projection,
+  Sort,
+} from '@forestadmin/datasource-toolkit';
 
 export default class QueryConverter {
   private static asArray(value: unknown) {
