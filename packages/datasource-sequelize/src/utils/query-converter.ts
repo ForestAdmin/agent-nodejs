@@ -77,7 +77,7 @@ export default class QueryConverter {
     model: ModelDefined<any, any>,
     conditionTree?: ConditionTree,
   ): WhereOptions {
-    if (!conditionTree) return null;
+    if (!conditionTree) return {};
 
     const sequelizeWhereClause = {};
 
