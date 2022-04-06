@@ -91,8 +91,8 @@ export default class QueryConverter {
 
       const sequelizeOperator = aggregator === Aggregator.And ? Op.and : Op.or;
 
-      if (!Array.isArray(conditions) || conditions.length < 2) {
-        throw new Error('Two or more conditions needed for aggregation.');
+      if (!Array.isArray(conditions)) {
+        throw new Error('Conditions must be an array.');
       }
 
       sequelizeWhereClause[sequelizeOperator] = conditions.map(condition =>

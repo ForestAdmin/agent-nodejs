@@ -44,22 +44,42 @@ describe('Utils > QueryConverter', () => {
           ).toThrow('Invalid (null) aggregator.');
         });
 
-        it('should fail when condition list is empty', () => {
+        it('should throw an error when conditions is not an array', () => {
+          const conditionTree = new ConditionTreeBranch(Aggregator.And, null);
+
+          expect(() =>
+            QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
+          ).toThrow('Conditions must be an array.');
+        });
+
+        it('should not throw an error when there is no condition', () => {
           const conditionTree = new ConditionTreeBranch(Aggregator.And, []);
 
           expect(() =>
             QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
-          ).toThrow('Two or more conditions needed for aggregation.');
+          ).not.toThrow();
         });
 
-        it('should fail when condition list has only one condition', () => {
-          const conditionTree = new ConditionTreeBranch(Aggregator.And, [
-            new ConditionTreeLeaf('__field__', Operator.Blank),
-          ]);
+        describe('with only one condition', () => {
+          it('should not throw an error with the And aggregator', () => {
+            const conditionTree = new ConditionTreeBranch(Aggregator.And, [
+              new ConditionTreeLeaf('__field_1__', Operator.Equal, '__value_1__'),
+            ]);
 
-          expect(() =>
-            QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
-          ).toThrow('Two or more conditions needed for aggregation.');
+            expect(() =>
+              QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
+            ).not.toThrow();
+          });
+
+          it('should not throw an error with the Or aggregator', () => {
+            const conditionTree = new ConditionTreeBranch(Aggregator.Or, [
+              new ConditionTreeLeaf('__field_1__', Operator.Equal, '__value_1__'),
+            ]);
+
+            expect(() =>
+              QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
+            ).not.toThrow();
+          });
         });
 
         it.each([
