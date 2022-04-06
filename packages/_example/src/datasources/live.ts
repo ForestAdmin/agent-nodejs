@@ -1,16 +1,10 @@
-import {
-  CollectionSchema,
-  DataSource,
-  DataSourceSchema,
-  FieldTypes,
-  PrimitiveTypes,
-} from '@forestadmin/datasource-toolkit';
+import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { LiveDataSource } from '@forestadmin/datasource-live';
 import faker from '@faker-js/faker';
 
 import { prepareDatabase as prepareDatabaseMysql } from './sequelize/mysql';
 
-const address: CollectionSchema = {
+const address = {
   actions: {},
   fields: {
     id: {
@@ -32,13 +26,11 @@ const address: CollectionSchema = {
     },
   },
   searchable: false,
-  segments: [],
-};
-
-const dataSourceSchema: DataSourceSchema = { collections: { address } };
+  segments: [] as string[],
+} as const;
 
 // This seed is in this file because the records are loaded in the memory.
-async function runSeed(dataSource: DataSource) {
+async function runSeed(dataSource: LiveDataSource) {
   // there are dependencies in this database.
   const mysql = await prepareDatabaseMysql();
 
@@ -60,7 +52,7 @@ async function runSeed(dataSource: DataSource) {
 }
 
 export default async (): Promise<LiveDataSource> => {
-  const dataSource = await new LiveDataSource(dataSourceSchema);
+  const dataSource = new LiveDataSource({ collections: { address } });
   await dataSource.syncCollections();
   await runSeed(dataSource);
 
