@@ -12,6 +12,8 @@ collection.replaceFieldWriting('fullName', null);
 
 ```javascript
 collection.replaceFieldWriting('fullName', (value, context) => {
-  // ... FIXME
+  const [firstName, lastName] = value.split(' ');
+
+  return { firstName, lastName };
 });
 ```
