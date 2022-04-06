@@ -1,11 +1,11 @@
-![](https://gblobscdn.gitbook.com/assets%2F-LR7SWfEwsNtj_ZiSkSA%2F-MZlnG8W0zyohS4OAZnN%2F-MZlntfMEVbnDWAqJPC2%2Fimage.png?alt=media&token=609f7438-d7ae-4610-87f4-98eee5488e5c)
+![](../../assets/smart-chart-density.png)
 
 This last example shows how you can achieve virtually anything, since you are basically coding in a sandbox. There's no limit to what you can do with Smart charts.
 
 {% code title="Template tab" %}
 
-```html
-<div class="c-smart-view">{{this.chart}}</div>
+```handlebars
+<div class='c-smart-view'>{{this.chart}}</div>
 ```
 
 {% endcode %}

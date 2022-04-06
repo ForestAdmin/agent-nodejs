@@ -2,7 +2,7 @@ A **Segment** is a subset of a collection: it's basically a saved filter of your
 
 Segments are designed for those who want to _systematically_ visualize data according to specific sets of filters. It allows you to save your filters configuration so you don’t have to compute the same actions every day.
 
-![](../assets/imported/screenshot-2019-07-01-17-38-24.png)
+![](../assets/segment-example.png)
 
 # From your admin panel
 
@@ -28,7 +28,7 @@ The only requirement when implementing a segment from your agent is to return a 
 
 ```javascript
 agent.customizeCollection('products', collection =>
-  collection.addSegment('mySegment',  async (context) => {
+  collection.addSegment('mySegment', async context => {
     // Query the ids of the 10 most populate products by looking at the `orders` collection.
     const rows = await context.dataSource
       .getCollection('orders')

@@ -1,16 +1,16 @@
 # Smart Views
 
-## What is a Smart View?&#x20;
+## What is a Smart View?;
 
 Smart Views lets you code your view using JS, HTML, and CSS. They are taking data visualization to the next level. Ditch the table view and display your orders on a Map, your events in a Calendar, your movies, pictures and profiles in a Gallery. All of that with the easiness of Forest Admin.
 
-![](<../../assets/imported/image (280).png>)
+![](../../assets/smart-view-map.png)
 
 ## Creating a Smart View
 
 Forest Admin provides an online editor to inject your Smart View code. The editor is available on the collection’s settings, then in the “Smart views” tab.
 
-![](<../../assets/imported/image (252).png>)
+![](../../assets/smart-view-calendar-code.png)
 
 The code of a Smart View is an [Glimmer Component](https://api.emberjs.com/ember/3.28/modules/@glimmer%2Fcomponent) and simply consists of a Template and Javascript code.
 
@@ -22,17 +22,17 @@ You don’t need to know the **Ember.js** framework to create a Smart View. We w
 
 The records of your collection are accessible from the records property. Here’s how to iterate over them in the template section:
 
-```html
-{{#each @records as |record|}} {{/each}}
+```handlebars
+{{#each @records as |record|}}{{/each}}
 ```
 
 ### Accessing a specific record
 
 For each record, you will access its attributes through the `forest-attribute` property. The `forest-` preceding the field name **is required**.
 
-```html
+```handlebars
 {{#each @records as |record|}}
-<p>status: {{record.forest-shipping_status}}</p>
+  <p>status: {{record.forest-shipping_status}}</p>
 {{/each}}
 ```
 
@@ -42,11 +42,13 @@ Accessing a `belongsTo` relationship works in exactly the same way as accessing 
 
 On the `Shipping` Smart View (in the collection named `Order`) defined on our Live Demo example, we’ve displayed the full name of the customer related to an order.
 
-```html
+```handlebars
 {{#each @records as |record|}}
-<h2>
-  Order to {{record.forest-customer.forest-firstname}} {{record.forest-customer.forest-lastname}}
-</h2>
+  <h2>
+    Order to
+    {{record.forest-customer.forest-firstname}}
+    {{record.forest-customer.forest-lastname}}
+  </h2>
 {{/each}}
 ```
 
@@ -54,17 +56,19 @@ On the `Shipping` Smart View (in the collection named `Order`) defined on our Li
 
 Accessing a `hasMany` relationship works in exactly the same way as accessing a simple field.. Forest triggers automatically an API call to retrieve the data from your Admin API only if it’s necessary.
 
-```html
-{{#each @records as |record|}} {{#each @record.forest-comments as |comment|}}
-<p>{{comment.forest-text}}</p>
-{{/each}} {{/each}}
+```handlebars
+{{#each @records as |record|}}
+  {{#each @record.forest-comments as |comment|}}
+    <p>{{comment.forest-text}}</p>
+  {{/each}}
+{{/each}}
 ```
 
 ### Refreshing data
 
 Trigger the `fetchRecords` action in order to refresh the records on the page.
 
-```html
+```handlebars
 <button {{on 'click' @fetchRecords}}>
   Refresh data
 </button>
@@ -119,10 +123,10 @@ export default class extends Component {
 
 {% code title="template.hbs" %}
 
-```html
+```handlebars
 {{#each this.appointments as |appointment|}}
-<p>{{appointment.id}}</p>
-<p>{{appointment.forest-name}}</p>
+  <p>{{appointment.id}}</p>
+  <p>{{appointment.forest-name}}</p>
 {{/each}}
 ```
 
@@ -143,16 +147,14 @@ The `deleteRecords` action lets you delete one or multiple records. A pop-up wil
 
 {% code title="template.hbs" %}
 
-```html
+```handlebars
 {{#each @records as |record|}}
-<Button::BetaButton
-  @type="danger"
-  @text="Delete record"
-  @action="{{fn"
-  this.deleteRecords
-  record}}
-  @async="{{false}}"
-/>
+  <Button::BetaButton
+    @type='danger'
+    @text='Delete record'
+    @action={{fn this.deleteRecords record}}
+    @async={{false}}
+  />
 {{/each}}
 ```
 
@@ -169,9 +171,12 @@ Here’s how to trigger your [Smart Actions](../actions/create-and-manage-smart-
 {% tabs %}
 {% tab title="template.hbs" %}
 
-```html
-<Button::BetaButton @type="primary" @text="Reschedule appointment" @action={{fn
-this.triggerSmartAction @collection 'Reschedule' record}} />
+```handlebars
+<Button::BetaButton
+  @type='primary'
+  @text='Reschedule appointment'
+  @action={{fn this.triggerSmartAction @collection 'Reschedule' record}}
+/>
 ```
 
 {% endtab %}
@@ -221,13 +226,11 @@ Here is an example of how to trigger the smart action with the values passed fro
 {% tabs %}
 {% tab title="template.hbs" %}
 
-```html
+```handlebars
 <Button::BetaButton
-  @type="primary"
-  @text="Reschedule appointment"
-  @action="{{fn"
-  this.rescheduleToNewTime
-  record}}
+  @type='primary'
+  @text='Reschedule appointment'
+  @action={{fn this.rescheduleToNewTime record}}
 />
 ```
 
@@ -290,11 +293,11 @@ Forest Admin automatically injects into your Smart View some actions to trigger 
 
 To apply a Smart view you created, turn on the Layout Editor mode **(1)**, click on the table button **(2)** and drag & drop your Smart View's name in first position inside the dropdown **(3)**:
 
-![](../../assets/imported/screenshot-2019-07-09-11-51-33.png)
+![](../../assets/smart-view-ordering.png)
 
 Your view will refresh automatically. You can now turn off the Layout Editor mode **(4)**.
 
-![](../../assets/imported/screenshot-2019-07-09-11-59-12.png)
+![](../../assets/smart-view-layout-editor.png)
 
 ### Impact on related data
 
@@ -302,11 +305,11 @@ Once your Smart view is applied, it will also be displayed in your record's rela
 
 #### In the related data section
 
-![](<../../assets/imported/image (281).png>)
+![](../../assets/smart-view-related-data.png)
 
 #### In the summary view
 
-![](<../../assets/imported/image (282).png>)
+![](../../assets/smart-view-summary-view.png)
 
 {% hint style="info" %}
 As of today, it's **not** possible to set different views for your table/summary/related data views.

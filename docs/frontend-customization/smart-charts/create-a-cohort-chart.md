@@ -1,12 +1,12 @@
-![](https://gblobscdn.gitbook.com/assets%2F-LR7SWfEwsNtj_ZiSkSA%2F-McF5Q19wi4K5nGRWsEw%2F-McF5ZgR_CzOBdpKh9Xe%2FCleanShot%202021-06-15%20at%2016.36.24%402x.png?alt=media&token=16334b60-fcf8-4e02-8a36-605a4fea4e7c)
+![](../../assets/smart-chart-cohort.png)
 
 This is another example to help you build a Cohort Chart.
 
 {% code title="Template tab" %}
 
-```html
-<div class="c-smart-chart">
-  <div id="demo"></div>
+```handlebars
+<div class='c-smart-chart'>
+  <div id='demo'></div>
 </div>
 ```
 

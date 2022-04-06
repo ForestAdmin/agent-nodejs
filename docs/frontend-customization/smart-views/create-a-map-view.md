@@ -2,7 +2,7 @@
 
 The example below shows how to display a map view:
 
-![](<../../assets/imported/image (253).png>)
+![](../../assets/smart-view-delivery-map.png)
 
 {% code title="component.js" %}
 
@@ -164,18 +164,22 @@ export default class extends Component {
 
 {% endcode %}
 
+{% code title="style.css" %}
+
+```css
+.c-map {
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+}
+```
+
+{% endcode %}
+
 {% code title="template.hbs" %}
 
-```html
-<style>
-  .c-map {
-    width: 100%;
-    height: 100%;
-    z-index: 4;
-  }
-</style>
-
-<div id="{{this.mapId}}" class="c-map" {{did-insert this.displayMap}}></div>
+```handlebars
+<div id={{this.mapId}} class='c-map' {{did-insert this.displayMap}}></div>
 ```
 
 {% endcode %}

@@ -8,7 +8,7 @@ The notion of branch cannot be explained without first explaining what a _layout
 
 A **layout** is all the settings that **define your user interface (UI)**. In Forest Admin, there is 1 layout per environment and per team:
 
-![](<../assets/imported/image (416).png>)
+![](../assets/branch-layout.png)
 
 {% hint style="info" %}
 To manipulate your layouts, you will be using [Forest CLI](forest-cli-commands/).
@@ -30,11 +30,11 @@ Any **layout change** you make on your current branch using the [Layout Editor](
 
 Imagine the following situation where you have 3 environments:
 
-![](<../assets/imported/image (417).png>)
+![](../assets/branch-how-it-works.png)
 
 The branch `my-branch` is based on the production layout. Any changes made on it are saved in your branch's layout and can later be [moved ](forest-cli-commands/push.md)or [applied ](forest-cli-commands/deploy.md)to other layouts.
 
-![](<../assets/imported/image (418).png>)
+![](../assets/branch-example.png)
 
 {% hint style="warning" %}
 This also means that any changes made to the origin environment (i.e production) will instantly reflect on your branch.\
@@ -60,7 +60,7 @@ To learn more about the `branch` command, please visit [this page](forest-cli-co
 
 On your interface, click on the environment dropdown at the top-left side of your screen. Select a developement environment (if you don't have one, see the [init](forest-cli-commands/init.md) command).
 
-![](<../assets/imported/image (419).png>)
+![](../assets/branch-current-branch-display.png)
 
 Your **current** branch will be displayed at the top.
 
@@ -70,6 +70,6 @@ To switch your _current_ branch to another existing branch, check out the [switc
 
 In the Environments dropdown, you can see the **number of changes** made on the branch/environment.
 
-![](<../assets/imported/image (420).png>)
+![](../assets/branch-layout-changes.png)
 
 Now that you've mastered branch creation and management, let's dive into the next step of the development workflow: deployment

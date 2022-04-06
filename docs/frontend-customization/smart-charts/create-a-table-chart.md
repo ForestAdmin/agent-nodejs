@@ -1,10 +1,10 @@
-![](https://gblobscdn.gitbook.com/assets%2F-LR7SWfEwsNtj_ZiSkSA%2F-MZlcxPrcf9vT9ernMNV%2F-MZlfjh4XS7ZQIc32yNd%2Fimage.png?alt=media&token=06de6b9b-bbeb-4af9-be93-5fb5ea1f171d)
+![](../../assets/smart-chart-table.png)
 
 Our first Smart Chart example will be a simple table: however you may choose to make it as complex and customized as you wish.
 
 {% code title="" %}
 
-```html
+```handlebars
 <BetaTable
   @columns={{array 'Username' 'Points'}}
   @rows={{this.users}}

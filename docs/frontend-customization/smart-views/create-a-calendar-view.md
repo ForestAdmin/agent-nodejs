@@ -1,6 +1,6 @@
 # Create a Calendar view
 
-![](<../../assets/imported/image (255).png>)
+![](../../assets/smart-view-calendar.png)
 
 ```javascript
 import Component from '@glimmer/component';
@@ -131,46 +131,46 @@ export default class extends Component {
 }
 ```
 
-```html
-<style>
-  .calendar {
-    padding: 20px;
-    background: var(--color-beta-surface);
-    height: 100%;
-    overflow: scroll;
-  }
-  .calendar .fc-toolbar.fc-header-toolbar .fc-left {
-    font-size: 14px;
-    font-weight: bold;
-  }
-  .calendar .fc-day-header {
-    padding: 10px 0;
-    background-color: var(--color-beta-secondary);
-    color: var(--color-beta-on-secondary_dark);
-  }
-  .calendar .fc-event {
-    background-color: var(--color-beta-secondary);
-    border: 1px solid var(--color-beta-on-secondary_border);
-    color: var(--color-beta-on-secondary_medium);
-    font-size: 14px;
-  }
-  .calendar .fc-day-grid-event {
-    background-color: var(--color-beta-info);
-    color: var(--color-beta-on-info);
-    font-size: 10px;
-    border: none;
-    padding: 2px;
-  }
-  .calendar .fc-day-number {
-    color: var(--color-beta-on-surface_medium);
-  }
-  .calendar .fc-other-month .fc-day-number {
-    color: var(--color-beta-on-surface_disabled);
-  }
-  .fc-left {
-    color: var(--color-beta-on-surface_dark);
-  }
-</style>
+```css
+.calendar {
+  padding: 20px;
+  background: var(--color-beta-surface);
+  height: 100%;
+  overflow: scroll;
+}
+.calendar .fc-toolbar.fc-header-toolbar .fc-left {
+  font-size: 14px;
+  font-weight: bold;
+}
+.calendar .fc-day-header {
+  padding: 10px 0;
+  background-color: var(--color-beta-secondary);
+  color: var(--color-beta-on-secondary_dark);
+}
+.calendar .fc-event {
+  background-color: var(--color-beta-secondary);
+  border: 1px solid var(--color-beta-on-secondary_border);
+  color: var(--color-beta-on-secondary_medium);
+  font-size: 14px;
+}
+.calendar .fc-day-grid-event {
+  background-color: var(--color-beta-info);
+  color: var(--color-beta-on-info);
+  font-size: 10px;
+  border: none;
+  padding: 2px;
+}
+.calendar .fc-day-number {
+  color: var(--color-beta-on-surface_medium);
+}
+.calendar .fc-other-month .fc-day-number {
+  color: var(--color-beta-on-surface_disabled);
+}
+.fc-left {
+  color: var(--color-beta-on-surface_dark);
+}
+```
 
-<div id="{{this.calendarId}}" class="calendar" {{did-insert this.onInsert}}></div>
+```handlebars
+<div id={{this.calendarId}} class='calendar' {{did-insert this.onInsert}}></div>
 ```
