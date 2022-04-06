@@ -27,9 +27,6 @@ As Forest Admin does not impose any restriction on the handler, you are free to 
 The only requirement when implementing a segment from your agent is to return a valid `ConditionTree` (see [Understanding Filters](../under-the-hood/queries/filters.md)).
 
 ```javascript
-const agent = new Agent(options);
-
-// Register segment
 agent.customizeCollection('products', collection =>
   collection.addSegment('mySegment',  async (context) => {
     // Query the ids of the 10 most populate products by looking at the `orders` collection.

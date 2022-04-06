@@ -5,14 +5,11 @@ This serves two purposes:
 - Links collections which came from different data sources
 - Add links between collections from the same data source which were not provided out of the box
 
-When jointures are defined between collections Forest Admin acts as if the two collections were linked with a native relationships:
+When relationships are defined between collections Forest Admin acts as if the two collections were natively linked.
 
-- The relation can be traversed in the user interface
-- Actions, charts, fields and segments can be created using fields from both sides of the relations.
+# Example
 
-## Example
-
-### Inter-Datasource relationship
+## Inter-Datasource relationship
 
 In this simple example, we have two collections which are not linked together:
 

@@ -35,7 +35,13 @@
   - [Responses](agent-customization/actions/responses.md)
   - [Forms](agent-customization/actions/forms.md)
 - [Charts](agent-customization/charts.md)
-- [Fields](agent-customization/fields.md)
+- [Fields](agent-customization/fields/README.md)
+
+  - [Computed Fields](agent-customization/fields/computed.md)
+  - [Write overrides](agent-customization/fields/write.md)
+  - [Filter overrides](agent-customization/fields/filter.md)
+  - [Sort overrides](agent-customization/fields/sort.md)
+
 - [Relationships](agent-customization/relationships.md)
 - [Segments](agent-customization/segments.md)
 

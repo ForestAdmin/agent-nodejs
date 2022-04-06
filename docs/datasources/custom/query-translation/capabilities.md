@@ -43,7 +43,7 @@ This means that filtering for a given field is either enabled or not from the GU
 
 | Field type | Needed operators to unlock GUI filters, scopes and segments                                    |
 | ---------- | ---------------------------------------------------------------------------------------------- |
-| Boolean    | `equal`,`not_equal`,`present`,`blank`,                                                         |
+| Boolean    | `equal`,`not_equal`,`present`,`blank`                                                          |
 | Date       | All dates operators                                                                            |
 | Enum       | `equal`,`not_equal`,`present`,`blank`, `in`                                                    |
 | Number     | `equal`,`not_equal`,`present`,`blank`,`in`,`greater_than`,`less_than`                          |

@@ -105,10 +105,10 @@ If you want to create an action accessible from the details or the summary view 
 
 In the example below, the “Add new transaction” action is accessible from the summary view. This action creates a new transaction and automatically refresh the “Emitted transactions” related data section to see the new transaction.
 
-![](../../assets/actions-refresh-related.png)
-
 ```javascript
 return responseBuilder.success('New transaction emitted', {
   invalidated: ['emitted_transactions'],
 });
 ```
+
+![](../../assets/actions-refresh-related.png)
