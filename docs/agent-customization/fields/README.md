@@ -4,9 +4,9 @@ When designing databases and APIs, the way to go is usually to push for _normali
 
 On the other hand graphical user interfaces usually need duplication and shortcuts to be user-friendly.
 
-In order to bridge that gap, Forest Admin allows to add, move, remove and override behavior from fields on all collections.
+In order to bridge that gap, Forest Admin allows to add, move, remove and override behaviors from fields.
 
-# Minimal example
+## Minimal example
 
 ```javascript
 collection
