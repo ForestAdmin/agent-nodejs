@@ -17,6 +17,13 @@ collection
     getValues: (records, context) => records.map(r => `${r.firstName} ${r.lastName}`),
   })
 
+  // Make it writable
+  .replaceFieldWriting('fullName', (value, context) => {
+    const [firstName, lastName] = value.split(' ');
+
+    return { firstName, lastName };
+  })
+
   // Make it filterable and sortable
   .emulateFieldFiltering('fullName')
   .emulateFieldSorting('fullName')
