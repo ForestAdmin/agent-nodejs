@@ -20,87 +20,87 @@ Learn more about [smart views](https://docs.forestadmin.com/documentation/refere
 
 This file contains the HTML and CSS needed to build the view.
 
-```Handlebars
-<style>
-  .calendar {
-    padding: 20px;
-    background: white;
-    height:100%;
-    width: 50%;
-    overflow: scroll;
-    color: #415574;
-  }
-  .wrapper-view {
-    display: flex;
-    height:800px;
-    width:100%;
-    background-color: white;
-  }
-  .right-hand-wrapper {
-    width: 40%;
-    padding: 3px 30px;
-    background-color: white;
-    margin-left:30px;
-    height: 80%;
-    overflow: scroll;
-  }
-  :root {
-    --fc-border-color:#e0e4e8;
-    --fc-button-text-color: #415574;
-    --fc-button-bg-color: #ffffff;
-    --fc-button-border-color: #c8ced7;
-    --fc-button-hover-bg-color: rgb(195, 195, 195);
-    --fc-button-hover-border-color: #c8ced7;
-    --fc-button-active-bg-color: #ffffff;
-    --fc-button-active-border-color: #c8ced7;
-  }
-  .slot-container {
-    display: flex;
-    margin: 10px 0;
-    vertical-align: center;
-    padding: 2px 0;
-  }
-  .slot-value {
-    margin: auto 0;
-    margin-right: 30px;
-    width: 40px;
-  }
-  .calendar .fc-toolbar.fc-header-toolbar .fc-left {
-    font-size: 14px;
-    font-weight: bold;
-  }
-  .calendar .fc-day-header {
-    padding: 10px 0;
-    background-color: #f7f7f7;
-  }
-  .calendar .fc-event {
-    background-color: #f7f7f7;
-    border: 1px solid #ddd;
-    color: #555;
-    font-size: 14px;
-    margin-top: 5px;
-  }
-  .calendar .fc-daygrid-event {
-    background-color: #a2c1f5;
-    color: white;
-    font-size: 14px;
-    border: none;
-    padding: 6px;
-  }
-  .c-beta-radio-button-duration {
-    display: flex;
-    margin-top: 4px;
-    flex-wrap: wrap;
-    margin-bottom: -4px;
+```css
+.calendar {
+  padding: 20px;
+  background: white;
+  height: 100%;
+  width: 50%;
+  overflow: scroll;
+  color: #415574;
 }
-</style>
+.wrapper-view {
+  display: flex;
+  height: 800px;
+  width: 100%;
+  background-color: white;
+}
+.right-hand-wrapper {
+  width: 40%;
+  padding: 3px 30px;
+  background-color: white;
+  margin-left: 30px;
+  height: 80%;
+  overflow: scroll;
+}
+:root {
+  --fc-border-color: #e0e4e8;
+  --fc-button-text-color: #415574;
+  --fc-button-bg-color: #ffffff;
+  --fc-button-border-color: #c8ced7;
+  --fc-button-hover-bg-color: rgb(195, 195, 195);
+  --fc-button-hover-border-color: #c8ced7;
+  --fc-button-active-bg-color: #ffffff;
+  --fc-button-active-border-color: #c8ced7;
+}
+.slot-container {
+  display: flex;
+  margin: 10px 0;
+  vertical-align: center;
+  padding: 2px 0;
+}
+.slot-value {
+  margin: auto 0;
+  margin-right: 30px;
+  width: 40px;
+}
+.calendar .fc-toolbar.fc-header-toolbar .fc-left {
+  font-size: 14px;
+  font-weight: bold;
+}
+.calendar .fc-day-header {
+  padding: 10px 0;
+  background-color: #f7f7f7;
+}
+.calendar .fc-event {
+  background-color: #f7f7f7;
+  border: 1px solid #ddd;
+  color: #555;
+  font-size: 14px;
+  margin-top: 5px;
+}
+.calendar .fc-daygrid-event {
+  background-color: #a2c1f5;
+  color: white;
+  font-size: 14px;
+  border: none;
+  padding: 6px;
+}
+.c-beta-radio-button-duration {
+  display: flex;
+  margin-top: 4px;
+  flex-wrap: wrap;
+  margin-bottom: -4px;
+}
+```
 
-<div class="wrapper-view">
-  <div id='{{calendarId}}' class="calendar"></div>
-  <div class="right-hand-wrapper">
-    <div class="c-beta-label c-beta-label--top ember-view l-dmb">
-      <div class= "c-beta-label__label">Selected date</div>
-      <div class = "c-row-value">
+```handlebars
+<div class='wrapper-view'>
+  <div id='{{calendarId}}' class='calendar'></div>
+  <div class='right-hand-wrapper'>
+    <div class='c-beta-label c-beta-label--top ember-view l-dmb'>
+      <div class='c-beta-label__label'>Selected date</div>
+      <div class='c-row-value'>
         {{#if this.selectedDate}}
           {{this.selectedDate}}
         {{else}}
@@ -109,8 +109,8 @@ This file contains the HTML and CSS needed to build the view.
       </div>
     </div>
 
-    <div class="c-beta-label c-beta-label--top ember-view l-dmb">
-      <div class= "c-beta-label__label">Duration</div>
+    <div class='c-beta-label c-beta-label--top ember-view l-dmb'>
+      <div class='c-beta-label__label'>Duration</div>
       <BetaRadioButton
         @class='c-beta-radio-button-duration'
         @namePath='label'
@@ -121,12 +121,15 @@ This file contains the HTML and CSS needed to build the view.
     </div>
 
     {{#if this.availableSlots}}
-      <div class="c-beta-label c-beta-label--top ember-view l-dmb">
-        <div class= "c-beta-label__label">Available slots</div>
+      <div class='c-beta-label c-beta-label--top ember-view l-dmb'>
+        <div class='c-beta-label__label'>Available slots</div>
         {{#each this.availableSlots as |slot|}}
-          <div class="slot-container">
-            <div class="c-row-value slot-value">{{slot.forest-time}}</div>
-            <div class="c-beta-button c-beta-button--primary" onclick={{ action 'triggerSmartAction' this.availableSlotsCollection 'book' slot}}>book</div>
+          <div class='slot-container'>
+            <div class='c-row-value slot-value'>{{slot.forest-time}}</div>
+            <div
+              class='c-beta-button c-beta-button--primary'
+              onclick={{action 'triggerSmartAction' this.availableSlotsCollection 'book' slot}}
+            >book</div>
           </div>
         {{/each}}
       </div>
@@ -139,7 +142,6 @@ This file contains the HTML and CSS needed to build the view.
     {{/if}}
   </div>
 </div>
-
 ```
 
 **File template.js**

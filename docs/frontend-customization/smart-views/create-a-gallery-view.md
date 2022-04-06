@@ -206,17 +206,17 @@ export default class extends React.Component {
 {% tab title="Ember" %}
 {% code title="Template" %}
 
-```Handlebars
-<div class="l-gallery-view-container">
-  <section class="c-gallery">
+```handlebars
+<div class='l-gallery-view-container'>
+  <section class='c-gallery'>
     {{#each @records as |record|}}
-    <LinkTo
-      @route="project.rendering.data.collection.list.view-edit.details"
-      @models={{array @collection.id record.id}}
-      class="c-gallery__image-container"
-    >
-      <img class="c-gallery__image" src={{record.forest-picture}} />
-    </LinkTo>
+      <LinkTo
+        @route='project.rendering.data.collection.list.view-edit.details'
+        @models={{array @collection.id record.id}}
+        class='c-gallery__image-container'
+      >
+        <img class='c-gallery__image' src={{record.forest-picture}} />
+      </LinkTo>
     {{/each}}
   </section>
 

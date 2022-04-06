@@ -4,8 +4,8 @@ This second example shows how you can achieve any format of charts, as you can b
 
 {% code title="Template tab" %}
 
-```Handlebars
-<div class="c-smart-view">{{this.chart}}</div>
+```handlebars
+<div class='c-smart-view'>{{this.chart}}</div>
 ```
 
 {% endcode %}

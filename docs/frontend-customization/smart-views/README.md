@@ -22,17 +22,17 @@ You don’t need to know the **Ember.js** framework to create a Smart View. We w
 
 The records of your collection are accessible from the records property. Here’s how to iterate over them in the template section:
 
-```Handlebars
-{{#each @records as |record|}} {{/each}}
+```handlebars
+{{#each @records as |record|}}{{/each}}
 ```
 
 ### Accessing a specific record
 
 For each record, you will access its attributes through the `forest-attribute` property. The `forest-` preceding the field name **is required**.
 
-```Handlebars
+```handlebars
 {{#each @records as |record|}}
-<p>status: {{record.forest-shipping_status}}</p>
+  <p>status: {{record.forest-shipping_status}}</p>
 {{/each}}
 ```
 
@@ -42,11 +42,13 @@ Accessing a `belongsTo` relationship works in exactly the same way as accessing 
 
 On the `Shipping` Smart View (in the collection named `Order`) defined on our Live Demo example, we’ve displayed the full name of the customer related to an order.
 
-```Handlebars
+```handlebars
 {{#each @records as |record|}}
-<h2>
-  Order to {{record.forest-customer.forest-firstname}} {{record.forest-customer.forest-lastname}}
-</h2>
+  <h2>
+    Order to
+    {{record.forest-customer.forest-firstname}}
+    {{record.forest-customer.forest-lastname}}
+  </h2>
 {{/each}}
 ```
 
@@ -54,7 +56,7 @@ On the `Shipping` Smart View (in the collection named `Order`) defined on our Li
 
 Accessing a `hasMany` relationship works in exactly the same way as accessing a simple field.. Forest triggers automatically an API call to retrieve the data from your Admin API only if it’s necessary.
 
-```Handlebars
+```handlebars
 {{#each @records as |record|}}
   {{#each @record.forest-comments as |comment|}}
     <p>{{comment.forest-text}}</p>
@@ -66,7 +68,7 @@ Accessing a `hasMany` relationship works in exactly the same way as accessing a 
 
 Trigger the `fetchRecords` action in order to refresh the records on the page.
 
-```Handlebars
+```handlebars
 <button {{on 'click' @fetchRecords}}>
   Refresh data
 </button>
@@ -121,7 +123,7 @@ export default class extends Component {
 
 {% code title="template.hbs" %}
 
-```Handlebars
+```handlebars
 {{#each this.appointments as |appointment|}}
   <p>{{appointment.id}}</p>
   <p>{{appointment.forest-name}}</p>
@@ -145,14 +147,14 @@ The `deleteRecords` action lets you delete one or multiple records. A pop-up wil
 
 {% code title="template.hbs" %}
 
-```Handlebars
+```handlebars
 {{#each @records as |record|}}
-<Button::BetaButton
-  @type="danger"
-  @text="Delete record"
-  @action={{fn this.deleteRecords record}}
-  @async={{false}}
-/>
+  <Button::BetaButton
+    @type='danger'
+    @text='Delete record'
+    @action={{fn this.deleteRecords record}}
+    @async={{false}}
+  />
 {{/each}}
 ```
 
@@ -169,10 +171,10 @@ Here’s how to trigger your [Smart Actions](../actions/create-and-manage-smart-
 {% tabs %}
 {% tab title="template.hbs" %}
 
-```Handlebars
+```handlebars
 <Button::BetaButton
-  @type="primary"
-  @text="Reschedule appointment"
+  @type='primary'
+  @text='Reschedule appointment'
   @action={{fn this.triggerSmartAction @collection 'Reschedule' record}}
 />
 ```
@@ -224,10 +226,10 @@ Here is an example of how to trigger the smart action with the values passed fro
 {% tabs %}
 {% tab title="template.hbs" %}
 
-```Handlebars
+```handlebars
 <Button::BetaButton
-  @type="primary"
-  @text="Reschedule appointment"
+  @type='primary'
+  @text='Reschedule appointment'
   @action={{fn this.rescheduleToNewTime record}}
 />
 ```
