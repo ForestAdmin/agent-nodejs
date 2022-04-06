@@ -24,6 +24,14 @@ describe('Utils > QueryConverter', () => {
     });
 
     describe('with a condition tree', () => {
+      describe('when a null condition tree is given', () => {
+        it('should return an empty object', () => {
+          expect(
+            QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, null),
+          ).toEqual({});
+        });
+      });
+
       describe('with a ConditionTreeBranch node', () => {
         it('should fail when aggregator is empty', () => {
           const conditionTree = new ConditionTreeBranch(null, [
