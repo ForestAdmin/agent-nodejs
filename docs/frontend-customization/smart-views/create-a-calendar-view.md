@@ -1,6 +1,6 @@
 # Create a Calendar view
 
-![](<../../assets/imported/image (255).png>)
+![](../../assets/smart-view-calendar.png)
 
 ```javascript
 import Component from '@glimmer/component';

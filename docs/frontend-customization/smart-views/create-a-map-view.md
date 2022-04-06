@@ -2,7 +2,7 @@
 
 The example below shows how to display a map view:
 
-![](<../../assets/imported/image (253).png>)
+![](../../assets/smart-view-delivery-map.png)
 
 {% code title="component.js" %}
 

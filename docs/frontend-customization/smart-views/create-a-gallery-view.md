@@ -1,6 +1,6 @@
 # Create a Gallery view
 
-![](<../../assets/imported/image (256).png>)
+![](../../assets/smart-view-gallery.png)
 
 {% tabs %}
 {% tab title="Ember" %}
@@ -207,28 +207,28 @@ export default class extends React.Component {
 {% code title="Template" %}
 
 ```html
-<div class='l-gallery-view-container'>
-  <section class='c-gallery'>
+<div class="l-gallery-view-container">
+  <section class="c-gallery">
     {{#each @records as |record|}}
-      <LinkTo
-        @route='project.rendering.data.collection.list.view-edit.details'
-        @models='{{array @collection.id record.id}}'
-        class='c-gallery__image-container'
-      >
-        <img class='c-gallery__image' src='{{record.forest-picture}}' />
-      </LinkTo>
+    <LinkTo
+      @route="project.rendering.data.collection.list.view-edit.details"
+      @models="{{array @collection.id record.id}}"
+      class="c-gallery__image-container"
+    >
+      <img class="c-gallery__image" src="{{record.forest-picture}}" />
+    </LinkTo>
     {{/each}}
   </section>
 
   <Table::TableFooter
-    @collection='{{@collection}}'
-    @viewList='{{@viewList}}'
-    @records='{{@records}}'
-    @currentPage='{{@currentPage}}'
-    @numberOfPages='{{@numberOfPages}}'
-    @recordsCount='{{@recordsCount}}'
-    @isLoading='{{@isLoading}}'
-    @fetchRecords='{{@fetchRecords}}'
+    @collection="{{@collection}}"
+    @viewList="{{@viewList}}"
+    @records="{{@records}}"
+    @currentPage="{{@currentPage}}"
+    @numberOfPages="{{@numberOfPages}}"
+    @recordsCount="{{@recordsCount}}"
+    @isLoading="{{@isLoading}}"
+    @fetchRecords="{{@fetchRecords}}"
   />
 </div>
 ```

@@ -1,6 +1,6 @@
 # Create a custom tinder-like validation view
 
-This example shows you how you can implement a time-saving profile validation view using keyboard keys to trigger approve/reject actions.&#x20;
+This example shows you how you can implement a time-saving profile validation view using keyboard keys to trigger approve/reject actions.
 
 {% embed url="https://1726799947-files.gitbook.io/~/files/v0/b/gitbook-28427.appspot.com/o/assets%2F-M0vHiS-1S9Hw3djvoTw%2F-MVRsq1FlDGIuHDIDzdI%2F-MVRwKxdylcrvLKtPJRd%2Ftinder-view-screencast.gif?alt=media&token=81d7562b-68d5-450a-98f8-67d9803b168b" %}
 

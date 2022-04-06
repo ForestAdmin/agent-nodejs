@@ -1,6 +1,6 @@
 # Create a Shipping view
 
-![](<../../assets/imported/image (254).png>)
+![](../../assets/smart-view-shipping.png)
 
 {% code title="component.js" %}
 

@@ -1,4 +1,4 @@
-![](https://gblobscdn.gitbook.com/assets%2F-LR7SWfEwsNtj_ZiSkSA%2F-MZlj4t_3ZRkMF_s0vjK%2F-MZljyVpyui77zuDOBGx%2Fimage.png?alt=media&token=3f5a6400-127c-486c-b7ad-18c989275bd1)
+![](../../assets/smart-chart-bar.png)
 
 This second example shows how you can achieve any format of charts, as you can benefit from external libraries like D3js.
 
