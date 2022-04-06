@@ -20,7 +20,7 @@ Learn more about [smart views](https://docs.forestadmin.com/documentation/refere
 
 This file contains the HTML and CSS needed to build the view.
 
-```html
+```Handlebars
 <style>
   .calendar {
     padding: 20px;

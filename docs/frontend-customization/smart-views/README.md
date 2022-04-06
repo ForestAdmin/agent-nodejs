@@ -22,7 +22,7 @@ You don’t need to know the **Ember.js** framework to create a Smart View. We w
 
 The records of your collection are accessible from the records property. Here’s how to iterate over them in the template section:
 
-```html
+```Handlebars
 {{#each @records as |record|}} {{/each}}
 ```
 
@@ -30,7 +30,7 @@ The records of your collection are accessible from the records property. Here’
 
 For each record, you will access its attributes through the `forest-attribute` property. The `forest-` preceding the field name **is required**.
 
-```html
+```Handlebars
 {{#each @records as |record|}}
 <p>status: {{record.forest-shipping_status}}</p>
 {{/each}}
@@ -42,7 +42,7 @@ Accessing a `belongsTo` relationship works in exactly the same way as accessing 
 
 On the `Shipping` Smart View (in the collection named `Order`) defined on our Live Demo example, we’ve displayed the full name of the customer related to an order.
 
-```html
+```Handlebars
 {{#each @records as |record|}}
 <h2>
   Order to {{record.forest-customer.forest-firstname}} {{record.forest-customer.forest-lastname}}
@@ -54,10 +54,12 @@ On the `Shipping` Smart View (in the collection named `Order`) defined on our Li
 
 Accessing a `hasMany` relationship works in exactly the same way as accessing a simple field.. Forest triggers automatically an API call to retrieve the data from your Admin API only if it’s necessary.
 
-```html
-{{#each @records as |record|}} {{#each @record.forest-comments as |comment|}}
-<p>{{comment.forest-text}}</p>
-{{/each}} {{/each}}
+```Handlebars
+{{#each @records as |record|}}
+  {{#each @record.forest-comments as |comment|}}
+    <p>{{comment.forest-text}}</p>
+  {{/each}}
+{{/each}}
 ```
 
 ### Refreshing data
@@ -119,10 +121,10 @@ export default class extends Component {
 
 {% code title="template.hbs" %}
 
-```html
+```Handlebars
 {{#each this.appointments as |appointment|}}
-<p>{{appointment.id}}</p>
-<p>{{appointment.forest-name}}</p>
+  <p>{{appointment.id}}</p>
+  <p>{{appointment.forest-name}}</p>
 {{/each}}
 ```
 
