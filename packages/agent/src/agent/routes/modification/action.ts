@@ -20,7 +20,7 @@ import QueryStringParser from '../../utils/query-string';
 import SchemaGeneratorActions from '../../utils/forest-schema/generator-actions';
 
 export default class ActionRoute extends CollectionRoute {
-  private actionName: string;
+  private readonly actionName: string;
 
   constructor(
     services: ForestAdminHttpDriverServices,

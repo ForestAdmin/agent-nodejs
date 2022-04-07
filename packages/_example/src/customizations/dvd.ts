@@ -5,7 +5,6 @@ import {
   FieldTypes,
   Filter,
   Operator,
-  PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
 import { Collection } from '@forestadmin/agent';

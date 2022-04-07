@@ -4,6 +4,8 @@ import {
   ActionResultType,
   ActionScope,
   DataSource,
+  Filter,
+  Operator,
 } from '@forestadmin/datasource-toolkit';
 import { Readable } from 'stream';
 import { createMockContext } from '@shopify/jest-koa-mocks';
@@ -224,55 +226,140 @@ describe('ActionRoute', () => {
       },
     );
 
-    test('handleExecute should format the response (File)', async () => {
-      const context = createMockContext({
-        ...baseContext,
-        requestBody: {
-          data: {
-            attributes: {
-              ...baseContext.requestBody.data.attributes,
-              values: { firstname: 'John' },
+    describe('handleExecute', () => {
+      test('should format the response (File)', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+              },
             },
           },
-        },
+        });
+        const stream = Readable.from(['header1,header2mcontent1,content2']);
+
+        (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
+          type: ActionResultType.File,
+          name: 'filename.csv',
+          mimeType: 'text/csv',
+          stream,
+        });
+
+        await handleExecute.call(route, context);
+
+        expect(context.response.headers).toEqual({
+          'access-control-expose-headers': 'Content-Disposition',
+          'content-type': 'text/csv; charset=utf-8',
+          'content-disposition': 'attachment; filename="filename.csv"',
+        });
+        expect(context.response.body).toBe(stream);
       });
-      const stream = Readable.from(['header1,header2mcontent1,content2']);
 
-      (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
-        type: ActionResultType.File,
-        name: 'filename.csv',
-        mimeType: 'text/csv',
-        stream,
+      describe('when action is applied on the related data with a selected all', () => {
+        beforeEach(() => {
+          dataSource = factories.dataSource.buildWithCollections([
+            factories.collection.build({
+              name: 'reviews',
+              schema: {
+                actions: { My_Action: { scope: ActionScope.Bulk } },
+                fields: { id: factories.columnSchema.isPrimaryKey().build() },
+              },
+              getForm: jest
+                .fn()
+                .mockResolvedValue([{ type: ActionFieldType.String, label: 'firstname' }]),
+              execute: jest.fn(),
+            }),
+            factories.collection.build({
+              name: 'books',
+              schema: {
+                fields: {
+                  id: factories.columnSchema.isPrimaryKey().build(),
+                  reviews: factories.oneToManySchema.build({
+                    foreignCollection: 'reviews',
+                  }),
+                },
+              },
+              getForm: jest
+                .fn()
+                .mockResolvedValue([{ type: ActionFieldType.String, label: 'firstname' }]),
+              execute: jest.fn(),
+            }),
+          ]);
+
+          route = new ActionRoute(services, options, dataSource, 'reviews', 'My_Action');
+
+          route.setupRoutes({
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            post: (path: string, handler: Router.Middleware) => {
+              if (path === '/_actions/reviews/0/:slug') handleExecute = handler;
+              else handleHook = handler;
+            },
+          });
+        });
+
+        test('should apply the handler only on the related data', async () => {
+          const context = createMockContext({
+            ...baseContext,
+            requestBody: {
+              data: {
+                attributes: {
+                  ...baseContext.requestBody.data.attributes,
+                  parent_association_name: 'reviews',
+                  parent_collection_name: 'books',
+                  parent_collection_id: '00000000-0000-4000-8000-000000000000',
+                  all_records: true,
+                  values: { firstname: 'John' },
+                },
+              },
+            },
+          });
+          dataSource.getCollection('reviews').execute = jest.fn().mockReturnValue({
+            type: ActionResultType.Webhook,
+          });
+
+          await handleExecute.call(route, context);
+
+          expect(dataSource.getCollection('reviews').execute).toHaveBeenCalledWith(
+            'My_Action',
+            expect.any(Object),
+            new Filter({
+              conditionTree: factories.conditionTreeLeaf.build({
+                field: 'reviewId',
+                operator: Operator.Equal,
+                value: '00000000-0000-4000-8000-000000000000',
+              }),
+              search: null,
+              searchExtended: false,
+              segment: null,
+              timezone: 'Europe/Paris',
+            }),
+          );
+        });
       });
 
-      await handleExecute.call(route, context);
-
-      expect(context.response.headers).toEqual({
-        'access-control-expose-headers': 'Content-Disposition',
-        'content-type': 'text/csv; charset=utf-8',
-        'content-disposition': 'attachment; filename="filename.csv"',
-      });
-      expect(context.response.body).toBe(stream);
-    });
-
-    test('handleExecute should crash if the response is invalid', async () => {
-      const context = createMockContext({
-        ...baseContext,
-        requestBody: {
-          data: {
-            attributes: {
-              ...baseContext.requestBody.data.attributes,
-              values: { firstname: 'John' },
+      test('should crash if the response is invalid', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+              },
             },
           },
-        },
-      });
+        });
 
-      (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
-        type: 'invalid',
-      });
+        (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
+          type: 'invalid',
+        });
 
-      await expect(() => handleExecute.call(route, context)).rejects.toThrow();
+        await expect(() => handleExecute.call(route, context)).rejects.toThrow();
+      });
     });
 
     test('handleHook should generate a clean form if called without params', async () => {
