@@ -3,6 +3,7 @@ import {
   CollectionUtils,
   ColumnSchema,
   ConditionTreeLeaf,
+  FieldTypes,
   Operator,
   OperatorReplacer,
   PartialRelationSchema,
@@ -15,6 +16,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { FieldDefinition } from './types';
 import AgentBuilder from './agent';
+import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
 
 export default class CollectionBuilder {
   private agentBuilder: AgentBuilder;
@@ -190,6 +192,24 @@ export default class CollectionBuilder {
     this.agentBuilder.sortEmulate
       .getCollection(this.name)
       .replaceFieldSorting(name, new Sort(...equivalentSort));
+
+    return this;
+  }
+
+  /**
+   * Enable filtering on a specific field using emulation.
+   * As for all the emulation method, the field filtering will be done in-memory.
+   * @param name the name of the field to enable emulation on
+   * @example
+   * .emulateFieldFiltering('aField');
+   */
+  emulateFieldFiltering(name: string): this {
+    const collection = this.agentBuilder.earlyOpEmulate.getCollection(this.name);
+    const field = collection.schema.fields[name] as ColumnSchema;
+
+    for (const operator of FrontendFilterableUtils.getRequiredOperators(field.columnType)) {
+      this.emulateFieldOperator(name, operator);
+    }
 
     return this;
   }
