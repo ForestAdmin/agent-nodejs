@@ -36,25 +36,24 @@ export default class CollectionBuilder {
    */
   importField(name: string, options: { path: string; beforeRelations?: boolean }): this {
     const collection = this.agentBuilder.lateComputed.getCollection(this.name);
-    const { path, beforeRelations } = options;
     const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
 
     this.addField(name, {
-      beforeRelations,
+      beforeRelations: options.beforeRelations,
       columnType: schema.columnType,
       defaultValue: schema.defaultValue,
-      dependencies: new Projection(path),
-      getValues: records => records.map(r => RecordUtils.getFieldValue(r, path)),
+      dependencies: new Projection(options.path),
+      getValues: records => records.map(r => RecordUtils.getFieldValue(r, options.path)),
       enumValues: schema.enumValues,
     });
 
     for (const operator of schema.filterOperators) {
-      const handler = (value: unknown) => new ConditionTreeLeaf(path, operator, value);
+      const handler = (value: unknown) => new ConditionTreeLeaf(options.path, operator, value);
       this.replaceFieldOperator(name, operator, handler);
     }
 
     if (schema.isSortable) {
-      this.replaceFieldSorting(name, [{ field: path, ascending: true }]);
+      this.replaceFieldSorting(name, [{ field: options.path, ascending: true }]);
     }
 
     return this;
