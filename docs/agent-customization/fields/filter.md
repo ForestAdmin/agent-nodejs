@@ -24,7 +24,7 @@ collection.replaceFieldOperator('fullName', 'equal', null);
 Operation substitution can be used for two motives:
 
 - Performance: provide a more efficient way to perform a given filtering operation
-- Capabilities:
+- Capabilities: enable filtering on a computed field, or other non-filterable fields
 
 ```javascript
 collection.replaceFieldOperator('fullName', 'equal', (value, context) => {
@@ -34,7 +34,7 @@ collection.replaceFieldOperator('fullName', 'equal', (value, context) => {
     aggregation: 'and',
     conditions: [
       { field: 'firstName', operator: 'equal', value: firstName },
-      { field: 'lastName', operator: 'equal', value: lastName },
+      { field: 'lastName', operator: 'equal', value: lastNames.join(' ') },
     ],
   };
 });
@@ -42,9 +42,13 @@ collection.replaceFieldOperator('fullName', 'equal', (value, context) => {
 
 ## Emulation
 
-Filtering emulation allows to make fields automatically support a given operator.
+Filtering emulation allows to make fields filterable automatically.
 
 ```javascript
+// Add support for all operators
+collection.emulateFieldFiltering('fullName');
+
+// Add support for a single operator
 collection.emulateFieldOperator('fullName', 'equal');
 ```
 
