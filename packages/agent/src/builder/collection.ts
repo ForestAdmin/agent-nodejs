@@ -202,11 +202,13 @@ export default class CollectionBuilder {
    * .emulateFieldFiltering('aField');
    */
   emulateFieldFiltering(name: string): this {
-    const collection = this.agentBuilder.earlyOpEmulate.getCollection(this.name);
+    const collection = this.agentBuilder.lateOpEmulate.getCollection(this.name);
     const field = collection.schema.fields[name] as ColumnSchema;
 
     for (const operator of FrontendFilterableUtils.getRequiredOperators(field.columnType)) {
-      this.emulateFieldOperator(name, operator);
+      if (!field.filterOperators.has(operator)) {
+        this.emulateFieldOperator(name, operator);
+      }
     }
 
     return this;
