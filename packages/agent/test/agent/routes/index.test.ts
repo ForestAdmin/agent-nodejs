@@ -7,6 +7,7 @@ import makeRoutes, {
 } from '../../../src/agent/routes';
 
 import * as factories from '../__factories__';
+import AssociateRelated from '../../../src/agent/routes/modification/associate-related';
 import Authentication from '../../../src/agent/routes/security/authentication';
 import Chart from '../../../src/agent/routes/access/chart';
 import Count from '../../../src/agent/routes/access/count';
@@ -39,6 +40,7 @@ describe('Route index', () => {
     ]);
     expect(COLLECTION_ROUTES_CTOR).toEqual([Chart, Count, Create, Csv, Delete, Get, List, Update]);
     expect(RELATED_ROUTES_CTOR).toEqual([
+      AssociateRelated,
       CountRelated,
       CsvRelated,
       DissociateDeleteRelated,

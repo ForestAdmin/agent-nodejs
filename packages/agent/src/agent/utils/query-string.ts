@@ -39,6 +39,12 @@ export default class QueryStringParser {
 
   static parseProjection(collection: Collection, context: Context): Projection {
     try {
+      const fields = context.request.query[`fields[${collection.name}]`].toString();
+
+      if (fields === '') {
+        return new Projection();
+      }
+
       const rootFields = context.request.query[`fields[${collection.name}]`].toString().split(',');
       const explicitRequest = rootFields.map(field => {
         const schema = collection.schema.fields[field];

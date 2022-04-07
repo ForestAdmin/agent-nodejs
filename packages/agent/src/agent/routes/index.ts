@@ -3,6 +3,7 @@ import { DataSource, FieldTypes } from '@forestadmin/datasource-toolkit';
 import { AgentOptionsWithDefaults as Options } from '../types';
 import { ForestAdminHttpDriverServices as Services } from '../services';
 import ActionRoute from './modification/action';
+import AssociateRelated from './modification/associate-related';
 import Authentication from './security/authentication';
 import BaseRoute from './base-route';
 import Chart from './access/chart';
@@ -33,7 +34,13 @@ export const ROOT_ROUTES_CTOR = [
   ScopeInvalidation,
 ];
 export const COLLECTION_ROUTES_CTOR = [Chart, Count, Create, Csv, Delete, Get, List, Update];
-export const RELATED_ROUTES_CTOR = [CountRelated, CsvRelated, DissociateDeleteRelated, ListRelated];
+export const RELATED_ROUTES_CTOR = [
+  AssociateRelated,
+  CountRelated,
+  CsvRelated,
+  DissociateDeleteRelated,
+  ListRelated,
+];
 export const RELATED_RELATION_ROUTES_CTOR = [UpdateRelation];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {

@@ -122,6 +122,18 @@ describe('QueryStringParser', () => {
           expect(projection).toEqual(['id']);
         });
 
+        describe('when the request does no contain fields', () => {
+          test('should return an empty projection', () => {
+            const context = createMockContext({
+              customProperties: { query: { 'fields[books]': '' } },
+            });
+
+            const projection = QueryStringParser.parseProjection(collectionSimple, context);
+
+            expect(projection).toEqual([]);
+          });
+        });
+
         describe('when the request does not contain the primary keys', () => {
           test('should return the requested project without the primary keys', () => {
             const context = createMockContext({
