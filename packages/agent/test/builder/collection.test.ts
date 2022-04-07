@@ -190,7 +190,7 @@ describe('Builder > Collection', () => {
         const { agent, collectionBuilder, collectionName } = setup();
 
         const collection = agent.lateOpEmulate.getCollection(collectionName);
-        const spy = jest.spyOn(collection, 'emulateOperatorField');
+        const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
         const fieldDefinition: FieldDefinition = {
           columnType: PrimitiveTypes.String,
@@ -301,14 +301,14 @@ describe('Builder > Collection', () => {
     });
   });
 
-  describe('emulateOperatorField', () => {
+  describe('emulateFieldOperator', () => {
     it('should emulate operator on field', () => {
       const { agent, collectionBuilder, collectionName } = setup();
 
       const collection = agent.lateOpEmulate.getCollection(collectionName);
-      const spy = jest.spyOn(collection, 'emulateOperatorField');
+      const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
-      const self = collectionBuilder.emulateOperatorField('firstName', Operator.Present);
+      const self = collectionBuilder.emulateFieldOperator('firstName', Operator.Present);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', Operator.Present);

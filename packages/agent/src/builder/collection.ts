@@ -143,7 +143,7 @@ export default class CollectionBuilder {
 
       for (const operator of operators) {
         const implementation = filterBy === 'emulate' ? 'emulate' : filterBy[operator] ?? 'emulate';
-        if (implementation === 'emulate') operatorEmulate.emulateOperatorField(name, operator);
+        if (implementation === 'emulate') operatorEmulate.emulateFieldOperator(name, operator);
         else operatorEmulate.replaceFieldOperator(name, operator as Operator, implementation);
       }
     }
@@ -226,10 +226,10 @@ export default class CollectionBuilder {
    * @param {string} name the name of the field to enable emulation on
    * @param {Operator} operator the operator to emulate
    * @example
-   * .emulateOperatorField('aField', Operator.In);
+   * .emulateFieldOperator('aField', Operator.In);
    */
-  emulateOperatorField(name: string, operator: Operator): this {
-    this.agentBuilder.lateOpEmulate.getCollection(this.name).emulateOperatorField(name, operator);
+  emulateFieldOperator(name: string, operator: Operator): this {
+    this.agentBuilder.lateOpEmulate.getCollection(this.name).emulateFieldOperator(name, operator);
 
     return this;
   }

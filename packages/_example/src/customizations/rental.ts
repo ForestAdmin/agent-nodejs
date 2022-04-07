@@ -15,7 +15,7 @@ export default (collection: Collection) =>
     })
     .emulateFieldSorting('numberOfDays')
     .removeField('startDate', 'endDate')
-    .emulateOperatorField('numberOfDays', Operator.GreaterThan)
+    .emulateFieldOperator('numberOfDays', Operator.GreaterThan)
     .addSegment(
       'More than 50 Days',
       new ConditionTreeLeaf('numberOfDays', Operator.GreaterThan, 50),

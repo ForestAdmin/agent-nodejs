@@ -19,7 +19,7 @@ export default class OperatorsEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<OperatorsEmulate>;
   private readonly fields: Map<string, Map<Operator, OperatorReplacer>> = new Map();
 
-  emulateOperatorField(name: string, operator: Operator): void {
+  emulateFieldOperator(name: string, operator: Operator): void {
     this.replaceFieldOperator(name, operator, null);
   }
 

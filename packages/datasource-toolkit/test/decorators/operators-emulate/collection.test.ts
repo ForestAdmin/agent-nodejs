@@ -45,8 +45,8 @@ describe('OperatorsEmulate', () => {
       newBooks = decoratedDataSource.getCollection('books');
     });
 
-    test('emulateOperatorField() should throw on any case', () => {
-      expect(() => newBooks.emulateOperatorField('title', Operator.GreaterThan)).toThrow(
+    test('emulateFieldOperator() should throw on any case', () => {
+      expect(() => newBooks.emulateFieldOperator('title', Operator.GreaterThan)).toThrow(
         "the primary key columns must support 'equal' and 'in' operators",
       );
     });
@@ -108,20 +108,20 @@ describe('OperatorsEmulate', () => {
       newPersons = decoratedDataSource.getCollection('persons');
     });
 
-    test('emulateOperatorField() should throw if the field does not exists', () => {
-      expect(() => newBooks.emulateOperatorField('__dontExist', Operator.Equal)).toThrow(
+    test('emulateFieldOperator() should throw if the field does not exists', () => {
+      expect(() => newBooks.emulateFieldOperator('__dontExist', Operator.Equal)).toThrow(
         "Column not found: 'books.__dontExist'",
       );
     });
 
-    test('emulateOperatorField() should throw if the field is a relation', () => {
-      expect(() => newBooks.emulateOperatorField('author', Operator.Equal)).toThrow(
+    test('emulateFieldOperator() should throw if the field is a relation', () => {
+      expect(() => newBooks.emulateFieldOperator('author', Operator.Equal)).toThrow(
         "Unexpected field type: 'books.author' (found 'ManyToOne' expected 'Column')",
       );
     });
 
-    test('emulateOperatorField() should throw if the field is in a relation', () => {
-      expect(() => newBooks.emulateOperatorField('author:firstName', Operator.Equal)).toThrow(
+    test('emulateFieldOperator() should throw if the field is in a relation', () => {
+      expect(() => newBooks.emulateFieldOperator('author:firstName', Operator.Equal)).toThrow(
         'Cannot replace operator for relation',
       );
     });
@@ -187,7 +187,7 @@ describe('OperatorsEmulate', () => {
 
     describe('when emulating an operator', () => {
       beforeEach(() => {
-        newPersons.emulateOperatorField('firstName', Operator.StartsWith);
+        newPersons.emulateFieldOperator('firstName', Operator.StartsWith);
       });
 
       test('schema() should support StartWith operator', () => {
@@ -250,8 +250,8 @@ describe('OperatorsEmulate', () => {
     describe('when() implementing an operator in the least efficient way ever', () => {
       beforeEach(() => {
         // Emulate title 'ShorterThan' and 'Contains'
-        newBooks.emulateOperatorField('title', Operator.ShorterThan);
-        newBooks.emulateOperatorField('title', Operator.Contains);
+        newBooks.emulateFieldOperator('title', Operator.ShorterThan);
+        newBooks.emulateFieldOperator('title', Operator.Contains);
 
         // Define 'Equal(x)' to be 'Contains(x) && ShorterThan(x.length + 1)'
         newBooks.replaceFieldOperator('title', Operator.Equal, async ({ value }) =>
