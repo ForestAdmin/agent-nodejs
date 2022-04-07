@@ -3,7 +3,6 @@ import {
   CollectionUtils,
   ColumnSchema,
   ConditionTreeLeaf,
-  FieldTypes,
   Operator,
   OperatorReplacer,
   PartialRelationSchema,
