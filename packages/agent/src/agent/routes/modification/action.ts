@@ -4,6 +4,7 @@ import {
   DataSource,
   Filter,
   FilterFactory,
+  PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
@@ -117,17 +118,21 @@ export default class ActionRoute extends CollectionRoute {
       await this.services.permissions.getScope(this.collection, context),
     );
 
-    let filter = ContextFilterFactory.build(this.collection, context, null, { conditionTree });
+    const filter = ContextFilterFactory.build(this.collection, context, null, { conditionTree });
     const attributes = context.request?.body?.data?.attributes;
 
     if (attributes?.parent_association_name) {
-      const parentCollection = this.dataSource.getCollection(attributes.parent_association_name);
-      const parentId = IdUtils.unpackId(parentCollection.schema, attributes.parent_collection_id);
-      const name = attributes.parent_association_name;
-
-      filter = await FilterFactory.makeForeignFilter(parentCollection, parentId, name, filter);
+      return this.applyActionOnlyOnRelation(attributes, filter);
     }
 
     return filter;
+  }
+
+  private applyActionOnlyOnRelation(attributes, filter: PaginatedFilter) {
+    const relation = attributes?.parent_association_name;
+    const parentCollection = this.dataSource.getCollection(attributes.parent_collection_name);
+    const parentId = IdUtils.unpackId(parentCollection.schema, attributes.parent_collection_id);
+
+    return FilterFactory.makeForeignFilter(parentCollection, parentId, relation, filter);
   }
 }

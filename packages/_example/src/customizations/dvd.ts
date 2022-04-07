@@ -20,10 +20,10 @@ export default (collection: Collection) =>
     })
     .renameField('rentalPrice', 'rentalPriceInDollar')
     .addAction('Increase the rental price', {
-      scope: ActionScope.Global,
+      scope: ActionScope.Bulk,
       execute: async (context, responseBuilder) => {
         const records = await context.collection.list(
-          new PaginatedFilter({}),
+          context.filter,
           new Projection('rentalPrice', 'id'),
         );
 
