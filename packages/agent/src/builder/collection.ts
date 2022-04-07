@@ -14,9 +14,7 @@ import {
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
 import { FieldDefinition } from './types';
-
 import AgentBuilder from './agent';
-import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
 
 export default class CollectionBuilder {
   private agentBuilder: AgentBuilder;
@@ -37,23 +35,28 @@ export default class CollectionBuilder {
    */
   importField(name: string, options: { path: string; beforeRelations?: boolean }): this {
     const collection = this.agentBuilder.lateComputed.getCollection(this.name);
+    const { path, beforeRelations } = options;
     const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
-    const filterBy: Partial<Record<Operator, OperatorReplacer>> = {};
 
-    for (const operator of schema.filterOperators) {
-      filterBy[operator] = async value => new ConditionTreeLeaf(options.path, operator, value);
-    }
-
-    return this.addField(name, {
-      beforeRelations: options.beforeRelations,
+    this.addField(name, {
+      beforeRelations,
       columnType: schema.columnType,
       defaultValue: schema.defaultValue,
-      dependencies: [options.path],
-      getValues: records => records.map(r => RecordUtils.getFieldValue(r, options.path)),
+      dependencies: new Projection(path),
+      getValues: records => records.map(r => RecordUtils.getFieldValue(r, path)),
       enumValues: schema.enumValues,
-      filterBy,
-      sortBy: [{ field: options.path, ascending: true }],
     });
+
+    for (const operator of schema.filterOperators) {
+      const handler = (value: unknown) => new ConditionTreeLeaf(path, operator, value);
+      this.replaceFieldOperator(name, operator, handler);
+    }
+
+    if (schema.isSortable) {
+      this.replaceFieldSorting(name, [{ field: path, ascending: true }]);
+    }
+
+    return this;
   }
 
   /**
@@ -112,41 +115,12 @@ export default class CollectionBuilder {
    * });
    */
   addField(name: string, definition: FieldDefinition): this {
-    // Compute
-    const computed = definition.beforeRelations
+    const { beforeRelations, ...computedDefinition } = definition;
+    const collection = definition.beforeRelations
       ? this.agentBuilder.earlyComputed.getCollection(this.name)
       : this.agentBuilder.lateComputed.getCollection(this.name);
 
-    computed.registerComputed(name, {
-      columnType: definition.columnType,
-      dependencies: new Projection(...definition.dependencies),
-      getValues: definition.getValues,
-    });
-
-    // Sort
-    if (definition.sortBy) {
-      const sort = this.agentBuilder.sortEmulate.getCollection(this.name);
-      if (definition.sortBy === 'emulate') sort.emulateFieldSorting(name);
-
-      if (Array.isArray(definition.sortBy)) {
-        sort.replaceFieldSorting(name, new Sort(...definition.sortBy));
-      }
-    }
-
-    // Filter
-    if (definition.filterBy) {
-      const { filterBy } = definition;
-      const operators = FrontendFilterableUtils.getRequiredOperators(definition.columnType) ?? [];
-      const operatorEmulate = definition.beforeRelations
-        ? this.agentBuilder.earlyOpEmulate.getCollection(this.name)
-        : this.agentBuilder.lateOpEmulate.getCollection(this.name);
-
-      for (const operator of operators) {
-        const implementation = filterBy === 'emulate' ? 'emulate' : filterBy[operator] ?? 'emulate';
-        if (implementation === 'emulate') operatorEmulate.emulateFieldOperator(name, operator);
-        else operatorEmulate.replaceFieldOperator(name, operator as Operator, implementation);
-      }
-    }
+    collection.registerComputed(name, computedDefinition);
 
     return this;
   }
@@ -229,7 +203,11 @@ export default class CollectionBuilder {
    * .emulateFieldOperator('aField', Operator.In);
    */
   emulateFieldOperator(name: string, operator: Operator): this {
-    this.agentBuilder.lateOpEmulate.getCollection(this.name).emulateFieldOperator(name, operator);
+    const collection = this.agentBuilder.earlyOpEmulate.getCollection(this.name).schema.fields[name]
+      ? this.agentBuilder.earlyOpEmulate.getCollection(this.name)
+      : this.agentBuilder.lateOpEmulate.getCollection(this.name);
+
+    collection.emulateFieldOperator(name, operator);
 
     return this;
   }
@@ -246,9 +224,11 @@ export default class CollectionBuilder {
    * ));
    */
   replaceFieldOperator(name: string, operator: Operator, replacer: OperatorReplacer): this {
-    this.agentBuilder.lateOpEmulate
-      .getCollection(this.name)
-      .replaceFieldOperator(name, operator, replacer);
+    const collection = this.agentBuilder.earlyOpEmulate.getCollection(this.name).schema.fields[name]
+      ? this.agentBuilder.earlyOpEmulate.getCollection(this.name)
+      : this.agentBuilder.lateOpEmulate.getCollection(this.name);
+
+    collection.replaceFieldOperator(name, operator, replacer);
 
     return this;
   }

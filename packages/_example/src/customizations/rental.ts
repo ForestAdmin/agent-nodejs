@@ -1,11 +1,16 @@
 import { Collection } from '@forestadmin/agent';
-import { ConditionTreeLeaf, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeLeaf,
+  Operator,
+  PrimitiveTypes,
+  Projection,
+} from '@forestadmin/datasource-toolkit';
 
 export default (collection: Collection) =>
   collection
     .addField('numberOfDays', {
       columnType: PrimitiveTypes.Number,
-      dependencies: ['startDate', 'endDate'],
+      dependencies: new Projection('startDate', 'endDate'),
       getValues: records =>
         records.map((record: { startDate: Date; endDate: Date }) => {
           const timeDifference = record.endDate.getTime() - record.startDate.getTime();

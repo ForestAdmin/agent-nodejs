@@ -1,5 +1,5 @@
 import { Collection } from '@forestadmin/agent';
-import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { FieldTypes, PrimitiveTypes, Projection } from '@forestadmin/datasource-toolkit';
 
 export default (collection: Collection) =>
   collection
@@ -11,7 +11,7 @@ export default (collection: Collection) =>
     })
     .addField('fullName', {
       columnType: PrimitiveTypes.String,
-      dependencies: ['firstName', 'lastName'],
+      dependencies: new Projection('firstName', 'lastName'),
       getValues: records => records.map(record => `${record.firstName} ${record.lastName}`),
     })
     .replaceFieldWriting('fullName', ({ patch: fullName }) => {
