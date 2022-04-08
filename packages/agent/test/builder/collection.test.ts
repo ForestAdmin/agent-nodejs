@@ -28,7 +28,7 @@ describe('Builder > Collection', () => {
         schema: factories.collectionSchema.build({
           fields: {
             firstName: factories.columnSchema.build({ isSortable: true }),
-            lastName: factories.columnSchema.build(),
+            lastName: factories.columnSchema.build({ filterOperators: new Set() }),
           },
         }),
       }),
@@ -230,7 +230,7 @@ describe('Builder > Collection', () => {
       const collection = agent.earlyOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
-      const self = collectionBuilder.emulateFieldFiltering('firstName');
+      const self = collectionBuilder.emulateFieldFiltering('lastName');
 
       expect(spy).toBeCalledTimes(9);
       expect(self).toEqual(collectionBuilder);
