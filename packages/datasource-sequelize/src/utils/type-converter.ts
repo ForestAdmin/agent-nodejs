@@ -47,6 +47,7 @@ export default class TypeConverter {
     HSTORE: null,
     INET: null,
     INTEGER: 'Number',
+    JSON: 'Json',
     JSONB: 'Json',
     JSONTYPE: null,
     MACADDR: null,

@@ -132,6 +132,13 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             validation: [],
             type: 'Column',
           },
+          myJson: {
+            columnType: 'Json',
+            filterOperators: TypeConverter.operatorsForDataType(DataTypes.JSON),
+            defaultValue: { defautProperty: 'the value' },
+            validation: [],
+            type: 'Column',
+          },
         },
         searchable: false,
         segments: [],
@@ -157,6 +164,10 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           },
           myEnum: {
             type: DataTypes.ENUM('enum1', 'enum2', 'enum3'),
+          },
+          myJson: {
+            type: DataTypes.JSON,
+            defaultValue: { defautProperty: 'the value' },
           },
         },
         { timestamps: true },

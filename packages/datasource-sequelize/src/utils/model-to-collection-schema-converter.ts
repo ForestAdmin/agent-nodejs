@@ -104,9 +104,10 @@ export default class ModelToCollectionSchemaConverter {
     if (
       attribute.defaultValue !== null &&
       attribute.defaultValue !== undefined &&
-      typeof attribute.defaultValue !== 'object'
-    )
+      (columnType === 'Json' || typeof attribute.defaultValue !== 'object')
+    ) {
       column.defaultValue = attribute.defaultValue;
+    }
 
     if (attribute.values) {
       column.enumValues = [...attribute.values];
