@@ -60,7 +60,6 @@
   - [Create a Shipping view](frontend-customization/smart-views/create-a-shipping-view.md)
   - [Create a Gallery view](frontend-customization/smart-views/create-a-gallery-view.md)
   - [Create a custom tinder-like validation view](frontend-customization/smart-views/create-a-custom-tinder-like-validation-view.md)
-  - [Create a dynamic calendar view for an event-booking use case](frontend-customization/smart-views/create-a-dynamic-calendar-view-for-an-event-booking-use-case.md)
   - [Create a custom moderation view](frontend-customization/smart-views/create-a-custom-moderation-view.md)
 
 ## Deploying to production
