@@ -1,7 +1,15 @@
-import ConditionTree from '../condition-tree/nodes/base';
+import ConditionTree, { PlainConditionTree } from '../condition-tree/nodes/base';
 
 export type FilterComponents = {
   conditionTree?: ConditionTree;
+  search?: string;
+  searchExtended?: boolean;
+  segment?: string;
+  timezone?: string;
+};
+
+export type PlainFilter = {
+  conditionTree?: PlainConditionTree;
   search?: string;
   searchExtended?: boolean;
   segment?: string;

@@ -6,6 +6,7 @@ import {
 } from '../../interfaces/schema';
 import { Operator } from '../../interfaces/query/condition-tree/nodes/operators';
 import { OperatorReplacer } from './types';
+import CollectionCustomizationContext from '../../context/collection-context';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
@@ -116,22 +117,19 @@ export default class OperatorsEmulate extends CollectionDecorator {
         throw new Error(`Operator replacement cycle: ${subReplacements.join(' -> ')}`);
       }
 
-      let equivalentTree: ConditionTree;
+      const result = await handler(leaf.value, new CollectionCustomizationContext(this, timezone));
 
-      if (typeof handler === 'function') {
-        equivalentTree = await handler({ value: leaf.value, dataSource: this.dataSource });
-      } else {
-        equivalentTree = handler;
-      }
+      if (result) {
+        let equivalent =
+          result instanceof ConditionTree ? result : ConditionTreeFactory.fromPlainObject(result);
 
-      if (equivalentTree) {
-        equivalentTree = await equivalentTree.replaceLeafsAsync(subLeaf =>
+        equivalent = await equivalent.replaceLeafsAsync(subLeaf =>
           this.replaceLeaf(subLeaf, subReplacements, timezone),
         );
 
-        ConditionTreeValidator.validate(equivalentTree, this);
+        ConditionTreeValidator.validate(equivalent, this);
 
-        return equivalentTree;
+        return equivalent;
       }
     }
 

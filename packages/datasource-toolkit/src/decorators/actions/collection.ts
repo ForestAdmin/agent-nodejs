@@ -1,9 +1,8 @@
 import { Action, ActionBulk, ActionGlobal, ActionSingle } from './types/actions';
 import { ActionField, ActionResult } from '../../interfaces/action';
 import { CollectionSchema } from '../../interfaces/schema';
-import { DynamicField } from './types/fields';
+import { DynamicField, ValueOrHandler } from './types/fields';
 import { RecordData } from '../../interfaces/record';
-import { ValueOrHandler } from '../fields';
 import ActionContext from './context/base';
 import ActionContextBulk from './context/bulk';
 import ActionContextSingle from './context/single';

@@ -1,22 +1,16 @@
 import { ColumnType } from '../../interfaces/schema';
-import { DataSource } from '../../interfaces/collection';
 import { RecordData } from '../../interfaces/record';
-import Projection from '../../interfaces/query/projection';
-
-export type ComputedContext = {
-  dataSource: DataSource;
-};
+import CollectionCustomizationContext from '../../context/collection-context';
 
 export interface ComputedDefinition {
   readonly columnType: ColumnType;
-  readonly dependencies: Projection;
+  readonly dependencies: string[];
   readonly isRequired?: boolean;
   readonly defaultValue?: unknown;
   readonly enumValues?: string[];
 
-  getValues(records: RecordData[], context: ComputedContext): Promise<unknown[]> | unknown[];
-}
-
-export interface ProxyDefinition {
-  path: string;
+  getValues(
+    records: RecordData[],
+    context: CollectionCustomizationContext,
+  ): Promise<unknown[]> | unknown[];
 }

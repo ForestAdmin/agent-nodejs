@@ -1,24 +1,20 @@
-import { Collection, DataSource } from '../../../interfaces/collection';
+import { Collection } from '../../../interfaces/collection';
 import { RecordData } from '../../../interfaces/record';
+import CollectionCustomizationContext from '../../../context/collection-context';
 import Deferred from '../../../utils/async';
 import Filter from '../../../interfaces/query/filter/unpaginated';
 import Projection from '../../../interfaces/query/projection';
 import ProjectionValidator from '../../../validation/projection';
 
-export default class ActionContext {
-  readonly collection: Collection;
+export default class ActionContext extends CollectionCustomizationContext {
   readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   readonly filter: Filter;
 
   private queries: Array<{ projection: Projection; deferred: Deferred<RecordData[]> }>;
   private projection: Projection;
 
-  get dataSource(): DataSource {
-    return this.collection.dataSource;
-  }
-
   constructor(collection: Collection, formValue: RecordData, filter: Filter, used?: Set<string>) {
-    this.collection = collection;
+    super(collection, filter?.timezone);
     this.formValues = formValue;
     this.filter = filter;
     this.reset();

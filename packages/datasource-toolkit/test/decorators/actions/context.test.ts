@@ -9,6 +9,7 @@ describe('ActionContext', () => {
 
   beforeEach(() => {
     books = factories.collection.build({
+      dataSource: factories.dataSource.build(),
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
@@ -58,13 +59,6 @@ describe('ActionContext', () => {
     expect(() => {
       context.formValues.title = 'toto';
     }).toThrow('formValues is readonly');
-  });
-
-  test('should return the current collection datasource', () => {
-    const filter = new Filter({ timezone: 'Europe/Paris' });
-    const context = new ActionContextSingle(books, { title: 'Foundation' }, filter);
-
-    expect(context.dataSource).toBe(books.dataSource);
   });
 
   test('should work in bulk mode', async () => {

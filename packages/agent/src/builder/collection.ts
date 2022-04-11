@@ -2,15 +2,12 @@ import {
   ActionDefinition,
   CollectionUtils,
   ColumnSchema,
-  ConditionTreeLeaf,
   Operator,
   OperatorReplacer,
   PartialRelationSchema,
-  Projection,
+  PlainSortClause,
   RecordUtils,
   SegmentDefinition,
-  Sort,
-  SortClause,
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
 import { FieldDefinition } from './types';
@@ -42,13 +39,13 @@ export default class CollectionBuilder {
       beforeRelations: options.beforeRelations,
       columnType: schema.columnType,
       defaultValue: schema.defaultValue,
-      dependencies: new Projection(options.path),
+      dependencies: [options.path],
       getValues: records => records.map(r => RecordUtils.getFieldValue(r, options.path)),
       enumValues: schema.enumValues,
     });
 
     for (const operator of schema.filterOperators) {
-      const handler = (value: unknown) => new ConditionTreeLeaf(options.path, operator, value);
+      const handler = (value: unknown) => ({ field: options.path, operator, value });
       this.replaceFieldOperator(name, operator, handler);
     }
 
@@ -153,7 +150,7 @@ export default class CollectionBuilder {
    *    new ConditionTreeLeaf('booksCount', 'GreaterThan', 2),
    * );
    */
-  addSegment(name: string, definition: SegmentDefinition) {
+  addSegment(name: string, definition: SegmentDefinition): this {
     this.agentBuilder.segment.getCollection(this.name).addSegment(name, definition);
 
     return this;
@@ -186,10 +183,10 @@ export default class CollectionBuilder {
    *   ]
    * )
    */
-  replaceFieldSorting(name: string, equivalentSort: SortClause[]): this {
+  replaceFieldSorting(name: string, equivalentSort: PlainSortClause[]): this {
     this.agentBuilder.sortEmulate
       .getCollection(this.name)
-      .replaceFieldSorting(name, new Sort(...equivalentSort));
+      .replaceFieldSorting(name, equivalentSort);
 
     return this;
   }

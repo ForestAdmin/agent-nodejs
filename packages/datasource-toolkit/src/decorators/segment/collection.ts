@@ -1,5 +1,6 @@
 import { CollectionSchema } from '../../interfaces/schema';
 import { SegmentDefinition } from './types';
+import CollectionCustomizationContext from '../../context/collection-context';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
@@ -30,17 +31,13 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
 
     if (segment && this.segments[segment]) {
       const definition = this.segments[segment];
+      const result =
+        typeof definition === 'function'
+          ? await definition(new CollectionCustomizationContext(this, filter.timezone))
+          : await definition;
 
-      let conditionTreeSegment: ConditionTree;
-
-      if (typeof definition === 'function') {
-        conditionTreeSegment = await definition({
-          timezone: filter.timezone,
-          dataSource: this.dataSource,
-        });
-      } else {
-        conditionTreeSegment = definition;
-      }
+      const conditionTreeSegment =
+        result instanceof ConditionTree ? result : ConditionTreeFactory.fromPlainObject(result);
 
       ConditionTreeValidator.validate(conditionTreeSegment, this);
 

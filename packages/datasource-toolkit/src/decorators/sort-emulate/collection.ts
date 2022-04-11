@@ -13,7 +13,7 @@ import Filter from '../../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
 import RecordUtils from '../../utils/record';
-import Sort, { SortClause } from '../../interfaces/query/sort';
+import Sort, { PlainSortClause } from '../../interfaces/query/sort';
 
 export default class SortEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<SortEmulate>;
@@ -23,19 +23,19 @@ export default class SortEmulate extends CollectionDecorator {
     this.replaceFieldSorting(name, null);
   }
 
-  replaceFieldSorting(name: string, equivalentSort: Sort): void {
+  replaceFieldSorting(name: string, equivalentSort: PlainSortClause[]): void {
     FieldValidator.validate(this, name);
 
     const field = this.childCollection.schema.fields[name] as ColumnSchema;
     if (!field) throw new Error('Cannot replace sort on relation');
 
-    this.sorts.set(name, equivalentSort);
+    this.sorts.set(name, new Sort(...equivalentSort));
     this.markSchemaAsDirty();
   }
 
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
     const childFilter = filter.override({
-      sort: filter.sort?.replaceClauses(clause => this.rewriteSortClause(clause)),
+      sort: filter.sort?.replaceClauses(clause => this.rewritePlainSortClause(clause)),
     });
 
     if (!childFilter.sort?.some(({ field }) => this.isEmulated(field))) {
@@ -91,7 +91,7 @@ export default class SortEmulate extends CollectionDecorator {
     return sorted;
   }
 
-  private rewriteSortClause(clause: SortClause): Sort {
+  private rewritePlainSortClause(clause: PlainSortClause): Sort {
     // Order by is targeting a field on another collection => recurse.
     if (clause.field.includes(':')) {
       const [prefix] = clause.field.split(':');
@@ -100,7 +100,7 @@ export default class SortEmulate extends CollectionDecorator {
 
       return new Sort(clause)
         .unnest()
-        .replaceClauses(subClause => association.rewriteSortClause(subClause))
+        .replaceClauses(subClause => association.rewritePlainSortClause(subClause))
         .nest(prefix);
     }
 
@@ -110,7 +110,7 @@ export default class SortEmulate extends CollectionDecorator {
     if (equivalentSort) {
       if (!clause.ascending) equivalentSort = equivalentSort.inverse();
 
-      return equivalentSort.replaceClauses(subClause => this.rewriteSortClause(subClause));
+      return equivalentSort.replaceClauses(subClause => this.rewritePlainSortClause(subClause));
     }
 
     return new Sort(clause);

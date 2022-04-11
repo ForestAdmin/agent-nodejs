@@ -19,6 +19,6 @@ export default function rewriteField(collection: ComputedCollection, path: strin
   const computed = collection.getComputed(path);
 
   return computed
-    ? computed.dependencies.replace(depPath => rewriteField(collection, depPath))
+    ? new Projection(...computed.dependencies).replace(depPath => rewriteField(collection, depPath))
     : new Projection(path);
 }

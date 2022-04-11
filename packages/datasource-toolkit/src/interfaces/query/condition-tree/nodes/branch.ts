@@ -1,4 +1,10 @@
-import { AsyncLeafReplacer, LeafCallback, LeafComponents, LeafReplacer, LeafTester } from './leaf';
+import {
+  AsyncLeafReplacer,
+  LeafCallback,
+  LeafReplacer,
+  LeafTester,
+  PlainConditionTreeLeaf,
+} from './leaf';
 import { Collection } from '../../../collection';
 import { RecordData } from '../../../record';
 import ConditionTree from './base';
@@ -6,9 +12,9 @@ import Projection from '../../projection';
 
 export type Aggregator = 'And' | 'Or';
 
-export type BranchComponents = {
+export type PlainConditionTreeBranch = {
   aggregator: Aggregator;
-  conditions: Array<BranchComponents | LeafComponents>;
+  conditions: Array<PlainConditionTreeBranch | PlainConditionTreeLeaf>;
 };
 
 export default class ConditionTreeBranch extends ConditionTree {
