@@ -14,9 +14,16 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
 
     this.sequelize = sequelize;
 
-    Object.values(sequelize.models).forEach(model => {
-      const collection = new SequelizeCollection(model.name, this, model);
-      this.addCollection(collection);
-    });
+    this.createCollections(this.sequelize.models);
+  }
+
+  protected createCollections(models: Sequelize['models']) {
+    Object.values(models)
+      // avoid schema reordering
+      .sort((modelA, modelB) => (modelA.name > modelB.name ? 1 : -1))
+      .forEach(model => {
+        const collection = new SequelizeCollection(model.name, this, model);
+        this.addCollection(collection);
+      });
   }
 }
