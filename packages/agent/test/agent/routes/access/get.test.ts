@@ -1,4 +1,3 @@
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -13,9 +12,7 @@ describe('GetRoute', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          name: factories.columnSchema.build({
-            columnType: PrimitiveTypes.String,
-          }),
+          name: factories.columnSchema.build({ columnType: 'String' }),
           author: factories.oneToOneSchema.build({
             foreignCollection: 'persons',
             originKey: 'bookId',
@@ -29,7 +26,7 @@ describe('GetRoute', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          bookId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+          bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
         },
       }),
     }),
@@ -63,7 +60,7 @@ describe('GetRoute', () => {
         {
           conditionTree: {
             field: 'id',
-            operator: 'equal',
+            operator: 'Equal',
             value: '2d162303-78bf-599e-b197-93590ac3d315',
           },
         },

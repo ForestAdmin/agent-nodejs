@@ -20,7 +20,7 @@ class MovieCollection extends BaseCollection {
     // [...]
 
     this.addRelation('director', {
-      type: FieldTypes.ManyToOne,
+      type: 'ManyToOne',
       foreignCollection: 'people',
       foreignKey: 'directorId',
       foreignKeyTarget: 'id',
@@ -36,10 +36,10 @@ Then the collection must accept references to fields from the `people` collectio
 await dataSource.getCollection('movies').list(
   {
     conditionTree: {
-      aggregator: 'and',
+      aggregator: 'And',
       conditions: [
-        { field: 'title', operator: 'equal', value: 'E.T.' },
-        { field: 'director:firstName', operator: 'equal', value: 'Stephen' },
+        { field: 'title', operator: 'Equal', value: 'E.T.' },
+        { field: 'director:firstName', operator: 'Equal', value: 'Stephen' },
       ]
     }.
     sort: [{ field: 'director:birthDate', ascending: true }]
@@ -71,7 +71,6 @@ At the cost of performance, everything would then work out of the box.
 ```javascript
 const {
   DataSourceDecorator,
-  FieldTypes,
   JointureCollectionDecorator,
 } = require('@forestadmin/datasource-toolkit');
 const MyDataSource = require('./datasource');
@@ -81,7 +80,7 @@ module.exports = function makeMyDataSourceWithRelations() {
   const jointures = new DataSourceDecorator(myDataSource, JointureCollectionDecorator);
 
   jointures.getCollection('movies').addJointure('director', {
-    type: FieldTypes.ManyToOne,
+    type: 'ManyToOne',
     foreignCollection: 'people',
     foreignKey: 'directorId',
     foreignKeyTarget: 'id',

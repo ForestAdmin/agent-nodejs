@@ -1,22 +1,16 @@
-import {
-  DataSource,
-  FieldSchema,
-  FieldTypes,
-  PrimitiveTypes,
-  RecordData,
-} from '@forestadmin/datasource-toolkit';
+import { DataSource, FieldSchema, RecordData } from '@forestadmin/datasource-toolkit';
 import BaseDummyCollection from './base';
 
 export default class LibrariesBooksCollection extends BaseDummyCollection {
   private static schema: Record<string, FieldSchema> = {
     bookId: {
-      type: FieldTypes.Column,
-      columnType: PrimitiveTypes.Number,
+      type: 'Column',
+      columnType: 'Number',
       isPrimaryKey: true,
     },
     libraryId: {
-      type: FieldTypes.Column,
-      columnType: PrimitiveTypes.Number,
+      type: 'Column',
+      columnType: 'Number',
       isPrimaryKey: true,
     },
   };

@@ -1,12 +1,4 @@
-import {
-  ActionFieldType,
-  ActionResult,
-  ActionResultType,
-  ActionScope,
-  DataSource,
-  Filter,
-  Operator,
-} from '@forestadmin/datasource-toolkit';
+import { ActionResult, DataSource, Filter } from '@forestadmin/datasource-toolkit';
 import { Readable } from 'stream';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import Router from '@koa/router';
@@ -30,7 +22,7 @@ describe('ActionRoute', () => {
         schema: { actions: { My_Action: {} } },
         getForm: jest.fn().mockResolvedValue([
           {
-            type: ActionFieldType.String,
+            type: 'String',
             label: 'a field',
             watchChanges: false,
           },
@@ -79,12 +71,10 @@ describe('ActionRoute', () => {
         factories.collection.build({
           name: 'books',
           schema: {
-            actions: { My_Action: { scope: ActionScope.Single } },
+            actions: { My_Action: { scope: 'Single' } },
             fields: { id: factories.columnSchema.isPrimaryKey().build() },
           },
-          getForm: jest
-            .fn()
-            .mockResolvedValue([{ type: ActionFieldType.String, label: 'firstname' }]),
+          getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
           execute: jest.fn(),
         }),
       ]);
@@ -114,7 +104,7 @@ describe('ActionRoute', () => {
       });
 
       (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
-        type: ActionResultType.Error,
+        type: 'Error',
         message: 'the result does not matter',
       });
 
@@ -137,7 +127,7 @@ describe('ActionRoute', () => {
       });
 
       (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
-        type: ActionResultType.Error,
+        type: 'Error',
         message: 'the result does not matter',
       });
 
@@ -149,7 +139,7 @@ describe('ActionRoute', () => {
         {
           conditionTree: {
             field: 'id',
-            operator: 'equal',
+            operator: 'Equal',
             value: '123e4567-e89b-12d3-a456-426614174000',
           },
           search: null,
@@ -164,7 +154,7 @@ describe('ActionRoute', () => {
       [
         'Success (text)',
         {
-          type: ActionResultType.Success,
+          type: 'Success',
           message: 'it went great!',
           format: 'text',
           invalidated: new Set(),
@@ -174,7 +164,7 @@ describe('ActionRoute', () => {
       [
         'Success (html)',
         {
-          type: ActionResultType.Success,
+          type: 'Success',
           message: 'it went great!',
           format: 'html',
           invalidated: new Set(),
@@ -183,13 +173,13 @@ describe('ActionRoute', () => {
       ],
       [
         'Error',
-        { type: ActionResultType.Error, message: 'it went very badly!' },
+        { type: 'Error', message: 'it went very badly!' },
         { error: 'it went very badly!' },
       ],
       [
         'Webhook',
         {
-          type: ActionResultType.Webhook,
+          type: 'Webhook',
           url: 'google.com',
           method: 'POST',
           headers: {},
@@ -201,7 +191,7 @@ describe('ActionRoute', () => {
       ],
       [
         'Redirect',
-        { type: ActionResultType.Redirect, path: '/route-that-the-frontend-should-go-to' },
+        { type: 'Redirect', path: '/route-that-the-frontend-should-go-to' },
         { redirectTo: '/route-that-the-frontend-should-go-to' },
       ],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -242,7 +232,7 @@ describe('ActionRoute', () => {
         const stream = Readable.from(['header1,header2mcontent1,content2']);
 
         (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
-          type: ActionResultType.File,
+          type: 'File',
           name: 'filename.csv',
           mimeType: 'text/csv',
           stream,
@@ -264,12 +254,10 @@ describe('ActionRoute', () => {
             factories.collection.build({
               name: 'reviews',
               schema: {
-                actions: { My_Action: { scope: ActionScope.Bulk } },
+                actions: { My_Action: { scope: 'Bulk' } },
                 fields: { id: factories.columnSchema.isPrimaryKey().build() },
               },
-              getForm: jest
-                .fn()
-                .mockResolvedValue([{ type: ActionFieldType.String, label: 'firstname' }]),
+              getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
               execute: jest.fn(),
             }),
             factories.collection.build({
@@ -282,9 +270,7 @@ describe('ActionRoute', () => {
                   }),
                 },
               },
-              getForm: jest
-                .fn()
-                .mockResolvedValue([{ type: ActionFieldType.String, label: 'firstname' }]),
+              getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
               execute: jest.fn(),
             }),
           ]);
@@ -318,7 +304,7 @@ describe('ActionRoute', () => {
             },
           });
           dataSource.getCollection('reviews').execute = jest.fn().mockReturnValue({
-            type: ActionResultType.Webhook,
+            type: 'Webhook',
           });
 
           await handleExecute.call(route, context);
@@ -329,7 +315,7 @@ describe('ActionRoute', () => {
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 field: 'reviewId',
-                operator: Operator.Equal,
+                operator: 'Equal',
                 value: '00000000-0000-4000-8000-000000000000',
               }),
               search: null,
@@ -369,7 +355,7 @@ describe('ActionRoute', () => {
       expect(dataSource.getCollection('books').getForm).toHaveBeenCalledWith('My_Action', null, {
         conditionTree: {
           field: 'id',
-          operator: 'equal',
+          operator: 'Equal',
           value: '123e4567-e89b-12d3-a456-426614174000',
         },
         search: null,
@@ -402,7 +388,7 @@ describe('ActionRoute', () => {
         {
           conditionTree: {
             field: 'id',
-            operator: 'equal',
+            operator: 'Equal',
             value: '123e4567-e89b-12d3-a456-426614174000',
           },
           search: null,

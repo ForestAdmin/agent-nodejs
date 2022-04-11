@@ -1,13 +1,10 @@
 import {
   ActionResult,
-  ActionResultType,
-  ActionScope,
   AggregateResult,
   Aggregation,
   BaseCollection,
   DataSource,
   FieldSchema,
-  FieldTypes,
   Filter,
   Operator,
   PaginatedFilter,
@@ -16,22 +13,22 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 export default class BaseDummyCollection extends BaseCollection {
-  private static supportedOperators = new Set([
-    Operator.Blank,
-    Operator.Contains,
-    Operator.StartsWith,
-    Operator.EndsWith,
-    Operator.LessThan,
-    Operator.Equal,
-    Operator.GreaterThan,
-    Operator.In,
-    Operator.IncludesAll,
-    Operator.ShorterThan,
-    Operator.LongerThan,
-    Operator.Present,
-    Operator.NotContains,
-    Operator.NotEqual,
-    Operator.NotIn,
+  private static supportedOperators = new Set<Operator>([
+    'Blank',
+    'Contains',
+    'StartsWith',
+    'EndsWith',
+    'LessThan',
+    'Equal',
+    'GreaterThan',
+    'In',
+    'IncludesAll',
+    'ShorterThan',
+    'LongerThan',
+    'Present',
+    'NotContains',
+    'NotEqual',
+    'NotIn',
   ]);
 
   protected records: RecordData[] = [];
@@ -39,11 +36,11 @@ export default class BaseDummyCollection extends BaseCollection {
   constructor(datasource: DataSource, name: string, fields: Record<string, FieldSchema>) {
     super(name, datasource);
     this.addFields(fields);
-    this.addAction('Mark as Live', { scope: ActionScope.Bulk, staticForm: true });
+    this.addAction('Mark as Live', { scope: 'Bulk', staticForm: true });
 
     // filters/sort is supported
     for (const schema of Object.values(this.schema.fields)) {
-      if (schema.type === FieldTypes.Column) {
+      if (schema.type === 'Column') {
         schema.filterOperators = BaseDummyCollection.supportedOperators;
         schema.isSortable = true;
       }
@@ -106,7 +103,7 @@ export default class BaseDummyCollection extends BaseCollection {
 
   override async execute(): Promise<ActionResult> {
     return {
-      type: ActionResultType.Success,
+      type: 'Success',
       message: 'Record set as active',
       format: 'text',
       invalidated: new Set(),

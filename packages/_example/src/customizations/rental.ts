@@ -1,15 +1,10 @@
 import { Collection } from '@forestadmin/agent';
-import {
-  ConditionTreeLeaf,
-  Operator,
-  PrimitiveTypes,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
+import { ConditionTreeLeaf, Projection } from '@forestadmin/datasource-toolkit';
 
 export default (collection: Collection) =>
   collection
     .addField('numberOfDays', {
-      columnType: PrimitiveTypes.Number,
+      columnType: 'Number',
       dependencies: new Projection('startDate', 'endDate'),
       getValues: records =>
         records.map((record: { startDate: Date; endDate: Date }) => {
@@ -20,8 +15,5 @@ export default (collection: Collection) =>
     })
     .emulateFieldSorting('numberOfDays')
     .removeField('startDate', 'endDate')
-    .emulateFieldOperator('numberOfDays', Operator.GreaterThan)
-    .addSegment(
-      'More than 50 Days',
-      new ConditionTreeLeaf('numberOfDays', Operator.GreaterThan, 50),
-    );
+    .emulateFieldOperator('numberOfDays', 'GreaterThan')
+    .addSegment('More than 50 Days', new ConditionTreeLeaf('numberOfDays', 'GreaterThan', 50));

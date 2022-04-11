@@ -1,25 +1,17 @@
-import {
-  ActionFieldType,
-  ActionScope,
-  ConditionTreeLeaf,
-  FieldTypes,
-  Filter,
-  Operator,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
 import { Collection } from '@forestadmin/agent';
+import { ConditionTreeLeaf, Filter, Projection } from '@forestadmin/datasource-toolkit';
 
 export default (collection: Collection) =>
   collection
     .addRelation('store', {
-      type: FieldTypes.ManyToOne,
+      type: 'ManyToOne',
       foreignKey: 'storeId',
       foreignKeyTarget: 'id',
       foreignCollection: 'store',
     })
     .renameField('rentalPrice', 'rentalPriceInDollar')
     .addAction('Increase the rental price', {
-      scope: ActionScope.Bulk,
+      scope: 'Bulk',
       execute: async (context, responseBuilder) => {
         const records = await context.collection.list(
           context.filter,
@@ -32,7 +24,7 @@ export default (collection: Collection) =>
           (record: { id: string; rentalPrice: number }): Promise<void> =>
             context.collection.update(
               new Filter({
-                conditionTree: new ConditionTreeLeaf('id', Operator.Equal, record.id),
+                conditionTree: new ConditionTreeLeaf('id', 'Equal', record.id),
               }),
               { rentalPrice: record.rentalPrice + record.rentalPrice * givenPercentage },
             ),
@@ -44,7 +36,7 @@ export default (collection: Collection) =>
       form: [
         {
           label: 'percentage',
-          type: ActionFieldType.Number,
+          type: 'Number',
           defaultValue: 10,
           isRequired: true,
         },

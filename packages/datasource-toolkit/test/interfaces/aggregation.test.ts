@@ -1,12 +1,9 @@
-import Aggregation, {
-  AggregationOperation,
-  DateOperation,
-} from '../../src/interfaces/query/aggregation';
+import Aggregation from '../../src/interfaces/query/aggregation';
 
 describe('Aggregation', () => {
   describe('count(*) with no grouping', () => {
     const aggregation = new Aggregation({
-      operation: AggregationOperation.Count,
+      operation: 'Count',
     });
 
     test('projection should work', () => {
@@ -21,14 +18,14 @@ describe('Aggregation', () => {
 
   describe('count(column) with simple grouping', () => {
     const aggregation = new Aggregation({
-      operation: AggregationOperation.Count,
+      operation: 'Count',
       field: 'id',
       groups: [{ field: 'discriminant' }],
     });
 
     test('replaceFields should work', () => {
       expect(aggregation.replaceFields(field => `prefix:${field}`)).toEqual({
-        operation: AggregationOperation.Count,
+        operation: 'Count',
         field: 'prefix:id',
         groups: [{ field: 'prefix:discriminant' }],
       });
@@ -56,7 +53,7 @@ describe('Aggregation', () => {
     test('nest() should nest the field and the group fields by adding a prefix', () => {
       expect(aggregation.nest('prefix')).toEqual(
         new Aggregation({
-          operation: AggregationOperation.Count,
+          operation: 'Count',
           field: 'prefix:id',
           groups: [{ field: 'prefix:discriminant' }],
         }),
@@ -70,7 +67,7 @@ describe('Aggregation', () => {
 
   describe('count(*) with simple grouping', () => {
     const aggregation = new Aggregation({
-      operation: AggregationOperation.Count,
+      operation: 'Count',
       groups: [{ field: 'discriminant' }],
     });
 
@@ -90,11 +87,11 @@ describe('Aggregation', () => {
     });
   });
 
-  describe('sum with ToYear grouping', () => {
+  describe('sum with Year grouping', () => {
     const aggregation = new Aggregation({
-      operation: AggregationOperation.Sum,
+      operation: 'Sum',
       field: 'id',
-      groups: [{ field: 'discriminant', operation: DateOperation.ToYear }],
+      groups: [{ field: 'discriminant', operation: 'Year' }],
     });
 
     test('apply should work', () => {
@@ -115,9 +112,9 @@ describe('Aggregation', () => {
 
   describe('average with toMonth grouping', () => {
     const aggregation = new Aggregation({
-      operation: AggregationOperation.Average,
+      operation: 'Avg',
       field: 'id',
-      groups: [{ field: 'discriminant', operation: DateOperation.ToMonth }],
+      groups: [{ field: 'discriminant', operation: 'Month' }],
     });
 
     test('apply should not show empty groups', () => {
@@ -137,10 +134,10 @@ describe('Aggregation', () => {
     });
   });
 
-  describe('count with ToDay grouping', () => {
+  describe('count with Day grouping', () => {
     const aggregation = new Aggregation({
-      operation: AggregationOperation.Count,
-      groups: [{ field: 'discriminant', operation: DateOperation.ToDay }],
+      operation: 'Count',
+      groups: [{ field: 'discriminant', operation: 'Day' }],
     });
 
     test('apply should work', () => {
@@ -156,10 +153,10 @@ describe('Aggregation', () => {
     });
   });
 
-  describe('count with ToWeek grouping', () => {
+  describe('count with Week grouping', () => {
     const aggregation = new Aggregation({
-      operation: AggregationOperation.Count,
-      groups: [{ field: 'discriminant', operation: DateOperation.ToWeek }],
+      operation: 'Count',
+      groups: [{ field: 'discriminant', operation: 'Week' }],
     });
 
     test('apply should work', () => {

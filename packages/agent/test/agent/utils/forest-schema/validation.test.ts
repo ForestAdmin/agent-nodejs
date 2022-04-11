@@ -1,4 +1,3 @@
-import { Operator } from '@forestadmin/datasource-toolkit';
 import { ValidationType } from '../../../../src/agent/utils/forest-schema/types';
 import FrontendValidationUtils from '../../../../src/agent/utils/forest-schema/validation';
 
@@ -17,8 +16,8 @@ describe('FrontendValidationUtils', () => {
 
   test('should work with bounds', () => {
     const validationList = FrontendValidationUtils.convertValidationList([
-      { operator: Operator.LessThan, value: 34 },
-      { operator: Operator.GreaterThan, value: 60 },
+      { operator: 'LessThan', value: 34 },
+      { operator: 'GreaterThan', value: 60 },
     ]);
 
     expect(validationList).toStrictEqual([
@@ -29,7 +28,7 @@ describe('FrontendValidationUtils', () => {
 
   test('should skip validation which cannot be translated', () => {
     const validationList = FrontendValidationUtils.convertValidationList([
-      { operator: Operator.PreviousQuarter },
+      { operator: 'PreviousQuarter' },
     ]);
 
     expect(validationList).toHaveLength(0);

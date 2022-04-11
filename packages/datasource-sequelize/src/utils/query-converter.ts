@@ -1,4 +1,12 @@
 import {
+  ConditionTree,
+  ConditionTreeBranch,
+  ConditionTreeLeaf,
+  Operator,
+  Projection,
+  Sort,
+} from '@forestadmin/datasource-toolkit';
+import {
   IncludeOptions,
   ModelDefined,
   Op,
@@ -11,16 +19,6 @@ import {
   where,
 } from 'sequelize';
 import { Where } from 'sequelize/types/utils';
-
-import {
-  Aggregator,
-  ConditionTree,
-  ConditionTreeBranch,
-  ConditionTreeLeaf,
-  Operator,
-  Projection,
-  Sort,
-} from '@forestadmin/datasource-toolkit';
 
 export default class QueryConverter {
   private static asArray(value: unknown) {
@@ -38,35 +36,35 @@ export default class QueryConverter {
     if (operator === null) throw new Error('Invalid (null) operator.');
 
     switch (operator) {
-      case Operator.Blank:
+      case 'Blank':
         return {
-          [Op.or]: [this.makeWhereClause(Operator.Missing, field) as OrOperator, { [Op.eq]: '' }],
+          [Op.or]: [this.makeWhereClause('Missing', field) as OrOperator, { [Op.eq]: '' }],
         };
-      case Operator.Contains:
+      case 'Contains':
         return where(fn('LOWER', col(field)), 'LIKE', `%${value.toLocaleLowerCase()}%`);
-      case Operator.EndsWith:
+      case 'EndsWith':
         return where(fn('LOWER', col(field)), 'LIKE', `%${value.toLocaleLowerCase()}`);
-      case Operator.Equal:
+      case 'Equal':
         return { [Op.eq]: value };
-      case Operator.GreaterThan:
+      case 'GreaterThan':
         return { [Op.gt]: value };
-      case Operator.In:
+      case 'In':
         return { [Op.in]: this.asArray(value) };
-      case Operator.IncludesAll:
+      case 'IncludesAll':
         return { [Op.contains]: this.asArray(value) };
-      case Operator.LessThan:
+      case 'LessThan':
         return { [Op.lt]: value };
-      case Operator.Missing:
+      case 'Missing':
         return { [Op.is]: null };
-      case Operator.NotContains:
+      case 'NotContains':
         return where(fn('LOWER', col(field)), 'NOT LIKE', `%${value.toLocaleLowerCase()}%`);
-      case Operator.NotEqual:
+      case 'NotEqual':
         return { [Op.ne]: value };
-      case Operator.NotIn:
+      case 'NotIn':
         return { [Op.notIn]: this.asArray(value) };
-      case Operator.Present:
+      case 'Present':
         return { [Op.ne]: null };
-      case Operator.StartsWith:
+      case 'StartsWith':
         return where(fn('LOWER', col(field)), 'LIKE', `${value.toLocaleLowerCase()}%`);
       default:
         throw new Error(`Unsupported operator: "${operator}".`);
@@ -89,7 +87,7 @@ export default class QueryConverter {
         throw new Error('Invalid (null) aggregator.');
       }
 
-      const sequelizeOperator = aggregator === Aggregator.And ? Op.and : Op.or;
+      const sequelizeOperator = aggregator === 'And' ? Op.and : Op.or;
 
       if (!Array.isArray(conditions)) {
         throw new Error('Conditions must be an array.');

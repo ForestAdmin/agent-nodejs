@@ -4,7 +4,6 @@ import {
   ColumnSchema,
   ColumnType,
   FieldTypes,
-  Operator,
   RelationSchema,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
@@ -14,23 +13,23 @@ import FrontendValidationUtils from './validation';
 
 export default class SchemaGeneratorFields {
   private static relationMap: Partial<Record<FieldTypes, ForestServerField['relationship']>> = {
-    [FieldTypes.ManyToMany]: 'BelongsToMany',
-    [FieldTypes.ManyToOne]: 'BelongsTo',
-    [FieldTypes.OneToMany]: 'HasMany',
-    [FieldTypes.OneToOne]: 'HasOne',
+    ManyToMany: 'BelongsToMany',
+    ManyToOne: 'BelongsTo',
+    OneToMany: 'HasMany',
+    OneToOne: 'HasOne',
   };
 
   static buildSchema(collection: Collection, name: string): ForestServerField {
     const { type } = collection.schema.fields[name];
 
     switch (type) {
-      case FieldTypes.Column:
+      case 'Column':
         return SchemaGeneratorFields.buildColumnSchema(collection, name);
 
-      case FieldTypes.ManyToOne:
-      case FieldTypes.OneToMany:
-      case FieldTypes.ManyToMany:
-      case FieldTypes.OneToOne:
+      case 'ManyToOne':
+      case 'OneToMany':
+      case 'ManyToMany':
+      case 'OneToOne':
         return SchemaGeneratorFields.buildRelationSchema(collection, name);
 
       default:
@@ -50,7 +49,7 @@ export default class SchemaGeneratorFields {
       isFilterable: FrontendFilterableUtils.isFilterable(column.columnType, column.filterOperators),
       isPrimaryKey: Boolean(column.isPrimaryKey),
       isReadOnly: Boolean(column.isReadOnly),
-      isRequired: column.validation?.some(v => v.operator === Operator.Present) ?? false,
+      isRequired: column.validation?.some(v => v.operator === 'Present') ?? false,
       isSortable: Boolean(column.isSortable),
       isVirtual: false,
       reference: null,
@@ -69,10 +68,10 @@ export default class SchemaGeneratorFields {
     // => let's say that the relation is filterable if at least one field in the target can
     // be filtered for many to one / one to one.
     const isFilterable =
-      (relation.type === FieldTypes.ManyToOne || relation.type === FieldTypes.OneToOne) &&
+      (relation.type === 'ManyToOne' || relation.type === 'OneToOne') &&
       Object.values(foreignCollection.schema.fields).some(
         field =>
-          field.type === FieldTypes.Column &&
+          field.type === 'Column' &&
           FrontendFilterableUtils.isFilterable(field.columnType, field.filterOperators),
       );
 
@@ -90,7 +89,7 @@ export default class SchemaGeneratorFields {
       isVirtual: false,
       reference: `${foreignCollection.name}.${primaryKey}`,
       relationship: SchemaGeneratorFields.relationMap[relation.type],
-      type: (relation.type === FieldTypes.OneToOne || relation.type === FieldTypes.ManyToOne
+      type: (relation.type === 'OneToOne' || relation.type === 'ManyToOne'
         ? primaryKeySchema.columnType
         : [primaryKeySchema.columnType]) as ColumnType,
       validations: [],

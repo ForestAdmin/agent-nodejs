@@ -1,9 +1,7 @@
 import * as factories from '../../__factories__';
 import { Collection } from '../../../src/interfaces/collection';
-import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
-import ConditionTreeLeaf, {
-  Operator,
-} from '../../../src/interfaces/query/condition-tree/nodes/leaf';
+import { ColumnSchema } from '../../../src/interfaces/schema';
+import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import OperatorsDecorator from '../../../src/decorators/operators-replace/collection';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Projection from '../../../src/interfaces/query/projection';
@@ -21,12 +19,8 @@ describe('ConditionTreeOperators', () => {
         schema: factories.collectionSchema.build({
           fields: {
             col: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Date,
-              filterOperators: new Set<Operator>([
-                Operator.LessThan,
-                Operator.Equal,
-                Operator.GreaterThan,
-              ]),
+              columnType: 'Date',
+              filterOperators: new Set(['LessThan', 'Equal', 'GreaterThan']),
             }),
             rel: factories.manyToOneSchema.build({
               foreignCollection: 'author',
@@ -60,31 +54,31 @@ describe('ConditionTreeOperators', () => {
     });
 
     test('list() should not modify supported operators', async () => {
-      const tree = new ConditionTreeLeaf('col', Operator.Equal, 'someDate');
+      const tree = new ConditionTreeLeaf('col', 'Equal', 'someDate');
 
       await decorator.list(new PaginatedFilter({ conditionTree: tree }), new Projection('col'));
       expect(collectionList).toHaveBeenCalledWith(
-        { conditionTree: { field: 'col', operator: Operator.Equal, value: 'someDate' } },
+        { conditionTree: { field: 'col', operator: 'Equal', value: 'someDate' } },
         ['col'],
       );
     });
 
     test('list() should transform "In -> Equal"', async () => {
-      const tree = new ConditionTreeLeaf('col', Operator.In, ['someDate']);
+      const tree = new ConditionTreeLeaf('col', 'In', ['someDate']);
 
       await decorator.list(new PaginatedFilter({ conditionTree: tree }), new Projection('col'));
       expect(collectionList).toHaveBeenCalledWith(
-        { conditionTree: { field: 'col', operator: Operator.Equal, value: 'someDate' } },
+        { conditionTree: { field: 'col', operator: 'Equal', value: 'someDate' } },
         ['col'],
       );
     });
 
     test('list() should transform "Blank -> In -> Equal"', async () => {
-      const tree = new ConditionTreeLeaf('col', Operator.Blank);
+      const tree = new ConditionTreeLeaf('col', 'Blank');
 
       await decorator.list(new PaginatedFilter({ conditionTree: tree }), new Projection('col'));
       expect(collectionList).toHaveBeenCalledWith(
-        { conditionTree: { field: 'col', operator: Operator.Equal, value: null } },
+        { conditionTree: { field: 'col', operator: 'Equal', value: null } },
         ['col'],
       );
     });

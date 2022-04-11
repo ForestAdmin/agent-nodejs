@@ -1,8 +1,6 @@
 import {
-  Aggregator,
   ConditionTreeBranch,
   ConditionTreeLeaf,
-  Operator,
   Page,
   PaginatedFilter,
   Sort,
@@ -35,9 +33,9 @@ describe('FilterFactory', () => {
             'page[size]': 10,
             'page[number]': 3,
             filters: JSON.stringify({
-              aggregator: 'and',
+              aggregator: 'And',
               conditions: [
-                { field: 'id', operator: 'equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+                { field: 'id', operator: 'Equal', value: '123e4567-e89b-12d3-a456-426614174000' },
               ],
             }),
             searchExtended: true,
@@ -46,7 +44,7 @@ describe('FilterFactory', () => {
       });
 
       const scope = factories.conditionTreeLeaf.build({
-        operator: Operator.Equal,
+        operator: 'Equal',
         value: '123e4567-e89b-12d3-a456-222222222222',
         field: 'id',
       });
@@ -61,9 +59,9 @@ describe('FilterFactory', () => {
 
       expect(filter).toEqual(
         new PaginatedFilter({
-          conditionTree: new ConditionTreeBranch(Aggregator.And, [
-            new ConditionTreeLeaf('id', Operator.Equal, '123e4567-e89b-12d3-a456-426614174000'),
-            new ConditionTreeLeaf('id', Operator.Equal, '123e4567-e89b-12d3-a456-222222222222'),
+          conditionTree: new ConditionTreeBranch('And', [
+            new ConditionTreeLeaf('id', 'Equal', '123e4567-e89b-12d3-a456-426614174000'),
+            new ConditionTreeLeaf('id', 'Equal', '123e4567-e89b-12d3-a456-222222222222'),
           ]),
           timezone: 'Europe/Paris',
           search: 'searched argument',

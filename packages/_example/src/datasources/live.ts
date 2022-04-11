@@ -1,4 +1,3 @@
-import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { LiveDataSource } from '@forestadmin/datasource-live';
 import faker from '@faker-js/faker';
 
@@ -7,23 +6,10 @@ import { prepareDatabase as prepareDatabaseMysql } from './sequelize/mysql';
 const address = {
   actions: {},
   fields: {
-    id: {
-      columnType: PrimitiveTypes.Number,
-      isPrimaryKey: true,
-      type: FieldTypes.Column,
-    },
-    zipCode: {
-      columnType: PrimitiveTypes.String,
-      type: FieldTypes.Column,
-    },
-    address: {
-      columnType: PrimitiveTypes.String,
-      type: FieldTypes.Column,
-    },
-    storeId: {
-      columnType: PrimitiveTypes.Number,
-      type: FieldTypes.Column,
-    },
+    id: { columnType: 'Number', isPrimaryKey: true, type: 'Column' },
+    zipCode: { columnType: 'String', type: 'Column' },
+    address: { columnType: 'String', type: 'Column' },
+    storeId: { columnType: 'Number', type: 'Column' },
   },
   searchable: false,
   segments: [] as string[],

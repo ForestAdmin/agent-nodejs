@@ -3,7 +3,6 @@ import {
   ConditionTree,
   ConditionTreeFactory,
   ConditionTreeValidator,
-  FieldTypes,
   Page,
   Projection,
   ProjectionFactory,
@@ -50,7 +49,7 @@ export default class QueryStringParser {
       const explicitRequest = rootFields.map(field => {
         const schema = collection.schema.fields[field];
 
-        return schema.type === FieldTypes.Column
+        return schema.type === 'Column'
           ? field
           : `${field}:${context.request.query[`fields[${field}]`]}`;
       });

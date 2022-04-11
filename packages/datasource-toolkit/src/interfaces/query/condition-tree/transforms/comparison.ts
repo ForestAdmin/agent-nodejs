@@ -1,68 +1,67 @@
 import { Alternative } from '../equivalence';
-import { Operator } from '../nodes/leaf';
-import { PrimitiveTypes } from '../../../schema';
+import { Operator } from '../nodes/operators';
 import ConditionTree from '../nodes/base';
 import ConditionTreeFactory from '../factory';
 
 export default (): Partial<Record<Operator, Alternative[]>> => ({
-  [Operator.Blank]: [
+  Blank: [
     {
-      dependsOn: [Operator.In],
-      forTypes: [PrimitiveTypes.String],
-      replacer: leaf => leaf.override({ operator: Operator.In, value: [null, ''] }),
+      dependsOn: ['In'],
+      forTypes: ['String'],
+      replacer: leaf => leaf.override({ operator: 'In', value: [null, ''] }),
     },
     {
-      dependsOn: [Operator.Missing],
-      replacer: leaf => leaf.override({ operator: Operator.Missing }),
-    },
-  ],
-  [Operator.Missing]: [
-    {
-      dependsOn: [Operator.Equal],
-      replacer: leaf => leaf.override({ operator: Operator.Equal, value: null }),
+      dependsOn: ['Missing'],
+      replacer: leaf => leaf.override({ operator: 'Missing' }),
     },
   ],
-  [Operator.Present]: [
+  Missing: [
     {
-      dependsOn: [Operator.NotIn],
-      forTypes: [PrimitiveTypes.String],
-      replacer: leaf => leaf.override({ operator: Operator.NotIn, value: [null, ''] }),
-    },
-    {
-      dependsOn: [Operator.NotEqual],
-      replacer: leaf => leaf.override({ operator: Operator.NotEqual, value: null }),
+      dependsOn: ['Equal'],
+      replacer: leaf => leaf.override({ operator: 'Equal', value: null }),
     },
   ],
-  [Operator.Equal]: [
+  Present: [
     {
-      dependsOn: [Operator.In],
-      replacer: leaf => leaf.override({ operator: Operator.In, value: [leaf.value] }),
+      dependsOn: ['NotIn'],
+      forTypes: ['String'],
+      replacer: leaf => leaf.override({ operator: 'NotIn', value: [null, ''] }),
+    },
+    {
+      dependsOn: ['NotEqual'],
+      replacer: leaf => leaf.override({ operator: 'NotEqual', value: null }),
     },
   ],
-  [Operator.In]: [
+  Equal: [
     {
-      dependsOn: [Operator.Equal],
+      dependsOn: ['In'],
+      replacer: leaf => leaf.override({ operator: 'In', value: [leaf.value] }),
+    },
+  ],
+  In: [
+    {
+      dependsOn: ['Equal'],
       replacer: leaf =>
         ConditionTreeFactory.union(
           ...(leaf.value as unknown[]).map<ConditionTree>(item =>
-            leaf.override({ operator: Operator.Equal, value: item }),
+            leaf.override({ operator: 'Equal', value: item }),
           ),
         ),
     },
   ],
-  [Operator.NotEqual]: [
+  NotEqual: [
     {
-      dependsOn: [Operator.NotIn],
-      replacer: leaf => leaf.override({ operator: Operator.NotIn, value: [leaf.value] }),
+      dependsOn: ['NotIn'],
+      replacer: leaf => leaf.override({ operator: 'NotIn', value: [leaf.value] }),
     },
   ],
-  [Operator.NotIn]: [
+  NotIn: [
     {
-      dependsOn: [Operator.NotEqual],
+      dependsOn: ['NotEqual'],
       replacer: leaf =>
         ConditionTreeFactory.intersect(
           ...(leaf.value as unknown[]).map<ConditionTree>(item =>
-            leaf.override({ operator: Operator.NotEqual, value: item }),
+            leaf.override({ operator: 'NotEqual', value: item }),
           ),
         ),
     },

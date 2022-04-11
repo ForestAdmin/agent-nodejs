@@ -1,7 +1,6 @@
 import {
   CompositeId,
   ConditionTreeFactory,
-  FieldTypes,
   Filter,
   FilterFactory,
   ManyToManySchema,
@@ -38,7 +37,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     // Dissociating a one to many or many many is quite a different job => delegate
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
 
-    if (relation.type === FieldTypes.OneToMany) {
+    if (relation.type === 'OneToMany') {
       await this.dissociateOrDeleteOneToMany(relation, parentId, isDeleteMode, filter);
     } else {
       await this.dissociateOrDeleteManyToMany(relation, parentId, isDeleteMode, filter);

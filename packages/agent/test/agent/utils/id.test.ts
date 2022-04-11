@@ -1,4 +1,4 @@
-import { CollectionSchema, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { CollectionSchema } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../__factories__';
 import IdUtils from '../../../src/agent/utils/id';
@@ -22,7 +22,7 @@ describe('IdUtils', () => {
     const numberSchema = factories.collectionSchema.build({
       fields: {
         id: factories.columnSchema.isPrimaryKey().build({
-          columnType: PrimitiveTypes.Number,
+          columnType: 'Number',
         }),
       },
     });
@@ -70,7 +70,7 @@ describe('IdUtils', () => {
     const stringSchema = factories.collectionSchema.build({
       fields: {
         id: factories.columnSchema.isPrimaryKey().build({
-          columnType: PrimitiveTypes.String,
+          columnType: 'String',
         }),
       },
     });
@@ -93,10 +93,10 @@ describe('IdUtils', () => {
     const compositeSchema = factories.collectionSchema.build({
       fields: {
         id: factories.columnSchema.isPrimaryKey().build({
-          columnType: PrimitiveTypes.Number,
+          columnType: 'Number',
         }),
         otherId: factories.columnSchema.isPrimaryKey().build({
-          columnType: PrimitiveTypes.String,
+          columnType: 'String',
         }),
       },
     });

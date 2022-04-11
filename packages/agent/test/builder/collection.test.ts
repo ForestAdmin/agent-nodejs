@@ -1,10 +1,6 @@
 import {
   ActionDefinition,
-  ActionScope,
   ConditionTreeLeaf,
-  FieldTypes,
-  Operator,
-  PrimitiveTypes,
   Projection,
   Sort,
   SortClause,
@@ -83,7 +79,7 @@ describe('Builder > Collection', () => {
       const spy = jest.spyOn(collection, 'addAction');
 
       const actionDefinition: ActionDefinition = {
-        scope: ActionScope.Global,
+        scope: 'Global',
         execute: () => {},
       };
 
@@ -105,7 +101,7 @@ describe('Builder > Collection', () => {
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstNameCopy', {
-        columnType: PrimitiveTypes.String,
+        columnType: 'String',
         dependencies: ['firstName'],
         getValues: expect.any(Function),
       });
@@ -121,7 +117,7 @@ describe('Builder > Collection', () => {
       const spy = jest.spyOn(collection, 'registerComputed');
 
       const fieldDefinition: FieldDefinition = {
-        columnType: PrimitiveTypes.String,
+        columnType: 'String',
         dependencies: new Projection(),
         getValues: () => [],
       };
@@ -143,7 +139,7 @@ describe('Builder > Collection', () => {
       const spy = jest.spyOn(collection, 'addRelation');
 
       const relationDefinition = {
-        type: FieldTypes.ManyToOne as const,
+        type: 'ManyToOne' as const,
         foreignCollection: collectionName,
         foreignKey: 'firstName',
         foreignKeyTarget: 'firstName',
@@ -165,7 +161,7 @@ describe('Builder > Collection', () => {
       const collection = agent.segment.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'addSegment');
 
-      const generator = async () => new ConditionTreeLeaf('fieldName', Operator.Present);
+      const generator = async () => new ConditionTreeLeaf('fieldName', 'Present');
 
       const self = collectionBuilder.addSegment('new segment', generator);
 
@@ -244,10 +240,10 @@ describe('Builder > Collection', () => {
       const collection = agent.earlyOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
-      const self = collectionBuilder.emulateFieldOperator('firstName', Operator.Present);
+      const self = collectionBuilder.emulateFieldOperator('firstName', 'Present');
 
       expect(spy).toBeCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith('firstName', Operator.Present);
+      expect(spy).toHaveBeenCalledWith('firstName', 'Present');
       expect(self).toEqual(collectionBuilder);
     });
   });
@@ -259,12 +255,12 @@ describe('Builder > Collection', () => {
       const collection = agent.earlyOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'replaceFieldOperator');
 
-      const replacer = async () => new ConditionTreeLeaf('fieldName', Operator.NotEqual, null);
+      const replacer = async () => new ConditionTreeLeaf('fieldName', 'NotEqual', null);
 
-      const self = collectionBuilder.replaceFieldOperator('firstName', Operator.Present, replacer);
+      const self = collectionBuilder.replaceFieldOperator('firstName', 'Present', replacer);
 
       expect(spy).toBeCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith('firstName', Operator.Present, replacer);
+      expect(spy).toHaveBeenCalledWith('firstName', 'Present', replacer);
       expect(self).toEqual(collectionBuilder);
     });
   });

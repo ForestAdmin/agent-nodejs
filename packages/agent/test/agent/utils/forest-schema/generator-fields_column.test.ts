@@ -1,4 +1,4 @@
-import { FieldTypes, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { FieldTypes } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../../__factories__';
 import { ValidationType } from '../../../../src/agent/utils/forest-schema/types';
@@ -29,15 +29,15 @@ describe('SchemaGeneratorFields > Column', () => {
       schema: factories.collectionSchema.build({
         fields: {
           isbn: factories.columnSchema.build({
-            columnType: PrimitiveTypes.String,
+            columnType: 'String',
             isPrimaryKey: true,
             isSortable: true,
             isReadOnly: true,
 
-            validation: [{ operator: Operator.Present }],
+            validation: [{ operator: 'Present' }],
           }),
           originKey: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Number,
+            columnType: 'Number',
             filterOperators: new Set(),
             isPrimaryKey: false,
             isReadOnly: false,

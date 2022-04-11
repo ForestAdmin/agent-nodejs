@@ -1,13 +1,8 @@
 import * as factories from '../../__factories__';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
-import { FieldTypes, PrimitiveTypes } from '../../../src/interfaces/schema';
-import Aggregation, { AggregationOperation } from '../../../src/interfaces/query/aggregation';
-import ConditionTreeBranch, {
-  Aggregator,
-} from '../../../src/interfaces/query/condition-tree/nodes/branch';
-import ConditionTreeLeaf, {
-  Operator,
-} from '../../../src/interfaces/query/condition-tree/nodes/leaf';
+import Aggregation from '../../../src/interfaces/query/aggregation';
+import ConditionTreeBranch from '../../../src/interfaces/query/condition-tree/nodes/branch';
+import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import Filter from '../../../src/interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
@@ -69,7 +64,7 @@ describe('RenameCollectionDecorator', () => {
             foreignCollection: 'persons',
             foreignKey: 'personId',
           }),
-          date: factories.columnSchema.build({ columnType: PrimitiveTypes.Date }),
+          date: factories.columnSchema.build({ columnType: 'Date' }),
         },
       }),
     });
@@ -113,9 +108,9 @@ describe('RenameCollectionDecorator', () => {
   // Build filters for un-decorated persons
   beforeAll(() => {
     personsFilter = new Filter({
-      conditionTree: new ConditionTreeBranch(Aggregator.And, [
-        new ConditionTreeLeaf('id', Operator.NotEqual, 0),
-        new ConditionTreeLeaf('myBookPerson:date', Operator.NotEqual, 0),
+      conditionTree: new ConditionTreeBranch('And', [
+        new ConditionTreeLeaf('id', 'NotEqual', 0),
+        new ConditionTreeLeaf('myBookPerson:date', 'NotEqual', 0),
       ]),
     });
 
@@ -187,7 +182,7 @@ describe('RenameCollectionDecorator', () => {
 
     test('aggregate should act as a pass-through', async () => {
       const result = [{ value: 34, group: { 'myBookPerson:date': 'abc' } }];
-      const aggregate = new Aggregation({ operation: AggregationOperation.Count });
+      const aggregate = new Aggregation({ operation: 'Count' });
 
       personsAggregate.mockResolvedValue(result);
 
@@ -212,9 +207,9 @@ describe('RenameCollectionDecorator', () => {
     // Build filters for decorated persons
     beforeAll(() => {
       newPersonsFilter = new Filter({
-        conditionTree: new ConditionTreeBranch(Aggregator.And, [
-          new ConditionTreeLeaf('primaryKey', Operator.NotEqual, 0),
-          new ConditionTreeLeaf('myNovelAuthor:createdAt', Operator.NotEqual, 0),
+        conditionTree: new ConditionTreeBranch('And', [
+          new ConditionTreeLeaf('primaryKey', 'NotEqual', 0),
+          new ConditionTreeLeaf('myNovelAuthor:createdAt', 'NotEqual', 0),
         ]),
       });
 
@@ -233,7 +228,7 @@ describe('RenameCollectionDecorator', () => {
       expect(fields.primaryKey).toMatchObject({ isPrimaryKey: true });
       expect(fields.id).toBeUndefined();
 
-      expect(fields.myNovelAuthor).toMatchObject({ type: FieldTypes.OneToOne });
+      expect(fields.myNovelAuthor).toMatchObject({ type: 'OneToOne' });
       expect(fields.myBookPerson).toBeUndefined();
     });
 
@@ -284,7 +279,7 @@ describe('RenameCollectionDecorator', () => {
       const result = await newPersons.aggregate(
         newPersonsPaginatedFilter,
         new Aggregation({
-          operation: AggregationOperation.Sum,
+          operation: 'Sum',
           field: 'primaryKey',
           groups: [{ field: 'myNovelAuthor:createdAt' }],
         }),
@@ -294,7 +289,7 @@ describe('RenameCollectionDecorator', () => {
       expect(persons.aggregate).toHaveBeenCalledWith(
         personsPaginatedFilter,
         {
-          operation: AggregationOperation.Sum,
+          operation: 'Sum',
           field: 'id',
           groups: [{ field: 'myBookPerson:date' }],
         },
@@ -313,8 +308,8 @@ describe('RenameCollectionDecorator', () => {
     test('the columns should be renamed in the schema', () => {
       const { fields } = newBookPersons.schema;
 
-      expect(fields.authorId).toMatchObject({ type: FieldTypes.Column });
-      expect(fields.novelId).toMatchObject({ type: FieldTypes.Column });
+      expect(fields.authorId).toMatchObject({ type: 'Column' });
+      expect(fields.novelId).toMatchObject({ type: 'Column' });
       expect(fields.personId).toBeUndefined();
       expect(fields.bookId).toBeUndefined();
     });

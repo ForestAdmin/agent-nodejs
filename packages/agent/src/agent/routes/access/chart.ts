@@ -1,9 +1,7 @@
 import {
   Aggregation,
-  Aggregator,
   ConditionTreeBranch,
   DateOperation,
-  FieldTypes,
   Filter,
   FilterFactory,
   SchemaUtils,
@@ -26,11 +24,11 @@ enum ChartType {
 }
 
 export default class Chart extends CollectionRoute {
-  private static readonly formats = {
-    [DateOperation.ToDay]: 'dd/MM/yyyy',
-    [DateOperation.ToWeek]: "'W'W-yyyy",
-    [DateOperation.ToMonth]: 'MMM yy',
-    [DateOperation.ToYear]: 'yyyy',
+  private static readonly formats: Record<DateOperation, string> = {
+    Day: 'dd/MM/yyyy',
+    Week: "'W'W-yyyy",
+    Month: 'MMM yy',
+    Year: 'yyyy',
   };
 
   setupRoutes(router: Router): void {
@@ -65,9 +63,9 @@ export default class Chart extends CollectionRoute {
     };
 
     const isAndAggregator =
-      (currentFilter.conditionTree as ConditionTreeBranch)?.aggregator === Aggregator.And;
-    const withCountPrevious = currentFilter.conditionTree?.someLeaf(leaf =>
-      leaf.useIntervalOperator(),
+      (currentFilter.conditionTree as ConditionTreeBranch)?.aggregator === 'And';
+    const withCountPrevious = currentFilter.conditionTree?.someLeaf(
+      leaf => leaf.useIntervalOperator,
     );
 
     if (withCountPrevious && !isAndAggregator) {
@@ -168,9 +166,7 @@ export default class Chart extends CollectionRoute {
     if (!aggregateField) {
       const relation = SchemaUtils.getToManyRelation(this.collection.schema, relationshipField);
       const collection = this.dataSource.getCollection(
-        relation.type === FieldTypes.OneToMany
-          ? relation.foreignCollection
-          : relation.throughCollection,
+        relation.type === 'OneToMany' ? relation.foreignCollection : relation.throughCollection,
       );
 
       [aggregateField] = SchemaUtils.getPrimaryKeys(collection.schema);

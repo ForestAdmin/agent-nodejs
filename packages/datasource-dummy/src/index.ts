@@ -1,7 +1,6 @@
 import {
   DataSource,
   DataSourceDecorator,
-  FieldTypes,
   RelationCollectionDecorator,
 } from '@forestadmin/datasource-toolkit';
 import DummyDataSource from './datasource';
@@ -11,19 +10,19 @@ export default function makeDummyDataSource(): DataSource {
   const relations = new DataSourceDecorator(dummy, RelationCollectionDecorator);
 
   relations.getCollection('persons').addRelation('books', {
-    type: FieldTypes.OneToMany,
+    type: 'OneToMany',
     foreignCollection: 'books',
     originKey: 'authorId',
   });
 
   relations.getCollection('books').addRelation('author', {
-    type: FieldTypes.ManyToOne,
+    type: 'ManyToOne',
     foreignCollection: 'persons',
     foreignKey: 'authorId',
   });
 
   relations.getCollection('books').addRelation('librairies', {
-    type: FieldTypes.ManyToMany,
+    type: 'ManyToMany',
     foreignCollection: 'libraries',
     throughCollection: 'librariesBooks',
     originKey: 'bookId',
@@ -32,7 +31,7 @@ export default function makeDummyDataSource(): DataSource {
   });
 
   relations.getCollection('libraries').addRelation('books', {
-    type: FieldTypes.ManyToMany,
+    type: 'ManyToMany',
     originKey: 'libraryId',
     foreignKey: 'bookId',
     throughCollection: 'librariesBooks',
@@ -41,13 +40,13 @@ export default function makeDummyDataSource(): DataSource {
   });
 
   relations.getCollection('librariesBooks').addRelation('book', {
-    type: FieldTypes.ManyToOne,
+    type: 'ManyToOne',
     foreignCollection: 'books',
     foreignKey: 'bookId',
   });
 
   relations.getCollection('librariesBooks').addRelation('library', {
-    type: FieldTypes.ManyToOne,
+    type: 'ManyToOne',
     foreignCollection: 'libraries',
     foreignKey: 'libraryId',
   });

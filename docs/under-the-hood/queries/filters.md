@@ -45,8 +45,8 @@ With multiple conditions
 {
   "aggregator": "and",
   "conditions": [
-    { "field": "title", "operator": "equal", "value": "Foundation" },
-    { "field": "subTitle", "operator": "equal", "value": "The Psychohistorians" }
+    { "field": "title", "operator": "Equal", "value": "Foundation" },
+    { "field": "subTitle", "operator": "Equal", "value": "The Psychohistorians" }
   ]
 }
 ```
@@ -55,52 +55,52 @@ With multiple conditions
 
 Each node of a condition tree can be one of five things:
 
-- An "And" branch: `{ aggregator: 'or', conditions: [<otherNodes>] }`
-- An "Or" branch: `{ aggregator: 'or', conditions: [<otherNodes>] }`
-- A "condition" leaf without parameter: `{ field: 'title', operator: 'present' }`
-- A "condition" leaf with parameter: `{ field: 'title', operator: 'equal', value: 'Foundation' }`
+- An "And" branch: `{ aggregator: 'And', conditions: [<otherNodes>] }`
+- An "Or" branch: `{ aggregator: 'Or', conditions: [<otherNodes>] }`
+- A "condition" leaf without parameter: `{ field: 'title', operator: 'Present' }`
+- A "condition" leaf with parameter: `{ field: 'title', operator: 'Equal', value: 'Foundation' }`
 
 ## Operators
 
 Here is the list of operators which are supported by forest admin.
 
-| Operator                 | Types         | Expected parameter  |
-| ------------------------ | ------------- | ------------------- |
-| present                  | All           | ∅                   |
-| blank                    | All           | ∅                   |
-| missing                  | All           | ∅                   |
-| equal                    | All but array | Field type          |
-| not_equal                | All but array | Field type          |
-| less_than                | All but array | Field type          |
-| greater_than             | All but array | Field type          |
-| in                       | All but array | Array of field type |
-| not_in                   | All but array | Array of field type |
-| like                     | String        | String              |
-| starts_with              | String        | String              |
-| ends_with                | String        | String              |
-| contains                 | String        | String              |
-| not_contains             | String        | String              |
-| longer_than              | String        | Number              |
-| shorter_than             | String        | Number              |
-| before                   | Date          | Date                |
-| after                    | Date          | Date                |
-| after_x_hours_ago        | Date          | Number              |
-| before_x_hours_ago       | Date          | Number              |
-| past                     | Date          | ∅                   |
-| future                   | Date          | ∅                   |
-| previous_month_to_date   | Date          | ∅                   |
-| previous_month           | Date          | ∅                   |
-| previous_quarter_to_date | Date          | ∅                   |
-| previous_quarter         | Date          | ∅                   |
-| previous_week_to_date    | Date          | ∅                   |
-| previous_week            | Date          | ∅                   |
-| previous_x_days_to_date  | Date          | Number              |
-| previous_x_days          | Date          | Number              |
-| previous_year_to_date    | Date          | ∅                   |
-| previous_year            | Date          | ∅                   |
-| today                    | Date          | ∅                   |
-| yesterday                | Date          | ∅                   |
-| includes_all             | Array         | Array               |
+| Operator              | Types         | Expected parameter  |
+| --------------------- | ------------- | ------------------- |
+| Present               | All           | ∅                   |
+| Blank                 | All           | ∅                   |
+| Missing               | All           | ∅                   |
+| Equal                 | All but array | Field type          |
+| NotEqual              | All but array | Field type          |
+| LessThan              | All but array | Field type          |
+| GreaterThan           | All but array | Field type          |
+| In                    | All but array | Array of field type |
+| NotIn                 | All but array | Array of field type |
+| Like                  | String        | String              |
+| StartsWith            | String        | String              |
+| EndsWith              | String        | String              |
+| Contains              | String        | String              |
+| NotContains           | String        | String              |
+| LongerThan            | String        | Number              |
+| ShorterThan           | String        | Number              |
+| Before                | Date          | Date                |
+| After                 | Date          | Date                |
+| AfterXHoursAgo        | Date          | Number              |
+| BeforeXHoursAgo       | Date          | Number              |
+| Past                  | Date          | ∅                   |
+| Future                | Date          | ∅                   |
+| PreviousMonthToDate   | Date          | ∅                   |
+| PreviousMonth         | Date          | ∅                   |
+| PreviousQuarterToDate | Date          | ∅                   |
+| PreviousQuarter       | Date          | ∅                   |
+| PreviousWeekToDate    | Date          | ∅                   |
+| PreviousWeek          | Date          | ∅                   |
+| PreviousXDaysToDate   | Date          | Number              |
+| PreviousXDays         | Date          | Number              |
+| PreviousYearToDate    | Date          | ∅                   |
+| PreviousYear          | Date          | ∅                   |
+| Today                 | Date          | ∅                   |
+| Yesterday             | Date          | ∅                   |
+| IncludesAll           | Array         | Array               |
 
 ## Operator equivalence
 
@@ -108,49 +108,49 @@ You may have noticed that many operators overlap. In order to make data sources 
 
 What that means, is that when an operator can be expressed using a combination of other operators, forest admin will perform the substitution automatically using the following table.
 
-| Operator                 | Automatic replacement                                                |
-| ------------------------ | -------------------------------------------------------------------- |
-| present                  | not_equal null and not_equal ""                                      |
-| blank                    | equal null or equal ""                                               |
-| missing                  | equal null                                                           |
-| equal                    | in [$value]                                                          |
-| not_equal                | not_in [$value]                                                      |
-| in                       | equal $value or equal $2 or ...                                      |
-| not_in                   | not_equal $value and not_equal $2 and ...                            |
-| starts_with              | like '$value%'                                                       |
-| ends_with                | like '%$value'                                                       |
-| contains                 | like '%$value%'                                                      |
-| before                   | less_than $value                                                     |
-| after                    | greater_than $value                                                  |
-| after_x_hours_ago        | greater_than $hours_ago($value)                                      |
-| before_x_hours_ago       | less_than $hours_ago($value)                                         |
-| past                     | less_than $now                                                       |
-| future                   | greater_than $now                                                    |
-| previous_month_to_date   | greater_than $start_of_month & less_than $now                        |
-| previous_month           | greater_than $start_of_last_month & less_than $end_of_last_month     |
-| previous_quarter_to_date | greater_than $start_of_quarter & less_than $now                      |
-| previous_quarter         | greater_than $start_of_last_quarter & less_than $end_of_last_quarter |
-| previous_week_to_date    | greater_than $start_of_week & less_than $now                         |
-| previous_week            | greater_than $start_of_last_week & less_than $end_of_last_week       |
-| previous_x_days_to_date  | greater_than $x_days_ago($value) & less_than $now                    |
-| previous_x_days          | greater_than $x_days_ago($value) & less_than $start_of_today         |
-| previous_year_to_date    | greater_than $start_of_year & less_than $now                         |
-| previous_year            | greater_than $start_of_last_year & less_than $end_of_last_year       |
-| today                    | greater_than $start_of_today and less_than $end_of_today             |
-| yesterday                | greater_than $start_of_yesterday and less_than $end_of_yesterday     |
+| Operator              | Automatic replacement                                        |
+| --------------------- | ------------------------------------------------------------ |
+| Present               | NotEqual null and NotEqual ""                                |
+| Blank                 | Equal null or Equal ""                                       |
+| Missing               | Equal null                                                   |
+| Equal                 | In [$value]                                                  |
+| NotEqual              | NotIn [$value]                                               |
+| In                    | Equal $value or Equal $2 or ...                              |
+| NotIn                 | NotEqual $value and NotEqual $2 and ...                      |
+| StartsWith            | Like '$value%'                                               |
+| EndsWith              | Like '%$value'                                               |
+| Contains              | Like '%$value%'                                              |
+| Before                | LessThan $value                                              |
+| After                 | GreaterThan $value                                           |
+| AfterXHoursAgo        | GreaterThan $hoursAgo($value)                                |
+| BeforeXHoursAgo       | LessThan $hoursAgo($value)                                   |
+| Past                  | LessThan $now                                                |
+| Future                | GreaterThan $now                                             |
+| PreviousMonthToDate   | GreaterThan $startOfMonth & LessThan $now                    |
+| PreviousMonth         | GreaterThan $startOfLastMonth & LessThan $endOfLastMonth     |
+| PreviousQuarterToDate | GreaterThan $startOfQuarter & LessThan $now                  |
+| PreviousQuarter       | GreaterThan $startOfLastQuarter & LessThan $endOfLastQuarter |
+| PreviousWeekToDate    | GreaterThan $startOfWeek & LessThan $now                     |
+| PreviousWeek          | GreaterThan $startOfLastWeek & LessThan $endOfLastWeek       |
+| PreviousXDaysToDate   | GreaterThan $xDaysAgo($value) & LessThan $now                |
+| PreviousXDays         | GreaterThan $xDaysAgo($value) & LessThan $startOfToday       |
+| PreviousYearToDate    | GreaterThan $startOfYear & LessThan $now                     |
+| PreviousYear          | GreaterThan $startOfLastYear & LessThan $endOfLastYear       |
+| Today                 | GreaterThan $startOfToday and LessThan $endOfToday           |
+| Yesterday             | GreaterThan $startOfYesterday and LessThan $endOfYesterday   |
 
 In practice:
 
-- if a field supports `equal`, it will automatically support `blank`, `missing` and `in`
-- if a field support `less_than`, it will automatically support `before`, `before_x_hours_ago` and `past`
+- if a field supports `Equal`, it will automatically support `Blank`, `Missing` and `In`
+- if a field support `LessThan`, it will automatically support `Before`, `BeforeXHoursAgo` and `Past`
 - ... and so on
 
 The minimal list of operators which is sufficient to have them all is the following:
 
-- `in` and `not_in` (unlocks `present`, `blank`, `missing`, `equal` and `not_equal`)
-- `less_than` and `greater_than` (unlocks all dates operators)
-- `like` (unlocks `starts_with`, `ends_with` and `contains`)
-- `not_contains`, `longer_than`, `shorter_than` and `includes_all`
+- `In` and `NotIn` (unlocks `Present`, `Blank`, `Missing`, `Equal` and `NotEqual`)
+- `LessThan` and `GreaterThan` (unlocks all dates operators)
+- `Like` (unlocks `StartsWith`, `EndsWith` and `Contains`)
+- `NotContains`, `LongerThan`, `ShorterThan` and `IncludesAll`
 
 # Paging
 

@@ -9,11 +9,7 @@ describe('Utils > DateAggregationConverter', () => {
     describe('when the dialect is unsupported', () => {
       it('should throw an error', () => {
         expect(() =>
-          DateAggregationConverter.convertToDialect(
-            'unknown' as Dialect,
-            'a__field',
-            DateOperation.ToDay,
-          ),
+          DateAggregationConverter.convertToDialect('unknown' as Dialect, 'a__field', 'Day'),
         ).toThrowError('Unsupported dialect: "unknown"');
       });
     });
@@ -23,7 +19,7 @@ describe('Utils > DateAggregationConverter', () => {
         const aggregationFunction = DateAggregationConverter.convertToDialect(
           'postgres',
           'a__field',
-          DateOperation.ToDay,
+          'Day',
         );
 
         expect(aggregationFunction).toEqual({
@@ -54,7 +50,7 @@ describe('Utils > DateAggregationConverter', () => {
         const aggregationFunction = DateAggregationConverter.convertToDialect(
           'mssql',
           'a__field',
-          DateOperation.ToYear,
+          'Year',
         );
 
         expect(aggregationFunction).toEqual({
@@ -74,7 +70,7 @@ describe('Utils > DateAggregationConverter', () => {
         const aggregationFunction = DateAggregationConverter.convertToDialect(
           'mssql',
           'a__field',
-          DateOperation.ToMonth,
+          'Month',
         );
 
         expect(aggregationFunction).toEqual({
@@ -98,7 +94,7 @@ describe('Utils > DateAggregationConverter', () => {
         const aggregationFunction = DateAggregationConverter.convertToDialect(
           'mssql',
           'a__field',
-          DateOperation.ToDay,
+          'Day',
         );
 
         expect(aggregationFunction).toEqual({
@@ -111,7 +107,7 @@ describe('Utils > DateAggregationConverter', () => {
         const aggregationFunction = DateAggregationConverter.convertToDialect(
           'mssql',
           'a__field',
-          DateOperation.ToWeek,
+          'Week',
         );
 
         expect(aggregationFunction).toEqual({
@@ -140,16 +136,16 @@ describe('Utils > DateAggregationConverter', () => {
       });
 
       it.each([
-        [DateOperation.ToYear, '%Y-01-01'],
-        [DateOperation.ToMonth, '%Y-%m-01'],
-        [DateOperation.ToDay, '%Y-%m-%d'],
+        ['Year', '%Y-01-01'],
+        ['Month', '%Y-%m-01'],
+        ['Day', '%Y-%m-%d'],
       ])(
         'should return the right aggregation function for %s operation',
         (dateOperation, format) => {
           const aggregationFunction = DateAggregationConverter.convertToDialect(
             dialect,
             'a__field',
-            dateOperation,
+            dateOperation as DateOperation,
           );
 
           expect(aggregationFunction).toEqual({
@@ -168,7 +164,7 @@ describe('Utils > DateAggregationConverter', () => {
         const aggregationFunction = DateAggregationConverter.convertToDialect(
           dialect,
           'a__field',
-          DateOperation.ToWeek,
+          'Week',
         );
 
         expect(aggregationFunction).toEqual({
@@ -203,16 +199,16 @@ describe('Utils > DateAggregationConverter', () => {
       });
 
       it.each([
-        [DateOperation.ToYear, '%Y-01-01'],
-        [DateOperation.ToMonth, '%Y-%m-01'],
-        [DateOperation.ToDay, '%Y-%m-%d'],
+        ['Year', '%Y-01-01'],
+        ['Month', '%Y-%m-01'],
+        ['Day', '%Y-%m-%d'],
       ])(
         'should return the right aggregation function for %s operation',
         (dateOperation, format) => {
           const aggregationFunction = DateAggregationConverter.convertToDialect(
             'sqlite',
             'a__field',
-            dateOperation,
+            dateOperation as DateOperation,
           );
 
           expect(aggregationFunction).toEqual({
@@ -231,7 +227,7 @@ describe('Utils > DateAggregationConverter', () => {
         const aggregationFunction = DateAggregationConverter.convertToDialect(
           'sqlite',
           'a__field',
-          DateOperation.ToWeek,
+          'Week',
         );
 
         expect(aggregationFunction).toEqual({

@@ -2,12 +2,9 @@ import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from 'sequelize';
 
 import {
   Aggregation,
-  AggregationOperation,
   ConditionTreeLeaf,
   DataSource,
-  DateOperation,
   Filter,
-  Operator,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -137,7 +134,7 @@ describe('SequelizeDataSource > Collection', () => {
     it('should add include from filter', async () => {
       const { findAll, sequelizeCollection } = setup();
       const filter = new Filter({
-        conditionTree: new ConditionTreeLeaf('relation:aField', Operator.Equal, 42),
+        conditionTree: new ConditionTreeLeaf('relation:aField', 'Equal', 42),
       });
       const projection = new Projection();
 
@@ -281,7 +278,7 @@ describe('SequelizeDataSource > Collection', () => {
       it('should aggregate on *', async () => {
         const { findAll, sequelizeCollection } = setup();
         const aggregation = new Aggregation({
-          operation: AggregationOperation.Sum,
+          operation: 'Sum',
         });
         const filter = new Filter({});
 
@@ -303,7 +300,7 @@ describe('SequelizeDataSource > Collection', () => {
         const { findAll, sequelizeCollection } = setup();
         const aggregation = new Aggregation({
           field: '__field__',
-          operation: AggregationOperation.Sum,
+          operation: 'Sum',
         });
         const filter = new Filter({});
 
@@ -324,7 +321,7 @@ describe('SequelizeDataSource > Collection', () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
             field: '__field__',
-            operation: AggregationOperation.Count,
+            operation: 'Count',
           });
           const filter = new Filter({});
 
@@ -346,7 +343,7 @@ describe('SequelizeDataSource > Collection', () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
             field: 'renamed__field__',
-            operation: AggregationOperation.Sum,
+            operation: 'Sum',
           });
           const filter = new Filter({});
 
@@ -370,7 +367,7 @@ describe('SequelizeDataSource > Collection', () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
             field: 'relations:as__field__',
-            operation: AggregationOperation.Sum,
+            operation: 'Sum',
           });
           const filter = new Filter({});
 
@@ -392,7 +389,7 @@ describe('SequelizeDataSource > Collection', () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
             field: 'relations:as__field__',
-            operation: AggregationOperation.Sum,
+            operation: 'Sum',
           });
           const filter = new Filter({});
 
@@ -419,7 +416,7 @@ describe('SequelizeDataSource > Collection', () => {
             const { findAll, sequelizeCollection } = setup();
             const aggregation = new Aggregation({
               field: 'relations:undefined',
-              operation: AggregationOperation.Count,
+              operation: 'Count',
             });
             const filter = new Filter({});
 
@@ -441,7 +438,7 @@ describe('SequelizeDataSource > Collection', () => {
             const { findAll, sequelizeCollection } = setup();
             const aggregation = new Aggregation({
               field: 'relations:renamed__as__field__',
-              operation: AggregationOperation.Sum,
+              operation: 'Sum',
             });
             const filter = new Filter({});
 
@@ -469,10 +466,10 @@ describe('SequelizeDataSource > Collection', () => {
       it('should add filter to where clause', async () => {
         const { findAll, sequelizeCollection } = setup();
         const aggregation = new Aggregation({
-          operation: AggregationOperation.Count,
+          operation: 'Count',
         });
         const filter = new Filter({
-          conditionTree: new ConditionTreeLeaf('id', Operator.Equal, 42),
+          conditionTree: new ConditionTreeLeaf('id', 'Equal', 42),
         });
 
         await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
@@ -494,7 +491,7 @@ describe('SequelizeDataSource > Collection', () => {
       it('should compute group properly', async () => {
         const { findAll, sequelizeCollection } = setup();
         const aggregation = new Aggregation({
-          operation: AggregationOperation.Count,
+          operation: 'Count',
           groups: [{ field: '__group_field__' }],
         });
         const filter = new Filter({});
@@ -518,7 +515,7 @@ describe('SequelizeDataSource > Collection', () => {
         it('should compute group properly', async () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
-            operation: AggregationOperation.Count,
+            operation: 'Count',
             groups: [{ field: 'renamed__field__' }],
           });
           const filter = new Filter({});
@@ -543,7 +540,7 @@ describe('SequelizeDataSource > Collection', () => {
         it('should aggregate properly', async () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
-            operation: AggregationOperation.Count,
+            operation: 'Count',
             groups: [{ field: 'relations:as__field__' }],
           });
           const filter = new Filter({});
@@ -571,7 +568,7 @@ describe('SequelizeDataSource > Collection', () => {
         it('should add relation to include clause', async () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
-            operation: AggregationOperation.Count,
+            operation: 'Count',
             groups: [{ field: 'relations:as__field__' }],
           });
           const filter = new Filter({});
@@ -603,7 +600,7 @@ describe('SequelizeDataSource > Collection', () => {
           it('should aggregate properly', async () => {
             const { findAll, sequelizeCollection } = setup();
             const aggregation = new Aggregation({
-              operation: AggregationOperation.Count,
+              operation: 'Count',
               groups: [{ field: 'relations:renamed__as__field__' }],
             });
             const filter = new Filter({});
@@ -637,7 +634,7 @@ describe('SequelizeDataSource > Collection', () => {
             const { findAll, sequelizeCollection } = setup('mssql');
 
             const aggregation = new Aggregation({
-              operation: AggregationOperation.Count,
+              operation: 'Count',
               groups: [{ field: '__group_field__' }],
             });
             const filter = new Filter({});
@@ -663,8 +660,8 @@ describe('SequelizeDataSource > Collection', () => {
         it('should group properly', async () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
-            operation: AggregationOperation.Count,
-            groups: [{ field: 'date__field__', operation: DateOperation.ToDay }],
+            operation: 'Count',
+            groups: [{ field: 'date__field__', operation: 'Day' }],
           });
           const filter = new Filter({});
 
@@ -697,8 +694,8 @@ describe('SequelizeDataSource > Collection', () => {
             const { findAll, sequelizeCollection } = setup('mssql');
 
             const aggregation = new Aggregation({
-              operation: AggregationOperation.Count,
-              groups: [{ field: 'date__field__', operation: DateOperation.ToDay }],
+              operation: 'Count',
+              groups: [{ field: 'date__field__', operation: 'Day' }],
             });
             const filter = new Filter({});
 
@@ -730,7 +727,7 @@ describe('SequelizeDataSource > Collection', () => {
         it('should sort on aggragate by default', async () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
-            operation: AggregationOperation.Count,
+            operation: 'Count',
           });
           const filter = new Filter({});
 
@@ -751,7 +748,7 @@ describe('SequelizeDataSource > Collection', () => {
         it('should sort on aggragate by default', async () => {
           const { findAll, sequelizeCollection } = setup('mssql');
           const aggregation = new Aggregation({
-            operation: AggregationOperation.Count,
+            operation: 'Count',
           });
           const filter = new Filter({});
 
@@ -771,7 +768,7 @@ describe('SequelizeDataSource > Collection', () => {
       it('should sort on aggragate by default', async () => {
         const { findAll, sequelizeCollection } = setup('mysql');
         const aggregation = new Aggregation({
-          operation: AggregationOperation.Count,
+          operation: 'Count',
         });
         const filter = new Filter({});
 
@@ -792,7 +789,7 @@ describe('SequelizeDataSource > Collection', () => {
       it('should add limit to query', async () => {
         const { findAll, sequelizeCollection } = setup();
         const aggregation = new Aggregation({
-          operation: AggregationOperation.Count,
+          operation: 'Count',
         });
         const filter = new Filter({});
         const limit = 1;

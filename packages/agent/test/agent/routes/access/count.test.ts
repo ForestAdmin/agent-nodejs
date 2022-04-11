@@ -1,4 +1,3 @@
-import { AggregationOperation } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -44,7 +43,7 @@ describe('CountRoute', () => {
           segment: null,
           timezone: 'Europe/Paris',
         },
-        { operation: AggregationOperation.Count },
+        { operation: 'Count' },
       );
       expect(context.response.body).toEqual({ count: 2 });
     });

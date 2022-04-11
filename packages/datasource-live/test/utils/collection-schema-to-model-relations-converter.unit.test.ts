@@ -1,11 +1,5 @@
+import { CollectionSchema, Operator } from '@forestadmin/datasource-toolkit';
 import { Sequelize } from 'sequelize';
-
-import {
-  CollectionSchema,
-  FieldTypes,
-  Operator,
-  PrimitiveTypes,
-} from '@forestadmin/datasource-toolkit';
 
 import CollectionSchemaToModelRelationsConverter from '../../src/utils/collection-schema-to-model-relations-converter';
 
@@ -17,10 +11,10 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
           actions: {},
           fields: {
             a: {
-              columnType: PrimitiveTypes.Number,
+              columnType: 'Number',
               filterOperators: new Set<Operator>(),
               isPrimaryKey: true,
-              type: FieldTypes.Column,
+              type: 'Column',
             },
           },
           searchable: false,
@@ -92,7 +86,7 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
             foreignKeyTarget: '__fk_target__',
             originKeyTarget: '__origin_target__',
             throughCollection: '__through_collection__',
-            type: FieldTypes.ManyToMany,
+            type: 'ManyToMany',
           };
 
           const relations = CollectionSchemaToModelRelationsConverter.convert(
@@ -124,7 +118,7 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
             foreignCollection: '__collection__',
             foreignKey: '__key__',
             foreignKeyTarget: '__target__',
-            type: FieldTypes.ManyToOne,
+            type: 'ManyToOne',
           };
 
           const relations = CollectionSchemaToModelRelationsConverter.convert(
@@ -154,7 +148,7 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
             originKey: '__key__',
             originKeyTarget: '__target__',
 
-            type: FieldTypes.OneToMany,
+            type: 'OneToMany',
           };
 
           const relations = CollectionSchemaToModelRelationsConverter.convert(
@@ -183,7 +177,7 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
             foreignCollection: '__collection__',
             originKey: '__key__',
             originKeyTarget: '__target__',
-            type: FieldTypes.OneToOne,
+            type: 'OneToOne',
           };
 
           const relations = CollectionSchemaToModelRelationsConverter.convert(

@@ -1,4 +1,3 @@
-import { Aggregator, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -29,13 +28,13 @@ describe('DeleteRoute', () => {
           schema: factories.collectionSchema.build({
             fields: {
               idField1: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
+                columnType: 'Number',
               }),
               idField2: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
+                columnType: 'Number',
               }),
               notIdField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Number,
+                columnType: 'Number',
               }),
             },
           }),
@@ -54,15 +53,15 @@ describe('DeleteRoute', () => {
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
-              aggregator: Aggregator.And,
+              aggregator: 'And',
               conditions: [
                 factories.conditionTreeLeaf.build({
-                  operator: Operator.Equal,
+                  operator: 'Equal',
                   value: 1523,
                   field: 'idField1',
                 }),
                 factories.conditionTreeLeaf.build({
-                  operator: Operator.Equal,
+                  operator: 'Equal',
                   value: 1524,
                   field: 'idField2',
                 }),
@@ -84,7 +83,7 @@ describe('DeleteRoute', () => {
           schema: factories.collectionSchema.build({
             fields: {
               id: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
+                columnType: 'Number',
               }),
             },
           }),
@@ -103,7 +102,7 @@ describe('DeleteRoute', () => {
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
-              operator: Operator.Equal,
+              operator: 'Equal',
               value: 1523,
               field: 'id',
             }),
@@ -126,7 +125,7 @@ describe('DeleteRoute', () => {
           schema: factories.collectionSchema.build({
             fields: {
               id: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
+                columnType: 'Number',
               }),
             },
           }),
@@ -147,7 +146,7 @@ describe('DeleteRoute', () => {
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
-              operator: Operator.In,
+              operator: 'In',
               value: [1523, 5684],
               field: 'id',
             }),
@@ -167,7 +166,7 @@ describe('DeleteRoute', () => {
             schema: factories.collectionSchema.build({
               fields: {
                 id: factories.columnSchema.isPrimaryKey().build({
-                  columnType: PrimitiveTypes.Number,
+                  columnType: 'Number',
                 }),
               },
             }),
@@ -193,7 +192,7 @@ describe('DeleteRoute', () => {
           expect(bookCollection.delete).toHaveBeenCalledWith(
             factories.filter.build({
               conditionTree: factories.conditionTreeLeaf.build({
-                operator: Operator.NotEqual,
+                operator: 'NotEqual',
                 value: 1523,
                 field: 'id',
               }),
@@ -215,13 +214,13 @@ describe('DeleteRoute', () => {
           schema: factories.collectionSchema.build({
             fields: {
               idField1: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
+                columnType: 'Number',
               }),
               idField2: factories.columnSchema.isPrimaryKey().build({
-                columnType: PrimitiveTypes.Number,
+                columnType: 'Number',
               }),
               notIdField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Number,
+                columnType: 'Number',
               }),
             },
           }),
@@ -242,33 +241,33 @@ describe('DeleteRoute', () => {
         expect(bookCollection.delete).toHaveBeenCalledWith(
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
-              aggregator: Aggregator.Or,
+              aggregator: 'Or',
               conditions: [
                 factories.conditionTreeBranch.build({
-                  aggregator: Aggregator.And,
+                  aggregator: 'And',
                   conditions: [
                     factories.conditionTreeLeaf.build({
-                      operator: Operator.Equal,
+                      operator: 'Equal',
                       value: 1523,
                       field: 'idField1',
                     }),
                     factories.conditionTreeLeaf.build({
-                      operator: Operator.In,
+                      operator: 'In',
                       value: [1524, 5688],
                       field: 'idField2',
                     }),
                   ],
                 }),
                 factories.conditionTreeBranch.build({
-                  aggregator: Aggregator.And,
+                  aggregator: 'And',
                   conditions: [
                     factories.conditionTreeLeaf.build({
-                      operator: Operator.Equal,
+                      operator: 'Equal',
                       value: 9999,
                       field: 'idField1',
                     }),
                     factories.conditionTreeLeaf.build({
-                      operator: Operator.Equal,
+                      operator: 'Equal',
                       value: 7894,
                       field: 'idField2',
                     }),
@@ -291,13 +290,13 @@ describe('DeleteRoute', () => {
             schema: factories.collectionSchema.build({
               fields: {
                 idField1: factories.columnSchema.isPrimaryKey().build({
-                  columnType: PrimitiveTypes.Number,
+                  columnType: 'Number',
                 }),
                 idField2: factories.columnSchema.isPrimaryKey().build({
-                  columnType: PrimitiveTypes.Number,
+                  columnType: 'Number',
                 }),
                 notIdField: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Number,
+                  columnType: 'Number',
                 }),
               },
             }),
@@ -323,15 +322,15 @@ describe('DeleteRoute', () => {
           expect(bookCollection.delete).toHaveBeenCalledWith(
             factories.filter.build({
               conditionTree: factories.conditionTreeBranch.build({
-                aggregator: Aggregator.Or,
+                aggregator: 'Or',
                 conditions: [
                   factories.conditionTreeLeaf.build({
-                    operator: Operator.NotEqual,
+                    operator: 'NotEqual',
                     value: 1523,
                     field: 'idField1',
                   }),
                   factories.conditionTreeLeaf.build({
-                    operator: Operator.NotIn,
+                    operator: 'NotIn',
                     value: [1524, 5688],
                     field: 'idField2',
                   }),

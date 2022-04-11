@@ -1,11 +1,4 @@
-import {
-  ActionResultType,
-  Aggregation,
-  AggregationOperation,
-  Page,
-  PaginatedFilter,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
+import { Aggregation, Page, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 import BookCollection from '../../src/collections/books';
 import DummyDataSource from '../../src/datasource';
 
@@ -101,7 +94,7 @@ describe('DummyDataSource > Collections > Books', () => {
       const expectedPageLimit = 3;
       const paginatedFilter = new PaginatedFilter({ page: new Page(0, expectedPageLimit) });
       const aggregation = new Aggregation({
-        operation: AggregationOperation.Count,
+        operation: 'Count',
         groups: [{ field: 'title' }, { field: 'authorId' }],
       });
 
@@ -113,7 +106,7 @@ describe('DummyDataSource > Collections > Books', () => {
     it('should return rows matching the aggregation groups', async () => {
       const bookCollection = instanciateCollection();
       const aggregation = new Aggregation({
-        operation: AggregationOperation.Count,
+        operation: 'Count',
         groups: [{ field: 'title' }, { field: 'authorId' }],
       });
 
@@ -129,7 +122,7 @@ describe('DummyDataSource > Collections > Books', () => {
     const bookCollection = instanciateCollection();
 
     await expect(bookCollection.execute()).resolves.toMatchObject({
-      type: ActionResultType.Success,
+      type: 'Success',
       message: 'Record set as active',
       format: 'text',
     });

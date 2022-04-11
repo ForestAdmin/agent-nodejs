@@ -91,7 +91,7 @@ export default class CollectionBuilder {
    * @param {ActionDefinition} definition the definition of the action
    * @example
    * .addAction('is live', {
-   *    scope: ActionScope.Single,
+   *    scope: 'Single',
    *    execute: async (context, responseBuilder) => {
    *      return responseBuilder.success(`Is live!`);
    *    },
@@ -109,7 +109,7 @@ export default class CollectionBuilder {
    * @param {FieldDefinition} definition The definition of the field
    * @example
    * .addField('fullName', {
-   *    columnType: PrimitiveTypes.String,
+   *    columnType: 'String',
    *    dependencies: ['firstName', 'lastName'],
    *    getValues: (records) => records.map(record => `${record.lastName} ${record.firstName}`),
    * });
@@ -131,7 +131,7 @@ export default class CollectionBuilder {
    * @param definition definition of the new relation
    * @example
    * .addRelation('author', {
-   *   type: FieldTypes.ManyToOne,
+   *   type: 'ManyToOne',
    *   foreignCollection: 'persons',
    *   foreignKey: 'authorId'
    * });
@@ -150,7 +150,7 @@ export default class CollectionBuilder {
    * @example
    * .addSegment(
    *    'Wrote more than 2 books',
-   *    new ConditionTreeLeaf('booksCount', Operator.GreaterThan, 2),
+   *    new ConditionTreeLeaf('booksCount', 'GreaterThan', 2),
    * );
    */
   addSegment(name: string, definition: SegmentDefinition) {
@@ -220,7 +220,7 @@ export default class CollectionBuilder {
    * @param {string} name the name of the field to enable emulation on
    * @param {Operator} operator the operator to emulate
    * @example
-   * .emulateFieldOperator('aField', Operator.In);
+   * .emulateFieldOperator('aField', 'In');
    */
   emulateFieldOperator(name: string, operator: Operator): this {
     const collection = this.agentBuilder.earlyOpEmulate.getCollection(this.name).schema.fields[name]
@@ -239,8 +239,8 @@ export default class CollectionBuilder {
    * @param {Operator} operator the operator to replace
    * @param {OperatorReplacer} replacer the proposed implementation
    * @example
-   * .replaceFieldOperator('booksCount', Operator.Equal, ({ value }) => new ConditionTreeNot(
-   *   new ConditionTreeLeaf('booksCount', Operator.Equal, value),
+   * .replaceFieldOperator('booksCount', 'Equal', ({ value }) => new ConditionTreeNot(
+   *   new ConditionTreeLeaf('booksCount', 'Equal', value),
    * ));
    */
   replaceFieldOperator(name: string, operator: Operator, replacer: OperatorReplacer): this {

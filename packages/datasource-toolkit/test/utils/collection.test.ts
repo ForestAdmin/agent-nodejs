@@ -1,9 +1,8 @@
 import * as factories from '../__factories__';
-import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
-import Aggregation, { AggregationOperation } from '../../src/interfaces/query/aggregation';
+import Aggregation from '../../src/interfaces/query/aggregation';
 import CollectionUtils from '../../src/utils/collection';
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
-import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
 
 describe('CollectionUtils', () => {
   const setupWithUnsupportedRelation = () => {
@@ -32,7 +31,7 @@ describe('CollectionUtils', () => {
         fields: {
           id: factories.columnSchema.build({
             isPrimaryKey: true,
-            columnType: PrimitiveTypes.Number,
+            columnType: 'Number',
           }),
           oneToManyRelationField: factories.oneToManySchema.build({
             foreignCollection: 'reviews',
@@ -98,7 +97,7 @@ describe('CollectionUtils', () => {
                 foreignKey: 'authorId',
               }),
               authorId: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Uuid,
+                columnType: 'Uuid',
               }),
             },
           }),
@@ -133,8 +132,8 @@ describe('CollectionUtils', () => {
         expect(
           CollectionUtils.getFieldSchema(dataSource.getCollection('books'), 'id'),
         ).toMatchObject({
-          type: FieldTypes.Column,
-          columnType: PrimitiveTypes.Uuid,
+          type: 'Column',
+          columnType: 'Uuid',
           isPrimaryKey: true,
         });
       });
@@ -145,8 +144,8 @@ describe('CollectionUtils', () => {
         expect(
           CollectionUtils.getFieldSchema(dataSource.getCollection('books'), 'author:id'),
         ).toMatchObject({
-          type: FieldTypes.Column,
-          columnType: PrimitiveTypes.Uuid,
+          type: 'Column',
+          columnType: 'Uuid',
           isPrimaryKey: true,
         });
       });
@@ -322,7 +321,7 @@ describe('CollectionUtils', () => {
 
         const expectedCondition = ConditionTreeFactory.intersect(
           baseFilter.conditionTree,
-          new ConditionTreeLeaf('bookId', Operator.Equal, 2),
+          new ConditionTreeLeaf('bookId', 'Equal', 2),
         );
         expect(dataSource.getCollection('reviews').aggregate).toHaveBeenCalledWith(
           baseFilter.override({ conditionTree: expectedCondition }),
@@ -336,7 +335,7 @@ describe('CollectionUtils', () => {
       test('should return the aggregate result of the relation', async () => {
         const { dataSource } = setupWithManyToManyRelation();
         const aggregation = new Aggregation({
-          operation: AggregationOperation.Max,
+          operation: 'Max',
           field: 'aField',
         });
         const baseFilter = factories.filter.build({
@@ -357,14 +356,14 @@ describe('CollectionUtils', () => {
         );
 
         const expectedCondition = ConditionTreeFactory.intersect(
-          new ConditionTreeLeaf('bookId', Operator.Equal, 2),
+          new ConditionTreeLeaf('bookId', 'Equal', 2),
           baseFilter.conditionTree.nest('myLibrary'),
         );
 
         expect(dataSource.getCollection('librariesBooks').aggregate).toHaveBeenCalledWith(
           baseFilter.override({ conditionTree: expectedCondition }),
           new Aggregation({
-            operation: AggregationOperation.Max,
+            operation: 'Max',
             field: 'myLibrary:aField',
           }),
           55,
@@ -418,7 +417,7 @@ describe('CollectionUtils', () => {
 
         const expectedCondition = ConditionTreeFactory.intersect(
           baseFilter.conditionTree,
-          new ConditionTreeLeaf('bookId', Operator.Equal, 2),
+          new ConditionTreeLeaf('bookId', 'Equal', 2),
         );
         expect(dataSource.getCollection('reviews').list).toHaveBeenCalledWith(
           baseFilter.override({ conditionTree: expectedCondition }),
@@ -448,7 +447,7 @@ describe('CollectionUtils', () => {
         );
 
         const expectedCondition = ConditionTreeFactory.intersect(
-          new ConditionTreeLeaf('bookId', Operator.Equal, 2),
+          new ConditionTreeLeaf('bookId', 'Equal', 2),
           paginatedFilter.conditionTree.nest('myLibrary'),
         );
         expect(dataSource.getCollection('librariesBooks').list).toHaveBeenCalledWith(
@@ -491,7 +490,7 @@ describe('CollectionUtils', () => {
 
       expect(value).toEqual(123);
       expect(books.list).toHaveBeenCalledWith(
-        { conditionTree: { field: 'id', operator: 'equal', value: '=[id-value]=' } },
+        { conditionTree: { field: 'id', operator: 'Equal', value: '=[id-value]=' } },
         ['field'],
       );
     });

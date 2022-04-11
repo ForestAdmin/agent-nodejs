@@ -1,41 +1,39 @@
-import ConditionTreeLeaf, {
-  Operator,
-} from '../../../src/interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import makeAlternatives from '../../../src/interfaces/query/condition-tree/transforms/pattern';
 
 describe('ConditionTreeOperators > Pattern', () => {
   const alternatives = makeAlternatives();
 
-  describe('Operator.Contains', () => {
+  describe('Contains', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives[Operator.Contains][0].replacer(
-          new ConditionTreeLeaf('column', Operator.Contains, 'something'),
+        alternatives.Contains[0].replacer(
+          new ConditionTreeLeaf('column', 'Contains', 'something'),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: Operator.Like, value: '%something%' });
+      ).toEqual({ field: 'column', operator: 'Like', value: '%something%' });
     });
   });
 
-  describe('Operator.StartsWith', () => {
+  describe('StartsWith', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives[Operator.StartsWith][0].replacer(
-          new ConditionTreeLeaf('column', Operator.StartsWith, 'something'),
+        alternatives.StartsWith[0].replacer(
+          new ConditionTreeLeaf('column', 'StartsWith', 'something'),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: Operator.Like, value: 'something%' });
+      ).toEqual({ field: 'column', operator: 'Like', value: 'something%' });
     });
   });
 
-  describe('Operator.EndsWith', () => {
+  describe('EndsWith', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives[Operator.EndsWith][0].replacer(
-          new ConditionTreeLeaf('column', Operator.EndsWith, 'something'),
+        alternatives.EndsWith[0].replacer(
+          new ConditionTreeLeaf('column', 'EndsWith', 'something'),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: Operator.Like, value: '%something' });
+      ).toEqual({ field: 'column', operator: 'Like', value: '%something' });
     });
   });
 });

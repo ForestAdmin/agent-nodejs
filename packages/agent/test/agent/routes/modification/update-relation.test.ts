@@ -1,4 +1,4 @@
-import { Aggregator, Filter, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -16,7 +16,7 @@ describe('UpdateRelationRoute', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+          name: factories.columnSchema.build({ columnType: 'String' }),
         },
       }),
     });
@@ -26,7 +26,7 @@ describe('UpdateRelationRoute', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          personId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+          personId: factories.columnSchema.build({ columnType: 'Uuid' }),
           myPersons: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
             foreignKey: 'personId',
@@ -81,10 +81,10 @@ describe('UpdateRelationRoute', () => {
           new Filter({
             timezone: 'Europe/Paris',
             conditionTree: factories.conditionTreeBranch.build({
-              aggregator: Aggregator.And,
+              aggregator: 'And',
               conditions: [
                 factories.conditionTreeLeaf.build({
-                  operator: Operator.Equal,
+                  operator: 'Equal',
                   value: '00000000-0000-4000-8000-000000000000',
                   field: 'id',
                 }),
@@ -163,7 +163,7 @@ describe('UpdateRelationRoute', () => {
           new Filter({
             timezone: 'Europe/Paris',
             conditionTree: factories.conditionTreeLeaf.build({
-              operator: Operator.Equal,
+              operator: 'Equal',
               value: '00000000-0000-4000-8000-000000000000',
               field: 'bookId',
             }),
@@ -176,7 +176,7 @@ describe('UpdateRelationRoute', () => {
           new Filter({
             timezone: 'Europe/Paris',
             conditionTree: factories.conditionTreeLeaf.build({
-              operator: Operator.Equal,
+              operator: 'Equal',
               value: '11111111-1111-4111-8111-111111111111',
               field: 'id',
             }),

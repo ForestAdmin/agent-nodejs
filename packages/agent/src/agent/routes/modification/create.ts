@@ -3,10 +3,8 @@ import {
   CompositeId,
   ConditionTreeFactory,
   ConditionTreeLeaf,
-  FieldTypes,
   Filter,
   ManyToOneSchema,
-  Operator,
   RecordData,
   RecordValidator,
   RelationSchema,
@@ -44,15 +42,15 @@ export default class CreateRoute extends CollectionRoute {
     const promises = Object.entries(record).map(async ([field, value]) => {
       const schema = this.collection.schema.fields[field];
 
-      if (schema?.type === FieldTypes.OneToOne || schema?.type === FieldTypes.ManyToOne) {
+      if (schema?.type === 'OneToOne' || schema?.type === 'ManyToOne') {
         relations[field] = this.getRelationRecord(field, value as CompositeId);
       }
 
-      if (schema?.type === FieldTypes.ManyToOne) {
+      if (schema?.type === 'ManyToOne') {
         patch[schema.foreignKey] = await this.getManyToOneTarget(field, value as CompositeId);
       }
 
-      if (schema?.type === FieldTypes.Column) {
+      if (schema?.type === 'Column') {
         patch[field] = value;
       }
     });
@@ -81,7 +79,7 @@ export default class CreateRoute extends CollectionRoute {
 
     const promises = Object.entries(relations).map(async ([field, linked]) => {
       const relation = this.collection.schema.fields[field];
-      if (relation.type !== FieldTypes.OneToOne) return;
+      if (relation.type !== 'OneToOne') return;
 
       // Permissions
       const foreignCollection = this.dataSource.getCollection(relation.foreignCollection);
@@ -92,7 +90,7 @@ export default class CreateRoute extends CollectionRoute {
       const originValue = record[relation.originKeyTarget];
 
       // Break old relation (may update zero or one records).
-      const oldFkOwner = new ConditionTreeLeaf(relation.originKey, Operator.Equal, originValue);
+      const oldFkOwner = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
       await foreignCollection.update(
         new Filter({ conditionTree: ConditionTreeFactory.intersect(oldFkOwner, scope), timezone }),
         { [relation.originKey]: null },

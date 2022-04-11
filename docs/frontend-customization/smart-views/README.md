@@ -97,14 +97,14 @@ export default class extends Component {
   async fetchData(startDate, endDate) {
     const params = {
       filters: JSON.stringify({
-        aggregator: 'and',
+        aggregator: 'And',
         conditions: [{
           field: 'start_date',
-          operator: 'greater_than'
+          operator: 'GreaterThan'
           value: startDate,
         }, {
           field: 'start_date',
-          operator: 'less_than'
+          operator: 'LessThan'
           value: endDate,
         }],
       }),

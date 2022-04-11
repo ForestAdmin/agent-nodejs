@@ -16,7 +16,7 @@ Filtering operators can be disabled one by one.
 This is used mostly for performance reasons: on big collections, it can be intesting to let users filter only on fields that are indexed in your database to avoid [full-table-scans](https://en.wikipedia.org/wiki/Full_table_scan).
 
 ```javascript
-collection.replaceFieldOperator('fullName', 'equal', null);
+collection.replaceFieldOperator('fullName', 'Equal', null);
 ```
 
 ## Substitution
@@ -27,14 +27,14 @@ Operation substitution can be used for two motives:
 - Capabilities: enable filtering on a computed field, or other non-filterable fields
 
 ```javascript
-collection.replaceFieldOperator('fullName', 'equal', (value, context) => {
+collection.replaceFieldOperator('fullName', 'Equal', (value, context) => {
   const [firstName, ...lastNames] = value.split(' ');
 
   return {
-    aggregation: 'and',
+    aggregation: 'And',
     conditions: [
-      { field: 'firstName', operator: 'equal', value: firstName },
-      { field: 'lastName', operator: 'equal', value: lastNames.join(' ') },
+      { field: 'firstName', operator: 'Equal', value: firstName },
+      { field: 'lastName', operator: 'Equal', value: lastNames.join(' ') },
     ],
   };
 });
@@ -49,7 +49,7 @@ Filtering emulation allows to make fields filterable automatically.
 collection.emulateFieldFiltering('fullName');
 
 // Add support for a single operator
-collection.emulateFieldOperator('fullName', 'equal');
+collection.emulateFieldOperator('fullName', 'Equal');
 ```
 
 {% hint style="warning" %}

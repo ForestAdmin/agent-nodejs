@@ -1,7 +1,4 @@
 import * as factories from '../../__factories__';
-import { Aggregator } from '../../../src/interfaces/query/condition-tree/nodes/branch';
-import { Operator } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
-import { PrimitiveTypes } from '../../../src/interfaces/schema';
 import ConditionTreeFactory from '../../../src/interfaces/query/condition-tree/factory';
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
 
@@ -97,8 +94,8 @@ describe('SearchCollectionDecorator', () => {
             schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 fieldName: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.String,
-                  filterOperators: new Set([Operator.Contains]),
+                  columnType: 'String',
+                  filterOperators: new Set(['Contains']),
                 }),
               },
             }),
@@ -107,10 +104,10 @@ describe('SearchCollectionDecorator', () => {
           const filter = factories.filter.build({
             search: 'a text',
             conditionTree: factories.conditionTreeBranch.build({
-              aggregator: Aggregator.And,
+              aggregator: 'And',
               conditions: [
                 factories.conditionTreeLeaf.build({
-                  operator: Operator.Equal,
+                  operator: 'Equal',
                   field: 'aFieldName',
                   value: 'fieldValue',
                 }),
@@ -124,10 +121,10 @@ describe('SearchCollectionDecorator', () => {
           expect(refinedFilter).toEqual({
             search: null,
             conditionTree: {
-              aggregator: 'and',
+              aggregator: 'And',
               conditions: [
-                { operator: 'equal', field: 'aFieldName', value: 'fieldValue' },
-                { field: 'fieldName', operator: 'contains', value: 'a text' },
+                { operator: 'Equal', field: 'aFieldName', value: 'fieldValue' },
+                { field: 'fieldName', operator: 'Contains', value: 'a text' },
               ],
             },
           });
@@ -140,8 +137,8 @@ describe('SearchCollectionDecorator', () => {
             schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 fieldName: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.String,
-                  filterOperators: new Set([Operator.Contains]),
+                  columnType: 'String',
+                  filterOperators: new Set(['Contains']),
                 }),
               },
             }),
@@ -154,7 +151,7 @@ describe('SearchCollectionDecorator', () => {
           const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
           expect(refinedFilter).toEqual({
             search: null,
-            conditionTree: { field: 'fieldName', operator: Operator.Contains, value: 'a text' },
+            conditionTree: { field: 'fieldName', operator: 'Contains', value: 'a text' },
           });
         });
       });
@@ -165,8 +162,8 @@ describe('SearchCollectionDecorator', () => {
             schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 fieldName: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Uuid,
-                  filterOperators: new Set([Operator.Equal]),
+                  columnType: 'Uuid',
+                  filterOperators: new Set(['Equal']),
                 }),
               },
             }),
@@ -181,7 +178,7 @@ describe('SearchCollectionDecorator', () => {
             search: null,
             conditionTree: {
               field: 'fieldName',
-              operator: Operator.Equal,
+              operator: 'Equal',
               value: '2d162303-78bf-599e-b197-93590ac3d315',
             },
           });
@@ -194,8 +191,8 @@ describe('SearchCollectionDecorator', () => {
             schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 fieldName: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Number,
-                  filterOperators: new Set([Operator.Equal]),
+                  columnType: 'Number',
+                  filterOperators: new Set(['Equal']),
                 }),
               },
             }),
@@ -208,7 +205,7 @@ describe('SearchCollectionDecorator', () => {
           const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
           expect(refinedFilter).toEqual({
             search: null,
-            conditionTree: { field: 'fieldName', operator: Operator.Equal, value: 1584 },
+            conditionTree: { field: 'fieldName', operator: 'Equal', value: 1584 },
           });
         });
       });
@@ -219,9 +216,9 @@ describe('SearchCollectionDecorator', () => {
             schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 fieldName: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Enum,
+                  columnType: 'Enum',
                   enumValues: ['AEnumValue'],
-                  filterOperators: new Set([Operator.Equal]),
+                  filterOperators: new Set(['Equal']),
                 }),
               },
             }),
@@ -234,7 +231,7 @@ describe('SearchCollectionDecorator', () => {
           const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
           expect(refinedFilter).toEqual({
             search: null,
-            conditionTree: { field: 'fieldName', operator: Operator.Equal, value: 'AEnumValue' },
+            conditionTree: { field: 'fieldName', operator: 'Equal', value: 'AEnumValue' },
           });
         });
 
@@ -244,7 +241,7 @@ describe('SearchCollectionDecorator', () => {
               schema: factories.collectionSchema.unsearchable().build({
                 fields: {
                   fieldName: factories.columnSchema.build({
-                    columnType: PrimitiveTypes.Enum,
+                    columnType: 'Enum',
                     enumValues: ['AEnumValue'],
                   }),
                 },
@@ -269,7 +266,7 @@ describe('SearchCollectionDecorator', () => {
               schema: factories.collectionSchema.unsearchable().build({
                 fields: {
                   fieldName: factories.columnSchema.build({
-                    columnType: PrimitiveTypes.Enum,
+                    columnType: 'Enum',
                     // enum values is not defined
                   }),
                 },
@@ -293,9 +290,9 @@ describe('SearchCollectionDecorator', () => {
             const collection = factories.collection.build({
               schema: factories.collectionSchema.unsearchable().build({
                 fields: {
-                  fieldName: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
+                  fieldName: factories.columnSchema.build({ columnType: 'Boolean' }),
                   originKey: factories.columnSchema.build({
-                    columnType: PrimitiveTypes.String,
+                    columnType: 'String',
                     filterOperators: null,
                   }),
                 },
@@ -321,14 +318,14 @@ describe('SearchCollectionDecorator', () => {
             schema: factories.collectionSchema.unsearchable().build({
               fields: {
                 numberField1: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Number,
-                  filterOperators: new Set([Operator.Equal]),
+                  columnType: 'Number',
+                  filterOperators: new Set(['Equal']),
                 }),
                 numberField2: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Number,
-                  filterOperators: new Set([Operator.Equal]),
+                  columnType: 'Number',
+                  filterOperators: new Set(['Equal']),
                 }),
-                fieldNotReturned: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+                fieldNotReturned: factories.columnSchema.build({ columnType: 'Uuid' }),
               },
             }),
           });
@@ -341,10 +338,10 @@ describe('SearchCollectionDecorator', () => {
           expect(refinedFilter).toEqual({
             search: null,
             conditionTree: {
-              aggregator: 'or',
+              aggregator: 'Or',
               conditions: [
-                { field: 'numberField1', operator: Operator.Equal, value: 1584 },
-                { field: 'numberField2', operator: Operator.Equal, value: 1584 },
+                { field: 'numberField1', operator: 'Equal', value: 1584 },
+                { field: 'numberField2', operator: 'Equal', value: 1584 },
               ],
             },
           });
@@ -403,22 +400,22 @@ describe('SearchCollectionDecorator', () => {
               searchExtended: true,
               search: null,
               conditionTree: {
-                aggregator: 'or',
+                aggregator: 'Or',
                 conditions: [
-                  { field: 'id', operator: 'equal', value: '2d162303-78bf-599e-b197-93590ac3d315' },
+                  { field: 'id', operator: 'Equal', value: '2d162303-78bf-599e-b197-93590ac3d315' },
                   {
                     field: 'myPersons:id',
-                    operator: 'equal',
+                    operator: 'Equal',
                     value: '2d162303-78bf-599e-b197-93590ac3d315',
                   },
                   {
                     field: 'myBookPersons:bookId',
-                    operator: 'equal',
+                    operator: 'Equal',
                     value: '2d162303-78bf-599e-b197-93590ac3d315',
                   },
                   {
                     field: 'myBookPersons:personId',
-                    operator: 'equal',
+                    operator: 'Equal',
                     value: '2d162303-78bf-599e-b197-93590ac3d315',
                   },
                 ],

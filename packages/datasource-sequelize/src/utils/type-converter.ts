@@ -4,17 +4,20 @@ import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-to
 
 export default class TypeConverter {
   // TODO: Allow to differentiate NUMBER and INTEGER.
-  private static readonly columnTypeToDataType = {
-    [PrimitiveTypes.Boolean]: DataTypes.BOOLEAN,
-    [PrimitiveTypes.Date]: DataTypes.DATE,
-    [PrimitiveTypes.Dateonly]: DataTypes.DATEONLY,
-    [PrimitiveTypes.Enum]: DataTypes.ENUM,
-    [PrimitiveTypes.Json]: DataTypes.JSON,
-    [PrimitiveTypes.Number]: DataTypes.NUMBER,
-    [PrimitiveTypes.Point]: null,
-    [PrimitiveTypes.String]: DataTypes.STRING,
-    [PrimitiveTypes.Timeonly]: DataTypes.TIME,
-    [PrimitiveTypes.Uuid]: DataTypes.UUID,
+  private static readonly columnTypeToDataType: Record<
+    PrimitiveTypes,
+    AbstractDataTypeConstructor
+  > = {
+    Boolean: DataTypes.BOOLEAN,
+    Date: DataTypes.DATE,
+    Dateonly: DataTypes.DATEONLY,
+    Enum: DataTypes.ENUM,
+    Json: DataTypes.JSON,
+    Number: DataTypes.NUMBER,
+    Point: null,
+    String: DataTypes.STRING,
+    Timeonly: DataTypes.TIME,
+    Uuid: DataTypes.UUID,
   };
 
   // TODO: Handle all ColumnTypes, not only PrimitiveTypes?
@@ -26,41 +29,41 @@ export default class TypeConverter {
     return dataType;
   }
 
-  private static readonly dataTypeToColumnType = {
-    BIGINT: PrimitiveTypes.Number,
+  private static readonly dataTypeToColumnType: Record<string, PrimitiveTypes> = {
+    BIGINT: 'Number',
     BLOB: null,
-    BOOLEAN: PrimitiveTypes.Boolean,
-    CHAR: PrimitiveTypes.String,
+    BOOLEAN: 'Boolean',
+    CHAR: 'String',
     CIDR: null,
-    CITEXT: PrimitiveTypes.String,
-    DATE: PrimitiveTypes.Date,
-    DATEONLY: PrimitiveTypes.Dateonly,
-    DECIMAL: PrimitiveTypes.Number,
-    DOUBLE: PrimitiveTypes.Number,
-    ENUM: PrimitiveTypes.Enum,
-    FLOAT: PrimitiveTypes.Number,
+    CITEXT: 'String',
+    DATE: 'Date',
+    DATEONLY: 'Dateonly',
+    DECIMAL: 'Number',
+    DOUBLE: 'Number',
+    ENUM: 'Enum',
+    FLOAT: 'Number',
     GEOGRAPHY: null,
     GEOMETRY: null,
     HSTORE: null,
     INET: null,
-    INTEGER: PrimitiveTypes.Number,
-    JSONB: PrimitiveTypes.Json,
+    INTEGER: 'Number',
+    JSONB: 'Json',
     JSONTYPE: null,
     MACADDR: null,
-    MEDIUMINT: PrimitiveTypes.Number,
-    NOW: PrimitiveTypes.Date,
-    NUMBER: PrimitiveTypes.Number,
+    MEDIUMINT: 'Number',
+    NOW: 'Date',
+    NUMBER: 'Number',
     RANGE: null,
-    REAL: PrimitiveTypes.Number,
-    SMALLINT: PrimitiveTypes.Number,
-    STRING: PrimitiveTypes.String,
-    TEXT: PrimitiveTypes.String,
-    TIME: PrimitiveTypes.Timeonly,
-    TINYINT: PrimitiveTypes.Number,
+    REAL: 'Number',
+    SMALLINT: 'Number',
+    STRING: 'String',
+    TEXT: 'String',
+    TIME: 'Timeonly',
+    TINYINT: 'Number',
     TSVECTOR: null,
-    UUID: PrimitiveTypes.Uuid,
-    UUIDV1: PrimitiveTypes.Uuid,
-    UUIDV4: PrimitiveTypes.Uuid,
+    UUID: 'Uuid',
+    UUIDV1: 'Uuid',
+    UUIDV4: 'Uuid',
     VIRTUAL: null,
   };
 
@@ -83,11 +86,11 @@ export default class TypeConverter {
   }
 
   private static readonly baseOperators: Operator[] = [
-    Operator.Blank,
-    Operator.Equal,
-    Operator.Missing,
-    Operator.NotEqual,
-    Operator.Present,
+    'Blank',
+    'Equal',
+    'Missing',
+    'NotEqual',
+    'Present',
   ];
 
   public static operatorsForDataType(
@@ -96,12 +99,7 @@ export default class TypeConverter {
     const dataTypeName = dataType?.key;
 
     if (dataTypeName === 'ARRAY') {
-      return new Set<Operator>([
-        ...this.baseOperators,
-        Operator.In,
-        Operator.IncludesAll,
-        Operator.NotIn,
-      ]);
+      return new Set<Operator>([...this.baseOperators, 'In', 'IncludesAll', 'NotIn']);
     }
 
     switch (dataTypeName) {
@@ -112,10 +110,10 @@ export default class TypeConverter {
       case 'UUIDV4':
         return new Set<Operator>([
           ...this.baseOperators,
-          Operator.Contains,
-          Operator.EndsWith,
-          Operator.Like,
-          Operator.StartsWith,
+          'Contains',
+          'EndsWith',
+          'Like',
+          'StartsWith',
         ]);
       case 'BIGINT':
       case 'DECIMAL':
@@ -127,36 +125,30 @@ export default class TypeConverter {
       case 'REAL':
       case 'SMALLINT':
       case 'TINYINT':
-        return new Set<Operator>([
-          ...this.baseOperators,
-          Operator.GreaterThan,
-          Operator.In,
-          Operator.LessThan,
-          Operator.NotIn,
-        ]);
+        return new Set<Operator>([...this.baseOperators, 'GreaterThan', 'In', 'LessThan', 'NotIn']);
       case 'CHAR':
       case 'CITEXT':
       case 'STRING':
       case 'TEXT':
         return new Set<Operator>([
           ...this.baseOperators,
-          Operator.Contains,
-          Operator.EndsWith,
-          Operator.In,
-          Operator.Like,
-          Operator.LongerThan,
-          Operator.NotContains,
-          Operator.NotIn,
-          Operator.ShorterThan,
-          Operator.StartsWith,
+          'Contains',
+          'EndsWith',
+          'In',
+          'Like',
+          'LongerThan',
+          'NotContains',
+          'NotIn',
+          'ShorterThan',
+          'StartsWith',
         ]);
       case 'DATE':
       case 'DATEONLY':
       case 'NOW':
       case 'TIME':
-        return new Set<Operator>([...this.baseOperators, Operator.GreaterThan, Operator.LessThan]);
+        return new Set<Operator>([...this.baseOperators, 'GreaterThan', 'LessThan']);
       case 'ENUM':
-        return new Set<Operator>([...this.baseOperators, Operator.In, Operator.NotIn]);
+        return new Set<Operator>([...this.baseOperators, 'In', 'NotIn']);
       case 'JSON':
       case 'JSONB':
         return new Set<Operator>([...this.baseOperators]);

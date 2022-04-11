@@ -1,9 +1,7 @@
 import {
   ConditionTreeLeaf,
-  Operator,
   Page,
   PaginatedFilter,
-  PrimitiveTypes,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
@@ -24,7 +22,7 @@ describe('CsvGenerator', () => {
       const filter = new PaginatedFilter({
         conditionTree: factories.conditionTreeLeaf.build({
           field: 'id',
-          operator: Operator.Equal,
+          operator: 'Equal',
           value: '123e4567-e89b-12d3-a456-426614174000',
         }),
         sort: new Sort(),
@@ -35,7 +33,7 @@ describe('CsvGenerator', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
-            name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+            name: factories.columnSchema.build({ columnType: 'String' }),
           },
         }),
       });

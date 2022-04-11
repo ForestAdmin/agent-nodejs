@@ -2,11 +2,11 @@ import { DateTime, DateTimeUnit } from 'luxon';
 
 import { Collection } from '../../collection';
 import { CompositeId } from '../../record';
-import { FieldTypes, ManyToManySchema } from '../../schema';
+import { ManyToManySchema } from '../../schema';
 import CollectionUtils from '../../../utils/collection';
 import ConditionTree from '../condition-tree/nodes/base';
 import ConditionTreeFactory from '../condition-tree/factory';
-import ConditionTreeLeaf, { Operator } from '../condition-tree/nodes/leaf';
+import ConditionTreeLeaf from '../condition-tree/nodes/leaf';
 import Filter from './unpaginated';
 import PaginatedFilter from './paginated';
 import Projection from '../projection';
@@ -19,8 +19,8 @@ export default class FilterFactory {
     endPeriod: DateTime,
   ): ConditionTree {
     return ConditionTreeFactory.intersect(
-      new ConditionTreeLeaf(field, Operator.GreaterThan, startPeriod.toISO()),
-      new ConditionTreeLeaf(field, Operator.LessThan, endPeriod.toISO()),
+      new ConditionTreeLeaf(field, 'GreaterThan', startPeriod.toISO()),
+      new ConditionTreeLeaf(field, 'LessThan', endPeriod.toISO()),
     );
   }
 
@@ -44,20 +44,20 @@ export default class FilterFactory {
     return filter.override({
       conditionTree: filter.conditionTree.replaceLeafs(leaf => {
         switch (leaf.operator) {
-          case Operator.Today:
-            return leaf.override({ operator: Operator.Yesterday });
-          case Operator.Yesterday:
+          case 'Today':
+            return leaf.override({ operator: 'Yesterday' });
+          case 'Yesterday':
             return this.getPreviousPeriodByUnit(leaf.field, now, 'day');
-          case Operator.PreviousWeek:
+          case 'PreviousWeek':
             return this.getPreviousPeriodByUnit(leaf.field, now, 'week');
-          case Operator.PreviousMonth:
+          case 'PreviousMonth':
             return this.getPreviousPeriodByUnit(leaf.field, now, 'month');
-          case Operator.PreviousQuarter:
+          case 'PreviousQuarter':
             return this.getPreviousPeriodByUnit(leaf.field, now, 'quarter');
-          case Operator.PreviousYear:
+          case 'PreviousYear':
             return this.getPreviousPeriodByUnit(leaf.field, now, 'year');
 
-          case Operator.PreviousXDays: {
+          case 'PreviousXDays': {
             const startPeriodXDays = now.minus({ days: 2 * Number(leaf.value) });
             const endPeriodXDays = now.minus({ days: Number(leaf.value) });
 
@@ -68,19 +68,21 @@ export default class FilterFactory {
             );
           }
 
-          case Operator.PreviousXDaysToDate: {
+          case 'PreviousXDaysToDate': {
             const startPeriod = now.minus({ days: 2 * Number(leaf.value) });
             const endPeriod = now.minus({ days: Number(leaf.value) });
 
             return this.getPreviousConditionTree(leaf.field, startPeriod.startOf('day'), endPeriod);
           }
 
-          case Operator.PreviousMonthToDate:
-            return leaf.override({ operator: Operator.PreviousMonth });
-          case Operator.PreviousQuarterToDate:
-            return leaf.override({ operator: Operator.PreviousQuarter });
-          case Operator.PreviousYearToDate:
-            return leaf.override({ operator: Operator.PreviousYear });
+          case 'PreviousWeekToDate':
+            return leaf.override({ operator: 'PreviousWeek' });
+          case 'PreviousMonthToDate':
+            return leaf.override({ operator: 'PreviousMonth' });
+          case 'PreviousQuarterToDate':
+            return leaf.override({ operator: 'PreviousQuarter' });
+          case 'PreviousYearToDate':
+            return leaf.override({ operator: 'PreviousYear' });
           default:
             return leaf;
         }
@@ -107,7 +109,7 @@ export default class FilterFactory {
 
       return baseThroughFilter.override({
         conditionTree: ConditionTreeFactory.intersect(
-          new ConditionTreeLeaf(relation.originKey, Operator.Equal, originValue),
+          new ConditionTreeLeaf(relation.originKey, 'Equal', originValue),
           baseThroughFilter.conditionTree,
         ),
       });
@@ -124,12 +126,12 @@ export default class FilterFactory {
     return new Filter({
       conditionTree: ConditionTreeFactory.intersect(
         // only children of parent
-        new ConditionTreeLeaf(relation.originKey, Operator.Equal, originValue),
+        new ConditionTreeLeaf(relation.originKey, 'Equal', originValue),
 
         // only the children which match the conditions in baseForeignFilter
         new ConditionTreeLeaf(
           relation.foreignKey,
-          Operator.In,
+          'In',
           records.map(r => r[relation.foreignKeyTarget]),
         ),
       ),
@@ -153,13 +155,13 @@ export default class FilterFactory {
     // Compute condition tree to match parent record.
     let originTree: ConditionTree;
 
-    if (relation.type === FieldTypes.OneToMany) {
+    if (relation.type === 'OneToMany') {
       // OneToMany case (can be done in one request all the time)
-      originTree = new ConditionTreeLeaf(relation.originKey, Operator.Equal, originValue);
+      originTree = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
     } else {
       // ManyToMany case (more complicated...)
       const through = collection.dataSource.getCollection(relation.throughCollection);
-      const throughTree = new ConditionTreeLeaf(relation.originKey, Operator.Equal, originValue);
+      const throughTree = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
       const records = await through.list(
         new Filter({ conditionTree: throughTree }),
         new Projection(relation.foreignKey),
@@ -167,7 +169,7 @@ export default class FilterFactory {
 
       originTree = new ConditionTreeLeaf(
         relation.foreignKeyTarget,
-        Operator.In,
+        'In',
         records.map(r => r[relation.foreignKey]),
       );
     }

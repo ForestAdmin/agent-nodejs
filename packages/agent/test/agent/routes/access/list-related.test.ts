@@ -1,10 +1,8 @@
 import {
   CollectionUtils,
   ConditionTreeLeaf,
-  Operator,
   Page,
   PaginatedFilter,
-  PrimitiveTypes,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
@@ -23,7 +21,7 @@ describe('ListRelatedRoute', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+          name: factories.columnSchema.build({ columnType: 'String' }),
         },
       }),
     });
@@ -77,9 +75,9 @@ describe('ListRelatedRoute', () => {
         const searchParams = { search: 'searched argument' };
         const conditionTreeParams = {
           filters: JSON.stringify({
-            aggregator: 'and',
+            aggregator: 'And',
             conditions: [
-              { field: 'id', operator: 'equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+              { field: 'id', operator: 'Equal', value: '123e4567-e89b-12d3-a456-426614174000' },
             ],
           }),
         };
@@ -111,7 +109,7 @@ describe('ListRelatedRoute', () => {
             segment: 'a-valid-segment',
             conditionTree: new ConditionTreeLeaf(
               'id',
-              Operator.Equal,
+              'Equal',
               '123e4567-e89b-12d3-a456-426614174000',
             ),
           }),

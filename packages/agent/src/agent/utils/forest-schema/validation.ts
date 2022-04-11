@@ -6,13 +6,13 @@ type Validation = ColumnSchema['validation'][number];
 
 export default class FrontendValidationUtils {
   private static operatorValidationTypeMap: Partial<Record<Operator, ValidationType>> = {
-    [Operator.Present]: ValidationType.Present,
-    [Operator.GreaterThan]: ValidationType.GreaterThan,
-    [Operator.LessThan]: ValidationType.LessThan,
-    [Operator.LongerThan]: ValidationType.LongerThan,
-    [Operator.ShorterThan]: ValidationType.ShorterThan,
-    [Operator.Contains]: ValidationType.Contains,
-    [Operator.Like]: ValidationType.Like,
+    Present: ValidationType.Present,
+    GreaterThan: ValidationType.GreaterThan,
+    LessThan: ValidationType.LessThan,
+    LongerThan: ValidationType.LongerThan,
+    ShorterThan: ValidationType.ShorterThan,
+    Contains: ValidationType.Contains,
+    Like: ValidationType.Like,
   };
 
   static convertValidationList(predicates?: Validation[]): FrontendValidation[] {

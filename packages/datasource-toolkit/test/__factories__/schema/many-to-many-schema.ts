@@ -1,8 +1,8 @@
 import { Factory } from 'fishery';
-import { FieldTypes, ManyToManySchema } from '../../../src/interfaces/schema';
+import { ManyToManySchema } from '../../../src/interfaces/schema';
 
 export default Factory.define<ManyToManySchema>(() => ({
-  type: FieldTypes.ManyToMany,
+  type: 'ManyToMany',
   foreignCollection: 'review',
   throughCollection: 'bookReviews',
   foreignKey: 'reviewId',

@@ -1,5 +1,6 @@
 import { Collection } from '../../../collection';
 import { ColumnSchema } from '../../../schema';
+import { Operator, allOperators, intervalOperators, uniqueOperators } from './operators';
 import { RecordData } from '../../../record';
 import CollectionUtils from '../../../../utils/collection';
 import ConditionTree from './base';
@@ -7,66 +8,6 @@ import ConditionTreeEquivalent from '../equivalence';
 import ConditionTreeFactory from '../factory';
 import Projection from '../../projection';
 import RecordUtils from '../../../../utils/record';
-
-export enum Operator {
-  // All types
-  Present = 'present',
-  Blank = 'blank',
-  Missing = 'missing',
-
-  // All types besides arrays
-  Equal = 'equal',
-  NotEqual = 'not_equal',
-  LessThan = 'less_than',
-  GreaterThan = 'greater_than',
-  In = 'in',
-  NotIn = 'not_in',
-
-  // Strings
-  Like = 'like',
-  StartsWith = 'starts_with',
-  EndsWith = 'ends_with',
-  Contains = 'contains',
-  NotContains = 'not_contains',
-  LongerThan = 'longer_than',
-  ShorterThan = 'shorter_than',
-
-  // Dates
-  Before = 'before',
-  After = 'after',
-  AfterXHoursAgo = 'after_x_hours_ago',
-  BeforeXHoursAgo = 'before_x_hours_ago',
-  Future = 'future',
-  Past = 'past',
-  PreviousMonthToDate = 'previous_month_to_date',
-  PreviousMonth = 'previous_month',
-  PreviousQuarterToDate = 'previous_quarter_to_date',
-  PreviousQuarter = 'previous_quarter',
-  PreviousWeekToDate = 'previous_week_to_date',
-  PreviousWeek = 'previous_week',
-  PreviousXDaysToDate = 'previous_x_days_to_date',
-  PreviousXDays = 'previous_x_days',
-  PreviousYearToDate = 'previous_year_to_date',
-  PreviousYear = 'previous_year',
-  Today = 'today',
-  Yesterday = 'yesterday',
-
-  // Arrays
-  IncludesAll = 'includes_all',
-}
-
-// This set of operators is enough to implement them all with replacements
-const uniqueOperators = new Set([
-  Operator.Equal,
-  Operator.NotEqual,
-  Operator.LessThan,
-  Operator.GreaterThan,
-  Operator.Like,
-  Operator.NotContains,
-  Operator.LongerThan,
-  Operator.ShorterThan,
-  Operator.IncludesAll,
-]);
 
 type LeafHandler<R> = (leaf: ConditionTreeLeaf) => R;
 
@@ -83,6 +24,10 @@ export default class ConditionTreeLeaf extends ConditionTree {
 
   get projection(): Projection {
     return new Projection(this.field);
+  }
+
+  get useIntervalOperator() {
+    return intervalOperators.includes(this.operator as typeof intervalOperators[number]);
   }
 
   constructor(field: string, operator: Operator, value?: unknown) {
@@ -105,21 +50,19 @@ export default class ConditionTreeLeaf extends ConditionTree {
   }
 
   inverse(): ConditionTree {
-    const operators = Object.values(Operator) as string[];
-
-    if (operators.includes(`not_${this.operator}`)) {
-      return this.override({ operator: `not_${this.operator}` as Operator });
+    if (allOperators.includes(`Not${this.operator}` as Operator)) {
+      return this.override({ operator: `Not${this.operator}` as Operator });
     }
 
-    if (this.operator.startsWith('not_')) {
-      return this.override({ operator: this.operator.substring(4) as Operator });
+    if (this.operator.startsWith('Not')) {
+      return this.override({ operator: this.operator.substring(3) as Operator });
     }
 
     switch (this.operator) {
-      case Operator.Blank:
-        return this.override({ operator: Operator.Present });
-      case Operator.Present:
-        return this.override({ operator: Operator.Blank });
+      case 'Blank':
+        return this.override({ operator: 'Present' });
+      case 'Present':
+        return this.override({ operator: 'Blank' });
       default:
         throw new Error(`Operator '${this.operator}' cannot be inverted.`);
     }
@@ -142,29 +85,29 @@ export default class ConditionTreeLeaf extends ConditionTree {
     const { columnType } = CollectionUtils.getFieldSchema(collection, this.field) as ColumnSchema;
 
     switch (this.operator) {
-      case Operator.Equal:
+      case 'Equal':
         return fieldValue == this.value; // eslint-disable-line eqeqeq
-      case Operator.LessThan:
+      case 'LessThan':
         return fieldValue < this.value;
-      case Operator.GreaterThan:
+      case 'GreaterThan':
         return fieldValue > this.value;
-      case Operator.Like:
+      case 'Like':
         return this.like(fieldValue as string, this.value as string);
-      case Operator.LongerThan:
+      case 'LongerThan':
         return (fieldValue as string).length > this.value;
-      case Operator.ShorterThan:
+      case 'ShorterThan':
         return (fieldValue as string).length < this.value;
-      case Operator.IncludesAll:
+      case 'IncludesAll':
         return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
 
-      case Operator.NotEqual:
-      case Operator.NotContains:
+      case 'NotEqual':
+      case 'NotContains':
         return !this.inverse().match(record, collection, timezone);
 
       default:
         return ConditionTreeEquivalent.getEquivalentTree(
           this,
-          uniqueOperators,
+          new Set(uniqueOperators),
           columnType,
           timezone,
         ).match(record, collection, timezone);
@@ -190,21 +133,5 @@ export default class ConditionTreeLeaf extends ConditionTree {
     regexp = regexp.replace(/%/g, '.*').replace(/_/g, '.');
 
     return RegExp(`^${regexp}$`, 'gi').test(value);
-  }
-
-  useIntervalOperator() {
-    return [
-      Operator.Today,
-      Operator.Yesterday,
-      Operator.PreviousWeek,
-      Operator.PreviousMonth,
-      Operator.PreviousQuarter,
-      Operator.PreviousYear,
-      Operator.PreviousXDays,
-      Operator.PreviousXDaysToDate,
-      Operator.PreviousMonthToDate,
-      Operator.PreviousQuarterToDate,
-      Operator.PreviousYearToDate,
-    ].includes(this.operator);
   }
 }

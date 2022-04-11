@@ -9,30 +9,30 @@ Creating a custom data source always starts with declaring the structure of the 
 ## Examples
 
 ```javascript
-const { BaseCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
+const { BaseCollection } = require('@forestadmin/datasource-toolkit');
 
 class MovieCollection extends BaseCollection {
   constructor() {
     // [...]
 
     this.addColumn('id', {
-      columnType: PrimitiveType.Number,
+      columnType: 'Number',
       isPrimaryKey: true,
     });
 
     this.addColumn('title', {
-      columnType: PrimitiveType.String,
-      validation: [{ operator: 'present' }],
+      columnType: 'String',
+      validation: [{ operator: 'Present' }],
     });
 
     this.addColumn('mpa_rating', {
-      columnType: PrimitiveType.Enum,
+      columnType: 'Enum',
       enumValues: ['G', 'PG', 'PG-13', 'R', 'NC-17'],
       defaultValue: 'G',
     });
 
     this.addColumn('stars', {
-      columnType: [{ firstName: PrimitiveType.String, lastName: PrimitiveType.String }],
+      columnType: [{ firstName: 'String', lastName: 'String' }],
     });
   }
 }
@@ -76,21 +76,21 @@ This will work out of the box for datasources using the "local-cache" strategy, 
 ## Examples
 
 ```javascript
-const { BaseCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
+const { BaseCollection } = require('@forestadmin/datasource-toolkit');
 
 class MovieCollection extends BaseCollection {
   constructor() {
     // [...]
 
     this.addRelation('director', {
-      type: FieldTypes.ManyToOne,
+      type: 'ManyToOne',
       foreignCollection: 'people',
       foreignKey: 'directorId',
       foreignKeyTarget: 'id',
     });
 
     this.addRelation('actors', {
-      type: FieldTypes.ManyToMany,
+      type: 'ManyToMany',
       foreignCollection: 'people',
       throughCollection: 'actorsOnMovies',
       originKey: 'movieId',

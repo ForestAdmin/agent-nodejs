@@ -1,4 +1,4 @@
-import { CollectionSchema, FieldSchema, FieldTypes } from '../../interfaces/schema';
+import { CollectionSchema, FieldSchema } from '../../interfaces/schema';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 
@@ -15,7 +15,7 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
       throw new Error(`No such field '${name}'`);
     }
 
-    if (field.type === FieldTypes.Column && field.isPrimaryKey) {
+    if (field.type === 'Column' && field.isPrimaryKey) {
       throw new Error(`Cannot hide primary key`);
     }
 
@@ -42,13 +42,13 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
     return (
       !this.unpublished.has(name) &&
       // Columns have no special requirements
-      (field.type === FieldTypes.Column ||
+      (field.type === 'Column' ||
         // Many to one, one to one and one to many need the foreign key to be published
-        (field.type === FieldTypes.ManyToOne && this.isPublished(field.foreignKey)) ||
-        ((field.type === FieldTypes.OneToOne || field.type === FieldTypes.OneToMany) &&
+        (field.type === 'ManyToOne' && this.isPublished(field.foreignKey)) ||
+        ((field.type === 'OneToOne' || field.type === 'OneToMany') &&
           this.dataSource.getCollection(field.foreignCollection).isPublished(field.originKey)) ||
         // Many to many relations depend on both foreignKey and originKey to be published
-        (field.type === FieldTypes.ManyToMany &&
+        (field.type === 'ManyToMany' &&
           this.dataSource.getCollection(field.throughCollection).isPublished(field.foreignKey) &&
           this.dataSource.getCollection(field.throughCollection).isPublished(field.originKey)))
     );

@@ -1,4 +1,4 @@
-import { ConditionTreeLeaf, Operator } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import hashObject from 'object-hash';
 
@@ -138,14 +138,14 @@ describe('Permissions', () => {
         actions: new Set(),
         actionsByUser: {},
         scopes: {
-          books: { conditionTree: new ConditionTreeLeaf('id', Operator.Equal, 43) },
+          books: { conditionTree: new ConditionTreeLeaf('id', 'Equal', 43) },
         },
       });
 
       const context = createMockContext({ state: { user: { renderingId: 1, id: 34 } } });
       const conditionTree = await service.getScope(collection, context);
 
-      expect(conditionTree).toEqual({ field: 'id', operator: 'equal', value: 43 });
+      expect(conditionTree).toEqual({ field: 'id', operator: 'Equal', value: 43 });
     });
 
     test('should work with substitutions', async () => {
@@ -154,11 +154,7 @@ describe('Permissions', () => {
         actionsByUser: {},
         scopes: {
           books: {
-            conditionTree: new ConditionTreeLeaf(
-              'id',
-              Operator.Equal,
-              '$currentUser.tags.something',
-            ),
+            conditionTree: new ConditionTreeLeaf('id', 'Equal', '$currentUser.tags.something'),
             dynamicScopeValues: { 34: { '$currentUser.tags.something': 'value' } },
           },
         },
@@ -167,7 +163,7 @@ describe('Permissions', () => {
       const context = createMockContext({ state: { user: { renderingId: 1, id: 34 } } });
       const conditionTree = await service.getScope(collection, context);
 
-      expect(conditionTree).toEqual({ field: 'id', operator: 'equal', value: 'value' });
+      expect(conditionTree).toEqual({ field: 'id', operator: 'Equal', value: 'value' });
     });
 
     test('should fallback to jwt when the cache is broken', async () => {
@@ -176,7 +172,7 @@ describe('Permissions', () => {
         actionsByUser: {},
         scopes: {
           books: {
-            conditionTree: new ConditionTreeLeaf('id', Operator.Equal, '$currentUser.id'),
+            conditionTree: new ConditionTreeLeaf('id', 'Equal', '$currentUser.id'),
             dynamicScopeValues: {},
           },
         },
@@ -185,7 +181,7 @@ describe('Permissions', () => {
       const context = createMockContext({ state: { user: { renderingId: 1, id: 34 } } });
       const conditionTree = await service.getScope(collection, context);
 
-      expect(conditionTree).toEqual({ field: 'id', operator: 'equal', value: 34 });
+      expect(conditionTree).toEqual({ field: 'id', operator: 'Equal', value: 34 });
     });
 
     test('should fallback to jwt when cache broken for tags', async () => {
@@ -194,11 +190,7 @@ describe('Permissions', () => {
         actionsByUser: {},
         scopes: {
           books: {
-            conditionTree: new ConditionTreeLeaf(
-              'id',
-              Operator.Equal,
-              '$currentUser.tags.something',
-            ),
+            conditionTree: new ConditionTreeLeaf('id', 'Equal', '$currentUser.tags.something'),
             dynamicScopeValues: {},
           },
         },
@@ -209,7 +201,7 @@ describe('Permissions', () => {
       });
       const conditionTree = await service.getScope(collection, context);
 
-      expect(conditionTree).toEqual({ field: 'id', operator: 'equal', value: 'tagValue' });
+      expect(conditionTree).toEqual({ field: 'id', operator: 'Equal', value: 'tagValue' });
     });
   });
 });

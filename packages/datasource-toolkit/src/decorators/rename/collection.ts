@@ -1,4 +1,4 @@
-import { CollectionSchema, FieldSchema, FieldTypes, RelationSchema } from '../../interfaces/schema';
+import { CollectionSchema, FieldSchema, RelationSchema } from '../../interfaces/schema';
 import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionDecorator from '../collection-decorator';
@@ -51,12 +51,12 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
     for (const [oldName, oldSchema] of Object.entries(childSchema.fields)) {
       const schema = { ...oldSchema };
 
-      if (schema.type === FieldTypes.ManyToOne) {
+      if (schema.type === 'ManyToOne') {
         schema.foreignKey = this.fromChildCollection[schema.foreignKey] ?? schema.foreignKey;
-      } else if (schema.type === FieldTypes.OneToMany || schema.type === FieldTypes.OneToOne) {
+      } else if (schema.type === 'OneToMany' || schema.type === 'OneToOne') {
         const relation = this.dataSource.getCollection(schema.foreignCollection);
         schema.originKey = relation.fromChildCollection[schema.originKey] ?? schema.originKey;
-      } else if (schema.type === FieldTypes.ManyToMany) {
+      } else if (schema.type === 'ManyToMany') {
         const through = this.dataSource.getCollection(schema.throughCollection);
         schema.foreignKey = through.fromChildCollection[schema.foreignKey] ?? schema.foreignKey;
         schema.originKey = through.fromChildCollection[schema.originKey] ?? schema.originKey;
@@ -170,7 +170,7 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
       const fieldSchema = schema.fields[thisField];
 
       // Perform the mapping, recurse for relations.
-      if (fieldSchema.type === FieldTypes.Column) {
+      if (fieldSchema.type === 'Column') {
         thisRecord[thisField] = value;
       } else if (value === null) {
         thisRecord[thisField] = value;

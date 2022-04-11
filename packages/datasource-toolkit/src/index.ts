@@ -41,6 +41,7 @@ export * from './interfaces/collection';
 export * from './interfaces/query/aggregation';
 export * from './interfaces/query/condition-tree/nodes/branch';
 export * from './interfaces/query/condition-tree/nodes/leaf';
+export { Operator } from './interfaces/query/condition-tree/nodes/operators';
 export * from './interfaces/query/filter/paginated';
 export * from './interfaces/query/filter/unpaginated';
 export * from './interfaces/query/sort';

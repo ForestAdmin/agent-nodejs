@@ -1,4 +1,4 @@
-import { DataSource, FieldTypes } from '@forestadmin/datasource-toolkit';
+import { DataSource } from '@forestadmin/datasource-toolkit';
 
 import { AgentOptionsWithDefaults as Options } from '../types';
 import { ForestAdminHttpDriverServices as Services } from '../services';
@@ -69,8 +69,8 @@ function getRelatedRoutes(
   const routes: BaseRoute[] = [];
 
   const routesToBuild = [
-    { list: RELATED_ROUTES_CTOR, relations: [FieldTypes.ManyToMany, FieldTypes.OneToMany] },
-    { list: RELATED_RELATION_ROUTES_CTOR, relations: [FieldTypes.OneToOne, FieldTypes.ManyToOne] },
+    { list: RELATED_ROUTES_CTOR, relations: ['ManyToMany', 'OneToMany'] },
+    { list: RELATED_RELATION_ROUTES_CTOR, relations: ['OneToOne', 'ManyToOne'] },
   ];
   dataSource.collections.forEach(collection => {
     routesToBuild.forEach(route => {

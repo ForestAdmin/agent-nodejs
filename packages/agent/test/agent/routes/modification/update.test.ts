@@ -1,4 +1,4 @@
-import { Operator, PrimitiveTypes, Projection } from '@forestadmin/datasource-toolkit';
+import { Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -27,10 +27,10 @@ describe('UpdateRoute', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build({
-              columnType: PrimitiveTypes.Number,
+              columnType: 'Number',
             }),
             name: factories.columnSchema.build({
-              columnType: PrimitiveTypes.String,
+              columnType: 'String',
             }),
           },
         }),
@@ -47,7 +47,7 @@ describe('UpdateRoute', () => {
 
       const expectedFilter = factories.filter.build({
         conditionTree: factories.conditionTreeLeaf.build({
-          operator: Operator.Equal,
+          operator: 'Equal',
           value: 1523,
           field: 'id',
         }),
@@ -71,7 +71,7 @@ describe('UpdateRoute', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build({
-              columnType: PrimitiveTypes.Number,
+              columnType: 'Number',
             }),
           },
         }),

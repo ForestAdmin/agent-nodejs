@@ -9,7 +9,7 @@ import {
 import { RecordData } from '../../interfaces/record';
 import { WriteContext, WriteDefinition } from './types';
 import CollectionDecorator from '../collection-decorator';
-import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeLeaf from '../../interfaces/query/condition-tree/nodes/leaf';
 import DataSourceDecorator from '../datasource-decorator';
 import Filter from '../../interfaces/query/filter/unpaginated';
 import Projection from '../../interfaces/query/projection';
@@ -53,7 +53,7 @@ export default class WriteDecorator extends CollectionDecorator {
   private async applyDefinitionsAndCreate(record: RecordData): Promise<RecordData> {
     const patch = await this.applyDefinitions(record, 'create');
 
-    if (this.getRelationFields(patch, [FieldTypes.ManyToOne, FieldTypes.OneToOne]).length === 0) {
+    if (this.getRelationFields(patch, ['ManyToOne', 'OneToOne']).length === 0) {
       const result = await this.childCollection.create([patch]);
 
       return result[0];
@@ -70,10 +70,7 @@ export default class WriteDecorator extends CollectionDecorator {
 
   private async applyDefinitionsAndUpdate(filter: Filter, patch: RecordData): Promise<void> {
     const updatedPatch = await this.applyDefinitions(patch, 'update');
-    const relations = this.getRelationFields(updatedPatch, [
-      FieldTypes.OneToOne,
-      FieldTypes.ManyToOne,
-    ]);
+    const relations = this.getRelationFields(updatedPatch, ['OneToOne', 'ManyToOne']);
 
     const idsList = await this.getImpactedRecordByUpdate(relations, filter);
 
@@ -88,7 +85,7 @@ export default class WriteDecorator extends CollectionDecorator {
     manyToOneRecords: RecordData[][],
   ): Promise<RecordData> {
     const refinedPatch = { ...patch };
-    const manyToOneRelations = this.getRelationFields(patch, [FieldTypes.ManyToOne]);
+    const manyToOneRelations = this.getRelationFields(patch, ['ManyToOne']);
 
     for (const [record] of manyToOneRecords) {
       const relationName = manyToOneRelations.shift();
@@ -101,7 +98,7 @@ export default class WriteDecorator extends CollectionDecorator {
       refinedPatch[relationSchema.foreignKey] = record[pk];
     }
 
-    for (const relationName of this.getRelationFields(patch, [FieldTypes.OneToOne])) {
+    for (const relationName of this.getRelationFields(patch, ['OneToOne'])) {
       const relationSchema = this.schema.fields[relationName] as OneToOneSchema;
 
       delete refinedPatch[relationName];
@@ -120,14 +117,14 @@ export default class WriteDecorator extends CollectionDecorator {
   ): Promise<void> {
     const requests: Promise<RecordData[] | void>[] = [];
 
-    for (const oneToOneRelation of this.getRelationFields(patch, [FieldTypes.OneToOne])) {
+    for (const oneToOneRelation of this.getRelationFields(patch, ['OneToOne'])) {
       const relationSchema = this.schema.fields[oneToOneRelation] as OneToOneSchema;
       const relationRecord = patch[oneToOneRelation] as RecordData;
       const relation = this.dataSource.getCollection(relationSchema.foreignCollection);
       const fk = relationSchema.originKey;
 
       if (patch[fk]) {
-        const conditionTree = new ConditionTreeLeaf(fk, Operator.Equal, patch[fk]);
+        const conditionTree = new ConditionTreeLeaf(fk, 'Equal', patch[fk]);
         const filter = new Filter({ conditionTree });
         const update = relation.update(filter, relationRecord);
         requests.push(update);
@@ -143,7 +140,7 @@ export default class WriteDecorator extends CollectionDecorator {
   private createManyToOneRelations(patch: RecordData): Promise<RecordData[][]> {
     const resultsManyToOne: Promise<RecordData[]>[] = [];
 
-    for (const relationName of this.getRelationFields(patch, [FieldTypes.ManyToOne])) {
+    for (const relationName of this.getRelationFields(patch, ['ManyToOne'])) {
       const relationSchema = this.schema.fields[relationName] as ManyToOneSchema;
       const relationRecord = patch[relationName] as RecordData;
       const fk = relationSchema.foreignKey;
@@ -154,7 +151,7 @@ export default class WriteDecorator extends CollectionDecorator {
         const [pk] = SchemaUtils.getPrimaryKeys(relation.schema);
 
         const updateWrapper = async (): Promise<RecordData[]> => {
-          const conditionTree = new ConditionTreeLeaf(pk, Operator.Equal, patch[fk]);
+          const conditionTree = new ConditionTreeLeaf(pk, 'Equal', patch[fk]);
           await relation.update(new Filter({ conditionTree }), relationRecord);
 
           return [{ [pk]: patch[fk] }];
@@ -174,7 +171,7 @@ export default class WriteDecorator extends CollectionDecorator {
     patch: RecordData,
   ): Promise<void | RecordData[]>[] {
     const updates: Promise<void | RecordData[]>[] = [];
-    const relations = this.getRelationFields(patch, [FieldTypes.OneToOne, FieldTypes.ManyToOne]);
+    const relations = this.getRelationFields(patch, ['OneToOne', 'ManyToOne']);
 
     for (const recordIds of listIds) {
       const relationName = relations.shift();
@@ -184,13 +181,13 @@ export default class WriteDecorator extends CollectionDecorator {
       const ids = recordIds.map(field => Object.values(field)[0]);
       let key: string | number;
 
-      if (relationSchema.type === FieldTypes.OneToOne) {
+      if (relationSchema.type === 'OneToOne') {
         key = relationSchema.originKey;
       } else {
         [key] = SchemaUtils.getPrimaryKeys(relation.schema);
       }
 
-      const idsFilter = new Filter({ conditionTree: new ConditionTreeLeaf(key, Operator.In, ids) });
+      const idsFilter = new Filter({ conditionTree: new ConditionTreeLeaf(key, 'In', ids) });
       updates.push(relation.update(idsFilter, patch[relationName] as RecordData));
     }
 
@@ -207,9 +204,9 @@ export default class WriteDecorator extends CollectionDecorator {
       const relationSchema = this.schema.fields[relationName] as RelationSchema;
       let projection: Projection;
 
-      if (relationSchema.type === FieldTypes.OneToOne) {
+      if (relationSchema.type === 'OneToOne') {
         projection = new Projection(...SchemaUtils.getPrimaryKeys(this.schema));
-      } else if (relationSchema.type === FieldTypes.ManyToOne) {
+      } else if (relationSchema.type === 'ManyToOne') {
         projection = new Projection(relationSchema.foreignKey);
       }
 

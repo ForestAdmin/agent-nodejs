@@ -1,6 +1,7 @@
 import { ColumnType, PrimitiveTypes } from '../../schema';
+import { Operator } from './nodes/operators';
 import ConditionTree from './nodes/base';
-import ConditionTreeLeaf, { Operator } from './nodes/leaf';
+import ConditionTreeLeaf from './nodes/leaf';
 import equalityTransforms from './transforms/comparison';
 import patternTransforms from './transforms/pattern';
 import timeTransforms from './transforms/time';

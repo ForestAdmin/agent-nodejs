@@ -1,10 +1,6 @@
-import { Operator } from './query/condition-tree/nodes/leaf';
+import { Operator } from './query/condition-tree/nodes/operators';
 
-export enum ActionScope {
-  Single = 'single',
-  Bulk = 'bulk',
-  Global = 'global',
-}
+export type ActionScope = 'Single' | 'Bulk' | 'Global';
 
 export type ActionSchema = {
   scope: ActionScope;
@@ -34,7 +30,7 @@ export type ColumnSchema = {
   isPrimaryKey?: boolean;
   isReadOnly?: boolean;
   isSortable?: boolean;
-  type: FieldTypes.Column;
+  type: 'Column';
   validation?: Array<{ operator: Operator; value?: unknown }>;
 };
 
@@ -42,21 +38,21 @@ export type ManyToOneSchema = {
   foreignCollection: string;
   foreignKey: string;
   foreignKeyTarget: string;
-  type: FieldTypes.ManyToOne;
+  type: 'ManyToOne';
 };
 
 export type OneToManySchema = {
   foreignCollection: string;
   originKey: string;
   originKeyTarget: string;
-  type: FieldTypes.OneToMany;
+  type: 'OneToMany';
 };
 
 export type OneToOneSchema = {
   foreignCollection: string;
   originKey: string;
   originKeyTarget: string;
-  type: FieldTypes.OneToOne;
+  type: 'OneToOne';
 };
 
 export type ManyToManySchema = {
@@ -67,28 +63,21 @@ export type ManyToManySchema = {
   foreignRelation?: string;
   originKey: string;
   originKeyTarget: string;
-  type: FieldTypes.ManyToMany;
+  type: 'ManyToMany';
 };
 
 export type ColumnType = PrimitiveTypes | { [key: string]: ColumnType } | [ColumnType];
 
-export enum PrimitiveTypes {
-  Boolean = 'Boolean',
-  Date = 'Date',
-  Dateonly = 'Dateonly',
-  Enum = 'Enum',
-  Json = 'Json',
-  Number = 'Number',
-  Point = 'Point',
-  String = 'String',
-  Timeonly = 'Timeonly',
-  Uuid = 'Uuid',
-}
+export type PrimitiveTypes =
+  | 'Boolean'
+  | 'Date'
+  | 'Dateonly'
+  | 'Enum'
+  | 'Json'
+  | 'Number'
+  | 'Point'
+  | 'String'
+  | 'Timeonly'
+  | 'Uuid';
 
-export enum FieldTypes {
-  Column = 'Column',
-  ManyToOne = 'ManyToOne',
-  OneToOne = 'OneToOne',
-  OneToMany = 'OneToMany',
-  ManyToMany = 'ManyToMany',
-}
+export type FieldTypes = 'Column' | 'ManyToOne' | 'OneToOne' | 'OneToMany' | 'ManyToMany';

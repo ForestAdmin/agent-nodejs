@@ -1,7 +1,5 @@
 import * as factories from '../__factories__';
-import { Aggregator } from '../../src/interfaces/query/condition-tree/nodes/branch';
-import { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
-import { PrimitiveTypes } from '../../src/interfaces/schema';
+import { Operator, allOperators } from '../../src/interfaces/query/condition-tree/nodes/operators';
 import ConditionTreeValidator from '../../src/validation/condition-tree';
 
 describe('ConditionTreeValidation', () => {
@@ -9,7 +7,7 @@ describe('ConditionTreeValidation', () => {
     describe('when the field(s) does not exist in the schema', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.Equal,
+          operator: 'Equal',
           value: 'targetValue',
           field: 'fieldDoesNotExistInSchema',
         });
@@ -17,7 +15,7 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               target: factories.columnSchema.build({
-                columnType: PrimitiveTypes.String,
+                columnType: 'String',
               }),
             },
           }),
@@ -41,7 +39,7 @@ describe('ConditionTreeValidation', () => {
                     foreignKey: 'authorId',
                   }),
                   authorId: factories.columnSchema.build({
-                    columnType: PrimitiveTypes.Uuid,
+                    columnType: 'Uuid',
                   }),
                 },
               }),
@@ -57,7 +55,7 @@ describe('ConditionTreeValidation', () => {
           ]);
 
           const conditionTree = factories.conditionTreeLeaf.build({
-            operator: Operator.Equal,
+            operator: 'Equal',
             value: '2d162303-78bf-599e-b197-93590ac3d315',
             field: 'author:id',
           });
@@ -71,15 +69,15 @@ describe('ConditionTreeValidation', () => {
       describe('when there are several fields', () => {
         it('should throw an error when a field does not exist', () => {
           const conditionTree = factories.conditionTreeBranch.build({
-            aggregator: Aggregator.Or,
+            aggregator: 'Or',
             conditions: [
               factories.conditionTreeLeaf.build({
-                operator: Operator.Equal,
+                operator: 'Equal',
                 value: 'targetValue',
                 field: 'target',
               }),
               factories.conditionTreeLeaf.build({
-                operator: Operator.Equal,
+                operator: 'Equal',
                 value: 'targetValue',
                 field: 'fieldDoesNotExistInSchema',
               }),
@@ -89,7 +87,7 @@ describe('ConditionTreeValidation', () => {
             schema: factories.collectionSchema.build({
               fields: {
                 target: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.String,
+                  columnType: 'String',
                 }),
               },
             }),
@@ -105,7 +103,7 @@ describe('ConditionTreeValidation', () => {
     describe('when the field(s) exist', () => {
       it('should not throw an error', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.Equal,
+          operator: 'Equal',
           value: 'targetValue',
           field: 'target',
         });
@@ -113,7 +111,7 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               target: factories.columnSchema.build({
-                columnType: PrimitiveTypes.String,
+                columnType: 'String',
               }),
             },
           }),
@@ -125,15 +123,15 @@ describe('ConditionTreeValidation', () => {
       describe('when there are several fields', () => {
         it('should not trow an error', () => {
           const conditionTree = factories.conditionTreeBranch.build({
-            aggregator: Aggregator.Or,
+            aggregator: 'Or',
             conditions: [
               factories.conditionTreeLeaf.build({
-                operator: Operator.Equal,
+                operator: 'Equal',
                 value: 'targetValue',
                 field: 'target',
               }),
               factories.conditionTreeLeaf.build({
-                operator: Operator.Equal,
+                operator: 'Equal',
                 value: 'targetValue',
                 field: 'target',
               }),
@@ -143,7 +141,7 @@ describe('ConditionTreeValidation', () => {
             schema: factories.collectionSchema.build({
               fields: {
                 target: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.String,
+                  columnType: 'String',
                 }),
               },
             }),
@@ -159,7 +157,7 @@ describe('ConditionTreeValidation', () => {
     describe('when the field has an operator incompatible with the schema type', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.Contains,
+          operator: 'Contains',
           field: 'target',
           value: 'subValue',
         });
@@ -168,16 +166,16 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               target: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Number,
+                columnType: 'Number',
               }),
             },
           }),
         });
 
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-          "The given operator 'contains' is not allowed with the columnType schema: 'Number'.\n" +
+          "The given operator 'Contains' is not allowed with the columnType schema: 'Number'.\n" +
             'The allowed types are: ' +
-            '[blank,equal,missing,not_equal,present,in,not_in,includes_all,greater_than,less_than]',
+            '[Blank,Equal,Missing,NotEqual,Present,In,NotIn,IncludesAll,GreaterThan,LessThan]',
         );
       });
     });
@@ -185,7 +183,7 @@ describe('ConditionTreeValidation', () => {
     describe('when the operator is incompatible with the given value', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.GreaterThan,
+          operator: 'GreaterThan',
           field: 'target',
           value: null,
         });
@@ -194,7 +192,7 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               target: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Number,
+                columnType: 'Number',
               }),
             },
           }),
@@ -202,7 +200,7 @@ describe('ConditionTreeValidation', () => {
 
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
           "The given value attribute 'null (type: Null)' has an unexpected " +
-            "value for the given operator 'greater_than'.\n" +
+            "value for the given operator 'GreaterThan'.\n" +
             'The allowed types of the field value are: [Number,Timeonly].',
         );
       });
@@ -211,7 +209,7 @@ describe('ConditionTreeValidation', () => {
     describe('when the value is not compatible with the column type', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.In,
+          operator: 'In',
           value: [1, 2, 3],
           field: 'target',
         });
@@ -219,7 +217,7 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               target: factories.columnSchema.build({
-                columnType: PrimitiveTypes.String,
+                columnType: 'String',
               }),
             },
           }),
@@ -234,7 +232,7 @@ describe('ConditionTreeValidation', () => {
     describe('when the field is an UUID', () => {
       it('should not throw an error when a list of uuid is given', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.In,
+          operator: 'In',
           value: ['2d162303-78bf-599e-b197-93590ac3d315', '2d162303-78bf-599e-b197-93590ac3d315'],
           field: 'uuidField',
         });
@@ -242,7 +240,7 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               uuidField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Uuid,
+                columnType: 'Uuid',
               }),
             },
           }),
@@ -253,7 +251,7 @@ describe('ConditionTreeValidation', () => {
 
       it('should throw an error when at least one uuid is malformed', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.In,
+          operator: 'In',
           value: [
             '2d162303-78bf-599e-b197-93590ac3d315',
             'malformed-2d162303-78bf-599e-b197-93590ac3d315',
@@ -264,7 +262,7 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               uuidField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Uuid,
+                columnType: 'Uuid',
               }),
             },
           }),
@@ -277,7 +275,7 @@ describe('ConditionTreeValidation', () => {
     describe('when the field is an enum', () => {
       it('should throw an error when the field value is not a valid enum', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.Equal,
+          operator: 'Equal',
           value: 'aRandomValue',
           field: 'enumField',
         });
@@ -285,7 +283,7 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               enumField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Enum,
+                columnType: 'Enum',
                 enumValues: ['anAllowedValue'],
               }),
             },
@@ -299,7 +297,7 @@ describe('ConditionTreeValidation', () => {
 
       it('should throw an error when the at least one field value is not a valid enum', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.In,
+          operator: 'In',
           value: ['allowedValue', 'aRandomValue'],
           field: 'enumField',
         });
@@ -307,7 +305,7 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               enumField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Enum,
+                columnType: 'Enum',
                 enumValues: ['allowedValue'],
               }),
             },
@@ -321,7 +319,7 @@ describe('ConditionTreeValidation', () => {
 
       it('should not throw an error when all enum values are allowed', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.In,
+          operator: 'In',
           value: ['allowedValue', 'otherAllowedValue'],
           field: 'enumField',
         });
@@ -329,7 +327,7 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               enumField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Enum,
+                columnType: 'Enum',
                 enumValues: ['allowedValue', 'otherAllowedValue'],
               }),
             },
@@ -343,7 +341,7 @@ describe('ConditionTreeValidation', () => {
     describe('when the field is a Point', () => {
       it('should not throw an error when the filter value is well formatted', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
-          operator: Operator.Equal,
+          operator: 'Equal',
           value: '-80,20',
           field: 'pointField',
         });
@@ -351,7 +349,7 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               pointField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Point,
+                columnType: 'Point',
               }),
             },
           }),
@@ -363,7 +361,7 @@ describe('ConditionTreeValidation', () => {
       describe('when the field value is not well formatted', () => {
         it('should throw an error', () => {
           const conditionTree = factories.conditionTreeLeaf.build({
-            operator: Operator.Equal,
+            operator: 'Equal',
             value: '-80, 20, 90',
             field: 'pointField',
           });
@@ -371,7 +369,7 @@ describe('ConditionTreeValidation', () => {
             schema: factories.collectionSchema.build({
               fields: {
                 pointField: factories.columnSchema.build({
-                  columnType: PrimitiveTypes.Point,
+                  columnType: 'Point',
                 }),
               },
             }),
@@ -390,8 +388,8 @@ describe('ConditionTreeValidation', () => {
           schema: factories.collectionSchema.build({
             fields: {
               dateField: factories.columnSchema.build({
-                columnType: PrimitiveTypes.Date,
-                filterOperators: new Set(Object.values(Operator)),
+                columnType: 'Date',
+                filterOperators: new Set(allOperators),
               }),
             },
           }),
@@ -400,27 +398,27 @@ describe('ConditionTreeValidation', () => {
 
       describe('when it does not support a value', () => {
         const operators = [
-          Operator.Blank,
-          Operator.Missing,
-          Operator.Present,
-          Operator.Yesterday,
-          Operator.Today,
-          Operator.PreviousQuarter,
-          Operator.PreviousYear,
-          Operator.PreviousMonth,
-          Operator.PreviousWeek,
-          Operator.Past,
-          Operator.Future,
-          Operator.PreviousWeekToDate,
-          Operator.PreviousMonthToDate,
-          Operator.PreviousQuarterToDate,
-          Operator.PreviousYearToDate,
+          'Blank',
+          'Missing',
+          'Present',
+          'Yesterday',
+          'Today',
+          'PreviousQuarter',
+          'PreviousYear',
+          'PreviousMonth',
+          'PreviousWeek',
+          'Past',
+          'Future',
+          'PreviousWeekToDate',
+          'PreviousMonthToDate',
+          'PreviousQuarterToDate',
+          'PreviousYearToDate',
         ];
 
         test.each(operators)('[%s] should throw an error when a date is given', operator => {
           const collection = setupCollectionWithDateColumn();
           const conditionTree = factories.conditionTreeLeaf.build({
-            operator,
+            operator: operator as Operator,
             value: new Date(),
             field: 'dateField',
           });
@@ -431,7 +429,7 @@ describe('ConditionTreeValidation', () => {
         test.each(operators)('[%s] should not throw an error when the value is empty', operator => {
           const collection = setupCollectionWithDateColumn();
           const conditionTree = factories.conditionTreeLeaf.build({
-            operator,
+            operator: operator as Operator,
             value: null,
             field: 'dateField',
           });
@@ -442,16 +440,16 @@ describe('ConditionTreeValidation', () => {
 
       describe('when it support only a number', () => {
         const operators = [
-          Operator.PreviousXDays,
-          Operator.BeforeXHoursAgo,
-          Operator.AfterXHoursAgo,
-          Operator.PreviousXDaysToDate,
+          'PreviousXDays',
+          'BeforeXHoursAgo',
+          'AfterXHoursAgo',
+          'PreviousXDaysToDate',
         ];
 
         test.each(operators)('[%s] should throw an error when a date is given', operator => {
           const collection = setupCollectionWithDateColumn();
           const conditionTree = factories.conditionTreeLeaf.build({
-            operator,
+            operator: operator as Operator,
             value: new Date(),
             field: 'dateField',
           });
@@ -464,7 +462,7 @@ describe('ConditionTreeValidation', () => {
           operator => {
             const collection = setupCollectionWithDateColumn();
             const conditionTree = factories.conditionTreeLeaf.build({
-              operator,
+              operator: operator as Operator,
               value: 10,
               field: 'dateField',
             });

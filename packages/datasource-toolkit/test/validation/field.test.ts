@@ -1,5 +1,4 @@
 import * as factories from '../__factories__';
-import { PrimitiveTypes } from '../../src/interfaces/schema';
 import FieldValidator from '../../src/validation/field';
 
 describe('FieldValidator', () => {
@@ -48,7 +47,7 @@ describe('FieldValidator', () => {
             schema: factories.collectionSchema.build({
               fields: {
                 id: factories.columnSchema.isPrimaryKey().build(),
-                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                name: factories.columnSchema.build({ columnType: 'String' }),
                 address: factories.oneToOneSchema.build({}),
               },
             }),
@@ -75,7 +74,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'boolean',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Boolean,
+              columnType: 'Boolean',
             }),
             true,
           ),
@@ -87,7 +86,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'boolean',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Boolean,
+              columnType: 'Boolean',
             }),
             'not a boolean',
           ),
@@ -101,7 +100,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'string',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.String,
+              columnType: 'String',
             }),
             'test',
           ),
@@ -113,7 +112,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'string',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.String,
+              columnType: 'String',
             }),
             1,
           ),
@@ -127,7 +126,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'number',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Number,
+              columnType: 'Number',
             }),
             1,
           ),
@@ -139,7 +138,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'number',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Number,
+              columnType: 'Number',
             }),
             '1',
           ),
@@ -153,7 +152,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'date',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Date,
+              columnType: 'Date',
             }),
             '2022-01-13T17:16:04.000Z',
           ),
@@ -165,7 +164,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'date',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Date,
+              columnType: 'Date',
             }),
             new Date('2022-01-13T17:16:04.000Z'),
           ),
@@ -177,7 +176,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'date',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Date,
+              columnType: 'Date',
             }),
             'definitely-not-a-date',
           ),
@@ -191,7 +190,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'enum',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Enum,
+              columnType: 'Enum',
               enumValues: ['a', 'b', 'c'],
             }),
             'a',
@@ -204,7 +203,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'enum',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Enum,
+              columnType: 'Enum',
               enumValues: ['a', 'b', 'c'],
             }),
             'd',
@@ -219,7 +218,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'json',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Json,
+              columnType: 'Json',
             }),
             '{"foo": "bar"}',
           ),
@@ -231,7 +230,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'json',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Json,
+              columnType: 'Json',
             }),
             { foo: 'bar' },
           ),
@@ -243,7 +242,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'json',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Json,
+              columnType: 'Json',
             }),
             '{not:"a:" valid json',
           ),
@@ -257,7 +256,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'uuid',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
+              columnType: 'Uuid',
             }),
             'a7147d1c-7d44-11ec-90d6-0242ac120003',
           ),
@@ -269,7 +268,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'uuid',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
+              columnType: 'Uuid',
             }),
             '05db90e8-6e72-4278-888d-9b127c91470e',
           ),
@@ -281,7 +280,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'uuid',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
+              columnType: 'Uuid',
             }),
             'not-a-valid-uuid',
           ),
@@ -295,7 +294,7 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'point',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Point,
+              columnType: 'Point',
             }),
             '1,2',
           ),
@@ -307,25 +306,11 @@ describe('FieldValidator', () => {
           FieldValidator.validateValue(
             'point',
             factories.columnSchema.build({
-              columnType: PrimitiveTypes.Point,
+              columnType: 'Point',
             }),
             'd,a',
           ),
         ).toThrow('Wrong type for "point": d,a. Expects Point');
-      });
-    });
-
-    describe('on field of incorrect primitive type', () => {
-      test('invalid value type should throw error', () => {
-        expect(() =>
-          FieldValidator.validateValue(
-            'something-else',
-            factories.columnSchema.build({
-              columnType: 'SomethingNotPrimitive' as unknown as PrimitiveTypes,
-            }),
-            'something',
-          ),
-        ).toThrow('Unexpected value of type: SomethingNotPrimitive');
       });
     });
   });

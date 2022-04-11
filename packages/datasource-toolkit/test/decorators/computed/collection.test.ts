@@ -1,7 +1,6 @@
 import * as factories from '../../__factories__';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
-import { FieldTypes, PrimitiveTypes } from '../../../src/interfaces/schema';
-import Aggregation, { AggregationOperation } from '../../../src/interfaces/query/aggregation';
+import Aggregation from '../../../src/interfaces/query/aggregation';
 import ComputedCollection from '../../../src/decorators/computed/collection';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
@@ -82,7 +81,7 @@ describe('ComputedDecorator', () => {
   test('should throw if defining a field with missing dependencies', () => {
     expect(() => {
       newBooks.registerComputed('newField', {
-        columnType: PrimitiveTypes.String,
+        columnType: 'String',
         dependencies: new Projection('__nonExisting__'),
         getValues: () => Promise.reject(),
       });
@@ -92,7 +91,7 @@ describe('ComputedDecorator', () => {
   test('should throw if defining a field with invalid dependencies', () => {
     expect(() => {
       newBooks.registerComputed('newField', {
-        columnType: PrimitiveTypes.String,
+        columnType: 'String',
         dependencies: new Projection('author'),
         getValues: () => Promise.reject(),
       });
@@ -102,7 +101,7 @@ describe('ComputedDecorator', () => {
   describe('With a computed', () => {
     beforeEach(() => {
       newPersons.registerComputed('fullName', {
-        columnType: PrimitiveTypes.String,
+        columnType: 'String',
         dependencies: new Projection('firstName', 'lastName'),
         getValues: records => {
           return new Promise(resolve => {
@@ -115,12 +114,12 @@ describe('ComputedDecorator', () => {
 
     test('the schemas should contain the field', () => {
       expect(newPersons.schema.fields.fullName).toEqual({
-        columnType: PrimitiveTypes.String,
+        columnType: 'String',
         filterOperators: new Set(),
         isReadOnly: true,
         isSortable: false,
         isPrimaryKey: false,
-        type: FieldTypes.Column,
+        type: 'Column',
       });
     });
 
@@ -142,7 +141,7 @@ describe('ComputedDecorator', () => {
     test('aggregate() should use the child implementation when relevant', async () => {
       const rows = await newBooks.aggregate(
         new PaginatedFilter({ timezone: 'Europe/Paris' }),
-        new Aggregation({ operation: AggregationOperation.Count }),
+        new Aggregation({ operation: 'Count' }),
       );
 
       expect(rows).toEqual([{ value: 2, group: {} }]);
@@ -152,7 +151,7 @@ describe('ComputedDecorator', () => {
     test('aggregate() should work with computed', async () => {
       const rows = await newBooks.aggregate(
         new PaginatedFilter({ timezone: 'Europe/Paris' }),
-        new Aggregation({ operation: AggregationOperation.Min, field: 'author:fullName' }),
+        new Aggregation({ operation: 'Min', field: 'author:fullName' }),
       );
 
       expect(rows).toEqual([{ value: 'Edward O. Thorp', group: {} }]);

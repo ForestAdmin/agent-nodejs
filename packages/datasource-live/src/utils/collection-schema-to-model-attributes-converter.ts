@@ -1,9 +1,4 @@
-import {
-  CollectionSchema,
-  ColumnSchema,
-  FieldTypes,
-  PrimitiveTypes,
-} from '@forestadmin/datasource-toolkit';
+import { CollectionSchema, ColumnSchema, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { DataTypes, ModelAttributeColumnOptions, ModelAttributes } from 'sequelize';
 
 import { TypeConverter } from '@forestadmin/datasource-sequelize';
@@ -13,7 +8,7 @@ export default class CollectionSchemaToModelAttributesConverter {
     const attributes: ModelAttributes = {};
 
     Object.entries(schema.fields).forEach(([name, field]) => {
-      if (field.type !== FieldTypes.Column) return;
+      if (field.type !== 'Column') return;
 
       attributes[name] = this.convertColumn(field);
     });
@@ -29,7 +24,7 @@ export default class CollectionSchemaToModelAttributesConverter {
     };
 
     // FIXME: Allow to specify INTEGER fields via Number type without PK status.
-    if (attribute.primaryKey && field.columnType === PrimitiveTypes.Number) {
+    if (attribute.primaryKey && field.columnType === 'Number') {
       attribute.type = DataTypes.INTEGER;
       attribute.autoIncrement = true;
     }

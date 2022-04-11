@@ -1,4 +1,4 @@
-import { PrimitiveTypes, ValidationError } from '@forestadmin/datasource-toolkit';
+import { ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -12,16 +12,12 @@ describe('ChartRoute', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          name: factories.columnSchema.build({
-            columnType: PrimitiveTypes.String,
-          }),
+          name: factories.columnSchema.build({ columnType: 'String' }),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
             foreignKey: 'personsId',
           }),
-          publishedAt: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Date,
-          }),
+          publishedAt: factories.columnSchema.build({ columnType: 'Date' }),
         },
       }),
     }),
@@ -30,7 +26,7 @@ describe('ChartRoute', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          bookId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+          bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
           books: factories.oneToManySchema.build({
             foreignCollection: 'books',
             originKey: 'personsId',
@@ -75,12 +71,7 @@ describe('ChartRoute', () => {
         .mockResolvedValue([{ value: 1234, group: null }]);
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
-        requestBody: {
-          type: 'Value',
-          aggregate: 'Count',
-          collection: 'books',
-          filters: undefined,
-        },
+        requestBody: { type: 'Value', aggregate: 'Count', collection: 'books', filters: undefined },
         customProperties: { query: { timezone: 'Europe/Paris' } },
       });
 
@@ -94,20 +85,11 @@ describe('ChartRoute', () => {
           segment: null,
           timezone: 'Europe/Paris',
         },
-        {
-          field: undefined,
-          groups: undefined,
-          operation: 'Count',
-        },
+        { field: undefined, groups: undefined, operation: 'Count' },
       );
       expect(context.response.body).toMatchObject({
         data: {
-          attributes: {
-            value: {
-              countCurrent: 1234,
-              countPrevious: undefined,
-            },
-          },
+          attributes: { value: { countCurrent: 1234, countPrevious: undefined } },
           type: 'stats',
         },
       });
@@ -126,11 +108,7 @@ describe('ChartRoute', () => {
               type: 'Value',
               aggregate: 'Count',
               collection: 'books',
-              filters: JSON.stringify({
-                field: 'publishedAt',
-                operator: 'today',
-                value: null,
-              }),
+              filters: JSON.stringify({ field: 'publishedAt', operator: 'Today', value: null }),
             },
             customProperties: { query: { timezone: 'Europe/Paris' } },
           });
@@ -140,12 +118,7 @@ describe('ChartRoute', () => {
           expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledTimes(2);
           expect(context.response.body).toMatchObject({
             data: {
-              attributes: {
-                value: {
-                  countCurrent: 1234,
-                  countPrevious: 4321,
-                },
-              },
+              attributes: { value: { countCurrent: 1234, countPrevious: 4321 } },
               type: 'stats',
             },
           });
@@ -163,18 +136,10 @@ describe('ChartRoute', () => {
                 aggregate: 'Count',
                 collection: 'books',
                 filters: JSON.stringify({
-                  aggregator: 'and',
+                  aggregator: 'And',
                   conditions: [
-                    {
-                      field: 'publishedAt',
-                      operator: 'today',
-                      value: null,
-                    },
-                    {
-                      field: 'publishedAt',
-                      operator: 'yesterday',
-                      value: null,
-                    },
+                    { field: 'publishedAt', operator: 'Today', value: null },
+                    { field: 'publishedAt', operator: 'Yesterday', value: null },
                   ],
                 }),
               },
@@ -210,11 +175,7 @@ describe('ChartRoute', () => {
               type: 'Value',
               aggregate: 'Count',
               collection: 'books',
-              filters: JSON.stringify({
-                field: 'name',
-                operator: 'present',
-                value: null,
-              }),
+              filters: JSON.stringify({ field: 'name', operator: 'Present', value: null }),
             },
             customProperties: { query: { timezone: 'Europe/Paris' } },
           });
@@ -224,30 +185,17 @@ describe('ChartRoute', () => {
           expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledTimes(1);
           expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
             {
-              conditionTree: {
-                field: 'name',
-                operator: 'present',
-                value: null,
-              },
+              conditionTree: { field: 'name', operator: 'Present', value: null },
               search: null,
               searchExtended: false,
               segment: null,
               timezone: 'Europe/Paris',
             },
-            {
-              field: undefined,
-              groups: undefined,
-              operation: 'Count',
-            },
+            { field: undefined, groups: undefined, operation: 'Count' },
           );
           expect(context.response.body).toMatchObject({
             data: {
-              attributes: {
-                value: {
-                  countCurrent: 1234,
-                  countPrevious: undefined,
-                },
-              },
+              attributes: { value: { countCurrent: 1234, countPrevious: undefined } },
               type: 'stats',
             },
           });
@@ -260,11 +208,7 @@ describe('ChartRoute', () => {
         jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValue([]);
         const chart = new Chart(services, options, dataSource, 'books');
         const context = createMockContext({
-          requestBody: {
-            type: 'Value',
-            aggregate: 'Count',
-            collection: 'books',
-          },
+          requestBody: { type: 'Value', aggregate: 'Count', collection: 'books' },
           customProperties: { query: { timezone: 'Europe/Paris' } },
         });
 
@@ -292,11 +236,7 @@ describe('ChartRoute', () => {
         .mockResolvedValueOnce([{ value: 1234, group: null }]);
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
-        requestBody: {
-          type: 'Objective',
-          aggregate: 'Count',
-          collection: 'books',
-        },
+        requestBody: { type: 'Objective', aggregate: 'Count', collection: 'books' },
         customProperties: { query: { timezone: 'Europe/Paris' } },
       });
 
@@ -310,20 +250,12 @@ describe('ChartRoute', () => {
           segment: null,
           timezone: 'Europe/Paris',
         },
-        {
-          field: undefined,
-          groups: undefined,
-          operation: 'Count',
-        },
+        { field: undefined, groups: undefined, operation: 'Count' },
       );
 
       expect(context.response.body).toMatchObject({
         data: {
-          attributes: {
-            value: {
-              value: 1234,
-            },
-          },
+          attributes: { value: { value: 1234 } },
           type: 'stats',
         },
       });
@@ -356,11 +288,7 @@ describe('ChartRoute', () => {
           segment: null,
           timezone: 'Europe/Paris',
         },
-        {
-          field: undefined,
-          groups: [{ field: 'author:firstName' }],
-          operation: 'Count',
-        },
+        { field: undefined, groups: [{ field: 'author:firstName' }], operation: 'Count' },
       );
 
       expect(context.response.body).toMatchObject({
@@ -382,15 +310,10 @@ describe('ChartRoute', () => {
   describe('on line chart', () => {
     test('it should call the collection aggregate with the correct parameters', async () => {
       jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
-        {
-          value: 1234,
-          group: { publication: '2022-02-16T10:00:00.000Z' },
-        },
-        {
-          value: 456,
-          group: { publication: '2022-02-02T10:00:00.000Z' },
-        },
+        { value: 1234, group: { publication: '2022-02-16T10:00:00.000Z' } },
+        { value: 456, group: { publication: '2022-02-02T10:00:00.000Z' } },
       ]);
+
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
         requestBody: {
@@ -424,18 +347,9 @@ describe('ChartRoute', () => {
         data: {
           attributes: {
             value: [
-              {
-                label: 'W5-2022',
-                values: { value: 456 },
-              },
-              {
-                label: 'W6-2022',
-                values: { value: 0 },
-              },
-              {
-                label: 'W7-2022',
-                values: { value: 1234 },
-              },
+              { label: 'W5-2022', values: { value: 456 } },
+              { label: 'W6-2022', values: { value: 0 } },
+              { label: 'W7-2022', values: { value: 1234 } },
             ],
           },
           type: 'stats',
@@ -447,15 +361,10 @@ describe('ChartRoute', () => {
   describe('on leaderboard chart', () => {
     test('it should call the collection aggregate with the correct parameters', async () => {
       jest.spyOn(dataSource.getCollection('persons'), 'aggregate').mockResolvedValueOnce([
-        {
-          value: 1234,
-          group: { id: 2 },
-        },
-        {
-          value: 456,
-          group: { id: 1 },
-        },
+        { value: 1234, group: { id: 2 } },
+        { value: 456, group: { id: 1 } },
       ]);
+
       const chart = new Chart(services, options, dataSource, 'persons');
 
       const context = createMockContext({
@@ -481,11 +390,7 @@ describe('ChartRoute', () => {
           segment: null,
           timezone: 'Europe/Paris',
         },
-        {
-          field: 'books:id',
-          groups: [{ field: 'id' }],
-          operation: 'Sum',
-        },
+        { field: 'books:id', groups: [{ field: 'id' }], operation: 'Sum' },
         2,
       );
 
@@ -493,14 +398,8 @@ describe('ChartRoute', () => {
         data: {
           attributes: {
             value: [
-              {
-                key: 2,
-                value: 1234,
-              },
-              {
-                key: 1,
-                value: 456,
-              },
+              { key: 2, value: 1234 },
+              { key: 1, value: 456 },
             ],
           },
           type: 'stats',
@@ -511,15 +410,10 @@ describe('ChartRoute', () => {
     describe('when aggregation field is not present', () => {
       test('it should call the collection aggregate with the correct parameters', async () => {
         jest.spyOn(dataSource.getCollection('persons'), 'aggregate').mockResolvedValueOnce([
-          {
-            value: 1234,
-            group: { id: 2 },
-          },
-          {
-            value: 456,
-            group: { id: 1 },
-          },
+          { value: 1234, group: { id: 2 } },
+          { value: 456, group: { id: 1 } },
         ]);
+
         const chart = new Chart(services, options, dataSource, 'persons');
 
         const context = createMockContext({
@@ -544,11 +438,7 @@ describe('ChartRoute', () => {
             segment: null,
             timezone: 'Europe/Paris',
           },
-          {
-            field: 'books:id',
-            groups: [{ field: 'id' }],
-            operation: 'Count',
-          },
+          { field: 'books:id', groups: [{ field: 'id' }], operation: 'Count' },
           2,
         );
 
@@ -556,14 +446,8 @@ describe('ChartRoute', () => {
           data: {
             attributes: {
               value: [
-                {
-                  key: 2,
-                  value: 1234,
-                },
-                {
-                  key: 1,
-                  value: 456,
-                },
+                { key: 2, value: 1234 },
+                { key: 1, value: 456 },
               ],
             },
             type: 'stats',
@@ -574,15 +458,10 @@ describe('ChartRoute', () => {
       describe('when relation field is invalid', () => {
         test('it should throw an error', async () => {
           jest.spyOn(dataSource.getCollection('persons'), 'aggregate').mockResolvedValueOnce([
-            {
-              value: 1234,
-              group: { id: 2 },
-            },
-            {
-              value: 456,
-              group: { id: 1 },
-            },
+            { value: 1234, group: { id: 2 } },
+            { value: 456, group: { id: 1 } },
           ]);
+
           const chart = new Chart(services, options, dataSource, 'persons');
 
           const context = createMockContext({

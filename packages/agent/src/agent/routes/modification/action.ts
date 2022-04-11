@@ -1,5 +1,4 @@
 import {
-  ActionResultType,
   ConditionTreeFactory,
   DataSource,
   Filter,
@@ -58,20 +57,20 @@ export default class ActionRoute extends CollectionRoute {
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
     const result = await this.collection.execute(this.actionName, data, filter);
 
-    if (result?.type === ActionResultType.Error) {
+    if (result?.type === 'Error') {
       context.response.status = HttpCode.BadRequest;
       context.response.body = { error: result.message };
-    } else if (result?.type === ActionResultType.Success) {
+    } else if (result?.type === 'Success') {
       context.response.body = {
         [result.format === 'text' ? 'success' : 'html']: result.message,
         refresh: { relationships: [...result.invalidated] },
       };
-    } else if (result?.type === ActionResultType.Webhook) {
+    } else if (result?.type === 'Webhook') {
       const { url, method, headers, body } = result;
       context.response.body = { webhook: { url, method, headers, body } };
-    } else if (result?.type === ActionResultType.Redirect) {
+    } else if (result?.type === 'Redirect') {
       context.response.body = { redirectTo: result.path };
-    } else if (result?.type === ActionResultType.File) {
+    } else if (result?.type === 'File') {
       context.response.attachment(result.name);
       context.response.set('Access-Control-Expose-Headers', 'Content-Disposition');
       context.response.type = result.mimeType;

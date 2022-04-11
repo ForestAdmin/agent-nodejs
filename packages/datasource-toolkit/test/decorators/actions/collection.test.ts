@@ -1,5 +1,5 @@
 import * as factories from '../../__factories__';
-import { ActionFieldType, ActionResultType, ActionScope, Filter } from '../../../src';
+import { ActionScope, Filter } from '../../../src';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
 import ActionCollection from '../../../src/decorators/actions/collection';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
@@ -51,14 +51,14 @@ describe('ActionDecorator', () => {
   describe('with a bulk action with no form and void result', () => {
     beforeEach(() => {
       newBooks.addAction('make photocopy', {
-        scope: ActionScope.Single,
+        scope: 'Single',
         execute: jest.fn(),
       });
     });
 
     test('should be flagged as static form', () => {
       expect(newBooks.schema.actions['make photocopy']).toEqual({
-        scope: 'single',
+        scope: 'Single',
         generateFile: false,
         staticForm: true,
       });
@@ -70,7 +70,7 @@ describe('ActionDecorator', () => {
 
       expect(books.execute).not.toHaveBeenCalled();
       expect(result).toEqual({
-        type: ActionResultType.Success,
+        type: 'Success',
         invalidated: new Set(),
         message: 'Success',
         format: 'text',
@@ -97,20 +97,20 @@ describe('ActionDecorator', () => {
   describe('with a global action with a static form', () => {
     beforeEach(() => {
       newBooks.addAction('make photocopy', {
-        scope: ActionScope.Single,
+        scope: 'Single',
         execute: (context, responseBuilder) => {
           return responseBuilder.error('meeh');
         },
         form: [
-          { label: 'firstname', type: ActionFieldType.String },
-          { label: 'lastname', type: ActionFieldType.String },
+          { label: 'firstname', type: 'String' },
+          { label: 'lastname', type: 'String' },
         ],
       });
     });
 
     test('should be flagged as static form', () => {
       expect(newBooks.schema.actions['make photocopy']).toEqual({
-        scope: 'single',
+        scope: 'Single',
         generateFile: false,
         staticForm: true,
       });
@@ -120,8 +120,8 @@ describe('ActionDecorator', () => {
       const fields = await newBooks.getForm('make photocopy', {});
 
       expect(fields).toEqual([
-        { label: 'firstname', type: ActionFieldType.String, watchChanges: false },
-        { label: 'lastname', type: ActionFieldType.String, watchChanges: false },
+        { label: 'firstname', type: 'String', watchChanges: false },
+        { label: 'lastname', type: 'String', watchChanges: false },
       ]);
     });
   });
@@ -129,19 +129,19 @@ describe('ActionDecorator', () => {
   describe('with single action with both load and change hooks', () => {
     beforeEach(() => {
       newBooks.addAction('make photocopy', {
-        scope: ActionScope.Single,
+        scope: 'Single',
         execute: (context, responseBuilder) => {
           return responseBuilder.error('meeh');
         },
         form: [
           {
             label: 'firstname',
-            type: ActionFieldType.String,
+            type: 'String',
             defaultValue: () => 'DynamicDefault',
           },
           {
             label: 'lastname',
-            type: ActionFieldType.String,
+            type: 'String',
             isReadOnly: context => !!context.formValues.firstname,
           },
         ],
@@ -150,7 +150,7 @@ describe('ActionDecorator', () => {
 
     test('should be flagged as dynamic form', () => {
       expect(newBooks.schema.actions['make photocopy']).toEqual({
-        scope: 'single',
+        scope: 'Single',
         generateFile: false,
         staticForm: false,
       });
@@ -162,11 +162,11 @@ describe('ActionDecorator', () => {
       expect(fields).toEqual([
         {
           label: 'firstname',
-          type: ActionFieldType.String,
+          type: 'String',
           watchChanges: true,
           value: 'DynamicDefault',
         },
-        { label: 'lastname', type: ActionFieldType.String, isReadOnly: true, watchChanges: false },
+        { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
       ]);
     });
 
@@ -174,8 +174,8 @@ describe('ActionDecorator', () => {
       const fields = await newBooks.getForm('make photocopy', { firstname: null });
 
       expect(fields).toEqual([
-        { label: 'firstname', type: ActionFieldType.String, watchChanges: true, value: null },
-        { label: 'lastname', type: ActionFieldType.String, isReadOnly: false, watchChanges: false },
+        { label: 'firstname', type: 'String', watchChanges: true, value: null },
+        { label: 'lastname', type: 'String', isReadOnly: false, watchChanges: false },
       ]);
     });
 
@@ -183,39 +183,42 @@ describe('ActionDecorator', () => {
       const fields = await newBooks.getForm('make photocopy', { firstname: 'John' });
 
       expect(fields).toEqual([
-        { label: 'firstname', type: ActionFieldType.String, watchChanges: true, value: 'John' },
-        { label: 'lastname', type: ActionFieldType.String, isReadOnly: true, watchChanges: false },
+        { label: 'firstname', type: 'String', watchChanges: true, value: 'John' },
+        { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
       ]);
     });
   });
 
-  describe.each(Object.values(ActionScope))('with a %s action with a async dynamic form', scope => {
-    beforeEach(() => {
-      newBooks.addAction('make photocopy', {
-        scope,
-        execute: () => {},
-        form: [
+  describe.each(['Single', 'Bulk', 'Global'])(
+    'with a %s action with a async dynamic form',
+    scope => {
+      beforeEach(() => {
+        newBooks.addAction('make photocopy', {
+          scope: scope as ActionScope,
+          execute: () => {},
+          form: [
+            {
+              label: 'lastname',
+              type: 'String',
+              if: () =>
+                new Promise(resolve => {
+                  setTimeout(() => resolve(true));
+                }),
+            },
+          ],
+        });
+      });
+
+      test('should be able to compute form', async () => {
+        const fields = await newBooks.getForm('make photocopy');
+        expect(fields).toEqual([
           {
             label: 'lastname',
-            type: ActionFieldType.String,
-            if: () =>
-              new Promise(resolve => {
-                setTimeout(() => resolve(true));
-              }),
+            type: 'String',
+            watchChanges: false,
           },
-        ],
+        ]);
       });
-    });
-
-    test('should be able to compute form', async () => {
-      const fields = await newBooks.getForm('make photocopy');
-      expect(fields).toEqual([
-        {
-          label: 'lastname',
-          type: ActionFieldType.String,
-          watchChanges: false,
-        },
-      ]);
-    });
-  });
+    },
+  );
 });

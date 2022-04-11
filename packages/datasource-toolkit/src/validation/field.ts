@@ -1,5 +1,5 @@
 import { Collection } from '../interfaces/collection';
-import { ColumnSchema, FieldTypes, PrimitiveTypes } from '../interfaces/schema';
+import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 import { ValidationTypes, ValidationTypesArray } from './types';
 import TypeGetter from './type-getter';
 import ValidationError from '../errors';
@@ -15,10 +15,10 @@ export default class FieldValidator {
         throw new ValidationError(`Column not found: '${collection.name}.${field}'`);
       }
 
-      if (schema.type !== FieldTypes.Column) {
+      if (schema.type !== 'Column') {
         throw new ValidationError(
           `Unexpected field type: '${collection.name}.${field}' ` +
-            `(found '${schema.type}' expected '${FieldTypes.Column}')`,
+            `(found '${schema.type}' expected '${'Column'}')`,
         );
       }
 
@@ -33,10 +33,10 @@ export default class FieldValidator {
         throw new ValidationError(`Relation not found: '${collection.name}.${prefix}'`);
       }
 
-      if (schema.type !== FieldTypes.ManyToOne && schema.type !== FieldTypes.OneToOne) {
+      if (schema.type !== 'ManyToOne' && schema.type !== 'OneToOne') {
         throw new ValidationError(
           `Unexpected field type: '${collection.name}.${prefix}' (found ` +
-            `'${schema.type}' expected '${FieldTypes.ManyToOne}' or '${FieldTypes.OneToOne}')`,
+            `'${schema.type}' expected '${'ManyToOne'}' or '${'OneToOne'}')`,
         );
       }
 
@@ -59,7 +59,7 @@ export default class FieldValidator {
 
     const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes);
 
-    if (schema.columnType === PrimitiveTypes.Enum) {
+    if (schema.columnType === 'Enum') {
       FieldValidator.checkEnumValue(type, schema, value);
     }
 

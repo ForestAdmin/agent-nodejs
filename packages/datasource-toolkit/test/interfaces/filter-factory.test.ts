@@ -1,9 +1,8 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
 import * as factories from '../__factories__';
-import { Aggregator } from '../../src/interfaces/query/condition-tree/nodes/branch';
-import { PrimitiveTypes } from '../../src/interfaces/schema';
-import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import { Operator } from '../../src/interfaces/query/condition-tree/nodes/operators';
+import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import Filter from '../../src/interfaces/query/filter/unpaginated';
 import FilterFactory from '../../src/interfaces/query/filter/factory';
 
@@ -18,7 +17,7 @@ function setup() {
         fields: {
           id: factories.columnSchema.build({
             isPrimaryKey: true,
-            columnType: PrimitiveTypes.Number,
+            columnType: 'Number',
           }),
           reviews: factories.manyToManySchema.build({
             foreignCollection: 'reviews',
@@ -43,7 +42,7 @@ function setup() {
         fields: {
           id: factories.columnSchema.build({
             isPrimaryKey: true,
-            columnType: PrimitiveTypes.Number,
+            columnType: 'Number',
           }),
         },
       },
@@ -54,11 +53,11 @@ function setup() {
         fields: {
           bookId: factories.columnSchema.build({
             isPrimaryKey: true,
-            columnType: PrimitiveTypes.Number,
+            columnType: 'Number',
           }),
           reviewId: factories.columnSchema.build({
             isPrimaryKey: true,
-            columnType: PrimitiveTypes.Number,
+            columnType: 'Number',
           }),
           review: factories.manyToOneSchema.build({
             foreignCollection: 'reviews',
@@ -77,7 +76,7 @@ describe('FilterFactory', () => {
       it('should not modify the condition tree', () => {
         const filter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({
-            operator: Operator.Like,
+            operator: 'Like',
             field: 'someField',
             value: 'someValue',
           }),
@@ -88,14 +87,15 @@ describe('FilterFactory', () => {
 
     describe('when interval operator is present in the condition tree', () => {
       it.each([
-        [Operator.Today, Operator.Yesterday],
-        [Operator.PreviousMonthToDate, Operator.PreviousMonth],
-        [Operator.PreviousQuarterToDate, Operator.PreviousQuarter],
-        [Operator.PreviousYearToDate, Operator.PreviousYear],
+        ['Today', 'Yesterday'],
+        ['PreviousWeekToDate', 'PreviousWeek'],
+        ['PreviousMonthToDate', 'PreviousMonth'],
+        ['PreviousQuarterToDate', 'PreviousQuarter'],
+        ['PreviousYearToDate', 'PreviousYear'],
       ])('should override %s operator by the %s operator', (baseOperator, previousOperator) => {
         const filter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({
-            operator: baseOperator,
+            operator: baseOperator as Operator,
             field: 'someField',
             value: null,
           }),
@@ -107,11 +107,11 @@ describe('FilterFactory', () => {
       });
 
       it.each([
-        [Operator.Yesterday, 'day'],
-        [Operator.PreviousWeek, 'week'],
-        [Operator.PreviousMonth, 'month'],
-        [Operator.PreviousQuarter, 'quarter'],
-        [Operator.PreviousYear, 'year'],
+        ['Yesterday', 'day'],
+        ['PreviousWeek', 'week'],
+        ['PreviousMonth', 'month'],
+        ['PreviousQuarter', 'quarter'],
+        ['PreviousYear', 'year'],
       ])('should replace %s operator by a greater/less than operator', (baseOperator, duration) => {
         const time = DateTime.fromISO(TEST_DATE);
         DateTime.now = jest.fn(() => time);
@@ -121,21 +121,21 @@ describe('FilterFactory', () => {
         const filter = factories.filter.build({
           timezone: TEST_TIMEZONE,
           conditionTree: factories.conditionTreeLeaf.build({
-            operator: baseOperator,
+            operator: baseOperator as Operator,
             field: 'someField',
             value: null,
           }),
         });
 
         expect(FilterFactory.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
-          aggregator: Aggregator.And,
+          aggregator: 'And',
           conditions: [
             {
-              operator: Operator.GreaterThan,
+              operator: 'GreaterThan',
               value: newDate.startOf(duration as DateTimeUnit).toISO(),
             },
             {
-              operator: Operator.LessThan,
+              operator: 'LessThan',
               value: newDate.endOf(duration as DateTimeUnit).toISO(),
             },
           ],
@@ -144,14 +144,14 @@ describe('FilterFactory', () => {
         jest.clearAllMocks();
       });
 
-      it(`should replace ${Operator.PreviousXDays} operator by a greater/less than`, () => {
+      it(`should replace ${'PreviousXDays'} operator by a greater/less than`, () => {
         const time = DateTime.fromISO(TEST_DATE);
         DateTime.now = jest.fn(() => time);
 
         const filter = factories.filter.build({
           timezone: TEST_TIMEZONE,
           conditionTree: factories.conditionTreeLeaf.build({
-            operator: Operator.PreviousXDays,
+            operator: 'PreviousXDays',
             field: 'someField',
             value: 3,
           }),
@@ -160,14 +160,14 @@ describe('FilterFactory', () => {
         const newDate = time.setZone(TEST_TIMEZONE);
 
         expect(FilterFactory.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
-          aggregator: Aggregator.And,
+          aggregator: 'And',
           conditions: [
             {
-              operator: Operator.GreaterThan,
+              operator: 'GreaterThan',
               value: newDate.minus({ days: 6 }).startOf('day').toISO(),
             },
             {
-              operator: Operator.LessThan,
+              operator: 'LessThan',
               value: newDate.minus({ days: 3 }).startOf('day').toISO(),
             },
           ],
@@ -176,14 +176,14 @@ describe('FilterFactory', () => {
         jest.clearAllMocks();
       });
 
-      it(`should replace ${Operator.PreviousXDaysToDate} operator by a greater/less than`, () => {
+      it(`should replace ${'PreviousXDaysToDate'} operator by a greater/less than`, () => {
         const time = DateTime.fromISO(TEST_DATE);
         DateTime.now = jest.fn(() => time);
 
         const filter = factories.filter.build({
           timezone: TEST_TIMEZONE,
           conditionTree: factories.conditionTreeLeaf.build({
-            operator: Operator.PreviousXDaysToDate,
+            operator: 'PreviousXDaysToDate',
             field: 'someField',
             value: 3,
           }),
@@ -192,14 +192,14 @@ describe('FilterFactory', () => {
         const newDate = time.setZone(TEST_TIMEZONE);
 
         expect(FilterFactory.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
-          aggregator: Aggregator.And,
+          aggregator: 'And',
           conditions: [
             {
-              operator: Operator.GreaterThan,
+              operator: 'GreaterThan',
               value: newDate.minus({ days: 6 }).startOf('day').toISO(),
             },
             {
-              operator: Operator.LessThan,
+              operator: 'LessThan',
               value: newDate.minus({ days: 3 }).toISO(),
             },
           ],
@@ -215,16 +215,16 @@ describe('FilterFactory', () => {
       const dataSource = setup();
       const [books] = dataSource.collections;
       const baseFilter = new Filter({
-        conditionTree: new ConditionTreeLeaf('someField', Operator.Equal, 1),
+        conditionTree: new ConditionTreeLeaf('someField', 'Equal', 1),
       });
       const filter = await FilterFactory.makeThroughFilter(books, [1], 'reviews', baseFilter);
 
       expect(filter).toEqual({
         conditionTree: {
-          aggregator: 'and',
+          aggregator: 'And',
           conditions: [
-            { field: 'bookId', operator: 'equal', value: 1 },
-            { field: 'review:someField', operator: 'equal', value: 1 },
+            { field: 'bookId', operator: 'Equal', value: 1 },
+            { field: 'review:someField', operator: 'Equal', value: 1 },
           ],
         },
       });
@@ -240,7 +240,7 @@ describe('FilterFactory', () => {
       (reviews.list as jest.Mock).mockResolvedValue([{ id: 123 }]);
 
       const baseFilter = new Filter({
-        conditionTree: new ConditionTreeLeaf('someField', Operator.Equal, 1),
+        conditionTree: new ConditionTreeLeaf('someField', 'Equal', 1),
         segment: 'someSegment',
       });
 
@@ -248,10 +248,10 @@ describe('FilterFactory', () => {
 
       expect(filter).toEqual({
         conditionTree: {
-          aggregator: 'and',
+          aggregator: 'And',
           conditions: [
-            { field: 'bookId', operator: 'equal', value: 1 },
-            { field: 'reviewId', operator: 'in', value: [123] },
+            { field: 'bookId', operator: 'Equal', value: 1 },
+            { field: 'reviewId', operator: 'In', value: [123] },
           ],
         },
       });
@@ -263,17 +263,17 @@ describe('FilterFactory', () => {
       const dataSource = setup();
       const [books] = dataSource.collections;
       const baseFilter = new Filter({
-        conditionTree: new ConditionTreeLeaf('someField', Operator.Equal, 1),
+        conditionTree: new ConditionTreeLeaf('someField', 'Equal', 1),
         segment: 'some-segment',
       });
       const filter = await FilterFactory.makeForeignFilter(books, [1], 'bookReviews', baseFilter);
 
       expect(filter).toEqual({
         conditionTree: {
-          aggregator: 'and',
+          aggregator: 'And',
           conditions: [
-            { field: 'someField', operator: 'equal', value: 1 },
-            { field: 'bookId', operator: 'equal', value: 1 },
+            { field: 'someField', operator: 'Equal', value: 1 },
+            { field: 'bookId', operator: 'Equal', value: 1 },
           ],
         },
         segment: 'some-segment',
@@ -286,17 +286,17 @@ describe('FilterFactory', () => {
       (bookReviews.list as jest.Mock).mockResolvedValue([{ reviewId: 123 }, { reviewId: 124 }]);
 
       const baseFilter = new Filter({
-        conditionTree: new ConditionTreeLeaf('someField', Operator.Equal, 1),
+        conditionTree: new ConditionTreeLeaf('someField', 'Equal', 1),
         segment: 'some-segment',
       });
       const filter = await FilterFactory.makeForeignFilter(books, [1], 'reviews', baseFilter);
 
       expect(filter).toEqual({
         conditionTree: {
-          aggregator: 'and',
+          aggregator: 'And',
           conditions: [
-            { field: 'someField', operator: 'equal', value: 1 },
-            { field: 'id', operator: 'in', value: [123, 124] },
+            { field: 'someField', operator: 'Equal', value: 1 },
+            { field: 'id', operator: 'In', value: [123, 124] },
           ],
         },
         segment: 'some-segment',

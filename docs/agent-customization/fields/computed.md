@@ -31,7 +31,7 @@ collection.addField('totalSpending', {
   dependencies: ['id'],
   getValues: (records, context) => {
     const recordIds = records.map(r => r.id);
-    const filter = { conditionTree: { field: 'customer_id', operator: 'in', value: recordIds } };
+    const filter = { conditionTree: { field: 'customer_id', operator: 'In', value: recordIds } };
     const aggregation = { operation: 'Sum', field: 'amount', groups: [{ field: 'customer_id' }] };
     const rows = await context.dataSource.getCollection('orders').aggregate(filter);
 

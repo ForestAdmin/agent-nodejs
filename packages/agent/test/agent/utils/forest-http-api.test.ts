@@ -1,4 +1,4 @@
-import { ConditionTreeLeaf, Operator } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../__factories__';
 import ForestHttpApi from '../../../src/agent/utils/forest-http-api';
@@ -432,7 +432,7 @@ describe('ForestHttpApi', () => {
 
     test('should properly parse scopes w/ dynamic values', async () => {
       const scope = {
-        filter: { field: 'id', operator: 'not_equal', value: '$currentUser.team.id' },
+        filter: { field: 'id', operator: 'NotEqual', value: '$currentUser.team.id' },
         dynamicScopesValues: { users: { '1': { '$currentUser.team.id': 1 } } },
       };
 
@@ -450,7 +450,7 @@ describe('ForestHttpApi', () => {
         actionsByUser: {},
         scopes: {
           books: {
-            conditionTree: new ConditionTreeLeaf('id', Operator.NotEqual, '$currentUser.team.id'),
+            conditionTree: new ConditionTreeLeaf('id', 'NotEqual', '$currentUser.team.id'),
             dynamicScopeValues: { '1': { '$currentUser.team.id': 1 } },
           },
         },
@@ -459,7 +459,7 @@ describe('ForestHttpApi', () => {
 
     test('should properly parse scopes w/o dynamic values', async () => {
       const scope = {
-        filter: { field: 'id', operator: 'not_equal', value: '$currentUser.team.id' },
+        filter: { field: 'id', operator: 'NotEqual', value: '$currentUser.team.id' },
       };
 
       superagentMock.query.mockResolvedValue({
@@ -476,7 +476,7 @@ describe('ForestHttpApi', () => {
         actionsByUser: {},
         scopes: {
           books: {
-            conditionTree: new ConditionTreeLeaf('id', Operator.NotEqual, '$currentUser.team.id'),
+            conditionTree: new ConditionTreeLeaf('id', 'NotEqual', '$currentUser.team.id'),
             dynamicScopeValues: {},
           },
         },
