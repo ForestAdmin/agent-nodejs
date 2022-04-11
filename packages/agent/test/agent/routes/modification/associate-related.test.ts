@@ -1,4 +1,4 @@
-import { Aggregator, Filter, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -17,9 +17,7 @@ describe('AssociateRelatedRoute', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
-            bookId: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
-            }),
+            bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
           },
         }),
       });
@@ -97,10 +95,10 @@ describe('AssociateRelatedRoute', () => {
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
-            aggregator: Aggregator.And,
+            aggregator: 'And',
             conditions: [
               factories.conditionTreeLeaf.build({
-                operator: Operator.Equal,
+                operator: 'Equal',
                 value: '123e4567-e89b-12d3-a456-222222222222',
                 field: 'id',
               }),
