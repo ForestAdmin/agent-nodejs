@@ -39,7 +39,7 @@ export default class AssociateRelatedRoute extends RelationRoute {
     if (relation.type === FieldTypes.OneToMany) {
       await this.associateOneToMany(scope, relation, parentId, targetedRelationId, context);
     } else {
-      await this.associateManyToMany(scope, relation, parentId, targetedRelationId);
+      await this.associateManyToMany(relation, parentId, targetedRelationId);
     }
 
     context.response.status = HttpCode.NoContent;
@@ -65,7 +65,6 @@ export default class AssociateRelatedRoute extends RelationRoute {
   }
 
   async associateManyToMany(
-    scope: ConditionTree,
     relation: ManyToManySchema,
     parentId: CompositeId,
     targetedRelationId: CompositeId,
