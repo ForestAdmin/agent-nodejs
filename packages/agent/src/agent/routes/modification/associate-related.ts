@@ -5,7 +5,6 @@ import {
   ConditionTreeFactory,
   ConditionTreeLeaf,
   FieldTypes,
-  Filter,
   ManyToManySchema,
   OneToManySchema,
   Operator,
@@ -15,6 +14,7 @@ import { Context } from 'koa';
 import Router from '@koa/router';
 
 import { HttpCode } from '../../types';
+import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';
 import RelationRoute from '../relation-route';
 
@@ -37,7 +37,7 @@ export default class AssociateRelatedRoute extends RelationRoute {
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
 
     if (relation.type === FieldTypes.OneToMany) {
-      await this.associateOneToMany(scope, relation, parentId, targetedRelationId);
+      await this.associateOneToMany(scope, relation, parentId, targetedRelationId, context);
     } else {
       await this.associateManyToMany(scope, relation, parentId, targetedRelationId);
     }
@@ -50,15 +50,16 @@ export default class AssociateRelatedRoute extends RelationRoute {
     relation: OneToManySchema,
     parentId: CompositeId,
     targetedRelationId: CompositeId,
+    context: Context,
   ) {
     const [id] = SchemaUtils.getPrimaryKeys(this.foreignCollection.schema);
     let value = await CollectionUtils.getValue(this.foreignCollection, targetedRelationId, id);
-    const conditionTree = ConditionTreeFactory.intersect(
-      new ConditionTreeLeaf(id, Operator.Equal, value),
-      scope,
-    );
-    const filter = new Filter({ conditionTree });
-
+    const filter = ContextFilterFactory.build(this.collection, context, scope, {
+      conditionTree: ConditionTreeFactory.intersect(
+        new ConditionTreeLeaf(id, Operator.Equal, value),
+        scope,
+      ),
+    });
     value = await CollectionUtils.getValue(this.collection, parentId, relation.originKeyTarget);
     await this.foreignCollection.update(filter, { [relation.originKey]: value });
   }
@@ -73,8 +74,9 @@ export default class AssociateRelatedRoute extends RelationRoute {
     const foreign = await CollectionUtils.getValue(this.foreignCollection, targetedRelationId, id);
     [id] = SchemaUtils.getPrimaryKeys(this.collection.schema);
     const origin = await CollectionUtils.getValue(this.collection, parentId, id);
-    const throughCollection = this.dataSource.getCollection(relation.throughCollection);
     const record = { [relation.originKey]: origin, [relation.foreignKey]: foreign };
+
+    const throughCollection = this.dataSource.getCollection(relation.throughCollection);
     await throughCollection.create([record]);
   }
 }
