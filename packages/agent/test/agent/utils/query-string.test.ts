@@ -119,7 +119,7 @@ describe('QueryStringParser', () => {
 
           const projection = QueryStringParser.parseProjection(collectionSimple, context);
 
-          expect(projection).toEqual(['id']);
+          expect(projection).toEqual(new Projection('id'));
         });
 
         describe('when the request does no contain fields', () => {
@@ -142,7 +142,7 @@ describe('QueryStringParser', () => {
 
             const projection = QueryStringParser.parseProjection(collectionSimple, context);
 
-            expect(projection).toEqual(['name']);
+            expect(projection).toEqual(new Projection('name'));
           });
         });
       });
@@ -211,7 +211,7 @@ describe('QueryStringParser', () => {
           context,
         );
 
-        expect(projection).toEqual(['id', 'owner:name', 'owner:id']);
+        expect(projection).toEqual(new Projection('id', 'owner:name', 'owner:id'));
       });
     });
   });
@@ -225,7 +225,7 @@ describe('QueryStringParser', () => {
 
         const projection = QueryStringParser.parseProjectionWithPks(collectionSimple, context);
 
-        expect(projection).toEqual(['name', 'id']);
+        expect(projection).toEqual(new Projection('name', 'id'));
       });
     });
 
@@ -265,7 +265,7 @@ describe('QueryStringParser', () => {
           context,
         );
 
-        expect(projection).toEqual(['id', 'owner:name', 'owner:id']);
+        expect(projection).toEqual(new Projection('id', 'owner:name', 'owner:id'));
       });
     });
   });
