@@ -1,4 +1,10 @@
-import { FieldTypes, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeLeaf,
+  FieldTypes,
+  Filter,
+  Operator,
+  PrimitiveTypes,
+} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -89,6 +95,7 @@ describe('CreateRoute', () => {
               type: FieldTypes.OneToOne,
               foreignCollection: 'passports',
               originKey: 'personId',
+              originKeyTarget: 'id',
             },
           },
         }),
@@ -127,10 +134,31 @@ describe('CreateRoute', () => {
         },
       });
 
+      const spy = jest.spyOn(dataSource.getCollection('passports'), 'update');
+
       await create.handleCreate(context);
 
       expect(dataSource.getCollection('persons').create).toHaveBeenCalled();
-      expect(dataSource.getCollection('passports').update).toHaveBeenCalled();
+      expect(spy.mock.calls).toEqual([
+        [
+          new Filter({
+            conditionTree: new ConditionTreeLeaf('personId', Operator.Equal, 1),
+            timezone: 'Europe/Paris',
+          }),
+          { personId: null },
+        ],
+        [
+          new Filter({
+            conditionTree: new ConditionTreeLeaf(
+              'id',
+              Operator.Equal,
+              '1d162304-78bf-599e-b197-93590ac3d314',
+            ),
+            timezone: 'Europe/Paris',
+          }),
+          { personId: 1 },
+        ],
+      ]);
 
       expect(context.response.body).toMatchObject({
         jsonapi: { version: '1.0' },

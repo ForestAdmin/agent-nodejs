@@ -32,7 +32,7 @@ export default class CreateRoute extends CollectionRoute {
     const [record, relations] = await this.makeRecord(rawRecord);
     const newRecord = await this.createRecord(record);
 
-    await this.linkOneToOneRelations(context, record, relations);
+    await this.linkOneToOneRelations(context, newRecord, relations);
 
     context.response.body = serializer.serialize(this.collection, { ...newRecord, ...relations });
   }
