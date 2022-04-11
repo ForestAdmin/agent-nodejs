@@ -39,16 +39,15 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
 
     if (relation.type === FieldTypes.OneToMany) {
-      await this.dissociateOrDeleteOneToMany(context, relation, parentId, isDeleteMode, filter);
+      await this.dissociateOrDeleteOneToMany(relation, parentId, isDeleteMode, filter);
     } else {
-      await this.dissociateOrDeleteManyToMany(context, relation, parentId, isDeleteMode, filter);
+      await this.dissociateOrDeleteManyToMany(relation, parentId, isDeleteMode, filter);
     }
 
     context.response.status = HttpCode.NoContent;
   }
 
   private async dissociateOrDeleteOneToMany(
-    context: Context,
     schema: OneToManySchema,
     parentId: CompositeId,
     isDeleteMode: boolean,
@@ -65,7 +64,6 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
   }
 
   private async dissociateOrDeleteManyToMany(
-    context: Context,
     schema: ManyToManySchema,
     parentId: CompositeId,
     isDeleteMode: boolean,

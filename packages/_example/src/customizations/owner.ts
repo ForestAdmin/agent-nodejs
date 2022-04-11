@@ -6,7 +6,7 @@ export default (collection: Collection) =>
     .addRelation('store', {
       type: FieldTypes.OneToMany,
       foreignCollection: 'store',
-      originKey: 'id',
+      originKey: 'ownerId',
       originKeyTarget: 'id',
     })
     .addField('fullName', {

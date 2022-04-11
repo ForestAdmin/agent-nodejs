@@ -1,4 +1,4 @@
-import { ValidationError } from '@forestadmin/datasource-toolkit';
+import { Projection, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../__factories__';
@@ -119,7 +119,19 @@ describe('QueryStringParser', () => {
 
           const projection = QueryStringParser.parseProjection(collectionSimple, context);
 
-          expect(projection).toEqual(['id']);
+          expect(projection).toEqual(new Projection('id'));
+        });
+
+        describe('when the request does no contain fields', () => {
+          test('should return a projection with all the fields', () => {
+            const context = createMockContext({
+              customProperties: { query: { 'fields[books]': '' } },
+            });
+
+            const projection = QueryStringParser.parseProjection(collectionSimple, context);
+
+            expect(projection).toEqual(new Projection('id', 'name'));
+          });
         });
 
         describe('when the request does not contain the primary keys', () => {
@@ -130,7 +142,7 @@ describe('QueryStringParser', () => {
 
             const projection = QueryStringParser.parseProjection(collectionSimple, context);
 
-            expect(projection).toEqual(['name']);
+            expect(projection).toEqual(new Projection('name'));
           });
         });
       });
@@ -149,14 +161,14 @@ describe('QueryStringParser', () => {
         });
 
         describe('when the request does not contains fields at all', () => {
-          test('should return an ValidationError response with an error message', () => {
+          test('should return all the projection fields', () => {
             const context = createMockContext({
               customProperties: { query: {} },
             });
 
-            const fn = () => QueryStringParser.parseProjection(collectionSimple, context);
+            const projection = QueryStringParser.parseProjection(collectionSimple, context);
 
-            expect(fn).toThrow('Invalid projection');
+            expect(projection).toEqual(new Projection('id', 'name'));
           });
         });
       });
@@ -199,7 +211,7 @@ describe('QueryStringParser', () => {
           context,
         );
 
-        expect(projection).toEqual(['id', 'owner:name', 'owner:id']);
+        expect(projection).toEqual(new Projection('id', 'owner:name', 'owner:id'));
       });
     });
   });
@@ -213,7 +225,7 @@ describe('QueryStringParser', () => {
 
         const projection = QueryStringParser.parseProjectionWithPks(collectionSimple, context);
 
-        expect(projection).toEqual(['name', 'id']);
+        expect(projection).toEqual(new Projection('name', 'id'));
       });
     });
 
@@ -253,7 +265,7 @@ describe('QueryStringParser', () => {
           context,
         );
 
-        expect(projection).toEqual(['id', 'owner:name', 'owner:id']);
+        expect(projection).toEqual(new Projection('id', 'owner:name', 'owner:id'));
       });
     });
   });
