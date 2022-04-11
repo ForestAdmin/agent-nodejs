@@ -1,4 +1,4 @@
-import { ValidationError } from '@forestadmin/datasource-toolkit';
+import { Projection, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../__factories__';
@@ -123,14 +123,14 @@ describe('QueryStringParser', () => {
         });
 
         describe('when the request does no contain fields', () => {
-          test('should return an empty projection', () => {
+          test('should return a projection with all the fields', () => {
             const context = createMockContext({
               customProperties: { query: { 'fields[books]': '' } },
             });
 
             const projection = QueryStringParser.parseProjection(collectionSimple, context);
 
-            expect(projection).toEqual([]);
+            expect(projection).toEqual(new Projection('id', 'name'));
           });
         });
 
@@ -161,14 +161,14 @@ describe('QueryStringParser', () => {
         });
 
         describe('when the request does not contains fields at all', () => {
-          test('should return an ValidationError response with an error message', () => {
+          test('should return all the projection fields', () => {
             const context = createMockContext({
               customProperties: { query: {} },
             });
 
-            const fn = () => QueryStringParser.parseProjection(collectionSimple, context);
+            const projection = QueryStringParser.parseProjection(collectionSimple, context);
 
-            expect(fn).toThrow('Invalid projection');
+            expect(projection).toEqual(new Projection('id', 'name'));
           });
         });
       });

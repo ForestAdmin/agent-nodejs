@@ -66,59 +66,5 @@ describe('ListRoute', () => {
       expect(services.serializer.serialize).toHaveBeenCalled();
       expect(context.response.body).toEqual('expected_response_body');
     });
-
-    describe('when the route is used to fetch the related data', () => {
-      const setupWithManyCollectionFields = () => {
-        const collection = factories.collection.build({
-          list: jest.fn(),
-          schema: factories.collectionSchema.build({
-            fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
-              title: factories.columnSchema.build(),
-            },
-          }),
-        });
-        const dataSource = factories.dataSource.buildWithCollection(collection);
-        const options = factories.forestAdminHttpDriverOptions.build();
-        const router = factories.router.mockAllMethods().build();
-        const services = factories.forestAdminHttpDriverServices.build();
-
-        return { dataSource, options, router, services, collection };
-      };
-
-      test('should return records with all the fields', async () => {
-        const { dataSource, options, services, collection } = setupWithManyCollectionFields();
-
-        const list = new List(services, options, dataSource, collection.name);
-        const context = createMockContext({
-          customProperties: {
-            query: { timezone: 'Europe/Paris', searchToEdit: 'true' },
-          },
-        });
-
-        await list.handleList(context);
-
-        expect(collection.list).toHaveBeenCalledWith(
-          {
-            conditionTree: null,
-            search: null,
-            searchExtended: false,
-            segment: null,
-            timezone: 'Europe/Paris',
-            page: {
-              limit: 15,
-              skip: 0,
-            },
-            sort: [
-              {
-                ascending: true,
-                field: 'id',
-              },
-            ],
-          },
-          new Projection('id', 'title'),
-        );
-      });
-    });
   });
 });
