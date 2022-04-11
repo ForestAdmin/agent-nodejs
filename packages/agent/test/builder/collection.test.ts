@@ -5,6 +5,7 @@ import {
   FieldTypes,
   Operator,
   PrimitiveTypes,
+  Projection,
   Sort,
   SortClause,
   WriteDefinition,
@@ -14,7 +15,6 @@ import * as factories from '../agent/__factories__';
 import { FieldDefinition } from '../../src/builder/types';
 import Agent from '../../src/builder/agent';
 import CollectionBuilder from '../../src/builder/collection';
-import FrontendFilterableUtils from '../../src/agent/utils/forest-schema/filterable';
 
 describe('Builder > Collection', () => {
   const setup = () => {
@@ -27,8 +27,8 @@ describe('Builder > Collection', () => {
         name: collectionName,
         schema: factories.collectionSchema.build({
           fields: {
-            firstName: factories.columnSchema.build(),
-            lastName: factories.columnSchema.build(),
+            firstName: factories.columnSchema.build({ isSortable: true }),
+            lastName: factories.columnSchema.build({ filterOperators: new Set() }),
           },
         }),
       }),
@@ -107,9 +107,7 @@ describe('Builder > Collection', () => {
       expect(spy).toHaveBeenCalledWith('firstNameCopy', {
         columnType: PrimitiveTypes.String,
         dependencies: ['firstName'],
-        filterBy: expect.anything(),
         getValues: expect.any(Function),
-        sortBy: [{ ascending: true, field: 'firstName' }],
       });
       expect(self).toEqual(collectionBuilder);
     });
@@ -124,7 +122,7 @@ describe('Builder > Collection', () => {
 
       const fieldDefinition: FieldDefinition = {
         columnType: PrimitiveTypes.String,
-        dependencies: [],
+        dependencies: new Projection(),
         getValues: () => [],
       };
 
@@ -134,82 +132,6 @@ describe('Builder > Collection', () => {
       expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
       expect(collection.schema.fields['new field']).toBeDefined();
       expect(self).toEqual(collectionBuilder);
-    });
-
-    describe('when sort by is emulated', () => {
-      it('should register a field with sort emulation', () => {
-        const { agent, collectionBuilder, collectionName } = setup();
-
-        const collection = agent.sortEmulate.getCollection(collectionName);
-        const spy = jest.spyOn(collection, 'emulateFieldSorting');
-
-        const fieldDefinition: FieldDefinition = {
-          columnType: PrimitiveTypes.String,
-          dependencies: [],
-          getValues: () => [],
-          sortBy: 'emulate',
-        };
-
-        const self = collectionBuilder.addField('new field', fieldDefinition);
-
-        expect(spy).toBeCalledTimes(1);
-        expect(spy).toHaveBeenCalledWith('new field');
-        expect(collection.schema.fields['new field']).toBeDefined();
-        expect(self).toEqual(collectionBuilder);
-      });
-    });
-
-    describe('when sort by has a defined definition', () => {
-      it('should add a field with sorting clause', () => {
-        const { agent, collectionBuilder, collectionName } = setup();
-
-        const collection = agent.sortEmulate.getCollection(collectionName);
-        const spy = jest.spyOn(collection, 'replaceFieldSorting');
-
-        const fieldDefinition: FieldDefinition = {
-          columnType: PrimitiveTypes.String,
-          dependencies: [],
-          getValues: () => [],
-          sortBy: [{ field: 'firstName', ascending: true }],
-        };
-
-        const self = collectionBuilder.addField('new field', fieldDefinition);
-
-        expect(spy).toBeCalledTimes(1);
-        expect(spy).toHaveBeenCalledWith(
-          'new field',
-          new Sort(...(fieldDefinition.sortBy as SortClause[])),
-        );
-        expect(collection.schema.fields['new field']).toBeDefined();
-        expect(self).toEqual(collectionBuilder);
-      });
-    });
-
-    describe('when filter by is emulated', () => {
-      it('should add a field with filter emulate', () => {
-        const { agent, collectionBuilder, collectionName } = setup();
-
-        const collection = agent.lateOpEmulate.getCollection(collectionName);
-        const spy = jest.spyOn(collection, 'emulateFieldOperator');
-
-        const fieldDefinition: FieldDefinition = {
-          columnType: PrimitiveTypes.String,
-          dependencies: [],
-          getValues: () => [],
-          filterBy: 'emulate',
-        };
-
-        const self = collectionBuilder.addField('new field', fieldDefinition);
-
-        const requiredOperator = FrontendFilterableUtils.getRequiredOperators(
-          PrimitiveTypes.String,
-        );
-
-        expect(spy).toBeCalledTimes(requiredOperator.length);
-        expect(spy.mock.calls).toEqual(requiredOperator.map(operator => ['new field', operator]));
-        expect(collection.schema.fields['new field']).toBeDefined();
-        expect(self).toEqual(collectionBuilder);
-      });
     });
   });
 
@@ -301,11 +223,25 @@ describe('Builder > Collection', () => {
     });
   });
 
+  describe('emulateFieldFiltering', () => {
+    it('should emulate operator on field', () => {
+      const { agent, collectionBuilder, collectionName } = setup();
+
+      const collection = agent.earlyOpEmulate.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'emulateFieldOperator');
+
+      const self = collectionBuilder.emulateFieldFiltering('lastName');
+
+      expect(spy).toBeCalledTimes(9);
+      expect(self).toEqual(collectionBuilder);
+    });
+  });
+
   describe('emulateFieldOperator', () => {
     it('should emulate operator on field', () => {
       const { agent, collectionBuilder, collectionName } = setup();
 
-      const collection = agent.lateOpEmulate.getCollection(collectionName);
+      const collection = agent.earlyOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
       const self = collectionBuilder.emulateFieldOperator('firstName', Operator.Present);
@@ -320,7 +256,7 @@ describe('Builder > Collection', () => {
     it('should replace operator on field', () => {
       const { agent, collectionBuilder, collectionName } = setup();
 
-      const collection = agent.lateOpEmulate.getCollection(collectionName);
+      const collection = agent.earlyOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'replaceFieldOperator');
 
       const replacer = async () => new ConditionTreeLeaf('fieldName', Operator.NotEqual, null);
