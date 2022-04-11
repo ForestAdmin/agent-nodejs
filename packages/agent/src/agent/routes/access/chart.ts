@@ -2,7 +2,6 @@ import {
   Aggregation,
   Aggregator,
   ConditionTreeBranch,
-  ConditionTreeFactory,
   DateOperation,
   FieldTypes,
   Filter,
@@ -16,7 +15,7 @@ import { v1 as uuidv1 } from 'uuid';
 import Router from '@koa/router';
 
 import CollectionRoute from '../collection-route';
-import QueryStringParser from '../../utils/query-string';
+import ContextFilterFactory from '../../utils/context-filter-factory';
 
 enum ChartType {
   Value = 'Value',
@@ -200,12 +199,8 @@ export default class Chart extends CollectionRoute {
   }
 
   private async getFilter(context: Context): Promise<Filter> {
-    return new Filter({
-      conditionTree: ConditionTreeFactory.intersect(
-        QueryStringParser.parseConditionTree(this.collection, context),
-        await this.services.permissions.getScope(this.collection, context),
-      ),
-      timezone: QueryStringParser.parseTimezone(context),
-    });
+    const scope = await this.services.permissions.getScope(this.collection, context);
+
+    return ContextFilterFactory.build(this.collection, context, scope);
   }
 }

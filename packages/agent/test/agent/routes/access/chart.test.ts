@@ -89,8 +89,9 @@ describe('ChartRoute', () => {
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
         {
           conditionTree: null,
-          search: undefined,
-          searchExtended: undefined,
+          search: null,
+          searchExtended: false,
+          segment: null,
           timezone: 'Europe/Paris',
         },
         {
@@ -228,8 +229,9 @@ describe('ChartRoute', () => {
                 operator: 'present',
                 value: null,
               },
-              search: undefined,
-              searchExtended: undefined,
+              search: null,
+              searchExtended: false,
+              segment: null,
               timezone: 'Europe/Paris',
             },
             {
@@ -303,8 +305,9 @@ describe('ChartRoute', () => {
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
         {
           conditionTree: null,
-          search: undefined,
-          searchExtended: undefined,
+          search: null,
+          searchExtended: false,
+          segment: null,
           timezone: 'Europe/Paris',
         },
         {
@@ -348,8 +351,9 @@ describe('ChartRoute', () => {
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
         {
           conditionTree: null,
-          search: undefined,
-          searchExtended: undefined,
+          search: null,
+          searchExtended: false,
+          segment: null,
           timezone: 'Europe/Paris',
         },
         {
@@ -404,8 +408,9 @@ describe('ChartRoute', () => {
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
         {
           conditionTree: null,
-          search: undefined,
-          searchExtended: undefined,
+          search: null,
+          searchExtended: false,
+          segment: null,
           timezone: 'Europe/Paris',
         },
         {
@@ -471,8 +476,9 @@ describe('ChartRoute', () => {
       expect(dataSource.getCollection('persons').aggregate).toHaveBeenCalledWith(
         {
           conditionTree: null,
-          search: undefined,
-          searchExtended: undefined,
+          search: null,
+          searchExtended: false,
+          segment: null,
           timezone: 'Europe/Paris',
         },
         {
@@ -533,8 +539,9 @@ describe('ChartRoute', () => {
         expect(dataSource.getCollection('persons').aggregate).toHaveBeenCalledWith(
           {
             conditionTree: null,
-            search: undefined,
-            searchExtended: undefined,
+            search: null,
+            searchExtended: false,
+            segment: null,
             timezone: 'Europe/Paris',
           },
           {
