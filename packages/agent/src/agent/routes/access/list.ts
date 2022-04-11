@@ -24,7 +24,9 @@ export default class ListRoute extends CollectionRoute {
   }
 
   private getProjection(context: Context): Projection {
-    if (context.request.query.searchToEdit === 'true') {
+    const isUserFetchingRelatedData = context.request.query.searchToEdit === 'true';
+
+    if (isUserFetchingRelatedData) {
       return ProjectionFactory.all(this.collection);
     }
 
