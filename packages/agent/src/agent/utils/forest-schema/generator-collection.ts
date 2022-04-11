@@ -17,7 +17,7 @@ export default class SchemaGeneratorCollection {
         ),
       ),
       fields: Object.keys(collection.schema.fields)
-        .filter(name => !SchemaUtils.isSolelyForeignKey(collection.schema, name))
+        .filter(name => !SchemaUtils.isForeignKey(collection.schema, name))
         .map(name => SchemaGeneratorFields.buildSchema(collection, name)),
       icon: null,
       integration: null,

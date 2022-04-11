@@ -2,7 +2,6 @@ import {
   Collection,
   CollectionUtils,
   ColumnSchema,
-  ColumnType,
   FieldTypes,
   RelationSchema,
   SchemaUtils,
@@ -22,19 +21,31 @@ export default class SchemaGeneratorFields {
   static buildSchema(collection: Collection, name: string): ForestServerField {
     const { type } = collection.schema.fields[name];
 
+    let schema: ForestServerField;
+
     switch (type) {
       case 'Column':
-        return SchemaGeneratorFields.buildColumnSchema(collection, name);
+        schema = SchemaGeneratorFields.buildColumnSchema(collection, name);
+        break;
 
       case 'ManyToOne':
       case 'OneToMany':
       case 'ManyToMany':
       case 'OneToOne':
-        return SchemaGeneratorFields.buildRelationSchema(collection, name);
+        schema = SchemaGeneratorFields.buildRelationSchema(collection, name);
+        break;
 
       default:
         throw new Error('Invalid field type');
     }
+
+    return Object.entries(schema)
+      .sort()
+      .reduce((sortedSchema, [key, value]) => {
+        sortedSchema[key] = value;
+
+        return sortedSchema;
+      }, {});
   }
 
   private static buildColumnSchema(collection: Collection, name: string): ForestServerField {
@@ -62,37 +73,41 @@ export default class SchemaGeneratorFields {
     const relation = collection.schema.fields[name] as RelationSchema;
     const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
     const [primaryKey] = SchemaUtils.getPrimaryKeys(foreignCollection.schema);
-    const primaryKeySchema = foreignCollection.schema.fields[primaryKey] as ColumnSchema;
 
-    // Not sure what is meant by knowing if a relation is filterable or not.
-    // => let's say that the relation is filterable if at least one field in the target can
-    // be filtered for many to one / one to one.
-    const isFilterable =
-      (relation.type === 'ManyToOne' || relation.type === 'OneToOne') &&
-      Object.values(foreignCollection.schema.fields).some(
-        field =>
-          field.type === 'Column' &&
-          FrontendFilterableUtils.isFilterable(field.columnType, field.filterOperators),
+    const relationSchema = {
+      field: name,
+      inverseOf: CollectionUtils.getInverseRelation(collection, name),
+      reference: `${foreignCollection.name}.${primaryKey}`,
+      relationship: SchemaGeneratorFields.relationMap[relation.type],
+    };
+
+    if (relation.type === 'ManyToOne' || relation.type === 'OneToOne') {
+      const columnSchema = SchemaGeneratorFields.buildColumnSchema(
+        collection,
+        relation.type === 'ManyToOne' ? relation.foreignKey : relation.originKeyTarget,
       );
+
+      return {
+        ...columnSchema,
+        ...relationSchema,
+      };
+    }
+
+    const primaryKeySchema = foreignCollection.schema.fields[primaryKey] as ColumnSchema;
 
     return {
       defaultValue: null,
       enums: null,
-      field: name,
       integration: null,
-      inverseOf: CollectionUtils.getInverseRelation(collection, name),
-      isFilterable,
+      isFilterable: false,
       isPrimaryKey: false,
       isReadOnly: false,
-      isRequired: false, // @fixme for many to one / one to one we need to check the fk
+      isRequired: false,
       isSortable: false,
       isVirtual: false,
-      reference: `${foreignCollection.name}.${primaryKey}`,
-      relationship: SchemaGeneratorFields.relationMap[relation.type],
-      type: (relation.type === 'OneToOne' || relation.type === 'ManyToOne'
-        ? primaryKeySchema.columnType
-        : [primaryKeySchema.columnType]) as ColumnType,
       validations: [],
+      type: [primaryKeySchema.columnType],
+      ...relationSchema,
     };
   }
 }
