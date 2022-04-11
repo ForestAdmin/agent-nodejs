@@ -40,7 +40,7 @@ export default class SqlTypeConverter {
   ): AbstractDataType | AbstractDataTypeConstructor {
     const { special } = columnInfo;
 
-    if (special) {
+    if (special && special.length > 0) {
       return DataTypes.ENUM(...special);
     }
 
