@@ -11,11 +11,11 @@ All data sources need to be able to
 - List and count records
 - Understand `And` nodes in condition trees
 - Understand `Or` nodes in conditions trees
-- Understand the `equal` operator on primary keys
+- Understand the `Equal` operator on primary keys
 - Understand paging (`skip`, `limit`)
 
 {% hint style="warning" %}
-Translating the `or` node is a strong contraint, as many backends will not allow it and providing a working implementation requires making multiple queries and recombining the results.
+Translating the `Or` node is a strong contraint, as many backends will not allow it and providing a working implementation requires making multiple queries and recombining the results.
 {% endhint %}
 
 # Optional features
@@ -29,11 +29,11 @@ The more complete your query translator is, the most forest admin features will 
 | Unlocked feature                                             | Needed capabilities                                              |
 | ------------------------------------------------------------ | ---------------------------------------------------------------- |
 | Using charts                                                 | Support all field in `Aggregation`                               |
-| Using relations                                              | `in` on primary keys and foreign keys                            |
-| Using `select all` feature for actions, delete or dissociate | `in` and `not_in` on the primary key                             |
+| Using relations                                              | `In` on primary keys and foreign keys                            |
+| Using `select all` feature for actions, delete or dissociate | `In` and `NotIn` on the primary key                              |
 | Frontend filters, scopes and segments                        | See below                                                        |
-| Using operator emulation                                     | `in` on primary keys                                             |
-| Using search emulation                                       | `contains` on string fields, `equal` on numbers, uuids and enums |
+| Using operator emulation                                     | `In` on primary keys                                             |
+| Using search emulation                                       | `Contains` on string fields, `Equal` on numbers, uuids and enums |
 
 ## Unlock filtering, scopes and segments on GUI
 
@@ -41,14 +41,14 @@ Forest Admin GUI implements filtering, scopes and segments with a "per-field", n
 
 This means that filtering for a given field is either enabled or not from the GUI perspective. Forest Admin admin panel will enable the feature only once enough operators are supported depending on the type of the field.
 
-| Field type | Needed operators to unlock GUI filters, scopes and segments                                    |
-| ---------- | ---------------------------------------------------------------------------------------------- |
-| Boolean    | `equal`,`not_equal`,`present`,`blank`                                                          |
-| Date       | All dates operators                                                                            |
-| Enum       | `equal`,`not_equal`,`present`,`blank`, `in`                                                    |
-| Number     | `equal`,`not_equal`,`present`,`blank`,`in`,`greater_than`,`less_than`                          |
-| String     | `equal`,`not_equal`,`present`,`blank`,`in`,`starts_with`,`ends_with`,`contains`,`not_contains` |
-| Uuid       | `equal`, `not_equal`, `present`, `blank`                                                       |
+| Field type | Needed operators to unlock GUI filters, scopes and segments                                      |
+| ---------- | ------------------------------------------------------------------------------------------------ |
+| Boolean    | `Equal`, `NotEqual`, `Present`, `blank`                                                          |
+| Date       | All dates operators                                                                              |
+| Enum       | `Equal`, `NotEqual`, `Present`, `blank`,`In`                                                     |
+| Number     | `Equal`, `NotEqual`, `Present`, `blank`,`In`, `GreaterThan`, LessThan`                           |
+| String     | `Equal`, `NotEqual`, `Present`, `blank`,`In`,`StartsWith`,`EndsWith`, `Ccontains`, `NotContains` |
+| Uuid       | `Equal`, `NotEqual`, `Present`, `Blank`                                                          |
 
 # Capabilities
 
@@ -83,7 +83,7 @@ class MyCollection extends BaseCollection {
     this.addField('id', {
       // [...]
       filterOperators: new Set([
-        Operator.Equal, // Tell forest admin that it can use the equal operator on the id field
+        'Equal', // Tell forest admin that it can use the equal operator on the id field
         // ...
       ]),
     });

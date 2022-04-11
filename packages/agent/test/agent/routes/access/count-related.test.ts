@@ -1,10 +1,8 @@
 import {
   Aggregation,
-  AggregationOperation,
   CollectionUtils,
   ConditionTreeLeaf,
   Filter,
-  Operator,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
@@ -98,9 +96,9 @@ describe('CountRelatedRoute', () => {
         const searchParams = { search: 'searched argument' };
         const conditionTreeParams = {
           filters: JSON.stringify({
-            aggregator: 'and',
+            aggregator: 'And',
             conditions: [
-              { field: 'id', operator: 'equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+              { field: 'id', operator: 'Equal', value: '123e4567-e89b-12d3-a456-426614174000' },
             ],
           }),
         };
@@ -128,11 +126,11 @@ describe('CountRelatedRoute', () => {
             segment: 'a-valid-segment',
             conditionTree: new ConditionTreeLeaf(
               'id',
-              Operator.Equal,
+              'Equal',
               '123e4567-e89b-12d3-a456-426614174000',
             ),
           }),
-          new Aggregation({ operation: AggregationOperation.Count }),
+          new Aggregation({ operation: 'Count' }),
         );
 
         expect(context.response.body).toEqual({ count: 1568 });

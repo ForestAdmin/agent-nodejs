@@ -2,14 +2,13 @@ import {
   CollectionSchema,
   ColumnSchema,
   FieldSchema,
-  FieldTypes,
   PrimitiveTypes,
 } from '../../interfaces/schema';
 import { DataSource } from '../../interfaces/collection';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
-import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeLeaf from '../../interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import TypeGetter from '../../validation/type-getter';
 
@@ -60,17 +59,17 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     let condition: ConditionTree = null;
 
     const type = columnType as PrimitiveTypes;
-    const value = PrimitiveTypes.Number === columnType ? Number(searchString) : searchString;
+    const value = columnType === 'Number' ? Number(searchString) : searchString;
     const searchType = TypeGetter.get(value, type);
 
     if (
       SearchCollectionDecorator.isValidEnum(enumValues, searchString, type) ||
-      searchType === PrimitiveTypes.Number ||
-      searchType === PrimitiveTypes.Uuid
+      searchType === 'Number' ||
+      searchType === 'Uuid'
     ) {
-      condition = new ConditionTreeLeaf(field, Operator.Equal, value);
-    } else if (searchType === PrimitiveTypes.String) {
-      condition = new ConditionTreeLeaf(field, Operator.Contains, value);
+      condition = new ConditionTreeLeaf(field, 'Equal', value);
+    } else if (searchType === 'String') {
+      condition = new ConditionTreeLeaf(field, 'Contains', value);
     }
 
     return condition;
@@ -82,7 +81,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     searchType: PrimitiveTypes,
   ): boolean {
     return (
-      searchType === PrimitiveTypes.Enum &&
+      searchType === 'Enum' &&
       !!enumValues?.find(
         enumValue => enumValue.toLocaleLowerCase() === searchString.toLocaleLowerCase().trim(),
       )
@@ -105,7 +104,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
   private static getDeepFields(dataSource: DataSource, fields: [string, FieldSchema][]) {
     fields.forEach(([name, field]) => {
-      if (field.type === FieldTypes.ManyToOne || field.type === FieldTypes.OneToOne) {
+      if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
         const related = dataSource.getCollection(field.foreignCollection);
         fields.push(
           ...Object.entries(related.schema.fields).map(
@@ -122,19 +121,15 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   }
 
   private static isSearchable(schema: FieldSchema): boolean {
-    if (schema.type === FieldTypes.Column) {
+    if (schema.type === 'Column') {
       const { columnType, filterOperators } = schema;
 
-      if (
-        columnType === PrimitiveTypes.Enum ||
-        columnType === PrimitiveTypes.Number ||
-        columnType === PrimitiveTypes.Uuid
-      ) {
-        return filterOperators?.has(Operator.Equal);
+      if (columnType === 'Enum' || columnType === 'Number' || columnType === 'Uuid') {
+        return filterOperators?.has('Equal');
       }
 
-      if (columnType === PrimitiveTypes.String) {
-        return filterOperators?.has(Operator.Contains);
+      if (columnType === 'String') {
+        return filterOperators?.has('Contains');
       }
     }
 

@@ -1,7 +1,6 @@
 /* eslint-disable max-classes-per-file */
 
 import * as factories from '../__factories__';
-import { ActionFieldType, ActionResultType } from '../../src';
 import CollectionDecorator from '../../src/decorators/collection-decorator';
 
 describe('CollectionDecorator', () => {
@@ -155,7 +154,7 @@ describe('CollectionDecorator', () => {
 
   describe('getForm', () => {
     it('calls the child getForm method', async () => {
-      const fields = { type: ActionFieldType.String, label: 'field ' };
+      const fields = { type: 'String', label: 'field ' };
       const childGetForm = jest.fn().mockReturnValue(fields);
       const decoratedCollection = factories.collection.buildDecoratedCollection({
         getForm: childGetForm,
@@ -170,7 +169,7 @@ describe('CollectionDecorator', () => {
 
   describe('execute', () => {
     it('calls the child execute method', async () => {
-      const response = { type: ActionResultType.Success };
+      const response = { type: 'Success' };
       const childExecute = jest.fn().mockReturnValue(response);
       const decoratedCollection = factories.collection.buildDecoratedCollection({
         execute: childExecute,

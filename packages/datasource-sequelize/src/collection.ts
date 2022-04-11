@@ -3,7 +3,6 @@ import { FindOptions, ModelDefined, ProjectionAlias, col, fn } from 'sequelize';
 import {
   AggregateResult,
   Aggregation,
-  AggregationOperation,
   BaseCollection,
   DataSource,
   Filter,
@@ -86,7 +85,7 @@ export default class SequelizeCollection extends BaseCollection {
   ): Promise<AggregateResult[]> {
     let aggregationField = aggregation.field;
 
-    if (aggregation.operation === AggregationOperation.Count || !aggregationField) {
+    if (aggregation.operation === 'Count' || !aggregationField) {
       aggregationField = '*';
     } else {
       aggregationField = this.aggregationUtils.unAmbigousField(aggregationField);

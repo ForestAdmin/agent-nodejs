@@ -1,18 +1,16 @@
 import { Alternative } from '../equivalence';
-import { Operator } from '../nodes/leaf';
-import { PrimitiveTypes } from '../../../schema';
+import { Operator } from '../nodes/operators';
 
 function likes(getPattern: (pattern: string) => string): Alternative {
   return {
-    dependsOn: [Operator.Like],
-    forTypes: [PrimitiveTypes.String],
-    replacer: leaf =>
-      leaf.override({ operator: Operator.Like, value: getPattern(leaf.value as string) }),
+    dependsOn: ['Like'],
+    forTypes: ['String'],
+    replacer: leaf => leaf.override({ operator: 'Like', value: getPattern(leaf.value as string) }),
   };
 }
 
 export default (): Partial<Record<Operator, Alternative[]>> => ({
-  [Operator.Contains]: [likes(value => `%${value}%`)],
-  [Operator.StartsWith]: [likes(value => `${value}%`)],
-  [Operator.EndsWith]: [likes(value => `%${value}`)],
+  Contains: [likes(value => `%${value}%`)],
+  StartsWith: [likes(value => `${value}%`)],
+  EndsWith: [likes(value => `%${value}`)],
 });

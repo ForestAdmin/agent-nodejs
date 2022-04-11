@@ -1,6 +1,6 @@
 import { Action, ActionBulk, ActionGlobal, ActionSingle } from './types/actions';
-import { ActionField, ActionResult, ActionResultType } from '../../interfaces/action';
-import { ActionScope, CollectionSchema } from '../../interfaces/schema';
+import { ActionField, ActionResult } from '../../interfaces/action';
+import { CollectionSchema } from '../../interfaces/schema';
 import { DynamicField } from './types/fields';
 import { RecordData } from '../../interfaces/record';
 import { ValueOrHandler } from '../fields';
@@ -33,7 +33,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
     return (
       result || {
-        type: ActionResultType.Success as const,
+        type: 'Success' as const,
         invalidated: new Set<string>(),
         format: 'text' as const,
         message: 'Success',
@@ -92,9 +92,9 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     used?: Set<string>,
   ): ActionContext {
     return new {
-      [ActionScope.Global]: ActionContext,
-      [ActionScope.Bulk]: ActionContextBulk,
-      [ActionScope.Single]: ActionContextSingle,
+      Global: ActionContext,
+      Bulk: ActionContextBulk,
+      Single: ActionContextSingle,
     }[action.scope](this, formValues, filter, used);
   }
 

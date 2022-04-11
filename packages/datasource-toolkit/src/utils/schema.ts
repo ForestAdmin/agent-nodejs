@@ -1,16 +1,11 @@
-import {
-  CollectionSchema,
-  FieldTypes,
-  ManyToManySchema,
-  OneToManySchema,
-} from '../interfaces/schema';
+import { CollectionSchema, ManyToManySchema, OneToManySchema } from '../interfaces/schema';
 
 export default class SchemaUtils {
   static getPrimaryKeys(schema: CollectionSchema): string[] {
     return Object.keys(schema.fields).filter(fieldName => {
       const field = schema.fields[fieldName];
 
-      return field.type === FieldTypes.Column && field.isPrimaryKey;
+      return field.type === 'Column' && field.isPrimaryKey;
     });
   }
 
@@ -18,10 +13,10 @@ export default class SchemaUtils {
     const field = schema.fields[name];
 
     return (
-      field.type === FieldTypes.Column &&
+      field.type === 'Column' &&
       !field.isPrimaryKey &&
       Object.values(schema.fields).some(
-        relation => relation.type === FieldTypes.ManyToOne && relation.foreignKey === name,
+        relation => relation.type === 'ManyToOne' && relation.foreignKey === name,
       )
     );
   }
@@ -34,13 +29,10 @@ export default class SchemaUtils {
 
     if (!relationFieldSchema) throw new Error(`Relation '${relationName}' not found`);
 
-    if (
-      relationFieldSchema.type !== FieldTypes.OneToMany &&
-      relationFieldSchema.type !== FieldTypes.ManyToMany
-    ) {
+    if (relationFieldSchema.type !== 'OneToMany' && relationFieldSchema.type !== 'ManyToMany') {
       throw new Error(
         `Relation ${relationName} has invalid type should be one of ` +
-          `${FieldTypes.OneToMany} or ${FieldTypes.ManyToMany}.`,
+          `${'OneToMany'} or ${'ManyToMany'}.`,
       );
     }
 

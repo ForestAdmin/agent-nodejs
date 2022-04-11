@@ -1,9 +1,4 @@
-import {
-  CollectionSchema,
-  FieldTypes,
-  Operator,
-  PrimitiveTypes,
-} from '@forestadmin/datasource-toolkit';
+import { CollectionSchema, Operator } from '@forestadmin/datasource-toolkit';
 import { DataTypes } from 'sequelize';
 
 import CollectionSchemaToModelAttributesConverter from '../../src/utils/collection-schema-to-model-attributes-converter';
@@ -15,16 +10,16 @@ describe('Utils > CollectionSchemaToModelAttributesConverter', () => {
         actions: {},
         fields: {
           a: {
-            columnType: PrimitiveTypes.Number,
+            columnType: 'Number',
             filterOperators: new Set<Operator>(),
             isPrimaryKey: true,
-            type: FieldTypes.Column,
+            type: 'Column',
           },
           b: {
-            columnType: PrimitiveTypes.String,
+            columnType: 'String',
             filterOperators: new Set<Operator>(),
             isPrimaryKey: false,
-            type: FieldTypes.Column,
+            type: 'Column',
           },
         },
         searchable: false,
@@ -81,7 +76,7 @@ describe('Utils > CollectionSchemaToModelAttributesConverter', () => {
               foreignKeyTarget: '__none__',
               originKeyTarget: '__none__',
               throughCollection: '__none__',
-              type: FieldTypes.ManyToMany,
+              type: 'ManyToMany',
             },
           },
           searchable: false,

@@ -1,4 +1,4 @@
-import { ActionFieldType, ActionScope, Collection } from '@forestadmin/datasource-toolkit';
+import { Collection } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../../__factories__';
 import SchemaGeneratorActions from '../../../../src/agent/utils/forest-schema/generator-actions';
@@ -6,7 +6,7 @@ import SchemaGeneratorActions from '../../../../src/agent/utils/forest-schema/ge
 describe('SchemaGeneratorActions', () => {
   describe('Without form', () => {
     const collection = factories.collection.buildWithAction('Send email', {
-      scope: ActionScope.Single,
+      scope: 'Single',
       generateFile: false,
       staticForm: true,
     });
@@ -37,7 +37,7 @@ describe('SchemaGeneratorActions', () => {
     const collection: Collection = factories.collection.buildWithAction(
       'Send {} email',
       {
-        scope: ActionScope.Single,
+        scope: 'Single',
         generateFile: false,
         staticForm: false,
       },
@@ -45,7 +45,7 @@ describe('SchemaGeneratorActions', () => {
         {
           label: 'label',
           description: 'email',
-          type: ActionFieldType.String,
+          type: 'String',
           enumValues: [],
           isRequired: true,
           isReadOnly: false,
@@ -85,7 +85,7 @@ describe('SchemaGeneratorActions', () => {
     const collection: Collection = factories.collection.buildWithAction(
       'Send email',
       {
-        scope: ActionScope.Single,
+        scope: 'Single',
         generateFile: false,
         staticForm: true,
       },
@@ -93,7 +93,7 @@ describe('SchemaGeneratorActions', () => {
         {
           label: 'label',
           description: 'email',
-          type: ActionFieldType.String,
+          type: 'String',
           enumValues: [],
           isRequired: true,
           isReadOnly: false,
@@ -114,7 +114,7 @@ describe('SchemaGeneratorActions', () => {
       factories.collection.buildWithAction(
         'Send email',
         {
-          scope: ActionScope.Single,
+          scope: 'Single',
           generateFile: false,
           staticForm: true,
         },
@@ -122,7 +122,7 @@ describe('SchemaGeneratorActions', () => {
           {
             label: 'author',
             description: 'choose an author',
-            type: ActionFieldType.Collection,
+            type: 'Collection',
             enumValues: [],
             isRequired: true,
             isReadOnly: false,
@@ -133,7 +133,7 @@ describe('SchemaGeneratorActions', () => {
           {
             label: 'avatar',
             description: 'choose an avatar',
-            type: ActionFieldType.File,
+            type: 'File',
             enumValues: [],
             isRequired: true,
             isReadOnly: false,
@@ -143,7 +143,7 @@ describe('SchemaGeneratorActions', () => {
           {
             label: 'inclusive gender',
             description: 'Choose None, Male, Female or Both',
-            type: ActionFieldType.EnumList,
+            type: 'EnumList',
             enumValues: ['Male', 'Female'],
             isRequired: true,
             isReadOnly: false,

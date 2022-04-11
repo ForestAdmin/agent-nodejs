@@ -1,6 +1,6 @@
 import { Readable } from 'stream';
 
-import { ActionResult, ActionResultType } from '../../interfaces/action';
+import { ActionResult } from '../../interfaces/action';
 
 export default class ResultBuilder {
   success(
@@ -8,7 +8,7 @@ export default class ResultBuilder {
     options?: { type?: 'html' | 'text'; invalidated?: string[] },
   ): ActionResult {
     return {
-      type: ActionResultType.Success,
+      type: 'Success',
       message: message ?? 'Success',
       format: options?.type ?? 'text',
       invalidated: new Set(options?.invalidated ?? []),
@@ -17,7 +17,7 @@ export default class ResultBuilder {
 
   error(message?: string): ActionResult {
     return {
-      type: ActionResultType.Error,
+      type: 'Error',
       message: message ?? 'Error',
     };
   }
@@ -29,7 +29,7 @@ export default class ResultBuilder {
     body: unknown = {},
   ): ActionResult {
     return {
-      type: ActionResultType.Webhook,
+      type: 'Webhook',
       url,
       method,
       headers,
@@ -43,7 +43,7 @@ export default class ResultBuilder {
     mimeType = 'application/octet-stream',
   ): ActionResult {
     return {
-      type: ActionResultType.File,
+      type: 'File',
       name,
       mimeType,
       stream:
@@ -54,6 +54,6 @@ export default class ResultBuilder {
   }
 
   redirectTo(path: string): ActionResult {
-    return { type: ActionResultType.Redirect, path };
+    return { type: 'Redirect', path };
   }
 }

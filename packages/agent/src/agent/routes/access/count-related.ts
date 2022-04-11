@@ -1,8 +1,4 @@
-import {
-  Aggregation,
-  AggregationOperation,
-  CollectionUtils,
-} from '@forestadmin/datasource-toolkit';
+import { Aggregation, CollectionUtils } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
@@ -30,7 +26,7 @@ export default class CountRelatedRoute extends RelationRoute {
       parentId,
       this.relationName,
       filter,
-      new Aggregation({ operation: AggregationOperation.Count }),
+      new Aggregation({ operation: 'Count' }),
     );
 
     context.response.body = { count: aggregationResult?.[0]?.value ?? 0 };

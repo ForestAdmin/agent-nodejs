@@ -1,10 +1,4 @@
-import {
-  Aggregator,
-  Filter,
-  Operator,
-  PaginatedFilter,
-  PrimitiveTypes,
-} from '@forestadmin/datasource-toolkit';
+import { Filter, PaginatedFilter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -24,7 +18,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
             bookId: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Uuid,
+              columnType: 'Uuid',
             }),
           },
         }),
@@ -82,10 +76,10 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
         new PaginatedFilter({
           conditionTree: factories.conditionTreeBranch.build({
-            aggregator: Aggregator.And,
+            aggregator: 'And',
             conditions: [
               factories.conditionTreeLeaf.build({
-                operator: Operator.In,
+                operator: 'In',
                 value: [
                   '123e4567-e89b-12d3-a456-426614174001',
                   '123e4567-e89b-12d3-a456-426614174000',
@@ -93,7 +87,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
                 field: 'id',
               }),
               factories.conditionTreeLeaf.build({
-                operator: Operator.Equal,
+                operator: 'Equal',
                 value: '123e4567-e89b-12d3-a456-426614174088',
                 field: 'bookId',
               }),
@@ -145,10 +139,10 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
         expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
           new PaginatedFilter({
             conditionTree: factories.conditionTreeBranch.build({
-              aggregator: Aggregator.And,
+              aggregator: 'And',
               conditions: [
                 factories.conditionTreeLeaf.build({
-                  operator: Operator.NotIn,
+                  operator: 'NotIn',
                   value: [
                     '123e4567-e89b-12d3-a456-426614174001',
                     '123e4567-e89b-12d3-a456-426614174002',
@@ -156,7 +150,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
                   field: 'id',
                 }),
                 factories.conditionTreeLeaf.build({
-                  operator: Operator.Equal,
+                  operator: 'Equal',
                   value: '123e4567-e89b-12d3-a456-426614174088',
                   field: 'bookId',
                 }),
@@ -205,7 +199,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
           expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
             new PaginatedFilter({
               conditionTree: factories.conditionTreeLeaf.build({
-                operator: Operator.Equal,
+                operator: 'Equal',
                 value: '123e4567-e89b-12d3-a456-426614174088',
                 field: 'bookId',
               }),
@@ -326,15 +320,15 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
       expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
-            aggregator: Aggregator.And,
+            aggregator: 'And',
             conditions: [
               factories.conditionTreeLeaf.build({
-                operator: Operator.Equal,
+                operator: 'Equal',
                 value: '123e4567-e89b-12d3-a456-426614174088',
                 field: 'bookId',
               }),
               factories.conditionTreeLeaf.build({
-                operator: Operator.In,
+                operator: 'In',
                 value: [
                   '123e4567-e89b-12d3-a456-426614174001',
                   '123e4567-e89b-12d3-a456-426614174000',
@@ -387,15 +381,15 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
         expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
-              aggregator: Aggregator.And,
+              aggregator: 'And',
               conditions: [
                 factories.conditionTreeLeaf.build({
-                  operator: Operator.Equal,
+                  operator: 'Equal',
                   value: '123e4567-e89b-12d3-a456-426614174088',
                   field: 'bookId',
                 }),
                 factories.conditionTreeLeaf.build({
-                  operator: Operator.NotIn,
+                  operator: 'NotIn',
                   value: [
                     '123e4567-e89b-12d3-a456-426614174001',
                     '123e4567-e89b-12d3-a456-426614174002',
@@ -445,7 +439,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
           expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
-                operator: Operator.Equal,
+                operator: 'Equal',
                 value: '123e4567-e89b-12d3-a456-426614174088',
                 field: 'bookId',
               }),

@@ -1,10 +1,4 @@
-import {
-  ActionField,
-  ActionFieldType,
-  CompositeId,
-  DataSource,
-  File,
-} from '@forestadmin/datasource-toolkit';
+import { ActionField, CompositeId, DataSource, File } from '@forestadmin/datasource-toolkit';
 import IdUtils from '../id';
 import SchemaGeneratorActions from './generator-actions';
 
@@ -27,13 +21,13 @@ export default class ForestValueConverter {
 
       // Skip fields from the default form
       if (!SchemaGeneratorActions.defaultFields.map(f => f.field).includes(key)) {
-        if (field?.type === ActionFieldType.Collection && value) {
+        if (field?.type === 'Collection' && value) {
           const collection = dataSource.getCollection(field.collectionName);
 
           data[key] = IdUtils.unpackId(collection.schema, value as string);
-        } else if (field?.type === ActionFieldType.File) {
+        } else if (field?.type === 'File') {
           data[key] = this.parseDataUri(value as string);
-        } else if (field?.type === ActionFieldType.FileList) {
+        } else if (field?.type === 'FileList') {
           data[key] = (value as string[])?.map(v => this.parseDataUri(v));
         } else {
           data[key] = value;
@@ -101,23 +95,23 @@ export default class ForestValueConverter {
   }
 
   static valueToForest(field: ActionField, value: unknown): unknown {
-    if (field.type === ActionFieldType.Enum) {
+    if (field.type === 'Enum') {
       return field.enumValues.includes(value as string) ? value : null;
     }
 
-    if (field.type === ActionFieldType.EnumList) {
+    if (field.type === 'EnumList') {
       return (value as string[])?.filter(v => field.enumValues.includes(v));
     }
 
-    if (field.type === ActionFieldType.Collection) {
+    if (field.type === 'Collection') {
       return (value as CompositeId)?.join('|');
     }
 
-    if (field.type === ActionFieldType.File) {
+    if (field.type === 'File') {
       return this.makeDataUri(value as File);
     }
 
-    if (field.type === ActionFieldType.FileList) {
+    if (field.type === 'FileList') {
       return (value as File[])?.map(f => this.makeDataUri(f));
     }
 

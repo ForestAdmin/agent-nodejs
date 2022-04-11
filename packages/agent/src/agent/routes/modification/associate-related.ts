@@ -4,10 +4,8 @@ import {
   ConditionTree,
   ConditionTreeFactory,
   ConditionTreeLeaf,
-  FieldTypes,
   ManyToManySchema,
   OneToManySchema,
-  Operator,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
@@ -36,7 +34,7 @@ export default class AssociateRelatedRoute extends RelationRoute {
     const scope = await this.services.permissions.getScope(this.foreignCollection, context);
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
 
-    if (relation.type === FieldTypes.OneToMany) {
+    if (relation.type === 'OneToMany') {
       await this.associateOneToMany(scope, relation, parentId, targetedRelationId, context);
     } else {
       await this.associateManyToMany(relation, parentId, targetedRelationId);
@@ -56,7 +54,7 @@ export default class AssociateRelatedRoute extends RelationRoute {
     let value = await CollectionUtils.getValue(this.foreignCollection, targetedRelationId, id);
     const filter = ContextFilterFactory.build(this.collection, context, scope, {
       conditionTree: ConditionTreeFactory.intersect(
-        new ConditionTreeLeaf(id, Operator.Equal, value),
+        new ConditionTreeLeaf(id, 'Equal', value),
         scope,
       ),
     });

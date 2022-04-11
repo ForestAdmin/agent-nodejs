@@ -28,9 +28,9 @@ describe('QueryStringParser', () => {
         customProperties: {
           query: {
             filters: JSON.stringify({
-              aggregator: 'and',
+              aggregator: 'And',
               conditions: [
-                { field: 'id', operator: 'equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+                { field: 'id', operator: 'Equal', value: '123e4567-e89b-12d3-a456-426614174000' },
               ],
             }),
           },
@@ -41,7 +41,7 @@ describe('QueryStringParser', () => {
 
       expect(conditionTree).toEqual({
         field: 'id',
-        operator: 'equal',
+        operator: 'Equal',
         value: '123e4567-e89b-12d3-a456-426614174000',
       });
     });
@@ -51,7 +51,7 @@ describe('QueryStringParser', () => {
         requestBody: {
           filters: JSON.stringify({
             field: 'id',
-            operator: 'equal',
+            operator: 'Equal',
             value: '123e4567-e89b-12d3-a456-426614174000',
           }),
         },
@@ -61,7 +61,7 @@ describe('QueryStringParser', () => {
 
       expect(conditionTree).toEqual({
         field: 'id',
-        operator: 'equal',
+        operator: 'Equal',
         value: '123e4567-e89b-12d3-a456-426614174000',
       });
     });
@@ -74,7 +74,7 @@ describe('QueryStringParser', () => {
               all_records_subset_query: {
                 filters: JSON.stringify({
                   field: 'id',
-                  operator: 'equal',
+                  operator: 'Equal',
                   value: '123e4567-e89b-12d3-a456-426614174000',
                 }),
               },
@@ -87,7 +87,7 @@ describe('QueryStringParser', () => {
 
       expect(conditionTree).toEqual({
         field: 'id',
-        operator: 'equal',
+        operator: 'Equal',
         value: '123e4567-e89b-12d3-a456-426614174000',
       });
     });
@@ -97,7 +97,7 @@ describe('QueryStringParser', () => {
         requestBody: {
           filters: JSON.stringify({
             field: 'id',
-            operator: 'greater_than',
+            operator: 'GreaterThan',
             value: '123e4567-e89b-12d3-a456-426614174000',
           }),
         },

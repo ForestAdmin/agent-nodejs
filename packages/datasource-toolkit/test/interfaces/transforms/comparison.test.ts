@@ -1,132 +1,123 @@
-import { Aggregator } from '../../../src/interfaces/query/condition-tree/nodes/branch';
-import ConditionTreeLeaf, {
-  Operator,
-} from '../../../src/interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import makeAlternatives from '../../../src/interfaces/query/condition-tree/transforms/comparison';
 
 describe('ConditionTreeOperators > Comparison', () => {
   const alternatives = makeAlternatives();
 
-  describe('Operator.Blank', () => {
+  describe('Blank', () => {
     test('should be rewritten for strings', () => {
       expect(
-        alternatives[Operator.Blank][0].replacer(
-          new ConditionTreeLeaf('column', Operator.Blank),
-          'Europe/Paris',
-        ),
-      ).toEqual({ field: 'column', operator: Operator.In, value: [null, ''] });
+        alternatives.Blank[0].replacer(new ConditionTreeLeaf('column', 'Blank'), 'Europe/Paris'),
+      ).toEqual({ field: 'column', operator: 'In', value: [null, ''] });
     });
 
     test('should be rewritten for other types', () => {
       expect(
-        alternatives[Operator.Blank][1].replacer(
-          new ConditionTreeLeaf('column', Operator.Blank),
-          'Europe/Paris',
-        ),
-      ).toEqual({ field: 'column', operator: Operator.Missing });
+        alternatives.Blank[1].replacer(new ConditionTreeLeaf('column', 'Blank'), 'Europe/Paris'),
+      ).toEqual({ field: 'column', operator: 'Missing' });
     });
   });
 
-  describe('Operator.Missing', () => {
+  describe('Missing', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives[Operator.Missing][0].replacer(
-          new ConditionTreeLeaf('column', Operator.Missing),
+        alternatives.Missing[0].replacer(
+          new ConditionTreeLeaf('column', 'Missing'),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: Operator.Equal, value: null });
+      ).toEqual({ field: 'column', operator: 'Equal', value: null });
     });
   });
 
-  describe('Operator.Present', () => {
+  describe('Present', () => {
     test('should be rewritten for strings', () => {
       expect(
-        alternatives[Operator.Present][0].replacer(
-          new ConditionTreeLeaf('column', Operator.Present),
+        alternatives.Present[0].replacer(
+          new ConditionTreeLeaf('column', 'Present'),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: Operator.NotIn, value: [null, ''] });
+      ).toEqual({ field: 'column', operator: 'NotIn', value: [null, ''] });
     });
 
     test('should be rewritten for other types', () => {
       expect(
-        alternatives[Operator.Present][1].replacer(
-          new ConditionTreeLeaf('column', Operator.Present),
+        alternatives.Present[1].replacer(
+          new ConditionTreeLeaf('column', 'Present'),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: Operator.NotEqual, value: null });
+      ).toEqual({ field: 'column', operator: 'NotEqual', value: null });
     });
   });
 
-  describe('Operator.Equal', () => {
+  describe('Equal', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives[Operator.Equal][0].replacer(
-          new ConditionTreeLeaf('column', Operator.Equal, 'something'),
+        alternatives.Equal[0].replacer(
+          new ConditionTreeLeaf('column', 'Equal', 'something'),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: Operator.In, value: ['something'] });
+      ).toEqual({ field: 'column', operator: 'In', value: ['something'] });
     });
   });
 
-  describe('Operator.In', () => {
+  describe('In', () => {
     test('should be rewritten with one element', () => {
       expect(
-        alternatives[Operator.In][0].replacer(
-          new ConditionTreeLeaf('column', Operator.In, ['something']),
+        alternatives.In[0].replacer(
+          new ConditionTreeLeaf('column', 'In', ['something']),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: Operator.Equal, value: 'something' });
+      ).toEqual({ field: 'column', operator: 'Equal', value: 'something' });
     });
 
     test('should be rewritten with multiple elements', () => {
       expect(
-        alternatives[Operator.In][0].replacer(
-          new ConditionTreeLeaf('column', Operator.In, ['something', 'else']),
+        alternatives.In[0].replacer(
+          new ConditionTreeLeaf('column', 'In', ['something', 'else']),
           'Europe/Paris',
         ),
       ).toEqual({
-        aggregator: Aggregator.Or,
+        aggregator: 'Or',
         conditions: [
-          { field: 'column', operator: Operator.Equal, value: 'something' },
-          { field: 'column', operator: Operator.Equal, value: 'else' },
+          { field: 'column', operator: 'Equal', value: 'something' },
+          { field: 'column', operator: 'Equal', value: 'else' },
         ],
       });
     });
   });
 
-  describe('Operator.NotEqual', () => {
+  describe('NotEqual', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives[Operator.NotEqual][0].replacer(
-          new ConditionTreeLeaf('column', Operator.NotEqual, 'something'),
+        alternatives.NotEqual[0].replacer(
+          new ConditionTreeLeaf('column', 'NotEqual', 'something'),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: Operator.NotIn, value: ['something'] });
+      ).toEqual({ field: 'column', operator: 'NotIn', value: ['something'] });
     });
   });
 
-  describe('Operator.NotIn', () => {
+  describe('NotIn', () => {
     test('should be rewritten with one element', () => {
       expect(
-        alternatives[Operator.NotIn][0].replacer(
-          new ConditionTreeLeaf('column', Operator.NotIn, ['something']),
+        alternatives.NotIn[0].replacer(
+          new ConditionTreeLeaf('column', 'NotIn', ['something']),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: Operator.NotEqual, value: 'something' });
+      ).toEqual({ field: 'column', operator: 'NotEqual', value: 'something' });
     });
 
     test('should be rewritten with multiple elements', () => {
       expect(
-        alternatives[Operator.NotIn][0].replacer(
-          new ConditionTreeLeaf('column', Operator.NotIn, ['something', 'else']),
+        alternatives.NotIn[0].replacer(
+          new ConditionTreeLeaf('column', 'NotIn', ['something', 'else']),
           'Europe/Paris',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.NotEqual, value: 'something' },
-          { field: 'column', operator: Operator.NotEqual, value: 'else' },
+          { field: 'column', operator: 'NotEqual', value: 'something' },
+          { field: 'column', operator: 'NotEqual', value: 'else' },
         ],
       });
     });

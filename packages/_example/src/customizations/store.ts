@@ -1,22 +1,21 @@
 import { Collection } from '@forestadmin/agent';
-import { FieldTypes } from '@forestadmin/datasource-toolkit';
 
 export default (collection: Collection) =>
   collection
     .addRelation('owner', {
-      type: FieldTypes.ManyToOne,
+      type: 'ManyToOne',
       foreignKey: 'ownerId',
       foreignKeyTarget: 'id',
       foreignCollection: 'owner',
     })
     .addRelation('address', {
-      type: FieldTypes.OneToOne,
+      type: 'OneToOne',
       foreignCollection: 'address',
       originKey: 'storeId',
       originKeyTarget: 'id',
     })
     .addRelation('dvd', {
-      type: FieldTypes.OneToMany,
+      type: 'OneToMany',
       foreignCollection: 'dvd',
       originKey: 'storeId',
       originKeyTarget: 'id',

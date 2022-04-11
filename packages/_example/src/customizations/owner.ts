@@ -1,16 +1,16 @@
 import { Collection } from '@forestadmin/agent';
-import { FieldTypes, PrimitiveTypes, Projection } from '@forestadmin/datasource-toolkit';
+import { Projection } from '@forestadmin/datasource-toolkit';
 
 export default (collection: Collection) =>
   collection
     .addRelation('store', {
-      type: FieldTypes.OneToMany,
+      type: 'OneToMany',
       foreignCollection: 'store',
       originKey: 'ownerId',
       originKeyTarget: 'id',
     })
     .addField('fullName', {
-      columnType: PrimitiveTypes.String,
+      columnType: 'String',
       dependencies: new Projection('firstName', 'lastName'),
       getValues: records => records.map(record => `${record.firstName} ${record.lastName}`),
     })

@@ -1,5 +1,4 @@
 import * as factories from '../../__factories__';
-import { Operator } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import ConditionTree from '../../../src/interfaces/query/condition-tree/nodes/base';
 import SegmentCollectionDecorator from '../../../src/decorators/segment/collection';
 
@@ -48,7 +47,7 @@ describe('SegmentCollectionDecorator', () => {
 
           const conditionTree = factories.conditionTreeLeaf.build({
             field: 'name',
-            operator: Operator.Equal,
+            operator: 'Equal',
             value: 'aNameValue',
           });
           segmentDecorator.addSegment('segmentName', conditionTree);
@@ -56,7 +55,7 @@ describe('SegmentCollectionDecorator', () => {
           const aFilter = factories.filter.build({
             segment: 'segmentName',
             conditionTree: factories.conditionTreeLeaf.build({
-              operator: Operator.Equal,
+              operator: 'Equal',
               value: 'otherNameValue',
               field: 'name',
             }),
@@ -66,15 +65,15 @@ describe('SegmentCollectionDecorator', () => {
           expect(filter).toEqual({
             segment: null,
             conditionTree: {
-              aggregator: 'and',
+              aggregator: 'And',
               conditions: [
                 {
-                  operator: 'equal',
+                  operator: 'Equal',
                   field: 'name',
                   value: 'otherNameValue',
                 },
                 {
-                  operator: 'equal',
+                  operator: 'Equal',
                   field: 'name',
                   value: 'aNameValue',
                 },
@@ -98,7 +97,7 @@ describe('SegmentCollectionDecorator', () => {
           const aFilterWithNotValidConditionTree = factories.filter.build({
             segment: 'segmentName',
             conditionTree: factories.conditionTreeLeaf.build({
-              operator: Operator.In,
+              operator: 'In',
               value: 'otherNameValue',
               field: 'name',
             }),

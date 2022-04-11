@@ -70,7 +70,7 @@ agent.customizeCollection('customers', collection => {
     getValues: async (customers, context) => {
       const messages = context.dataSource.getCollection('messages');
       const rows = await messages.aggregate(
-        { field: 'customer_id', operator: 'in', value: customers.map(r => r.id) },
+        { field: 'customer_id', operator: 'In', value: customers.map(r => r.id) },
         { operator: 'Max', field: 'id', groups: [{ field: 'customer_id' }] },
       );
 
@@ -80,13 +80,13 @@ agent.customizeCollection('customers', collection => {
     },
   });
 
-  // Implement the 'in' operator (used by the relation).
-  collection.replaceFieldOperator('lastMessageId', 'in', async (lastMessageIds, context) => {
+  // Implement the 'In' operator (used by the relation).
+  collection.replaceFieldOperator('lastMessageId', 'In', async (lastMessageIds, context) => {
     const records = await context.dataSource
       .getCollection('messages')
-      .list({ field: 'id', operator: 'in', value: lastMessageIds }, ['customer_id']);
+      .list({ field: 'id', operator: 'In', value: lastMessageIds }, ['customer_id']);
 
-    return { field: 'id', operator: 'in', value: records.map(r => r.customer_id) };
+    return { field: 'id', operator: 'In', value: records.map(r => r.customer_id) };
   });
 
   // Create relationships using the foreign key we just added.

@@ -35,8 +35,8 @@ describe('Utils > QueryConverter', () => {
       describe('with a ConditionTreeBranch node', () => {
         it('should fail when aggregator is empty', () => {
           const conditionTree = new ConditionTreeBranch(null, [
-            new ConditionTreeLeaf('__field__', Operator.Equal, '__value__'),
-            new ConditionTreeLeaf('__field__', Operator.Equal, '__value__'),
+            new ConditionTreeLeaf('__field__', 'Equal', '__value__'),
+            new ConditionTreeLeaf('__field__', 'Equal', '__value__'),
           ]);
 
           expect(() =>
@@ -45,7 +45,7 @@ describe('Utils > QueryConverter', () => {
         });
 
         it('should throw an error when conditions is not an array', () => {
-          const conditionTree = new ConditionTreeBranch(Aggregator.And, null);
+          const conditionTree = new ConditionTreeBranch('And', null);
 
           expect(() =>
             QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
@@ -53,7 +53,7 @@ describe('Utils > QueryConverter', () => {
         });
 
         it('should not throw an error when there is no condition', () => {
-          const conditionTree = new ConditionTreeBranch(Aggregator.And, []);
+          const conditionTree = new ConditionTreeBranch('And', []);
 
           expect(() =>
             QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
@@ -62,8 +62,8 @@ describe('Utils > QueryConverter', () => {
 
         describe('with only one condition', () => {
           it('should not throw an error with the And aggregator', () => {
-            const conditionTree = new ConditionTreeBranch(Aggregator.And, [
-              new ConditionTreeLeaf('__field_1__', Operator.Equal, '__value_1__'),
+            const conditionTree = new ConditionTreeBranch('And', [
+              new ConditionTreeLeaf('__field_1__', 'Equal', '__value_1__'),
             ]);
 
             expect(() =>
@@ -72,8 +72,8 @@ describe('Utils > QueryConverter', () => {
           });
 
           it('should not throw an error with the Or aggregator', () => {
-            const conditionTree = new ConditionTreeBranch(Aggregator.Or, [
-              new ConditionTreeLeaf('__field_1__', Operator.Equal, '__value_1__'),
+            const conditionTree = new ConditionTreeBranch('Or', [
+              new ConditionTreeLeaf('__field_1__', 'Equal', '__value_1__'),
             ]);
 
             expect(() =>
@@ -83,16 +83,16 @@ describe('Utils > QueryConverter', () => {
         });
 
         it.each([
-          ['AND', Aggregator.And, Op.and],
-          ['OR', Aggregator.Or, Op.or],
+          ['AND', 'And', Op.and],
+          ['OR', 'Or', Op.or],
         ])(
           'should generate a "%s where" Sequelize filter from conditions',
           (message, aggregator, operator) => {
             const conditions = [
-              new ConditionTreeLeaf('__field_1__', Operator.Equal, '__value_1__'),
-              new ConditionTreeLeaf('__field_2__', Operator.Equal, '__value_2__'),
+              new ConditionTreeLeaf('__field_1__', 'Equal', '__value_1__'),
+              new ConditionTreeLeaf('__field_2__', 'Equal', '__value_2__'),
             ];
-            const conditionTree = new ConditionTreeBranch(aggregator, conditions);
+            const conditionTree = new ConditionTreeBranch(aggregator as Aggregator, conditions);
 
             expect(
               QueryConverter.getWhereFromConditionTree({} as ModelDefined<any, any>, conditionTree),
@@ -128,7 +128,7 @@ describe('Utils > QueryConverter', () => {
         ])(
           'should generate a "where" Sequelize filter from a "%s" operator',
           (operator, value, where) => {
-            const conditionTree = new ConditionTreeLeaf('__field__', Operator[operator], value);
+            const conditionTree = new ConditionTreeLeaf('__field__', operator as Operator, value);
 
             const sequelizeFilter = QueryConverter.getWhereFromConditionTree(
               {} as ModelDefined<any, any>,
@@ -152,7 +152,7 @@ describe('Utils > QueryConverter', () => {
           ])(
             'should generate a "where" Sequelize filter from a "%s" operator',
             (operator, value, sqlClause, like) => {
-              const conditionTree = new ConditionTreeLeaf('__field__', Operator[operator], value);
+              const conditionTree = new ConditionTreeLeaf('__field__', operator as Operator, value);
 
               const sequelizeFilter = QueryConverter.getWhereFromConditionTree(
                 {} as ModelDefined<any, any>,
@@ -196,11 +196,7 @@ describe('Utils > QueryConverter', () => {
 
       describe('with a condition tree acting on relation', () => {
         it('should generate a valid where clause', () => {
-          const conditionTree = new ConditionTreeLeaf(
-            'relation:__field__',
-            Operator.Equal,
-            '__value__',
-          );
+          const conditionTree = new ConditionTreeLeaf('relation:__field__', 'Equal', '__value__');
 
           const model = {
             associations: {
@@ -225,14 +221,14 @@ describe('Utils > QueryConverter', () => {
 
     describe('with array operator', () => {
       describe.each([
-        ['In', Operator.In, Op.in],
-        ['IncludesAll', Operator.IncludesAll, Op.contains],
-        ['NotIn', Operator.NotIn, Op.notIn],
-      ])('"%s"', (message, schemaOperator, sequelizeOperator) => {
+        ['In', 'In', Op.in],
+        ['IncludesAll', 'IncludesAll', Op.contains],
+        ['NotIn', 'NotIn', Op.notIn],
+      ])('"%s"', (message, operator, sequelizeOperator) => {
         it('should handle atomic values', () => {
           const sequelizeFilter = QueryConverter.getWhereFromConditionTree(
             {} as ModelDefined<any, any>,
-            new ConditionTreeLeaf('__field__', schemaOperator, 42),
+            new ConditionTreeLeaf('__field__', operator as Operator, 42),
           );
 
           expect(sequelizeFilter).toEqual(
@@ -243,7 +239,7 @@ describe('Utils > QueryConverter', () => {
         it('should handle array values', () => {
           const sequelizeFilter = QueryConverter.getWhereFromConditionTree(
             {} as ModelDefined<any, any>,
-            new ConditionTreeLeaf('__field__', schemaOperator, [42]),
+            new ConditionTreeLeaf('__field__', operator as Operator, [42]),
           );
 
           expect(sequelizeFilter).toEqual(

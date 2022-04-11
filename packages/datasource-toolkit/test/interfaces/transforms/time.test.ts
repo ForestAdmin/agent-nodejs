@@ -1,7 +1,4 @@
-import { Aggregator } from '../../../src/interfaces/query/condition-tree/nodes/branch';
-import ConditionTreeLeaf, {
-  Operator,
-} from '../../../src/interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import makeAlternatives from '../../../src/interfaces/query/condition-tree/transforms/time';
 
 describe('ConditionTreeOperators > Time', () => {
@@ -13,300 +10,300 @@ describe('ConditionTreeOperators > Time', () => {
     jest.useFakeTimers().setSystemTime(date);
   });
 
-  describe('Operator.Before', () => {
+  describe('Before', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.Before][0].replacer(
-          new ConditionTreeLeaf('column', Operator.Before, '2010-01-01T00:00:00Z'),
+        alternatives.Before[0].replacer(
+          new ConditionTreeLeaf('column', 'Before', '2010-01-01T00:00:00Z'),
           'America/Los_Angeles',
         ),
       ).toEqual({
         field: 'column',
-        operator: Operator.LessThan,
+        operator: 'LessThan',
         value: '2010-01-01T00:00:00Z',
       });
     });
   });
 
-  describe('Operator.After', () => {
+  describe('After', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.After][0].replacer(
-          new ConditionTreeLeaf('column', Operator.After, '2010-01-01T00:00:00Z'),
+        alternatives.After[0].replacer(
+          new ConditionTreeLeaf('column', 'After', '2010-01-01T00:00:00Z'),
           'America/Los_Angeles',
         ),
       ).toEqual({
         field: 'column',
-        operator: Operator.GreaterThan,
+        operator: 'GreaterThan',
         value: '2010-01-01T00:00:00Z',
       });
     });
   });
 
-  describe('Operator.Past', () => {
+  describe('Past', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.Past][0].replacer(
-          new ConditionTreeLeaf('column', Operator.Past),
+        alternatives.Past[0].replacer(
+          new ConditionTreeLeaf('column', 'Past'),
           'America/Los_Angeles',
         ),
       ).toEqual({
         field: 'column',
-        operator: Operator.LessThan,
+        operator: 'LessThan',
         value: '1985-10-26T09:22:00Z',
       });
     });
   });
 
-  describe('Operator.Future', () => {
+  describe('Future', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.Future][0].replacer(
-          new ConditionTreeLeaf('column', Operator.Future),
+        alternatives.Future[0].replacer(
+          new ConditionTreeLeaf('column', 'Future'),
           'America/Los_Angeles',
         ),
       ).toEqual({
         field: 'column',
-        operator: Operator.GreaterThan,
+        operator: 'GreaterThan',
         value: '1985-10-26T09:22:00Z',
       });
     });
   });
 
-  describe('Operator.BeforeXHoursAgo', () => {
+  describe('BeforeXHoursAgo', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.BeforeXHoursAgo][0].replacer(
-          new ConditionTreeLeaf('column', Operator.BeforeXHoursAgo, 24),
+        alternatives.BeforeXHoursAgo[0].replacer(
+          new ConditionTreeLeaf('column', 'BeforeXHoursAgo', 24),
           'America/Los_Angeles',
         ),
       ).toEqual({
         field: 'column',
-        operator: Operator.LessThan,
+        operator: 'LessThan',
         value: '1985-10-25T09:22:00Z',
       });
     });
   });
 
-  describe('Operator.AfterXHoursAgo', () => {
+  describe('AfterXHoursAgo', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.AfterXHoursAgo][0].replacer(
-          new ConditionTreeLeaf('column', Operator.AfterXHoursAgo, 24),
+        alternatives.AfterXHoursAgo[0].replacer(
+          new ConditionTreeLeaf('column', 'AfterXHoursAgo', 24),
           'America/Los_Angeles',
         ),
       ).toEqual({
         field: 'column',
-        operator: Operator.GreaterThan,
+        operator: 'GreaterThan',
         value: '1985-10-25T09:22:00Z',
       });
     });
   });
 
-  describe('Operator.PreviousMonthToDate', () => {
+  describe('PreviousMonthToDate', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.PreviousMonthToDate][0].replacer(
-          new ConditionTreeLeaf('column', Operator.PreviousMonthToDate),
+        alternatives.PreviousMonthToDate[0].replacer(
+          new ConditionTreeLeaf('column', 'PreviousMonthToDate'),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1985-10-01T07:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-10-26T09:22:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1985-10-01T07:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-10-26T09:22:00Z' },
         ],
       });
     });
   });
 
-  describe('Operator.PreviousMonth', () => {
+  describe('PreviousMonth', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.PreviousMonth][0].replacer(
-          new ConditionTreeLeaf('column', Operator.PreviousMonth),
+        alternatives.PreviousMonth[0].replacer(
+          new ConditionTreeLeaf('column', 'PreviousMonth'),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1985-09-01T07:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-10-01T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1985-09-01T07:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-10-01T07:00:00Z' },
         ],
       });
     });
   });
 
-  describe('Operator.PreviousQuarterToDate', () => {
+  describe('PreviousQuarterToDate', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.PreviousQuarterToDate][0].replacer(
-          new ConditionTreeLeaf('column', Operator.PreviousQuarterToDate),
+        alternatives.PreviousQuarterToDate[0].replacer(
+          new ConditionTreeLeaf('column', 'PreviousQuarterToDate'),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1985-10-01T07:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-10-26T09:22:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1985-10-01T07:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-10-26T09:22:00Z' },
         ],
       });
     });
   });
 
-  describe('Operator.PreviousQuarter', () => {
+  describe('PreviousQuarter', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.PreviousQuarter][0].replacer(
-          new ConditionTreeLeaf('column', Operator.PreviousQuarter),
+        alternatives.PreviousQuarter[0].replacer(
+          new ConditionTreeLeaf('column', 'PreviousQuarter'),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1985-07-01T07:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-10-01T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1985-07-01T07:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-10-01T07:00:00Z' },
         ],
       });
     });
   });
 
-  describe('Operator.PreviousWeekToDate', () => {
+  describe('PreviousWeekToDate', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.PreviousWeekToDate][0].replacer(
-          new ConditionTreeLeaf('column', Operator.PreviousWeekToDate),
+        alternatives.PreviousWeekToDate[0].replacer(
+          new ConditionTreeLeaf('column', 'PreviousWeekToDate'),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1985-10-21T07:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-10-26T09:22:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1985-10-21T07:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-10-26T09:22:00Z' },
         ],
       });
     });
   });
 
-  describe('Operator.PreviousWeek', () => {
+  describe('PreviousWeek', () => {
     test('should rewrite', () => {
       // Note that luxon always consider weeks to be from monday to friday
       // @see https://github.com/moment/luxon/issues/373#issuecomment-441123720
 
       expect(
-        alternatives[Operator.PreviousWeek][0].replacer(
-          new ConditionTreeLeaf('column', Operator.PreviousWeek),
+        alternatives.PreviousWeek[0].replacer(
+          new ConditionTreeLeaf('column', 'PreviousWeek'),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1985-10-14T07:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-10-21T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1985-10-14T07:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-10-21T07:00:00Z' },
         ],
       });
     });
   });
 
-  describe('Operator.PreviousXDaysToDate', () => {
+  describe('PreviousXDaysToDate', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.PreviousXDaysToDate][0].replacer(
-          new ConditionTreeLeaf('column', Operator.PreviousXDaysToDate, 14),
+        alternatives.PreviousXDaysToDate[0].replacer(
+          new ConditionTreeLeaf('column', 'PreviousXDaysToDate', 14),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1985-10-12T07:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-10-26T09:22:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1985-10-12T07:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-10-26T09:22:00Z' },
         ],
       });
     });
   });
 
-  describe('Operator.PreviousXDays', () => {
+  describe('PreviousXDays', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.PreviousXDays][0].replacer(
-          new ConditionTreeLeaf('column', Operator.PreviousXDays, 14),
+        alternatives.PreviousXDays[0].replacer(
+          new ConditionTreeLeaf('column', 'PreviousXDays', 14),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1985-10-12T07:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-10-26T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1985-10-12T07:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-10-26T07:00:00Z' },
         ],
       });
     });
   });
 
-  describe('Operator.PreviousYearToDate', () => {
+  describe('PreviousYearToDate', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.PreviousYearToDate][0].replacer(
-          new ConditionTreeLeaf('column', Operator.PreviousYearToDate),
+        alternatives.PreviousYearToDate[0].replacer(
+          new ConditionTreeLeaf('column', 'PreviousYearToDate'),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1985-01-01T08:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-10-26T09:22:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1985-01-01T08:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-10-26T09:22:00Z' },
         ],
       });
     });
   });
 
-  describe('Operator.PreviousYear', () => {
+  describe('PreviousYear', () => {
     test('should rewrite', () => {
       // Notice daylight saving time in this test, as it's january
 
       expect(
-        alternatives[Operator.PreviousYear][0].replacer(
-          new ConditionTreeLeaf('column', Operator.PreviousYear),
+        alternatives.PreviousYear[0].replacer(
+          new ConditionTreeLeaf('column', 'PreviousYear'),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1984-01-01T08:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-01-01T08:00:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1984-01-01T08:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-01-01T08:00:00Z' },
         ],
       });
     });
   });
 
-  describe('Operator.Today', () => {
+  describe('Today', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.Today][0].replacer(
-          new ConditionTreeLeaf('column', Operator.Today),
+        alternatives.Today[0].replacer(
+          new ConditionTreeLeaf('column', 'Today'),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1985-10-26T07:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-10-27T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1985-10-26T07:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-10-27T07:00:00Z' },
         ],
       });
     });
   });
 
-  describe('Operator.Yesterday;', () => {
+  describe('Yesterday', () => {
     test('should rewrite', () => {
       expect(
-        alternatives[Operator.Yesterday][0].replacer(
-          new ConditionTreeLeaf('column', Operator.Yesterday),
+        alternatives.Yesterday[0].replacer(
+          new ConditionTreeLeaf('column', 'Yesterday'),
           'America/Los_Angeles',
         ),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column', operator: Operator.GreaterThan, value: '1985-10-25T07:00:00Z' },
-          { field: 'column', operator: Operator.LessThan, value: '1985-10-26T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThan', value: '1985-10-25T07:00:00Z' },
+          { field: 'column', operator: 'LessThan', value: '1985-10-26T07:00:00Z' },
         ],
       });
     });

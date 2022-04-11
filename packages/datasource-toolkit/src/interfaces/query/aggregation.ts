@@ -5,20 +5,8 @@ import { RecordData } from '../record';
 import Projection from './projection';
 import RecordUtils from '../../utils/record';
 
-export enum AggregationOperation {
-  Count = 'Count',
-  Sum = 'Sum',
-  Average = 'Avg',
-  Max = 'Max',
-  Min = 'Min',
-}
-
-export enum DateOperation {
-  ToYear = 'Year',
-  ToMonth = 'Month',
-  ToWeek = 'Week',
-  ToDay = 'Day',
-}
+export type AggregationOperation = 'Count' | 'Sum' | 'Avg' | 'Max' | 'Min';
+export type DateOperation = 'Year' | 'Month' | 'Week' | 'Day';
 
 export type AggregateResult = {
   value: unknown;
@@ -28,10 +16,10 @@ export type AggregateResult = {
 type Summary = {
   group: Record<string, unknown>;
   starCount: number;
-  [AggregationOperation.Count]: number;
-  [AggregationOperation.Sum]: number;
-  [AggregationOperation.Max]: unknown;
-  [AggregationOperation.Min]: unknown;
+  Count: number;
+  Sum: number;
+  Max: unknown;
+  Min: unknown;
 };
 
 interface AggregationComponents {
@@ -122,19 +110,16 @@ export default class Aggregation implements AggregationComponents {
   private formatSummaries(summaries: Summary[]): AggregateResult[] {
     const { operation } = this;
 
-    return operation === AggregationOperation.Average
+    return operation === 'Avg'
       ? summaries
-          .filter(summary => summary[AggregationOperation.Count])
+          .filter(summary => summary.Count)
           .map(summary => ({
             group: summary.group,
-            value: summary[AggregationOperation.Sum] / summary[AggregationOperation.Count],
+            value: summary.Sum / summary.Count,
           }))
       : summaries.map(summary => ({
           group: summary.group,
-          value:
-            operation === AggregationOperation.Count && !this.field
-              ? summary.starCount
-              : summary[operation],
+          value: operation === 'Count' && !this.field ? summary.starCount : summary[operation],
         }));
   }
 
@@ -153,10 +138,10 @@ export default class Aggregation implements AggregationComponents {
     return {
       group,
       starCount: 0,
-      [AggregationOperation.Count]: 0,
-      [AggregationOperation.Sum]: 0,
-      [AggregationOperation.Min]: undefined,
-      [AggregationOperation.Max]: undefined,
+      Count: 0,
+      Sum: 0,
+      Min: undefined,
+      Max: undefined,
     };
   }
 
@@ -167,15 +152,15 @@ export default class Aggregation implements AggregationComponents {
       const value = RecordUtils.getFieldValue(record, this.field);
 
       if (value !== undefined && value !== null) {
-        const { [AggregationOperation.Min]: min, [AggregationOperation.Max]: max } = summary;
+        const { Min: min, Max: max } = summary;
 
-        summary[AggregationOperation.Count] += 1; // i.e: count(column)
-        if (min === undefined || value < min) summary[AggregationOperation.Min] = value;
-        if (max === undefined || value > max) summary[AggregationOperation.Max] = value;
+        summary.Count += 1; // i.e: count(column)
+        if (min === undefined || value < min) summary.Min = value;
+        if (max === undefined || value > max) summary.Max = value;
       }
 
       if (typeof value === 'number' && !Number.isNaN(value)) {
-        summary[AggregationOperation.Sum] += value;
+        summary.Sum += value;
       }
     }
   }
@@ -184,19 +169,19 @@ export default class Aggregation implements AggregationComponents {
     if (operation) {
       const dateTime = DateTime.fromISO(value).setZone(timezone);
 
-      if (operation === DateOperation.ToYear) {
+      if (operation === 'Year') {
         return dateTime.toFormat('yyyy-01-01');
       }
 
-      if (operation === DateOperation.ToMonth) {
+      if (operation === 'Month') {
         return dateTime.toFormat('yyyy-LL-01');
       }
 
-      if (operation === DateOperation.ToDay) {
+      if (operation === 'Day') {
         return dateTime.toFormat('yyyy-LL-dd');
       }
 
-      if (operation === DateOperation.ToWeek) {
+      if (operation === 'Week') {
         return dateTime.startOf('week').toFormat('yyyy-LL-dd');
       }
     }

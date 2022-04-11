@@ -4,18 +4,18 @@ Fields on forest admin can either use `Primitive Types` or `Composite Types`.
 
 The primitive types which are supported by Forest Admin are the following:
 
-| Forest Admin Type      | Javascript Type                                            |
-| ---------------------- | ---------------------------------------------------------- |
-| PrimitiveType.Boolean  | Boolean                                                    |
-| PrimitiveType.Date     | String with format "1985-10-26T01:22:00-08:00Z" (ISO-8601) |
-| PrimitiveType.Dateonly | String with format "1985-10-26"                            |
-| PrimitiveType.Enum     | String                                                     |
-| PrimitiveType.JSON     | Any JSON compatible value                                  |
-| PrimitiveType.Number   | Number                                                     |
-| PrimitiveType.Point    | Array of two numbers                                       |
-| PrimitiveType.String   | String                                                     |
-| PrimitiveType.Timeonly | String with format "01:22:00"                              |
-| PrimitiveType.Uuid     | String with uuid v4 format                                 |
+| Forest Admin Type | Javascript Type                                            |
+| ----------------- | ---------------------------------------------------------- |
+| Boolean           | Boolean                                                    |
+| Date              | String with format "1985-10-26T01:22:00-08:00Z" (ISO-8601) |
+| Dateonly          | String with format "1985-10-26"                            |
+| Enum              | String                                                     |
+| JSON              | Any JSON compatible value                                  |
+| Number            | Number                                                     |
+| Point             | Array of two numbers                                       |
+| String            | String                                                     |
+| Timeonly          | String with format "01:22:00"                              |
+| Uuid              | String with uuid v4 format                                 |
 
 ## Composite types
 
@@ -28,16 +28,16 @@ The primitive types which are supported by Forest Admin are the following:
 
 ```javascript
 // Object containing two strings
-{ firstName: PrimitiveType.String, lastName: PrimitiveType.String }
+{ firstName: 'String', lastName: 'String' }
 
 // Array of strings
-[PrimitiveType.String]
+['String']
 
 // Array of objects
-[{ content: PrimitiveType.String }]
+[{ content: 'String' }]
 
 // Object containing an array of array of numbers
-{ content: [[PrimitiveType.Number]] }
+{ content: [['Number']] }
 ```
 
 When using composite types, the data in the UI may not be displayed as you expect!
@@ -50,4 +50,4 @@ When using composite types, the data in the UI may not be displayed as you expec
 | array of object (with nested objects) | `[{ rating: { kind: 'MPA", value: "PG-13" } }]` | JSON editor in the edition form          |
 | anything else                         |                                                 | JSON editor in the edition form          |
 
-If you want to force displaying your data as a new collection in the related data page, but can't because your data model contains nested objects, you may consider type all nested objects as `PrimitiveType.JSON`.
+If you want to force displaying your data as a new collection in the related data page, but can't because your data model contains nested objects, you may consider type all nested objects as `'JSON'`.

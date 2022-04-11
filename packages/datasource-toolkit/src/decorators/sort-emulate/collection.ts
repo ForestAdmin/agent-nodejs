@@ -2,7 +2,6 @@ import {
   CollectionSchema,
   ColumnSchema,
   FieldSchema,
-  FieldTypes,
   RelationSchema,
 } from '../../interfaces/schema';
 import { RecordData } from '../../interfaces/record';
@@ -70,9 +69,7 @@ export default class SortEmulate extends CollectionDecorator {
 
     for (const [name, schema] of Object.entries(childSchema.fields)) {
       fields[name] =
-        this.sorts.has(name) && schema.type === FieldTypes.Column
-          ? { ...schema, isSortable: true }
-          : schema;
+        this.sorts.has(name) && schema.type === 'Column' ? { ...schema, isSortable: true } : schema;
     }
 
     return { ...childSchema, fields };

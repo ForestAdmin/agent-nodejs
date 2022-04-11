@@ -1,31 +1,31 @@
-import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { allOperators } from '@forestadmin/datasource-toolkit/dist/src/interfaces/query/condition-tree/nodes/operators';
 import FilterableUtils from '../../../../src/agent/utils/forest-schema/filterable';
 
 describe('FrontendFilterableUtils', () => {
   describe('Normal types need to have defined minimum operators', () => {
     test('With undefined operators', () => {
-      const isFilterable = FilterableUtils.isFilterable(PrimitiveTypes.String);
+      const isFilterable = FilterableUtils.isFilterable('String');
       expect(isFilterable).toBe(false);
     });
 
     test('With no operators', () => {
-      const isFilterable = FilterableUtils.isFilterable(PrimitiveTypes.String, new Set());
+      const isFilterable = FilterableUtils.isFilterable('String', new Set());
       expect(isFilterable).toBe(false);
     });
 
     test('With only the relevant operators', () => {
       const isFilterable = FilterableUtils.isFilterable(
-        PrimitiveTypes.String,
+        'String',
         new Set([
-          Operator.Equal,
-          Operator.NotEqual,
-          Operator.Present,
-          Operator.Blank,
-          Operator.In,
-          Operator.StartsWith,
-          Operator.EndsWith,
-          Operator.Contains,
-          Operator.NotContains,
+          'Equal',
+          'NotEqual',
+          'Present',
+          'Blank',
+          'In',
+          'StartsWith',
+          'EndsWith',
+          'Contains',
+          'NotContains',
         ]),
       );
 
@@ -33,10 +33,7 @@ describe('FrontendFilterableUtils', () => {
     });
 
     test('With all operators', () => {
-      const isFilterable = FilterableUtils.isFilterable(
-        PrimitiveTypes.String,
-        new Set(Object.values(Operator)),
-      );
+      const isFilterable = FilterableUtils.isFilterable('String', new Set(allOperators));
 
       expect(isFilterable).toBeTruthy();
     });
@@ -44,15 +41,12 @@ describe('FrontendFilterableUtils', () => {
 
   describe('Arrays need the IncludesAll operator', () => {
     test('With no operators', () => {
-      const isFilterable = FilterableUtils.isFilterable([PrimitiveTypes.String], new Set());
+      const isFilterable = FilterableUtils.isFilterable(['String'], new Set());
       expect(isFilterable).toBe(false);
     });
 
-    test('With Operator.IncludeAll', () => {
-      const isFilterable = FilterableUtils.isFilterable(
-        [PrimitiveTypes.String],
-        new Set([Operator.IncludesAll]),
-      );
+    test('With includeAll', () => {
+      const isFilterable = FilterableUtils.isFilterable(['String'], new Set(['IncludesAll']));
 
       expect(isFilterable).toBeTruthy();
     });
@@ -60,15 +54,12 @@ describe('FrontendFilterableUtils', () => {
 
   describe('Point is never filterable', () => {
     test('With no operators', () => {
-      const isFilterable = FilterableUtils.isFilterable(PrimitiveTypes.Point, new Set());
+      const isFilterable = FilterableUtils.isFilterable('Point', new Set());
       expect(isFilterable).toBe(false);
     });
 
     test('With all operators', () => {
-      const isFilterable = FilterableUtils.isFilterable(
-        PrimitiveTypes.Point,
-        new Set(Object.values(Operator)),
-      );
+      const isFilterable = FilterableUtils.isFilterable('Point', new Set(allOperators));
 
       expect(isFilterable).toBe(false);
     });
@@ -77,7 +68,7 @@ describe('FrontendFilterableUtils', () => {
   describe('Nested types are never filterable', () => {
     test('With no operators', () => {
       const isFilterable = FilterableUtils.isFilterable(
-        { firstName: PrimitiveTypes.String, lastName: PrimitiveTypes.String },
+        { firstName: 'String', lastName: 'String' },
         new Set(),
       );
 
@@ -86,8 +77,8 @@ describe('FrontendFilterableUtils', () => {
 
     test('With all operators', () => {
       const isFilterable = FilterableUtils.isFilterable(
-        { firstName: PrimitiveTypes.String, lastName: PrimitiveTypes.String },
-        new Set(Object.values(Operator)),
+        { firstName: 'String', lastName: 'String' },
+        new Set(allOperators),
       );
 
       expect(isFilterable).toBe(false);

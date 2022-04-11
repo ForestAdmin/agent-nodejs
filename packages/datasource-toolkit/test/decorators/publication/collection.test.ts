@@ -1,6 +1,5 @@
 import * as factories from '../../__factories__';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
-import { PrimitiveTypes } from '../../../src/interfaces/schema';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import PublicationCollectionDecorator from '../../../src/decorators/publication/collection';
 
@@ -48,7 +47,7 @@ describe('PublicationCollectionDecorator', () => {
             foreignCollection: 'persons',
             foreignKey: 'personId',
           }),
-          date: factories.columnSchema.build({ columnType: PrimitiveTypes.Date }),
+          date: factories.columnSchema.build({ columnType: 'Date' }),
         },
       }),
     });

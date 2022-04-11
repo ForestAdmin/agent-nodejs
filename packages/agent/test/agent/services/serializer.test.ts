@@ -1,5 +1,3 @@
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-
 import * as factories from '../__factories__';
 import Serializer from '../../../src/agent/services/serializer';
 
@@ -127,7 +125,7 @@ describe('Serializer', () => {
               name: 'book',
               schema: factories.collectionSchema.build({
                 fields: {
-                  authorId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+                  authorId: factories.columnSchema.build({ columnType: 'Uuid' }),
                   author: factories.oneToOneSchema.build({
                     foreignCollection: 'person',
                     originKey: 'authorId',
@@ -176,7 +174,7 @@ describe('Serializer', () => {
               schema: factories.collectionSchema.build({
                 fields: {
                   editorId: factories.columnSchema.build({
-                    columnType: PrimitiveTypes.Number,
+                    columnType: 'Number',
                   }),
                   editor: factories.manyToOneSchema.build({
                     foreignCollection: 'editor',
@@ -190,7 +188,7 @@ describe('Serializer', () => {
               schema: factories.collectionSchema.build({
                 fields: {
                   id: factories.columnSchema.isPrimaryKey().build({
-                    columnType: PrimitiveTypes.Number,
+                    columnType: 'Number',
                   }),
                 },
               }),

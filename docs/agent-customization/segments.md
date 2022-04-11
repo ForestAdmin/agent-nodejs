@@ -35,7 +35,7 @@ agent.customizeCollection('products', collection =>
       .aggregate({}, { operation: 'Count', groups: [{ field: 'product_id' }] }, 10);
 
     // Return a condition tree which matches those records
-    return { field: 'id', operator: 'in', value: rows.map(r => r['product_id']) };
+    return { field: 'id', operator: 'In', value: rows.map(r => r['product_id']) };
   }),
 );
 ```

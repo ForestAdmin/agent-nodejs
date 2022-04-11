@@ -3,7 +3,6 @@ import {
   ColumnSchema,
   CompositeId,
   FieldValidator,
-  PrimitiveTypes,
   RecordData,
   SchemaUtils,
   ValidationError,
@@ -52,7 +51,7 @@ export default class IdUtils {
       const schemaField = schema.fields[pkName] as ColumnSchema;
       const value = pkValues[index];
 
-      const castedValue = schemaField.columnType === PrimitiveTypes.Number ? Number(value) : value;
+      const castedValue = schemaField.columnType === 'Number' ? Number(value) : value;
       FieldValidator.validateValue(pkName, schemaField, castedValue);
 
       return castedValue;

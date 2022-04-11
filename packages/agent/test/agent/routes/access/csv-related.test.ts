@@ -1,9 +1,4 @@
-import {
-  CollectionUtils,
-  PaginatedFilter,
-  PrimitiveTypes,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
+import { CollectionUtils, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -23,7 +18,7 @@ describe('CsvRelatedRoute', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+          name: factories.columnSchema.build({ columnType: 'String' }),
         },
       }),
     });

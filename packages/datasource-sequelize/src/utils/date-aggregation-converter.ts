@@ -14,7 +14,7 @@ export default class DateAggregationConverter {
     let dateToConvert: Col | Fn;
 
     switch (operation) {
-      case DateOperation.ToYear:
+      case 'Year':
         dateToConvert = fn(
           'DATEFROMPARTS',
           fn('DATEPART', literal('YEAR'), col(field)),
@@ -22,7 +22,7 @@ export default class DateAggregationConverter {
           '01',
         );
         break;
-      case DateOperation.ToMonth:
+      case 'Month':
         dateToConvert = fn(
           'DATEFROMPARTS',
           fn('DATEPART', literal('YEAR'), col(field)),
@@ -30,7 +30,7 @@ export default class DateAggregationConverter {
           '01',
         );
         break;
-      case DateOperation.ToWeek:
+      case 'Week':
         dateToConvert = fn(
           'DATEADD',
           literal('DAY'),
@@ -38,7 +38,7 @@ export default class DateAggregationConverter {
           col(field),
         );
         break;
-      case DateOperation.ToDay:
+      case 'Day':
         dateToConvert = col(field);
         break;
       default:
@@ -55,16 +55,16 @@ export default class DateAggregationConverter {
     let dateToConvert: Col | Fn = col(field);
 
     switch (operation) {
-      case DateOperation.ToYear:
+      case 'Year':
         format = '%Y-01-01';
         break;
-      case DateOperation.ToMonth:
+      case 'Month':
         format = '%Y-%m-01';
         break;
-      case DateOperation.ToWeek:
+      case 'Week':
         dateToConvert = fn('DATE_SUB', col(field), literal(`INTERVAL(WEEKDAY(${field})) DAY`));
         break;
-      case DateOperation.ToDay:
+      case 'Day':
         break;
       default:
         throw new Error(`Unknown Date operation: "${operation}"`);
@@ -74,20 +74,20 @@ export default class DateAggregationConverter {
   }
 
   private static convertSqlite(field: string, operation: DateOperation): Fn {
-    if (operation === DateOperation.ToWeek) {
+    if (operation === 'Week') {
       return fn('DATE', col(field), 'weekday 0');
     }
 
     let format: string;
 
     switch (operation) {
-      case DateOperation.ToYear:
+      case 'Year':
         format = '%Y-01-01';
         break;
-      case DateOperation.ToMonth:
+      case 'Month':
         format = '%Y-%m-01';
         break;
-      case DateOperation.ToDay:
+      case 'Day':
         format = '%Y-%m-%d';
         break;
       default:

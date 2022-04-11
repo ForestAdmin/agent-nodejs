@@ -4,11 +4,12 @@ import {
   FieldSchema,
   RelationSchema,
 } from '../../interfaces/schema';
+import { Operator } from '../../interfaces/query/condition-tree/nodes/operators';
 import { OperatorReplacer } from './types';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
-import ConditionTreeLeaf, { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeLeaf from '../../interfaces/query/condition-tree/nodes/leaf';
 import ConditionTreeValidator from '../../validation/condition-tree';
 import DataSourceDecorator from '../datasource-decorator';
 import FieldValidator from '../../validation/field';
@@ -30,10 +31,10 @@ export default class OperatorsEmulate extends CollectionDecorator {
       const schema = this.childCollection.schema.fields[pk] as ColumnSchema;
       const operators = schema.filterOperators;
 
-      if (!operators?.has(Operator.Equal) || !operators?.has(Operator.In)) {
+      if (!operators?.has('Equal') || !operators?.has('In')) {
         throw new Error(
           `Cannot override operators on collection '${this.name}': ` +
-            `the primary key columns must support 'equal' and 'in' operators`,
+            `the primary key columns must support 'Equal' and 'In' operators`,
         );
       }
     });

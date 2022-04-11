@@ -1,112 +1,72 @@
-import { Operator } from '../interfaces/query/condition-tree/nodes/leaf';
+import { Operator } from '../interfaces/query/condition-tree/nodes/operators';
 import { PrimitiveTypes } from '../interfaces/schema';
 import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 
-const BASE_OPERATORS: Operator[] = [
-  Operator.Blank,
-  Operator.Equal,
-  Operator.Missing,
-  Operator.NotEqual,
-  Operator.Present,
-];
+const BASE_OPERATORS: Operator[] = ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present'];
 
-const ARRAY_OPERATORS: Operator[] = [Operator.In, Operator.NotIn, Operator.IncludesAll];
+const ARRAY_OPERATORS: Operator[] = ['In', 'NotIn', 'IncludesAll'];
 
 const BASE_DATEONLY_OPERATORS: Operator[] = [
-  Operator.Today,
-  Operator.Yesterday,
-  Operator.PreviousXDaysToDate,
-  Operator.PreviousWeek,
-  Operator.PreviousWeekToDate,
-  Operator.PreviousMonth,
-  Operator.PreviousMonthToDate,
-  Operator.PreviousQuarter,
-  Operator.PreviousQuarterToDate,
-  Operator.PreviousYear,
-  Operator.PreviousYearToDate,
-  Operator.Past,
-  Operator.Future,
-  Operator.PreviousXDays,
-  Operator.Before,
-  Operator.After,
+  'Today',
+  'Yesterday',
+  'PreviousXDaysToDate',
+  'PreviousWeek',
+  'PreviousWeekToDate',
+  'PreviousMonth',
+  'PreviousMonthToDate',
+  'PreviousQuarter',
+  'PreviousQuarterToDate',
+  'PreviousYear',
+  'PreviousYearToDate',
+  'Past',
+  'Future',
+  'PreviousXDays',
+  'Before',
+  'After',
 ];
 
 export const MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE: Readonly<
   Record<PrimitiveTypes, readonly Operator[]>
 > = Object.freeze({
-  [PrimitiveTypes.String]: [
+  String: [
     ...BASE_OPERATORS,
     ...ARRAY_OPERATORS,
-    Operator.Contains,
-    Operator.NotContains,
-    Operator.EndsWith,
-    Operator.StartsWith,
-    Operator.LongerThan,
-    Operator.ShorterThan,
-    Operator.Like,
+    'Contains',
+    'NotContains',
+    'EndsWith',
+    'StartsWith',
+    'LongerThan',
+    'ShorterThan',
+    'Like',
   ],
-  [PrimitiveTypes.Number]: [
-    ...BASE_OPERATORS,
-    ...ARRAY_OPERATORS,
-    Operator.GreaterThan,
-    Operator.LessThan,
-  ],
-  [PrimitiveTypes.Dateonly]: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS],
-  [PrimitiveTypes.Date]: [
-    ...BASE_OPERATORS,
-    ...BASE_DATEONLY_OPERATORS,
-    Operator.BeforeXHoursAgo,
-    Operator.AfterXHoursAgo,
-  ],
-  [PrimitiveTypes.Timeonly]: [...BASE_OPERATORS, Operator.LessThan, Operator.GreaterThan],
-  [PrimitiveTypes.Enum]: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
-  [PrimitiveTypes.Json]: [Operator.Blank, Operator.Missing, Operator.Present],
-  [PrimitiveTypes.Boolean]: BASE_OPERATORS,
-  [PrimitiveTypes.Point]: BASE_OPERATORS,
-  [PrimitiveTypes.Uuid]: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
+  Number: [...BASE_OPERATORS, ...ARRAY_OPERATORS, 'GreaterThan', 'LessThan'],
+  Dateonly: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS],
+  Date: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS, 'BeforeXHoursAgo', 'AfterXHoursAgo'],
+  Timeonly: [...BASE_OPERATORS, 'LessThan', 'GreaterThan'],
+  Enum: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
+  Json: ['Blank', 'Missing', 'Present'],
+  Boolean: BASE_OPERATORS,
+  Point: BASE_OPERATORS,
+  Uuid: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
 });
 
 export const MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE: Readonly<
   Record<PrimitiveTypes, readonly (ValidationTypes | PrimitiveTypes)[]>
 > = Object.freeze({
-  [PrimitiveTypes.String]: [
-    PrimitiveTypes.String,
-    ValidationTypesArray.String,
-    ValidationPrimaryTypes.Null,
-  ],
-  [PrimitiveTypes.Number]: [
-    PrimitiveTypes.Number,
-    ValidationTypesArray.Number,
-    ValidationPrimaryTypes.Null,
-  ],
-  [PrimitiveTypes.Boolean]: [
-    PrimitiveTypes.Boolean,
-    ValidationTypesArray.Boolean,
-    ValidationPrimaryTypes.Null,
-  ],
-  [PrimitiveTypes.Enum]: [
-    PrimitiveTypes.Enum,
-    ValidationTypesArray.Enum,
-    ValidationPrimaryTypes.Null,
-  ],
-  [PrimitiveTypes.Date]: [PrimitiveTypes.Date, PrimitiveTypes.Number, ValidationPrimaryTypes.Null],
-  [PrimitiveTypes.Dateonly]: [
-    PrimitiveTypes.Dateonly,
-    PrimitiveTypes.Number,
-    ValidationPrimaryTypes.Null,
-  ],
-  [PrimitiveTypes.Json]: [PrimitiveTypes.Json, ValidationPrimaryTypes.Null],
-  [PrimitiveTypes.Point]: [PrimitiveTypes.Point, ValidationPrimaryTypes.Null],
-  [PrimitiveTypes.Timeonly]: [PrimitiveTypes.Timeonly, ValidationPrimaryTypes.Null],
-  [PrimitiveTypes.Uuid]: [
-    PrimitiveTypes.Uuid,
-    ValidationTypesArray.Uuid,
-    ValidationPrimaryTypes.Null,
-  ],
+  String: ['String', ValidationTypesArray.String, ValidationPrimaryTypes.Null],
+  Number: ['Number', ValidationTypesArray.Number, ValidationPrimaryTypes.Null],
+  Boolean: ['Boolean', ValidationTypesArray.Boolean, ValidationPrimaryTypes.Null],
+  Enum: ['Enum', ValidationTypesArray.Enum, ValidationPrimaryTypes.Null],
+  Date: ['Date', 'Number', ValidationPrimaryTypes.Null],
+  Dateonly: ['Dateonly', 'Number', ValidationPrimaryTypes.Null],
+  Json: ['Json', ValidationPrimaryTypes.Null],
+  Point: ['Point', ValidationPrimaryTypes.Null],
+  Timeonly: ['Timeonly', ValidationPrimaryTypes.Null],
+  Uuid: ['Uuid', ValidationTypesArray.Uuid, ValidationPrimaryTypes.Null],
 });
 
 function computeAllowedTypesForOperators(): Record<Operator, PrimitiveTypes[]> {
-  return Object.values(PrimitiveTypes).reduce((mapMemo, type) => {
+  return Object.keys(MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE).reduce((mapMemo, type) => {
     const allowedOperators = MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE[type];
     allowedOperators.forEach(operator => {
       if (mapMemo[operator]) {
@@ -125,28 +85,28 @@ export const MAP_ALLOWED_TYPES_FOR_OPERATOR: Readonly<
   Record<Operator, readonly (ValidationTypes | PrimitiveTypes)[]>
 > = Object.freeze({
   ...computeAllowedTypesForOperators(),
-  [Operator.In]: Object.values(ValidationTypesArray),
-  [Operator.NotIn]: Object.values(ValidationTypesArray),
-  [Operator.IncludesAll]: Object.values(ValidationTypesArray),
+  In: Object.values(ValidationTypesArray),
+  NotIn: Object.values(ValidationTypesArray),
+  IncludesAll: Object.values(ValidationTypesArray),
 
-  [Operator.Blank]: NO_TYPES_ALLOWED,
-  [Operator.Missing]: NO_TYPES_ALLOWED,
-  [Operator.Present]: NO_TYPES_ALLOWED,
-  [Operator.Yesterday]: NO_TYPES_ALLOWED,
-  [Operator.Today]: NO_TYPES_ALLOWED,
-  [Operator.PreviousQuarter]: NO_TYPES_ALLOWED,
-  [Operator.PreviousYear]: NO_TYPES_ALLOWED,
-  [Operator.PreviousMonth]: NO_TYPES_ALLOWED,
-  [Operator.PreviousWeek]: NO_TYPES_ALLOWED,
-  [Operator.Past]: NO_TYPES_ALLOWED,
-  [Operator.Future]: NO_TYPES_ALLOWED,
-  [Operator.PreviousWeekToDate]: NO_TYPES_ALLOWED,
-  [Operator.PreviousMonthToDate]: NO_TYPES_ALLOWED,
-  [Operator.PreviousQuarterToDate]: NO_TYPES_ALLOWED,
-  [Operator.PreviousYearToDate]: NO_TYPES_ALLOWED,
+  Blank: NO_TYPES_ALLOWED,
+  Missing: NO_TYPES_ALLOWED,
+  Present: NO_TYPES_ALLOWED,
+  Yesterday: NO_TYPES_ALLOWED,
+  Today: NO_TYPES_ALLOWED,
+  PreviousQuarter: NO_TYPES_ALLOWED,
+  PreviousYear: NO_TYPES_ALLOWED,
+  PreviousMonth: NO_TYPES_ALLOWED,
+  PreviousWeek: NO_TYPES_ALLOWED,
+  Past: NO_TYPES_ALLOWED,
+  Future: NO_TYPES_ALLOWED,
+  PreviousWeekToDate: NO_TYPES_ALLOWED,
+  PreviousMonthToDate: NO_TYPES_ALLOWED,
+  PreviousQuarterToDate: NO_TYPES_ALLOWED,
+  PreviousYearToDate: NO_TYPES_ALLOWED,
 
-  [Operator.PreviousXDaysToDate]: [PrimitiveTypes.Number],
-  [Operator.PreviousXDays]: [PrimitiveTypes.Number],
-  [Operator.BeforeXHoursAgo]: [PrimitiveTypes.Number],
-  [Operator.AfterXHoursAgo]: [PrimitiveTypes.Number],
+  PreviousXDaysToDate: ['Number'],
+  PreviousXDays: ['Number'],
+  BeforeXHoursAgo: ['Number'],
+  AfterXHoursAgo: ['Number'],
 });

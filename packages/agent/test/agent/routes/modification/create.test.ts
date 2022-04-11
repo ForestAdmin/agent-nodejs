@@ -1,10 +1,4 @@
-import {
-  ConditionTreeLeaf,
-  FieldTypes,
-  Filter,
-  Operator,
-  PrimitiveTypes,
-} from '@forestadmin/datasource-toolkit';
+import { ConditionTreeLeaf, Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -47,9 +41,9 @@ describe('CreateRoute', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
-            name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-            publishedAt: factories.columnSchema.build({ columnType: PrimitiveTypes.Date }),
-            price: factories.columnSchema.build({ columnType: PrimitiveTypes.Number }),
+            name: factories.columnSchema.build({ columnType: 'String' }),
+            publishedAt: factories.columnSchema.build({ columnType: 'Date' }),
+            price: factories.columnSchema.build({ columnType: 'Number' }),
           },
         }),
       });
@@ -92,7 +86,7 @@ describe('CreateRoute', () => {
             id: factories.columnSchema.isPrimaryKey().build(),
             name: factories.columnSchema.build(),
             passport: {
-              type: FieldTypes.OneToOne,
+              type: 'OneToOne',
               foreignCollection: 'passports',
               originKey: 'personId',
               originKeyTarget: 'id',
@@ -106,9 +100,9 @@ describe('CreateRoute', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
-            personId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+            personId: factories.columnSchema.build({ columnType: 'Uuid' }),
             person: {
-              type: FieldTypes.ManyToOne,
+              type: 'ManyToOne',
               foreignCollection: 'persons',
               foreignKey: 'personId',
               foreignKeyTarget: 'id',
@@ -142,7 +136,7 @@ describe('CreateRoute', () => {
       expect(spy.mock.calls).toEqual([
         [
           new Filter({
-            conditionTree: new ConditionTreeLeaf('personId', Operator.Equal, 1),
+            conditionTree: new ConditionTreeLeaf('personId', 'Equal', 1),
             timezone: 'Europe/Paris',
           }),
           { personId: null },
@@ -151,7 +145,7 @@ describe('CreateRoute', () => {
           new Filter({
             conditionTree: new ConditionTreeLeaf(
               'id',
-              Operator.Equal,
+              'Equal',
               '1d162304-78bf-599e-b197-93590ac3d314',
             ),
             timezone: 'Europe/Paris',

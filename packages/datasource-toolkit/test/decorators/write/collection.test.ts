@@ -1,7 +1,6 @@
 import * as factories from '../../__factories__';
-import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
+import { ColumnSchema } from '../../../src/interfaces/schema';
 import { Filter, PaginatedFilter } from '../../../src';
-import { Operator } from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import ValidationError from '../../../src/errors';
 import WriteDecorator from '../../../src/decorators/write/collection';
@@ -16,7 +15,7 @@ describe('WriteDecorator', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                name: factories.columnSchema.build({ columnType: 'String' }),
               },
             }),
           }),
@@ -49,7 +48,7 @@ describe('WriteDecorator', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                name: factories.columnSchema.build({ columnType: 'String' }),
               },
             }),
           }),
@@ -123,7 +122,7 @@ describe('WriteDecorator', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              name: factories.columnSchema.build({ columnType: 'String' }),
             },
           }),
         }),
@@ -153,7 +152,7 @@ describe('WriteDecorator', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              name: factories.columnSchema.build({ columnType: 'String' }),
             },
           }),
         }),
@@ -183,8 +182,8 @@ describe('WriteDecorator', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-                age: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                name: factories.columnSchema.build({ columnType: 'String' }),
+                age: factories.columnSchema.build({ columnType: 'String' }),
               },
             }),
           }),
@@ -222,8 +221,8 @@ describe('WriteDecorator', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-                age: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                name: factories.columnSchema.build({ columnType: 'String' }),
+                age: factories.columnSchema.build({ columnType: 'String' }),
               },
             }),
           }),
@@ -265,8 +264,8 @@ describe('WriteDecorator', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-                age: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                name: factories.columnSchema.build({ columnType: 'String' }),
+                age: factories.columnSchema.build({ columnType: 'String' }),
               },
             }),
           }),
@@ -297,7 +296,7 @@ describe('WriteDecorator', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
-            value: factories.columnSchema.build({ columnType: PrimitiveTypes.Number }),
+            value: factories.columnSchema.build({ columnType: 'Number' }),
           },
         }),
       });
@@ -307,8 +306,8 @@ describe('WriteDecorator', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
-            name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-            priceId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+            name: factories.columnSchema.build({ columnType: 'String' }),
+            priceId: factories.columnSchema.build({ columnType: 'Uuid' }),
             myPrice: factories.manyToOneSchema.build({
               foreignCollection: 'prices',
               foreignKey: 'priceId',
@@ -322,8 +321,8 @@ describe('WriteDecorator', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
-            authorId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
-            title: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+            authorId: factories.columnSchema.build({ columnType: 'Uuid' }),
+            title: factories.columnSchema.build({ columnType: 'String' }),
             myAuthor: factories.manyToOneSchema.build({
               foreignCollection: 'persons',
               foreignKey: 'authorId',
@@ -356,8 +355,8 @@ describe('WriteDecorator', () => {
           schema: factories.collectionSchema.build({
             fields: {
               id: factories.columnSchema.isPrimaryKey().build(),
-              bookId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
-              name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
+              name: factories.columnSchema.build({ columnType: 'String' }),
             },
           }),
         }),
@@ -374,7 +373,7 @@ describe('WriteDecorator', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                name: factories.columnSchema.build({ columnType: 'String' }),
               },
             }),
           }),
@@ -406,7 +405,7 @@ describe('WriteDecorator', () => {
               name: 'books',
               schema: factories.collectionSchema.build({
                 fields: {
-                  age: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                  age: factories.columnSchema.build({ columnType: 'String' }),
                 },
               }),
             }),
@@ -435,7 +434,7 @@ describe('WriteDecorator', () => {
                 name: 'books',
                 schema: factories.collectionSchema.build({
                   fields: {
-                    age: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                    age: factories.columnSchema.build({ columnType: 'String' }),
                   },
                 }),
               }),
@@ -491,7 +490,7 @@ describe('WriteDecorator', () => {
             expect(personsCollection.update).toHaveBeenCalledWith(
               new Filter({
                 conditionTree: factories.conditionTreeLeaf.build({
-                  operator: Operator.In,
+                  operator: 'In',
                   value: [
                     '123e4567-e89b-12d3-a456-111111111111',
                     '123e4567-e89b-12d3-a456-222222222222',
@@ -545,7 +544,7 @@ describe('WriteDecorator', () => {
                 conditionTree: factories.conditionTreeLeaf.build({
                   field: 'id',
                   value: ['123e4567-e89b-12d3-a456-111111111111'],
-                  operator: Operator.In,
+                  operator: 'In',
                 }),
               }),
               ['priceId'],
@@ -558,7 +557,7 @@ describe('WriteDecorator', () => {
             expect(pricesCollection.update).toHaveBeenCalledWith(
               new Filter({
                 conditionTree: factories.conditionTreeLeaf.build({
-                  operator: Operator.In,
+                  operator: 'In',
                   value: ['123e4567-e89b-12d3-a456-333333333333'],
                   field: 'id',
                 }),
@@ -585,7 +584,7 @@ describe('WriteDecorator', () => {
 
             // when
             const conditionTree = factories.conditionTreeLeaf.build({
-              operator: Operator.Equal,
+              operator: 'Equal',
               value: 'a name',
               field: 'name',
             });
@@ -600,7 +599,7 @@ describe('WriteDecorator', () => {
 
             const ownersCollection = dataSource.getCollection('owners');
             const conditionTreeBookId = factories.conditionTreeLeaf.build({
-              operator: Operator.In,
+              operator: 'In',
               value: ['123e4567-e89b-12d3-a456-111111111111'],
               field: 'bookId',
             });
@@ -625,8 +624,8 @@ describe('WriteDecorator', () => {
                 name: 'books',
                 schema: factories.collectionSchema.build({
                   fields: {
-                    name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-                    age: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                    name: factories.columnSchema.build({ columnType: 'String' }),
+                    age: factories.columnSchema.build({ columnType: 'String' }),
                   },
                 }),
               }),
@@ -661,8 +660,8 @@ describe('WriteDecorator', () => {
                 name: 'books',
                 schema: factories.collectionSchema.build({
                   fields: {
-                    name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-                    age: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                    name: factories.columnSchema.build({ columnType: 'String' }),
+                    age: factories.columnSchema.build({ columnType: 'String' }),
                   },
                 }),
               }),
@@ -691,9 +690,9 @@ describe('WriteDecorator', () => {
                 name: 'books',
                 schema: factories.collectionSchema.build({
                   fields: {
-                    name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-                    price: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-                    age: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                    name: factories.columnSchema.build({ columnType: 'String' }),
+                    price: factories.columnSchema.build({ columnType: 'String' }),
+                    age: factories.columnSchema.build({ columnType: 'String' }),
                   },
                 }),
               }),
@@ -724,8 +723,8 @@ describe('WriteDecorator', () => {
                 name: 'books',
                 schema: factories.collectionSchema.build({
                   fields: {
-                    name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-                    age: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                    name: factories.columnSchema.build({ columnType: 'String' }),
+                    age: factories.columnSchema.build({ columnType: 'String' }),
                   },
                 }),
               }),
@@ -758,8 +757,8 @@ describe('WriteDecorator', () => {
                 name: 'books',
                 schema: factories.collectionSchema.build({
                   fields: {
-                    name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-                    age: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                    name: factories.columnSchema.build({ columnType: 'String' }),
+                    age: factories.columnSchema.build({ columnType: 'String' }),
                   },
                 }),
               }),
@@ -793,7 +792,7 @@ describe('WriteDecorator', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                name: factories.columnSchema.build({ columnType: 'String' }),
               },
             }),
           }),
@@ -884,8 +883,8 @@ describe('WriteDecorator', () => {
                   schema: factories.collectionSchema.build({
                     fields: {
                       id: factories.columnSchema.isPrimaryKey().build(),
-                      bookId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
-                      name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                      bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
+                      name: factories.columnSchema.build({ columnType: 'String' }),
                     },
                   }),
                 }),
@@ -894,8 +893,8 @@ describe('WriteDecorator', () => {
                   schema: factories.collectionSchema.build({
                     fields: {
                       id: factories.columnSchema.isPrimaryKey().build(),
-                      bookId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
-                      name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                      bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
+                      name: factories.columnSchema.build({ columnType: 'String' }),
                     },
                   }),
                 }),
@@ -962,7 +961,7 @@ describe('WriteDecorator', () => {
             expect(ownersCollection.update).toHaveBeenCalledWith(
               new Filter({
                 conditionTree: factories.conditionTreeLeaf.build({
-                  operator: Operator.Equal,
+                  operator: 'Equal',
                   value: '123e4567-e89b-12d3-a456-111111111111',
                   field: 'bookId',
                 }),
@@ -1010,7 +1009,7 @@ describe('WriteDecorator', () => {
                 schema: factories.collectionSchema.build({
                   fields: {
                     id: factories.columnSchema.isPrimaryKey().build(),
-                    name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                    name: factories.columnSchema.build({ columnType: 'String' }),
                   },
                 }),
               });
@@ -1020,8 +1019,8 @@ describe('WriteDecorator', () => {
                 schema: factories.collectionSchema.build({
                   fields: {
                     id: factories.columnSchema.isPrimaryKey().build(),
-                    name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-                    priceId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+                    name: factories.columnSchema.build({ columnType: 'String' }),
+                    priceId: factories.columnSchema.build({ columnType: 'Uuid' }),
                   },
                 }),
               });
@@ -1031,13 +1030,13 @@ describe('WriteDecorator', () => {
                 schema: factories.collectionSchema.build({
                   fields: {
                     id: factories.columnSchema.isPrimaryKey().build(),
-                    title: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-                    authorId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+                    title: factories.columnSchema.build({ columnType: 'String' }),
+                    authorId: factories.columnSchema.build({ columnType: 'Uuid' }),
                     myAuthor: factories.manyToOneSchema.build({
                       foreignCollection: 'authors',
                       foreignKey: 'authorId',
                     }),
-                    formatId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+                    formatId: factories.columnSchema.build({ columnType: 'Uuid' }),
                     myFormat: factories.manyToOneSchema.build({
                       foreignCollection: 'formats',
                       foreignKey: 'formatId',
@@ -1125,7 +1124,7 @@ describe('WriteDecorator', () => {
             expect(personsCollection.update).toHaveBeenCalledWith(
               new Filter({
                 conditionTree: factories.conditionTreeLeaf.build({
-                  operator: Operator.Equal,
+                  operator: 'Equal',
                   value: '123e4567-e89b-12d3-a456-111111111111',
                   field: 'id',
                 }),
@@ -1150,7 +1149,7 @@ describe('WriteDecorator', () => {
                     foreignCollection: 'authors',
                     originKey: 'bookId',
                   }),
-                  formatId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+                  formatId: factories.columnSchema.build({ columnType: 'Uuid' }),
                   myFormat: factories.manyToOneSchema.build({
                     foreignCollection: 'formats',
                     foreignKey: 'formatId',
@@ -1164,8 +1163,8 @@ describe('WriteDecorator', () => {
               schema: factories.collectionSchema.build({
                 fields: {
                   id: factories.columnSchema.isPrimaryKey().build(),
-                  bookId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
-                  name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                  bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
+                  name: factories.columnSchema.build({ columnType: 'String' }),
                 },
               }),
             }),
@@ -1174,7 +1173,7 @@ describe('WriteDecorator', () => {
               schema: factories.collectionSchema.build({
                 fields: {
                   id: factories.columnSchema.isPrimaryKey().build(),
-                  name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+                  name: factories.columnSchema.build({ columnType: 'String' }),
                 },
               }),
             }),

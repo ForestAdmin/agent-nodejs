@@ -1,10 +1,7 @@
 import * as factories from '../__factories__';
-import { PrimitiveTypes } from '../../src/interfaces/schema';
-import ConditionTreeBranch, {
-  Aggregator,
-} from '../../src/interfaces/query/condition-tree/nodes/branch';
+import ConditionTreeBranch from '../../src/interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
-import ConditionTreeLeaf, { Operator } from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
 
 describe('ConditionTree', () => {
   describe('Factory', () => {
@@ -14,53 +11,47 @@ describe('ConditionTree', () => {
       });
 
       test('intersect() should return the parameter when called with only one param', () => {
-        const tree = ConditionTreeFactory.intersect(
-          new ConditionTreeLeaf('column', Operator.Equal, true),
-        );
+        const tree = ConditionTreeFactory.intersect(new ConditionTreeLeaf('column', 'Equal', true));
 
-        expect(tree).toEqual({ field: 'column', operator: Operator.Equal, value: true });
+        expect(tree).toEqual({ field: 'column', operator: 'Equal', value: true });
       });
 
       test('intersect() should ignore null params', () => {
         const tree = ConditionTreeFactory.intersect(
           null,
-          new ConditionTreeLeaf('column', Operator.Equal, true),
+          new ConditionTreeLeaf('column', 'Equal', true),
           null,
         );
 
-        expect(tree).toEqual({ field: 'column', operator: Operator.Equal, value: true });
+        expect(tree).toEqual({ field: 'column', operator: 'Equal', value: true });
       });
 
       test('intersect() multiple trees should return the tree', () => {
         const tree = ConditionTreeFactory.intersect(
-          new ConditionTreeLeaf('column', Operator.Equal, true),
-          new ConditionTreeLeaf('otherColumn', Operator.Equal, true),
+          new ConditionTreeLeaf('column', 'Equal', true),
+          new ConditionTreeLeaf('otherColumn', 'Equal', true),
         );
 
         expect(tree).toEqual({
-          aggregator: Aggregator.And,
+          aggregator: 'And',
           conditions: [
-            { field: 'column', operator: Operator.Equal, value: true },
-            { field: 'otherColumn', operator: Operator.Equal, value: true },
+            { field: 'column', operator: 'Equal', value: true },
+            { field: 'otherColumn', operator: 'Equal', value: true },
           ],
         });
       });
 
       test('intersect() should merge And trees', () => {
         const tree = ConditionTreeFactory.intersect(
-          new ConditionTreeBranch(Aggregator.And, [
-            new ConditionTreeLeaf('column', Operator.Equal, true),
-          ]),
-          new ConditionTreeBranch(Aggregator.And, [
-            new ConditionTreeLeaf('otherColumn', Operator.Equal, true),
-          ]),
+          new ConditionTreeBranch('And', [new ConditionTreeLeaf('column', 'Equal', true)]),
+          new ConditionTreeBranch('And', [new ConditionTreeLeaf('otherColumn', 'Equal', true)]),
         );
 
         expect(tree).toEqual({
-          aggregator: Aggregator.And,
+          aggregator: 'And',
           conditions: [
-            { field: 'column', operator: Operator.Equal, value: true },
-            { field: 'otherColumn', operator: Operator.Equal, value: true },
+            { field: 'column', operator: 'Equal', value: true },
+            { field: 'otherColumn', operator: 'Equal', value: true },
           ],
         });
       });
@@ -96,7 +87,7 @@ describe('ConditionTree', () => {
         test('should raise error', () => {
           const fn = () => ConditionTreeFactory.matchRecords(collection.schema, [{ col1: 1 }]);
 
-          expect(fn).toThrow("Field 'col1' must support operators: ['equal', 'in']");
+          expect(fn).toThrow("Field 'col1' must support operators: ['Equal', 'In']");
         });
       });
 
@@ -118,7 +109,7 @@ describe('ConditionTree', () => {
         test('should generate equal', () => {
           const condition = ConditionTreeFactory.matchRecords(collection.schema, [{ col1: 1 }]);
 
-          expect(condition).toEqual({ field: 'col1', operator: Operator.Equal, value: 1 });
+          expect(condition).toEqual({ field: 'col1', operator: 'Equal', value: 1 });
         });
 
         test('should generate in', () => {
@@ -127,7 +118,7 @@ describe('ConditionTree', () => {
             { col1: 2 },
           ]);
 
-          expect(condition).toEqual({ field: 'col1', operator: Operator.In, value: [1, 2] });
+          expect(condition).toEqual({ field: 'col1', operator: 'In', value: [1, 2] });
         });
       });
 
@@ -148,11 +139,11 @@ describe('ConditionTree', () => {
           ]);
 
           expect(condition).toEqual({
-            aggregator: Aggregator.And,
+            aggregator: 'And',
             conditions: [
-              { field: 'col1', operator: Operator.Equal, value: 1 },
-              { field: 'col2', operator: Operator.Equal, value: 1 },
-              { field: 'col3', operator: Operator.Equal, value: 1 },
+              { field: 'col1', operator: 'Equal', value: 1 },
+              { field: 'col2', operator: 'Equal', value: 1 },
+              { field: 'col3', operator: 'Equal', value: 1 },
             ],
           });
         });
@@ -164,11 +155,11 @@ describe('ConditionTree', () => {
           ]);
 
           expect(condition).toEqual({
-            aggregator: Aggregator.And,
+            aggregator: 'And',
             conditions: [
-              { field: 'col1', operator: Operator.Equal, value: 1 },
-              { field: 'col2', operator: Operator.Equal, value: 1 },
-              { field: 'col3', operator: Operator.In, value: [1, 2] },
+              { field: 'col1', operator: 'Equal', value: 1 },
+              { field: 'col2', operator: 'Equal', value: 1 },
+              { field: 'col3', operator: 'In', value: [1, 2] },
             ],
           });
         });
@@ -180,22 +171,22 @@ describe('ConditionTree', () => {
           ]);
 
           expect(condition).toEqual({
-            aggregator: Aggregator.Or,
+            aggregator: 'Or',
             conditions: [
               {
-                aggregator: Aggregator.And,
+                aggregator: 'And',
                 conditions: [
-                  { field: 'col1', operator: Operator.Equal, value: 1 },
-                  { field: 'col2', operator: Operator.Equal, value: 1 },
-                  { field: 'col3', operator: Operator.Equal, value: 1 },
+                  { field: 'col1', operator: 'Equal', value: 1 },
+                  { field: 'col2', operator: 'Equal', value: 1 },
+                  { field: 'col3', operator: 'Equal', value: 1 },
                 ],
               },
               {
-                aggregator: Aggregator.And,
+                aggregator: 'And',
                 conditions: [
-                  { field: 'col1', operator: Operator.Equal, value: 2 },
-                  { field: 'col2', operator: Operator.Equal, value: 2 },
-                  { field: 'col3', operator: Operator.Equal, value: 2 },
+                  { field: 'col1', operator: 'Equal', value: 2 },
+                  { field: 'col2', operator: 'Equal', value: 2 },
+                  { field: 'col3', operator: 'Equal', value: 2 },
                 ],
               },
             ],
@@ -213,35 +204,45 @@ describe('ConditionTree', () => {
       test('should work with a simple case', () => {
         const tree = ConditionTreeFactory.fromPlainObject({
           field: 'field',
-          operator: 'equal',
+          operator: 'Equal',
           value: 'something',
         });
 
-        expect(tree).toStrictEqual(new ConditionTreeLeaf('field', Operator.Equal, 'something'));
+        expect(tree).toStrictEqual(new ConditionTreeLeaf('field', 'Equal', 'something'));
+      });
+
+      test('should work with snake case', () => {
+        const tree = ConditionTreeFactory.fromPlainObject({
+          field: 'field',
+          operator: 'less_than',
+          value: 'something',
+        });
+
+        expect(tree).toStrictEqual(new ConditionTreeLeaf('field', 'LessThan', 'something'));
       });
 
       test('should remove useless aggregators from the frontend', () => {
         const tree = ConditionTreeFactory.fromPlainObject({
-          aggregator: 'and',
-          conditions: [{ field: 'field', operator: 'equal', value: 'something' }],
+          aggregator: 'And',
+          conditions: [{ field: 'field', operator: 'Equal', value: 'something' }],
         });
 
-        expect(tree).toStrictEqual(new ConditionTreeLeaf('field', Operator.Equal, 'something'));
+        expect(tree).toStrictEqual(new ConditionTreeLeaf('field', 'Equal', 'something'));
       });
 
       test('should work with an aggregator', () => {
         const tree = ConditionTreeFactory.fromPlainObject({
-          aggregator: 'and',
+          aggregator: 'And',
           conditions: [
-            { field: 'field', operator: 'equal', value: 'something' },
-            { field: 'field', operator: 'equal', value: 'something' },
+            { field: 'field', operator: 'Equal', value: 'something' },
+            { field: 'field', operator: 'Equal', value: 'something' },
           ],
         });
 
         expect(tree).toStrictEqual(
-          new ConditionTreeBranch(Aggregator.And, [
-            new ConditionTreeLeaf('field', Operator.Equal, 'something'),
-            new ConditionTreeLeaf('field', Operator.Equal, 'something'),
+          new ConditionTreeBranch('And', [
+            new ConditionTreeLeaf('field', 'Equal', 'something'),
+            new ConditionTreeLeaf('field', 'Equal', 'something'),
           ]),
         );
       });
@@ -249,17 +250,17 @@ describe('ConditionTree', () => {
   });
 
   describe('Methods', () => {
-    const tree = new ConditionTreeBranch(Aggregator.And, [
-      new ConditionTreeLeaf('column1', Operator.Equal, true),
-      new ConditionTreeLeaf('column2', Operator.Equal, true),
+    const tree = new ConditionTreeBranch('And', [
+      new ConditionTreeLeaf('column1', 'Equal', true),
+      new ConditionTreeLeaf('column2', 'Equal', true),
     ]);
 
     test('apply() should work', () => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
-            column1: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
-            column2: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
+            column1: factories.columnSchema.build({ columnType: 'Boolean' }),
+            column2: factories.columnSchema.build({ columnType: 'Boolean' }),
           },
         }),
       });
@@ -290,41 +291,41 @@ describe('ConditionTree', () => {
 
     test('inverse() should work', () => {
       expect(tree.inverse()).toEqual({
-        aggregator: Aggregator.Or,
+        aggregator: 'Or',
         conditions: [
-          { field: 'column1', operator: Operator.NotEqual, value: true },
-          { field: 'column2', operator: Operator.NotEqual, value: true },
+          { field: 'column1', operator: 'NotEqual', value: true },
+          { field: 'column2', operator: 'NotEqual', value: true },
         ],
       });
 
       expect(tree.inverse().inverse()).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column1', operator: Operator.Equal, value: true },
-          { field: 'column2', operator: Operator.Equal, value: true },
+          { field: 'column1', operator: 'Equal', value: true },
+          { field: 'column2', operator: 'Equal', value: true },
         ],
       });
     });
 
     test('inverse() should work with blank', () => {
-      const blank = new ConditionTreeLeaf('column1', Operator.Blank);
+      const blank = new ConditionTreeLeaf('column1', 'Blank');
 
-      expect(blank.inverse()).toEqual({ field: 'column1', operator: Operator.Present });
+      expect(blank.inverse()).toEqual({ field: 'column1', operator: 'Present' });
       expect(blank.inverse().inverse()).toEqual(blank);
     });
 
     test('inverse() should crash with unsupported operator', () => {
-      const today = new ConditionTreeLeaf('column1', Operator.Today);
+      const today = new ConditionTreeLeaf('column1', 'Today');
 
-      expect(() => today.inverse()).toThrow("Operator 'today' cannot be inverted.");
+      expect(() => today.inverse()).toThrow("Operator 'Today' cannot be inverted.");
     });
 
     test('match() should work', () => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
-            column1: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
-            column2: factories.columnSchema.build({ columnType: PrimitiveTypes.Boolean }),
+            column1: factories.columnSchema.build({ columnType: 'Boolean' }),
+            column2: factories.columnSchema.build({ columnType: 'Boolean' }),
           },
         }),
       });
@@ -344,23 +345,23 @@ describe('ConditionTree', () => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
-            string: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
-            array: factories.columnSchema.build({ columnType: [PrimitiveTypes.String] }),
+            string: factories.columnSchema.build({ columnType: 'String' }),
+            array: factories.columnSchema.build({ columnType: ['String'] }),
           },
         }),
       });
-      const allConditions = new ConditionTreeBranch(Aggregator.And, [
-        new ConditionTreeLeaf('string', Operator.Present),
-        new ConditionTreeLeaf('string', Operator.Contains, 'value'),
-        new ConditionTreeLeaf('string', Operator.StartsWith, 'value'),
-        new ConditionTreeLeaf('string', Operator.EndsWith, 'value'),
-        new ConditionTreeLeaf('string', Operator.LessThan, 'valuf'),
-        new ConditionTreeLeaf('string', Operator.Equal, 'value'),
-        new ConditionTreeLeaf('string', Operator.GreaterThan, 'valud'),
-        new ConditionTreeLeaf('string', Operator.In, ['value']),
-        new ConditionTreeLeaf('array', Operator.IncludesAll, ['value']),
-        new ConditionTreeLeaf('string', Operator.LongerThan, 0),
-        new ConditionTreeLeaf('string', Operator.ShorterThan, 999),
+      const allConditions = new ConditionTreeBranch('And', [
+        new ConditionTreeLeaf('string', 'Present'),
+        new ConditionTreeLeaf('string', 'Contains', 'value'),
+        new ConditionTreeLeaf('string', 'StartsWith', 'value'),
+        new ConditionTreeLeaf('string', 'EndsWith', 'value'),
+        new ConditionTreeLeaf('string', 'LessThan', 'valuf'),
+        new ConditionTreeLeaf('string', 'Equal', 'value'),
+        new ConditionTreeLeaf('string', 'GreaterThan', 'valud'),
+        new ConditionTreeLeaf('string', 'In', ['value']),
+        new ConditionTreeLeaf('array', 'IncludesAll', ['value']),
+        new ConditionTreeLeaf('string', 'LongerThan', 0),
+        new ConditionTreeLeaf('string', 'ShorterThan', 999),
       ]);
 
       expect(
@@ -370,10 +371,10 @@ describe('ConditionTree', () => {
 
     test('nest() should work', () => {
       expect(tree.nest('prefix')).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'prefix:column1', operator: Operator.Equal, value: true },
-          { field: 'prefix:column2', operator: Operator.Equal, value: true },
+          { field: 'prefix:column1', operator: 'Equal', value: true },
+          { field: 'prefix:column2', operator: 'Equal', value: true },
         ],
       });
     });
@@ -392,30 +393,30 @@ describe('ConditionTree', () => {
 
     test('replaceFields() should work', () => {
       expect(tree.replaceFields(field => `${field}:suffix`)).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column1:suffix', operator: Operator.Equal, value: true },
-          { field: 'column2:suffix', operator: Operator.Equal, value: true },
+          { field: 'column1:suffix', operator: 'Equal', value: true },
+          { field: 'column2:suffix', operator: 'Equal', value: true },
         ],
       });
     });
 
     test('replaceLeafs() should work when returning leaf instance', () => {
       expect(tree.replaceLeafs(leaf => leaf.override({ value: !leaf.value }))).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column1', operator: Operator.Equal, value: false },
-          { field: 'column2', operator: Operator.Equal, value: false },
+          { field: 'column1', operator: 'Equal', value: false },
+          { field: 'column2', operator: 'Equal', value: false },
         ],
       });
     });
 
     test('replaceLeafs() should work when returning plain object', () => {
       expect(tree.replaceLeafs(leaf => ({ ...leaf, value: !leaf.value }))).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column1', operator: Operator.Equal, value: false },
-          { field: 'column2', operator: Operator.Equal, value: false },
+          { field: 'column1', operator: 'Equal', value: false },
+          { field: 'column2', operator: 'Equal', value: false },
         ],
       });
     });
@@ -424,10 +425,10 @@ describe('ConditionTree', () => {
       expect(
         await tree.replaceLeafsAsync(async leaf => leaf.override({ value: !leaf.value })),
       ).toEqual({
-        aggregator: Aggregator.And,
+        aggregator: 'And',
         conditions: [
-          { field: 'column1', operator: Operator.Equal, value: false },
-          { field: 'column2', operator: Operator.Equal, value: false },
+          { field: 'column1', operator: 'Equal', value: false },
+          { field: 'column2', operator: 'Equal', value: false },
         ],
       });
     });
@@ -435,10 +436,10 @@ describe('ConditionTree', () => {
     test('replaceLeafsAsync() should work when returning plain object', async () => {
       expect(await tree.replaceLeafsAsync(async leaf => ({ ...leaf, value: !leaf.value }))).toEqual(
         {
-          aggregator: Aggregator.And,
+          aggregator: 'And',
           conditions: [
-            { field: 'column1', operator: Operator.Equal, value: false },
-            { field: 'column2', operator: Operator.Equal, value: false },
+            { field: 'column1', operator: 'Equal', value: false },
+            { field: 'column2', operator: 'Equal', value: false },
           ],
         },
       );
@@ -452,13 +453,13 @@ describe('ConditionTree', () => {
 
     describe('useIntervalOperator()', () => {
       test('should return true', () => {
-        const leaf = new ConditionTreeLeaf('column', Operator.Today, true);
-        expect(leaf.useIntervalOperator()).toBe(true);
+        const leaf = new ConditionTreeLeaf('column', 'Today', true);
+        expect(leaf.useIntervalOperator).toBe(true);
       });
 
       test('should return false', () => {
-        const leaf = new ConditionTreeLeaf('column', Operator.Equal, true);
-        expect(leaf.useIntervalOperator()).toBe(false);
+        const leaf = new ConditionTreeLeaf('column', 'Equal', true);
+        expect(leaf.useIntervalOperator).toBe(false);
       });
     });
   });

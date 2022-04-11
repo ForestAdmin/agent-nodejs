@@ -4,10 +4,7 @@ import { RecordData } from '../../../record';
 import ConditionTree from './base';
 import Projection from '../../projection';
 
-export enum Aggregator {
-  And = 'and',
-  Or = 'or',
-}
+export type Aggregator = 'And' | 'Or';
 
 export type BranchComponents = {
   aggregator: Aggregator;
@@ -44,7 +41,7 @@ export default class ConditionTreeBranch extends ConditionTree {
   }
 
   inverse(): ConditionTree {
-    const aggregator = this.aggregator === Aggregator.Or ? Aggregator.And : Aggregator.Or;
+    const aggregator = this.aggregator === 'Or' ? 'And' : 'Or';
 
     return new ConditionTreeBranch(
       aggregator,
@@ -67,7 +64,7 @@ export default class ConditionTreeBranch extends ConditionTree {
   }
 
   match(record: RecordData, collection: Collection, timezone: string): boolean {
-    return this.aggregator === Aggregator.And
+    return this.aggregator === 'And'
       ? this.conditions.every(c => c.match(record, collection, timezone))
       : this.conditions.some(c => c.match(record, collection, timezone));
   }

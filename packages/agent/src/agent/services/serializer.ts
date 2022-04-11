@@ -1,7 +1,6 @@
 import {
   Collection,
   CollectionSchema,
-  FieldTypes,
   RecordData,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
@@ -83,7 +82,7 @@ export default class Serializer {
     const urlPrefix = `${this.prefix}/${collection.name}`;
 
     for (const [name, field] of Object.entries(collection.schema.fields)) {
-      if (field.type === FieldTypes.ManyToOne || field.type === FieldTypes.OneToOne) {
+      if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
         relationships[name] = {
           type: field.foreignCollection,
           deserialize: (data: Record<string, unknown>) => {
@@ -94,7 +93,7 @@ export default class Serializer {
         };
       }
 
-      if (field.type === FieldTypes.ManyToMany || field.type === FieldTypes.OneToMany) {
+      if (field.type === 'ManyToMany' || field.type === 'OneToMany') {
         relationships[name] = {
           type: field.foreignCollection,
           links: (data: SerializedRecord) => ({

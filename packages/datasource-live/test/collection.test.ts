@@ -3,16 +3,13 @@ import sortBy from 'lodash/sortBy';
 
 import {
   Aggregation,
-  AggregationOperation,
   CollectionSchema,
   ConditionTreeLeaf,
   DataSource,
-  FieldTypes,
   Filter,
   Operator,
   Page,
   PaginatedFilter,
-  PrimitiveTypes,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
@@ -24,25 +21,25 @@ const liveCollectionSchema: CollectionSchema = {
   actions: {},
   fields: {
     id: {
-      columnType: PrimitiveTypes.Number,
-      filterOperators: new Set<Operator>([Operator.Equal]),
+      columnType: 'Number',
+      filterOperators: new Set<Operator>(['Equal']),
       isPrimaryKey: true,
-      type: FieldTypes.Column,
+      type: 'Column',
     },
     fixed: {
-      columnType: PrimitiveTypes.String,
+      columnType: 'String',
       filterOperators: new Set<Operator>(),
-      type: FieldTypes.Column,
+      type: 'Column',
     },
     even: {
-      columnType: PrimitiveTypes.Boolean,
+      columnType: 'Boolean',
       filterOperators: new Set<Operator>(),
-      type: FieldTypes.Column,
+      type: 'Column',
     },
     value: {
-      columnType: PrimitiveTypes.String,
+      columnType: 'String',
       filterOperators: new Set<Operator>(),
-      type: FieldTypes.Column,
+      type: 'Column',
     },
   },
   searchable: false,
@@ -195,7 +192,7 @@ describe('LiveDataSource > Collection', () => {
 
         const records = await liveCollection.list(
           new PaginatedFilter({
-            conditionTree: new ConditionTreeLeaf('value', Operator.Equal, 'record_4'),
+            conditionTree: new ConditionTreeLeaf('value', 'Equal', 'record_4'),
           }),
           new Projection('value'),
         );
@@ -281,7 +278,7 @@ describe('LiveDataSource > Collection', () => {
     it('should resolve', async () => {
       const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
       const filter = new Filter({
-        conditionTree: new ConditionTreeLeaf('id', Operator.Equal, '__unknown__'),
+        conditionTree: new ConditionTreeLeaf('id', 'Equal', '__unknown__'),
       });
       const patch = { value: '__new__value__' };
 
@@ -297,7 +294,7 @@ describe('LiveDataSource > Collection', () => {
       );
 
       const filter = new Filter({
-        conditionTree: new ConditionTreeLeaf('id', Operator.Equal, originalRecord.id),
+        conditionTree: new ConditionTreeLeaf('id', 'Equal', originalRecord.id),
       });
       const patch = { value: '__new__value__' };
 
@@ -334,7 +331,7 @@ describe('LiveDataSource > Collection', () => {
     it('should resolve', async () => {
       const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
       const filter = new Filter({
-        conditionTree: new ConditionTreeLeaf('id', Operator.Equal, '__unknown__'),
+        conditionTree: new ConditionTreeLeaf('id', 'Equal', '__unknown__'),
       });
 
       await expect(liveCollection.delete(filter)).resolves.not.toThrow();
@@ -352,7 +349,7 @@ describe('LiveDataSource > Collection', () => {
       );
 
       const filter = new Filter({
-        conditionTree: new ConditionTreeLeaf('id', Operator.Equal, originalRecord.id),
+        conditionTree: new ConditionTreeLeaf('id', 'Equal', originalRecord.id),
       });
 
       await liveCollection.delete(filter);
@@ -379,7 +376,7 @@ describe('LiveDataSource > Collection', () => {
         liveCollectionSchema,
       );
       const aggregation = new Aggregation({
-        operation: AggregationOperation.Count,
+        operation: 'Count',
       });
 
       await expect(liveCollection.aggregate(new PaginatedFilter({}), aggregation)).resolves.toEqual(
@@ -394,7 +391,7 @@ describe('LiveDataSource > Collection', () => {
         liveCollectionSchema,
       );
       const aggregation = new Aggregation({
-        operation: AggregationOperation.Count,
+        operation: 'Count',
       });
 
       const [originalRecord] = await plainRecords(
@@ -402,7 +399,7 @@ describe('LiveDataSource > Collection', () => {
       );
 
       const filter = new Filter({
-        conditionTree: new ConditionTreeLeaf('id', Operator.Equal, originalRecord.id),
+        conditionTree: new ConditionTreeLeaf('id', 'Equal', originalRecord.id),
       });
 
       await expect(liveCollection.aggregate(filter, aggregation)).resolves.toEqual([
@@ -418,7 +415,7 @@ describe('LiveDataSource > Collection', () => {
       );
       const aggregation = new Aggregation({
         field: 'even',
-        operation: AggregationOperation.Sum,
+        operation: 'Sum',
       });
 
       await expect(liveCollection.aggregate(new PaginatedFilter({}), aggregation)).resolves.toEqual(
@@ -434,7 +431,7 @@ describe('LiveDataSource > Collection', () => {
       );
       const aggregation = new Aggregation({
         field: 'even',
-        operation: AggregationOperation.Count,
+        operation: 'Count',
         groups: [{ field: 'even' }],
       });
 

@@ -10,18 +10,18 @@ collection.registerAction('Charge credit card', {
     {
       label: 'Amount',
       description: 'The amount (USD) to charge the credit card. Example: 42.50',
-      type: ActionFieldType.Number,
+      type: 'Number',
     },
     {
       label: 'description',
       description: 'Explain the reason why you want to charge manually the customer here',
       isRequired: true,
-      type: ActionFieldType.String,
+      type: 'String',
     },
     {
       label: 'stripe_id',
       isRequired: true,
-      type: ActionFieldType.String,
+      type: 'String',
     },
   ],
   execute: async (context, responseBuilder) => {
@@ -57,13 +57,13 @@ Here is the list of available options to customize the input form. More informat
 The available field types are:
 
 - Primitives: `Boolean`, `Date`, `Dateonly`, `Enum`, `Json`, `Number`, `String`
-- Lists: `Number[]`, `String[]`
-- Files: `File` and `File[]`
+- Lists: `NumberList`, `StringList`
+- Files: `File` and `FileList`
 - Records from other collections: `Collection`
 
 Note that:
 
-- When using `Enum` or `Enum[]`, your form entry must provide an additional `enumValues` key.
+- When using `Enum` or `EnumList`, your form entry must provide an additional `enumValues` key.
 - When using `Collection`, your form entry must provide an additional `collectionName` key.
 
 ## Dynamic forms
@@ -123,7 +123,7 @@ collection.registerAction('Tell me a greeting', {
   form: [
     {
       label: 'How should we refer to you?',
-      type: ActionFieldType.Enum,
+      type: 'Enum',
       if: async context => {
         const person = await context.getRecord(['firstName', 'fullName']);
 
@@ -162,12 +162,12 @@ collection.registerAction('Leave a review', {
   form: [
     {
       label: 'Rating',
-      type: ActionFieldType.Enum,
+      type: 'Enum',
       enumValues: ['1', '2', '3', '4', '5'],
     },
     {
       label: 'Put a comment',
-      type: ActionFieldType.String,
+      type: 'String',
       if: context => Number(context.formValues.Rating) < 4,
     },
   ],

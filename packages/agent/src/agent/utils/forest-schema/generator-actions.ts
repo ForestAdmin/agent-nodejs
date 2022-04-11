@@ -1,6 +1,5 @@
 import {
   ActionField,
-  ActionFieldType,
   ActionSchema,
   Collection,
   ColumnSchema,
@@ -21,7 +20,7 @@ export default class SchemaGeneratorActions {
   static defaultFields: ForestServerActionField[] = [
     {
       field: 'Loading...',
-      type: PrimitiveTypes.String,
+      type: 'String',
       isReadOnly: true,
       defaultValue: 'Form is loading',
       value: undefined,
@@ -49,7 +48,7 @@ export default class SchemaGeneratorActions {
     return {
       id: `${collection.name}-${actionIndex}-${slug}`,
       name,
-      type: schema.scope,
+      type: schema.scope.toLowerCase() as 'single' | 'bulk' | 'global',
       baseUrl: null,
       endpoint: path.join('/', prefix, '_actions', collection.name, String(actionIndex), slug),
       httpMethod: 'POST',
@@ -75,20 +74,20 @@ export default class SchemaGeneratorActions {
 
     if (watchChanges) output.hook = 'changeHook';
 
-    if (type === ActionFieldType.Collection) {
+    if (type === 'Collection') {
       const collection = dataSource.getCollection(field.collectionName);
       const [pk] = SchemaUtils.getPrimaryKeys(collection.schema);
       const pkSchema = collection.schema.fields[pk] as ColumnSchema;
 
       output.type = pkSchema.columnType;
       output.reference = `${collection.name}.${pk}`;
-    } else if (type.endsWith('[]')) {
-      output.type = [type.substring(0, type.length - 2) as PrimitiveTypes];
+    } else if (type.endsWith('List')) {
+      output.type = [type.substring(0, type.length - 4) as PrimitiveTypes];
     } else {
       output.type = type as unknown as PrimitiveTypes;
     }
 
-    if (type === ActionFieldType.Enum || type === ActionFieldType.EnumList) {
+    if (type === 'Enum' || type === 'EnumList') {
       output.enums = field.enumValues;
     }
 

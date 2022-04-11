@@ -41,7 +41,7 @@ Query Translation:
 {% tabs %} {% tab title="Datasource: Using a local cache" %}
 
 ```javascript
-const { CachedCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
+const { CachedCollection } = require('@forestadmin/datasource-toolkit');
 const axios = require('my-api-client'); // client for the target API
 
 class MyCollection extends CachedCollection {
@@ -50,15 +50,8 @@ class MyCollection extends CachedCollection {
     super('myCollection', dataSource);
 
     // Add fields
-    this.addField('id', {
-      columnType: PrimitiveType.Number,
-      isPrimaryKey: true,
-      isReadOnly: true,
-    });
-
-    this.addField('title', {
-      columnType: PrimitiveType.String,
-    });
+    this.addField('id', { columnType: 'Number', isPrimaryKey: true, isReadOnly: true });
+    this.addField('title', { columnType: 'String' });
   }
 
   async listChangedRecords() {
@@ -93,7 +86,7 @@ module.exports = MyDataSource;
 {% endtab %} {% tab title="Datasource: Using query translation" %}
 
 ```javascript
-const { BaseCollection, PrimitiveTypes } = require('@forestadmin/datasource-toolkit');
+const { BaseCollection } = require('@forestadmin/datasource-toolkit');
 const axios = require('axios'); // client for the target API
 
 // The real work is in writing this module
@@ -108,7 +101,7 @@ class MyCollection extends BaseCollection {
 
     this.addField('id', {
       // Structure
-      columnType: PrimitiveType.Number,
+      columnType: 'Number',
       isPrimaryKey: true,
       isReadOnly: true, // field is readonly
 
@@ -118,7 +111,7 @@ class MyCollection extends BaseCollection {
     });
 
     this.addField('title', {
-      columnType: PrimitiveType.String,
+      columnType: 'String',
       isReadOnly: true,
       filterOperators: new Set(),
       isSortable: false,

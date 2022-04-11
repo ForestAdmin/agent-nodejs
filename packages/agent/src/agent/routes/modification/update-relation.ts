@@ -3,11 +3,9 @@ import {
   CompositeId,
   ConditionTreeFactory,
   ConditionTreeLeaf,
-  FieldTypes,
   Filter,
   ManyToOneSchema,
   OneToOneSchema,
-  Operator,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
@@ -31,9 +29,9 @@ export default class UpdateRelation extends RelationRoute {
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const linkedId = IdUtils.unpackId(this.foreignCollection.schema, context.request.body?.data.id);
 
-    if (relation.type === FieldTypes.ManyToOne) {
+    if (relation.type === 'ManyToOne') {
       await this.updateManyToOne(context, relation, parentId, linkedId, timezone);
-    } else if (relation.type === FieldTypes.OneToOne) {
+    } else if (relation.type === 'OneToOne') {
       await this.updateOneToOne(context, relation, parentId, linkedId, timezone);
     }
 
@@ -86,7 +84,7 @@ export default class UpdateRelation extends RelationRoute {
     );
 
     // Break old relation (may update zero or one records).
-    const oldFkOwner = new ConditionTreeLeaf(relation.originKey, Operator.Equal, originValue);
+    const oldFkOwner = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
     await this.foreignCollection.update(
       new Filter({ conditionTree: ConditionTreeFactory.intersect(oldFkOwner, scope), timezone }),
       { [relation.originKey]: null },

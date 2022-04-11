@@ -22,12 +22,12 @@ This example shows the same segment implemented using both methods.
 Using the forest admin query interface
 
 ```javascript
-collection.addSegment('mySegment', async (context) => {
+collection.addSegment('mySegment', async context => {
   const rows = await context.dataSource
     .getCollection('orders')
     .aggregate({}, { operation: 'Count', groups: [{ field: 'product_id' }] }, 10);
 
-  return { field: 'id', operator: 'in', value: rows.map(r => r['product_id']) };
+  return { field: 'id', operator: 'In', value: rows.map(r => r['product_id']) };
 });
 ```
 
@@ -37,7 +37,7 @@ Using a native driver
 const client = new Client({ host: 'localhost', database: 'myDb', port: 5432 });
 client.connect();
 
-collection.addSegment('mySegment',  async (context) => {
+collection.addSegment('mySegment', async context => {
   const { rows } = await client.query(`
     SELECT product_id, COUNT(*)
     FROM orders
@@ -46,7 +46,7 @@ collection.addSegment('mySegment',  async (context) => {
     LIMIT 10;
   `);
 
-  return { field: 'id', operator: 'in', value: rows.map(r => r['product_id']) };
+  return { field: 'id', operator: 'In', value: rows.map(r => r['product_id']) };
 });
 ```
 

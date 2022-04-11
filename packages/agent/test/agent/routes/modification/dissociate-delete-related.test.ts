@@ -1,10 +1,4 @@
-import {
-  Aggregator,
-  Filter,
-  Operator,
-  PrimitiveTypes,
-  ValidationError,
-} from '@forestadmin/datasource-toolkit';
+import { Filter, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -23,7 +17,7 @@ describe('DissociateDeleteRelatedRoute', () => {
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
           bookId: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Uuid,
+            columnType: 'Uuid',
           }),
         },
       }),
@@ -187,9 +181,9 @@ describe('DissociateDeleteRelatedRoute', () => {
 
       const conditionTreeParams = {
         filters: JSON.stringify({
-          aggregator: 'and',
+          aggregator: 'And',
           conditions: [
-            { field: 'id', operator: 'equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+            { field: 'id', operator: 'Equal', value: '123e4567-e89b-12d3-a456-426614174000' },
           ],
         }),
       };
@@ -214,11 +208,11 @@ describe('DissociateDeleteRelatedRoute', () => {
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
-            aggregator: Aggregator.And,
+            aggregator: 'And',
             conditions: expect.arrayContaining([
               scopeCondition,
               factories.conditionTreeLeaf.build({
-                operator: Operator.Equal,
+                operator: 'Equal',
                 value: '123e4567-e89b-12d3-a456-426614174000',
                 field: 'id',
               }),

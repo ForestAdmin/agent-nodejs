@@ -1,5 +1,4 @@
 import { Collection } from '../interfaces/collection';
-import { FieldTypes } from '../interfaces/schema';
 import { RecordData } from '../interfaces/record';
 import FieldValidator from './field';
 import ValidationError from '../errors';
@@ -15,9 +14,9 @@ export default class RecordValidator {
 
       if (!schema) {
         throw new ValidationError(`Unknown field "${key}"`);
-      } else if (schema.type === FieldTypes.Column) {
+      } else if (schema.type === 'Column') {
         FieldValidator.validate(collection, key, [recordData[key]]);
-      } else if (schema.type === FieldTypes.OneToOne || schema.type === FieldTypes.ManyToOne) {
+      } else if (schema.type === 'OneToOne' || schema.type === 'ManyToOne') {
         const subRecord = recordData[key] as RecordData;
 
         const association = collection.dataSource.getCollection(schema.foreignCollection);

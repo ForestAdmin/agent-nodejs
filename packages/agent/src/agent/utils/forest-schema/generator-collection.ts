@@ -1,4 +1,4 @@
-import { Collection, FieldTypes, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { Collection, SchemaUtils } from '@forestadmin/datasource-toolkit';
 import { ForestServerCollection } from './types';
 import SchemaGeneratorActions from './generator-actions';
 import SchemaGeneratorFields from './generator-fields';
@@ -22,7 +22,7 @@ export default class SchemaGeneratorCollection {
       icon: null,
       integration: null,
       isReadOnly: Object.values(collection.schema.fields).every(
-        field => field.type === FieldTypes.Column && field.isReadOnly,
+        field => field.type === 'Column' && field.isReadOnly,
       ),
       isSearchable: collection.schema.searchable,
       isVirtual: false,

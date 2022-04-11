@@ -1,5 +1,4 @@
 import * as factories from '../__factories__';
-import { FieldTypes, PrimitiveTypes } from '../../src/interfaces/schema';
 import RecordValidator from '../../src/validation/record';
 
 describe('RecordValidator', () => {
@@ -56,7 +55,7 @@ describe('RecordValidator', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              name: factories.columnSchema.build({ columnType: 'String' }),
             },
           }),
         }),
@@ -84,7 +83,7 @@ describe('RecordValidator', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              name: factories.columnSchema.build({ columnType: 'String' }),
             },
           }),
         }),
@@ -112,7 +111,7 @@ describe('RecordValidator', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              name: factories.columnSchema.build({ columnType: 'String' }),
             },
           }),
         }),
@@ -140,7 +139,7 @@ describe('RecordValidator', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              name: factories.columnSchema.build({ columnType: 'String' }),
             },
           }),
         }),
@@ -170,7 +169,7 @@ describe('RecordValidator', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              name: factories.columnSchema.build({ columnType: 'String' }),
             },
           }),
         }),
@@ -200,7 +199,7 @@ describe('RecordValidator', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              name: factories.columnSchema.build({ columnType: PrimitiveTypes.String }),
+              name: factories.columnSchema.build({ columnType: 'String' }),
             },
           }),
         }),
@@ -220,7 +219,7 @@ describe('RecordValidator', () => {
           name: 'book',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.build({ type: 'failTypeColumn' as FieldTypes.Column }),
+              id: factories.columnSchema.build({ type: 'failTypeColumn' as 'Column' }),
             },
           }),
         }),

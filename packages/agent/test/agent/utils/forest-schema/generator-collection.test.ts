@@ -1,5 +1,3 @@
-import { ActionScope, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-
 import * as factories from '../../__factories__';
 import SchemaGeneratorCollection from '../../../../src/agent/utils/forest-schema/generator-collection';
 
@@ -10,7 +8,7 @@ describe('SchemaGeneratorCollection', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          authorId: factories.columnSchema.build({ columnType: PrimitiveTypes.Uuid }),
+          authorId: factories.columnSchema.build({ columnType: 'Uuid' }),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
             foreignKey: 'authorId',
@@ -22,7 +20,7 @@ describe('SchemaGeneratorCollection', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         actions: {
-          'Make as Live': { scope: ActionScope.Single },
+          'Make as Live': { scope: 'Single' },
         },
         fields: {
           id: factories.columnSchema.isPrimaryKey().build({

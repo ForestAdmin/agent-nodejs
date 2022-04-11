@@ -1,13 +1,14 @@
 import { CollectionSchema, ColumnSchema } from '../../schema';
 import { CompositeId, RecordData } from '../../record';
+import { Operator } from './nodes/operators';
 import ConditionTree from './nodes/base';
 import ConditionTreeBranch, { Aggregator, BranchComponents } from './nodes/branch';
-import ConditionTreeLeaf, { LeafComponents, Operator } from './nodes/leaf';
+import ConditionTreeLeaf, { LeafComponents } from './nodes/leaf';
 import RecordUtils from '../../../utils/record';
 import SchemaUtils from '../../../utils/schema';
 
 export default class ConditionTreeFactory {
-  static MatchNone: ConditionTree = new ConditionTreeBranch(Aggregator.Or, []);
+  static MatchNone: ConditionTree = new ConditionTreeBranch('Or', []);
   static MatchAll: ConditionTree = null;
 
   static matchRecords(schema: CollectionSchema, records: RecordData[]): ConditionTree {
@@ -26,8 +27,8 @@ export default class ConditionTreeFactory {
     for (const name of primaryKeyNames) {
       const operators = (schema.fields[name] as ColumnSchema).filterOperators;
 
-      if (!operators?.has(Operator.Equal) || !operators?.has(Operator.In)) {
-        throw new Error(`Field '${name}' must support operators: ['equal', 'in']`);
+      if (!operators?.has('Equal') || !operators?.has('In')) {
+        throw new Error(`Field '${name}' must support operators: ['Equal', 'In']`);
       }
     }
 
@@ -35,14 +36,14 @@ export default class ConditionTreeFactory {
   }
 
   static union(...trees: ConditionTree[]): ConditionTree {
-    return ConditionTreeFactory.group(Aggregator.Or, trees);
+    return ConditionTreeFactory.group('Or', trees);
   }
 
   static intersect(...trees: ConditionTree[]): ConditionTree {
-    const result = ConditionTreeFactory.group(Aggregator.And, trees);
+    const result = ConditionTreeFactory.group('And', trees);
     const isEmptyAnd =
       result instanceof ConditionTreeBranch &&
-      result.aggregator === Aggregator.And &&
+      result.aggregator === 'And' &&
       result.conditions.length === 0;
 
     return isEmptyAnd ? null : result;
@@ -50,12 +51,17 @@ export default class ConditionTreeFactory {
 
   static fromPlainObject(json: unknown): ConditionTree {
     if (ConditionTreeFactory.isLeaf(json)) {
-      return new ConditionTreeLeaf(json.field, json.operator, json.value);
+      // Convert snake_case to PascalCase
+      const operator =
+        json.operator.slice(0, 1).toUpperCase() +
+        json.operator.slice(1).replace(/_[a-z]/g, match => match.slice(1).toUpperCase());
+
+      return new ConditionTreeLeaf(json.field, operator as Operator, json.value);
     }
 
     if (ConditionTreeFactory.isBranch(json)) {
       const branch = new ConditionTreeBranch(
-        json.aggregator,
+        json.aggregator.toLowerCase() === 'and' ? 'And' : 'Or',
         json.conditions.map(subTree => ConditionTreeFactory.fromPlainObject(subTree)),
       );
 
@@ -72,8 +78,8 @@ export default class ConditionTreeFactory {
       const fieldValues = values.map(tuple => tuple[0]);
 
       return fieldValues.length > 1
-        ? new ConditionTreeLeaf(fields[0], Operator.In, fieldValues)
-        : new ConditionTreeLeaf(fields[0], Operator.Equal, fieldValues[0]);
+        ? new ConditionTreeLeaf(fields[0], 'In', fieldValues)
+        : new ConditionTreeLeaf(fields[0], 'Equal', fieldValues[0]);
     }
 
     const [firstField, ...otherFields] = fields;

@@ -1,17 +1,10 @@
 import * as factories from '../../__factories__';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
 
-import {
-  ColumnSchema,
-  FieldTypes,
-  ManyToManySchema,
-  PrimitiveTypes,
-} from '../../../src/interfaces/schema';
+import { ColumnSchema, ManyToManySchema } from '../../../src/interfaces/schema';
 import { PaginatedFilter, Sort } from '../../../src';
-import Aggregation, { AggregationOperation } from '../../../src/interfaces/query/aggregation';
-import ConditionTreeLeaf, {
-  Operator,
-} from '../../../src/interfaces/query/condition-tree/nodes/leaf';
+import Aggregation from '../../../src/interfaces/query/aggregation';
+import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import Filter from '../../../src/interfaces/query/filter/unpaginated';
 import Projection from '../../../src/interfaces/query/projection';
@@ -71,11 +64,11 @@ describe('RelationCollectionDecorator', () => {
           fields: {
             id: factories.columnSchema.build({
               isPrimaryKey: true,
-              columnType: PrimitiveTypes.Number,
+              columnType: 'Number',
             }),
             filename: factories.columnSchema.build(),
             otherId: factories.columnSchema.build({
-              columnType: PrimitiveTypes.Number,
+              columnType: 'Number',
             }),
           },
         }),
@@ -89,11 +82,11 @@ describe('RelationCollectionDecorator', () => {
           fields: {
             id: factories.columnSchema.build({
               isPrimaryKey: true,
-              columnType: PrimitiveTypes.Number,
+              columnType: 'Number',
             }),
-            issueDate: factories.columnSchema.build({ columnType: PrimitiveTypes.Dateonly }),
-            ownerId: factories.columnSchema.build({ columnType: PrimitiveTypes.Number }),
-            pictureId: factories.columnSchema.build({ columnType: PrimitiveTypes.Number }),
+            issueDate: factories.columnSchema.build({ columnType: 'Dateonly' }),
+            ownerId: factories.columnSchema.build({ columnType: 'Number' }),
+            pictureId: factories.columnSchema.build({ columnType: 'Number' }),
             picture: factories.manyToOneSchema.build({
               foreignCollection: 'pictures',
               foreignKey: 'pictureId',
@@ -119,9 +112,9 @@ describe('RelationCollectionDecorator', () => {
           fields: {
             id: factories.columnSchema.build({
               isPrimaryKey: true,
-              columnType: PrimitiveTypes.Number,
+              columnType: 'Number',
             }),
-            otherId: factories.columnSchema.build({ columnType: PrimitiveTypes.Number }),
+            otherId: factories.columnSchema.build({ columnType: 'Number' }),
             name: factories.columnSchema.build(),
           },
         }),
@@ -157,7 +150,7 @@ describe('RelationCollectionDecorator', () => {
       test('should throw with a non existent fk', () => {
         expect(() =>
           newPersons.addRelation('persons', {
-            type: FieldTypes.OneToOne,
+            type: 'OneToOne',
             foreignCollection: 'passports',
             originKey: '__nonExisting__',
           }),
@@ -172,7 +165,7 @@ describe('RelationCollectionDecorator', () => {
 
         expect(() =>
           newPersons.addRelation('passport', {
-            type: FieldTypes.OneToOne,
+            type: 'OneToOne',
             foreignCollection: 'passports',
             originKey: 'ownerId',
           }),
@@ -184,7 +177,7 @@ describe('RelationCollectionDecorator', () => {
       test('should register the relation', () => {
         expect(() =>
           newPersons.addRelation('passport', {
-            type: FieldTypes.OneToOne,
+            type: 'OneToOne',
             foreignCollection: 'passports',
             originKey: 'ownerId',
             originKeyTarget: 'name',
@@ -197,7 +190,7 @@ describe('RelationCollectionDecorator', () => {
       test('should register the relation', () => {
         expect(() =>
           newPersons.addRelation('passport', {
-            type: FieldTypes.OneToOne,
+            type: 'OneToOne',
             foreignCollection: 'passports',
             originKey: 'ownerId',
             originKeyTarget: 'id',
@@ -210,7 +203,7 @@ describe('RelationCollectionDecorator', () => {
       test('should register the relation', () => {
         expect(() =>
           newPersons.addRelation('passport', {
-            type: FieldTypes.OneToOne,
+            type: 'OneToOne',
             foreignCollection: 'passports',
             originKey: 'ownerId',
           }),
@@ -224,7 +217,7 @@ describe('RelationCollectionDecorator', () => {
       test('should throw an error', () => {
         expect(() =>
           newPersons.addRelation('passport', {
-            type: FieldTypes.OneToMany,
+            type: 'OneToMany',
             foreignCollection: 'passports',
             originKey: 'ownerId',
             originKeyTarget: 'name',
@@ -237,7 +230,7 @@ describe('RelationCollectionDecorator', () => {
       test('should register the relation', () => {
         expect(() =>
           newPersons.addRelation('passport', {
-            type: FieldTypes.OneToMany,
+            type: 'OneToMany',
             foreignCollection: 'passports',
             originKey: 'ownerId',
             originKeyTarget: 'id',
@@ -250,7 +243,7 @@ describe('RelationCollectionDecorator', () => {
       test('should register the relation', () => {
         expect(() =>
           newPersons.addRelation('passport', {
-            type: FieldTypes.OneToMany,
+            type: 'OneToMany',
             foreignCollection: 'passports',
             originKey: 'ownerId',
           }),
@@ -264,7 +257,7 @@ describe('RelationCollectionDecorator', () => {
       test('should throw with a non existent collection', () => {
         expect(() =>
           newPassports.addRelation('someName', {
-            type: FieldTypes.ManyToOne,
+            type: 'ManyToOne',
             foreignCollection: '__nonExisting__',
             foreignKey: 'ownerId',
           }),
@@ -274,7 +267,7 @@ describe('RelationCollectionDecorator', () => {
       test('should throw with a non existent fk', () => {
         expect(() =>
           newPassports.addRelation('owner', {
-            type: FieldTypes.ManyToOne,
+            type: 'ManyToOne',
             foreignCollection: 'persons',
             foreignKey: '__nonExisting__',
           }),
@@ -289,7 +282,7 @@ describe('RelationCollectionDecorator', () => {
 
         expect(() =>
           newPassports.addRelation('owner', {
-            type: FieldTypes.ManyToOne,
+            type: 'ManyToOne',
             foreignCollection: 'persons',
             foreignKey: 'ownerId',
           }),
@@ -301,7 +294,7 @@ describe('RelationCollectionDecorator', () => {
       test('should register the relation', () => {
         expect(() =>
           newPassports.addRelation('owner', {
-            type: FieldTypes.ManyToOne,
+            type: 'ManyToOne',
             foreignCollection: 'persons',
             foreignKey: 'ownerId',
             foreignKeyTarget: 'id',
@@ -314,7 +307,7 @@ describe('RelationCollectionDecorator', () => {
       test('should register the relation', () => {
         expect(() =>
           newPassports.addRelation('owner', {
-            type: FieldTypes.ManyToOne,
+            type: 'ManyToOne',
             foreignCollection: 'persons',
             foreignKey: 'ownerId',
           }),
@@ -328,7 +321,7 @@ describe('RelationCollectionDecorator', () => {
       test('should throw with a non existent though collection', () => {
         expect(() =>
           newPersons.addRelation('persons', {
-            type: FieldTypes.ManyToMany,
+            type: 'ManyToMany',
             foreignCollection: 'passports',
             foreignKey: 'ownerId',
             originKey: 'ownerId',
@@ -340,7 +333,7 @@ describe('RelationCollectionDecorator', () => {
       test('should throw with a non existent originKey', () => {
         expect(() =>
           newPersons.addRelation('persons', {
-            type: FieldTypes.ManyToMany,
+            type: 'ManyToMany',
             foreignCollection: 'passports',
             foreignKey: 'ownerId',
             originKey: '__nonExisting__',
@@ -352,7 +345,7 @@ describe('RelationCollectionDecorator', () => {
       test('should throw with a non existent fk', () => {
         expect(() =>
           newPersons.addRelation('persons', {
-            type: FieldTypes.ManyToMany,
+            type: 'ManyToMany',
             foreignCollection: 'passports',
             foreignKey: '__nonExisting__',
             originKey: 'ownerId',
@@ -366,7 +359,7 @@ describe('RelationCollectionDecorator', () => {
       test('should register the relation', () => {
         expect(() =>
           newPersons.addRelation('persons', {
-            type: FieldTypes.ManyToMany,
+            type: 'ManyToMany',
             foreignCollection: 'passports',
             foreignKey: 'ownerId',
             originKey: 'ownerId',
@@ -382,7 +375,7 @@ describe('RelationCollectionDecorator', () => {
       test('should register the relation', () => {
         expect(() =>
           newPersons.addRelation('persons', {
-            type: FieldTypes.ManyToMany,
+            type: 'ManyToMany',
             foreignCollection: 'passports',
             foreignKey: 'ownerId',
             originKey: 'ownerId',
@@ -398,7 +391,7 @@ describe('RelationCollectionDecorator', () => {
       test('should register the relation', () => {
         expect(() =>
           newPersons.addRelation('persons', {
-            type: FieldTypes.ManyToMany,
+            type: 'ManyToMany',
             foreignCollection: 'passports',
             foreignKey: 'ownerId',
             originKey: 'ownerId',
@@ -412,7 +405,7 @@ describe('RelationCollectionDecorator', () => {
   describe('emulated projection', () => {
     test('should fetch fields from a many to one relation', async () => {
       newPassports.addRelation('owner', {
-        type: FieldTypes.ManyToOne,
+        type: 'ManyToOne',
         foreignCollection: 'persons',
         foreignKey: 'ownerId',
       });
@@ -428,7 +421,7 @@ describe('RelationCollectionDecorator', () => {
 
     test('should fetch fields from a one to one relation', async () => {
       newPersons.addRelation('passport', {
-        type: FieldTypes.OneToOne,
+        type: 'OneToOne',
         foreignCollection: 'passports',
         originKey: 'ownerId',
         originKeyTarget: 'otherId',
@@ -448,7 +441,7 @@ describe('RelationCollectionDecorator', () => {
 
     test('should fetch fields from a one to many relation', async () => {
       newPersons.addRelation('passport', {
-        type: FieldTypes.OneToMany,
+        type: 'OneToMany',
         foreignCollection: 'passports',
         originKey: 'ownerId',
         originKeyTarget: 'otherId',
@@ -468,7 +461,7 @@ describe('RelationCollectionDecorator', () => {
 
     test('should fetch fields from a many to many relation', async () => {
       newPersons.addRelation('persons', {
-        type: FieldTypes.ManyToMany,
+        type: 'ManyToMany',
         foreignCollection: 'persons',
         foreignKey: 'ownerId',
         originKey: 'ownerId',
@@ -491,12 +484,12 @@ describe('RelationCollectionDecorator', () => {
 
     test('should fetch fields from a native behind an emulated one', async () => {
       newPersons.addRelation('passport', {
-        type: FieldTypes.OneToOne,
+        type: 'OneToOne',
         foreignCollection: 'passports',
         originKey: 'ownerId',
       });
       newPassports.addRelation('owner', {
-        type: FieldTypes.ManyToOne,
+        type: 'ManyToOne',
         foreignCollection: 'persons',
         foreignKey: 'ownerId',
       });
@@ -517,12 +510,12 @@ describe('RelationCollectionDecorator', () => {
 
     test('should not break with deep reprojection', async () => {
       newPersons.addRelation('passport', {
-        type: FieldTypes.OneToOne,
+        type: 'OneToOne',
         foreignCollection: 'passports',
         originKey: 'ownerId',
       });
       newPassports.addRelation('owner', {
-        type: FieldTypes.ManyToOne,
+        type: 'ManyToOne',
         foreignCollection: 'persons',
         foreignKey: 'ownerId',
       });
@@ -550,13 +543,13 @@ describe('RelationCollectionDecorator', () => {
   describe('with two emulated relations', () => {
     beforeEach(() => {
       newPersons.addRelation('passport', {
-        type: FieldTypes.OneToOne,
+        type: 'OneToOne',
         foreignCollection: 'passports',
         originKey: 'ownerId',
       });
 
       newPassports.addRelation('owner', {
-        type: FieldTypes.ManyToOne,
+        type: 'ManyToOne',
         foreignCollection: 'persons',
         foreignKey: 'ownerId',
       });
@@ -566,7 +559,7 @@ describe('RelationCollectionDecorator', () => {
       test('should filter by a many to one relation', async () => {
         const records = await newPassports.list(
           new Filter({
-            conditionTree: new ConditionTreeLeaf('owner:name', Operator.Equal, 'Mae S. Waldron'),
+            conditionTree: new ConditionTreeLeaf('owner:name', 'Equal', 'Mae S. Waldron'),
             timezone: 'Europe/Paris',
           }),
           new Projection('id', 'issueDate'),
@@ -578,11 +571,7 @@ describe('RelationCollectionDecorator', () => {
       test('should filter by a one to one relation', async () => {
         const records = await newPersons.list(
           new Filter({
-            conditionTree: new ConditionTreeLeaf(
-              'passport:issueDate',
-              Operator.Equal,
-              '2017-01-01',
-            ),
+            conditionTree: new ConditionTreeLeaf('passport:issueDate', 'Equal', '2017-01-01'),
             timezone: 'Europe/Paris',
           }),
           new Projection('id', 'name'),
@@ -594,11 +583,7 @@ describe('RelationCollectionDecorator', () => {
       test('should filter by native relation behind an emulated one', async () => {
         const records = await newPersons.list(
           new Filter({
-            conditionTree: new ConditionTreeLeaf(
-              'passport:picture:filename',
-              Operator.Equal,
-              'pic1.jpg',
-            ),
+            conditionTree: new ConditionTreeLeaf('passport:picture:filename', 'Equal', 'pic1.jpg'),
             timezone: 'Europe/Paris',
           }),
           new Projection('id', 'name'),
@@ -615,7 +600,7 @@ describe('RelationCollectionDecorator', () => {
           new Filter({
             conditionTree: new ConditionTreeLeaf(
               'passport:owner:passport:issueDate',
-              Operator.Equal,
+              'Equal',
               '2017-01-01',
             ),
             timezone: 'Europe/Paris',
@@ -658,7 +643,7 @@ describe('RelationCollectionDecorator', () => {
       test("should not emulate aggregation which don't need it", async () => {
         const filter = new Filter({});
         const aggregation = new Aggregation({
-          operation: AggregationOperation.Count,
+          operation: 'Count',
           groups: [{ field: 'name' }],
         });
         const groups = await newPersons.aggregate(filter, aggregation, null);
@@ -674,7 +659,7 @@ describe('RelationCollectionDecorator', () => {
       test('should give valid results otherwise', async () => {
         const filter = new Filter({});
         const aggregation = new Aggregation({
-          operation: AggregationOperation.Count,
+          operation: 'Count',
           groups: [{ field: 'passport:picture:filename' }],
         });
         const groups = await newPersons.aggregate(filter, aggregation, 2);

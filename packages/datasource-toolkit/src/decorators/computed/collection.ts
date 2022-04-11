@@ -1,4 +1,4 @@
-import { CollectionSchema, FieldTypes, RelationSchema } from '../../interfaces/schema';
+import { CollectionSchema, RelationSchema } from '../../interfaces/schema';
 import { ComputedDefinition } from './types';
 import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
@@ -70,7 +70,7 @@ export default class ComputedCollection extends CollectionDecorator {
         isPrimaryKey: false,
         isReadOnly: true,
         isSortable: false,
-        type: FieldTypes.Column,
+        type: 'Column',
       };
     }
 

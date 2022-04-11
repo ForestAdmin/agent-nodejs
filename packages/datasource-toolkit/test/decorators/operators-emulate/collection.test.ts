@@ -1,11 +1,9 @@
 import * as factories from '../../__factories__';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
-import { ColumnSchema, PrimitiveTypes } from '../../../src/interfaces/schema';
+import { ColumnSchema } from '../../../src/interfaces/schema';
 import { RecordData } from '../../../src/interfaces/record';
 import ConditionTreeFactory from '../../../src/interfaces/query/condition-tree/factory';
-import ConditionTreeLeaf, {
-  Operator,
-} from '../../../src/interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import OperatorEmulationDecorator from '../../../src/decorators/operators-emulate/collection';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
@@ -28,7 +26,7 @@ describe('OperatorsEmulate', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build({
-              columnType: PrimitiveTypes.Number,
+              columnType: 'Number',
               filterOperators: new Set(), // note that 'id' does not support filtering
             }),
             title: factories.columnSchema.build(),
@@ -46,8 +44,8 @@ describe('OperatorsEmulate', () => {
     });
 
     test('emulateFieldOperator() should throw on any case', () => {
-      expect(() => newBooks.emulateFieldOperator('title', Operator.GreaterThan)).toThrow(
-        "the primary key columns must support 'equal' and 'in' operators",
+      expect(() => newBooks.emulateFieldOperator('title', 'GreaterThan')).toThrow(
+        "the primary key columns must support 'Equal' and 'In' operators",
       );
     });
   });
@@ -70,8 +68,8 @@ describe('OperatorsEmulate', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build({
-              columnType: PrimitiveTypes.Number,
-              filterOperators: new Set([Operator.Equal, Operator.In]),
+              columnType: 'Number',
+              filterOperators: new Set(['Equal', 'In']),
             }),
             authorId: factories.columnSchema.build(),
             author: factories.manyToOneSchema.build({
@@ -88,10 +86,10 @@ describe('OperatorsEmulate', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build({
-              columnType: PrimitiveTypes.Number,
-              filterOperators: new Set([Operator.Equal, Operator.In]),
+              columnType: 'Number',
+              filterOperators: new Set(['Equal', 'In']),
             }),
-            firstName: factories.columnSchema.build({ filterOperators: new Set([Operator.Equal]) }),
+            firstName: factories.columnSchema.build({ filterOperators: new Set(['Equal']) }),
             lastName: factories.columnSchema.build(),
           },
         }),
@@ -109,19 +107,19 @@ describe('OperatorsEmulate', () => {
     });
 
     test('emulateFieldOperator() should throw if the field does not exists', () => {
-      expect(() => newBooks.emulateFieldOperator('__dontExist', Operator.Equal)).toThrow(
+      expect(() => newBooks.emulateFieldOperator('__dontExist', 'Equal')).toThrow(
         "Column not found: 'books.__dontExist'",
       );
     });
 
     test('emulateFieldOperator() should throw if the field is a relation', () => {
-      expect(() => newBooks.emulateFieldOperator('author', Operator.Equal)).toThrow(
+      expect(() => newBooks.emulateFieldOperator('author', 'Equal')).toThrow(
         "Unexpected field type: 'books.author' (found 'ManyToOne' expected 'Column')",
       );
     });
 
     test('emulateFieldOperator() should throw if the field is in a relation', () => {
-      expect(() => newBooks.emulateFieldOperator('author:firstName', Operator.Equal)).toThrow(
+      expect(() => newBooks.emulateFieldOperator('author:firstName', 'Equal')).toThrow(
         'Cannot replace operator for relation',
       );
     });
@@ -130,8 +128,8 @@ describe('OperatorsEmulate', () => {
       beforeEach(() => {
         newBooks.replaceFieldOperator(
           'title',
-          Operator.StartsWith,
-          new ConditionTreeLeaf('title', Operator.Like, 'aTitleValue'),
+          'StartsWith',
+          new ConditionTreeLeaf('title', 'Like', 'aTitleValue'),
         );
       });
 
@@ -140,13 +138,13 @@ describe('OperatorsEmulate', () => {
         const filter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({
             field: 'title',
-            operator: Operator.StartsWith,
+            operator: 'StartsWith',
             value: 'Found',
           }),
         });
 
         await expect(newBooks.list(filter, projection)).rejects.toThrow(
-          "The given operator 'like' is not supported",
+          "The given operator 'Like' is not supported",
         );
         expect(books.list).not.toHaveBeenCalled();
       });
@@ -156,14 +154,14 @@ describe('OperatorsEmulate', () => {
       beforeEach(() => {
         newBooks.replaceFieldOperator(
           'title',
-          Operator.StartsWith,
-          async ({ value }) => new ConditionTreeLeaf('title', Operator.Like, `${value}%`),
+          'StartsWith',
+          async ({ value }) => new ConditionTreeLeaf('title', 'Like', `${value}%`),
         );
 
         newBooks.replaceFieldOperator(
           'title',
-          Operator.Like,
-          async ({ value }) => new ConditionTreeLeaf('title', Operator.StartsWith, `${value}%`),
+          'Like',
+          async ({ value }) => new ConditionTreeLeaf('title', 'StartsWith', `${value}%`),
         );
       });
 
@@ -172,14 +170,14 @@ describe('OperatorsEmulate', () => {
         const filter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({
             field: 'title',
-            operator: Operator.StartsWith,
+            operator: 'StartsWith',
             value: 'Found',
           }),
         });
 
         await expect(newBooks.list(filter, projection)).rejects.toThrow(
           'Operator replacement cycle: ' +
-            'books.title[starts_with] -> books.title[like] -> books.title[starts_with]',
+            'books.title[StartsWith] -> books.title[Like] -> books.title[StartsWith]',
         );
         expect(books.list).not.toHaveBeenCalled();
       });
@@ -187,13 +185,13 @@ describe('OperatorsEmulate', () => {
 
     describe('when emulating an operator', () => {
       beforeEach(() => {
-        newPersons.emulateFieldOperator('firstName', Operator.StartsWith);
+        newPersons.emulateFieldOperator('firstName', 'StartsWith');
       });
 
       test('schema() should support StartWith operator', () => {
         expect(newPersons.schema.fields.firstName).toHaveProperty(
           'filterOperators',
-          new Set([Operator.Equal, Operator.StartsWith]),
+          new Set(['Equal', 'StartsWith']),
         );
       });
 
@@ -204,7 +202,7 @@ describe('OperatorsEmulate', () => {
         const filter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({
             field: 'author:firstName',
-            operator: Operator.Equal,
+            operator: 'Equal',
             value: 'Isaac',
           }),
         });
@@ -228,7 +226,7 @@ describe('OperatorsEmulate', () => {
         const filter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({
             field: 'author:firstName',
-            operator: Operator.StartsWith,
+            operator: 'StartsWith',
             value: 'Isaa',
           }),
         });
@@ -241,7 +239,7 @@ describe('OperatorsEmulate', () => {
 
         expect(books.list).toHaveBeenCalledTimes(1);
         expect(books.list).toHaveBeenCalledWith(
-          { conditionTree: { field: 'author:id', operator: Operator.Equal, value: 2 } },
+          { conditionTree: { field: 'author:id', operator: 'Equal', value: 2 } },
           projection,
         );
       });
@@ -250,14 +248,14 @@ describe('OperatorsEmulate', () => {
     describe('when() implementing an operator in the least efficient way ever', () => {
       beforeEach(() => {
         // Emulate title 'ShorterThan' and 'Contains'
-        newBooks.emulateFieldOperator('title', Operator.ShorterThan);
-        newBooks.emulateFieldOperator('title', Operator.Contains);
+        newBooks.emulateFieldOperator('title', 'ShorterThan');
+        newBooks.emulateFieldOperator('title', 'Contains');
 
         // Define 'Equal(x)' to be 'Contains(x) && ShorterThan(x.length + 1)'
-        newBooks.replaceFieldOperator('title', Operator.Equal, async ({ value }) =>
+        newBooks.replaceFieldOperator('title', 'Equal', async ({ value }) =>
           ConditionTreeFactory.intersect(
-            new ConditionTreeLeaf('title', Operator.Contains, value),
-            new ConditionTreeLeaf('title', Operator.ShorterThan, (value as string).length + 1),
+            new ConditionTreeLeaf('title', 'Contains', value),
+            new ConditionTreeLeaf('title', 'ShorterThan', (value as string).length + 1),
           ),
         );
       });
@@ -291,7 +289,7 @@ describe('OperatorsEmulate', () => {
         );
 
         const filter = new PaginatedFilter({
-          conditionTree: new ConditionTreeLeaf('title', Operator.Equal, 'Foundation'),
+          conditionTree: new ConditionTreeLeaf('title', 'Equal', 'Foundation'),
         });
 
         const records = await newBooks.list(filter, new Projection('id', 'title'));

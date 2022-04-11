@@ -1,4 +1,3 @@
-import { ActionResultType } from '../../../src/interfaces/action';
 import ResultBuilder from '../../../src/decorators/actions/result-builder';
 
 describe('ResponseBuilder', () => {
@@ -6,7 +5,7 @@ describe('ResponseBuilder', () => {
 
   test('success', () => {
     expect(builder.success('Great!')).toEqual({
-      type: ActionResultType.Success,
+      type: 'Success',
       message: 'Great!',
       format: 'text',
       invalidated: new Set(),
@@ -15,7 +14,7 @@ describe('ResponseBuilder', () => {
 
   test('error', () => {
     expect(builder.error('booo')).toEqual({
-      type: ActionResultType.Error,
+      type: 'Error',
       message: 'booo',
     });
   });
@@ -24,7 +23,7 @@ describe('ResponseBuilder', () => {
     const result = builder.file('col1,col2,col3', 'test.csv', 'text/csv');
 
     expect(result).toMatchObject({
-      type: ActionResultType.File,
+      type: 'File',
       name: 'test.csv',
       mimeType: 'text/csv',
     });
@@ -32,14 +31,14 @@ describe('ResponseBuilder', () => {
 
   test('redirect', () => {
     expect(builder.redirectTo('/mypath')).toEqual({
-      type: ActionResultType.Redirect,
+      type: 'Redirect',
       path: '/mypath',
     });
   });
 
   test('webhook', () => {
     expect(builder.webhook('http://someurl')).toEqual({
-      type: ActionResultType.Webhook,
+      type: 'Webhook',
       url: 'http://someurl',
       method: 'POST',
       headers: {},

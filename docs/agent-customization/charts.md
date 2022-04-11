@@ -53,7 +53,7 @@ agent.addChart('frenchBooks', async (context, responseBuilder) => {
   const rows = await context.dataSource
     .getCollection('books')
     .aggregate(
-      { conditionTree: { field: 'author:country:name', operator: 'equal', value: 'France' } },
+      { conditionTree: { field: 'author:country:name', operator: 'Equal', value: 'France' } },
       { operation: 'Count' },
     );
 

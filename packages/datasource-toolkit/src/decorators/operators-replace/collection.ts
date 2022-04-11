@@ -1,5 +1,5 @@
-import { CollectionSchema, ColumnSchema, FieldSchema, FieldTypes } from '../../interfaces/schema';
-import { Operator } from '../../interfaces/query/condition-tree/nodes/leaf';
+import { CollectionSchema, ColumnSchema, FieldSchema } from '../../interfaces/schema';
+import { allOperators } from '../../interfaces/query/condition-tree/nodes/operators';
 import CollectionDecorator from '../collection-decorator';
 import CollectionUtils from '../../utils/collection';
 import ConditionTreeEquivalent from '../../interfaces/query/condition-tree/equivalence';
@@ -13,8 +13,8 @@ export default class OperatorsDecorator extends CollectionDecorator {
     const fields: Record<string, FieldSchema> = {};
 
     for (const [name, schema] of Object.entries(childSchema.fields)) {
-      if (schema.type === FieldTypes.Column) {
-        const newOperators = Object.values(Operator).filter(operator =>
+      if (schema.type === 'Column') {
+        const newOperators = allOperators.filter(operator =>
           ConditionTreeEquivalent.hasEquivalentTree(
             operator,
             schema.filterOperators,

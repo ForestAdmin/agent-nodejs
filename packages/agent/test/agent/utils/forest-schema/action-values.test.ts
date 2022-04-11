@@ -1,5 +1,3 @@
-import { ActionFieldType, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-
 import * as factories from '../../__factories__';
 import ForestValueConverter from '../../../../src/agent/utils/forest-schema/action-values';
 
@@ -10,7 +8,7 @@ describe('ForestValueConverter', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.build({
-            columnType: PrimitiveTypes.Number,
+            columnType: 'Number',
             isPrimaryKey: true,
           }),
         },
@@ -31,7 +29,7 @@ describe('ForestValueConverter', () => {
       const fields = [
         {
           label: 'review',
-          type: ActionFieldType.Collection,
+          type: 'Collection' as const,
           watchChanges: false,
           collectionName: 'reviews',
         },
@@ -44,22 +42,11 @@ describe('ForestValueConverter', () => {
 
     test('should unserialize files when relevant', () => {
       const fields = [
-        {
-          label: 'file',
-          type: ActionFieldType.File,
-          watchChanges: false,
-        },
-        {
-          label: 'file2',
-          type: ActionFieldType.String,
-          watchChanges: false,
-        },
-        {
-          label: 'file3',
-          type: ActionFieldType.FileList,
-          watchChanges: false,
-        },
+        { label: 'file', type: 'File' as const, watchChanges: false },
+        { label: 'file2', type: 'String' as const, watchChanges: false },
+        { label: 'file3', type: 'FileList' as const, watchChanges: false },
       ];
+
       const data = {
         file: 'data:text/csv;name=toto.csv;charset=utf8;base64,AAAA',
         file2: 'data:text/csv;name=toto.csv;charset=utf8;base64,AAAA',
@@ -205,7 +192,7 @@ describe('ForestValueConverter', () => {
     test('should check enums', () => {
       const field = {
         label: 'label',
-        type: ActionFieldType.Enum,
+        type: 'Enum' as const,
         enumValues: ['a', 'b', 'c'],
         watchChanges: false,
       };
@@ -217,7 +204,7 @@ describe('ForestValueConverter', () => {
     test('should check enum lists', () => {
       const field = {
         label: 'label',
-        type: ActionFieldType.EnumList,
+        type: 'EnumList' as const,
         enumValues: ['a', 'b', 'c'],
         watchChanges: false,
       };
@@ -229,7 +216,7 @@ describe('ForestValueConverter', () => {
     test('should pack ids', () => {
       const field = {
         label: 'label',
-        type: ActionFieldType.Collection,
+        type: 'Collection' as const,
         collectionName: 'reviews',
         watchChanges: false,
       };
@@ -238,11 +225,7 @@ describe('ForestValueConverter', () => {
     });
 
     test('should make data uris', () => {
-      const field = {
-        label: 'label',
-        type: ActionFieldType.File,
-        watchChanges: false,
-      };
+      const field = { label: 'label', type: 'File' as const, watchChanges: false };
 
       expect(
         ForestValueConverter.valueToForest(field, {
@@ -253,11 +236,7 @@ describe('ForestValueConverter', () => {
     });
 
     test('should make data uris in lists', () => {
-      const field = {
-        label: 'label',
-        type: ActionFieldType.FileList,
-        watchChanges: false,
-      };
+      const field = { label: 'label', type: 'FileList' as const, watchChanges: false };
 
       expect(
         ForestValueConverter.valueToForest(field, [

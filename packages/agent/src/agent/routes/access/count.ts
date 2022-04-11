@@ -1,4 +1,4 @@
-import { Aggregation, AggregationOperation } from '@forestadmin/datasource-toolkit';
+import { Aggregation } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
@@ -16,7 +16,7 @@ export default class CountRoute extends CollectionRoute {
     const scope = await this.services.permissions.getScope(this.collection, context);
     const filter = ContextFilterFactory.build(this.collection, context, scope);
 
-    const aggregation = new Aggregation({ operation: AggregationOperation.Count });
+    const aggregation = new Aggregation({ operation: 'Count' });
     const aggregationResult = await this.collection.aggregate(filter, aggregation);
     const count = aggregationResult?.[0]?.value ?? 0;
 

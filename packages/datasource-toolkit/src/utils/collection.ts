@@ -1,6 +1,6 @@
 import { Collection } from '../interfaces/collection';
 import { CompositeId, RecordData } from '../interfaces/record';
-import { FieldSchema, FieldTypes, RelationSchema } from '../interfaces/schema';
+import { FieldSchema, RelationSchema } from '../interfaces/schema';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
 import Filter from '../interfaces/query/filter/unpaginated';
@@ -27,7 +27,7 @@ export default class CollectionUtils {
       throw new Error(`Relation not found '${collection.name}.${associationName}'`);
     }
 
-    if (schema.type !== FieldTypes.ManyToOne && schema.type !== FieldTypes.OneToOne) {
+    if (schema.type !== 'ManyToOne' && schema.type !== 'OneToOne') {
       throw new Error(
         `Unexpected field type '${schema.type}': '${collection.name}.${associationName}'`,
       );
@@ -45,20 +45,20 @@ export default class CollectionUtils {
     const inverse = Object.entries(foreignCollection.schema.fields).find(
       ([, field]: [string, RelationSchema]) => {
         const isManyToManyInverse =
-          field.type === FieldTypes.ManyToMany &&
-          relation.type === FieldTypes.ManyToMany &&
+          field.type === 'ManyToMany' &&
+          relation.type === 'ManyToMany' &&
           field.originKey === relation.foreignKey &&
           field.throughCollection === relation.throughCollection &&
           field.foreignKey === relation.originKey;
 
         const isManyToOneInverse =
-          field.type === FieldTypes.ManyToOne &&
-          (relation.type === FieldTypes.OneToMany || relation.type === FieldTypes.OneToOne) &&
+          field.type === 'ManyToOne' &&
+          (relation.type === 'OneToMany' || relation.type === 'OneToOne') &&
           field.foreignKey === relation.originKey;
 
         const isOtherInverse =
-          (field.type === FieldTypes.OneToMany || field.type === FieldTypes.OneToOne) &&
-          relation.type === FieldTypes.ManyToOne &&
+          (field.type === 'OneToMany' || field.type === 'OneToOne') &&
+          relation.type === 'ManyToOne' &&
           field.originKey === relation.foreignKey;
 
         return (
@@ -82,11 +82,7 @@ export default class CollectionUtils {
     const foreign = collection.dataSource.getCollection(relation.foreignCollection);
 
     // Optimization for many to many when there is not search/segment.
-    if (
-      relation.type === FieldTypes.ManyToMany &&
-      relation.foreignRelation &&
-      foreignFilter.isNestable
-    ) {
+    if (relation.type === 'ManyToMany' && relation.foreignRelation && foreignFilter.isNestable) {
       const through = collection.dataSource.getCollection(relation.throughCollection);
       const records = await through.list(
         await FilterFactory.makeThroughFilter(collection, id, relationName, foreignFilter),
@@ -115,11 +111,7 @@ export default class CollectionUtils {
     const foreign = collection.dataSource.getCollection(relation.foreignCollection);
 
     // Optimization for many to many when there is not search/segment (saves one query)
-    if (
-      relation.type === FieldTypes.ManyToMany &&
-      relation.foreignRelation &&
-      foreignFilter.isNestable
-    ) {
+    if (relation.type === 'ManyToMany' && relation.foreignRelation && foreignFilter.isNestable) {
       const through = collection.dataSource.getCollection(relation.throughCollection);
       const records = await through.aggregate(
         await FilterFactory.makeThroughFilter(collection, id, relationName, foreignFilter),

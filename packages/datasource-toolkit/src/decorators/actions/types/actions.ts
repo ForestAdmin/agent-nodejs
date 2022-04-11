@@ -16,7 +16,7 @@ interface BaseAction<Scope extends ActionScope, Context extends ActionContext> {
   ): void | ActionResult | Promise<void> | Promise<ActionResult>;
 }
 
-export type ActionGlobal = BaseAction<ActionScope.Global, ActionContext>;
-export type ActionBulk = BaseAction<ActionScope.Bulk, ActionContextBulk>;
-export type ActionSingle = BaseAction<ActionScope.Single, ActionContextSingle>;
+export type ActionGlobal = BaseAction<'Global', ActionContext>;
+export type ActionBulk = BaseAction<'Bulk', ActionContextBulk>;
+export type ActionSingle = BaseAction<'Single', ActionContextSingle>;
 export type Action = ActionSingle | ActionBulk | ActionGlobal;
