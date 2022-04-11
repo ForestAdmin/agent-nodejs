@@ -82,7 +82,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
   // Build decorator
   beforeEach(() => {
-    decoratedDataSource = new DataSourceDecorator(dataSource, SortEmulationDecorator);
+    decoratedDataSource = new DataSourceDecorator(() => {}, dataSource, SortEmulationDecorator);
 
     newBooks = decoratedDataSource.getCollection('books');
     newPersons = decoratedDataSource.getCollection('persons');

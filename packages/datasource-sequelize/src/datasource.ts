@@ -1,14 +1,14 @@
 import { Sequelize } from 'sequelize';
 
-import { BaseDataSource } from '@forestadmin/datasource-toolkit';
+import { BaseDataSource, Logger } from '@forestadmin/datasource-toolkit';
 
 import SequelizeCollection from './collection';
 
 export default class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
   protected sequelize: Sequelize = null;
 
-  constructor(sequelize: Sequelize) {
-    super();
+  constructor(logger: Logger, sequelize: Sequelize) {
+    super(logger);
 
     if (!sequelize) throw new Error('Invalid (null) Sequelize instance.');
 

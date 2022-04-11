@@ -2,7 +2,7 @@ import { Aggregation, Page, PaginatedFilter, Projection } from '@forestadmin/dat
 import BookCollection from '../../src/collections/books';
 import DummyDataSource from '../../src/datasource';
 
-const instanciateCollection = () => new BookCollection(new DummyDataSource());
+const instanciateCollection = () => new BookCollection(new DummyDataSource(() => {}));
 
 describe('DummyDataSource > Collections > Books', () => {
   it('should instanciate properly', () => {
@@ -11,7 +11,7 @@ describe('DummyDataSource > Collections > Books', () => {
 
   describe('dataSource', () => {
     it('should return the dataSource', () => {
-      const dataSource = new DummyDataSource();
+      const dataSource = new DummyDataSource(() => {});
       const bookCollection = new BookCollection(dataSource);
 
       expect(bookCollection.dataSource).toEqual(dataSource);

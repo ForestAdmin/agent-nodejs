@@ -1,12 +1,4 @@
-/** Logger Level */
-export enum LoggerLevel {
-  Info = 'info',
-  Warn = 'warn',
-  Error = 'error',
-}
-
-/** Logger */
-export type Logger = (level: LoggerLevel, message: unknown) => void;
+import { Logger } from '@forestadmin/datasource-toolkit';
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {

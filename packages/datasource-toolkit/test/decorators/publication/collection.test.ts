@@ -76,7 +76,11 @@ describe('PublicationCollectionDecorator', () => {
 
   // Build decorator
   beforeEach(() => {
-    decoratedDataSource = new DataSourceDecorator(dataSource, PublicationCollectionDecorator);
+    decoratedDataSource = new DataSourceDecorator(
+      () => {},
+      dataSource,
+      PublicationCollectionDecorator,
+    );
 
     newBooks = decoratedDataSource.getCollection('books');
     newBookPersons = decoratedDataSource.getCollection('bookPersons');

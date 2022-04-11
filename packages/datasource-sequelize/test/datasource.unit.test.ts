@@ -4,12 +4,14 @@ import { SequelizeCollection, SequelizeDataSource } from '../src';
 
 describe('SequelizeDataSource', () => {
   it('should fail to instanciate without a Sequelize instance', () => {
-    expect(() => new SequelizeDataSource(null)).toThrow('Invalid (null) Sequelize instance.');
+    expect(() => new SequelizeDataSource(() => {}, null)).toThrow(
+      'Invalid (null) Sequelize instance.',
+    );
   });
 
   it('should have no predefined collection', () => {
     expect(
-      new SequelizeDataSource({ models: {} } as unknown as Sequelize).collections,
+      new SequelizeDataSource(() => {}, { models: {} } as unknown as Sequelize).collections,
     ).toBeArrayOfSize(0);
   });
 
@@ -17,7 +19,7 @@ describe('SequelizeDataSource', () => {
     const sequelize = new Sequelize({ dialect: 'postgres' });
     sequelize.define('cars', {});
 
-    const datasource = new SequelizeDataSource(sequelize);
+    const datasource = new SequelizeDataSource(() => {}, sequelize);
 
     expect(datasource.getCollection('cars')).toBeInstanceOf(SequelizeCollection);
   });
@@ -26,12 +28,12 @@ describe('SequelizeDataSource', () => {
     const firstSequelize = new Sequelize({ dialect: 'postgres' });
     firstSequelize.define('cars', {});
     firstSequelize.define('owner', {});
-    const firstDatasource = new SequelizeDataSource(firstSequelize);
+    const firstDatasource = new SequelizeDataSource(() => {}, firstSequelize);
 
     const secondSequelize = new Sequelize({ dialect: 'postgres' });
     secondSequelize.define('owner', {});
     secondSequelize.define('cars', {});
-    const secondDatasource = new SequelizeDataSource(secondSequelize);
+    const secondDatasource = new SequelizeDataSource(() => {}, secondSequelize);
 
     const firstCollectionNames = firstDatasource.collections.map(({ name }) => name);
     const secondCollectionNames = secondDatasource.collections.map(({ name }) => name);

@@ -1,4 +1,3 @@
-import { LoggerLevel } from '../../../src/types';
 import OptionsUtils from '../../../src/agent/utils/http-driver-options';
 
 describe('OptionsUtils', () => {
@@ -25,7 +24,7 @@ describe('OptionsUtils', () => {
 
       const options = OptionsUtils.withDefaults(mandatoryOptions);
 
-      options.logger(LoggerLevel.Info, 'hello!');
+      options.logger('info', 'hello!');
       expect(console.error).toHaveBeenCalled();
     });
 

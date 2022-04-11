@@ -1,21 +1,17 @@
 import { existsSync } from 'fs';
 import { parse as parsePath } from 'path';
 
-import { AgentOptions, LoggerLevel } from '../../types';
+import { logger } from '@forestadmin/datasource-toolkit';
+
+import { AgentOptions } from '../../types';
 import { AgentOptionsWithDefaults } from '../types';
 
 export default class OptionsUtils {
-  private static loggerPrefix = {
-    [LoggerLevel.Info]: '\x1b[34minfo:\x1b[0m',
-    [LoggerLevel.Warn]: '\x1b[33mwarning:\x1b[0m',
-    [LoggerLevel.Error]: '\x1b[31merror:\x1b[0m',
-  };
-
   static withDefaults(options: AgentOptions): AgentOptionsWithDefaults {
     return Object.freeze({
       clientId: null,
       forestServerUrl: 'https://api.forestadmin.com',
-      logger: (level, data) => console.error(OptionsUtils.loggerPrefix[level], data),
+      logger,
       prefix: '/forest',
       schemaPath: '.forestadmin-schema.json',
       permissionsCacheDurationInSeconds: 15 * 60,
@@ -69,7 +65,7 @@ export default class OptionsUtils {
 
     if (options.clientId === null) {
       options.logger?.(
-        LoggerLevel.Warn,
+        'warn',
         'options.clientId was not provided. Using NodeJS cluster mode, ' +
           'or multiple instances of the agent  will break authentication',
       );

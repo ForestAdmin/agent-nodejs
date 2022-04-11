@@ -139,7 +139,11 @@ describe('RelationCollectionDecorator', () => {
 
   // Build decorator
   beforeEach(() => {
-    decoratedDataSource = new DataSourceDecorator(dataSource, RelationCollectionDecorator);
+    decoratedDataSource = new DataSourceDecorator(
+      () => {},
+      dataSource,
+      RelationCollectionDecorator,
+    );
 
     newPassports = decoratedDataSource.getCollection('passports');
     newPersons = decoratedDataSource.getCollection('persons');

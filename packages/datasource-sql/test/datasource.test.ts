@@ -353,7 +353,7 @@ describe('datasource', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const sqlDatasource = new SqlDataSource(connectionUri);
+          const sqlDatasource = new SqlDataSource(() => {}, connectionUri);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           dataSourceSequelize = (sqlDatasource as any).sequelize as Sequelize;
 
@@ -443,7 +443,7 @@ describe('datasource', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const sqlDatasource = new SqlDataSource(connectionUri);
+          const sqlDatasource = new SqlDataSource(() => {}, connectionUri);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           dataSourceSequelize = (sqlDatasource as any).sequelize as Sequelize;
 

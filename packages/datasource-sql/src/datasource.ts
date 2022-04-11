@@ -6,6 +6,7 @@ import {
   Sequelize,
 } from 'sequelize';
 
+import { Logger } from '@forestadmin/datasource-toolkit';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
 import DefaultValueParser from './utils/default-value-parser';
@@ -16,8 +17,8 @@ export default class SqlDataSource extends SequelizeDataSource {
   private readonly defaultValueParser: DefaultValueParser;
   private readonly sqlTypeConverter: SqlTypeConverter;
 
-  constructor(connectionUri: string) {
-    super(new Sequelize(connectionUri, { logging: false }));
+  constructor(logger: Logger, connectionUri: string) {
+    super(logger, new Sequelize(connectionUri, { logging: false }));
 
     this.queryInterface = this.sequelize.getQueryInterface();
     this.defaultValueParser = new DefaultValueParser(this.sequelize.getDialect() as Dialect);
@@ -36,6 +37,7 @@ export default class SqlDataSource extends SequelizeDataSource {
   private async defineModels(tableNames: string[]): Promise<void[]> {
     return Promise.all(
       tableNames.map(async tableName => {
+        this.logger('info', `introspect table "${tableName}"`);
         const colmumnDescriptions = await this.queryInterface.describeTable(tableName);
 
         const fieldDescriptions = await Promise.all(

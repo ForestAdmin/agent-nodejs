@@ -98,7 +98,7 @@ describe('RenameCollectionDecorator', () => {
 
   // Build decorator
   beforeEach(() => {
-    decoratedDataSource = new DataSourceDecorator(dataSource, RenameCollectionDecorator);
+    decoratedDataSource = new DataSourceDecorator(() => {}, dataSource, RenameCollectionDecorator);
 
     newBooks = decoratedDataSource.getCollection('books');
     newBookPersons = decoratedDataSource.getCollection('bookPersons');

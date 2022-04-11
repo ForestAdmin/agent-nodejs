@@ -1,6 +1,7 @@
 export { default as BaseCollection } from './base-collection';
 
 export { default as BaseDataSource } from './base-datasource';
+export * from './base-datasource';
 export { default as DataSourceDecorator } from './decorators/datasource-decorator';
 
 export { default as ActionCollectionDecorator } from './decorators/actions/collection';
@@ -59,3 +60,6 @@ export { default as RecordValidator } from './validation/record';
 export { default as SortValidator } from './validation/sort';
 
 export { default as ValidationError } from './errors';
+
+export * from './logger';
+export { default as logger } from './logger';

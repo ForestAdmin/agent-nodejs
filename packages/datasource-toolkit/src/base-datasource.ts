@@ -1,7 +1,13 @@
 import { Collection, DataSource } from './interfaces/collection';
+import { Logger } from './logger';
 
 export default class BaseDataSource<T extends Collection = Collection> implements DataSource {
   protected _collections: { [collectionName: string]: T } = {};
+  protected logger: Logger;
+
+  constructor(logger: Logger) {
+    this.logger = logger;
+  }
 
   public get collections(): T[] {
     return Object.values(this._collections);
@@ -22,3 +28,5 @@ export default class BaseDataSource<T extends Collection = Collection> implement
     this._collections[collection.name] = collection;
   }
 }
+
+export type DataSourceFactory = (logger: Logger) => Promise<DataSource>;
