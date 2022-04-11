@@ -18,10 +18,10 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 14.17.6
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/_example/package.json') }}
       - name: install dependencies
         run: yarn install --frozen-lockfile --non-interactive --production=false
       - name: Bootstrap
@@ -29,7 +29,7 @@ jobs:
       - name: Build
         run: yarn build
       - name: Upload build
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: build
           path: 'packages/**/dist/*'
@@ -47,12 +47,12 @@ jobs:
         with:
           node-version: 14.17.6
       - name: Cache node_modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/_example/package.json') }}
       - name: Download build
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: build
           path: 'packages/'
@@ -72,12 +72,12 @@ jobs:
         with:
           node-version: 14.17.6
       - name: Cache node_modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/_example/package.json') }}
       - name: Download build
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: build
           path: 'packages/'
@@ -100,10 +100,10 @@ jobs:
         with:
           node-version: 14.17.6
       - name: Cache node_modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/_example/package.json') }}
       - name: Build doc
         run: yarn docs
       - name: Archive documentation artifacts

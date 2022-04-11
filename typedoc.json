@@ -3,7 +3,12 @@
   "excludePrivate": true,
   "hideGenerator": true,
   "entryPointStrategy": "packages",
-  "entryPoints": ["packages/agent", "packages/datasource-toolkit", "packages/datasource-sequelize"],
+  "entryPoints": [
+    "packages/agent",
+    "packages/datasource-toolkit",
+    "packages/datasource-sequelize",
+    "packages/datasource-sql"
+  ],
   "out": "api-reference",
   "theme": "github-wiki"
 }

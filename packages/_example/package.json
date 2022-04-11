@@ -6,6 +6,7 @@
   "dependencies": {
     "@faker-js/faker": "6.0.0-alpha.7",
     "@forestadmin/agent": "^1.0.0",
+    "@forestadmin/datasource-sql": "^1.0.0",
     "@forestadmin/datasource-dummy": "^1.0.0",
     "@forestadmin/datasource-live": "^1.0.0",
     "@forestadmin/datasource-sequelize": "^1.0.0",

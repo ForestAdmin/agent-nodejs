@@ -7,6 +7,7 @@ import customizeStore from './customizations/store';
 import prepareAddressInLive from './datasources/live';
 import prepareDvdRentalsInMssql from './datasources/sequelize/mssql';
 import prepareOwnerInPostgres from './datasources/sequelize/postgres';
+import prepareSqlDataSource from './datasources/sql';
 import prepareStoreInMysql from './datasources/sequelize/mysql';
 
 export default async function makeAgent(options: AgentOptions) {
@@ -15,6 +16,7 @@ export default async function makeAgent(options: AgentOptions) {
     .addDatasource(await prepareAddressInLive())
     .addDatasource(await prepareStoreInMysql())
     .addDatasource(await prepareDvdRentalsInMssql())
+    .addDatasource(await prepareSqlDataSource())
 
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('address', customizeAddress)
