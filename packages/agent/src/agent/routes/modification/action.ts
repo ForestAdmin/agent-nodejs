@@ -3,6 +3,8 @@ import {
   ConditionTreeFactory,
   DataSource,
   Filter,
+  FilterFactory,
+  PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
@@ -13,11 +15,12 @@ import BodyParser from '../../utils/body-parser';
 import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import ForestValueConverter from '../../utils/forest-schema/action-values';
+import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import SchemaGeneratorActions from '../../utils/forest-schema/generator-actions';
 
 export default class ActionRoute extends CollectionRoute {
-  private actionName: string;
+  private readonly actionName: string;
 
   constructor(
     services: ForestAdminHttpDriverServices,
@@ -115,8 +118,21 @@ export default class ActionRoute extends CollectionRoute {
       await this.services.permissions.getScope(this.collection, context),
     );
 
-    return ContextFilterFactory.build(this.collection, context, null, {
-      conditionTree,
-    });
+    const filter = ContextFilterFactory.build(this.collection, context, null, { conditionTree });
+    const attributes = context.request?.body?.data?.attributes;
+
+    if (attributes?.parent_association_name) {
+      return this.applyActionOnlyOnRelation(attributes, filter);
+    }
+
+    return filter;
+  }
+
+  private applyActionOnlyOnRelation(attributes, filter: PaginatedFilter) {
+    const relation = attributes?.parent_association_name;
+    const parentCollection = this.dataSource.getCollection(attributes.parent_collection_name);
+    const parentId = IdUtils.unpackId(parentCollection.schema, attributes.parent_collection_id);
+
+    return FilterFactory.makeForeignFilter(parentCollection, parentId, relation, filter);
   }
 }

@@ -5,7 +5,6 @@ import {
   FieldTypes,
   Filter,
   Operator,
-  PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
 import { Collection } from '@forestadmin/agent';
@@ -20,10 +19,10 @@ export default (collection: Collection) =>
     })
     .renameField('rentalPrice', 'rentalPriceInDollar')
     .addAction('Increase the rental price', {
-      scope: ActionScope.Global,
+      scope: ActionScope.Bulk,
       execute: async (context, responseBuilder) => {
         const records = await context.collection.list(
-          new PaginatedFilter({}),
+          context.filter,
           new Projection('rentalPrice', 'id'),
         );
 
