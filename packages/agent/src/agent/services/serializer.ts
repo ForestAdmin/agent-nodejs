@@ -41,7 +41,6 @@ export default class Serializer {
 
     if (searchValue && searchValue.trim().length > 0) {
       const resultsData = results.data as RecordData[];
-      let index = 0;
       const decorators = resultsData.reduce((decorator, record: RecordData) => {
         const search = Object.keys(record.attributes).filter(attribute => {
           const value = record.attributes[attribute];
@@ -53,10 +52,7 @@ export default class Serializer {
           return decorator;
         }
 
-        const nextDecorator = { ...decorator, [index]: { id: record.id, search } };
-        index += index + 1;
-
-        return nextDecorator;
+        return { ...decorator, [Object.keys(decorator).length]: { id: record.id, search } };
       }, {});
 
       if (Object.values(decorators).length === 0) {
