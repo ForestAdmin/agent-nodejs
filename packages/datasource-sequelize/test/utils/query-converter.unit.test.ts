@@ -247,6 +247,36 @@ describe('Utils > QueryConverter', () => {
             '$relation.fieldName$': { [Op.eq]: '__value__' },
           });
         });
+
+        describe('with deep relation', () => {
+          it('should generate a valid where clause', () => {
+            const conditionTree = new ConditionTreeLeaf(
+              'relation:relationB:__field__',
+              'Equal',
+              '__value__',
+            );
+
+            const model = {
+              associations: {
+                relation: {
+                  target: {
+                    associations: {
+                      relationB: {
+                        target: {
+                          getAttributes: () => ({ __field__: { field: 'fieldName' } }),
+                        },
+                      },
+                    },
+                  } as unknown as ModelDefined<any, any>,
+                } as Association,
+              },
+            } as unknown as ModelDefined<any, any>;
+
+            expect(QueryConverter.getWhereFromConditionTree(model, conditionTree)).toEqual({
+              '$relation.relationB.fieldName$': { [Op.eq]: '__value__' },
+            });
+          });
+        });
       });
     });
 
