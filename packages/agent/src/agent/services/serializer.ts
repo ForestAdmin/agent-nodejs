@@ -42,12 +42,22 @@ export default class Serializer {
     if (searchValue && searchValue.trim().length > 0) {
       const resultsData = results.data as RecordData[];
       const decorators = resultsData.reduce((decorator, record: RecordData, index) => {
-        const search = Object.keys(record.attributes).filter(attribute =>
-          record.attributes[attribute].toString().includes(searchValue),
+        const search = Object.keys(record.attributes).filter(
+          attribute =>
+            record.attributes[attribute] &&
+            record.attributes[attribute].toString().includes(searchValue),
         );
+
+        if (search.length === 0) {
+          return decorator;
+        }
 
         return { ...decorator, [index]: { id: record.id, search } };
       }, {});
+
+      if (Object.values(decorators).length === 0) {
+        return results;
+      }
 
       results.meta = { decorators };
     }
