@@ -39,7 +39,7 @@ describe('ListRoute', () => {
       const list = new List(services, options, dataSource, collection.name);
       const context = createMockContext({
         customProperties: {
-          query: { search: 'searched argument', 'fields[books]': 'id', timezone: 'Europe/Paris' },
+          query: { search: '2', 'fields[books]': 'id', timezone: 'Europe/Paris' },
         },
       });
       jest.spyOn(collection, 'list').mockResolvedValue([{ id: 1 }, { id: 2 }]);
@@ -51,7 +51,7 @@ describe('ListRoute', () => {
       expect(collection.list).toHaveBeenCalledWith(
         {
           conditionTree: null,
-          search: 'searched argument',
+          search: '2',
           searchExtended: false,
           segment: null,
           timezone: 'Europe/Paris',
@@ -91,12 +91,8 @@ describe('ListRoute', () => {
         meta: {
           decorators: {
             0: {
-              id: '1',
-              search: [],
-            },
-            1: {
               id: '2',
-              search: [],
+              search: ['id'],
             },
           },
         },

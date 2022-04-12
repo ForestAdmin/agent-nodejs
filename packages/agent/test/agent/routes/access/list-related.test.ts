@@ -72,7 +72,7 @@ describe('ListRelatedRoute', () => {
           { id: 2, name: 'aName2' },
         ]);
 
-        const searchParams = { search: 'searched argument' };
+        const searchParams = { search: 'aName' };
         const conditionTreeParams = {
           filters: JSON.stringify({
             aggregator: 'And',
@@ -101,7 +101,7 @@ describe('ListRelatedRoute', () => {
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
           new PaginatedFilter({
-            search: 'searched argument',
+            search: 'aName',
             searchExtended: false,
             timezone: 'Europe/Paris',
             page: new Page(0, 15),
@@ -124,12 +124,8 @@ describe('ListRelatedRoute', () => {
           meta: {
             decorators: {
               0: {
-                id: '1',
-                search: [],
-              },
-              1: {
                 id: '2',
-                search: [],
+                search: ['name'],
               },
             },
           },
