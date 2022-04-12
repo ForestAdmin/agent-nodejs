@@ -124,6 +124,10 @@ describe('ListRelatedRoute', () => {
           meta: {
             decorators: {
               0: {
+                id: '1',
+                search: ['name'],
+              },
+              1: {
                 id: '2',
                 search: ['name'],
               },

@@ -117,7 +117,7 @@ describe('Serializer', () => {
               dataSource.collections[0],
               [
                 {
-                  firstName: 'NOT MATCH',
+                  firstName: 'Isaac',
                   idA: '2d162303-78bf-599e-b197-93590ac3d315',
                   idB: '2d162303-78bf-599e-b197-93590ac3d316',
                 },
@@ -138,7 +138,7 @@ describe('Serializer', () => {
                   type: 'person',
                   id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
                   attributes: {
-                    firstName: 'NOT MATCH',
+                    firstName: 'Isaac',
                     idA: '2d162303-78bf-599e-b197-93590ac3d315',
                     idB: '2d162303-78bf-599e-b197-93590ac3d316',
                   },
@@ -161,6 +161,66 @@ describe('Serializer', () => {
                   },
                 },
               },
+            });
+          });
+
+          describe('when the search value is in upper case', () => {
+            test('should return the metadata in lower and upper cases', () => {
+              const result = setupSerializer().serializeWithSearchMetadata(
+                dataSource.collections[0],
+                [
+                  {
+                    firstName: 'match',
+                    idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                    idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                  },
+                  {
+                    firstName: 'MATCH',
+                    idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                    idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                  },
+                ],
+                'MATCH',
+              );
+
+              const meta = {
+                decorators: {
+                  0: {
+                    id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                    search: ['firstName'],
+                  },
+                  1: {
+                    id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                    search: ['firstName'],
+                  },
+                },
+              };
+              expect(result).toStrictEqual({
+                meta,
+                jsonapi: {
+                  version: '1.0',
+                },
+                data: [
+                  {
+                    type: 'person',
+                    id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                    attributes: {
+                      firstName: 'match',
+                      idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                      idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                    },
+                  },
+                  {
+                    type: 'person',
+                    id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                    attributes: {
+                      firstName: 'MATCH',
+                      idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                      idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                    },
+                  },
+                ],
+              });
             });
           });
         });
