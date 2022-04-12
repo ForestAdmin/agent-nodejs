@@ -100,7 +100,7 @@ export default class QueryConverter {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
       const isRelation = field.includes(':');
 
-      let safeField = field;
+      let safeField: string;
 
       if (isRelation) {
         const paths = field.split(':');
@@ -109,6 +109,8 @@ export default class QueryConverter {
           .reduce((acc, path) => acc.associations[path].target, model)
           .getAttributes()[fieldName].field;
         safeField = `${paths.join('.')}.${safeFieldName}`;
+      } else {
+        safeField = model.getAttributes()[field].field;
       }
 
       sequelizeWhereClause[isRelation ? `$${safeField}$` : safeField] = this.makeWhereClause(
