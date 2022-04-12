@@ -72,20 +72,17 @@ export default class SchemaGeneratorFields {
   private static buildRelationSchema(collection: Collection, name: string): ForestServerField {
     const relation = collection.schema.fields[name] as RelationSchema;
     const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
-    const [primaryKey] = SchemaUtils.getPrimaryKeys(foreignCollection.schema);
+    const [foreignPrimaryKey] = SchemaUtils.getPrimaryKeys(foreignCollection.schema);
 
     const relationSchema = {
       field: name,
       inverseOf: CollectionUtils.getInverseRelation(collection, name),
-      reference: `${foreignCollection.name}.${primaryKey}`,
+      reference: `${foreignCollection.name}.${foreignPrimaryKey}`,
       relationship: SchemaGeneratorFields.relationMap[relation.type],
     };
 
-    if (relation.type === 'ManyToOne' || relation.type === 'OneToOne') {
-      const columnSchema = SchemaGeneratorFields.buildColumnSchema(
-        collection,
-        relation.type === 'ManyToOne' ? relation.foreignKey : relation.originKeyTarget,
-      );
+    if (relation.type === 'ManyToOne') {
+      const columnSchema = SchemaGeneratorFields.buildColumnSchema(collection, relation.foreignKey);
 
       return {
         ...columnSchema,
@@ -93,7 +90,9 @@ export default class SchemaGeneratorFields {
       };
     }
 
-    const primaryKeySchema = foreignCollection.schema.fields[primaryKey] as ColumnSchema;
+    const foreignPrimaryKeySchema = foreignCollection.schema.fields[
+      foreignPrimaryKey
+    ] as ColumnSchema;
 
     return {
       defaultValue: null,
@@ -106,7 +105,10 @@ export default class SchemaGeneratorFields {
       isSortable: false,
       isVirtual: false,
       validations: [],
-      type: [primaryKeySchema.columnType],
+      type:
+        relation.type === 'OneToOne'
+          ? foreignPrimaryKeySchema.columnType
+          : [foreignPrimaryKeySchema.columnType],
       ...relationSchema,
     };
   }

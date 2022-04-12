@@ -8,7 +8,7 @@ describe('SchemaGeneratorFields > One to One', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          authorId: factories.columnSchema.build({ columnType: 'Uuid' }),
+          authorId: factories.columnSchema.build({ columnType: 'Uuid', isSortable: true }),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
             foreignKey: 'authorId',
@@ -52,6 +52,7 @@ describe('SchemaGeneratorFields > One to One', () => {
       reference: 'persons.id',
       relationship: 'BelongsTo',
       type: 'Uuid',
+      isSortable: true,
     });
   });
 });

@@ -21,8 +21,22 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       name: 'bookPersons',
       schema: factories.collectionSchema.build({
         fields: {
-          bookId: factories.columnSchema.isPrimaryKey().build(),
-          personId: factories.columnSchema.isPrimaryKey().build(),
+          bookId: factories.columnSchema
+            .isPrimaryKey()
+            .build({ validation: [{ operator: 'Present' }] }),
+          book: factories.manyToOneSchema.build({
+            foreignCollection: 'books',
+            foreignKey: 'bookId',
+            foreignKeyTarget: 'id',
+          }),
+          personId: factories.columnSchema
+            .isPrimaryKey()
+            .build({ validation: [{ operator: 'Present' }] }),
+          person: factories.manyToOneSchema.build({
+            foreignCollection: 'person',
+            foreignKey: 'personId',
+            foreignKeyTarget: 'id',
+          }),
         },
       }),
     }),
@@ -54,6 +68,23 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       reference: 'persons.id',
       relationship: 'BelongsToMany',
       type: ['Uuid'],
+    });
+  });
+
+  test('should generate relation as primary key', () => {
+    const schema = SchemaGeneratorFields.buildSchema(
+      dataSource.getCollection('bookPersons'),
+      'book',
+    );
+
+    expect(schema).toMatchObject({
+      field: 'book',
+      inverseOf: null,
+      reference: 'books.id',
+      relationship: 'BelongsTo',
+      type: 'Uuid',
+      isPrimaryKey: true,
+      isRequired: true,
     });
   });
 });
