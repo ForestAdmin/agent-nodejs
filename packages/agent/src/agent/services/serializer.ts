@@ -15,7 +15,7 @@ type SerializerOptions = Pick<AgentOptionsWithDefaults, 'prefix'>;
 export default class Serializer {
   // No need to keep references to serializers for outdated schemas => weakmap.
   private readonly serializers: WeakMap<CollectionSchema, JsonApiSerializer> = new WeakMap();
-  private prefix: string;
+  private readonly prefix: string;
 
   constructor(options: SerializerOptions) {
     this.prefix = options.prefix;
@@ -30,6 +30,29 @@ export default class Serializer {
 
   deserialize(collection: Collection, body: unknown): RecordData {
     return this.getSerializer(collection).deserialize(collection.name, body);
+  }
+
+  serializeWithSearchMetadata(
+    collection: Collection,
+    data: RecordData[],
+    searchValue: string,
+  ): unknown {
+    const results = this.serialize(collection, data) as RecordData;
+
+    if (searchValue && searchValue.trim().length > 0) {
+      const resultsData = results.data as RecordData[];
+      const decorators = resultsData.reduce((decorator, record: RecordData, index) => {
+        const search = Object.keys(record.attributes).filter(attribute =>
+          record.attributes[attribute].toString().includes(searchValue),
+        );
+
+        return { ...decorator, [index]: { id: record.id, search } };
+      }, {});
+
+      results.meta = { decorators };
+    }
+
+    return results;
   }
 
   private getSerializer(collection: Collection): JsonApiSerializer {

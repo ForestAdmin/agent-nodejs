@@ -121,6 +121,18 @@ describe('ListRelatedRoute', () => {
             { attributes: { id: 2, name: 'aName2' }, id: '2', type: 'persons' },
           ],
           jsonapi: { version: '1.0' },
+          meta: {
+            decorators: {
+              0: {
+                id: '1',
+                search: [],
+              },
+              1: {
+                id: '2',
+                search: [],
+              },
+            },
+          },
         });
       });
     });

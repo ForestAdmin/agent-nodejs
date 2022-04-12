@@ -33,20 +33,25 @@ describe('ListRoute', () => {
 
   describe('handleList', () => {
     test('should call the serializer using the list implementation', async () => {
+      // given
       const { dataSource, options, services, collection } = setup();
 
-      services.serializer.serialize = jest.fn().mockReturnValue('expected_response_body');
       const list = new List(services, options, dataSource, collection.name);
       const context = createMockContext({
-        customProperties: { query: { 'fields[books]': 'id', timezone: 'Europe/Paris' } },
+        customProperties: {
+          query: { search: 'searched argument', 'fields[books]': 'id', timezone: 'Europe/Paris' },
+        },
       });
+      jest.spyOn(collection, 'list').mockResolvedValue([{ id: 1 }, { id: 2 }]);
 
+      // when
       await list.handleList(context);
 
+      // then
       expect(collection.list).toHaveBeenCalledWith(
         {
           conditionTree: null,
-          search: null,
+          search: 'searched argument',
           searchExtended: false,
           segment: null,
           timezone: 'Europe/Paris',
@@ -63,8 +68,39 @@ describe('ListRoute', () => {
         },
         new Projection('id'),
       );
-      expect(services.serializer.serialize).toHaveBeenCalled();
-      expect(context.response.body).toEqual('expected_response_body');
+      expect(context.response.body).toEqual({
+        jsonapi: {
+          version: '1.0',
+        },
+        data: [
+          {
+            type: 'books',
+            id: '1',
+            attributes: {
+              id: 1,
+            },
+          },
+          {
+            type: 'books',
+            id: '2',
+            attributes: {
+              id: 2,
+            },
+          },
+        ],
+        meta: {
+          decorators: {
+            0: {
+              id: '1',
+              search: [],
+            },
+            1: {
+              id: '2',
+              search: [],
+            },
+          },
+        },
+      });
     });
   });
 });

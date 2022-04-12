@@ -54,6 +54,88 @@ describe('Serializer', () => {
 
       expect(result).toStrictEqual(person);
     });
+
+    describe('when serializer should provide metadata for the search result', () => {
+      describe('when the search value has a value', () => {
+        test('should serialize with metadata', () => {
+          const result = setupSerializer().serializeWithSearchMetadata(
+            dataSource.collections[0],
+            [person],
+            'Isaac',
+          );
+          expect(result).toStrictEqual({
+            data: [
+              {
+                type: 'person',
+                id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                attributes: {
+                  idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                  firstName: 'Isaac',
+                  idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                },
+              },
+            ],
+            jsonapi: { version: '1.0' },
+            meta: {
+              decorators: {
+                0: {
+                  id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                  search: ['firstName'],
+                },
+              },
+            },
+          });
+        });
+      });
+
+      describe('when the search value is empty', () => {
+        test('should serialize without metadata', () => {
+          const result = setupSerializer().serializeWithSearchMetadata(
+            dataSource.collections[0],
+            [person],
+            '',
+          );
+          expect(result).toStrictEqual({
+            data: [
+              {
+                type: 'person',
+                id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                attributes: {
+                  idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                  firstName: 'Isaac',
+                  idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                },
+              },
+            ],
+            jsonapi: { version: '1.0' },
+          });
+        });
+      });
+
+      describe('when the search value is null', () => {
+        test('should serialize without metadata', () => {
+          const result = setupSerializer().serializeWithSearchMetadata(
+            dataSource.collections[0],
+            [person],
+            null,
+          );
+          expect(result).toStrictEqual({
+            data: [
+              {
+                type: 'person',
+                id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                attributes: {
+                  idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                  firstName: 'Isaac',
+                  idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                },
+              },
+            ],
+            jsonapi: { version: '1.0' },
+          });
+        });
+      });
+    });
   });
 
   describe('With relations', () => {
