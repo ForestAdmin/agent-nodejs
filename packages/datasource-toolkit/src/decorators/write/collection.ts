@@ -277,14 +277,9 @@ export default class WriteDecorator extends CollectionDecorator {
     return Promise.all(
       columns.map(column => {
         const definition = this.replacedDefinitions[column];
+        const context = new WriteCustomizationContext(this, action, { ...patch });
 
-        if (typeof definition === 'function') {
-          const context = new WriteCustomizationContext(this, action, { ...patch });
-
-          return definition(patch[column], context);
-        }
-
-        return definition;
+        return definition(patch[column], context);
       }),
     );
   }

@@ -29,7 +29,7 @@ export default class SortEmulate extends CollectionDecorator {
     const field = this.childCollection.schema.fields[name] as ColumnSchema;
     if (!field) throw new Error('Cannot replace sort on relation');
 
-    this.sorts.set(name, new Sort(...equivalentSort));
+    this.sorts.set(name, equivalentSort ? new Sort(...equivalentSort) : null);
     this.markSchemaAsDirty();
   }
 

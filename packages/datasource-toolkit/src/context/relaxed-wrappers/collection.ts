@@ -89,6 +89,7 @@ export default class RelaxedCollection implements Collection {
   }
 
   private buildFilter(filter: Filter | PlainFilter): Filter {
+    if (!filter) return null;
     if (filter instanceof Filter) return filter;
 
     return new Filter({
