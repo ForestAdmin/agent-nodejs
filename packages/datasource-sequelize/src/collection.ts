@@ -1,10 +1,18 @@
-import { FindOptions, ModelDefined, ProjectionAlias, col, fn } from 'sequelize';
+import Model, {
+  FindOptions,
+  ModelDefined,
+  ProjectionAlias,
+  WhereOptions,
+  col,
+  fn,
+} from 'sequelize';
 
 import {
   AggregateResult,
   Aggregation,
   BaseCollection,
   Caller,
+  ConditionTreeLeaf,
   DataSource,
   Filter,
   Logger,
@@ -82,15 +90,13 @@ export default class SequelizeCollection extends BaseCollection {
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     await this.model.update(patch, {
-      where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
+      where: await this.buildWhereOptions(filter),
       fields: Object.keys(patch),
     });
   }
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
-    await this.model.destroy({
-      where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
-    });
+    await this.model.destroy({ where: await this.buildWhereOptions(filter) });
   }
 
   async aggregate(
@@ -140,5 +146,24 @@ export default class SequelizeCollection extends BaseCollection {
     const rows = await this.model.findAll(query);
 
     return this.aggregationUtils.computeResult(rows, aggregation.groups);
+  }
+
+  private async buildWhereOptions(filter: Filter): Promise<WhereOptions> {
+    const records = await this.model.findAll({
+      attributes: [this.model.primaryKeyAttribute],
+      where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
+      include: QueryConverter.getIncludeFromProjection(
+        filter.conditionTree?.projection ?? new Projection(),
+      ),
+    });
+
+    return QueryConverter.getWhereFromConditionTree(
+      this.model,
+      new ConditionTreeLeaf(
+        this.model.primaryKeyAttribute,
+        'In',
+        records.map(r => r.get(this.model.primaryKeyAttribute)),
+      ),
+    );
   }
 }

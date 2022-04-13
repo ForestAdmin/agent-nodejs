@@ -1,6 +1,8 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
+  ConditionTreeBranch,
+  ConditionTreeFactory,
   ConditionTreeLeaf,
   DataSource,
   Filter,
@@ -12,6 +14,7 @@ import {
 import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from 'sequelize';
 
 import { SequelizeCollection } from '../src';
+import QueryConverter from '../src/utils/query-converter';
 
 describe('SequelizeDataSource > Collection', () => {
   const makeConstructorParams = (dialect = 'postgres') => {
@@ -210,27 +213,47 @@ describe('SequelizeDataSource > Collection', () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
 
       const destroy = jest.fn().mockResolvedValue(0);
+      const findAll = jest.fn().mockResolvedValue(0);
 
       const model = sequelize.model(name);
       model.destroy = destroy;
+      model.findAll = findAll;
 
       const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
 
       return {
+        model,
+        findAll,
         destroy,
         sequelizeCollection,
       };
     };
 
-    it('should delegate work to `sequelize.model.update`', async () => {
-      const { destroy, sequelizeCollection } = setup();
+    it('should find all the records and delete all', async () => {
+      const { findAll, destroy, sequelizeCollection, model } = setup();
       const filter = new Filter({});
+      findAll.mockResolvedValue([
+        { get: () => '1', id: 1 },
+        { get: () => '2', id: 2 },
+      ]);
 
       await expect(
         sequelizeCollection.delete(factories.caller.build(), filter),
       ).resolves.not.toThrow();
 
+      expect(findAll).toHaveBeenCalledTimes(1);
+      expect(findAll).toHaveBeenCalledWith({
+        include: QueryConverter.getIncludeFromProjection(new Projection()),
+        attributes: ['id'],
+        where: QueryConverter.getWhereFromConditionTree(model, filter.conditionTree),
+      });
       expect(destroy).toHaveBeenCalledTimes(1);
+      expect(destroy).toHaveBeenCalledWith({
+        where: QueryConverter.getWhereFromConditionTree(
+          model,
+          new ConditionTreeLeaf(model.primaryKeyAttribute, 'In', ['1', '2']),
+        ),
+      });
     });
   });
 
