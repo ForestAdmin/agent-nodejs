@@ -54,6 +54,244 @@ describe('Serializer', () => {
 
       expect(result).toStrictEqual(person);
     });
+
+    describe('when serializer should provide metadata for the search result', () => {
+      describe('when the search value has a value', () => {
+        test('should serialize with metadata', () => {
+          const result = setupSerializer().serializeWithSearchMetadata(
+            dataSource.collections[0],
+            [person],
+            'Isaac',
+          );
+          expect(result).toStrictEqual({
+            data: [
+              {
+                type: 'person',
+                id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                attributes: {
+                  idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                  firstName: 'Isaac',
+                  idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                },
+              },
+            ],
+            jsonapi: { version: '1.0' },
+            meta: {
+              decorators: {
+                0: {
+                  id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                  search: ['firstName'],
+                },
+              },
+            },
+          });
+        });
+
+        describe('when the search value does not match any record', () => {
+          test('should not add the metadata in the payload', () => {
+            const result = setupSerializer().serializeWithSearchMetadata(
+              dataSource.collections[0],
+              [person],
+              'Not Match',
+            );
+            expect(result).toStrictEqual({
+              data: [
+                {
+                  type: 'person',
+                  id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                  attributes: {
+                    idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                    firstName: 'Isaac',
+                    idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                  },
+                },
+              ],
+              jsonapi: { version: '1.0' },
+            });
+          });
+        });
+
+        describe('when the search value does not match the first record', () => {
+          test('should start the index of the metadata by 0', () => {
+            const result = setupSerializer().serializeWithSearchMetadata(
+              dataSource.collections[0],
+              [
+                {
+                  firstName: 'Isaac',
+                  idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                  idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                },
+                {
+                  firstName: 'MATCH',
+                  idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                  idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                },
+              ],
+              'MATCH',
+            );
+            expect(result).toStrictEqual({
+              jsonapi: {
+                version: '1.0',
+              },
+              data: [
+                {
+                  type: 'person',
+                  id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                  attributes: {
+                    firstName: 'Isaac',
+                    idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                    idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                  },
+                },
+                {
+                  type: 'person',
+                  id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                  attributes: {
+                    firstName: 'MATCH',
+                    idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                    idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                  },
+                },
+              ],
+              meta: {
+                decorators: {
+                  0: {
+                    id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                    search: ['firstName'],
+                  },
+                },
+              },
+            });
+          });
+
+          describe('when the search value is in upper case', () => {
+            test('should return the metadata that match in lower case or in upper case', () => {
+              const result = setupSerializer().serializeWithSearchMetadata(
+                dataSource.collections[0],
+                [
+                  {
+                    firstName: 'match',
+                    idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                    idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                  },
+                  {
+                    firstName: 'MATCH',
+                    idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                    idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                  },
+                ],
+                'MATCH',
+              );
+
+              const meta = {
+                decorators: {
+                  0: {
+                    id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                    search: ['firstName'],
+                  },
+                  1: {
+                    id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                    search: ['firstName'],
+                  },
+                },
+              };
+              expect(result).toStrictEqual({
+                meta,
+                jsonapi: {
+                  version: '1.0',
+                },
+                data: [
+                  {
+                    type: 'person',
+                    id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                    attributes: {
+                      firstName: 'match',
+                      idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                      idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                    },
+                  },
+                  {
+                    type: 'person',
+                    id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                    attributes: {
+                      firstName: 'MATCH',
+                      idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                      idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                    },
+                  },
+                ],
+              });
+            });
+          });
+        });
+
+        describe('when the attribute has a null value', () => {
+          test('should not throw an error', () => {
+            expect(() =>
+              setupSerializer().serializeWithSearchMetadata(
+                dataSource.collections[0],
+                [
+                  {
+                    firstName: null,
+                    idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                    idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                  },
+                ],
+                'Isaac',
+              ),
+            ).not.toThrow();
+          });
+        });
+      });
+
+      describe('when the search value is empty', () => {
+        test('should serialize without metadata', () => {
+          const result = setupSerializer().serializeWithSearchMetadata(
+            dataSource.collections[0],
+            [person],
+            '',
+          );
+          expect(result).toStrictEqual({
+            data: [
+              {
+                type: 'person',
+                id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                attributes: {
+                  idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                  firstName: 'Isaac',
+                  idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                },
+              },
+            ],
+            jsonapi: { version: '1.0' },
+          });
+        });
+      });
+
+      describe('when the search value is null', () => {
+        test('should serialize without metadata', () => {
+          const result = setupSerializer().serializeWithSearchMetadata(
+            dataSource.collections[0],
+            [person],
+            null,
+          );
+          expect(result).toStrictEqual({
+            data: [
+              {
+                type: 'person',
+                id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+                attributes: {
+                  idA: '2d162303-78bf-599e-b197-93590ac3d315',
+                  firstName: 'Isaac',
+                  idB: '2d162303-78bf-599e-b197-93590ac3d316',
+                },
+              },
+            ],
+            jsonapi: { version: '1.0' },
+          });
+        });
+      });
+    });
   });
 
   describe('With relations', () => {

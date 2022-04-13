@@ -36,6 +36,10 @@ export default class ListRelatedRoute extends RelationRoute {
       projection,
     );
 
-    context.response.body = this.services.serializer.serialize(this.foreignCollection, records);
+    context.response.body = this.services.serializer.serializeWithSearchMetadata(
+      this.foreignCollection,
+      records,
+      paginatedFilter.search,
+    );
   }
 }
