@@ -129,7 +129,7 @@ describe('OperatorsEmulate', () => {
         newBooks.replaceFieldOperator(
           'title',
           'StartsWith',
-          new ConditionTreeLeaf('title', 'Like', 'aTitleValue'),
+          () => new ConditionTreeLeaf('title', 'Like', 'aTitleValue'),
         );
       });
 
@@ -155,13 +155,13 @@ describe('OperatorsEmulate', () => {
         newBooks.replaceFieldOperator(
           'title',
           'StartsWith',
-          async ({ value }) => new ConditionTreeLeaf('title', 'Like', `${value}%`),
+          async value => new ConditionTreeLeaf('title', 'Like', `${value}%`),
         );
 
         newBooks.replaceFieldOperator(
           'title',
           'Like',
-          async ({ value }) => new ConditionTreeLeaf('title', 'StartsWith', `${value}%`),
+          async value => new ConditionTreeLeaf('title', 'StartsWith', `${value}%`),
         );
       });
 
@@ -252,7 +252,7 @@ describe('OperatorsEmulate', () => {
         newBooks.emulateFieldOperator('title', 'Contains');
 
         // Define 'Equal(x)' to be 'Contains(x) && ShorterThan(x.length + 1)'
-        newBooks.replaceFieldOperator('title', 'Equal', async ({ value }) =>
+        newBooks.replaceFieldOperator('title', 'Equal', async value =>
           ConditionTreeFactory.intersect(
             new ConditionTreeLeaf('title', 'Contains', value),
             new ConditionTreeLeaf('title', 'ShorterThan', (value as string).length + 1),

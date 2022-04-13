@@ -124,18 +124,17 @@ describe('ComputedDecorator', () => {
     });
 
     test('list() result should contain the computed', async () => {
-      const records = await newBooks.list(null, new Projection('title', 'author:fullName'));
+      const records = await newBooks.list(
+        new PaginatedFilter({}),
+        new Projection('title', 'author:fullName'),
+      );
 
       expect(records).toStrictEqual([
         { title: 'Foundation', author: { fullName: 'Isaac Asimov' } },
         { title: 'Beat the dealer', author: { fullName: 'Edward O. Thorp' } },
       ]);
 
-      expect(books.list).toHaveBeenCalledWith(null, [
-        'title',
-        'author:firstName',
-        'author:lastName',
-      ]);
+      expect(books.list).toHaveBeenCalledWith({}, ['title', 'author:firstName', 'author:lastName']);
     });
 
     test('aggregate() should use the child implementation when relevant', async () => {

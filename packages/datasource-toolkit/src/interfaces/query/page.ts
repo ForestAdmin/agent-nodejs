@@ -1,5 +1,7 @@
 import { RecordData } from '../record';
 
+export type PlainPage = { skip: number; limit: number };
+
 export default class Page {
   skip: number;
   limit: number;

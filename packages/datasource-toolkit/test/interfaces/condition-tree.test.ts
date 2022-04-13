@@ -1,4 +1,6 @@
 import * as factories from '../__factories__';
+import { Operator } from '../../src/interfaces/query/condition-tree/nodes/operators';
+import { PlainConditionTree } from '../../src/interfaces/query/condition-tree/nodes/base';
 import ConditionTreeBranch from '../../src/interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
@@ -197,7 +199,8 @@ describe('ConditionTree', () => {
 
     describe('fromPlainObject', () => {
       test('should crash when calling with badly formatted json', () => {
-        const fn = () => ConditionTreeFactory.fromPlainObject('this is not json');
+        const fn = () =>
+          ConditionTreeFactory.fromPlainObject('this is not json' as unknown as PlainConditionTree);
         expect(fn).toThrow('Failed to instantiate condition tree from json');
       });
 
@@ -214,7 +217,7 @@ describe('ConditionTree', () => {
       test('should work with snake case', () => {
         const tree = ConditionTreeFactory.fromPlainObject({
           field: 'field',
-          operator: 'less_than',
+          operator: 'less_than' as Operator,
           value: 'something',
         });
 

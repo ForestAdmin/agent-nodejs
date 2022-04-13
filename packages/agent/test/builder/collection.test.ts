@@ -1,9 +1,9 @@
 import {
   ActionDefinition,
   ConditionTreeLeaf,
+  PlainSortClause,
   Projection,
   Sort,
-  SortClause,
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
 
@@ -194,7 +194,7 @@ describe('Builder > Collection', () => {
       const collection = agent.sortEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'replaceFieldSorting');
 
-      const sortClauses: SortClause[] = [{ field: 'firstName', ascending: true }];
+      const sortClauses: PlainSortClause[] = [{ field: 'firstName', ascending: true }];
 
       const self = collectionBuilder.replaceFieldSorting('firstName', sortClauses);
 

@@ -1,6 +1,11 @@
 import { CompositeId } from '../../../interfaces/record';
 import { File, Json } from '../../../interfaces/action';
-import { ValueOrHandler } from '../../fields';
+
+export type ValueOrHandler<Context = unknown, Result = unknown> =
+  | ((context: Context) => Promise<Result>)
+  | ((context: Context) => Result)
+  | Promise<Result>
+  | Result;
 
 interface BaseDynamicField<Type, Context, Result> {
   type: Type;

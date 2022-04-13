@@ -1,10 +1,15 @@
-import Filter, { FilterComponents } from './unpaginated';
-import Page from '../page';
-import Sort from '../sort';
+import Filter, { FilterComponents, PlainFilter } from './unpaginated';
+import Page, { PlainPage } from '../page';
+import Sort, { PlainSortClause } from '../sort';
 
 export type PaginatedFilterComponents = FilterComponents & {
   sort?: Sort;
   page?: Page;
+};
+
+export type PlainPaginatedFilter = PlainFilter & {
+  sort?: Array<PlainSortClause>;
+  page?: PlainPage;
 };
 
 export default class PaginatedFilter extends Filter {

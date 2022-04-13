@@ -7,7 +7,7 @@ import {
   RelationSchema,
 } from '../../interfaces/schema';
 import { RecordData } from '../../interfaces/record';
-import { WriteContext, WriteDefinition } from './types';
+import { WriteDefinition } from './types';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTreeLeaf from '../../interfaces/query/condition-tree/nodes/leaf';
 import DataSourceDecorator from '../datasource-decorator';
@@ -16,6 +16,7 @@ import Projection from '../../interfaces/query/projection';
 import RecordValidator from '../../validation/record';
 import SchemaUtils from '../../utils/schema';
 import ValidationError from '../../errors';
+import WriteCustomizationContext from './context';
 
 export default class WriteDecorator extends CollectionDecorator {
   private replacedDefinitions: Record<string, WriteDefinition> = {};
@@ -218,7 +219,7 @@ export default class WriteDecorator extends CollectionDecorator {
 
   private async applyDefinitions(
     patch: RecordData,
-    action: WriteContext['action'],
+    action: 'update' | 'create',
     stackCalls: string[] = [],
   ): Promise<RecordData> {
     if (Object.keys(patch).length === 0) return {};
@@ -271,22 +272,14 @@ export default class WriteDecorator extends CollectionDecorator {
   private async getDefinitionResults(
     patch: RecordData,
     columns: string[],
-    action: WriteContext['action'],
+    action: 'update' | 'create',
   ): Promise<(RecordData | void)[]> {
     return Promise.all(
       columns.map(column => {
         const definition = this.replacedDefinitions[column];
+        const context = new WriteCustomizationContext(this, action, { ...patch });
 
-        if (typeof definition === 'function') {
-          return definition({
-            action,
-            dataSource: this.dataSource,
-            record: { ...patch },
-            patch: patch[column],
-          });
-        }
-
-        return definition;
+        return definition(patch[column], context);
       }),
     );
   }

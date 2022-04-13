@@ -2,6 +2,7 @@ import { CollectionSchema, RelationSchema } from '../../interfaces/schema';
 import { ComputedDefinition } from './types';
 import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
+import CollectionCustomizationContext from '../../context/collection-context';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 import FieldValidator from '../../validation/field';
@@ -40,8 +41,9 @@ export default class ComputedCollection extends CollectionDecorator {
   override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
     const childProjection = projection.replace(path => rewriteField(this, path));
     const records = await this.childCollection.list(filter, childProjection);
+    const context = new CollectionCustomizationContext(this, filter.timezone);
 
-    return computeFromRecords(this, childProjection, projection, records);
+    return computeFromRecords(context, this, childProjection, projection, records);
   }
 
   override async aggregate(

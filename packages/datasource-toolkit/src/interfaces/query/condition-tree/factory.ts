@@ -1,9 +1,9 @@
 import { CollectionSchema, ColumnSchema } from '../../schema';
 import { CompositeId, RecordData } from '../../record';
 import { Operator } from './nodes/operators';
-import ConditionTree from './nodes/base';
-import ConditionTreeBranch, { Aggregator, BranchComponents } from './nodes/branch';
-import ConditionTreeLeaf, { LeafComponents } from './nodes/leaf';
+import ConditionTree, { PlainConditionTree } from './nodes/base';
+import ConditionTreeBranch, { Aggregator, PlainConditionTreeBranch } from './nodes/branch';
+import ConditionTreeLeaf, { PlainConditionTreeLeaf } from './nodes/leaf';
 import RecordUtils from '../../../utils/record';
 import SchemaUtils from '../../../utils/schema';
 
@@ -49,7 +49,7 @@ export default class ConditionTreeFactory {
     return isEmptyAnd ? null : result;
   }
 
-  static fromPlainObject(json: unknown): ConditionTree {
+  static fromPlainObject(json: PlainConditionTree): ConditionTree {
     if (ConditionTreeFactory.isLeaf(json)) {
       // Convert snake_case to PascalCase
       const operator =
@@ -118,11 +118,11 @@ export default class ConditionTreeFactory {
     return new ConditionTreeBranch(aggregator, conditions);
   }
 
-  private static isLeaf(raw: unknown): raw is LeafComponents {
+  private static isLeaf(raw: unknown): raw is PlainConditionTreeLeaf {
     return typeof raw === 'object' && 'field' in raw && 'operator' in raw;
   }
 
-  private static isBranch(raw: unknown): raw is BranchComponents {
+  private static isBranch(raw: unknown): raw is PlainConditionTreeBranch {
     return typeof raw === 'object' && 'aggregator' in raw && 'conditions' in raw;
   }
 }

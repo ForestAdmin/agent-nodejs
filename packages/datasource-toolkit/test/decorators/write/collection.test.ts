@@ -31,12 +31,13 @@ describe('WriteDecorator', () => {
         await decoratedCollection.update(new Filter({}), { name: 'a name' });
 
         // then
-        expect(handler).toHaveBeenCalledWith({
-          dataSource,
-          action: 'update',
-          record: { name: 'a name' },
-          patch: 'a name',
-        });
+        expect(handler).toHaveBeenCalledWith(
+          'a name',
+          expect.objectContaining({
+            action: 'update',
+            record: { name: 'a name' },
+          }),
+        );
       });
     });
 
@@ -64,12 +65,13 @@ describe('WriteDecorator', () => {
         await decoratedCollection.create([{ name: 'a name' }]);
 
         // then
-        expect(handler).toHaveBeenCalledWith({
-          dataSource,
-          action: 'create',
-          record: { name: 'a name' },
-          patch: 'a name',
-        });
+        expect(handler).toHaveBeenCalledWith(
+          'a name',
+          expect.objectContaining({
+            action: 'create',
+            record: { name: 'a name' },
+          }),
+        );
       });
     });
   });
@@ -137,12 +139,10 @@ describe('WriteDecorator', () => {
       await decoratedCollection.update(factories.filter.build(), { name: 'orius' });
 
       // then
-      expect(handler).toHaveBeenCalledWith({
-        dataSource,
-        action: 'update',
-        record: { name: 'orius' },
-        patch: 'orius',
-      });
+      expect(handler).toHaveBeenCalledWith(
+        'orius',
+        expect.objectContaining({ action: 'update', record: { name: 'orius' } }),
+      );
     });
 
     it('updates child collection without the triggered definition field', async () => {
@@ -200,18 +200,20 @@ describe('WriteDecorator', () => {
         await decoratedCollection.update(factories.filter.build(), { name: 'orius', age: '10' });
 
         // then
-        expect(nameDefinition).toHaveBeenCalledWith({
-          dataSource,
-          action: 'update',
-          record: { name: 'orius', age: '10' },
-          patch: 'orius',
-        });
-        expect(ageDefinition).toHaveBeenCalledWith({
-          dataSource,
-          action: 'update',
-          record: { name: 'orius', age: '10' },
-          patch: '10',
-        });
+        expect(nameDefinition).toHaveBeenCalledWith(
+          'orius',
+          expect.objectContaining({
+            action: 'update',
+            record: { name: 'orius', age: '10' },
+          }),
+        );
+        expect(ageDefinition).toHaveBeenCalledWith(
+          '10',
+          expect.objectContaining({
+            action: 'update',
+            record: { name: 'orius', age: '10' },
+          }),
+        );
       });
 
       it('the given record in the context of the definition should be a copy', async () => {
@@ -231,7 +233,7 @@ describe('WriteDecorator', () => {
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
 
-        const nameDefinition = jest.fn().mockImplementation(context => {
+        const nameDefinition = jest.fn().mockImplementation((_, context) => {
           context.record.ADDED_FIELD = 'IS A COPY';
         });
         decoratedCollection.replaceFieldWriting('name', nameDefinition);
@@ -244,14 +246,14 @@ describe('WriteDecorator', () => {
 
         // then
         expect(nameDefinition).toHaveBeenCalledWith(
+          'orius',
           expect.objectContaining({
             record: { name: 'orius', age: '10', ADDED_FIELD: 'IS A COPY' },
-            patch: 'orius',
           }),
         );
         expect(ageDefinition).toHaveBeenCalledWith(
+          '10',
           expect.objectContaining({
-            patch: '10',
             record: { name: 'orius', age: '10' }, // ADDED_FIELD should not be hear
           }),
         );
@@ -801,7 +803,7 @@ describe('WriteDecorator', () => {
 
         const decoratedCollection = new WriteDecorator(collection, dataSource);
 
-        decoratedCollection.replaceFieldWriting('name', { name: 'changed name' });
+        decoratedCollection.replaceFieldWriting('name', () => ({ name: 'changed name' }));
         collection.create = jest.fn().mockResolvedValue([
           {
             name: 'changed name',

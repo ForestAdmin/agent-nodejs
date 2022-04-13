@@ -22,7 +22,7 @@ type Summary = {
   Min: unknown;
 };
 
-interface AggregationComponents {
+export interface PlainAggregation {
   field?: string;
   operation: AggregationOperation;
   groups?: AggregationGroup[];
@@ -33,7 +33,7 @@ export interface AggregationGroup {
   operation?: DateOperation;
 }
 
-export default class Aggregation implements AggregationComponents {
+export default class Aggregation implements PlainAggregation {
   field?: string;
   operation: AggregationOperation;
   groups?: AggregationGroup[];
@@ -45,7 +45,7 @@ export default class Aggregation implements AggregationComponents {
     return new Projection(...aggregateFields);
   }
 
-  constructor(components: AggregationComponents) {
+  constructor(components: PlainAggregation) {
     this.field = components.field;
     this.operation = components.operation;
     this.groups = components.groups;

@@ -1,10 +1,12 @@
-import { DataSource } from '../../interfaces/collection';
-import { ValueOrHandler } from '../fields';
-import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
+import CollectionCustomizationContext from '../../context/collection-context';
+import ConditionTree, {
+  PlainConditionTree,
+} from '../../interfaces/query/condition-tree/nodes/base';
 
-export type SegmentContext = {
-  dataSource: DataSource;
-  timezone: string;
-};
-
-export type SegmentDefinition = ValueOrHandler<SegmentContext, ConditionTree>;
+export type SegmentDefinition =
+  | ((
+      context: CollectionCustomizationContext,
+    ) => Promise<ConditionTree | PlainConditionTree> | ConditionTree | PlainConditionTree)
+  | Promise<ConditionTree | PlainConditionTree>
+  | ConditionTree
+  | PlainConditionTree;

@@ -1,12 +1,13 @@
-import { ComputedContext, ComputedDefinition } from '../types';
+import { ComputedDefinition } from '../types';
 import { RecordData } from '../../../interfaces/record';
 import { flatten, unflatten } from '../utils/flattener';
+import CollectionCustomizationContext from '../../../context/collection-context';
 import ComputedCollection from '../collection';
 import Projection from '../../../interfaces/query/projection';
 import transformUniqueValues from '../utils/deduplication';
 
 async function computeField(
-  ctx: ComputedContext,
+  ctx: CollectionCustomizationContext,
   computed: ComputedDefinition,
   paths: string[],
   promises: Promise<unknown[]>[],
@@ -18,6 +19,7 @@ async function computeField(
 }
 
 function queueField(
+  ctx: CollectionCustomizationContext,
   collection: ComputedCollection,
   newPath: string,
   paths: string[],
@@ -26,15 +28,14 @@ function queueField(
   // Skip double computations (we're not checking before adding to queue).
   if (!paths.includes(newPath)) {
     const computed = collection.getComputed(newPath);
-    const nestedDependencies = computed.dependencies.nest(
+    const nestedDependencies = new Projection(...computed.dependencies).nest(
       newPath.includes(':') ? newPath.substring(0, newPath.lastIndexOf(':')) : null,
     );
 
     // Queue dependencies (so that computed can await them).
-    nestedDependencies.forEach(path => queueField(collection, path, paths, promises));
+    nestedDependencies.forEach(path => queueField(ctx, collection, path, paths, promises));
 
     // Queue computed
-    const ctx = { dataSource: collection.dataSource };
     const dependencyValues = nestedDependencies.map(path => promises[paths.indexOf(path)]);
 
     paths.push(newPath);
@@ -43,6 +44,7 @@ function queueField(
 }
 
 export default async function computeFromRecords(
+  ctx: CollectionCustomizationContext,
   collection: ComputedCollection,
   recordsProjection: Projection,
   desiredProjection: Projection,
@@ -53,7 +55,7 @@ export default async function computeFromRecords(
   const promises = flatten(records, paths).map(values => Promise.resolve(values));
 
   // Queue all computations, and perform them all at once
-  desiredProjection.forEach(path => queueField(collection, path, paths, promises));
+  desiredProjection.forEach(path => queueField(ctx, collection, path, paths, promises));
   const values = await Promise.all(promises);
 
   // Quick reproject and unflatten.

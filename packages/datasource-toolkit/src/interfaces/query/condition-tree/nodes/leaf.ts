@@ -3,19 +3,19 @@ import { ColumnSchema } from '../../../schema';
 import { Operator, allOperators, intervalOperators, uniqueOperators } from './operators';
 import { RecordData } from '../../../record';
 import CollectionUtils from '../../../../utils/collection';
-import ConditionTree from './base';
+import ConditionTree, { PlainConditionTree } from './base';
 import ConditionTreeEquivalent from '../equivalence';
 import ConditionTreeFactory from '../factory';
 import Projection from '../../projection';
 import RecordUtils from '../../../../utils/record';
 
-type LeafHandler<R> = (leaf: ConditionTreeLeaf) => R;
+export type PlainConditionTreeLeaf = { field: string; operator: Operator; value?: unknown };
 
-export type LeafReplacer = LeafHandler<ConditionTree | LeafComponents>;
-export type AsyncLeafReplacer = LeafHandler<Promise<ConditionTree | LeafComponents>>;
+type LeafHandler<R> = (leaf: ConditionTreeLeaf) => R;
+export type LeafReplacer = LeafHandler<ConditionTree | PlainConditionTree>;
+export type AsyncLeafReplacer = LeafHandler<Promise<ConditionTree | PlainConditionTree>>;
 export type LeafTester = LeafHandler<boolean>;
 export type LeafCallback = LeafHandler<void>;
-export type LeafComponents = { field: string; operator: Operator; value?: unknown };
 
 export default class ConditionTreeLeaf extends ConditionTree {
   field: string;
@@ -69,13 +69,13 @@ export default class ConditionTreeLeaf extends ConditionTree {
   }
 
   replaceLeafs(handler: LeafReplacer, bind?: unknown): ConditionTree {
-    const result: ConditionTree | LeafComponents = handler.call(bind, this);
+    const result: ConditionTree | PlainConditionTree = handler.call(bind, this);
 
     return result instanceof ConditionTree ? result : ConditionTreeFactory.fromPlainObject(result);
   }
 
   async replaceLeafsAsync(handler: AsyncLeafReplacer, bind?: unknown): Promise<ConditionTree> {
-    const result: ConditionTree | LeafComponents = await handler.call(bind, this);
+    const result: ConditionTree | PlainConditionTree = await handler.call(bind, this);
 
     return result instanceof ConditionTree ? result : ConditionTreeFactory.fromPlainObject(result);
   }
@@ -114,7 +114,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
     }
   }
 
-  override(params: Partial<LeafComponents>): ConditionTreeLeaf {
+  override(params: Partial<PlainConditionTreeLeaf>): ConditionTreeLeaf {
     return ConditionTreeFactory.fromPlainObject({ ...this, ...params }) as ConditionTreeLeaf;
   }
 
