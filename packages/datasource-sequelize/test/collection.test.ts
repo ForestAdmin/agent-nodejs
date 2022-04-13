@@ -1,8 +1,6 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
-  ConditionTreeBranch,
-  ConditionTreeFactory,
   ConditionTreeLeaf,
   DataSource,
   Filter,
@@ -180,27 +178,41 @@ describe('SequelizeDataSource > Collection', () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
 
       const update = jest.fn().mockResolvedValue([]);
+      const findAll = jest.fn().mockResolvedValue([]);
 
       const model = sequelize.model(name);
       model.update = update;
+      model.findAll = findAll;
 
       const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
 
       return {
+        model,
         update,
+        findAll,
         sequelizeCollection,
       };
     };
 
     it('should delegate work to `sequelize.model.update`', async () => {
-      const { update, sequelizeCollection } = setup();
+      const { update, findAll, sequelizeCollection, model } = setup();
       const patch = { field: '__value__' };
       const filter = new Filter({});
+
+      findAll.mockResolvedValue([
+        { get: () => '1', id: 1 },
+        { get: () => '2', id: 2 },
+      ]);
 
       await expect(
         sequelizeCollection.update(factories.caller.build(), filter, patch),
       ).resolves.not.toThrow();
 
+      expect(findAll).toHaveBeenCalledWith({
+        include: QueryConverter.getIncludeFromProjection(new Projection()),
+        attributes: ['id'],
+        where: QueryConverter.getWhereFromConditionTree(model, filter.conditionTree),
+      });
       expect(update).toHaveBeenCalledWith(
         patch,
         expect.objectContaining({ fields: Object.keys(patch) }),
@@ -229,7 +241,7 @@ describe('SequelizeDataSource > Collection', () => {
       };
     };
 
-    it('should find all the records and delete all', async () => {
+    it('should find all the records and delete it', async () => {
       const { findAll, destroy, sequelizeCollection, model } = setup();
       const filter = new Filter({});
       findAll.mockResolvedValue([
@@ -241,13 +253,11 @@ describe('SequelizeDataSource > Collection', () => {
         sequelizeCollection.delete(factories.caller.build(), filter),
       ).resolves.not.toThrow();
 
-      expect(findAll).toHaveBeenCalledTimes(1);
       expect(findAll).toHaveBeenCalledWith({
         include: QueryConverter.getIncludeFromProjection(new Projection()),
         attributes: ['id'],
         where: QueryConverter.getWhereFromConditionTree(model, filter.conditionTree),
       });
-      expect(destroy).toHaveBeenCalledTimes(1);
       expect(destroy).toHaveBeenCalledWith({
         where: QueryConverter.getWhereFromConditionTree(
           model,

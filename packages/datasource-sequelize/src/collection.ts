@@ -1,11 +1,4 @@
-import Model, {
-  FindOptions,
-  ModelDefined,
-  ProjectionAlias,
-  WhereOptions,
-  col,
-  fn,
-} from 'sequelize';
+import { FindOptions, ModelDefined, ProjectionAlias, WhereOptions, col, fn } from 'sequelize';
 
 import {
   AggregateResult,
