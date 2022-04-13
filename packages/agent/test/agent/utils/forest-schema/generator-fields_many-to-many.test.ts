@@ -109,4 +109,16 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       isVirtual: false,
     });
   });
+
+  test('should sort schema property', () => {
+    const schema = SchemaGeneratorFields.buildSchema(
+      setupWithManyToManyRelation().getCollection('bookPersons'),
+      'book',
+    );
+
+    const schemaProperties = Object.keys(schema);
+    const sortedSchemaProperties = [...schemaProperties].sort();
+
+    expect(schemaProperties).toStrictEqual(sortedSchemaProperties);
+  });
 });

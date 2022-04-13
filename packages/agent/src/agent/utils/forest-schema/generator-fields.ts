@@ -3,6 +3,10 @@ import {
   CollectionUtils,
   ColumnSchema,
   FieldTypes,
+  ManyToManySchema,
+  ManyToOneSchema,
+  OneToManySchema,
+  OneToOneSchema,
   RelationSchema,
 } from '@forestadmin/datasource-toolkit';
 import { ForestServerField } from './types';
@@ -68,6 +72,79 @@ export default class SchemaGeneratorFields {
     };
   }
 
+  private static buildToManyRelationSchema(
+    relation: OneToManySchema | ManyToManySchema,
+    foreignCollection: Collection,
+    baseSchema: ForestServerField,
+  ): ForestServerField {
+    const key =
+      relation.type === 'OneToMany' ? relation.originKeyTarget : relation.foreignKeyTarget;
+    const keySchema = foreignCollection.schema.fields[key] as ColumnSchema;
+
+    return {
+      type: [keySchema.columnType],
+      defaultValue: null,
+      isFilterable: false,
+      isPrimaryKey: false,
+      isRequired: false,
+      isSortable: false,
+      validations: [],
+      reference: `${foreignCollection.name}.${key}`,
+      ...baseSchema,
+    };
+  }
+
+  private static isForeignCollectionFilterable(foreignCollection: Collection) {
+    return Object.values(foreignCollection.schema.fields).some(
+      field =>
+        field.type === 'Column' &&
+        FrontendFilterableUtils.isFilterable(field.columnType, field.filterOperators),
+    );
+  }
+
+  private static buildOneToOneSchema(
+    relation: OneToOneSchema,
+    foreignCollection: Collection,
+    baseSchema: ForestServerField,
+  ) {
+    const key = relation.originKeyTarget;
+    const keySchema = foreignCollection.schema.fields[key] as ColumnSchema;
+
+    return {
+      type: keySchema.columnType,
+      defaultValue: null,
+      isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
+      isPrimaryKey: false,
+      isRequired: false,
+      isSortable: Boolean(keySchema.isSortable),
+      validations: [],
+      reference: `${foreignCollection.name}.${key}`,
+      ...baseSchema,
+    };
+  }
+
+  private static buildManyToOneSchema(
+    relation: ManyToOneSchema,
+    collection: Collection,
+    foreignCollection: Collection,
+    baseSchema: ForestServerField,
+  ) {
+    const key = relation.foreignKey;
+    const keySchema = collection.schema.fields[key] as ColumnSchema;
+
+    return {
+      type: keySchema.columnType,
+      defaultValue: keySchema.defaultValue ?? null,
+      isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
+      isPrimaryKey: Boolean(keySchema.isPrimaryKey),
+      isRequired: keySchema.validation?.some(v => v.operator === 'Present') ?? false,
+      isSortable: Boolean(keySchema.isSortable),
+      validations: FrontendValidationUtils.convertValidationList(keySchema.validation),
+      reference: `${foreignCollection.name}.${relation.foreignKeyTarget}`,
+      ...baseSchema,
+    };
+  }
+
   private static buildRelationSchema(collection: Collection, name: string): ForestServerField {
     const relation = collection.schema.fields[name] as RelationSchema;
     const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
@@ -82,60 +159,27 @@ export default class SchemaGeneratorFields {
       relationship: SchemaGeneratorFields.relationMap[relation.type],
     };
 
-    if (relation.type === 'ManyToMany' || relation.type === 'OneToMany') {
-      const key =
-        relation.type === 'OneToMany' ? relation.originKeyTarget : relation.foreignKeyTarget;
-      const keySchema = foreignCollection.schema.fields[key] as ColumnSchema;
-
-      return {
-        type: [keySchema.columnType],
-        defaultValue: null,
-        isFilterable: false,
-        isPrimaryKey: false,
-        isRequired: false,
-        isSortable: false,
-        validations: [],
-        reference: `${foreignCollection.name}.${key}`,
-        ...relationSchema,
-      };
+    switch (relation.type) {
+      case 'ManyToMany':
+      case 'OneToMany':
+        return SchemaGeneratorFields.buildToManyRelationSchema(
+          relation,
+          foreignCollection,
+          relationSchema,
+        );
+      case 'OneToOne':
+        return SchemaGeneratorFields.buildOneToOneSchema(
+          relation,
+          foreignCollection,
+          relationSchema,
+        );
+      default:
+        return SchemaGeneratorFields.buildManyToOneSchema(
+          relation,
+          collection,
+          foreignCollection,
+          relationSchema,
+        );
     }
-
-    const isFilterable = Object.values(foreignCollection.schema.fields).some(
-      field =>
-        field.type === 'Column' &&
-        FrontendFilterableUtils.isFilterable(field.columnType, field.filterOperators),
-    );
-
-    if (relation.type === 'OneToOne') {
-      const key = relation.originKeyTarget;
-      const keySchema = foreignCollection.schema.fields[key] as ColumnSchema;
-
-      return {
-        type: keySchema.columnType,
-        defaultValue: null,
-        isFilterable,
-        isPrimaryKey: false,
-        isRequired: false,
-        isSortable: Boolean(keySchema.isSortable),
-        validations: [],
-        reference: `${foreignCollection.name}.${key}`,
-        ...relationSchema,
-      };
-    }
-
-    const key = relation.foreignKey;
-    const keySchema = collection.schema.fields[key] as ColumnSchema;
-
-    return {
-      type: keySchema.columnType,
-      defaultValue: keySchema.defaultValue ?? null,
-      isFilterable,
-      isPrimaryKey: Boolean(keySchema.isPrimaryKey),
-      isRequired: keySchema.validation?.some(v => v.operator === 'Present') ?? false,
-      isSortable: Boolean(keySchema.isSortable),
-      validations: FrontendValidationUtils.convertValidationList(keySchema.validation),
-      reference: `${foreignCollection.name}.${relation.foreignKeyTarget}`,
-      ...relationSchema,
-    };
   }
 }
