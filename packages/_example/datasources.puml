@@ -38,6 +38,20 @@ class RENTALS {
 class RENTALS
 note bottom: TABLE IN MSSQL
 
+class CARD {
+  BigInt cardNumber
+  Enum cardType
+  Boolean isActive
+}
+note bottom: TABLE IN MARIADB
+
+class CUSTOMER {
+  String name
+  String firstName
+}
+note bottom: TABLE IN MARIADB
+
 DVD "*" -- "*" RENTALS : has
+CUSTOMER "1" -- "*" CARD : has
 
 @enduml

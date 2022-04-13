@@ -1,3 +1,19 @@
+diff --git a/node_modules/sequelize/lib/dialects/mariadb/query.js b/node_modules/sequelize/lib/dialects/mariadb/query.js
+index 91f8561..1ab27cf 100644
+--- a/node_modules/sequelize/lib/dialects/mariadb/query.js
++++ b/node_modules/sequelize/lib/dialects/mariadb/query.js
+@@ -221,10 +221,7 @@ class Query extends AbstractQuery {
+     }
+   }
+   handleShowTablesQuery(results) {
+-    return results.map((resultSet) => ({
+-      tableName: resultSet.TABLE_NAME,
+-      schema: resultSet.TABLE_SCHEMA
+-    }));
++    return results.map((resultSet) => resultSet.TABLE_NAME);
+   }
+   handleShowIndexesQuery(data) {
+     let currItem;
 diff --git a/node_modules/sequelize/lib/dialects/mssql/query.js b/node_modules/sequelize/lib/dialects/mssql/query.js
 index 4776d05..108fe7e 100644
 --- a/node_modules/sequelize/lib/dialects/mssql/query.js

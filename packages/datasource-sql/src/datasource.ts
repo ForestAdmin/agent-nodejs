@@ -23,8 +23,6 @@ export default class SqlDataSource extends SequelizeDataSource {
 
     await this.defineModels(tableNames);
 
-    // return this.queryInterface.getForeignKeyReferencesForTable(tableName);
-
     this.createCollections(this.sequelize.models);
   }
 

@@ -1,133 +1,62 @@
-import { DataTypes, Dialect, Sequelize } from 'sequelize';
+import { DataTypes, Sequelize } from 'sequelize';
 
-(async () => {
+export default async function seedDirectSqlDatasource(): Promise<void> {
   let sequelize: Sequelize;
 
   try {
-    const dialect: Dialect = process.env.SQL_DIALECT as Dialect;
+    sequelize = new Sequelize('mariadb://example:password@localhost:3808/example', {
+      logging: false,
+    });
 
-    switch (dialect) {
-      case 'mssql':
-        sequelize = new Sequelize('mssql://sa:yourStrong(!)Password@localhost:1433/example');
-        break;
-      case 'mysql':
-        sequelize = new Sequelize('mysql://example:password@localhost:3306/example');
-        break;
-      default:
-        sequelize = new Sequelize('postgres://example:password@localhost:5442/example');
-    }
-
-    sequelize.define(
-      'primitiveT',
+    const card = sequelize.define(
+      'card',
       {
-        string: {
-          type: DataTypes.STRING,
-          defaultValue: 'default string',
+        cardNumber: {
+          type: DataTypes.BIGINT,
+          defaultValue: 1111222233334444,
         },
-        bool: {
+        cardType: {
+          type: DataTypes.ENUM('visa', 'mastercard', 'american express'),
+          defaultValue: 'visa',
+        },
+        isActive: {
           type: DataTypes.BOOLEAN,
-          defaultValue: true,
-        },
-        int: {
-          type: DataTypes.INTEGER,
-          defaultValue: 2,
-        },
-        enum: {
-          type: DataTypes.ENUM('enum1', 'enum2'),
-          defaultValue: 'enum1',
-        },
-        date: {
-          type: DataTypes.DATE,
-          defaultValue: Sequelize.fn(dialect === 'mssql' ? 'getdate' : 'now'),
-        },
-        dateAsDefault: {
-          type: DataTypes.DATE,
-          defaultValue: '2022-03-14 09:44:52',
+          defaultValue: false,
         },
       },
       {
+        underscored: true,
+        tableName: 'card',
         timestamps: false,
-        tableName: 'primitiveT',
       },
     );
 
-    sequelize.define(
-      'timeStmpT',
-      {},
+    const customer = sequelize.define(
+      'customer',
       {
-        timestamps: true,
-        tableName: 'timeStmpT',
+        name: {
+          type: DataTypes.STRING,
+          defaultValue: 'customer#',
+        },
+        firstName: {
+          type: DataTypes.STRING,
+          allowNull: false,
+        },
       },
-    );
-
-    sequelize.define(
-      'paranoidT',
-      {},
       {
-        timestamps: true,
+        tableName: 'customer',
         paranoid: true,
-        tableName: 'paranoidT',
+        timestamps: true,
       },
     );
 
-    if (dialect === 'mysql') {
-      sequelize.define(
-        'jsonT',
-        {
-          json: {
-            type: DataTypes.JSON,
-          },
-        },
-        {
-          timestamps: false,
-          tableName: 'jsonT',
-        },
-      );
-    }
+    card.belongsTo(customer);
+    customer.hasMany(card);
 
-    if (dialect === 'postgres') {
-      sequelize.define(
-        'jsonT',
-        {
-          json: {
-            type: DataTypes.JSONB,
-            defaultValue: { toto: 'a que coucou' },
-          },
-        },
-        {
-          timestamps: false,
-          tableName: 'jsonT',
-        },
-      );
-
-      sequelize.define(
-        'arrayT',
-        {
-          arrayInt: {
-            type: DataTypes.ARRAY(DataTypes.INTEGER),
-            defaultValue: [1, 2],
-          },
-          arrayString: {
-            type: DataTypes.ARRAY(DataTypes.STRING),
-            defaultValue: ['tata', 'toto'],
-          },
-          arrayEnum: {
-            type: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
-            defaultValue: ['enum1'],
-          },
-        },
-        {
-          timestamps: false,
-          tableName: 'arrayT',
-        },
-      );
-    }
-
-    await sequelize.getQueryInterface().dropAllTables();
     await sequelize.sync({ force: true });
   } catch (error) {
     console.error(error);
   } finally {
     if (sequelize) sequelize.close();
   }
-})();
+}

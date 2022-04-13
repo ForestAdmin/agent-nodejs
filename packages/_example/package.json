@@ -6,12 +6,13 @@
   "dependencies": {
     "@faker-js/faker": "6.0.0-alpha.7",
     "@forestadmin/agent": "1.0.0-beta.4",
-    "@forestadmin/datasource-sql": "1.0.0-beta.5",
     "@forestadmin/datasource-dummy": "1.0.0-beta.4",
     "@forestadmin/datasource-live": "1.0.0-beta.5",
     "@forestadmin/datasource-sequelize": "1.0.0-beta.4",
+    "@forestadmin/datasource-sql": "1.0.0-beta.5",
     "@forestadmin/datasource-toolkit": "1.0.0-beta.4",
     "dotenv": "^10.0.0",
+    "mariadb": "^3.0.0",
     "mysql2": "^2.3.3",
     "pg": "~8.2.2",
     "sequelize": "6.18.0",
@@ -23,16 +24,9 @@
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
     "start": "nodemon --delay 250ms --watch '../*/dist/' --exec yarn start:agent",
-    "start:mssql": "SQL_DIALECT=mssql yarn start",
-    "start:mysql": "SQL_DIALECT=mysql yarn start",
-    "start:postgres": "SQL_DIALECT=postgres yarn start",
     "start:agent": "node --enable-source-maps --async-stack-traces -e \"require('./dist/index.js').default()\"",
     "test": "jest",
-    "db:seed": "ts-node scripts/db-seed.ts",
-    "db:seed-direct-sql": "ts-node scripts/db-seed-direct-sql.ts",
-    "db:seed-direct-sql:mssql": "SQL_DIALECT=mssql yarn db:seed-direct-sql",
-    "db:seed-direct-sql:mysql": "SQL_DIALECT=mysql yarn db:seed-direct-sql",
-    "db:seed-direct-sql:postgres": "SQL_DIALECT=postgres yarn db:seed-direct-sql"
+    "db:seed": "ts-node scripts/db-seed.ts"
   },
   "devDependencies": {
     "fishery": "^2.1.0",
