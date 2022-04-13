@@ -165,7 +165,7 @@ describe('Serializer', () => {
           });
 
           describe('when the search value is in upper case', () => {
-            test('should return the metadata in lower and upper cases', () => {
+            test('should return the metadata that match in lower case or in upper case', () => {
               const result = setupSerializer().serializeWithSearchMetadata(
                 dataSource.collections[0],
                 [
