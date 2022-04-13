@@ -4,7 +4,20 @@ export default function prepareDatabase(): Sequelize {
   const connectionString = 'postgres://example:password@localhost:5442/example';
   const sequelize = new Sequelize(connectionString, { logging: false });
 
-  sequelize.define(
+  const country = sequelize.define('country', {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+  });
+
+  const owner = sequelize.define(
     'owner',
     {
       id: {
@@ -28,6 +41,8 @@ export default function prepareDatabase(): Sequelize {
       timestamps: false,
     },
   );
+
+  owner.belongsTo(country);
 
   return sequelize;
 }
