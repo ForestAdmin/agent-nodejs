@@ -1,0 +1,11 @@
+version: '2'
+services:
+  postgres:
+    image: postgres:12.7
+    container_name: forest_datasource_sql_test_postgres
+    ports:
+      - '5443:5432'
+    environment:
+      - POSTGRES_DB=test
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=password

@@ -52,8 +52,6 @@ export default class ArrayTypeGetter {
     this.sequelize = sequelize;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.fromArray = (this.sequelize.getQueryInterface().queryGenerator as any).fromArray;
-
-    if (!this.fromArray) this.fromArray = () => [];
   }
 
   async getType(
