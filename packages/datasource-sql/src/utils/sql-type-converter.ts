@@ -44,6 +44,7 @@ export default class SqlTypeConverter {
       return DataTypes.ENUM(...special);
     }
 
+    // User-defined enum with no values will default to string
     return DataTypes.STRING;
   }
 
@@ -102,11 +103,11 @@ export default class SqlTypeConverter {
       case this.typeContains(type, 'FLOAT'):
         return DataTypes.FLOAT;
       case 'NUMERIC':
-      case 'DECIMAL':
       case 'REAL':
       case 'DOUBLE':
       case 'DOUBLE PRECISION':
       case this.typeContains(type, 'DECIMAL'):
+        return DataTypes.DOUBLE;
       case 'DATE':
         return DataTypes.DATEONLY;
       case this.typeStartsWith(type, 'DATETIME'):

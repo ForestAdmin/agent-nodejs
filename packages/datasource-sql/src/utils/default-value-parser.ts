@@ -13,7 +13,8 @@ export default class DefaultValueParser {
     this.dialect = dialect;
   }
 
-  parse(expression: string, type: AbstractDataType | AbstractDataTypeConstructor): unknown {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  parse(expression: any, type: AbstractDataType | AbstractDataTypeConstructor): unknown {
     if (expression === null || expression === undefined) return undefined;
 
     if (typeof expression === 'string' && expression.startsWith('NULL')) return null;
@@ -52,14 +53,14 @@ export default class DefaultValueParser {
       case DataTypes.BOOLEAN:
         return [true, 'true', 'TRUE', "b'1'", '1'].includes(sanitizedExpression);
 
+      case DataTypes.NUMBER:
       case DataTypes.BIGINT:
       case DataTypes.FLOAT:
-      case DataTypes.NUMBER:
+      case DataTypes.DOUBLE:
         return this.parseNumber(sanitizedExpression);
 
       case DataTypes.DATE:
       case DataTypes.DATEONLY:
-      case DataTypes.TIME:
         return this.literalUnlessMatch(
           /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|(\d{4}-\d{2}-\d{2})|(\d{2}:\d{2}:\d{2})$/,
           sanitizedExpression,
@@ -80,7 +81,7 @@ export default class DefaultValueParser {
   private sanitizeExpression(expression: string): string {
     let sanitizedExpression = expression;
 
-    if (/^'.*'/.test(sanitizedExpression)) {
+    if (/^'.*'$/.test(sanitizedExpression)) {
       sanitizedExpression = expression.substring(1, expression.length - 1);
     }
 

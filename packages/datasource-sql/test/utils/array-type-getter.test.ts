@@ -1,4 +1,5 @@
 import { DataTypes, Sequelize } from 'sequelize';
+
 import ArrayTypeGetter from '../../src/utils/array-type-getter';
 
 describe('ArrayTypeGetter', () => {
