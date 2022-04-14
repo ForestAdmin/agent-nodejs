@@ -12,6 +12,64 @@ import { Association, ModelDefined, Op } from 'sequelize';
 import QueryConverter from '../../src/utils/query-converter';
 
 describe('Utils > QueryConverter', () => {
+  describe('getWhereFromConditionTreeWithoutInclude', () => {
+    describe('with a condition tree acting on relation', () => {
+      it('should generate a valid where clause with ids', async () => {
+        const conditionTree = new ConditionTreeLeaf('relation:__field__', 'Equal', '__value__');
+
+        const model = {
+          getAttributes: () => ({ relation: { field: '__field__' }, id: { field: 'id' } }),
+          primaryKeyAttribute: 'id',
+          findAll: jest.fn().mockResolvedValue([{ get: jest.fn().mockReturnValue('1') }]),
+          associations: {
+            relation: {
+              target: {
+                primaryKeyAttribute: 'id',
+                getAttributes: () => ({ __field__: { field: 'fieldName' } }),
+              } as unknown as ModelDefined<any, any>,
+            } as Association,
+          },
+        } as unknown as ModelDefined<any, any>;
+
+        const where = await QueryConverter.getWhereFromConditionTreeWithoutInclude(
+          model,
+          conditionTree,
+        );
+
+        expect(where).toEqual({ id: { [Op.in]: ['1'] } });
+      });
+    });
+
+    describe('with a condition tree without relation', () => {
+      it('should generate a valid where clause with ids', async () => {
+        const conditionTree = new ConditionTreeLeaf('__field__', 'Equal', '__value__');
+
+        const model = {
+          getAttributes: () => ({
+            __field__: { field: '__field__' },
+          }),
+        } as unknown as ModelDefined<any, any>;
+
+        const where = await QueryConverter.getWhereFromConditionTreeWithoutInclude(
+          model,
+          conditionTree,
+        );
+
+        expect(where).toEqual({ __field__: { [Op.eq]: '__value__' } });
+      });
+    });
+
+    describe('without condition tree', () => {
+      it('should generate a valid where clause with ids', async () => {
+        const model = {} as unknown as ModelDefined<any, any>;
+
+        const where = await QueryConverter.getWhereFromConditionTreeWithoutInclude(model, null);
+
+        expect(where).toEqual({});
+      });
+    });
+  });
+
   describe('getWhereFromConditionTree', () => {
     it('should fail with an invalid conditionTree', () => {
       const conditionTree = {

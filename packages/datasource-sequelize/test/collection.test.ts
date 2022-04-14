@@ -28,7 +28,7 @@ describe('SequelizeDataSource > Collection', () => {
     };
   };
 
-  it('should instanciate properly', () => {
+  it('should instantiate properly', () => {
     const { dataSource, name, sequelize } = makeConstructorParams();
     const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
 
@@ -39,7 +39,7 @@ describe('SequelizeDataSource > Collection', () => {
     expect(sequelizeCollection['model']).toBe(sequelize.models[name]);
   });
 
-  it('should fail to instanciate without a Sequelize model instance', () => {
+  it('should fail to instantiate without a Sequelize model instance', () => {
     const { dataSource, name } = makeConstructorParams();
     expect(() => new SequelizeCollection(name, dataSource, null)).toThrow(
       'Invalid (null) model instance.',
@@ -178,45 +178,33 @@ describe('SequelizeDataSource > Collection', () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
 
       const update = jest.fn().mockResolvedValue([]);
-      const findAll = jest.fn().mockResolvedValue([]);
 
       const model = sequelize.model(name);
       model.update = update;
-      model.findAll = findAll;
 
       const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
 
       return {
         model,
         update,
-        findAll,
         sequelizeCollection,
       };
     };
 
-    it('should delegate work to `sequelize.model.update`', async () => {
-      const { update, findAll, sequelizeCollection, model } = setup();
-      const patch = { field: '__value__' };
-      const filter = new Filter({});
+    describe('when there is no condition tree', () => {
+      it('should delegate work to `sequelize.model.update`', async () => {
+        const { update, sequelizeCollection } = setup();
+        const patch = { field: '__value__' };
+        const filter = new Filter({});
+        const where = {};
+        jest
+          .spyOn(QueryConverter, 'getWhereFromConditionTreeWithoutInclude')
+          .mockResolvedValue(where);
 
-      findAll.mockResolvedValue([
-        { get: () => '1', id: 1 },
-        { get: () => '2', id: 2 },
-      ]);
+        await sequelizeCollection.update(factories.caller.build(), filter, patch);
 
-      await expect(
-        sequelizeCollection.update(factories.caller.build(), filter, patch),
-      ).resolves.not.toThrow();
-
-      expect(findAll).toHaveBeenCalledWith({
-        include: QueryConverter.getIncludeFromProjection(new Projection()),
-        attributes: ['id'],
-        where: QueryConverter.getWhereFromConditionTree(model, filter.conditionTree),
+        expect(update).toHaveBeenCalledWith(patch, { where, fields: Object.keys(patch) });
       });
-      expect(update).toHaveBeenCalledWith(
-        patch,
-        expect.objectContaining({ fields: Object.keys(patch) }),
-      );
     });
   });
 
@@ -225,45 +213,31 @@ describe('SequelizeDataSource > Collection', () => {
       const { dataSource, name, sequelize } = makeConstructorParams();
 
       const destroy = jest.fn().mockResolvedValue(0);
-      const findAll = jest.fn().mockResolvedValue(0);
 
       const model = sequelize.model(name);
       model.destroy = destroy;
-      model.findAll = findAll;
 
       const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
 
       return {
         model,
-        findAll,
         destroy,
         sequelizeCollection,
       };
     };
 
-    it('should find all the records and delete it', async () => {
-      const { findAll, destroy, sequelizeCollection, model } = setup();
+    it('builds a new condition tree before to call `sequelize.model.delete`', async () => {
+      const { destroy, sequelizeCollection, model } = setup();
       const filter = new Filter({});
-      findAll.mockResolvedValue([
-        { get: () => '1', id: 1 },
-        { get: () => '2', id: 2 },
-      ]);
 
-      await expect(
-        sequelizeCollection.delete(factories.caller.build(), filter),
-      ).resolves.not.toThrow();
+      const where = {};
+      jest
+        .spyOn(QueryConverter, 'getWhereFromConditionTreeWithoutInclude')
+        .mockResolvedValue(where);
 
-      expect(findAll).toHaveBeenCalledWith({
-        include: QueryConverter.getIncludeFromProjection(new Projection()),
-        attributes: ['id'],
-        where: QueryConverter.getWhereFromConditionTree(model, filter.conditionTree),
-      });
-      expect(destroy).toHaveBeenCalledWith({
-        where: QueryConverter.getWhereFromConditionTree(
-          model,
-          new ConditionTreeLeaf(model.primaryKeyAttribute, 'In', ['1', '2']),
-        ),
-      });
+      await sequelizeCollection.delete(factories.caller.build(), filter);
+
+      expect(destroy).toHaveBeenCalledWith({ where });
     });
   });
 

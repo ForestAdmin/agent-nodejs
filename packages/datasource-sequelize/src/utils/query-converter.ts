@@ -71,6 +71,36 @@ export default class QueryConverter {
     }
   }
 
+  static async getWhereFromConditionTreeWithoutInclude(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    model: ModelDefined<any, any>,
+    conditionTree?: ConditionTree,
+  ): Promise<WhereOptions> {
+    const include = conditionTree
+      ? QueryConverter.getIncludeFromProjection(conditionTree.projection)
+      : [];
+    const whereOptions = QueryConverter.getWhereFromConditionTree(model, conditionTree);
+
+    if (include.length === 0) {
+      return whereOptions;
+    }
+
+    const records = await model.findAll({
+      attributes: [model.primaryKeyAttribute],
+      where: whereOptions,
+      include,
+    });
+
+    return QueryConverter.getWhereFromConditionTree(
+      model,
+      new ConditionTreeLeaf(
+        model.primaryKeyAttribute,
+        'In',
+        records.map(r => r.get(model.primaryKeyAttribute)),
+      ),
+    );
+  }
+
   static getWhereFromConditionTree(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     model: ModelDefined<any, any>,
