@@ -50,6 +50,10 @@ export default class SequelizeCollection extends BaseCollection {
       );
     }
 
+    if (filter.sort) {
+      include = include.concat(QueryConverter.getIncludeFromProjection(filter.sort.projection));
+    }
+
     const query: FindOptions = {
       attributes: projection.columns,
       where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
