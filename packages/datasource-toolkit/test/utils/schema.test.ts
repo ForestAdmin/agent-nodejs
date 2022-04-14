@@ -42,28 +42,28 @@ describe('SchemaUtils', () => {
       },
     });
 
-    test('id is not solely a fk', () => {
-      const result = SchemaUtils.isSolelyForeignKey(schema, 'id');
+    test('id is a fk', () => {
+      const result = SchemaUtils.isForeignKey(schema, 'id');
 
-      expect(result).toBeFalsy();
+      expect(result).toBe(true);
     });
 
-    test('bookId is solely a fk', () => {
-      const result = SchemaUtils.isSolelyForeignKey(schema, 'bookId');
+    test('bookId is a fk', () => {
+      const result = SchemaUtils.isForeignKey(schema, 'bookId');
 
-      expect(result).toBeTruthy();
+      expect(result).toBe(true);
     });
 
-    test('name is not solely a fk', () => {
-      const result = SchemaUtils.isSolelyForeignKey(schema, 'name');
+    test('name is not a fk', () => {
+      const result = SchemaUtils.isForeignKey(schema, 'name');
 
-      expect(result).toBeFalsy();
+      expect(result).toBe(false);
     });
 
-    test('book is not solely a fk', () => {
-      const result = SchemaUtils.isSolelyForeignKey(schema, 'book');
+    test('book is not a fk', () => {
+      const result = SchemaUtils.isForeignKey(schema, 'book');
 
-      expect(result).toBeFalsy();
+      expect(result).toBe(false);
     });
   });
 

@@ -9,12 +9,11 @@ export default class SchemaUtils {
     });
   }
 
-  static isSolelyForeignKey(schema: CollectionSchema, name: string): boolean {
+  static isForeignKey(schema: CollectionSchema, name: string): boolean {
     const field = schema.fields[name];
 
     return (
       field.type === 'Column' &&
-      !field.isPrimaryKey &&
       Object.values(schema.fields).some(
         relation => relation.type === 'ManyToOne' && relation.foreignKey === name,
       )

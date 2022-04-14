@@ -2,10 +2,12 @@ import {
   Collection,
   CollectionUtils,
   ColumnSchema,
-  ColumnType,
   FieldTypes,
+  ManyToManySchema,
+  ManyToOneSchema,
+  OneToManySchema,
+  OneToOneSchema,
   RelationSchema,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import { ForestServerField } from './types';
 import FrontendFilterableUtils from './filterable';
@@ -22,19 +24,31 @@ export default class SchemaGeneratorFields {
   static buildSchema(collection: Collection, name: string): ForestServerField {
     const { type } = collection.schema.fields[name];
 
+    let schema: ForestServerField;
+
     switch (type) {
       case 'Column':
-        return SchemaGeneratorFields.buildColumnSchema(collection, name);
+        schema = SchemaGeneratorFields.buildColumnSchema(collection, name);
+        break;
 
       case 'ManyToOne':
       case 'OneToMany':
       case 'ManyToMany':
       case 'OneToOne':
-        return SchemaGeneratorFields.buildRelationSchema(collection, name);
+        schema = SchemaGeneratorFields.buildRelationSchema(collection, name);
+        break;
 
       default:
         throw new Error('Invalid field type');
     }
+
+    return Object.entries(schema)
+      .sort()
+      .reduce((sortedSchema, [key, value]) => {
+        sortedSchema[key] = value;
+
+        return sortedSchema;
+      }, {});
   }
 
   private static buildColumnSchema(collection: Collection, name: string): ForestServerField {
@@ -58,41 +72,114 @@ export default class SchemaGeneratorFields {
     };
   }
 
+  private static buildToManyRelationSchema(
+    relation: OneToManySchema | ManyToManySchema,
+    foreignCollection: Collection,
+    baseSchema: ForestServerField,
+  ): ForestServerField {
+    const key =
+      relation.type === 'OneToMany' ? relation.originKeyTarget : relation.foreignKeyTarget;
+    const keySchema = foreignCollection.schema.fields[key] as ColumnSchema;
+
+    return {
+      type: [keySchema.columnType],
+      defaultValue: null,
+      isFilterable: false,
+      isPrimaryKey: false,
+      isRequired: false,
+      isSortable: false,
+      validations: [],
+      reference: `${foreignCollection.name}.${key}`,
+      ...baseSchema,
+    };
+  }
+
+  private static isForeignCollectionFilterable(foreignCollection: Collection) {
+    return Object.values(foreignCollection.schema.fields).some(
+      field =>
+        field.type === 'Column' &&
+        FrontendFilterableUtils.isFilterable(field.columnType, field.filterOperators),
+    );
+  }
+
+  private static buildOneToOneSchema(
+    relation: OneToOneSchema,
+    foreignCollection: Collection,
+    baseSchema: ForestServerField,
+  ) {
+    const key = relation.originKeyTarget;
+    const keySchema = foreignCollection.schema.fields[key] as ColumnSchema;
+
+    return {
+      type: keySchema.columnType,
+      defaultValue: null,
+      isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
+      isPrimaryKey: false,
+      isRequired: false,
+      isSortable: Boolean(keySchema.isSortable),
+      validations: [],
+      reference: `${foreignCollection.name}.${key}`,
+      ...baseSchema,
+    };
+  }
+
+  private static buildManyToOneSchema(
+    relation: ManyToOneSchema,
+    collection: Collection,
+    foreignCollection: Collection,
+    baseSchema: ForestServerField,
+  ) {
+    const key = relation.foreignKey;
+    const keySchema = collection.schema.fields[key] as ColumnSchema;
+
+    return {
+      type: keySchema.columnType,
+      defaultValue: keySchema.defaultValue ?? null,
+      isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
+      isPrimaryKey: Boolean(keySchema.isPrimaryKey),
+      isRequired: keySchema.validation?.some(v => v.operator === 'Present') ?? false,
+      isSortable: Boolean(keySchema.isSortable),
+      validations: FrontendValidationUtils.convertValidationList(keySchema.validation),
+      reference: `${foreignCollection.name}.${relation.foreignKeyTarget}`,
+      ...baseSchema,
+    };
+  }
+
   private static buildRelationSchema(collection: Collection, name: string): ForestServerField {
     const relation = collection.schema.fields[name] as RelationSchema;
     const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
-    const [primaryKey] = SchemaUtils.getPrimaryKeys(foreignCollection.schema);
-    const primaryKeySchema = foreignCollection.schema.fields[primaryKey] as ColumnSchema;
 
-    // Not sure what is meant by knowing if a relation is filterable or not.
-    // => let's say that the relation is filterable if at least one field in the target can
-    // be filtered for many to one / one to one.
-    const isFilterable =
-      (relation.type === 'ManyToOne' || relation.type === 'OneToOne') &&
-      Object.values(foreignCollection.schema.fields).some(
-        field =>
-          field.type === 'Column' &&
-          FrontendFilterableUtils.isFilterable(field.columnType, field.filterOperators),
-      );
-
-    return {
-      defaultValue: null,
-      enums: null,
+    const relationSchema = {
       field: name,
+      enums: null,
       integration: null,
-      inverseOf: CollectionUtils.getInverseRelation(collection, name),
-      isFilterable,
-      isPrimaryKey: false,
       isReadOnly: false,
-      isRequired: false, // @fixme for many to one / one to one we need to check the fk
-      isSortable: false,
       isVirtual: false,
-      reference: `${foreignCollection.name}.${primaryKey}`,
+      inverseOf: CollectionUtils.getInverseRelation(collection, name),
       relationship: SchemaGeneratorFields.relationMap[relation.type],
-      type: (relation.type === 'OneToOne' || relation.type === 'ManyToOne'
-        ? primaryKeySchema.columnType
-        : [primaryKeySchema.columnType]) as ColumnType,
-      validations: [],
     };
+
+    switch (relation.type) {
+      case 'ManyToMany':
+      case 'OneToMany':
+        return SchemaGeneratorFields.buildToManyRelationSchema(
+          relation,
+          foreignCollection,
+          relationSchema,
+        );
+      case 'OneToOne':
+        return SchemaGeneratorFields.buildOneToOneSchema(
+          relation,
+          foreignCollection,
+          relationSchema,
+        );
+      default:
+        return SchemaGeneratorFields.buildManyToOneSchema(
+          relation,
+          collection,
+          foreignCollection,
+          relationSchema,
+        );
+    }
   }
 }
