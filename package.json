@@ -48,6 +48,7 @@
     "test:coverage": "yarn test --coverage"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "!packages/_example/*"
   ]
 }
