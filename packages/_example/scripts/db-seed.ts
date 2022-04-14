@@ -5,7 +5,7 @@ import { prepareDatabase as prepareDatabaseMssql } from '../src/datasources/sequ
 import { prepareDatabase as prepareDatabaseMysql } from '../src/datasources/sequelize/mysql';
 import { prepareDatabase as prepareDatabasePostgres } from '../src/datasources/sequelize/postgres';
 
-async function createOwners(db) {
+async function createOwnerRecords(db) {
   const ownerRecords = [];
 
   for (let i = 0; i < 5; i += 1) {
@@ -82,11 +82,14 @@ async function seedData() {
   }
 
   try {
-    const ownerRecords = await createOwners(postgres);
+    const ownerRecords = await createOwnerRecords(postgres);
     const storeRecords = await createStoreRecords(mysql, ownerRecords);
     await createDvdRentalsRecords(mssql, storeRecords);
-  } catch {
+  } catch (e) {
+    console.error('---------------');
     console.error('The seed failed');
+    console.error(e);
+    console.error('---------------');
   } finally {
     for (const db of [mssql, mysql, postgres]) {
       // eslint-disable-next-line no-await-in-loop
