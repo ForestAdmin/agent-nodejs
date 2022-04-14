@@ -9,3 +9,34 @@ services:
       - POSTGRES_DB=test
       - POSTGRES_USER=test
       - POSTGRES_PASSWORD=password
+
+  mysql:
+    image: mysql:oracle
+    container_name: forest_datasource_sql_test_mysql
+    ports:
+      - '3307:3306'
+    environment:
+      - MYSQL_DATABASE=test
+      - MYSQL_USER=test
+      - MYSQL_PASSWORD=password
+      - MYSQL_ROOT_PASSWORD=password
+
+  mssql:
+    image: mcr.microsoft.com/azure-sql-edge
+    container_name: forest_datasource_sql_test_mssql
+    ports:
+      - '1434:1433'
+    environment:
+      - MSSQL_SA_PASSWORD=yourStrong(!)Password
+      - ACCEPT_EULA=Y
+
+  mariadb:
+    image: mariadb:latest
+    container_name: forest_datasource_sql_test_mariadb
+    ports:
+      - '3809:3306'
+    environment:
+      - MARIADB_DATABASE=test
+      - MARIADB_USER=test
+      - MARIADB_PASSWORD=password
+      - MARIADB_ROOT_PASSWORD=password
