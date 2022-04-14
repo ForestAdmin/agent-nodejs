@@ -155,4 +155,4 @@ jobs:
           name: build
           path: 'packages/'
       - name: 'Run multi-semantic-release'
-        run: 'multi-semantic-release --dry-run'
+        run: 'multi-semantic-release'
