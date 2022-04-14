@@ -1,11 +1,10 @@
-import { FindOptions, ModelDefined, ProjectionAlias, WhereOptions, col, fn } from 'sequelize';
+import { FindOptions, ModelDefined, ProjectionAlias, col, fn } from 'sequelize';
 
 import {
   AggregateResult,
   Aggregation,
   BaseCollection,
   Caller,
-  ConditionTreeLeaf,
   DataSource,
   Filter,
   Logger,
@@ -83,7 +82,7 @@ export default class SequelizeCollection extends BaseCollection {
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     await this.model.update(patch, {
-      where: await QueryConverter.getWhereFromConditionTreeWithoutInclude(
+      where: await QueryConverter.getWhereFromConditionTreeToByPassInclude(
         this.model,
         filter.conditionTree,
       ),
@@ -93,7 +92,7 @@ export default class SequelizeCollection extends BaseCollection {
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
     await this.model.destroy({
-      where: await QueryConverter.getWhereFromConditionTreeWithoutInclude(
+      where: await QueryConverter.getWhereFromConditionTreeToByPassInclude(
         this.model,
         filter.conditionTree,
       ),

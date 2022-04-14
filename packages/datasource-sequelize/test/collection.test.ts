@@ -198,7 +198,7 @@ describe('SequelizeDataSource > Collection', () => {
         const filter = new Filter({});
         const where = {};
         jest
-          .spyOn(QueryConverter, 'getWhereFromConditionTreeWithoutInclude')
+          .spyOn(QueryConverter, 'getWhereFromConditionTreeToByPassInclude')
           .mockResolvedValue(where);
 
         await sequelizeCollection.update(factories.caller.build(), filter, patch);
@@ -226,13 +226,13 @@ describe('SequelizeDataSource > Collection', () => {
       };
     };
 
-    it('builds a new condition tree before to call `sequelize.model.delete`', async () => {
-      const { destroy, sequelizeCollection, model } = setup();
+    it('should delegate work to `sequelize.model.delete``', async () => {
+      const { destroy, sequelizeCollection } = setup();
       const filter = new Filter({});
 
       const where = {};
       jest
-        .spyOn(QueryConverter, 'getWhereFromConditionTreeWithoutInclude')
+        .spyOn(QueryConverter, 'getWhereFromConditionTreeToByPassInclude')
         .mockResolvedValue(where);
 
       await sequelizeCollection.delete(factories.caller.build(), filter);

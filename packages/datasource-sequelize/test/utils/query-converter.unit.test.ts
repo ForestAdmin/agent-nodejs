@@ -12,7 +12,7 @@ import { Association, ModelDefined, Op } from 'sequelize';
 import QueryConverter from '../../src/utils/query-converter';
 
 describe('Utils > QueryConverter', () => {
-  describe('getWhereFromConditionTreeWithoutInclude', () => {
+  describe('getWhereFromConditionTreeToByPassInclude', () => {
     describe('with a condition tree acting on relation', () => {
       it('should generate a valid where clause with ids', async () => {
         const conditionTree = new ConditionTreeLeaf('relation:__field__', 'Equal', '__value__');
@@ -31,7 +31,7 @@ describe('Utils > QueryConverter', () => {
           },
         } as unknown as ModelDefined<any, any>;
 
-        const where = await QueryConverter.getWhereFromConditionTreeWithoutInclude(
+        const where = await QueryConverter.getWhereFromConditionTreeToByPassInclude(
           model,
           conditionTree,
         );
@@ -50,7 +50,7 @@ describe('Utils > QueryConverter', () => {
           }),
         } as unknown as ModelDefined<any, any>;
 
-        const where = await QueryConverter.getWhereFromConditionTreeWithoutInclude(
+        const where = await QueryConverter.getWhereFromConditionTreeToByPassInclude(
           model,
           conditionTree,
         );
@@ -63,7 +63,7 @@ describe('Utils > QueryConverter', () => {
       it('should generate a valid where clause with ids', async () => {
         const model = {} as unknown as ModelDefined<any, any>;
 
-        const where = await QueryConverter.getWhereFromConditionTreeWithoutInclude(model, null);
+        const where = await QueryConverter.getWhereFromConditionTreeToByPassInclude(model, null);
 
         expect(where).toEqual({});
       });

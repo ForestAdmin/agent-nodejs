@@ -71,7 +71,11 @@ export default class QueryConverter {
     }
   }
 
-  static async getWhereFromConditionTreeWithoutInclude(
+  /*
+   * Delete and update sequelize methods does not provide the include options.
+   * This method is developed to by pass this problem.
+   */
+  static async getWhereFromConditionTreeToByPassInclude(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     model: ModelDefined<any, any>,
     conditionTree?: ConditionTree,
