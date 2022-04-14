@@ -1,10 +1,11 @@
 import {
   Aggregation,
+  CollectionUtils,
   ConditionTreeBranch,
   DateOperation,
   Filter,
   FilterFactory,
-  SchemaUtils,
+  RelationSchema,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
@@ -117,12 +118,7 @@ export default class Chart extends CollectionRoute {
       new Aggregation({
         operation: aggregate,
         field: aggregateField,
-        groups: [
-          {
-            field: groupByDateField,
-            operation: timeRange,
-          },
-        ],
+        groups: [{ field: groupByDateField, operation: timeRange }],
       }),
     );
 
@@ -155,34 +151,56 @@ export default class Chart extends CollectionRoute {
   private async makeLeaderboardChart(
     context: Context,
   ): Promise<Array<{ key: string; value: number }>> {
-    const {
-      aggregate,
-      label_field: labelField,
-      relationship_field: relationshipField,
-      limit,
-    } = context.request.body;
-    let { aggregate_field: aggregateField } = context.request.body;
+    const { body } = context.request;
+    const field = this.collection.schema.fields[body.relationship_field] as RelationSchema;
 
-    if (!aggregateField) {
-      const relation = SchemaUtils.getToManyRelation(this.collection.schema, relationshipField);
-      const collection = this.dataSource.getCollection(
-        relation.type === 'OneToMany' ? relation.foreignCollection : relation.throughCollection,
-      );
+    let collection: string;
+    let filter: Filter;
+    let aggregation: Aggregation;
 
-      [aggregateField] = SchemaUtils.getPrimaryKeys(collection.schema);
+    if (field?.type === 'OneToMany') {
+      const inverse = CollectionUtils.getInverseRelation(this.collection, body.relationship_field);
+
+      if (inverse) {
+        collection = field.foreignCollection;
+        filter = (await this.getFilter(context)).nest(inverse);
+        aggregation = new Aggregation({
+          operation: body.aggregate,
+          field: body.aggregate_field,
+          groups: [{ field: `${inverse}:${body.label_field}` }],
+        });
+      }
     }
 
-    const rows = await this.collection.aggregate(
-      await this.getFilter(context),
-      new Aggregation({
-        operation: aggregate,
-        field: `${relationshipField}:${aggregateField}`,
-        groups: [{ field: labelField }],
-      }),
-      Number(limit),
-    );
+    if (field?.type === 'ManyToMany') {
+      const origin = CollectionUtils.getOriginRelation(this.collection, body.relationship_field);
+      const target = CollectionUtils.getForeignRelation(this.collection, body.relationship_field);
 
-    return rows.map(row => ({ key: row.group[labelField] as string, value: row.value as number }));
+      if (origin && target) {
+        collection = field.throughCollection;
+        filter = (await this.getFilter(context)).nest(origin);
+        aggregation = new Aggregation({
+          operation: body.aggregate,
+          field: `${target}:${body.aggregate_field}`,
+          groups: [{ field: `${origin}:${body.label_field}` }],
+        });
+      }
+    }
+
+    if (collection && filter && aggregation) {
+      const rows = await this.dataSource
+        .getCollection(collection)
+        .aggregate(filter, aggregation, Number(body.limit));
+
+      return rows.map(row => ({
+        key: row.group[aggregation.groups[0].field] as string,
+        value: row.value as number,
+      }));
+    }
+
+    throw new ValidationError(
+      `Failed to generate leaderboard chart: parameters do not match pre-requisites`,
+    );
   }
 
   private async computeValue(context: Context, filter: Filter): Promise<number> {

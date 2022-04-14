@@ -27,7 +27,6 @@ export default function makeDummyDataSource(): DataSource {
     throughCollection: 'librariesBooks',
     originKey: 'bookId',
     foreignKey: 'libraryId',
-    foreignRelation: 'library',
   });
 
   relations.getCollection('libraries').addRelation('books', {
@@ -36,7 +35,6 @@ export default function makeDummyDataSource(): DataSource {
     foreignKey: 'bookId',
     throughCollection: 'librariesBooks',
     foreignCollection: 'books',
-    foreignRelation: 'book',
   });
 
   relations.getCollection('librariesBooks').addRelation('book', {

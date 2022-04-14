@@ -102,10 +102,11 @@ export default class FilterFactory {
   ): Promise<PaginatedFilter> {
     const relation = collection.schema.fields[relationName] as ManyToManySchema;
     const originValue = await CollectionUtils.getValue(collection, id, relation.originKeyTarget);
+    const foreignRelation = CollectionUtils.getForeignRelation(collection, relationName);
 
     // Optimization for many to many when there is not search/segment (saves one query)
-    if (relation.foreignRelation && baseForeignFilter.isNestable) {
-      const baseThroughFilter = baseForeignFilter.nest(relation.foreignRelation);
+    if (foreignRelation && baseForeignFilter.isNestable) {
+      const baseThroughFilter = baseForeignFilter.nest(foreignRelation);
 
       return baseThroughFilter.override({
         conditionTree: ConditionTreeFactory.intersect(

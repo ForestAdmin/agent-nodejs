@@ -73,7 +73,9 @@ describe('CollectionUtils', () => {
           name: factories.columnSchema.build(),
           manyToManyRelationField: factories.manyToManySchema.build({
             throughCollection: 'librariesBooks',
-            foreignRelation: 'myLibrary',
+            foreignCollection: 'libraries',
+            foreignKey: 'libraryId',
+            originKey: 'bookId',
           }),
         },
       }),

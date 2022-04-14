@@ -360,9 +360,9 @@ describe('ChartRoute', () => {
 
   describe('on leaderboard chart', () => {
     test('it should call the collection aggregate with the correct parameters', async () => {
-      jest.spyOn(dataSource.getCollection('persons'), 'aggregate').mockResolvedValueOnce([
-        { value: 1234, group: { id: 2 } },
-        { value: 456, group: { id: 1 } },
+      jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
+        { value: 1234, group: { 'author:id': 2 } },
+        { value: 456, group: { 'author:id': 1 } },
       ]);
 
       const chart = new Chart(services, options, dataSource, 'persons');
@@ -382,7 +382,7 @@ describe('ChartRoute', () => {
 
       await chart.handleChart(context);
 
-      expect(dataSource.getCollection('persons').aggregate).toHaveBeenCalledWith(
+      expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
         {
           conditionTree: null,
           search: null,
@@ -390,7 +390,7 @@ describe('ChartRoute', () => {
           segment: null,
           timezone: 'Europe/Paris',
         },
-        { field: 'books:id', groups: [{ field: 'id' }], operation: 'Sum' },
+        { field: 'id', groups: [{ field: 'author:id' }], operation: 'Sum' },
         2,
       );
 
@@ -409,9 +409,9 @@ describe('ChartRoute', () => {
 
     describe('when aggregation field is not present', () => {
       test('it should call the collection aggregate with the correct parameters', async () => {
-        jest.spyOn(dataSource.getCollection('persons'), 'aggregate').mockResolvedValueOnce([
-          { value: 1234, group: { id: 2 } },
-          { value: 456, group: { id: 1 } },
+        jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
+          { value: 1234, group: { 'author:id': 2 } },
+          { value: 456, group: { 'author:id': 1 } },
         ]);
 
         const chart = new Chart(services, options, dataSource, 'persons');
@@ -430,7 +430,7 @@ describe('ChartRoute', () => {
 
         await chart.handleChart(context);
 
-        expect(dataSource.getCollection('persons').aggregate).toHaveBeenCalledWith(
+        expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
           {
             conditionTree: null,
             search: null,
@@ -438,7 +438,7 @@ describe('ChartRoute', () => {
             segment: null,
             timezone: 'Europe/Paris',
           },
-          { field: 'books:id', groups: [{ field: 'id' }], operation: 'Count' },
+          { groups: [{ field: 'author:id' }], operation: 'Count' },
           2,
         );
 
@@ -477,7 +477,9 @@ describe('ChartRoute', () => {
           });
 
           await expect(chart.handleChart(context)).rejects.toThrowError(
-            new ValidationError(`Relation 'invalid' not found`),
+            new ValidationError(
+              'Failed to generate leaderboard chart: parameters do not match pre-requisites',
+            ),
           );
         });
       });

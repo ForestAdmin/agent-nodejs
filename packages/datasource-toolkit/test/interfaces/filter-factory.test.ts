@@ -26,7 +26,6 @@ function setup() {
             foreignKey: 'reviewId',
             foreignKeyTarget: 'id',
             throughCollection: 'bookReview',
-            foreignRelation: 'review',
           }),
           bookReviews: factories.oneToManySchema.build({
             foreignCollection: 'reviews',

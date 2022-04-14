@@ -35,8 +35,7 @@ class MyCollection extends BaseCollection {
     const records = await this.list(filter, aggregation.projection);
 
     // Use "in-process emulation" to aggregate the results
-    const rows = aggregation.apply(records, filter.timezone);
-    return limit ? rows.slice(0, limit) : rows;
+    return aggregation.apply(records, filter.timezone, limit);
   }
 }
 ```

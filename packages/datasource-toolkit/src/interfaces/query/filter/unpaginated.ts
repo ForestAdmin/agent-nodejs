@@ -42,6 +42,8 @@ export default class Filter {
   nest(prefix: string): Filter {
     if (!this.isNestable) throw new Error("Filter can't be nested");
 
-    return this.override({ conditionTree: this.conditionTree?.nest(prefix) });
+    return this.override({
+      conditionTree: this.conditionTree ? this.conditionTree.nest(prefix) : this.conditionTree,
+    });
   }
 }

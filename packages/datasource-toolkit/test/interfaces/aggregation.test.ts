@@ -73,11 +73,11 @@ describe('Aggregation', () => {
 
     test('apply should work', () => {
       const records = [
-        { id: 1, discriminant: 'blue' },
-        { id: 1, discriminant: 'blue' },
-        { id: 1, discriminant: 'blue' },
         { id: 1, discriminant: 'red' },
         { id: null, discriminant: 'red' },
+        { id: 1, discriminant: 'blue' },
+        { id: 1, discriminant: 'blue' },
+        { id: 1, discriminant: 'blue' },
       ];
 
       expect(aggregation.apply(records, 'Europe/Paris')).toEqual([
