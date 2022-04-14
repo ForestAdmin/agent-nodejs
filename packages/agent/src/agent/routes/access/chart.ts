@@ -181,7 +181,7 @@ export default class Chart extends CollectionRoute {
         filter = (await this.getFilter(context)).nest(origin);
         aggregation = new Aggregation({
           operation: body.aggregate,
-          field: `${target}:${body.aggregate_field}`,
+          field: body.aggregate_field ? `${target}:${body.aggregate_field}` : null,
           groups: [{ field: `${origin}:${body.label_field}` }],
         });
       }

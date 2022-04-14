@@ -8,14 +8,34 @@ describe('ChartRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
   const dataSource = factories.dataSource.buildWithCollections([
     factories.collection.build({
+      name: 'publisher',
+      schema: factories.collectionSchema.build({
+        fields: {
+          id: factories.columnSchema.isPrimaryKey().build(),
+          authors: factories.manyToManySchema.build({
+            foreignCollection: 'persons',
+            throughCollection: 'books',
+            foreignKey: 'authorId',
+            originKey: 'publisherId',
+          }),
+        },
+      }),
+    }),
+    factories.collection.build({
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
           name: factories.columnSchema.build({ columnType: 'String' }),
+          publisher: factories.manyToOneSchema.build({
+            foreignCollection: 'publisher',
+            foreignKey: 'publisherId',
+          }),
+          publisherId: factories.columnSchema.build({ columnType: 'Uuid' }),
+          authorId: factories.columnSchema.build({ columnType: 'Uuid' }),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
-            foreignKey: 'personsId',
+            foreignKey: 'authorId',
           }),
           publishedAt: factories.columnSchema.build({ columnType: 'Date' }),
         },
@@ -26,10 +46,9 @@ describe('ChartRoute', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
           books: factories.oneToManySchema.build({
             foreignCollection: 'books',
-            originKey: 'personsId',
+            originKey: 'authorId',
             originKeyTarget: 'id',
           }),
         },
@@ -40,8 +59,7 @@ describe('ChartRoute', () => {
   const router = factories.router.mockAllMethods().build();
 
   beforeEach(() => {
-    (router.post as jest.Mock).mockClear();
-    (dataSource.getCollection('books').aggregate as jest.Mock).mockClear();
+    jest.clearAllMocks();
   });
 
   test('should register "/stats/books" private routes', () => {
@@ -359,7 +377,7 @@ describe('ChartRoute', () => {
   });
 
   describe('on leaderboard chart', () => {
-    test('it should call the collection aggregate with the correct parameters', async () => {
+    test('it should call collection.aggregate (OneToMany)', async () => {
       jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
         { value: 1234, group: { 'author:id': 2 } },
         { value: 456, group: { 'author:id': 1 } },
@@ -391,6 +409,53 @@ describe('ChartRoute', () => {
           timezone: 'Europe/Paris',
         },
         { field: 'id', groups: [{ field: 'author:id' }], operation: 'Sum' },
+        2,
+      );
+
+      expect(context.response.body).toMatchObject({
+        data: {
+          attributes: {
+            value: [
+              { key: 2, value: 1234 },
+              { key: 1, value: 456 },
+            ],
+          },
+          type: 'stats',
+        },
+      });
+    });
+
+    test('it should call collection.aggregate (ManyToMany)', async () => {
+      jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
+        { value: 1234, group: { 'publisher:id': 2 } },
+        { value: 456, group: { 'publisher:id': 1 } },
+      ]);
+
+      const chart = new Chart(services, options, dataSource, 'publisher');
+
+      const context = createMockContext({
+        requestBody: {
+          type: 'Leaderboard',
+          aggregate: 'Count',
+          collection: 'publisher',
+          label_field: 'id',
+          relationship_field: 'authors',
+          limit: 2,
+        },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+      });
+
+      await chart.handleChart(context);
+
+      expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
+        {
+          conditionTree: null,
+          search: null,
+          searchExtended: false,
+          segment: null,
+          timezone: 'Europe/Paris',
+        },
+        { operation: 'Count', field: null, groups: [{ field: 'publisher:id' }] },
         2,
       );
 

@@ -269,6 +269,34 @@ describe('CollectionUtils', () => {
       });
     });
 
+    describe('getOriginRelation', () => {
+      test('should get origin of many to many', () => {
+        const { dataSource } = setupWithAllRelations();
+
+        expect(
+          CollectionUtils.getOriginRelation(dataSource.getCollection('persons'), 'myBooks'),
+        ).toStrictEqual('myPerson');
+
+        expect(
+          CollectionUtils.getOriginRelation(dataSource.getCollection('books'), 'myPersons'),
+        ).toStrictEqual('myBook');
+      });
+    });
+
+    describe('getForeignRelation', () => {
+      test('should get origin of many to many', () => {
+        const { dataSource } = setupWithAllRelations();
+
+        expect(
+          CollectionUtils.getForeignRelation(dataSource.getCollection('persons'), 'myBooks'),
+        ).toStrictEqual('myBook');
+
+        expect(
+          CollectionUtils.getForeignRelation(dataSource.getCollection('books'), 'myPersons'),
+        ).toStrictEqual('myPerson');
+      });
+    });
+
     describe('getFieldSchema', () => {
       test('should throw if a relation is not many to one', () => {
         const { dataSource } = setupWithAllRelations();
