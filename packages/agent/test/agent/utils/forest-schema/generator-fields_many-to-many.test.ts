@@ -117,8 +117,23 @@ describe('SchemaGeneratorFields > Many to Many', () => {
     );
 
     const schemaProperties = Object.keys(schema);
-    const sortedSchemaProperties = [...schemaProperties].sort();
 
-    expect(schemaProperties).toStrictEqual(sortedSchemaProperties);
+    expect(schemaProperties).toStrictEqual([
+      'defaultValue',
+      'enums',
+      'field',
+      'integration',
+      'inverseOf',
+      'isFilterable',
+      'isPrimaryKey',
+      'isReadOnly',
+      'isRequired',
+      'isSortable',
+      'isVirtual',
+      'reference',
+      'relationship',
+      'type',
+      'validations',
+    ]);
   });
 });
