@@ -154,6 +154,12 @@ jobs:
         with:
           name: build
           path: 'packages/'
+      - name: Configure npm
+        run: |
+          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > .npmrc
+          cat .npmrc
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: 'Run multi-semantic-release'
         run: '$(yarn bin)/multi-semantic-release --deps.bump=override'
         env:
