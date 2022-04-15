@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.2...@forestadmin/datasource-toolkit@1.0.0-beta.3) (2022-04-15)
+
+
+### Bug Fixes
+
+* add comment on BaseCollection ([59017ea](https://github.com/ForestAdmin/agent-nodejs/commit/59017eac9819afbd02c555869743160afcf7c9b0))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.1...@forestadmin/datasource-toolkit@1.0.0-beta.2) (2022-04-15)
 
 
