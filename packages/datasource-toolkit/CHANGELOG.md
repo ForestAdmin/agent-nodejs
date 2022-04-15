@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.1...@forestadmin/datasource-toolkit@1.0.0-beta.2) (2022-04-15)
+
+
+### Bug Fixes
+
+* enable npm, git and github distribution ([bd91825](https://github.com/ForestAdmin/agent-nodejs/commit/bd91825f4d185874a259da28b0f7a6c7f557196d))
+
 # @forestadmin/datasource-toolkit 1.0.0-beta.1 (2022-04-14)
 
 
