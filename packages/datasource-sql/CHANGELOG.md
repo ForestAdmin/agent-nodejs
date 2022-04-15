@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.0.0-beta.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.5...@forestadmin/datasource-sql@1.0.0-beta.6) (2022-04-15)
+
+
+### Features
+
+* **datasource sql:** handle primitive fields and default values ([#215](https://github.com/ForestAdmin/agent-nodejs/issues/215)) ([59a56da](https://github.com/ForestAdmin/agent-nodejs/commit/59a56da2721f39d0487b14d72b11d71b38b83a1f))
+
 # @forestadmin/datasource-sql [1.0.0-beta.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.4...@forestadmin/datasource-sql@1.0.0-beta.5) (2022-04-15)
 
 
