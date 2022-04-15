@@ -63,6 +63,7 @@ export async function prepareDatabase(): Promise<Sequelize> {
         type: DataTypes.DATE,
         allowNull: false,
       },
+      customerId: DataTypes.INTEGER,
     },
     {
       tableName: 'rental',

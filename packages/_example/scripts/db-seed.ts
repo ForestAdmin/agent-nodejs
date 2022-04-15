@@ -4,6 +4,7 @@ import faker from '@faker-js/faker';
 import { prepareDatabase as prepareDatabaseMssql } from '../src/datasources/sequelize/mssql';
 import { prepareDatabase as prepareDatabaseMysql } from '../src/datasources/sequelize/mysql';
 import { prepareDatabase as prepareDatabasePostgres } from '../src/datasources/sequelize/postgres';
+import prepareSqlDatasource from './db-seed-direct-sql';
 
 async function createOwners(db) {
   const ownerRecords = [];
@@ -74,6 +75,7 @@ async function seedData() {
     prepareDatabaseMssql(),
     prepareDatabaseMysql(),
     prepareDatabasePostgres(),
+    prepareSqlDatasource(),
   ]);
 
   for (const db of [mssql, mysql, postgres]) {

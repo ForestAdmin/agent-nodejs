@@ -33,8 +33,21 @@ class RENTALS {
 class RENTALS
 note bottom: SEQUENCE => More than 50 days
 
+class CARD {
+  BigInt cardNumber
+  Enum cardType
+  Boolean isActive
+}
+
+class CUSTOMER {
+  String name
+  String firstName
+}
+
 STORE "*" -- "1" OWNER : has
 STORE "1" -- "*" DVD : has
 DVD "*" -- "*" RENTALS : has
 STORE "1" -- "1" ADDRESS : has
+CUSTOMER "1" -- "*" CARD : has
+CUSTOMER "1" -- "*" RENTALS : has
 @enduml

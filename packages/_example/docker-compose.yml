@@ -36,10 +36,25 @@ services:
     volumes:
       - mssql-data:/var/opt/mssql
 
+  mariadb:
+    image: mariadb:latest
+    container_name: forest_agent_example_mariadb
+    ports:
+      - '3808:3306'
+    environment:
+      - MARIADB_DATABASE=example
+      - MARIADB_USER=example
+      - MARIADB_PASSWORD=password
+      - MARIADB_ROOT_PASSWORD=password
+    volumes:
+      - mariadb-data:/var/lib/mysql
+
 volumes:
   postgres-data:
     driver: local
   mysql-data:
     driver: local
   mssql-data:
+    driver: local
+  mariadb-data:
     driver: local

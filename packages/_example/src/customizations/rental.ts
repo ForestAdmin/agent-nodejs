@@ -16,4 +16,10 @@ export default (collection: Collection) =>
     .emulateFieldSorting('numberOfDays')
     .removeField('startDate', 'endDate')
     .emulateFieldOperator('numberOfDays', 'GreaterThan')
-    .addSegment('More than 50 Days', new ConditionTreeLeaf('numberOfDays', 'GreaterThan', 50));
+    .addSegment('More than 50 Days', new ConditionTreeLeaf('numberOfDays', 'GreaterThan', 50))
+    .addRelation('customer', {
+      type: 'ManyToOne',
+      foreignCollection: 'customer',
+      foreignKey: 'customerId',
+      foreignKeyTarget: 'id',
+    });
