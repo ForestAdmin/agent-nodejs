@@ -7,7 +7,6 @@ import Filter from './interfaces/query/filter/unpaginated';
 import PaginatedFilter from './interfaces/query/filter/paginated';
 import Projection from './interfaces/query/projection';
 
-/** Class BaseCollection */
 export default abstract class BaseCollection implements Collection {
   readonly dataSource: DataSource = null;
   readonly name: string = null;
