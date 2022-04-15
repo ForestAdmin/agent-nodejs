@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
-    "@forestadmin/datasource-toolkit": "1.0.0-beta.4",
+    "@forestadmin/datasource-toolkit": "1.0.0-beta.3",
     "@koa/cors": "^3.1.0",
     "@koa/router": "^10.1.1",
     "forest-ip-utils": "^1.0.1",

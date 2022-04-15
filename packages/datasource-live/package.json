@@ -12,8 +12,8 @@
     "directory": "packages/datasource-live"
   },
   "dependencies": {
-    "@forestadmin/datasource-sequelize": "1.0.0-beta.3",
-    "@forestadmin/datasource-toolkit": "1.0.0-beta.4",
+    "@forestadmin/datasource-sequelize": "1.0.0-beta.2",
+    "@forestadmin/datasource-toolkit": "1.0.0-beta.3",
     "sqlite3": "^5.0.2"
   },
   "files": [
