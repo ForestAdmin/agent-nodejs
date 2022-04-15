@@ -53,6 +53,18 @@ index af3e307..9e5f757 100644
    constructor(source: ModelCtor<S>, target: ModelCtor<T>, options: BelongsToManyOptions);
  }
  
+diff --git a/node_modules/sequelize/types/data-types.d.ts b/node_modules/sequelize/types/data-types.d.ts
+index 2eb6262..e3ad609 100644
+--- a/node_modules/sequelize/types/data-types.d.ts
++++ b/node_modules/sequelize/types/data-types.d.ts
+@@ -544,6 +544,7 @@ interface ArrayDataTypeConstructor extends AbstractDataTypeConstructor {
+ 
+ export interface ArrayDataType<T extends AbstractDataTypeConstructor | AbstractDataType> extends AbstractDataType {
+   options: ArrayDataTypeOptions<T>;
++  type: T;
+ }
+ 
+ export interface ArrayDataTypeOptions<T extends AbstractDataTypeConstructor | AbstractDataType> {
 diff --git a/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts b/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts
 index 782ee82..7488200 100644
 --- a/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts

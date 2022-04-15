@@ -1,5 +1,4 @@
 import {
-  AbstractDataTypeConstructor,
   Association,
   BelongsTo,
   BelongsToMany,
@@ -78,9 +77,9 @@ export default class ModelToCollectionSchemaConverter {
   }
 
   private static convertAttribute(attribute: ModelAttributeColumnOptions): FieldSchema {
-    const sequelizeColumnType = attribute.type as AbstractDataTypeConstructor;
+    const sequelizeColumnType = attribute.type;
     const columnType = TypeConverter.fromDataType(sequelizeColumnType);
-    const filterOperators = TypeConverter.operatorsForDataType(sequelizeColumnType);
+    const filterOperators = TypeConverter.operatorsForColumnType(columnType);
     const column: ColumnSchema = {
       columnType,
       filterOperators,
