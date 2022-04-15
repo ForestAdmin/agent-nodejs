@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.0.0-beta.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.3...@forestadmin/datasource-sql@1.0.0-beta.4) (2022-04-15)
+
+
+### Bug Fixes
+
+* switched from qiwi to dhoulb version of msr ([020c3e0](https://github.com/ForestAdmin/agent-nodejs/commit/020c3e04c64164c3f26aae293989db7842f82e8c))
+
 # @forestadmin/datasource-sql [1.0.0-beta.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.2...@forestadmin/datasource-sql@1.0.0-beta.3) (2022-04-15)
 
 
