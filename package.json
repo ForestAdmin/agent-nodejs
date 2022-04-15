@@ -4,7 +4,6 @@
   "devDependencies": {
     "@commitlint/cli": "^16.0.2",
     "@commitlint/config-conventional": "^16.0.0",
-    "@qiwi/multi-semantic-release": "^6.1.0",
     "@semantic-release/changelog": "5.0.1",
     "@semantic-release/git": "9.0.0",
     "@types/jest": "^27.4.0",
@@ -23,6 +22,7 @@
     "jest": "^27.4.7",
     "jest-extended": "^1.2.0",
     "lerna": "^4.0.0",
+    "multi-semantic-release": "^2.12.0",
     "patch-package": "^6.4.7",
     "postinstall-postinstall": "^2.1.0",
     "prettier": "2.5.1",
