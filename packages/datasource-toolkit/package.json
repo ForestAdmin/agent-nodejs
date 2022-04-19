@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "luxon": "^2.3.0",
-    "object-hash": "^2.2.0",
+    "object-hash": "^3.0.0",
     "uuid": "^8.3.2"
   }
 }
