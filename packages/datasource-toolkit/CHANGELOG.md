@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.4...@forestadmin/datasource-toolkit@1.0.0-beta.5) (2022-04-19)
+
+
+### Bug Fixes
+
+* leaderboard chart and aggregation emulation ([#241](https://github.com/ForestAdmin/agent-nodejs/issues/241)) ([d2015d7](https://github.com/ForestAdmin/agent-nodejs/commit/d2015d7f82fe6a42b36d797d6e5945b0b8f1c6ba))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.3...@forestadmin/datasource-toolkit@1.0.0-beta.4) (2022-04-15)
 
 
