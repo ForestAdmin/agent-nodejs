@@ -4,9 +4,16 @@ import ArrayTypeGetter from '../../src/utils/array-type-getter';
 
 describe('ArrayTypeGetter', () => {
   it('should return arrayType', async () => {
-    const sequelize = new Sequelize('postgres://test:password@localhost:5443/test', {
-      logging: false,
-    });
+    const database = 'datasource-sql-array-type-getter-test';
+
+    let connectionUri = `postgres://test:password@localhost:5443`;
+    let sequelize = new Sequelize(connectionUri, { logging: false });
+    await sequelize.getQueryInterface().dropDatabase(database);
+    await sequelize.getQueryInterface().createDatabase(database);
+    await sequelize.close();
+
+    connectionUri = `${connectionUri}/${database}`;
+    sequelize = new Sequelize(connectionUri, { logging: false });
 
     sequelize.define(
       'arrayTable',
@@ -18,6 +25,7 @@ describe('ArrayTypeGetter', () => {
       { tableName: 'arrayTable' },
     );
 
+    await sequelize.getQueryInterface().dropAllTables();
     await sequelize.sync({ force: true });
 
     const arrayTypeGetter = new ArrayTypeGetter(sequelize);
