@@ -98,8 +98,7 @@ export default class AgentBuilder {
     last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
 
-    // Step 2: Those five need access to all fields. They can be loaded in any order.
-    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
+    // Step 2: Those four need access to all fields. They can be loaded in any order.
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
     last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
     last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
@@ -110,6 +109,7 @@ export default class AgentBuilder {
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
     // is consistent.
+    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
     last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
 
     /* eslint-enable no-multi-assign */
