@@ -78,7 +78,6 @@ describe('DissociateDeleteRelatedRoute', () => {
             id: factories.columnSchema.isPrimaryKey().build(),
             manyToManyRelationField: factories.manyToManySchema.build({
               throughCollection: 'librariesBooks',
-              foreignRelation: 'myBook',
               foreignCollection: 'books',
               foreignKey: 'bookId',
               foreignKeyTarget: 'id',
@@ -116,7 +115,6 @@ describe('DissociateDeleteRelatedRoute', () => {
             id: factories.columnSchema.isPrimaryKey().build(),
             manyToManyRelationField: factories.manyToManySchema.build({
               throughCollection: 'librariesBooks',
-              foreignRelation: 'myLibrary',
               foreignCollection: 'libraries',
               foreignKey: 'libraryId',
               foreignKeyTarget: 'id',

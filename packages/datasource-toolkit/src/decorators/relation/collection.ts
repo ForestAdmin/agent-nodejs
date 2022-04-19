@@ -49,13 +49,11 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     }
 
     // Fallback to full emulation.
-    const rows = aggregation.apply(
+    return aggregation.apply(
       await this.list(filter, aggregation.projection),
       filter.timezone,
+      limit,
     );
-    if (limit && rows.length > limit) rows.length = limit;
-
-    return rows;
   }
 
   protected refineSchema(subSchema: CollectionSchema): CollectionSchema {

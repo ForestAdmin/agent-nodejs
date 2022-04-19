@@ -90,15 +90,11 @@ export default class BaseDummyCollection extends BaseCollection {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    const result = await this.list(filter, aggregation.projection);
-
-    let aggregationResults = aggregation.apply(result, filter.timezone);
-
-    aggregationResults = aggregationResults.sort(
-      ({ value: a }, { value: b }) => (b as number) - (a as number),
+    return aggregation.apply(
+      await this.list(filter, aggregation.projection),
+      filter.timezone,
+      limit,
     );
-
-    return limit ? aggregationResults.slice(0, limit) : aggregationResults;
   }
 
   override async execute(): Promise<ActionResult> {

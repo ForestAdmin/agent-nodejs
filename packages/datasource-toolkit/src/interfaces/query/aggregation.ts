@@ -51,8 +51,20 @@ export default class Aggregation implements PlainAggregation {
     this.groups = components.groups;
   }
 
-  apply(records: RecordData[], timezone: string): AggregateResult[] {
-    return this.formatSummaries(this.createSummaries(records, timezone));
+  apply(records: RecordData[], timezone: string, limit?: number): AggregateResult[] {
+    const rows = this.formatSummaries(this.createSummaries(records, timezone));
+
+    rows.sort((r1, r2) => {
+      if (r1.value === r2.value) return 0;
+
+      return r1.value < r2.value ? 1 : -1;
+    });
+
+    if (limit && rows.length > limit) {
+      rows.length = limit;
+    }
+
+    return rows;
   }
 
   nest(prefix: string): Aggregation {

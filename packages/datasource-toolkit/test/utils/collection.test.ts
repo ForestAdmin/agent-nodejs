@@ -73,7 +73,9 @@ describe('CollectionUtils', () => {
           name: factories.columnSchema.build(),
           manyToManyRelationField: factories.manyToManySchema.build({
             throughCollection: 'librariesBooks',
-            foreignRelation: 'myLibrary',
+            foreignCollection: 'libraries',
+            foreignKey: 'libraryId',
+            originKey: 'bookId',
           }),
         },
       }),
@@ -264,6 +266,34 @@ describe('CollectionUtils', () => {
         expect(
           CollectionUtils.getInverseRelation(dataSource.getCollection('bookPersons'), 'myPerson'),
         ).toStrictEqual('myBookPerson');
+      });
+    });
+
+    describe('getThroughOrigin', () => {
+      test('should get origin of many to many', () => {
+        const { dataSource } = setupWithAllRelations();
+
+        expect(
+          CollectionUtils.getThroughOrigin(dataSource.getCollection('persons'), 'myBooks'),
+        ).toStrictEqual('myPerson');
+
+        expect(
+          CollectionUtils.getThroughOrigin(dataSource.getCollection('books'), 'myPersons'),
+        ).toStrictEqual('myBook');
+      });
+    });
+
+    describe('getThroughTarget', () => {
+      test('should get origin of many to many', () => {
+        const { dataSource } = setupWithAllRelations();
+
+        expect(
+          CollectionUtils.getThroughTarget(dataSource.getCollection('persons'), 'myBooks'),
+        ).toStrictEqual('myBook');
+
+        expect(
+          CollectionUtils.getThroughTarget(dataSource.getCollection('books'), 'myPersons'),
+        ).toStrictEqual('myPerson');
       });
     });
 

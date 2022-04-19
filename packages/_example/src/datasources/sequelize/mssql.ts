@@ -72,8 +72,20 @@ export async function prepareDatabase(): Promise<Sequelize> {
     },
   );
 
-  dvd.belongsToMany(rental, { through: 'dvd_rental', foreignKey: 'dvdId' });
-  rental.belongsToMany(dvd, { through: 'dvd_rental', foreignKey: 'rentalId' });
+  const dvdRental = sequelize.define(
+    'dvd_rental',
+    {},
+    {
+      tableName: 'dvd_rental',
+      underscored: true,
+      timestamps: false,
+    },
+  );
+
+  dvd.belongsToMany(rental, { through: dvdRental });
+  rental.belongsToMany(dvd, { through: dvdRental });
+  dvdRental.belongsTo(dvd);
+  dvdRental.belongsTo(rental);
 
   return sequelize;
 }

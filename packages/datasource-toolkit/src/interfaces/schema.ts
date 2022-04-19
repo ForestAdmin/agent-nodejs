@@ -60,7 +60,6 @@ export type ManyToManySchema = {
   foreignCollection: string;
   foreignKey: string;
   foreignKeyTarget: string;
-  foreignRelation?: string;
   originKey: string;
   originKeyTarget: string;
   type: 'ManyToMany';

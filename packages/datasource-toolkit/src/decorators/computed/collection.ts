@@ -57,7 +57,11 @@ export default class ComputedCollection extends CollectionDecorator {
     }
 
     // Fallback to full emulation.
-    return aggregation.apply(await this.list(filter, aggregation.projection), filter.timezone);
+    return aggregation.apply(
+      await this.list(filter, aggregation.projection),
+      filter.timezone,
+      limit,
+    );
   }
 
   protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
