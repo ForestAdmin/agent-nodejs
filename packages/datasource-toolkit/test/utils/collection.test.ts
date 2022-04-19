@@ -3,6 +3,7 @@ import Aggregation from '../../src/interfaces/query/aggregation';
 import CollectionUtils from '../../src/utils/collection';
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import Projection from '../../src/interfaces/query/projection';
 
 describe('CollectionUtils', () => {
   const setupWithUnsupportedRelation = () => {
@@ -459,7 +460,7 @@ describe('CollectionUtils', () => {
     describe('when the relation is a many to many relation', () => {
       test('should return the record list of the relation', async () => {
         const { dataSource } = setupWithManyToManyRelation();
-        const projection = factories.projection.build();
+        const projection = new Projection();
         const paginatedFilter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build(),
         });
