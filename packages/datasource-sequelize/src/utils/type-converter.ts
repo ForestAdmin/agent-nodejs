@@ -75,7 +75,7 @@ export default class TypeConverter {
     if (dataType instanceof DataTypes.ARRAY) {
       const arrayDataType = dataType as ArrayDataType<AbstractDataTypeConstructor>;
 
-      return [this.fromDataType(arrayDataType.type)];
+      return [TypeConverter.fromDataType(arrayDataType.type)];
     }
 
     return TypeConverter.getColumnTypeFromDataType(dataType);
@@ -91,25 +91,31 @@ export default class TypeConverter {
 
   public static operatorsForColumnType(columnType: ColumnType): Set<Operator> {
     if (Array.isArray(columnType)) {
-      return new Set<Operator>([...this.baseOperators, 'In', 'IncludesAll', 'NotIn']);
+      return new Set<Operator>([...TypeConverter.baseOperators, 'In', 'IncludesAll', 'NotIn']);
     }
 
     switch (columnType) {
       case 'Boolean':
-        return new Set<Operator>([...this.baseOperators]);
+        return new Set<Operator>([...TypeConverter.baseOperators]);
       case 'Uuid':
         return new Set<Operator>([
-          ...this.baseOperators,
+          ...TypeConverter.baseOperators,
           'Contains',
           'EndsWith',
           'Like',
           'StartsWith',
         ]);
       case 'Number':
-        return new Set<Operator>([...this.baseOperators, 'GreaterThan', 'In', 'LessThan', 'NotIn']);
+        return new Set<Operator>([
+          ...TypeConverter.baseOperators,
+          'GreaterThan',
+          'In',
+          'LessThan',
+          'NotIn',
+        ]);
       case 'String':
         return new Set<Operator>([
-          ...this.baseOperators,
+          ...TypeConverter.baseOperators,
           'Contains',
           'EndsWith',
           'In',
@@ -122,11 +128,11 @@ export default class TypeConverter {
         ]);
       case 'Date':
       case 'Dateonly':
-        return new Set<Operator>([...this.baseOperators, 'GreaterThan', 'LessThan']);
+        return new Set<Operator>([...TypeConverter.baseOperators, 'GreaterThan', 'LessThan']);
       case 'Enum':
-        return new Set<Operator>([...this.baseOperators, 'In', 'NotIn']);
+        return new Set<Operator>([...TypeConverter.baseOperators, 'In', 'NotIn']);
       case 'Json':
-        return new Set<Operator>([...this.baseOperators]);
+        return new Set<Operator>([...TypeConverter.baseOperators]);
       default:
         return new Set<Operator>();
     }
