@@ -15,7 +15,7 @@ import SchemaEmitter from './utils/forest-schema/emitter';
 import makeRoutes from './routes';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 
-/** Native NodeJS callback that can be passed to an HTTP Server */
+/** Native Node.js callback that can be passed to an HTTP Server */
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
 
 export default class ForestAdminHttpDriver {
@@ -29,7 +29,7 @@ export default class ForestAdminHttpDriver {
 
   /**
    * Native request handler.
-   * Can be used directly with express.js or the NodeJS http module.
+   * Can be used directly with express.js or the Node.js http module.
    * Other frameworks will require adapters.
    */
   get handler(): HttpCallback {
