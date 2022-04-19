@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.4...@forestadmin/datasource-sequelize@1.0.0-beta.5) (2022-04-19)
+
+
+### Bug Fixes
+
+* **datasource sequelize:** type converter compute correctly type from sequelize DataTypes ([#246](https://github.com/ForestAdmin/agent-nodejs/issues/246)) ([92fc238](https://github.com/ForestAdmin/agent-nodejs/commit/92fc23841c25c502f44fd90c5e68f864ecc6727b))
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.3...@forestadmin/datasource-sequelize@1.0.0-beta.4) (2022-04-15)
 
 
