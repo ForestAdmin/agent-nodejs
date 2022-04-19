@@ -1,3 +1,23 @@
+# example [1.0.0-beta.6](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.5...example@1.0.0-beta.6) (2022-04-19)
+
+
+### Bug Fixes
+
+* leaderboard chart and aggregation emulation ([#241](https://github.com/ForestAdmin/agent-nodejs/issues/241)) ([d2015d7](https://github.com/ForestAdmin/agent-nodejs/commit/d2015d7f82fe6a42b36d797d6e5945b0b8f1c6ba))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.6
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.5
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.7
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.6
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.8
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.5
+
 # example [1.0.0-beta.5](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.4...example@1.0.0-beta.5) (2022-04-19)
 
 
