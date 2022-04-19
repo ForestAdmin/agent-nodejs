@@ -25,7 +25,6 @@ describe('ArrayTypeGetter', () => {
       { tableName: 'arrayTable' },
     );
 
-    await sequelize.getQueryInterface().dropAllTables();
     await sequelize.sync({ force: true });
 
     const arrayTypeGetter = new ArrayTypeGetter(sequelize);

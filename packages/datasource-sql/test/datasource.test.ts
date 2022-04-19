@@ -292,7 +292,6 @@ describe('datasource', () => {
             );
           }
 
-          await sequelize.getQueryInterface().dropAllTables();
           await sequelize.sync({ force: true });
 
           return sequelize;
@@ -369,7 +368,6 @@ describe('datasource', () => {
           eT.hasOne(fT);
           fT.belongsTo(eT);
 
-          await sequelize.getQueryInterface().dropAllTables();
           await sequelize.sync({ force: true });
           await sequelize
             .getQueryInterface()
