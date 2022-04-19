@@ -155,6 +155,47 @@ function getAttributeMappingFromDialect(dialect: Dialect) {
   };
 }
 
+const RELATION_MAPPING = {
+  aT: {
+    bT: {
+      associationType: 'BelongsTo',
+    },
+  },
+  bT: {
+    aTs: {
+      associationType: 'HasMany',
+    },
+  },
+  cT: {
+    dTs: {
+      associationType: 'BelongsToMany',
+    },
+  },
+  dT: {
+    cTs: {
+      associationType: 'BelongsToMany',
+    },
+  },
+  cdT: {
+    cT: {
+      associationType: 'BelongsTo',
+    },
+    dT: {
+      associationType: 'BelongsTo',
+    },
+  },
+  eT: {
+    fT: {
+      associationType: 'HasOne',
+    },
+  },
+  fT: {
+    eT: {
+      associationType: 'BelongsTo',
+    },
+  },
+};
+
 describe('datasource', () => {
   describe.each([
     ['postgres', 'test:password@localhost:5443'],
@@ -400,14 +441,26 @@ describe('datasource', () => {
 
           Object.values(setupModels).forEach(setupModel => {
             const model = dataSourceModels[setupModel.name];
+            const relationMapping = RELATION_MAPPING[model.name];
 
             expect(model).toBeDefined();
-            // TODO: test associations on each models
+            Object.entries(model.associations).forEach(([associationName, association]) => {
+              expect({ [associationName]: association }).toStrictEqual({
+                [associationName]: expect.objectContaining(relationMapping[associationName]),
+              });
+            });
           });
 
-          const belongsToModel = dataSourceModels.cdT;
-          expect(belongsToModel).toBeDefined();
-          // TODO: test associations on this model
+          const belongsToManyModel = dataSourceModels.cdT;
+          const relationMapping = RELATION_MAPPING.cdT;
+          expect(belongsToManyModel).toBeDefined();
+          Object.entries(belongsToManyModel.associations).forEach(
+            ([associationName, association]) => {
+              expect({ [associationName]: association }).toStrictEqual({
+                [associationName]: expect.objectContaining(relationMapping[associationName]),
+              });
+            },
+          );
         } finally {
           // avoid open handles
           await dataSourceSequelize?.close();
