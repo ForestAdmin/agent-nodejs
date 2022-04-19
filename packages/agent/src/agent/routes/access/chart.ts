@@ -173,8 +173,8 @@ export default class Chart extends CollectionRoute {
     }
 
     if (field?.type === 'ManyToMany') {
-      const origin = CollectionUtils.getOriginRelation(this.collection, body.relationship_field);
-      const target = CollectionUtils.getForeignRelation(this.collection, body.relationship_field);
+      const origin = CollectionUtils.getThroughOrigin(this.collection, body.relationship_field);
+      const target = CollectionUtils.getThroughTarget(this.collection, body.relationship_field);
 
       if (origin && target) {
         collection = field.throughCollection;

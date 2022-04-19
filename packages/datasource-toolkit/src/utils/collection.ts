@@ -1,6 +1,6 @@
 import { Collection } from '../interfaces/collection';
 import { CompositeId, RecordData } from '../interfaces/record';
-import { FieldSchema, ManyToManySchema, RelationSchema } from '../interfaces/schema';
+import { FieldSchema, RelationSchema } from '../interfaces/schema';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
 import Filter from '../interfaces/query/filter/unpaginated';
@@ -71,10 +71,11 @@ export default class CollectionUtils {
     return inverse ? inverse[0] : null;
   }
 
-  static getOriginRelation(collection: Collection, relationName: string): string {
-    const relation = collection.schema.fields[relationName] as ManyToManySchema;
-    const throughCollection = collection.dataSource.getCollection(relation.throughCollection);
+  static getThroughOrigin(collection: Collection, relationName: string): string {
+    const relation = collection.schema.fields[relationName];
+    if (relation.type !== 'ManyToMany') throw new Error('Relation must be many to many');
 
+    const throughCollection = collection.dataSource.getCollection(relation.throughCollection);
     const originRelation = Object.entries(throughCollection.schema.fields).find(
       ([, field]: [string, RelationSchema]) => {
         return (
@@ -89,10 +90,11 @@ export default class CollectionUtils {
     return originRelation ? originRelation[0] : null;
   }
 
-  static getForeignRelation(collection: Collection, relationName: string): string {
-    const relation = collection.schema.fields[relationName] as ManyToManySchema;
-    const throughCollection = collection.dataSource.getCollection(relation.throughCollection);
+  static getThroughTarget(collection: Collection, relationName: string): string {
+    const relation = collection.schema.fields[relationName];
+    if (relation.type !== 'ManyToMany') throw new Error('Relation must be many to many');
 
+    const throughCollection = collection.dataSource.getCollection(relation.throughCollection);
     const foreignRelation = Object.entries(throughCollection.schema.fields).find(
       ([, field]: [string, RelationSchema]) => {
         return (
@@ -119,7 +121,7 @@ export default class CollectionUtils {
 
     // Optimization for many to many when there is not search/segment.
     if (relation.type === 'ManyToMany' && foreignFilter.isNestable) {
-      const foreignRelation = CollectionUtils.getForeignRelation(collection, relationName);
+      const foreignRelation = CollectionUtils.getThroughTarget(collection, relationName);
 
       if (foreignRelation) {
         const through = collection.dataSource.getCollection(relation.throughCollection);
@@ -152,7 +154,7 @@ export default class CollectionUtils {
 
     // Optimization for many to many when there is not search/segment (saves one query)
     if (relation.type === 'ManyToMany' && foreignFilter.isNestable) {
-      const foreignRelation = CollectionUtils.getForeignRelation(collection, relationName);
+      const foreignRelation = CollectionUtils.getThroughTarget(collection, relationName);
 
       if (foreignRelation) {
         const through = collection.dataSource.getCollection(relation.throughCollection);

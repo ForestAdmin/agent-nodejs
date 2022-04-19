@@ -269,30 +269,30 @@ describe('CollectionUtils', () => {
       });
     });
 
-    describe('getOriginRelation', () => {
+    describe('getThroughOrigin', () => {
       test('should get origin of many to many', () => {
         const { dataSource } = setupWithAllRelations();
 
         expect(
-          CollectionUtils.getOriginRelation(dataSource.getCollection('persons'), 'myBooks'),
+          CollectionUtils.getThroughOrigin(dataSource.getCollection('persons'), 'myBooks'),
         ).toStrictEqual('myPerson');
 
         expect(
-          CollectionUtils.getOriginRelation(dataSource.getCollection('books'), 'myPersons'),
+          CollectionUtils.getThroughOrigin(dataSource.getCollection('books'), 'myPersons'),
         ).toStrictEqual('myBook');
       });
     });
 
-    describe('getForeignRelation', () => {
+    describe('getThroughTarget', () => {
       test('should get origin of many to many', () => {
         const { dataSource } = setupWithAllRelations();
 
         expect(
-          CollectionUtils.getForeignRelation(dataSource.getCollection('persons'), 'myBooks'),
+          CollectionUtils.getThroughTarget(dataSource.getCollection('persons'), 'myBooks'),
         ).toStrictEqual('myBook');
 
         expect(
-          CollectionUtils.getForeignRelation(dataSource.getCollection('books'), 'myPersons'),
+          CollectionUtils.getThroughTarget(dataSource.getCollection('books'), 'myPersons'),
         ).toStrictEqual('myPerson');
       });
     });
