@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.4...@forestadmin/agent@1.0.0-beta.5) (2022-04-19)
+
+
+### Bug Fixes
+
+* unpublished fields should be usable on actions ([#245](https://github.com/ForestAdmin/agent-nodejs/issues/245)) ([52c8a68](https://github.com/ForestAdmin/agent-nodejs/commit/52c8a680c1341232d8fb87f18d9d9fb802ff03d9))
+
 # @forestadmin/agent [1.0.0-beta.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.3...@forestadmin/agent@1.0.0-beta.4) (2022-04-15)
 
 
