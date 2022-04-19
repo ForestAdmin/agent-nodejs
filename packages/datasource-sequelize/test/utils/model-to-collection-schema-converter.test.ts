@@ -27,7 +27,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         fields: {
           id: {
             columnType: 'Number',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+            filterOperators: TypeConverter.operatorsForColumnType('Number'),
             isPrimaryKey: true,
             isReadOnly: true,
             validation: [],
@@ -51,7 +51,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         fields: {
           myPk: {
             columnType: 'Number',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+            filterOperators: TypeConverter.operatorsForColumnType('Number'),
             isPrimaryKey: true,
             isReadOnly: true,
             validation: [],
@@ -85,39 +85,39 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         fields: {
           myPk: {
             columnType: 'Number',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+            filterOperators: TypeConverter.operatorsForColumnType('Number'),
             isPrimaryKey: true,
             validation: [],
             type: 'Column',
           },
           myBoolean: {
             columnType: 'Boolean',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.BOOLEAN),
+            filterOperators: TypeConverter.operatorsForColumnType('Boolean'),
             validation: [],
             type: 'Column',
           },
           myValue: {
             columnType: 'String',
             defaultValue: '__default__',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.STRING),
+            filterOperators: TypeConverter.operatorsForColumnType('String'),
             validation: [],
             type: 'Column',
           },
           createdAt: {
             columnType: 'Date',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.DATE),
+            filterOperators: TypeConverter.operatorsForColumnType('Date'),
             validation: [],
             type: 'Column',
           },
           updatedAt: {
             columnType: 'Date',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.DATE),
+            filterOperators: TypeConverter.operatorsForColumnType('Date'),
             validation: [],
             type: 'Column',
           },
           myRequired: {
             columnType: 'Uuid',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.UUID),
+            filterOperators: TypeConverter.operatorsForColumnType('Uuid'),
             validation: [
               {
                 operator: 'Present',
@@ -127,14 +127,14 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           },
           myEnum: {
             columnType: 'Enum',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.ENUM),
+            filterOperators: TypeConverter.operatorsForColumnType('Enum'),
             enumValues: ['enum1', 'enum2', 'enum3'],
             validation: [],
             type: 'Column',
           },
           myJson: {
             columnType: 'Json',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.JSON),
+            filterOperators: TypeConverter.operatorsForColumnType('Json'),
             defaultValue: { defautProperty: 'the value' },
             validation: [],
             type: 'Column',
@@ -190,7 +190,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             fields: {
               Model2Id: {
                 columnType: 'Number',
-                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 validation: [],
                 type: 'Column',
               },
@@ -202,7 +202,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               },
               id: {
                 columnType: 'Number',
-                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,
                 isReadOnly: true,
                 validation: [],
@@ -240,7 +240,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               },
               id: {
                 columnType: 'Number',
-                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,
                 isReadOnly: true,
                 validation: [],
@@ -274,7 +274,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               },
               id: {
                 columnType: 'Number',
-                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,
                 isReadOnly: true,
                 validation: [],
@@ -308,7 +308,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               },
               id: {
                 columnType: 'Number',
-                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,
                 isReadOnly: true,
                 validation: [],
