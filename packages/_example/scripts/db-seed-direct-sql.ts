@@ -1,7 +1,6 @@
 import { DataTypes, Sequelize } from 'sequelize';
-import faker from '@faker-js/faker';
 
-export async function prepareDatabase(): Promise<Sequelize> {
+export default async function prepareDatabase(): Promise<Sequelize> {
   const sequelize = new Sequelize('mariadb://example:password@localhost:3808/example', {
     logging: false,
   });
@@ -52,30 +51,4 @@ export async function prepareDatabase(): Promise<Sequelize> {
   customer.hasMany(card);
 
   return sequelize;
-}
-
-export async function createCustomerCardRecords(connection: Sequelize): Promise<void> {
-  let customerRecords = [];
-
-  for (let i = 0; i < 5; i += 1) {
-    customerRecords.push({
-      name: faker.name.lastName(),
-      firstName: faker.name.firstName(),
-    });
-  }
-
-  customerRecords = await connection.model('customer').bulkCreate(customerRecords);
-
-  const cardRecords = [];
-
-  for (let i = 0; i < 5; i += 1) {
-    cardRecords.push({
-      cardNumber: Number(faker.finance.creditCardNumber('################')),
-      cardType: faker.helpers.randomize(['visa', 'mastercard', 'american express']),
-      isActive: faker.helpers.randomize([true, false]),
-      customerId: customerRecords[i].id,
-    });
-  }
-
-  await connection.model('card').bulkCreate(cardRecords);
 }

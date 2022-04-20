@@ -1,16 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
 import { Sequelize } from 'sequelize';
 import faker from '@faker-js/faker';
 
-import {
-  createCustomerCardRecords,
-  prepareDatabase as prepareSqlDatasource,
-} from './db-seed-direct-sql';
 import { prepareDatabase as prepareDatabaseMssql } from '../src/datasources/sequelize/mssql';
 import { prepareDatabase as prepareDatabaseMysql } from '../src/datasources/sequelize/mysql';
 import { prepareDatabase as prepareDatabasePostgres } from '../src/datasources/sequelize/postgres';
+import prepareSqlDatasource from './db-seed-direct-sql';
 
-async function createOwnerRecords(db) {
+async function createOwnerRecords(db: Sequelize): Promise<any[]> {
   const ownerRecords = [];
 
   for (let i = 0; i < 5; i += 1) {
@@ -20,7 +18,7 @@ async function createOwnerRecords(db) {
   return db.model('owner').bulkCreate(ownerRecords);
 }
 
-async function createStoreRecords(db, ownerRecords) {
+async function createStoreRecords(db: Sequelize, ownerRecords: any[]): Promise<any[]> {
   return db.model('store').bulkCreate(
     ownerRecords.reduce((records, ownerRecord) => {
       for (let i = 0; i < faker.datatype.number({ min: 1, max: 2 }); i += 1) {
@@ -32,7 +30,39 @@ async function createStoreRecords(db, ownerRecords) {
   );
 }
 
-async function createDvdRentalsRecords(db, storeRecords) {
+async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> {
+  let customerRecords = [];
+
+  for (let i = 0; i < 5; i += 1) {
+    customerRecords.push({
+      name: faker.name.lastName(),
+      firstName: faker.name.firstName(),
+    });
+  }
+
+  customerRecords = await connection.model('customer').bulkCreate(customerRecords);
+
+  const cardRecords = [];
+
+  for (let i = 0; i < 5; i += 1) {
+    cardRecords.push({
+      cardNumber: Number(faker.finance.creditCardNumber('################')),
+      cardType: faker.helpers.randomize(['visa', 'mastercard', 'american express']),
+      isActive: faker.datatype.boolean(),
+      customerId: customerRecords[i].id,
+    });
+  }
+
+  await connection.model('card').bulkCreate(cardRecords);
+
+  return customerRecords;
+}
+
+async function createDvdRentalsRecords(
+  db: Sequelize,
+  storeRecords: any[],
+  customerRecords: any[],
+): Promise<void> {
   let currentRentalRecordId = 0;
   let currentDvdRecordId = 0;
   const dvdRecords = [];
@@ -41,11 +71,12 @@ async function createDvdRentalsRecords(db, storeRecords) {
   storeRecords.forEach(storeRecord => {
     const temporaryRentalRecords = [];
 
-    for (let id = 0; id < faker.datatype.number({ min: 2, max: 5 }); id += 1) {
+    for (let i = 0; i < faker.datatype.number({ min: 2, max: 5 }); i += 1) {
       temporaryRentalRecords.push({
         id: currentRentalRecordId,
         startDate: faker.date.recent(40),
         endDate: faker.date.soon(40),
+        customerId: faker.helpers.randomize(customerRecords.map(({ id }) => id)),
       });
       currentRentalRecordId += 1;
     }
@@ -95,8 +126,8 @@ async function seedData() {
 
     const ownerRecords = await createOwnerRecords(postgres);
     const storeRecords = await createStoreRecords(mysql, ownerRecords);
-    await createDvdRentalsRecords(mssql, storeRecords);
-    await createCustomerCardRecords(mariadb);
+    const customerRecords = await createCustomerCardRecords(mariadb);
+    await createDvdRentalsRecords(mssql, storeRecords, customerRecords);
   } catch (error) {
     console.error('---------------');
     console.error('The seed failed');
