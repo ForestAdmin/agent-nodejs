@@ -55,17 +55,17 @@ const axios = require('axios');
  class MyCollection extends BaseCollection {
   // [... Declare structure, capabilities and list method]
 
-  async aggregate(filter, aggregation, limit) {
+  async aggregate(caller, filter, aggregation, limit) {
     const { operation, fields, groups } = aggregation;
 
     if (operation === 'Count' && groups.length === 0 && !field) {
-      return [{ value: await this.count(filter) }];
+      return [{ value: await this.count(caller, filter) }];
     }
 
     // [... handle the general case]
   }
 
-  async count(filter) {
+  async count(caller, filter) {
     const response = await axios.get(
       `https://my-api/my-collection/count`,
       { params: { filter: this._translateFilter(filter) } }
