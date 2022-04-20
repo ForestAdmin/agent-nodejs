@@ -1,8 +1,6 @@
-import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
-
 import { DataTypes, Sequelize } from 'sequelize';
 
-export async function prepareDatabase(): Promise<Sequelize> {
+export default async function createMySqlSequelize(): Promise<Sequelize> {
   const connectionString = 'mysql://example:password@localhost:3306/example';
   const sequelize = new Sequelize(connectionString, { logging: false });
 
@@ -33,7 +31,3 @@ export async function prepareDatabase(): Promise<Sequelize> {
 
   return sequelize;
 }
-
-export default async (): Promise<SequelizeDataSource> => {
-  return new SequelizeDataSource(await prepareDatabase());
-};

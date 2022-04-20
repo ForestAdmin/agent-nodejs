@@ -1,4 +1,4 @@
-import { DataSource } from '@forestadmin/datasource-toolkit';
+import { DataSource, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import { IncomingMessage, ServerResponse } from 'http';
 import Koa from 'koa';
 import Router from '@koa/router';
@@ -6,7 +6,7 @@ import bodyParser from 'koa-bodyparser';
 import cors from '@koa/cors';
 import path from 'path';
 
-import { AgentOptions, LoggerLevel } from '../types';
+import { AgentOptions } from '../types';
 import { AgentOptionsWithDefaults } from './types';
 import BaseRoute from './routes/base-route';
 import ForestHttpApi from './utils/forest-http-api';

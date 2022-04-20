@@ -1,7 +1,8 @@
+import { LoggerLevel } from '@forestadmin/datasource-toolkit';
 import { existsSync } from 'fs';
 import { parse as parsePath } from 'path';
 
-import { AgentOptions, LoggerLevel } from '../../types';
+import { AgentOptions } from '../../types';
 import { AgentOptionsWithDefaults } from '../types';
 
 export default class OptionsUtils {

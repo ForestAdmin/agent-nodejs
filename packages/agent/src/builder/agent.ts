@@ -5,6 +5,7 @@ import {
   ComputedCollectionDecorator,
   DataSource,
   DataSourceDecorator,
+  DataSourceFactory,
   OperatorsEmulateCollectionDecorator,
   OperatorsReplaceCollectionDecorator,
   PublicationCollectionDecorator,
@@ -15,7 +16,6 @@ import {
   SortEmulateCollectionDecorator,
   WriteCollectionDecorator,
 } from '@forestadmin/datasource-toolkit';
-
 import { AgentOptions } from '../types';
 import CollectionBuilder from './collection';
 import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-driver';
@@ -121,8 +121,10 @@ export default class AgentBuilder {
    * Add a datasource
    * @param {DataSource} datasource the datasource to add
    */
-  addDatasource(datasource: DataSource): this {
-    datasource.collections.forEach(collection => {
+  addDatasource(factory: DataSourceFactory): this {
+    const dataSource = factory(this.forestAdminHttpDriver.options.logger);
+
+    dataSource.collections.forEach(collection => {
       this.compositeDatasource.addCollection(collection);
     });
 

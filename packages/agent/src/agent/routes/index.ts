@@ -20,7 +20,7 @@ import HealthCheck from './system/healthcheck';
 import IpWhitelist from './security/ip-whitelist';
 import List from './access/list';
 import ListRelated from './access/list-related';
-import Logger from './system/logger';
+import LoggerRoute from './system/logger';
 import ScopeInvalidation from './security/scope-invalidation';
 import Update from './modification/update';
 import UpdateRelation from './modification/update-relation';
@@ -30,7 +30,7 @@ export const ROOT_ROUTES_CTOR = [
   ErrorHandling,
   HealthCheck,
   IpWhitelist,
-  Logger,
+  LoggerRoute,
   ScopeInvalidation,
 ];
 export const COLLECTION_ROUTES_CTOR = [Chart, Count, Create, Csv, Delete, Get, List, Update];

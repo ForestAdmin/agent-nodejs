@@ -1,3 +1,5 @@
+export * from './types';
+
 export { default as BaseCollection } from './base-collection';
 
 export { default as BaseDataSource } from './base-datasource';

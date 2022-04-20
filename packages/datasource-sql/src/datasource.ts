@@ -5,9 +5,8 @@ import {
   QueryInterface,
   Sequelize,
 } from 'sequelize';
-
+import { Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
-
 import DefaultValueParser from './utils/default-value-parser';
 import SqlTypeConverter from './utils/sql-type-converter';
 
@@ -16,8 +15,12 @@ export default class SqlDataSource extends SequelizeDataSource {
   private readonly defaultValueParser: DefaultValueParser;
   private readonly sqlTypeConverter: SqlTypeConverter;
 
-  constructor(connectionUri: string) {
-    super(new Sequelize(connectionUri, { logging: false }));
+  constructor(connectionUri: string, logger: Logger) {
+    super(
+      new Sequelize(connectionUri, {
+        logging: (sql, timing) => logger(LoggerLevel.Info, `${sql} ${timing}`),
+      }),
+    );
 
     this.queryInterface = this.sequelize.getQueryInterface();
     this.defaultValueParser = new DefaultValueParser(this.sequelize.getDialect() as Dialect);

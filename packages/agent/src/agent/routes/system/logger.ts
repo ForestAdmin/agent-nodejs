@@ -1,11 +1,11 @@
 import { Context, Next } from 'koa';
+import { LoggerLevel } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 
 import { HttpCode, RouteType } from '../../types';
-import { LoggerLevel } from '../../../types';
 import BaseRoute from '../base-route';
 
-export default class Logger extends BaseRoute {
+export default class LoggerRoute extends BaseRoute {
   type = RouteType.Logger;
 
   setupRoutes(router: Router): void {

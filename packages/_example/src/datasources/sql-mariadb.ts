@@ -1,8 +1,6 @@
-import SqlDataSource from '@forestadmin/datasource-sql';
+import { DataSourceFactory } from '@forestadmin/datasource-toolkit';
+import makeSqlDataSource from '@forestadmin/datasource-sql';
 
-export default async (): Promise<SqlDataSource> => {
-  const dataSource = new SqlDataSource('mariadb://example:password@localhost:3808/example');
-  await dataSource.build();
-
-  return dataSource;
+export default (): Promise<DataSourceFactory> => {
+  return makeSqlDataSource('mariadb://example:password@localhost:3808/example');
 };
