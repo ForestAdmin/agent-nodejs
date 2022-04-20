@@ -21,13 +21,14 @@ describe('SchemaGeneratorCollection', () => {
       schema: factories.collectionSchema.build({
         actions: {
           'Make as Live': { scope: 'Single' },
+          'Add person': { scope: 'Global' },
         },
         fields: {
           id: factories.columnSchema.isPrimaryKey().build({
             isReadOnly: true,
           }),
         },
-        segments: ['Live'],
+        segments: ['Live', 'Dead'],
       }),
       getForm: jest.fn().mockReturnValue(Promise.resolve(null)),
     }),
@@ -45,8 +46,8 @@ describe('SchemaGeneratorCollection', () => {
 
     // fks are skipped
     expect(schema.fields).toHaveLength(2);
-    expect(schema.fields[0]).toHaveProperty('field', 'id');
-    expect(schema.fields[1]).toHaveProperty('field', 'author');
+    expect(schema.fields[0]).toHaveProperty('field', 'author');
+    expect(schema.fields[1]).toHaveProperty('field', 'id');
   });
 
   test('persons should be readonly and have actions and segments', async () => {
@@ -57,7 +58,11 @@ describe('SchemaGeneratorCollection', () => {
     );
 
     expect(schema).toHaveProperty('isReadOnly', true);
-    expect(schema.actions).toHaveLength(1);
-    expect(schema.segments).toHaveLength(1);
+    expect(schema.actions).toHaveLength(2);
+    expect(schema.actions[0]).toHaveProperty('name', 'Add person');
+    expect(schema.actions[1]).toHaveProperty('name', 'Make as Live');
+    expect(schema.segments).toHaveLength(2);
+    expect(schema.segments[0]).toHaveProperty('name', 'Dead');
+    expect(schema.segments[1]).toHaveProperty('name', 'Live');
   });
 });
