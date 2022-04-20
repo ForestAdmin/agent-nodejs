@@ -45,8 +45,8 @@ describe('SchemaGeneratorCollection', () => {
 
     // fks are skipped
     expect(schema.fields).toHaveLength(2);
-    expect(schema.fields[0]).toHaveProperty('field', 'id');
-    expect(schema.fields[1]).toHaveProperty('field', 'author');
+    expect(schema.fields[0]).toHaveProperty('field', 'author');
+    expect(schema.fields[1]).toHaveProperty('field', 'id');
   });
 
   test('persons should be readonly and have actions and segments', async () => {
