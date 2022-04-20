@@ -395,7 +395,11 @@ describe('datasource', () => {
           connectionUri = `${dialect}://${connectionUrl}/${database}`;
           sequelize = new Sequelize(connectionUri, { logging: false });
 
-          const member = sequelize.define('member', {}, { tableName: 'member', timestamps: false });
+          const member = sequelize.define(
+            'member',
+            { role: DataTypes.STRING },
+            { tableName: 'member', timestamps: false },
+          );
           const group = sequelize.define('group', {}, { tableName: 'group', timestamps: false });
           const product = sequelize.define(
             'product',
@@ -425,6 +429,9 @@ describe('datasource', () => {
           await sequelize
             .getQueryInterface()
             .addConstraint(account.name, { type: 'unique', fields: ['customerId'] });
+          await sequelize
+            .getQueryInterface()
+            .addConstraint(member.name, { type: 'unique', fields: ['groupId', 'role'] });
 
           return sequelize;
         } catch (error) {

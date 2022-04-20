@@ -197,7 +197,7 @@ export default class SqlDataSource extends SequelizeDataSource {
     const tableIndex = await this.queryInterface.showIndex(tableName);
 
     return tableIndex
-      .filter(({ primary, unique }) => !primary && unique)
+      .filter(({ primary, unique, fields }) => !primary && unique && fields.length === 1)
       .map(({ fields }) => fields.map(({ attribute }) => attribute))
       .flat();
   }
