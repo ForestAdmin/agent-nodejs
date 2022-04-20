@@ -12,9 +12,9 @@ export default class SchemaGeneratorCollection {
   ): Promise<ForestServerCollection> {
     return {
       actions: await Promise.all(
-        Object.keys(collection.schema.actions).map(name =>
-          SchemaGeneratorActions.buildSchema(prefix, collection, name),
-        ),
+        Object.keys(collection.schema.actions)
+          .sort()
+          .map(name => SchemaGeneratorActions.buildSchema(prefix, collection, name)),
       ),
       fields: Object.keys(collection.schema.fields)
         .filter(name => !SchemaUtils.isForeignKey(collection.schema, name))
@@ -30,9 +30,9 @@ export default class SchemaGeneratorCollection {
       name: collection.name,
       onlyForRelationships: false,
       paginationType: 'page',
-      segments: collection.schema.segments.map(name =>
-        SchemaGeneratorSegments.buildSchema(collection, name),
-      ),
+      segments: collection.schema.segments
+        .sort()
+        .map(name => SchemaGeneratorSegments.buildSchema(collection, name)),
     };
   }
 }
