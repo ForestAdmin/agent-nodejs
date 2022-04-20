@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.0.0-beta.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.9...@forestadmin/datasource-sql@1.0.0-beta.10) (2022-04-20)
+
+
+### Features
+
+* **datasource sql:** handle relations ([#224](https://github.com/ForestAdmin/agent-nodejs/issues/224)) ([275cf7e](https://github.com/ForestAdmin/agent-nodejs/commit/275cf7ed6835933fce418f92a6a4e2521a9721fe))
+
 # @forestadmin/datasource-sql [1.0.0-beta.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.8...@forestadmin/datasource-sql@1.0.0-beta.9) (2022-04-20)
 
 
