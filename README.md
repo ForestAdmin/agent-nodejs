@@ -1,4 +1,4 @@
-# Agent NodeJS
+# Agent Node.js
 
 ## Installation
 

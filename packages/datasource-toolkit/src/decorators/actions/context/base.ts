@@ -40,11 +40,11 @@ export default class ActionContext extends CollectionCustomizationContext {
 
     // The call to setTimeout which resolve the promises will trigger only once all handlers in
     // the customer's form have been called as Promises are queued before calls to setTimeout
-    // in NodeJS event loop
+    // in Node.js event loop
 
     // @see https://dev.to/khaosdoctor/node-js-under-the-hood-3-deep-dive-into-the-event-loop-135d\
     //   #microtasks-and-macrotasks
-    //   Ordering of micro/macro tasks in NodeJS event loop
+    //   Ordering of micro/macro tasks in Node.js event loop
     //
     // @see https://github.com/graphql/dataloader
     //   A library from facebook from which this pattern is inspired.
