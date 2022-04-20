@@ -1,6 +1,3 @@
-SQL support is coming soon!
-
-<!--
 The SQL data source allows to import tables from SQL databases.
 
 It supports the following vendors:
@@ -27,6 +24,7 @@ const SqlDataSource = require('@forestadmin/datasource-sql');
 
 // Create agent and import collections from SQL database
 const agent = new Agent(options);
-agent.addDataSource(new SqlDataSource('postgres://user:pass@localhost:5432/mySchema'));
+const sqlDataSource = new SqlDatasource('postgres://user:pass@localhost:5432/mySchema');
+await sqlDataSource.build();
+agent.addDataSource(sqlDataSource);
 ```
--->
