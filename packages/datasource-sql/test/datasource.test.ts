@@ -156,41 +156,41 @@ function getAttributeMappingFromDialect(dialect: Dialect) {
 }
 
 const RELATION_MAPPING = {
-  aT: {
-    bT: {
+  member: {
+    group: {
       associationType: 'BelongsTo',
     },
   },
-  bT: {
-    aTs: {
+  group: {
+    members: {
       associationType: 'HasMany',
     },
   },
-  cT: {
-    dTs: {
+  product: {
+    orders: {
       associationType: 'BelongsToMany',
     },
   },
-  dT: {
-    cTs: {
+  order: {
+    products: {
       associationType: 'BelongsToMany',
     },
   },
-  cdT: {
-    cT: {
+  productOrder: {
+    product: {
       associationType: 'BelongsTo',
     },
-    dT: {
+    order: {
       associationType: 'BelongsTo',
     },
   },
-  eT: {
-    fT: {
+  customer: {
+    account: {
       associationType: 'HasOne',
     },
   },
-  fT: {
-    eT: {
+  account: {
+    customer: {
       associationType: 'BelongsTo',
     },
   },
@@ -395,24 +395,36 @@ describe('datasource', () => {
           connectionUri = `${dialect}://${connectionUrl}/${database}`;
           sequelize = new Sequelize(connectionUri, { logging: false });
 
-          const aT = sequelize.define('aT', {}, { tableName: 'aT', timestamps: false });
-          const bT = sequelize.define('bT', {}, { tableName: 'bT', timestamps: false });
-          const cT = sequelize.define('cT', {}, { tableName: 'cT', timestamps: false });
-          const dT = sequelize.define('dT', {}, { tableName: 'dT', timestamps: false });
-          const eT = sequelize.define('eT', {}, { tableName: 'eT', timestamps: false });
-          const fT = sequelize.define('fT', {}, { tableName: 'fT', timestamps: false });
+          const member = sequelize.define('member', {}, { tableName: 'member', timestamps: false });
+          const group = sequelize.define('group', {}, { tableName: 'group', timestamps: false });
+          const product = sequelize.define(
+            'product',
+            {},
+            { tableName: 'product', timestamps: false },
+          );
+          const order = sequelize.define('order', {}, { tableName: 'order', timestamps: false });
+          const account = sequelize.define(
+            'account',
+            {},
+            { tableName: 'account', timestamps: false },
+          );
+          const customer = sequelize.define(
+            'customer',
+            {},
+            { tableName: 'customer', timestamps: false },
+          );
 
-          aT.belongsTo(bT);
-          bT.hasMany(aT);
-          cT.belongsToMany(dT, { through: 'cdT' });
-          dT.belongsToMany(cT, { through: 'cdT' });
-          eT.hasOne(fT);
-          fT.belongsTo(eT);
+          member.belongsTo(group);
+          group.hasMany(member);
+          product.belongsToMany(order, { through: 'productOrder' });
+          order.belongsToMany(product, { through: 'productOrder' });
+          customer.hasOne(account);
+          account.belongsTo(customer);
 
           await sequelize.sync({ force: true });
           await sequelize
             .getQueryInterface()
-            .addConstraint(fT.name, { type: 'unique', fields: ['eTId'] });
+            .addConstraint(account.name, { type: 'unique', fields: ['customerId'] });
 
           return sequelize;
         } catch (error) {
@@ -451,8 +463,8 @@ describe('datasource', () => {
             });
           });
 
-          const belongsToManyModel = dataSourceModels.cdT;
-          const relationMapping = RELATION_MAPPING.cdT;
+          const belongsToManyModel = dataSourceModels.productOrder;
+          const relationMapping = RELATION_MAPPING.productOrder;
           expect(belongsToManyModel).toBeDefined();
           Object.entries(belongsToManyModel.associations).forEach(
             ([associationName, association]) => {

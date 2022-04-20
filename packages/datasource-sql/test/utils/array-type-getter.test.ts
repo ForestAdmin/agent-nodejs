@@ -4,39 +4,42 @@ import ArrayTypeGetter from '../../src/utils/array-type-getter';
 
 describe('ArrayTypeGetter', () => {
   it('should return arrayType', async () => {
-    const database = 'datasource-sql-array-type-getter-test';
+    let sequelize: Sequelize;
 
-    let connectionUri = `postgres://test:password@localhost:5443`;
-    let sequelize = new Sequelize(connectionUri, { logging: false });
-    await sequelize.getQueryInterface().dropDatabase(database);
-    await sequelize.getQueryInterface().createDatabase(database);
-    await sequelize.close();
+    try {
+      const database = 'datasource-sql-array-type-getter-test';
+      let connectionUri = `postgres://test:password@localhost:5443`;
+      sequelize = new Sequelize(connectionUri, { logging: false });
+      await sequelize.getQueryInterface().dropDatabase(database);
+      await sequelize.getQueryInterface().createDatabase(database);
+      await sequelize.close();
 
-    connectionUri = `${connectionUri}/${database}`;
-    sequelize = new Sequelize(connectionUri, { logging: false });
+      connectionUri = `${connectionUri}/${database}`;
+      sequelize = new Sequelize(connectionUri, { logging: false });
 
-    sequelize.define(
-      'arrayTable',
-      {
-        arrayInt: DataTypes.ARRAY(DataTypes.INTEGER),
-        arrayString: DataTypes.ARRAY(DataTypes.STRING),
-        arrayEnum: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
-      },
-      { tableName: 'arrayTable' },
-    );
+      sequelize.define(
+        'arrayTable',
+        {
+          arrayInt: DataTypes.ARRAY(DataTypes.INTEGER),
+          arrayString: DataTypes.ARRAY(DataTypes.STRING),
+          arrayEnum: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
+        },
+        { tableName: 'arrayTable' },
+      );
 
-    await sequelize.sync({ force: true });
+      await sequelize.sync({ force: true });
 
-    const arrayTypeGetter = new ArrayTypeGetter(sequelize);
+      const arrayTypeGetter = new ArrayTypeGetter(sequelize);
 
-    const typeInt = await arrayTypeGetter.getType('arrayTable', 'arrayInt');
-    const typeString = await arrayTypeGetter.getType('arrayTable', 'arrayString');
-    const typeEnum = await arrayTypeGetter.getType('arrayTable', 'arrayEnum');
+      const typeInt = await arrayTypeGetter.getType('arrayTable', 'arrayInt');
+      const typeString = await arrayTypeGetter.getType('arrayTable', 'arrayString');
+      const typeEnum = await arrayTypeGetter.getType('arrayTable', 'arrayEnum');
 
-    await sequelize.close();
-
-    expect(typeInt).toStrictEqual({ type: 'INTEGER', special: [] });
-    expect(typeString).toStrictEqual({ type: 'CHARACTER VARYING', special: [] });
-    expect(typeEnum).toStrictEqual({ type: 'USER-DEFINED', special: ['enum1', 'enum2'] });
+      expect(typeInt).toStrictEqual({ type: 'INTEGER', special: [] });
+      expect(typeString).toStrictEqual({ type: 'CHARACTER VARYING', special: [] });
+      expect(typeEnum).toStrictEqual({ type: 'USER-DEFINED', special: ['enum1', 'enum2'] });
+    } finally {
+      await sequelize?.close();
+    }
   });
 });

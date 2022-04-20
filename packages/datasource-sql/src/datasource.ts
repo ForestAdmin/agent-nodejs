@@ -100,12 +100,12 @@ export default class SqlDataSource extends SequelizeDataSource {
           const {
             referencedTableName: tableA,
             columnName: columnA,
-            referencedColumnName: refrencedColumnA,
+            referencedColumnName: referencedColumnA,
           } = foreignReferences[0];
           const {
             referencedTableName: tableB,
             columnName: columnB,
-            referencedColumnName: refrencedColumnB,
+            referencedColumnName: referencedColumnB,
           } = foreignReferences[1];
 
           const modelA = this.sequelize.model(tableA);
@@ -121,8 +121,8 @@ export default class SqlDataSource extends SequelizeDataSource {
             foreignKey: columnB,
             otherKey: columnA,
           });
-          currentModel.belongsTo(modelA, { foreignKey: columnA, targetKey: refrencedColumnA });
-          currentModel.belongsTo(modelB, { foreignKey: columnB, targetKey: refrencedColumnB });
+          currentModel.belongsTo(modelA, { foreignKey: columnA, targetKey: referencedColumnA });
+          currentModel.belongsTo(modelB, { foreignKey: columnB, targetKey: referencedColumnB });
         } else {
           const uniqueFields = await this.getUniqueFields(tableName);
 
