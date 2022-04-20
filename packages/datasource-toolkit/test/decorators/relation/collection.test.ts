@@ -411,7 +411,7 @@ describe('RelationCollectionDecorator', () => {
       });
 
       const records = await newPassports.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new Filter({}),
         new Projection('id', 'owner:name'),
       );
@@ -432,7 +432,7 @@ describe('RelationCollectionDecorator', () => {
       });
 
       const records = await newPersons.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new Filter({}),
         new Projection('id', 'name', 'passport:issueDate'),
       );
@@ -453,7 +453,7 @@ describe('RelationCollectionDecorator', () => {
       });
 
       const records = await newPersons.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new Filter({}),
         new Projection('id', 'name', 'passport:issueDate'),
       );
@@ -477,7 +477,7 @@ describe('RelationCollectionDecorator', () => {
       } as ManyToManySchema);
 
       const records = await newPersons.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new Filter({}),
         new Projection('id', 'name', 'persons:name'),
       );
@@ -501,7 +501,7 @@ describe('RelationCollectionDecorator', () => {
         foreignKey: 'ownerId',
       });
       const records = await newPersons.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new Filter({}),
         new Projection('id', 'name', 'passport:picture:filename'),
       );
@@ -528,7 +528,7 @@ describe('RelationCollectionDecorator', () => {
         foreignKey: 'ownerId',
       });
       const records = await newPersons.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new Filter({}),
         new Projection('id', 'name', 'passport:owner:passport:issueDate'),
       );
@@ -567,7 +567,7 @@ describe('RelationCollectionDecorator', () => {
     describe('emulated filtering', () => {
       test('should filter by a many to one relation', async () => {
         const records = await newPassports.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new Filter({
             conditionTree: new ConditionTreeLeaf('owner:name', 'Equal', 'Mae S. Waldron'),
           }),
@@ -579,7 +579,7 @@ describe('RelationCollectionDecorator', () => {
 
       test('should filter by a one to one relation', async () => {
         const records = await newPersons.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new Filter({
             conditionTree: new ConditionTreeLeaf('passport:issueDate', 'Equal', '2017-01-01'),
           }),
@@ -591,7 +591,7 @@ describe('RelationCollectionDecorator', () => {
 
       test('should filter by native relation behind an emulated one', async () => {
         const records = await newPersons.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new Filter({
             conditionTree: new ConditionTreeLeaf('passport:picture:filename', 'Equal', 'pic1.jpg'),
           }),
@@ -606,7 +606,7 @@ describe('RelationCollectionDecorator', () => {
 
       test('should not break with deep filters', async () => {
         const records = await newPersons.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new Filter({
             conditionTree: new ConditionTreeLeaf(
               'passport:owner:passport:issueDate',
@@ -625,13 +625,13 @@ describe('RelationCollectionDecorator', () => {
       test('should replace sorts in emulated many to one into sort by fk', async () => {
         // check both sides to make sure we're not getting lucky
         const ascending = await newPassports.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new PaginatedFilter({ sort: new Sort({ field: 'owner:name', ascending: true }) }),
           new Projection('id', 'ownerId', 'owner:name'),
         );
 
         const descending = await newPassports.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new PaginatedFilter({ sort: new Sort({ field: 'owner:name', ascending: false }) }),
           new Projection('id', 'ownerId', 'owner:name'),
         );
@@ -658,14 +658,14 @@ describe('RelationCollectionDecorator', () => {
           groups: [{ field: 'name' }],
         });
         const groups = await newPersons.aggregate(
-          factories.recipient.build(),
+          factories.caller.build(),
           filter,
           aggregation,
           null,
         );
 
         expect(persons.aggregate).toHaveBeenCalledWith(
-          factories.recipient.build(),
+          factories.caller.build(),
           filter,
           aggregation,
           null,
@@ -683,12 +683,7 @@ describe('RelationCollectionDecorator', () => {
           operation: 'Count',
           groups: [{ field: 'passport:picture:filename' }],
         });
-        const groups = await newPersons.aggregate(
-          factories.recipient.build(),
-          filter,
-          aggregation,
-          2,
-        );
+        const groups = await newPersons.aggregate(factories.caller.build(), filter, aggregation, 2);
 
         expect(groups).toStrictEqual([
           { value: 1, group: { 'passport:picture:filename': 'pic2.jpg' } },

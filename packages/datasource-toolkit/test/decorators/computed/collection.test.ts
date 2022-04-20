@@ -127,7 +127,7 @@ describe('ComputedDecorator', () => {
 
     test('list() result should contain the computed', async () => {
       const records = await newBooks.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new PaginatedFilter({}),
         new Projection('title', 'author:fullName'),
       );
@@ -137,7 +137,7 @@ describe('ComputedDecorator', () => {
         { title: 'Beat the dealer', author: { fullName: 'Edward O. Thorp' } },
       ]);
 
-      expect(books.list).toHaveBeenCalledWith(factories.recipient.build(), {}, [
+      expect(books.list).toHaveBeenCalledWith(factories.caller.build(), {}, [
         'title',
         'author:firstName',
         'author:lastName',
@@ -146,7 +146,7 @@ describe('ComputedDecorator', () => {
 
     test('aggregate() should use the child implementation when relevant', async () => {
       const rows = await newBooks.aggregate(
-        factories.recipient.build(),
+        factories.caller.build(),
         new PaginatedFilter({}),
         new Aggregation({ operation: 'Count' }),
       );
@@ -157,7 +157,7 @@ describe('ComputedDecorator', () => {
 
     test('aggregate() should work with computed', async () => {
       const rows = await newBooks.aggregate(
-        factories.recipient.build(),
+        factories.caller.build(),
         new PaginatedFilter({}),
         new Aggregation({ operation: 'Min', field: 'author:fullName' }),
       );

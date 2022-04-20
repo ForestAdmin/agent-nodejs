@@ -50,23 +50,23 @@ describe('ConditionTreeOperators', () => {
 
     test('list() should work with a null condition tree', async () => {
       await decorator.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new PaginatedFilter({}),
         new Projection('col'),
       );
-      expect(collectionList).toHaveBeenCalledWith(factories.recipient.build(), {}, ['col']);
+      expect(collectionList).toHaveBeenCalledWith(factories.caller.build(), {}, ['col']);
     });
 
     test('list() should not modify supported operators', async () => {
       const tree = new ConditionTreeLeaf('col', 'Equal', 'someDate');
 
       await decorator.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new PaginatedFilter({ conditionTree: tree }),
         new Projection('col'),
       );
       expect(collectionList).toHaveBeenCalledWith(
-        factories.recipient.build(),
+        factories.caller.build(),
         { conditionTree: { field: 'col', operator: 'Equal', value: 'someDate' } },
         ['col'],
       );
@@ -76,12 +76,12 @@ describe('ConditionTreeOperators', () => {
       const tree = new ConditionTreeLeaf('col', 'In', ['someDate']);
 
       await decorator.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new PaginatedFilter({ conditionTree: tree }),
         new Projection('col'),
       );
       expect(collectionList).toHaveBeenCalledWith(
-        factories.recipient.build(),
+        factories.caller.build(),
         { conditionTree: { field: 'col', operator: 'Equal', value: 'someDate' } },
         ['col'],
       );
@@ -91,12 +91,12 @@ describe('ConditionTreeOperators', () => {
       const tree = new ConditionTreeLeaf('col', 'Blank');
 
       await decorator.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new PaginatedFilter({ conditionTree: tree }),
         new Projection('col'),
       );
       expect(collectionList).toHaveBeenCalledWith(
-        factories.recipient.build(),
+        factories.caller.build(),
         { conditionTree: { field: 'col', operator: 'Equal', value: null } },
         ['col'],
       );

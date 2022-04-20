@@ -15,13 +15,13 @@ const axios = require('axios');
 class MyCollection extends BaseCollection {
   // [... Declare structure and capabilities]
 
-  async list(recipient, filter, projection) {
+  async list(caller, filter, projection) {
     // Fetch all records on all requests (this is _very_ inefficient)
     const response = await axios.get('https://my-api/my-collection');
     const records = response.body.items;
 
     // Use "in-process emulation" for everything else.
-    if (filter.conditionTree) result = filter.conditionTree.apply(result, this, recipient.timezone);
+    if (filter.conditionTree) result = filter.conditionTree.apply(result, this, caller.timezone);
     if (filter.sort) result = filter.sort.apply(result);
     if (filter.page) result = filter.page.apply(result);
     if (filter.segment) throw new Error('This collection does not implements native segments');
@@ -30,12 +30,12 @@ class MyCollection extends BaseCollection {
     return projection.apply(result);
   }
 
-  async aggregate(recipient, filter, aggregation, limit) {
+  async aggregate(caller, filter, aggregation, limit) {
     // Fetch all records which should be aggregated
     const records = await this.list(filter, aggregation.projection);
 
     // Use "in-process emulation" to aggregate the results
-    return aggregation.apply(records, recipient.timezone, limit);
+    return aggregation.apply(records, caller.timezone, limit);
   }
 }
 ```

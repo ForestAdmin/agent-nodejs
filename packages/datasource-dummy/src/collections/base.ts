@@ -3,13 +3,13 @@ import {
   AggregateResult,
   Aggregation,
   BaseCollection,
+  Caller,
   DataSource,
   FieldSchema,
   Filter,
   Operator,
   PaginatedFilter,
   Projection,
-  QueryRecipient,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
@@ -48,7 +48,7 @@ export default class BaseDummyCollection extends BaseCollection {
     }
   }
 
-  async create(recipient: QueryRecipient, data: RecordData[]): Promise<RecordData[]> {
+  async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     const records = [];
 
     for (const datum of data) {
@@ -64,44 +64,41 @@ export default class BaseDummyCollection extends BaseCollection {
   }
 
   async list(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
     let result: RecordData[] = this.records.slice();
-    if (filter?.conditionTree)
-      result = filter.conditionTree.apply(result, this, recipient.timezone);
+    if (filter?.conditionTree) result = filter.conditionTree.apply(result, this, caller.timezone);
     if (filter?.sort) result = filter.sort.apply(result);
     if (filter?.page) result = filter.page.apply(result);
 
     return projection.apply(result);
   }
 
-  async update(recipient: QueryRecipient, filter: Filter, patch: RecordData): Promise<void> {
+  async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     let target: RecordData[] = this.records.slice();
-    if (filter?.conditionTree)
-      target = filter.conditionTree.apply(target, this, recipient.timezone);
+    if (filter?.conditionTree) target = filter.conditionTree.apply(target, this, caller.timezone);
 
     for (const record of target) Object.assign(record, patch);
   }
 
-  async delete(recipient: QueryRecipient, filter: Filter): Promise<void> {
+  async delete(caller: Caller, filter: Filter): Promise<void> {
     let target: RecordData[] = this.records.slice();
-    if (filter?.conditionTree)
-      target = filter.conditionTree.apply(target, this, recipient.timezone);
+    if (filter?.conditionTree) target = filter.conditionTree.apply(target, this, caller.timezone);
 
     for (const record of target) this.records.splice(this.records.indexOf(record), 1);
   }
 
   async aggregate(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
     return aggregation.apply(
-      await this.list(recipient, filter, aggregation.projection),
-      recipient.timezone,
+      await this.list(caller, filter, aggregation.projection),
+      caller.timezone,
       limit,
     );
   }

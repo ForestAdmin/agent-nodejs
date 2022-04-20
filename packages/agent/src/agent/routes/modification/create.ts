@@ -68,13 +68,13 @@ export default class CreateRoute extends CollectionRoute {
   }
 
   private async createRecord(context: Context, patch: RecordData): Promise<RecordData> {
-    const recipient = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseRecipient(context);
 
     if (Object.keys(patch).length) {
       RecordValidator.validate(this.collection, patch);
     }
 
-    const [record] = await this.collection.create(recipient, [patch]);
+    const [record] = await this.collection.create(caller, [patch]);
 
     return record;
   }
@@ -84,7 +84,7 @@ export default class CreateRoute extends CollectionRoute {
     record: RecordData,
     relations: Record<string, RecordData>,
   ): Promise<void> {
-    const recipient = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseRecipient(context);
 
     const promises = Object.entries(relations).map(async ([field, linked]) => {
       const relation = this.collection.schema.fields[field];
@@ -101,7 +101,7 @@ export default class CreateRoute extends CollectionRoute {
       // Break old relation (may update zero or one records).
       const oldFkOwner = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
       await foreignCollection.update(
-        recipient,
+        caller,
         new Filter({ conditionTree: ConditionTreeFactory.intersect(oldFkOwner, scope) }),
         { [relation.originKey]: null },
       );
@@ -109,7 +109,7 @@ export default class CreateRoute extends CollectionRoute {
       // Create new relation (will update exactly one record).
       const newFkOwner = ConditionTreeFactory.matchRecords(foreignCollection.schema, [linked]);
       await foreignCollection.update(
-        recipient,
+        caller,
         new Filter({ conditionTree: ConditionTreeFactory.intersect(newFkOwner, scope) }),
         { [relation.originKey]: originValue },
       );
@@ -131,10 +131,10 @@ export default class CreateRoute extends CollectionRoute {
     field: string,
     id: CompositeId,
   ): Promise<unknown> {
-    const recipient = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseRecipient(context);
     const schema = this.collection.schema.fields[field] as ManyToOneSchema;
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
 
-    return CollectionUtils.getValue(foreignCollection, recipient, id, schema.foreignKeyTarget);
+    return CollectionUtils.getValue(foreignCollection, caller, id, schema.foreignKeyTarget);
   }
 }

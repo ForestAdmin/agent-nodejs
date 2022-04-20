@@ -1,4 +1,5 @@
 import {
+  Caller,
   Collection,
   ConditionTree,
   ConditionTreeFactory,
@@ -7,7 +8,6 @@ import {
   Projection,
   ProjectionFactory,
   ProjectionValidator,
-  QueryRecipient,
   Sort,
   SortFactory,
   SortValidator,
@@ -108,7 +108,7 @@ export default class QueryStringParser {
     return segment;
   }
 
-  static parseRecipient(context: Context): QueryRecipient {
+  static parseRecipient(context: Context): Caller {
     const timezone = context.request.query.timezone?.toString();
 
     if (!timezone) {

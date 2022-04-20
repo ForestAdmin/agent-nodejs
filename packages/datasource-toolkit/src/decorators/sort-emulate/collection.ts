@@ -1,10 +1,10 @@
+import { Caller } from '../../interfaces/caller';
 import {
   CollectionSchema,
   ColumnSchema,
   FieldSchema,
   RelationSchema,
 } from '../../interfaces/schema';
-import { QueryRecipient } from '../../interfaces/user';
 import { RecordData } from '../../interfaces/record';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
@@ -35,7 +35,7 @@ export default class SortEmulate extends CollectionDecorator {
   }
 
   override async list(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
@@ -44,13 +44,13 @@ export default class SortEmulate extends CollectionDecorator {
     });
 
     if (!childFilter.sort?.some(({ field }) => this.isEmulated(field))) {
-      return this.childCollection.list(recipient, childFilter, projection);
+      return this.childCollection.list(caller, childFilter, projection);
     }
 
     // Fetch the whole collection, but only with the fields we need to sort
     let referenceRecords: RecordData[];
     referenceRecords = await this.childCollection.list(
-      recipient,
+      caller,
       childFilter.override({ sort: null, page: null }),
       childFilter.sort.projection.withPks(this),
     );
@@ -63,7 +63,7 @@ export default class SortEmulate extends CollectionDecorator {
     });
 
     let records: RecordData[];
-    records = await this.childCollection.list(recipient, newFilter, projection.withPks(this));
+    records = await this.childCollection.list(caller, newFilter, projection.withPks(this));
     records = this.sortRecords(referenceRecords, records);
     records = projection.apply(records);
 

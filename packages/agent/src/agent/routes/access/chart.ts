@@ -58,7 +58,7 @@ export default class Chart extends CollectionRoute {
   private async makeValueChart(
     context: Context,
   ): Promise<{ countCurrent: number; countPrevious?: number }> {
-    const recipient = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseRecipient(context);
     const currentFilter = await this.getFilter(context);
     const result = {
       countCurrent: await this.computeValue(context, currentFilter),
@@ -74,7 +74,7 @@ export default class Chart extends CollectionRoute {
     if (withCountPrevious && !isAndAggregator) {
       result.countPrevious = await this.computeValue(
         context,
-        FilterFactory.getPreviousPeriodFilter(currentFilter, recipient.timezone),
+        FilterFactory.getPreviousPeriodFilter(currentFilter, caller.timezone),
       );
     }
 

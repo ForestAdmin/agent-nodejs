@@ -1,5 +1,5 @@
+import { Caller } from '../../interfaces/caller';
 import { CollectionSchema, ColumnSchema, FieldSchema } from '../../interfaces/schema';
-import { QueryRecipient } from '../../interfaces/user';
 import { allOperators } from '../../interfaces/query/condition-tree/nodes/operators';
 import CollectionDecorator from '../collection-decorator';
 import CollectionUtils from '../../utils/collection';
@@ -33,7 +33,7 @@ export default class OperatorsDecorator extends CollectionDecorator {
   }
 
   protected override async refineFilter(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter?: PaginatedFilter,
   ): Promise<PaginatedFilter> {
     return filter?.override({
@@ -47,7 +47,7 @@ export default class OperatorsDecorator extends CollectionDecorator {
           leaf,
           schema.filterOperators,
           schema.columnType,
-          recipient.timezone,
+          caller.timezone,
         );
       }),
     });

@@ -1,6 +1,6 @@
+import { Caller } from '../../interfaces/caller';
 import { CollectionSchema, RelationSchema } from '../../interfaces/schema';
 import { ComputedDefinition } from './types';
-import { QueryRecipient } from '../../interfaces/user';
 import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionCustomizationContext from '../../context/collection-context';
@@ -40,32 +40,32 @@ export default class ComputedCollection extends CollectionDecorator {
   }
 
   override async list(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
     const childProjection = projection.replace(path => rewriteField(this, path));
-    const records = await this.childCollection.list(recipient, filter, childProjection);
-    const context = new CollectionCustomizationContext(this, recipient);
+    const records = await this.childCollection.list(caller, filter, childProjection);
+    const context = new CollectionCustomizationContext(this, caller);
 
     return computeFromRecords(context, this, childProjection, projection, records);
   }
 
   override async aggregate(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
     // No computed are used in the aggregation => just delegate to the underlying collection.
     if (!aggregation.projection.some(field => this.getComputed(field))) {
-      return this.childCollection.aggregate(recipient, filter, aggregation, limit);
+      return this.childCollection.aggregate(caller, filter, aggregation, limit);
     }
 
     // Fallback to full emulation.
     return aggregation.apply(
-      await this.list(recipient, filter, aggregation.projection),
-      recipient.timezone,
+      await this.list(caller, filter, aggregation.projection),
+      caller.timezone,
       limit,
     );
   }

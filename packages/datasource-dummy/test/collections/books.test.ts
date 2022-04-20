@@ -38,7 +38,7 @@ describe('DummyDataSource > Collections > Books', () => {
   describe('create', () => {
     it('should return the record data', async () => {
       const bookCollection = instanciateCollection();
-      const [newRecord] = await bookCollection.create(factories.recipient.build(), [
+      const [newRecord] = await bookCollection.create(factories.caller.build(), [
         { id: undefined, title: 'Dune' },
       ]);
 
@@ -53,7 +53,7 @@ describe('DummyDataSource > Collections > Books', () => {
       const projection = new Projection();
 
       expect(
-        await bookCollection.list(factories.recipient.build(), paginatedFilter, projection),
+        await bookCollection.list(factories.caller.build(), paginatedFilter, projection),
       ).toBeArrayOfSize(6);
     });
 
@@ -64,7 +64,7 @@ describe('DummyDataSource > Collections > Books', () => {
       const projection = new Projection();
 
       expect(
-        await bookCollection.list(factories.recipient.build(), paginatedFilter, projection),
+        await bookCollection.list(factories.caller.build(), paginatedFilter, projection),
       ).toBeArrayOfSize(expectedPageLimit);
     });
   });
@@ -77,7 +77,7 @@ describe('DummyDataSource > Collections > Books', () => {
       const paginatedFilter = new PaginatedFilter({});
       const projection = new Projection('title');
       const records = await bookCollection.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         paginatedFilter,
         projection,
       );
@@ -94,7 +94,7 @@ describe('DummyDataSource > Collections > Books', () => {
       const paginatedFilter = new PaginatedFilter({});
       const projection = new Projection();
       expect(
-        await bookCollection.list(factories.recipient.build(), paginatedFilter, projection),
+        await bookCollection.list(factories.caller.build(), paginatedFilter, projection),
       ).toBeArrayOfSize(0);
     });
   });
@@ -110,7 +110,7 @@ describe('DummyDataSource > Collections > Books', () => {
       });
 
       expect(
-        await bookCollection.aggregate(factories.recipient.build(), paginatedFilter, aggregation),
+        await bookCollection.aggregate(factories.caller.build(), paginatedFilter, aggregation),
       ).toBeArrayOfSize(expectedPageLimit);
     });
 
@@ -122,7 +122,7 @@ describe('DummyDataSource > Collections > Books', () => {
       });
 
       const rows = await bookCollection.aggregate(
-        factories.recipient.build(),
+        factories.caller.build(),
         new PaginatedFilter({}),
         aggregation,
       );

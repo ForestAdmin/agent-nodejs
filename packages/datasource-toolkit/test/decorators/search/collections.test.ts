@@ -22,7 +22,7 @@ describe('SearchCollectionDecorator', () => {
         const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
         const refinedFilter = await searchCollectionDecorator.refineFilter(
-          factories.recipient.build(),
+          factories.caller.build(),
           null,
         );
         expect(refinedFilter).toStrictEqual(null);
@@ -37,7 +37,7 @@ describe('SearchCollectionDecorator', () => {
         const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
         const refinedFilter = await searchCollectionDecorator.refineFilter(
-          factories.recipient.build(),
+          factories.caller.build(),
           filter,
         );
         expect(refinedFilter).toStrictEqual(filter);
@@ -58,7 +58,7 @@ describe('SearchCollectionDecorator', () => {
         const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
         const refinedFilter = await searchCollectionDecorator.refineFilter(
-          factories.recipient.build(),
+          factories.caller.build(),
           filter,
         );
         expect(refinedFilter).toEqual({
@@ -78,7 +78,7 @@ describe('SearchCollectionDecorator', () => {
         const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
         const refinedFilter = await searchCollectionDecorator.refineFilter(
-          factories.recipient.build(),
+          factories.caller.build(),
           filter,
         );
         expect(refinedFilter).toStrictEqual(filter);
@@ -96,7 +96,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(
-            factories.recipient.build(),
+            factories.caller.build(),
             filter,
           );
           expect(refinedFilter).toEqual({ ...filter, search: null });
@@ -133,7 +133,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(
-            factories.recipient.build(),
+            factories.caller.build(),
             filter,
           );
           expect(refinedFilter).toEqual({
@@ -167,7 +167,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(
-            factories.recipient.build(),
+            factories.caller.build(),
             filter,
           );
           expect(refinedFilter).toEqual({
@@ -195,7 +195,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(
-            factories.recipient.build(),
+            factories.caller.build(),
             filter,
           );
           expect(refinedFilter).toEqual({
@@ -227,7 +227,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(
-            factories.recipient.build(),
+            factories.caller.build(),
             filter,
           );
           expect(refinedFilter).toEqual({
@@ -256,7 +256,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(
-            factories.recipient.build(),
+            factories.caller.build(),
             filter,
           );
           expect(refinedFilter).toEqual({
@@ -283,7 +283,7 @@ describe('SearchCollectionDecorator', () => {
             const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
             const refinedFilter = await searchCollectionDecorator.refineFilter(
-              factories.recipient.build(),
+              factories.caller.build(),
               filter,
             );
             expect(refinedFilter).toEqual({
@@ -311,7 +311,7 @@ describe('SearchCollectionDecorator', () => {
             const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
             const refinedFilter = await searchCollectionDecorator.refineFilter(
-              factories.recipient.build(),
+              factories.caller.build(),
               filter,
             );
             expect(refinedFilter).toEqual({
@@ -340,7 +340,7 @@ describe('SearchCollectionDecorator', () => {
             const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
             const refinedFilter = await searchCollectionDecorator.refineFilter(
-              factories.recipient.build(),
+              factories.caller.build(),
               filter,
             );
             expect(refinedFilter).toEqual({
@@ -374,7 +374,7 @@ describe('SearchCollectionDecorator', () => {
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
           const refinedFilter = await searchCollectionDecorator.refineFilter(
-            factories.recipient.build(),
+            factories.caller.build(),
             filter,
           );
           expect(refinedFilter).toEqual({
@@ -438,7 +438,7 @@ describe('SearchCollectionDecorator', () => {
             );
 
             const refinedFilter = await searchCollectionDecorator.refineFilter(
-              factories.recipient.build(),
+              factories.caller.build(),
               filter,
             );
             expect(refinedFilter).toEqual({

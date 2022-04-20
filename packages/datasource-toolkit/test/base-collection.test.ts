@@ -165,7 +165,7 @@ describe('BaseCollection', () => {
     test('it always throws', async () => {
       const collection = new ConcreteCollection('books', null);
 
-      await expect(collection.execute(factories.recipient.build(), 'someAction')).rejects.toThrow();
+      await expect(collection.execute(factories.caller.build(), 'someAction')).rejects.toThrow();
     });
   });
 

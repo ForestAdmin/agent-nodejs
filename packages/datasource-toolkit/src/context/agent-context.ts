@@ -1,17 +1,17 @@
+import { Caller } from '../interfaces/caller';
 import { DataSource } from '../interfaces/collection';
-import { QueryRecipient } from '../interfaces/user';
 import RelaxedDataSource from './relaxed-wrappers/datasource';
 
 export default class AgentCustomizationContext {
   private realDataSource: DataSource;
-  readonly recipient: QueryRecipient;
+  readonly caller: Caller;
 
   get dataSource(): RelaxedDataSource {
-    return new RelaxedDataSource(this.realDataSource, this.recipient);
+    return new RelaxedDataSource(this.realDataSource, this.caller);
   }
 
-  constructor(dataSource: DataSource, recipient: QueryRecipient) {
+  constructor(dataSource: DataSource, caller: Caller) {
     this.realDataSource = dataSource;
-    this.recipient = recipient;
+    this.caller = caller;
   }
 }

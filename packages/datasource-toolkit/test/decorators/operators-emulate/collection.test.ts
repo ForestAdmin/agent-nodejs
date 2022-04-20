@@ -143,9 +143,9 @@ describe('OperatorsEmulate', () => {
           }),
         });
 
-        await expect(
-          newBooks.list(factories.recipient.build(), filter, projection),
-        ).rejects.toThrow("The given operator 'Like' is not supported");
+        await expect(newBooks.list(factories.caller.build(), filter, projection)).rejects.toThrow(
+          "The given operator 'Like' is not supported",
+        );
         expect(books.list).not.toHaveBeenCalled();
       });
     });
@@ -175,9 +175,7 @@ describe('OperatorsEmulate', () => {
           }),
         });
 
-        await expect(
-          newBooks.list(factories.recipient.build(), filter, projection),
-        ).rejects.toThrow(
+        await expect(newBooks.list(factories.caller.build(), filter, projection)).rejects.toThrow(
           'Operator replacement cycle: ' +
             'books.title[StartsWith] -> books.title[Like] -> books.title[StartsWith]',
         );
@@ -209,12 +207,12 @@ describe('OperatorsEmulate', () => {
           }),
         });
 
-        const records = await newBooks.list(factories.recipient.build(), filter, projection);
+        const records = await newBooks.list(factories.caller.build(), filter, projection);
         expect(records).toStrictEqual([{ id: 2, title: 'Foundation' }]);
 
         expect(persons.list).toHaveBeenCalledTimes(0);
         expect(books.list).toHaveBeenCalledTimes(1);
-        expect(books.list).toHaveBeenCalledWith(factories.recipient.build(), filter, projection);
+        expect(books.list).toHaveBeenCalledWith(factories.caller.build(), filter, projection);
       });
 
       test('list() should find books from author:firstname prefix', async () => {
@@ -233,18 +231,18 @@ describe('OperatorsEmulate', () => {
           }),
         });
 
-        const records = await newBooks.list(factories.recipient.build(), filter, projection);
+        const records = await newBooks.list(factories.caller.build(), filter, projection);
         expect(records).toStrictEqual([{ id: 2, title: 'Foundation' }]);
 
         expect(persons.list).toHaveBeenCalledTimes(1);
-        expect(persons.list).toHaveBeenCalledWith(factories.recipient.build(), {}, [
+        expect(persons.list).toHaveBeenCalledWith(factories.caller.build(), {}, [
           'firstName',
           'id',
         ]);
 
         expect(books.list).toHaveBeenCalledTimes(1);
         expect(books.list).toHaveBeenCalledWith(
-          factories.recipient.build(),
+          factories.caller.build(),
           { conditionTree: { field: 'author:id', operator: 'Equal', value: 2 } },
           projection,
         );
@@ -299,7 +297,7 @@ describe('OperatorsEmulate', () => {
         });
 
         const records = await newBooks.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           filter,
           new Projection('id', 'title'),
         );

@@ -20,14 +20,14 @@ export default class CountRelatedRoute extends RelationRoute {
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const scope = await this.services.permissions.getScope(this.foreignCollection, context);
-    const recipient = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseRecipient(context);
     const filter = ContextFilterFactory.build(this.foreignCollection, context, scope);
 
     const aggregationResult = await CollectionUtils.aggregateRelation(
       this.collection,
       parentId,
       this.relationName,
-      recipient,
+      caller,
       filter,
       new Aggregation({ operation: 'Count' }),
     );

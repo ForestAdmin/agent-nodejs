@@ -225,7 +225,7 @@ describe('FilterFactory', () => {
         books,
         [1],
         'reviews',
-        factories.recipient.build(),
+        factories.caller.build(),
         baseFilter,
       );
 
@@ -258,7 +258,7 @@ describe('FilterFactory', () => {
         books,
         [1],
         'reviews',
-        factories.recipient.build(),
+        factories.caller.build(),
         baseFilter,
       );
 
@@ -286,7 +286,7 @@ describe('FilterFactory', () => {
         books,
         [1],
         'bookReviews',
-        factories.recipient.build(),
+        factories.caller.build(),
         baseFilter,
       );
 
@@ -315,7 +315,7 @@ describe('FilterFactory', () => {
         books,
         [1],
         'reviews',
-        factories.recipient.build(),
+        factories.caller.build(),
         baseFilter,
       );
 

@@ -1,8 +1,8 @@
 import {
+  Caller,
   CollectionUtils,
   PaginatedFilter,
   Projection,
-  QueryRecipient,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
@@ -32,17 +32,17 @@ export default class CsvRelatedRoute extends RelationRoute {
 
     const projection = QueryStringParser.parseProjection(this.foreignCollection, context);
     const scope = await this.services.permissions.getScope(this.foreignCollection, context);
-    const recipient = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseRecipient(context);
     const filter = ContextFilterFactory.buildPaginated(this.foreignCollection, context, scope);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 
     const gen = CsvGenerator.generate(
-      recipient,
+      caller,
       projection,
       header,
       filter,
       this.foreignCollection,
-      async (rec: QueryRecipient, fil: PaginatedFilter, proj: Projection) =>
+      async (rec: Caller, fil: PaginatedFilter, proj: Projection) =>
         CollectionUtils.listRelation(this.collection, parentId, this.relationName, rec, fil, proj),
     );
     context.response.body = Readable.from(gen);

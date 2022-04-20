@@ -1,7 +1,8 @@
 import { Factory } from 'fishery';
-import { QueryRecipient } from '../../src/interfaces/user';
 
-export default Factory.define<QueryRecipient>(() => ({
+import { Caller } from '../../src/interfaces/caller';
+
+export default Factory.define<Caller>(() => ({
   email: 'user@domain.com',
   firstName: 'user',
   id: 1,

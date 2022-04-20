@@ -1,10 +1,10 @@
 import {
   AggregateResult,
   Aggregation,
+  Caller,
   Filter,
   PaginatedFilter,
   Projection,
-  QueryRecipient,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 import { SequelizeCollection } from '@forestadmin/datasource-sequelize';
@@ -27,42 +27,42 @@ export default class LiveCollection extends SequelizeCollection {
     return true;
   }
 
-  override create(recipient: QueryRecipient, data: RecordData[]): Promise<RecordData[]> {
+  override create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     this.ensureSynched();
 
-    return super.create(recipient, data);
+    return super.create(caller, data);
   }
 
   override list(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
     this.ensureSynched();
 
-    return super.list(recipient, filter, projection);
+    return super.list(caller, filter, projection);
   }
 
-  override update(recipient: QueryRecipient, filter: Filter, patch: RecordData): Promise<void> {
+  override update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     this.ensureSynched();
 
-    return super.update(recipient, filter, patch);
+    return super.update(caller, filter, patch);
   }
 
-  override delete(recipient: QueryRecipient, filter: Filter): Promise<void> {
+  override delete(caller: Caller, filter: Filter): Promise<void> {
     this.ensureSynched();
 
-    return super.delete(recipient, filter);
+    return super.delete(caller, filter);
   }
 
   override aggregate(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
     this.ensureSynched();
 
-    return super.aggregate(recipient, filter, aggregation, limit);
+    return super.aggregate(caller, filter, aggregation, limit);
   }
 }

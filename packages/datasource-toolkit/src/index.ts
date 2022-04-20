@@ -44,6 +44,7 @@ export { default as Sort } from './interfaces/query/sort';
 export { default as SortFactory } from './interfaces/query/sort/factory';
 
 export * from './interfaces/action';
+export * from './interfaces/caller';
 export * from './interfaces/collection';
 export * from './interfaces/query/aggregation';
 export * from './interfaces/query/condition-tree/nodes/branch';
@@ -54,7 +55,6 @@ export * from './interfaces/query/filter/unpaginated';
 export * from './interfaces/query/sort';
 export * from './interfaces/record';
 export * from './interfaces/schema';
-export * from './interfaces/user';
 
 // Validation
 export { default as ConditionTreeValidator } from './validation/condition-tree';

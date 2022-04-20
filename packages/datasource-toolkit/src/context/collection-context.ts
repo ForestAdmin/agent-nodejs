@@ -1,5 +1,5 @@
+import { Caller } from '../interfaces/caller';
 import { Collection } from '../interfaces/collection';
-import { QueryRecipient } from '../interfaces/user';
 import AgentCustomizationContext from './agent-context';
 import RelaxedCollection from './relaxed-wrappers/collection';
 
@@ -7,11 +7,11 @@ export default class CollectionCustomizationContext extends AgentCustomizationCo
   private realCollection: Collection;
 
   get collection(): RelaxedCollection {
-    return new RelaxedCollection(this.realCollection, this.recipient);
+    return new RelaxedCollection(this.realCollection, this.caller);
   }
 
-  constructor(collection: Collection, recipient: QueryRecipient) {
-    super(collection.dataSource, recipient);
+  constructor(collection: Collection, caller: Caller) {
+    super(collection.dataSource, caller);
     this.realCollection = collection;
   }
 }

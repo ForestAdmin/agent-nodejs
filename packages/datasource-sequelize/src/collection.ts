@@ -4,12 +4,12 @@ import {
   AggregateResult,
   Aggregation,
   BaseCollection,
+  Caller,
   DataSource,
   Filter,
   Logger,
   PaginatedFilter,
   Projection,
-  QueryRecipient,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
@@ -42,14 +42,14 @@ export default class SequelizeCollection extends BaseCollection {
     this.addSegments(modelSchema.segments);
   }
 
-  async create(recipient: QueryRecipient, data: RecordData[]): Promise<RecordData[]> {
+  async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     const records = await this.model.bulkCreate(data);
 
     return records.map(record => record.get({ plain: true }));
   }
 
   async list(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
@@ -80,21 +80,21 @@ export default class SequelizeCollection extends BaseCollection {
     return records.map(record => record.get({ plain: true }));
   }
 
-  async update(recipient: QueryRecipient, filter: Filter, patch: RecordData): Promise<void> {
+  async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     await this.model.update(patch, {
       where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
       fields: Object.keys(patch),
     });
   }
 
-  async delete(recipient: QueryRecipient, filter: Filter): Promise<void> {
+  async delete(caller: Caller, filter: Filter): Promise<void> {
     await this.model.destroy({
       where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
     });
   }
 
   async aggregate(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,

@@ -1,5 +1,5 @@
+import { Caller } from '../../interfaces/caller';
 import { Collection } from '../../interfaces/collection';
-import { QueryRecipient } from '../../interfaces/user';
 import { RecordData } from '../../interfaces/record';
 import CollectionCustomizationContext from '../../context/collection-context';
 
@@ -9,11 +9,11 @@ export default class WriteCustomizationContext extends CollectionCustomizationCo
 
   constructor(
     collection: Collection,
-    recipient: QueryRecipient,
+    caller: Caller,
     action: 'update' | 'create',
     record: RecordData,
   ) {
-    super(collection, recipient);
+    super(collection, caller);
 
     this.action = action;
     this.record = record;

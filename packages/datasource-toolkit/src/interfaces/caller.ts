@@ -1,4 +1,4 @@
-export type QueryRecipient = {
+export type Caller = {
   id: number;
   email: string;
   firstName: string;

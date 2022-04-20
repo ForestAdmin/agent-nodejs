@@ -1,3 +1,4 @@
+import { Caller } from '../../interfaces/caller';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -5,7 +6,6 @@ import {
   PrimitiveTypes,
 } from '../../interfaces/schema';
 import { DataSource } from '../../interfaces/collection';
-import { QueryRecipient } from '../../interfaces/user';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
@@ -19,7 +19,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   }
 
   public override async refineFilter(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter?: PaginatedFilter,
   ): Promise<PaginatedFilter> {
     if (!filter?.search || this.childCollection.schema.searchable) {

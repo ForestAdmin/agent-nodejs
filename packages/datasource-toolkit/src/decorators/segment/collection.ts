@@ -1,5 +1,5 @@
+import { Caller } from '../../interfaces/caller';
 import { CollectionSchema } from '../../interfaces/schema';
-import { QueryRecipient } from '../../interfaces/user';
 import { SegmentDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
 import CollectionDecorator from '../collection-decorator';
@@ -24,7 +24,7 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
   }
 
   public override async refineFilter(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter?: PaginatedFilter,
   ): Promise<PaginatedFilter> {
     if (!filter) {
@@ -37,7 +37,7 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
       const definition = this.segments[segment];
       const result =
         typeof definition === 'function'
-          ? await definition(new CollectionCustomizationContext(this, recipient))
+          ? await definition(new CollectionCustomizationContext(this, caller))
           : await definition;
 
       const conditionTreeSegment =

@@ -1,6 +1,6 @@
 import { ActionField, ActionResult } from './action';
+import { Caller } from './caller';
 import { CollectionSchema } from './schema';
-import { QueryRecipient } from './user';
 import { RecordData } from './record';
 import Aggregation, { AggregateResult } from './query/aggregation';
 import Filter from './query/filter/unpaginated';
@@ -19,33 +19,29 @@ export interface Collection {
   get schema(): CollectionSchema;
 
   execute(
-    recipient: QueryRecipient,
+    caller: Caller,
     name: string,
     formValues: RecordData,
     filter?: Filter,
   ): Promise<ActionResult>;
 
   getForm(
-    recipient: QueryRecipient,
+    caller: Caller,
     name: string,
     formValues?: RecordData,
     filter?: Filter,
   ): Promise<ActionField[]>;
 
-  create(recipient: QueryRecipient, data: RecordData[]): Promise<RecordData[]>;
+  create(caller: Caller, data: RecordData[]): Promise<RecordData[]>;
 
-  list(
-    recipient: QueryRecipient,
-    filter: PaginatedFilter,
-    projection: Projection,
-  ): Promise<RecordData[]>;
+  list(caller: Caller, filter: PaginatedFilter, projection: Projection): Promise<RecordData[]>;
 
-  update(recipient: QueryRecipient, filter: Filter, patch: RecordData): Promise<void>;
+  update(caller: Caller, filter: Filter, patch: RecordData): Promise<void>;
 
-  delete(recipient: QueryRecipient, filter: Filter): Promise<void>;
+  delete(caller: Caller, filter: Filter): Promise<void>;
 
   aggregate(
-    recipient: QueryRecipient,
+    caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,

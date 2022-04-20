@@ -134,7 +134,7 @@ describe('LiveDataSource > Collection', () => {
     it('should reject if collection is not synched first', async () => {
       const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
-      expect(() => liveCollection.create(factories.recipient.build(), [])).toThrow(
+      expect(() => liveCollection.create(factories.caller.build(), [])).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
       );
     });
@@ -145,7 +145,7 @@ describe('LiveDataSource > Collection', () => {
         liveCollectionSchema,
       );
 
-      const records = await liveCollection.create(factories.recipient.build(), recordData);
+      const records = await liveCollection.create(factories.caller.build(), recordData);
 
       expect(records).toBeArrayOfSize(recordCount);
       expect(records).toEqual(
@@ -158,7 +158,7 @@ describe('LiveDataSource > Collection', () => {
     it('should reject if collection is not synched first', async () => {
       const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
-      expect(() => liveCollection.list(factories.recipient.build(), null, null)).toThrow(
+      expect(() => liveCollection.list(factories.caller.build(), null, null)).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
       );
     });
@@ -171,7 +171,7 @@ describe('LiveDataSource > Collection', () => {
 
       await expect(
         liveCollection.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new PaginatedFilter({}),
           new Projection('id'),
         ),
@@ -182,7 +182,7 @@ describe('LiveDataSource > Collection', () => {
       const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
 
       const records = await liveCollection.list(
-        factories.recipient.build(),
+        factories.caller.build(),
         new PaginatedFilter({}),
         new Projection('id'),
       );
@@ -199,7 +199,7 @@ describe('LiveDataSource > Collection', () => {
         const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
 
         const records = await liveCollection.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new PaginatedFilter({
             conditionTree: new ConditionTreeLeaf('value', 'Equal', 'record_4'),
           }),
@@ -216,7 +216,7 @@ describe('LiveDataSource > Collection', () => {
         const { liveCollection } = await preloadLiveCollectionRecords(9, liveCollectionSchema);
 
         const records = await liveCollection.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new PaginatedFilter({ sort: new Sort({ field: 'value', ascending: true }) }),
           new Projection('value'),
         );
@@ -231,7 +231,7 @@ describe('LiveDataSource > Collection', () => {
         });
 
         const records = await liveCollection.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new PaginatedFilter({ sort: new Sort({ field: 'value', ascending: false }) }),
           new Projection('value'),
         );
@@ -247,7 +247,7 @@ describe('LiveDataSource > Collection', () => {
         const limit = 2;
 
         const records = await liveCollection.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new PaginatedFilter({ page: new Page(null, limit) }),
           new Projection('id'),
         );
@@ -263,7 +263,7 @@ describe('LiveDataSource > Collection', () => {
         const offset = 2;
 
         const records = await liveCollection.list(
-          factories.recipient.build(),
+          factories.caller.build(),
           new PaginatedFilter({
             sort: new Sort({ field: 'value', ascending: true }),
             page: new Page(offset),
@@ -283,7 +283,7 @@ describe('LiveDataSource > Collection', () => {
     it('should reject if collection is not synched first', async () => {
       const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
-      expect(() => liveCollection.update(factories.recipient.build(), null, {})).toThrow(
+      expect(() => liveCollection.update(factories.caller.build(), null, {})).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
       );
     });
@@ -296,7 +296,7 @@ describe('LiveDataSource > Collection', () => {
       const patch = { value: '__new__value__' };
 
       await expect(
-        liveCollection.update(factories.recipient.build(), filter, patch),
+        liveCollection.update(factories.caller.build(), filter, patch),
       ).resolves.not.toThrow();
     });
 
@@ -313,7 +313,7 @@ describe('LiveDataSource > Collection', () => {
       });
       const patch = { value: '__new__value__' };
 
-      await liveCollection.update(factories.recipient.build(), filter, patch);
+      await liveCollection.update(factories.caller.build(), filter, patch);
 
       const allRecords = await plainRecords(
         sequelize
@@ -338,7 +338,7 @@ describe('LiveDataSource > Collection', () => {
     it('should reject if collection is not synched first', async () => {
       const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
-      expect(() => liveCollection.delete(factories.recipient.build(), null)).toThrow(
+      expect(() => liveCollection.delete(factories.caller.build(), null)).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
       );
     });
@@ -349,9 +349,7 @@ describe('LiveDataSource > Collection', () => {
         conditionTree: new ConditionTreeLeaf('id', 'Equal', '__unknown__'),
       });
 
-      await expect(
-        liveCollection.delete(factories.recipient.build(), filter),
-      ).resolves.not.toThrow();
+      await expect(liveCollection.delete(factories.caller.build(), filter)).resolves.not.toThrow();
     });
 
     it('should delete records honoring filter', async () => {
@@ -369,7 +367,7 @@ describe('LiveDataSource > Collection', () => {
         conditionTree: new ConditionTreeLeaf('id', 'Equal', originalRecord.id),
       });
 
-      await liveCollection.delete(factories.recipient.build(), filter);
+      await liveCollection.delete(factories.caller.build(), filter);
 
       const newRecordCount = await sequelize.model(liveCollection.name).count();
 
@@ -381,7 +379,7 @@ describe('LiveDataSource > Collection', () => {
     it('should reject if collection is not synched first', async () => {
       const { liveCollection } = instanciateCollection(liveCollectionSchema);
 
-      expect(() => liveCollection.aggregate(factories.recipient.build(), null, null)).toThrow(
+      expect(() => liveCollection.aggregate(factories.caller.build(), null, null)).toThrow(
         `Collection "${liveCollection.name}" is not synched yet. Call "sync" first.`,
       );
     });
@@ -397,7 +395,7 @@ describe('LiveDataSource > Collection', () => {
       });
 
       await expect(
-        liveCollection.aggregate(factories.recipient.build(), new PaginatedFilter({}), aggregation),
+        liveCollection.aggregate(factories.caller.build(), new PaginatedFilter({}), aggregation),
       ).resolves.toEqual([{ group: {}, value: recordCount }]);
     });
 
@@ -420,7 +418,7 @@ describe('LiveDataSource > Collection', () => {
       });
 
       await expect(
-        liveCollection.aggregate(factories.recipient.build(), filter, aggregation),
+        liveCollection.aggregate(factories.caller.build(), filter, aggregation),
       ).resolves.toEqual([{ group: {}, value: 1 }]);
     });
 
@@ -436,7 +434,7 @@ describe('LiveDataSource > Collection', () => {
       });
 
       await expect(
-        liveCollection.aggregate(factories.recipient.build(), new PaginatedFilter({}), aggregation),
+        liveCollection.aggregate(factories.caller.build(), new PaginatedFilter({}), aggregation),
       ).resolves.toEqual(expect.arrayContaining([{ group: {}, value: 5 }]));
     });
 
@@ -453,7 +451,7 @@ describe('LiveDataSource > Collection', () => {
       });
 
       await expect(
-        liveCollection.aggregate(factories.recipient.build(), new PaginatedFilter({}), aggregation),
+        liveCollection.aggregate(factories.caller.build(), new PaginatedFilter({}), aggregation),
       ).resolves.toEqual(
         expect.arrayContaining([
           { group: { even: 1 }, value: 5 },

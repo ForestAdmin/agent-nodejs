@@ -1,9 +1,9 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
+import { Caller } from '../../caller';
 import { Collection } from '../../collection';
 import { CompositeId } from '../../record';
 import { ManyToManySchema } from '../../schema';
-import { QueryRecipient } from '../../user';
 import CollectionUtils from '../../../utils/collection';
 import ConditionTree from '../condition-tree/nodes/base';
 import ConditionTreeFactory from '../condition-tree/factory';
@@ -99,13 +99,13 @@ export default class FilterFactory {
     collection: Collection,
     id: CompositeId,
     relationName: string,
-    recipient: QueryRecipient,
+    caller: Caller,
     baseForeignFilter: PaginatedFilter,
   ): Promise<PaginatedFilter> {
     const relation = collection.schema.fields[relationName] as ManyToManySchema;
     const originValue = await CollectionUtils.getValue(
       collection,
-      recipient,
+      caller,
       id,
       relation.originKeyTarget,
     );
@@ -127,12 +127,12 @@ export default class FilterFactory {
     // are correctly apply, and then match ids in the though collection.
     const target = collection.dataSource.getCollection(relation.foreignCollection);
     const records = await target.list(
-      recipient,
+      caller,
       await FilterFactory.makeForeignFilter(
         collection,
         id,
         relationName,
-        recipient,
+        caller,
         baseForeignFilter,
       ),
       new Projection(relation.foreignKeyTarget),
@@ -162,13 +162,13 @@ export default class FilterFactory {
     collection: Collection,
     id: CompositeId,
     relationName: string,
-    recipient: QueryRecipient,
+    caller: Caller,
     baseForeignFilter: PaginatedFilter,
   ): Promise<Filter> {
     const relation = SchemaUtils.getToManyRelation(collection.schema, relationName);
     const originValue = await CollectionUtils.getValue(
       collection,
-      recipient,
+      caller,
       id,
       relation.originKeyTarget,
     );
@@ -184,7 +184,7 @@ export default class FilterFactory {
       const through = collection.dataSource.getCollection(relation.throughCollection);
       const throughTree = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
       const records = await through.list(
-        recipient,
+        caller,
         new Filter({ conditionTree: throughTree }),
         new Projection(relation.foreignKey),
       );

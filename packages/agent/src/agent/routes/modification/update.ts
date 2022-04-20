@@ -34,10 +34,10 @@ export default class UpdateRoute extends CollectionRoute {
       ConditionTreeFactory.matchIds(this.collection.schema, [id]),
       await this.services.permissions.getScope(this.collection, context),
     );
-    const recipient = QueryStringParser.parseRecipient(context);
-    await this.collection.update(recipient, new Filter({ conditionTree }), record);
+    const caller = QueryStringParser.parseRecipient(context);
+    await this.collection.update(caller, new Filter({ conditionTree }), record);
     const [updateResult] = await this.collection.list(
-      recipient,
+      caller,
       new Filter({ conditionTree }),
       ProjectionFactory.all(this.collection),
     );

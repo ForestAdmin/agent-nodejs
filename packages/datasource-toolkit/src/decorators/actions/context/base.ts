@@ -1,5 +1,5 @@
+import { Caller } from '../../../interfaces/caller';
 import { Collection } from '../../../interfaces/collection';
-import { QueryRecipient } from '../../../interfaces/user';
 import { RecordData } from '../../../interfaces/record';
 import CollectionCustomizationContext from '../../../context/collection-context';
 import Deferred from '../../../utils/async';
@@ -16,12 +16,12 @@ export default class ActionContext extends CollectionCustomizationContext {
 
   constructor(
     collection: Collection,
-    recipient: QueryRecipient,
+    caller: Caller,
     formValue: RecordData,
     filter: Filter,
     used?: Set<string>,
   ) {
-    super(collection, recipient);
+    super(collection, caller);
     this.formValues = formValue;
     this.filter = filter;
     this.reset();

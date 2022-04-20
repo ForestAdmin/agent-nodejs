@@ -28,7 +28,7 @@ describe('WriteDecorator', () => {
         decoratedCollection.replaceFieldWriting('name', handler);
 
         // when
-        await decoratedCollection.update(factories.recipient.build(), new Filter({}), {
+        await decoratedCollection.update(factories.caller.build(), new Filter({}), {
           name: 'a name',
         });
 
@@ -64,7 +64,7 @@ describe('WriteDecorator', () => {
         decoratedCollection.replaceFieldWriting('name', handler);
 
         // when
-        await decoratedCollection.create(factories.recipient.build(), [{ name: 'a name' }]);
+        await decoratedCollection.create(factories.caller.build(), [{ name: 'a name' }]);
 
         // then
         expect(handler).toHaveBeenCalledWith(
@@ -138,7 +138,7 @@ describe('WriteDecorator', () => {
       decoratedCollection.replaceFieldWriting('name', handler);
 
       // when
-      await decoratedCollection.update(factories.recipient.build(), factories.filter.build(), {
+      await decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
         name: 'orius',
       });
 
@@ -167,14 +167,14 @@ describe('WriteDecorator', () => {
       decoratedCollection.replaceFieldWriting('name', handler);
 
       // when
-      await decoratedCollection.update(factories.recipient.build(), factories.filter.build(), {
+      await decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
         name: 'jean',
         otherField: 'aValue',
       });
 
       // then
       expect(collection.update).toHaveBeenCalledWith(
-        factories.recipient.build(),
+        factories.caller.build(),
         expect.any(PaginatedFilter),
         {
           otherField: 'aValue',
@@ -205,7 +205,7 @@ describe('WriteDecorator', () => {
         decoratedCollection.replaceFieldWriting('age', ageDefinition);
 
         // when
-        await decoratedCollection.update(factories.recipient.build(), factories.filter.build(), {
+        await decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
           name: 'orius',
           age: '10',
         });
@@ -253,7 +253,7 @@ describe('WriteDecorator', () => {
         decoratedCollection.replaceFieldWriting('age', ageDefinition);
 
         // when
-        await decoratedCollection.update(factories.recipient.build(), factories.filter.build(), {
+        await decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
           name: 'orius',
           age: '10',
         });
@@ -294,14 +294,14 @@ describe('WriteDecorator', () => {
         decoratedCollection.replaceFieldWriting('age', ageDefinition);
 
         // when
-        await decoratedCollection.update(factories.recipient.build(), factories.filter.build(), {
+        await decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
           name: 'orius',
           age: '10',
         });
 
         // then
         expect(collection.update).toHaveBeenCalledWith(
-          factories.recipient.build(),
+          factories.caller.build(),
           expect.any(Filter),
           {},
         );
@@ -405,14 +405,14 @@ describe('WriteDecorator', () => {
         decoratedCollection.replaceFieldWriting('name', nameDefinition);
 
         // when
-        await decoratedCollection.update(factories.recipient.build(), factories.filter.build(), {
+        await decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
           name: 'orius',
           otherField: 'a value',
         });
 
         // then
         expect(collection.update).toHaveBeenCalledWith(
-          factories.recipient.build(),
+          factories.caller.build(),
           expect.any(PaginatedFilter),
           {
             name: 'changed name',
@@ -442,7 +442,7 @@ describe('WriteDecorator', () => {
 
           // when/then
           await expect(() =>
-            decoratedCollection.update(factories.recipient.build(), factories.filter.build(), {
+            decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
               age: '10',
             }),
           ).rejects.toThrowError('The write handler of age should return an object or nothing.');
@@ -471,7 +471,7 @@ describe('WriteDecorator', () => {
 
             // when/then
             await expect(() =>
-              decoratedCollection.update(factories.recipient.build(), factories.filter.build(), {
+              decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
                 age: '10',
               }),
             ).rejects.toThrowError('Unknown field "book"');
@@ -500,7 +500,7 @@ describe('WriteDecorator', () => {
             // when
             const conditionTree = factories.conditionTreeLeaf.build();
             await decoratedCollection.update(
-              factories.recipient.build(),
+              factories.caller.build(),
               factories.filter.build({ conditionTree }),
               {
                 title: 'a title',
@@ -509,17 +509,17 @@ describe('WriteDecorator', () => {
 
             // then
             expect(collection.list).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new PaginatedFilter({ conditionTree }),
               ['authorId'],
             );
             expect(collection.update).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new PaginatedFilter({ conditionTree }),
               {},
             );
             expect(personsCollection.update).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new Filter({
                 conditionTree: factories.conditionTreeLeaf.build({
                   operator: 'In',
@@ -563,7 +563,7 @@ describe('WriteDecorator', () => {
             // when
             const conditionTree = factories.conditionTreeLeaf.build();
             await decoratedCollection.update(
-              factories.recipient.build(),
+              factories.caller.build(),
               factories.filter.build({ conditionTree }),
               {
                 title: 'a title',
@@ -572,12 +572,12 @@ describe('WriteDecorator', () => {
 
             // then
             expect(decoratedCollection.list).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new PaginatedFilter({ conditionTree }),
               ['authorId'],
             );
             expect(personsCollection.list).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new Filter({
                 conditionTree: factories.conditionTreeLeaf.build({
                   field: 'id',
@@ -589,12 +589,12 @@ describe('WriteDecorator', () => {
             );
 
             expect(collection.update).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new PaginatedFilter({ conditionTree }),
               {},
             );
             expect(pricesCollection.update).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new Filter({
                 conditionTree: factories.conditionTreeLeaf.build({
                   operator: 'In',
@@ -629,7 +629,7 @@ describe('WriteDecorator', () => {
               field: 'name',
             });
             await decoratedCollection.update(
-              factories.recipient.build(),
+              factories.caller.build(),
               factories.filter.build({ conditionTree }),
               {
                 title: 'a title',
@@ -638,7 +638,7 @@ describe('WriteDecorator', () => {
 
             // then
             expect(collection.list).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new PaginatedFilter({ conditionTree }),
               ['id'],
             );
@@ -650,12 +650,12 @@ describe('WriteDecorator', () => {
               field: 'bookId',
             });
             expect(collection.update).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new PaginatedFilter({ conditionTree }),
               {},
             );
             expect(ownersCollection.update).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new Filter({ conditionTree: conditionTreeBookId }),
               {
                 name: 'NAME TO CHANGE',
@@ -687,18 +687,14 @@ describe('WriteDecorator', () => {
             decoratedCollection.replaceFieldWriting('age', ageDefinition);
 
             // when
-            await decoratedCollection.update(
-              factories.recipient.build(),
-              factories.filter.build(),
-              {
-                name: 'orius',
-                age: '10',
-              },
-            );
+            await decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
+              name: 'orius',
+              age: '10',
+            });
 
             // then
             expect(collection.update).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               expect.any(PaginatedFilter),
               {
                 name: 'changed name',
@@ -731,15 +727,13 @@ describe('WriteDecorator', () => {
             decoratedCollection.replaceFieldWriting('age', ageDefinitionTriggerName);
 
             // when
-            await decoratedCollection.update(
-              factories.recipient.build(),
-              factories.filter.build(),
-              { age: '10' },
-            );
+            await decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
+              age: '10',
+            });
 
             // then
             expect(collection.update).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               expect.any(PaginatedFilter),
               {
                 name: 'triggeredChangedName',
@@ -772,15 +766,13 @@ describe('WriteDecorator', () => {
             decoratedCollection.replaceFieldWriting('age', ageDefinitionTriggerName);
 
             // when
-            await decoratedCollection.update(
-              factories.recipient.build(),
-              factories.filter.build(),
-              { age: '10' },
-            );
+            await decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
+              age: '10',
+            });
 
             // then
             expect(collection.update).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               expect.any(PaginatedFilter),
               {
                 price: 'triggeredChangedPrice',
@@ -811,7 +803,7 @@ describe('WriteDecorator', () => {
 
             // when/then
             await expect(() =>
-              decoratedCollection.update(factories.recipient.build(), factories.filter.build(), {
+              decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
                 age: '10',
                 name: 'triggeredOneTime',
               }),
@@ -845,7 +837,7 @@ describe('WriteDecorator', () => {
 
             // when/then
             await expect(() =>
-              decoratedCollection.update(factories.recipient.build(), factories.filter.build(), {
+              decoratedCollection.update(factories.caller.build(), factories.filter.build(), {
                 age: '10',
               }),
             ).rejects.toThrow(
@@ -882,19 +874,19 @@ describe('WriteDecorator', () => {
         ]);
 
         // when
-        await decoratedCollection.create(factories.recipient.build(), [
+        await decoratedCollection.create(factories.caller.build(), [
           { name: 'orius', otherField: 'other value 1' },
           { name: 'orius', otherField: 'other value 2' },
         ]);
 
         // then
-        expect(collection.create).toHaveBeenNthCalledWith(1, factories.recipient.build(), [
+        expect(collection.create).toHaveBeenNthCalledWith(1, factories.caller.build(), [
           {
             name: 'changed name',
             otherField: 'other value 1',
           },
         ]);
-        expect(collection.create).toHaveBeenNthCalledWith(2, factories.recipient.build(), [
+        expect(collection.create).toHaveBeenNthCalledWith(2, factories.caller.build(), [
           {
             name: 'changed name',
             otherField: 'other value 2',
@@ -921,13 +913,13 @@ describe('WriteDecorator', () => {
               ]);
 
             // when
-            await decoratedCollection.create(factories.recipient.build(), [{ title: 'a title' }]);
+            await decoratedCollection.create(factories.caller.build(), [{ title: 'a title' }]);
 
             // then
-            expect(ownersCollection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+            expect(ownersCollection.create).toHaveBeenCalledWith(factories.caller.build(), [
               { name: 'NAME TO CHANGE', bookId: '123e4567-e89b-12d3-a456-111111111111' },
             ]);
-            expect(collection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+            expect(collection.create).toHaveBeenCalledWith(factories.caller.build(), [
               { title: 'name' },
             ]);
           });
@@ -997,17 +989,17 @@ describe('WriteDecorator', () => {
                 ]);
 
               // when
-              await decoratedCollection.create(factories.recipient.build(), [{ title: 'a title' }]);
+              await decoratedCollection.create(factories.caller.build(), [{ title: 'a title' }]);
 
               // then
-              expect(ownersCollection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+              expect(ownersCollection.create).toHaveBeenCalledWith(factories.caller.build(), [
                 { name: 'Orius', bookId: '123e4567-e89b-12d3-a456-111111111111' },
               ]);
-              expect(formatsCollection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+              expect(formatsCollection.create).toHaveBeenCalledWith(factories.caller.build(), [
                 { name: 'XXL', bookId: '123e4567-e89b-12d3-a456-111111111111' },
               ]);
               expect(collection.create).toHaveBeenCalledTimes(1);
-              expect(collection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+              expect(collection.create).toHaveBeenCalledWith(factories.caller.build(), [
                 { title: 'name' },
               ]);
             });
@@ -1028,16 +1020,16 @@ describe('WriteDecorator', () => {
             collection.create = jest.fn().mockResolvedValue([{ title: 'name' }]);
 
             // when
-            await decoratedCollection.create(factories.recipient.build(), [
+            await decoratedCollection.create(factories.caller.build(), [
               { title: 'a title', bookId: '123e4567-e89b-12d3-a456-111111111111' },
             ]);
 
             // then
-            expect(collection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+            expect(collection.create).toHaveBeenCalledWith(factories.caller.build(), [
               { title: 'name' },
             ]);
             expect(ownersCollection.update).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new Filter({
                 conditionTree: factories.conditionTreeLeaf.build({
                   operator: 'Equal',
@@ -1072,13 +1064,13 @@ describe('WriteDecorator', () => {
             collection.create = jest.fn().mockResolvedValue([{ title: 'name' }]);
 
             // when
-            await decoratedCollection.create(factories.recipient.build(), [{ title: 'a title' }]);
+            await decoratedCollection.create(factories.caller.build(), [{ title: 'a title' }]);
 
             // then
-            expect(collection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+            expect(collection.create).toHaveBeenCalledWith(factories.caller.build(), [
               { authorId: '123e4567-e89b-12d3-a456-111111111111' },
             ]);
-            expect(personsCollection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+            expect(personsCollection.create).toHaveBeenCalledWith(factories.caller.build(), [
               { name: 'NAME TO CHANGE' },
             ]);
           });
@@ -1157,17 +1149,17 @@ describe('WriteDecorator', () => {
               collection.create = jest.fn().mockResolvedValue([{ title: 'name' }]);
 
               // when
-              await decoratedCollection.create(factories.recipient.build(), [{ title: 'a title' }]);
+              await decoratedCollection.create(factories.caller.build(), [{ title: 'a title' }]);
 
               // then
-              expect(authorsCollection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+              expect(authorsCollection.create).toHaveBeenCalledWith(factories.caller.build(), [
                 { name: 'Orius' },
               ]);
-              expect(formatsCollection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+              expect(formatsCollection.create).toHaveBeenCalledWith(factories.caller.build(), [
                 { name: 'XXL' },
               ]);
 
-              expect(collection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+              expect(collection.create).toHaveBeenCalledWith(factories.caller.build(), [
                 {
                   title: 'name',
                   formatId: '123e4567-e89b-12d3-a456-222222222222',
@@ -1198,16 +1190,16 @@ describe('WriteDecorator', () => {
             collection.create = jest.fn().mockResolvedValue([{ title: 'name' }]);
 
             // when
-            await decoratedCollection.create(factories.recipient.build(), [
+            await decoratedCollection.create(factories.caller.build(), [
               { title: 'a title', authorId: '123e4567-e89b-12d3-a456-111111111111' },
             ]);
 
             // then
-            expect(collection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+            expect(collection.create).toHaveBeenCalledWith(factories.caller.build(), [
               { authorId: '123e4567-e89b-12d3-a456-111111111111' },
             ]);
             expect(personsCollection.update).toHaveBeenCalledWith(
-              factories.recipient.build(),
+              factories.caller.build(),
               new Filter({
                 conditionTree: factories.conditionTreeLeaf.build({
                   operator: 'Equal',
@@ -1293,17 +1285,17 @@ describe('WriteDecorator', () => {
             .mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-222222222222', name: 'XXL' }]);
 
           // when
-          await decoratedCollection.create(factories.recipient.build(), [{ title: 'a title' }]);
+          await decoratedCollection.create(factories.caller.build(), [{ title: 'a title' }]);
 
           // then
           expect(collection.create).toHaveBeenCalledTimes(1);
-          expect(collection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+          expect(collection.create).toHaveBeenCalledWith(factories.caller.build(), [
             { formatId: '123e4567-e89b-12d3-a456-222222222222', title: 'a name' },
           ]);
-          expect(authorsCollection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+          expect(authorsCollection.create).toHaveBeenCalledWith(factories.caller.build(), [
             { bookId: '123e4567-e89b-12d3-a456-426614174087', name: 'Orius' },
           ]);
-          expect(formatsCollection.create).toHaveBeenCalledWith(factories.recipient.build(), [
+          expect(formatsCollection.create).toHaveBeenCalledWith(factories.caller.build(), [
             { name: 'XXL' },
           ]);
         });
