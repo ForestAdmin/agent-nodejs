@@ -54,6 +54,7 @@ export * from './interfaces/query/filter/unpaginated';
 export * from './interfaces/query/sort';
 export * from './interfaces/record';
 export * from './interfaces/schema';
+export * from './interfaces/user';
 
 // Validation
 export { default as ConditionTreeValidator } from './validation/condition-tree';

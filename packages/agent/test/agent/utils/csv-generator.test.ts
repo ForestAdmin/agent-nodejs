@@ -48,6 +48,7 @@ describe('CsvGenerator', () => {
       collection.list = jest.fn().mockResolvedValue(records);
 
       const generator = CsvGenerator.generate(
+        factories.recipient.build(),
         projection,
         'id,name',
         filter,
@@ -57,6 +58,7 @@ describe('CsvGenerator', () => {
       await readCsv(generator);
 
       expect(collection.list).toHaveBeenCalledWith(
+        factories.recipient.build(),
         factories.filter.build({
           conditionTree: filter.conditionTree,
           page: new Page(0, 1000),
@@ -72,6 +74,7 @@ describe('CsvGenerator', () => {
       collection.list = jest.fn().mockResolvedValue(records);
 
       const generator = CsvGenerator.generate(
+        factories.recipient.build(),
         projection,
         'id,name',
         filter,
@@ -95,6 +98,7 @@ describe('CsvGenerator', () => {
       collection.list = jest.fn().mockResolvedValue(records);
 
       const generator = CsvGenerator.generate(
+        factories.recipient.build(),
         projection,
         'name',
         filter,
@@ -130,6 +134,7 @@ describe('CsvGenerator', () => {
           .mockReturnValueOnce([]);
 
         const generator = CsvGenerator.generate(
+          factories.recipient.build(),
           projection,
           'name',
           filter,
@@ -141,6 +146,7 @@ describe('CsvGenerator', () => {
         expect(collection.list).toHaveBeenCalledTimes(3);
         expect(collection.list).toHaveBeenNthCalledWith(
           1,
+          factories.recipient.build(),
           factories.filter.build({
             page: new Page(0, CHUNK_SIZE),
 
@@ -151,6 +157,7 @@ describe('CsvGenerator', () => {
         );
         expect(collection.list).toHaveBeenNthCalledWith(
           2,
+          factories.recipient.build(),
           factories.filter.build({
             page: new Page(CHUNK_SIZE, CHUNK_SIZE),
 
@@ -161,6 +168,7 @@ describe('CsvGenerator', () => {
         );
         expect(collection.list).toHaveBeenNthCalledWith(
           3,
+          factories.recipient.build(),
           factories.filter.build({
             page: new Page(CHUNK_SIZE * 2, CHUNK_SIZE),
 
@@ -198,6 +206,7 @@ describe('CsvGenerator', () => {
             .mockReturnValueOnce(records.slice(0, 500));
 
           const generator = CsvGenerator.generate(
+            factories.recipient.build(),
             projection,
             'name',
             filter,
@@ -211,6 +220,7 @@ describe('CsvGenerator', () => {
           const startedSkipFromGivenPage = 500;
           expect(collection.list).toHaveBeenNthCalledWith(
             1,
+            factories.recipient.build(),
             factories.filter.build({
               page: new Page(startedSkipFromGivenPage, CHUNK_SIZE),
 
@@ -221,6 +231,7 @@ describe('CsvGenerator', () => {
           );
           expect(collection.list).toHaveBeenNthCalledWith(
             2,
+            factories.recipient.build(),
             factories.filter.build({
               page: new Page(startedSkipFromGivenPage + CHUNK_SIZE, CHUNK_SIZE),
 
@@ -231,6 +242,7 @@ describe('CsvGenerator', () => {
           );
           expect(collection.list).toHaveBeenNthCalledWith(
             3,
+            factories.recipient.build(),
             factories.filter.build({
               page: new Page(startedSkipFromGivenPage + CHUNK_SIZE * 2, startedSkipFromGivenPage),
 

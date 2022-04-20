@@ -7,6 +7,7 @@ import {
   Projection,
   ProjectionFactory,
   ProjectionValidator,
+  QueryRecipient,
   Sort,
   SortFactory,
   SortValidator,
@@ -107,7 +108,7 @@ export default class QueryStringParser {
     return segment;
   }
 
-  static parseTimezone(context: Context): string {
+  static parseRecipient(context: Context): QueryRecipient {
     const timezone = context.request.query.timezone?.toString();
 
     if (!timezone) {
@@ -126,7 +127,7 @@ export default class QueryStringParser {
       throw new ValidationError(`Invalid timezone: "${timezone}"`);
     }
 
-    return timezone;
+    return { ...context.state.user, timezone };
   }
 
   static parsePagination(context: Context): Page {

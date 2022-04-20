@@ -100,10 +100,10 @@ describe('ListRelatedRoute', () => {
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
+          { timezone: 'Europe/Paris' },
           new PaginatedFilter({
             search: 'aName',
             searchExtended: false,
-            timezone: 'Europe/Paris',
             page: new Page(0, 15),
             sort: new Sort({ field: 'id', ascending: true }),
             segment: 'a-valid-segment',

@@ -4,6 +4,7 @@ import Router from '@koa/router';
 
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';
+import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';
 
 export default class CountRelatedRoute extends RelationRoute {
@@ -19,12 +20,14 @@ export default class CountRelatedRoute extends RelationRoute {
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const scope = await this.services.permissions.getScope(this.foreignCollection, context);
+    const recipient = QueryStringParser.parseRecipient(context);
     const filter = ContextFilterFactory.build(this.foreignCollection, context, scope);
 
     const aggregationResult = await CollectionUtils.aggregateRelation(
       this.collection,
       parentId,
       this.relationName,
+      recipient,
       filter,
       new Aggregation({ operation: 'Count' }),
     );

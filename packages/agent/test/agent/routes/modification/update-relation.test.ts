@@ -78,8 +78,8 @@ describe('UpdateRelationRoute', () => {
         await update.handleUpdateRelationRoute(context);
 
         expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
+          { timezone: 'Europe/Paris' },
           new Filter({
-            timezone: 'Europe/Paris',
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
               conditions: [
@@ -160,8 +160,8 @@ describe('UpdateRelationRoute', () => {
 
         expect(dataSource.getCollection('owner').update).toHaveBeenNthCalledWith(
           1,
+          { timezone: 'Europe/Paris' },
           new Filter({
-            timezone: 'Europe/Paris',
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',
               value: '00000000-0000-4000-8000-000000000000',
@@ -173,8 +173,8 @@ describe('UpdateRelationRoute', () => {
 
         expect(dataSource.getCollection('owner').update).toHaveBeenNthCalledWith(
           2,
+          { timezone: 'Europe/Paris' },
           new Filter({
-            timezone: 'Europe/Paris',
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',
               value: '11111111-1111-4111-8111-111111111111',

@@ -383,13 +383,16 @@ describe('QueryStringParser', () => {
     });
   });
 
-  describe('parseTimezone', () => {
+  describe('parseRecipient', () => {
     test('should return the timezone', () => {
       const context = createMockContext({
         customProperties: { query: { timezone: 'America/Los_Angeles' } },
       });
 
-      expect(QueryStringParser.parseTimezone(context)).toEqual('America/Los_Angeles');
+      expect(QueryStringParser.parseRecipient(context)).toHaveProperty(
+        'timezone',
+        'America/Los_Angeles',
+      );
     });
 
     test('should throw a ValidationError when the timezone is missing', () => {
@@ -397,7 +400,7 @@ describe('QueryStringParser', () => {
         customProperties: { query: {} },
       });
 
-      const fn = () => QueryStringParser.parseTimezone(context);
+      const fn = () => QueryStringParser.parseRecipient(context);
 
       expect(fn).toThrow('Missing timezone');
     });
@@ -407,7 +410,7 @@ describe('QueryStringParser', () => {
         customProperties: { query: { timezone: 'ThisTZ/Donotexist' } },
       });
 
-      const fn = () => QueryStringParser.parseTimezone(context);
+      const fn = () => QueryStringParser.parseRecipient(context);
 
       expect(fn).toThrow('Invalid timezone: "ThisTZ/Donotexist"');
     });
@@ -436,7 +439,7 @@ describe('QueryStringParser', () => {
           customProperties: { query: { timezone: 'America/Los_Angeles' } },
         });
 
-        const fn = () => QueryStringParser.parseTimezone(context);
+        const fn = () => QueryStringParser.parseRecipient(context);
 
         expect(fn).toThrow(new Error('Time zones are not available in this environment'));
       });

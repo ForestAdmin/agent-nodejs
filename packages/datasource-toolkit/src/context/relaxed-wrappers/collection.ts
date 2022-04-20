@@ -1,6 +1,7 @@
 import { ActionField, ActionResult } from '../../interfaces/action';
 import { Collection } from '../../interfaces/collection';
 import { CollectionSchema } from '../../interfaces/schema';
+import { QueryRecipient } from '../../interfaces/user';
 import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult, PlainAggregation } from '../../interfaces/query/aggregation';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
@@ -12,11 +13,17 @@ import RelaxedDataSource from './datasource';
 import Sort from '../../interfaces/query/sort';
 
 /** Collection wrapper which accepts plain objects in all methods */
-export default class RelaxedCollection implements Collection {
+export default class RelaxedCollection {
   private collection: Collection;
+  private recipient: QueryRecipient;
 
   get dataSource(): RelaxedDataSource {
-    return new RelaxedDataSource(this.collection.dataSource);
+    return new RelaxedDataSource(this.collection.dataSource, this.recipient);
+  }
+
+  /** @internal */
+  get rawCollection(): Collection {
+    return this.collection;
   }
 
   get name(): string {
@@ -27,8 +34,9 @@ export default class RelaxedCollection implements Collection {
     return this.collection.schema;
   }
 
-  constructor(collection: Collection) {
+  constructor(collection: Collection, recipient: QueryRecipient) {
     this.collection = collection;
+    this.recipient = recipient;
   }
 
   execute(
@@ -38,7 +46,7 @@ export default class RelaxedCollection implements Collection {
   ): Promise<ActionResult> {
     const filterInstance = this.buildFilter(filter);
 
-    return this.collection.execute(name, formValues, filterInstance);
+    return this.collection.execute(this.recipient, name, formValues, filterInstance);
   }
 
   getForm(
@@ -48,11 +56,11 @@ export default class RelaxedCollection implements Collection {
   ): Promise<ActionField[]> {
     const filterInstance = this.buildFilter(filter);
 
-    return this.collection.getForm(name, formValues, filterInstance);
+    return this.collection.getForm(this.recipient, name, formValues, filterInstance);
   }
 
   create(data: RecordData[]): Promise<RecordData[]> {
-    return this.collection.create(data);
+    return this.collection.create(this.recipient, data);
   }
 
   list(
@@ -62,19 +70,19 @@ export default class RelaxedCollection implements Collection {
     const filterInstance = this.buildPaginatedFilter(filter);
     const projectionInstance = this.buildProjection(projection);
 
-    return this.collection.list(filterInstance, projectionInstance);
+    return this.collection.list(this.recipient, filterInstance, projectionInstance);
   }
 
   update(filter: Filter | PlainFilter, patch: RecordData): Promise<void> {
     const filterInstance = this.buildFilter(filter);
 
-    return this.collection.update(filterInstance, patch);
+    return this.collection.update(this.recipient, filterInstance, patch);
   }
 
   delete(filter: Filter | PlainFilter): Promise<void> {
     const filterInstance = this.buildFilter(filter);
 
-    return this.collection.delete(filterInstance);
+    return this.collection.delete(this.recipient, filterInstance);
   }
 
   aggregate(
@@ -85,7 +93,7 @@ export default class RelaxedCollection implements Collection {
     const filterInstance = this.buildFilter(filter);
     const aggregationInstance = this.buildAggregation(aggregation);
 
-    return this.collection.aggregate(filterInstance, aggregationInstance, limit);
+    return this.collection.aggregate(this.recipient, filterInstance, aggregationInstance, limit);
   }
 
   private buildFilter(filter: Filter | PlainFilter): Filter {

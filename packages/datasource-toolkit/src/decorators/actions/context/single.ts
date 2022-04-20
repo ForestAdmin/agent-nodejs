@@ -5,7 +5,7 @@ import RecordUtils from '../../../utils/record';
 
 export default class ActionContextSingle extends ActionContext {
   async getRecordId(): Promise<CompositeId> {
-    const projection = new Projection().withPks(this.collection);
+    const projection = new Projection().withPks(this.collection.rawCollection);
     const records = await this.getRecords(projection);
 
     return RecordUtils.getPrimaryKey(this.collection.schema, records[0]);

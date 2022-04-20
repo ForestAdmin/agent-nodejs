@@ -1,4 +1,5 @@
 import { Collection } from '../../../interfaces/collection';
+import { QueryRecipient } from '../../../interfaces/user';
 import { RecordData } from '../../../interfaces/record';
 import CollectionCustomizationContext from '../../../context/collection-context';
 import Deferred from '../../../utils/async';
@@ -13,8 +14,14 @@ export default class ActionContext extends CollectionCustomizationContext {
   private queries: Array<{ projection: Projection; deferred: Deferred<RecordData[]> }>;
   private projection: Projection;
 
-  constructor(collection: Collection, formValue: RecordData, filter: Filter, used?: Set<string>) {
-    super(collection, filter?.timezone);
+  constructor(
+    collection: Collection,
+    recipient: QueryRecipient,
+    formValue: RecordData,
+    filter: Filter,
+    used?: Set<string>,
+  ) {
+    super(collection, recipient);
     this.formValues = formValue;
     this.filter = filter;
     this.reset();
@@ -49,7 +56,7 @@ export default class ActionContext extends CollectionCustomizationContext {
     // @see https://github.com/graphql/dataloader
     //   A library from facebook from which this pattern is inspired.
 
-    ProjectionValidator.validate(this.collection, fields);
+    ProjectionValidator.validate(this.collection.rawCollection, fields);
 
     const deferred = new Deferred<RecordData[]>();
     const projection = new Projection(...fields);

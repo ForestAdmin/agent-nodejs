@@ -7,7 +7,7 @@ export default class ActionContextBulk extends ActionContext {
   override filter: Filter; // make filter public
 
   async getRecordIds(): Promise<CompositeId[]> {
-    const projection = new Projection().withPks(this.collection);
+    const projection = new Projection().withPks(this.collection.rawCollection);
     const records = await this.getRecords(projection);
 
     return records.map(r => RecordUtils.getPrimaryKey(this.collection.schema, r));

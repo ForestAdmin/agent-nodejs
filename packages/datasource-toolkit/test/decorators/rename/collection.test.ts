@@ -154,8 +154,8 @@ describe('RenameCollectionDecorator', () => {
     test('create should act as a pass-through', async () => {
       personsCreate.mockResolvedValue([{ id: '1' }]);
 
-      const records = await newPersons.create([{ id: '1' }]);
-      expect(persons.create).toHaveBeenCalledWith([{ id: '1' }]);
+      const records = await newPersons.create(factories.recipient.build(), [{ id: '1' }]);
+      expect(persons.create).toHaveBeenCalledWith(factories.recipient.build(), [{ id: '1' }]);
       expect(records).toStrictEqual([{ id: '1' }]);
     });
 
@@ -165,19 +165,29 @@ describe('RenameCollectionDecorator', () => {
 
       personsList.mockResolvedValue(records);
 
-      const result = await newPersons.list(personsPaginatedFilter, projection);
-      expect(personsList).toHaveBeenCalledWith(personsPaginatedFilter, projection);
+      const result = await newPersons.list(
+        factories.recipient.build(),
+        personsPaginatedFilter,
+        projection,
+      );
+      expect(personsList).toHaveBeenCalledWith(
+        factories.recipient.build(),
+        personsPaginatedFilter,
+        projection,
+      );
       expect(result).toStrictEqual(records);
     });
 
     test('update should act as a pass-through', async () => {
-      await newPersons.update(personsFilter, { id: '55' });
-      expect(personsUpdate).toHaveBeenCalledWith(personsFilter, { id: '55' });
+      await newPersons.update(factories.recipient.build(), personsFilter, { id: '55' });
+      expect(personsUpdate).toHaveBeenCalledWith(factories.recipient.build(), personsFilter, {
+        id: '55',
+      });
     });
 
     test('delete should act as a pass-through', async () => {
-      await newPersons.delete(personsFilter);
-      expect(personsDelete).toHaveBeenCalledWith(personsFilter);
+      await newPersons.delete(factories.recipient.build(), personsFilter);
+      expect(personsDelete).toHaveBeenCalledWith(factories.recipient.build(), personsFilter);
     });
 
     test('aggregate should act as a pass-through', async () => {
@@ -186,8 +196,18 @@ describe('RenameCollectionDecorator', () => {
 
       personsAggregate.mockResolvedValue(result);
 
-      const rows = await newPersons.aggregate(personsPaginatedFilter, aggregate, null);
-      expect(persons.aggregate).toHaveBeenCalledWith(personsPaginatedFilter, aggregate, null);
+      const rows = await newPersons.aggregate(
+        factories.recipient.build(),
+        personsPaginatedFilter,
+        aggregate,
+        null,
+      );
+      expect(persons.aggregate).toHaveBeenCalledWith(
+        factories.recipient.build(),
+        personsPaginatedFilter,
+        aggregate,
+        null,
+      );
       expect(rows).toStrictEqual(result);
     });
   });
@@ -235,8 +255,8 @@ describe('RenameCollectionDecorator', () => {
     test('create should rewrite the records', async () => {
       personsCreate.mockResolvedValue([{ id: '1' }]);
 
-      const records = await newPersons.create([{ primaryKey: '1' }]);
-      expect(persons.create).toHaveBeenCalledWith([{ id: '1' }]);
+      const records = await newPersons.create(factories.recipient.build(), [{ primaryKey: '1' }]);
+      expect(persons.create).toHaveBeenCalledWith(factories.recipient.build(), [{ id: '1' }]);
       expect(records).toStrictEqual([{ primaryKey: '1' }]);
     });
 
@@ -246,8 +266,16 @@ describe('RenameCollectionDecorator', () => {
 
       personsList.mockResolvedValue([{ id: '1', myBookPerson: { date: 'something' } }]);
 
-      const records = await newPersons.list(newPersonsPaginatedFilter, projection);
-      expect(personsList).toHaveBeenCalledWith(personsPaginatedFilter, expectedProjection);
+      const records = await newPersons.list(
+        factories.recipient.build(),
+        newPersonsPaginatedFilter,
+        projection,
+      );
+      expect(personsList).toHaveBeenCalledWith(
+        factories.recipient.build(),
+        personsPaginatedFilter,
+        expectedProjection,
+      );
       expect(records).toStrictEqual([
         { primaryKey: '1', myNovelAuthor: { createdAt: 'something' } },
       ]);
@@ -257,6 +285,7 @@ describe('RenameCollectionDecorator', () => {
       personsList.mockResolvedValue([{ id: '1', myBookPerson: null }]);
 
       const records = await newPersons.list(
+        factories.recipient.build(),
         null,
         new Projection('primaryKey', 'myNovelAuthor:createdAt'),
       );
@@ -264,19 +293,23 @@ describe('RenameCollectionDecorator', () => {
     });
 
     test('update should rewrite the filter and patch', async () => {
-      await newPersons.update(newPersonsFilter, { primaryKey: '55' });
-      expect(personsUpdate).toHaveBeenCalledWith(personsFilter, { id: '55' });
+      await newPersons.update(factories.recipient.build(), newPersonsFilter, { primaryKey: '55' });
+      expect(personsUpdate).toHaveBeenCalledWith(factories.recipient.build(), personsFilter, {
+        id: '55',
+      });
     });
 
     test('delete should rewrite the filter', async () => {
-      await newPersons.delete(newPersonsFilter);
-      expect(personsDelete).toHaveBeenCalledWith(personsFilter);
+      await newPersons.delete(factories.recipient.build(), newPersonsFilter);
+      expect(personsDelete).toHaveBeenCalledWith(factories.recipient.build(), personsFilter);
     });
 
     test('aggregate should rewrite the filter and the result', async () => {
       personsAggregate.mockResolvedValue([{ value: 34, group: { 'myBookPerson:date': 'abc' } }]);
 
       const result = await newPersons.aggregate(
+        factories.recipient.build(),
+
         newPersonsPaginatedFilter,
         new Aggregation({
           operation: 'Sum',
@@ -287,6 +320,7 @@ describe('RenameCollectionDecorator', () => {
       );
 
       expect(persons.aggregate).toHaveBeenCalledWith(
+        factories.recipient.build(),
         personsPaginatedFilter,
         {
           operation: 'Sum',

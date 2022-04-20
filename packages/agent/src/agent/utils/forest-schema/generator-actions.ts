@@ -105,7 +105,7 @@ export default class SchemaGeneratorActions {
     }
 
     // Ask the action to generate a form
-    const fields = await collection.getForm(name);
+    const fields = await collection.getForm(null, name);
 
     if (fields) {
       // When sending to server, we need to rename 'value' into 'defaultValue'

@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
+import * as factories from './__factories__';
 import { AggregateResult } from '../src/interfaces/query/aggregation';
-import { CollectionSchema } from '../src';
-import { ColumnSchema, FieldSchema } from '../src/interfaces/schema';
+import { CollectionSchema, ColumnSchema, FieldSchema } from '../src/interfaces/schema';
 import { DataSource } from '../src/interfaces/collection';
 import { RecordData } from '../src/interfaces/record';
 import BaseCollection from '../src/base-collection';
@@ -165,7 +165,7 @@ describe('BaseCollection', () => {
     test('it always throws', async () => {
       const collection = new ConcreteCollection('books', null);
 
-      await expect(collection.execute('someAction')).rejects.toThrow();
+      await expect(collection.execute(factories.recipient.build(), 'someAction')).rejects.toThrow();
     });
   });
 

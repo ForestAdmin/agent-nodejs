@@ -9,6 +9,7 @@ import {
   Logger,
   PaginatedFilter,
   Projection,
+  QueryRecipient,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
@@ -41,13 +42,17 @@ export default class SequelizeCollection extends BaseCollection {
     this.addSegments(modelSchema.segments);
   }
 
-  async create(data: RecordData[]): Promise<RecordData[]> {
+  async create(recipient: QueryRecipient, data: RecordData[]): Promise<RecordData[]> {
     const records = await this.model.bulkCreate(data);
 
     return records.map(record => record.get({ plain: true }));
   }
 
-  async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+  async list(
+    recipient: QueryRecipient,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
     let include = QueryConverter.getIncludeWithAttributesFromProjection(projection);
 
     if (filter.conditionTree) {
@@ -75,20 +80,21 @@ export default class SequelizeCollection extends BaseCollection {
     return records.map(record => record.get({ plain: true }));
   }
 
-  async update(filter: Filter, patch: RecordData): Promise<void> {
+  async update(recipient: QueryRecipient, filter: Filter, patch: RecordData): Promise<void> {
     await this.model.update(patch, {
       where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
       fields: Object.keys(patch),
     });
   }
 
-  async delete(filter: Filter): Promise<void> {
+  async delete(recipient: QueryRecipient, filter: Filter): Promise<void> {
     await this.model.destroy({
       where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
     });
   }
 
   async aggregate(
+    recipient: QueryRecipient,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,

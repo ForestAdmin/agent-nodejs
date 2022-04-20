@@ -3,7 +3,6 @@ import {
   DataSource,
   Filter,
   FilterFactory,
-  PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
@@ -45,17 +44,18 @@ export default class ActionRoute extends CollectionRoute {
     await this.checkPermissions(context);
 
     const { dataSource } = this.collection;
+    const recipient = QueryStringParser.parseRecipient(context);
     const filter = await this.getRecordSelection(context);
     const rawData = context.request.body.data.attributes.values;
 
     // As forms are dynamic, we don't have any way to ensure that we're parsing the data correctly
     // => better send invalid data to the getForm() customer handler than to the execute() one.
     const unsafeData = ForestValueConverter.makeFormDataUnsafe(rawData);
-    const fields = await this.collection.getForm(this.actionName, unsafeData, filter);
+    const fields = await this.collection.getForm(recipient, this.actionName, unsafeData, filter);
 
     // Now that we have the field list, we can parse the data again.
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
-    const result = await this.collection.execute(this.actionName, data, filter);
+    const result = await this.collection.execute(recipient, this.actionName, data, filter);
 
     if (result?.type === 'Error') {
       context.response.status = HttpCode.BadRequest;
@@ -89,8 +89,9 @@ export default class ActionRoute extends CollectionRoute {
       ? ForestValueConverter.makeFormDataFromFields(dataSource, forestFields)
       : null;
 
+    const recipient = QueryStringParser.parseRecipient(context);
     const filter = await this.getRecordSelection(context);
-    const fields = await this.collection.getForm(this.actionName, data, filter);
+    const fields = await this.collection.getForm(recipient, this.actionName, data, filter);
 
     context.response.body = {
       fields: fields.map(field =>
@@ -117,21 +118,24 @@ export default class ActionRoute extends CollectionRoute {
       await this.services.permissions.getScope(this.collection, context),
     );
 
+    const recipient = QueryStringParser.parseRecipient(context);
     const filter = ContextFilterFactory.build(this.collection, context, null, { conditionTree });
     const attributes = context.request?.body?.data?.attributes;
 
     if (attributes?.parent_association_name) {
-      return this.applyActionOnlyOnRelation(attributes, filter);
+      const relation = attributes?.parent_association_name;
+      const parentCollection = this.dataSource.getCollection(attributes.parent_collection_name);
+      const parentId = IdUtils.unpackId(parentCollection.schema, attributes.parent_collection_id);
+
+      return FilterFactory.makeForeignFilter(
+        parentCollection,
+        parentId,
+        relation,
+        recipient,
+        filter,
+      );
     }
 
     return filter;
-  }
-
-  private applyActionOnlyOnRelation(attributes, filter: PaginatedFilter) {
-    const relation = attributes?.parent_association_name;
-    const parentCollection = this.dataSource.getCollection(attributes.parent_collection_name);
-    const parentId = IdUtils.unpackId(parentCollection.schema, attributes.parent_collection_id);
-
-    return FilterFactory.makeForeignFilter(parentCollection, parentId, relation, filter);
   }
 }

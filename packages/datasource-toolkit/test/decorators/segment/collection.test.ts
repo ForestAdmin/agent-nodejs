@@ -17,7 +17,7 @@ describe('SegmentCollectionDecorator', () => {
       it('should return null', async () => {
         segmentDecorator.addSegment('segmentName', conditionTreeGenerator);
 
-        const filter = await segmentDecorator.refineFilter();
+        const filter = await segmentDecorator.refineFilter(factories.recipient.build());
         expect(filter).toEqual(null);
       });
     });
@@ -28,7 +28,7 @@ describe('SegmentCollectionDecorator', () => {
           segmentDecorator.addSegment('segmentName', conditionTreeGenerator);
 
           const aFilter = factories.filter.build({ segment: 'aSegment' });
-          const filter = await segmentDecorator.refineFilter(aFilter);
+          const filter = await segmentDecorator.refineFilter(factories.recipient.build(), aFilter);
 
           expect(filter).toEqual(aFilter);
         });
@@ -60,7 +60,7 @@ describe('SegmentCollectionDecorator', () => {
               field: 'name',
             }),
           });
-          const filter = await segmentDecorator.refineFilter(aFilter);
+          const filter = await segmentDecorator.refineFilter(factories.recipient.build(), aFilter);
 
           expect(filter).toEqual({
             segment: null,
@@ -104,7 +104,10 @@ describe('SegmentCollectionDecorator', () => {
           });
 
           await expect(() =>
-            segmentDecorator.refineFilter(aFilterWithNotValidConditionTree),
+            segmentDecorator.refineFilter(
+              factories.recipient.build(),
+              aFilterWithNotValidConditionTree,
+            ),
           ).rejects.toThrow();
         });
       });

@@ -36,13 +36,8 @@ describe('CountRoute', () => {
       await count.handleCount(context);
 
       expect(aggregateSpy).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { operation: 'Count' },
       );
       expect(context.response.body).toEqual({ count: 2 });

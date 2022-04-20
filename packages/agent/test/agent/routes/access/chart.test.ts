@@ -96,13 +96,8 @@ describe('ChartRoute', () => {
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: undefined, operation: 'Count' },
       );
       expect(context.response.body).toMatchObject({
@@ -202,12 +197,12 @@ describe('ChartRoute', () => {
 
           expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledTimes(1);
           expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
+            { timezone: 'Europe/Paris' },
             {
               conditionTree: { field: 'name', operator: 'Present', value: null },
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             },
             { field: undefined, groups: undefined, operation: 'Count' },
           );
@@ -261,13 +256,8 @@ describe('ChartRoute', () => {
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: undefined, operation: 'Count' },
       );
 
@@ -299,13 +289,8 @@ describe('ChartRoute', () => {
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: [{ field: 'author:firstName' }], operation: 'Count' },
       );
 
@@ -347,13 +332,8 @@ describe('ChartRoute', () => {
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         {
           field: undefined,
           groups: [{ field: 'publication', operation: 'Week' }],
@@ -401,13 +381,8 @@ describe('ChartRoute', () => {
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: 'id', groups: [{ field: 'author:id' }], operation: 'Sum' },
         2,
       );
@@ -448,13 +423,8 @@ describe('ChartRoute', () => {
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { operation: 'Count', field: null, groups: [{ field: 'publisher:id' }] },
         2,
       );
@@ -496,13 +466,8 @@ describe('ChartRoute', () => {
         await chart.handleChart(context);
 
         expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-          {
-            conditionTree: null,
-            search: null,
-            searchExtended: false,
-            segment: null,
-            timezone: 'Europe/Paris',
-          },
+          { timezone: 'Europe/Paris' },
+          { conditionTree: null, search: null, searchExtended: false, segment: null },
           { groups: [{ field: 'author:id' }], operation: 'Count' },
           2,
         );

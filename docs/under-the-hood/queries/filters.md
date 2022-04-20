@@ -7,7 +7,6 @@ It is used to restrict the records which will be targeted by specific actions (l
 {
   // Condition tree
   "conditionTree": { "field": "createdAt", "operator": "today" },
-  "timezone": "Europe/Paris",
 
   // Paging
   "page": { "limit": 30, "skip": 0 },

@@ -119,10 +119,10 @@ describe('CountRelatedRoute', () => {
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myBookPersons',
+          { timezone: 'Europe/Paris' },
           new Filter({
             search: 'searched argument',
             searchExtended: false,
-            timezone: 'Europe/Paris',
             segment: 'a-valid-segment',
             conditionTree: new ConditionTreeLeaf(
               'id',

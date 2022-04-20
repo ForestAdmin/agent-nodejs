@@ -63,10 +63,7 @@ describe('CsvRoute', () => {
 
       const projectionParams = { 'fields[books]': 'id,name' };
       const customProperties = {
-        query: {
-          ...projectionParams,
-          header: 'id,name',
-        },
+        query: { ...projectionParams, header: 'id,name', timezone: 'Europe/Paris' },
       };
       const requestBody = { data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }] };
 
@@ -94,6 +91,7 @@ describe('CsvRoute', () => {
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         ['id', 'name'],
         'id,name',
         paginatedFilter,

@@ -22,10 +22,11 @@ export default class CsvRoute extends CollectionRoute {
 
     const projection = QueryStringParser.parseProjection(this.collection, context);
     const scope = await this.services.permissions.getScope(this.collection, context);
+    const recipient = QueryStringParser.parseRecipient(context);
     const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
 
     const list = this.collection.list.bind(this.collection);
-    const gen = CsvGenerator.generate(projection, header, filter, this.collection, list);
+    const gen = CsvGenerator.generate(recipient, projection, header, filter, this.collection, list);
     context.response.body = Readable.from(gen);
   }
 }

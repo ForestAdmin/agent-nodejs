@@ -9,6 +9,7 @@ import Router from '@koa/router';
 
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
+import QueryStringParser from '../../utils/query-string';
 
 export default class UpdateRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
@@ -33,9 +34,10 @@ export default class UpdateRoute extends CollectionRoute {
       ConditionTreeFactory.matchIds(this.collection.schema, [id]),
       await this.services.permissions.getScope(this.collection, context),
     );
-
-    await this.collection.update(new Filter({ conditionTree }), record);
+    const recipient = QueryStringParser.parseRecipient(context);
+    await this.collection.update(recipient, new Filter({ conditionTree }), record);
     const [updateResult] = await this.collection.list(
+      recipient,
       new Filter({ conditionTree }),
       ProjectionFactory.all(this.collection),
     );

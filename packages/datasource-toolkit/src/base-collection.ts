@@ -1,6 +1,7 @@
 import { ActionField, ActionResult } from './interfaces/action';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 import { Collection, DataSource } from './interfaces/collection';
+import { QueryRecipient } from './interfaces/user';
 import { RecordData } from './interfaces/record';
 import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
 import Filter from './interfaces/query/filter/unpaginated';
@@ -53,21 +54,26 @@ export default abstract class BaseCollection implements Collection {
     this.schema.searchable = true;
   }
 
-  abstract create(data: RecordData[]): Promise<RecordData[]>;
+  abstract create(recipient: QueryRecipient, data: RecordData[]): Promise<RecordData[]>;
 
-  abstract list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]>;
+  abstract list(
+    recipient: QueryRecipient,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]>;
 
-  abstract update(filter: Filter, patch: RecordData): Promise<void>;
+  abstract update(recipient: QueryRecipient, filter: Filter, patch: RecordData): Promise<void>;
 
-  abstract delete(filter: Filter): Promise<void>;
+  abstract delete(recipient: QueryRecipient, filter: Filter): Promise<void>;
 
   abstract aggregate(
+    recipient: QueryRecipient,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]>;
 
-  async execute(name: string): Promise<ActionResult> {
+  async execute(recipient: QueryRecipient, name: string): Promise<ActionResult> {
     throw new Error(
       this.schema.actions[name]
         ? `Action ${name} is not implemented.`

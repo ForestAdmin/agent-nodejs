@@ -48,10 +48,12 @@ describe('ComputedDecorator', () => {
           title: factories.columnSchema.build(),
         },
       }),
-      list: jest.fn().mockImplementation((_, projection: Projection) => projection.apply(records)),
+      list: jest
+        .fn()
+        .mockImplementation((_1, _2, projection: Projection) => projection.apply(records)),
       aggregate: jest
         .fn()
-        .mockImplementation((_, aggregate: Aggregation) =>
+        .mockImplementation((_1, _2, aggregate: Aggregation) =>
           aggregate.apply(records, 'Europe/Paris'),
         ),
     });
@@ -125,6 +127,7 @@ describe('ComputedDecorator', () => {
 
     test('list() result should contain the computed', async () => {
       const records = await newBooks.list(
+        factories.recipient.build(),
         new PaginatedFilter({}),
         new Projection('title', 'author:fullName'),
       );
@@ -134,12 +137,17 @@ describe('ComputedDecorator', () => {
         { title: 'Beat the dealer', author: { fullName: 'Edward O. Thorp' } },
       ]);
 
-      expect(books.list).toHaveBeenCalledWith({}, ['title', 'author:firstName', 'author:lastName']);
+      expect(books.list).toHaveBeenCalledWith(factories.recipient.build(), {}, [
+        'title',
+        'author:firstName',
+        'author:lastName',
+      ]);
     });
 
     test('aggregate() should use the child implementation when relevant', async () => {
       const rows = await newBooks.aggregate(
-        new PaginatedFilter({ timezone: 'Europe/Paris' }),
+        factories.recipient.build(),
+        new PaginatedFilter({}),
         new Aggregation({ operation: 'Count' }),
       );
 
@@ -149,7 +157,8 @@ describe('ComputedDecorator', () => {
 
     test('aggregate() should work with computed', async () => {
       const rows = await newBooks.aggregate(
-        new PaginatedFilter({ timezone: 'Europe/Paris' }),
+        factories.recipient.build(),
+        new PaginatedFilter({}),
         new Aggregation({ operation: 'Min', field: 'author:fullName' }),
       );
 

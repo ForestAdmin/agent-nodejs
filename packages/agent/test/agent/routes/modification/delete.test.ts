@@ -51,6 +51,7 @@ describe('DeleteRoute', () => {
         await deleteRoute.handleDelete(context);
 
         expect(bookCollection.delete).toHaveBeenCalledWith(
+          { timezone: 'Europe/Paris' },
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -70,7 +71,6 @@ describe('DeleteRoute', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
         );
       });
@@ -100,6 +100,7 @@ describe('DeleteRoute', () => {
         await deleteRoute.handleDelete(context);
 
         expect(bookCollection.delete).toHaveBeenCalledWith(
+          { timezone: 'Europe/Paris' },
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',
@@ -109,7 +110,6 @@ describe('DeleteRoute', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -144,6 +144,7 @@ describe('DeleteRoute', () => {
         await deleteRoute.handleListDelete(context);
 
         expect(bookCollection.delete).toHaveBeenCalledWith(
+          { timezone: 'Europe/Paris' },
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'In',
@@ -153,7 +154,6 @@ describe('DeleteRoute', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -190,6 +190,7 @@ describe('DeleteRoute', () => {
           await deleteRoute.handleListDelete(context);
 
           expect(bookCollection.delete).toHaveBeenCalledWith(
+            { timezone: 'Europe/Paris' },
             factories.filter.build({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'NotEqual',
@@ -199,7 +200,6 @@ describe('DeleteRoute', () => {
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             }),
           );
           expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -239,6 +239,7 @@ describe('DeleteRoute', () => {
         await deleteRoute.handleListDelete(context);
 
         expect(bookCollection.delete).toHaveBeenCalledWith(
+          { timezone: 'Europe/Paris' },
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'Or',
@@ -278,7 +279,6 @@ describe('DeleteRoute', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
         );
       });
@@ -320,6 +320,7 @@ describe('DeleteRoute', () => {
           await deleteRoute.handleListDelete(context);
 
           expect(bookCollection.delete).toHaveBeenCalledWith(
+            { timezone: 'Europe/Paris' },
             factories.filter.build({
               conditionTree: factories.conditionTreeBranch.build({
                 aggregator: 'Or',
@@ -339,7 +340,6 @@ describe('DeleteRoute', () => {
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             }),
           );
         });

@@ -2,6 +2,7 @@ import { Action, ActionBulk, ActionGlobal, ActionSingle } from './types/actions'
 import { ActionField, ActionResult } from '../../interfaces/action';
 import { CollectionSchema } from '../../interfaces/schema';
 import { DynamicField, ValueOrHandler } from './types/fields';
+import { QueryRecipient } from '../../interfaces/user';
 import { RecordData } from '../../interfaces/record';
 import ActionContext from './context/base';
 import ActionContextBulk from './context/bulk';
@@ -21,12 +22,17 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     this.markSchemaAsDirty();
   }
 
-  override async execute(name: string, data: RecordData, filter: Filter): Promise<ActionResult> {
+  override async execute(
+    recipient: QueryRecipient,
+    name: string,
+    data: RecordData,
+    filter: Filter,
+  ): Promise<ActionResult> {
     const action = this.actions[name];
-    if (!action) return this.childCollection.execute(name, data, filter);
+    if (!action) return this.childCollection.execute(recipient, name, data, filter);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const context = this.getContext(action, data, filter) as any;
+    const context = this.getContext(recipient, action, data, filter) as any;
     const responseBuilder = new ResultBuilder();
     const result = await action.execute(context, responseBuilder);
 
@@ -40,14 +46,19 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     );
   }
 
-  override async getForm(name: string, data?: RecordData, filter?: Filter): Promise<ActionField[]> {
+  override async getForm(
+    recipient: QueryRecipient,
+    name: string,
+    data?: RecordData,
+    filter?: Filter,
+  ): Promise<ActionField[]> {
     const action = this.actions[name];
-    if (!action) return this.childCollection.getForm(name, data, filter);
+    if (!action) return this.childCollection.getForm(recipient, name, data, filter);
     if (!action.form) return [];
 
     const formValues = data ? { ...data } : {};
     const used = new Set<string>();
-    const context = this.getContext(action, formValues, filter, used);
+    const context = this.getContext(recipient, action, formValues, filter, used);
 
     // Convert DynamicField to ActionField in successive steps.
     let dynamicFields: DynamicField[];
@@ -85,6 +96,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   }
 
   private getContext(
+    recipient: QueryRecipient,
     action: ActionSingle | ActionBulk | ActionGlobal,
     formValues: RecordData,
     filter: Filter,
@@ -94,7 +106,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       Global: ActionContext,
       Bulk: ActionContextBulk,
       Single: ActionContextSingle,
-    }[action.scope](this, formValues, filter, used);
+    }[action.scope](this, recipient, formValues, filter, used);
   }
 
   private async dropDefaults(

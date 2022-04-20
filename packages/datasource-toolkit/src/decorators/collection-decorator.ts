@@ -1,6 +1,7 @@
 import { ActionField, ActionResult } from '../interfaces/action';
 import { Collection, DataSource } from '../interfaces/collection';
 import { CollectionSchema } from '../interfaces/schema';
+import { QueryRecipient } from '../interfaces/user';
 import { RecordData } from '../interfaces/record';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import Filter from '../interfaces/query/filter/unpaginated';
@@ -34,55 +35,73 @@ export default abstract class CollectionDecorator implements Collection {
     this.dataSource = dataSource;
   }
 
-  async execute(name: string, data: RecordData, filter?: Filter): Promise<ActionResult> {
-    const refinedFilter = await this.refineFilter(filter);
+  async execute(
+    recipient: QueryRecipient,
+    name: string,
+    data: RecordData,
+    filter?: Filter,
+  ): Promise<ActionResult> {
+    const refinedFilter = await this.refineFilter(recipient, filter);
 
-    return this.childCollection.execute(name, data, refinedFilter);
+    return this.childCollection.execute(recipient, name, data, refinedFilter);
   }
 
-  async getForm(name: string, data?: RecordData, filter?: Filter): Promise<ActionField[]> {
-    const refinedFilter = await this.refineFilter(filter);
+  async getForm(
+    recipient: QueryRecipient,
+    name: string,
+    data?: RecordData,
+    filter?: Filter,
+  ): Promise<ActionField[]> {
+    const refinedFilter = await this.refineFilter(recipient, filter);
 
-    return this.childCollection.getForm(name, data, refinedFilter);
+    return this.childCollection.getForm(recipient, name, data, refinedFilter);
   }
 
-  async create(data: RecordData[]): Promise<RecordData[]> {
-    return this.childCollection.create(data);
+  async create(recipient: QueryRecipient, data: RecordData[]): Promise<RecordData[]> {
+    return this.childCollection.create(recipient, data);
   }
 
-  async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    const refinedFilter = await this.refineFilter(filter);
+  async list(
+    recipient: QueryRecipient,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
+    const refinedFilter = await this.refineFilter(recipient, filter);
 
-    return this.childCollection.list(refinedFilter, projection);
+    return this.childCollection.list(recipient, refinedFilter, projection);
   }
 
-  async update(filter: Filter, patch: RecordData): Promise<void> {
-    const refinedFilter = await this.refineFilter(filter);
+  async update(recipient: QueryRecipient, filter: Filter, patch: RecordData): Promise<void> {
+    const refinedFilter = await this.refineFilter(recipient, filter);
 
-    return this.childCollection.update(refinedFilter, patch);
+    return this.childCollection.update(recipient, refinedFilter, patch);
   }
 
-  async delete(filter: Filter): Promise<void> {
-    const refinedFilter = await this.refineFilter(filter);
+  async delete(recipient: QueryRecipient, filter: Filter): Promise<void> {
+    const refinedFilter = await this.refineFilter(recipient, filter);
 
-    return this.childCollection.delete(refinedFilter);
+    return this.childCollection.delete(recipient, refinedFilter);
   }
 
   async aggregate(
+    recipient: QueryRecipient,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    const refinedFilter = await this.refineFilter(filter);
+    const refinedFilter = await this.refineFilter(recipient, filter);
 
-    return this.childCollection.aggregate(refinedFilter, aggregation, limit);
+    return this.childCollection.aggregate(recipient, refinedFilter, aggregation, limit);
   }
 
   protected markSchemaAsDirty(): void {
     this.lastSchema = null;
   }
 
-  protected async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
+  protected async refineFilter(
+    recipient: QueryRecipient,
+    filter?: PaginatedFilter,
+  ): Promise<PaginatedFilter> {
     return filter;
   }
 

@@ -1,4 +1,5 @@
 import { CollectionSchema, FieldSchema, RelationSchema } from '../../interfaces/schema';
+import { QueryRecipient } from '../../interfaces/user';
 import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionDecorator from '../collection-decorator';
@@ -68,7 +69,10 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
     return { ...childSchema, fields };
   }
 
-  protected override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
+  protected override async refineFilter(
+    recipient: QueryRecipient,
+    filter?: PaginatedFilter,
+  ): Promise<PaginatedFilter> {
     return filter?.override({
       conditionTree: filter.conditionTree?.replaceFields(field =>
         this.pathToChildCollection(field),
@@ -80,31 +84,42 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
     });
   }
 
-  override async create(records: RecordData[]): Promise<RecordData[]> {
+  override async create(recipient: QueryRecipient, records: RecordData[]): Promise<RecordData[]> {
     const newRecords = await super.create(
+      recipient,
       records.map(record => this.recordToChildCollection(record)),
     );
 
     return newRecords.map(record => this.recordFromChildCollection(record));
   }
 
-  override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+  override async list(
+    recipient: QueryRecipient,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
     const childProjection = projection.replace(field => this.pathToChildCollection(field));
-    const records = await super.list(filter, childProjection);
+    const records = await super.list(recipient, filter, childProjection);
 
     return records.map(record => this.recordFromChildCollection(record));
   }
 
-  override async update(filter: Filter, patch: RecordData): Promise<void> {
-    return super.update(filter, this.recordToChildCollection(patch));
+  override async update(
+    recipient: QueryRecipient,
+    filter: Filter,
+    patch: RecordData,
+  ): Promise<void> {
+    return super.update(recipient, filter, this.recordToChildCollection(patch));
   }
 
   override async aggregate(
+    recipient: QueryRecipient,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
     const rows = await super.aggregate(
+      recipient,
       filter,
       aggregation.replaceFields(f => this.pathToChildCollection(f)),
       limit,

@@ -1,5 +1,4 @@
-import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from 'sequelize';
-
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
   ConditionTreeLeaf,
@@ -10,6 +9,7 @@ import {
   RecordData,
   Sort,
 } from '@forestadmin/datasource-toolkit';
+import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from 'sequelize';
 
 import { SequelizeCollection } from '../src';
 
@@ -71,7 +71,9 @@ describe('SequelizeDataSource > Collection', () => {
       const { bulkCreate, recordData, sequelizeCollection } = setup();
       const data = Symbol('data') as unknown as RecordData[];
 
-      await expect(sequelizeCollection.create(data)).resolves.toEqual([recordData]);
+      await expect(sequelizeCollection.create(factories.recipient.build(), data)).resolves.toEqual([
+        recordData,
+      ]);
       expect(bulkCreate).toHaveBeenCalledWith(data);
     });
   });
@@ -110,7 +112,11 @@ describe('SequelizeDataSource > Collection', () => {
       const filter = new Filter({});
       const projection = new Projection();
 
-      const result = await sequelizeCollection.list(filter, projection);
+      const result = await sequelizeCollection.list(
+        factories.recipient.build(),
+        filter,
+        projection,
+      );
 
       expect(result).toBeArrayOfSize(1);
       expect(result[0]).toBe(recordData);
@@ -126,7 +132,11 @@ describe('SequelizeDataSource > Collection', () => {
       const filter = new Filter({});
       const projection = new Projection();
 
-      const result = await sequelizeCollection.list(filter, projection);
+      const result = await sequelizeCollection.list(
+        factories.recipient.build(),
+        filter,
+        projection,
+      );
 
       expect(result).toBeArrayOfSize(1);
       expect(result[0]).toBe(recordData);
@@ -141,7 +151,7 @@ describe('SequelizeDataSource > Collection', () => {
       });
       const projection = new Projection('relation3:field3');
 
-      await sequelizeCollection.list(filter, projection);
+      await sequelizeCollection.list(factories.recipient.build(), filter, projection);
 
       expect(findAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -192,7 +202,9 @@ describe('SequelizeDataSource > Collection', () => {
       const patch = { field: '__value__' };
       const filter = new Filter({});
 
-      await expect(sequelizeCollection.update(filter, patch)).resolves.not.toThrow();
+      await expect(
+        sequelizeCollection.update(factories.recipient.build(), filter, patch),
+      ).resolves.not.toThrow();
 
       expect(update).toHaveBeenCalledWith(
         patch,
@@ -222,7 +234,9 @@ describe('SequelizeDataSource > Collection', () => {
       const { destroy, sequelizeCollection } = setup();
       const filter = new Filter({});
 
-      await expect(sequelizeCollection.delete(filter)).resolves.not.toThrow();
+      await expect(
+        sequelizeCollection.delete(factories.recipient.build(), filter),
+      ).resolves.not.toThrow();
 
       expect(destroy).toHaveBeenCalledTimes(1);
     });
@@ -295,9 +309,9 @@ describe('SequelizeDataSource > Collection', () => {
         });
         const filter = new Filter({});
 
-        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-          { group: {}, value: '__aggregate__:value' },
-        ]);
+        await expect(
+          sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+        ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
@@ -317,9 +331,9 @@ describe('SequelizeDataSource > Collection', () => {
         });
         const filter = new Filter({});
 
-        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-          { group: {}, value: '__aggregate__:value' },
-        ]);
+        await expect(
+          sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+        ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
@@ -338,9 +352,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -360,9 +374,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -384,9 +398,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -406,9 +420,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -433,9 +447,9 @@ describe('SequelizeDataSource > Collection', () => {
             });
             const filter = new Filter({});
 
-            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-              { group: {}, value: '__aggregate__:value' },
-            ]);
+            await expect(
+              sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+            ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
             expect(findAll).toHaveBeenCalledTimes(1);
             expect(findAll).toHaveBeenCalledWith(
@@ -455,9 +469,9 @@ describe('SequelizeDataSource > Collection', () => {
             });
             const filter = new Filter({});
 
-            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-              { group: {}, value: '__aggregate__:value' },
-            ]);
+            await expect(
+              sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+            ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
             expect(findAll).toHaveBeenCalledTimes(1);
             expect(findAll).toHaveBeenCalledWith(
@@ -485,9 +499,9 @@ describe('SequelizeDataSource > Collection', () => {
           conditionTree: new ConditionTreeLeaf('id', 'Equal', 42),
         });
 
-        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-          { group: {}, value: '__aggregate__:value' },
-        ]);
+        await expect(
+          sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+        ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
@@ -509,7 +523,9 @@ describe('SequelizeDataSource > Collection', () => {
         });
         const filter = new Filter({});
 
-        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+        await expect(
+          sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+        ).resolves.toEqual([
           { group: { __group_field__: '__group_field__:value' }, value: '__aggregate__:value' },
         ]);
 
@@ -533,7 +549,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+          await expect(
+            sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+          ).resolves.toEqual([
             { group: { renamed__field__: 'renamed__field__:value' }, value: '__aggregate__:value' },
           ]);
 
@@ -558,7 +576,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+          await expect(
+            sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+          ).resolves.toEqual([
             {
               group: {
                 'relations:as__field__': 'relations:as__field__:value',
@@ -586,7 +606,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+          await expect(
+            sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+          ).resolves.toEqual([
             {
               group: {
                 'relations:as__field__': 'relations:as__field__:value',
@@ -618,7 +640,9 @@ describe('SequelizeDataSource > Collection', () => {
             });
             const filter = new Filter({});
 
-            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+            await expect(
+              sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+            ).resolves.toEqual([
               {
                 group: {
                   'relations:renamed__as__field__': 'relations:renamed__as__field__:value',
@@ -652,7 +676,9 @@ describe('SequelizeDataSource > Collection', () => {
             });
             const filter = new Filter({});
 
-            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+            await expect(
+              sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+            ).resolves.toEqual([
               { group: { __group_field__: '__group_field__:value' }, value: '__aggregate__:value' },
             ]);
 
@@ -678,7 +704,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+          await expect(
+            sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+          ).resolves.toEqual([
             { group: { date__field__: 'date__field__:value' }, value: '__aggregate__:value' },
           ]);
 
@@ -712,7 +740,9 @@ describe('SequelizeDataSource > Collection', () => {
             });
             const filter = new Filter({});
 
-            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+            await expect(
+              sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+            ).resolves.toEqual([
               { group: { date__field__: 'date__field__:value' }, value: '__aggregate__:value' },
             ]);
 
@@ -744,9 +774,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -765,9 +795,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -785,9 +815,9 @@ describe('SequelizeDataSource > Collection', () => {
         });
         const filter = new Filter({});
 
-        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-          { group: {}, value: '__aggregate__:value' },
-        ]);
+        await expect(
+          sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation),
+        ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
@@ -808,7 +838,7 @@ describe('SequelizeDataSource > Collection', () => {
         const limit = 1;
 
         await expect(
-          sequelizeCollection.aggregate(filter, aggregation, limit),
+          sequelizeCollection.aggregate(factories.recipient.build(), filter, aggregation, limit),
         ).resolves.not.toThrow();
 
         expect(findAll).toHaveBeenCalledTimes(1);

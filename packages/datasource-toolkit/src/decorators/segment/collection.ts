@@ -1,4 +1,5 @@
 import { CollectionSchema } from '../../interfaces/schema';
+import { QueryRecipient } from '../../interfaces/user';
 import { SegmentDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
 import CollectionDecorator from '../collection-decorator';
@@ -22,7 +23,10 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
     };
   }
 
-  public override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
+  public override async refineFilter(
+    recipient: QueryRecipient,
+    filter?: PaginatedFilter,
+  ): Promise<PaginatedFilter> {
     if (!filter) {
       return null;
     }
@@ -33,7 +37,7 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
       const definition = this.segments[segment];
       const result =
         typeof definition === 'function'
-          ? await definition(new CollectionCustomizationContext(this, filter.timezone))
+          ? await definition(new CollectionCustomizationContext(this, recipient))
           : await definition;
 
       const conditionTreeSegment =

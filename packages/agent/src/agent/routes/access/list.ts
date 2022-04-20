@@ -15,8 +15,13 @@ export default class ListRoute extends CollectionRoute {
 
     const scope = await this.services.permissions.getScope(this.collection, context);
     const paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
-    const projection = QueryStringParser.parseProjectionWithPks(this.collection, context);
-    const records = await this.collection.list(paginatedFilter, projection);
+
+    const records = await this.collection.list(
+      QueryStringParser.parseRecipient(context),
+      paginatedFilter,
+      QueryStringParser.parseProjectionWithPks(this.collection, context),
+    );
+
     context.response.body = this.services.serializer.serializeWithSearchMetadata(
       this.collection,
       records,

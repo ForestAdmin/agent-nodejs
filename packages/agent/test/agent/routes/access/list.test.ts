@@ -49,53 +49,24 @@ describe('ListRoute', () => {
 
       // then
       expect(collection.list).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         {
           conditionTree: null,
           search: '2',
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
-          page: {
-            limit: 15,
-            skip: 0,
-          },
-          sort: [
-            {
-              ascending: true,
-              field: 'id',
-            },
-          ],
+          page: { limit: 15, skip: 0 },
+          sort: [{ ascending: true, field: 'id' }],
         },
         new Projection('id'),
       );
       expect(context.response.body).toEqual({
-        jsonapi: {
-          version: '1.0',
-        },
+        jsonapi: { version: '1.0' },
         data: [
-          {
-            type: 'books',
-            id: '1',
-            attributes: {
-              id: 1,
-            },
-          },
-          {
-            type: 'books',
-            id: '2',
-            attributes: {
-              id: 2,
-            },
-          },
+          { type: 'books', id: '1', attributes: { id: 1 } },
+          { type: 'books', id: '2', attributes: { id: 2 } },
         ],
-        meta: {
-          decorators: {
-            0: {
-              id: '2',
-              search: ['id'],
-            },
-          },
-        },
+        meta: { decorators: { 0: { id: '2', search: ['id'] } } },
       });
     });
   });

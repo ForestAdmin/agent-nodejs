@@ -1,4 +1,5 @@
 import { CollectionSchema, ColumnSchema, FieldSchema } from '../../interfaces/schema';
+import { QueryRecipient } from '../../interfaces/user';
 import { allOperators } from '../../interfaces/query/condition-tree/nodes/operators';
 import CollectionDecorator from '../collection-decorator';
 import CollectionUtils from '../../utils/collection';
@@ -31,7 +32,10 @@ export default class OperatorsDecorator extends CollectionDecorator {
     return { ...childSchema, fields };
   }
 
-  protected override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
+  protected override async refineFilter(
+    recipient: QueryRecipient,
+    filter?: PaginatedFilter,
+  ): Promise<PaginatedFilter> {
     return filter?.override({
       conditionTree: filter.conditionTree?.replaceLeafs(leaf => {
         const schema = CollectionUtils.getFieldSchema(
@@ -43,7 +47,7 @@ export default class OperatorsDecorator extends CollectionDecorator {
           leaf,
           schema.filterOperators,
           schema.columnType,
-          filter.timezone,
+          recipient.timezone,
         );
       }),
     });

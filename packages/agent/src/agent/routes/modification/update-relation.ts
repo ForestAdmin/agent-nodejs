@@ -6,6 +6,7 @@ import {
   Filter,
   ManyToOneSchema,
   OneToOneSchema,
+  QueryRecipient,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
@@ -25,14 +26,14 @@ export default class UpdateRelation extends RelationRoute {
 
   public async handleUpdateRelationRoute(context: Context): Promise<void> {
     const relation = this.collection.schema.fields[this.relationName];
-    const timezone = QueryStringParser.parseTimezone(context);
+    const recipient = QueryStringParser.parseRecipient(context);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const linkedId = IdUtils.unpackId(this.foreignCollection.schema, context.request.body?.data.id);
 
     if (relation.type === 'ManyToOne') {
-      await this.updateManyToOne(context, relation, parentId, linkedId, timezone);
+      await this.updateManyToOne(context, relation, parentId, linkedId, recipient);
     } else if (relation.type === 'OneToOne') {
-      await this.updateOneToOne(context, relation, parentId, linkedId, timezone);
+      await this.updateOneToOne(context, relation, parentId, linkedId, recipient);
     }
 
     context.response.status = HttpCode.NoContent;
@@ -43,7 +44,7 @@ export default class UpdateRelation extends RelationRoute {
     relation: ManyToOneSchema,
     parentId: CompositeId,
     linkedId: CompositeId,
-    timezone: string,
+    recipient: QueryRecipient,
   ): Promise<void> {
     // Perms
     const scope = await this.services.permissions.getScope(this.collection, context);
@@ -52,6 +53,7 @@ export default class UpdateRelation extends RelationRoute {
     // Load the value that will be used as foreignKey (=== linkedId[0] most of the time)
     const foreignValue = await CollectionUtils.getValue(
       this.foreignCollection,
+      recipient,
       linkedId,
       relation.foreignKeyTarget,
     );
@@ -60,7 +62,8 @@ export default class UpdateRelation extends RelationRoute {
     const fkOwner = ConditionTreeFactory.matchIds(this.collection.schema, [parentId]);
 
     await this.collection.update(
-      new Filter({ conditionTree: ConditionTreeFactory.intersect(fkOwner, scope), timezone }),
+      recipient,
+      new Filter({ conditionTree: ConditionTreeFactory.intersect(fkOwner, scope) }),
       { [relation.foreignKey]: foreignValue },
     );
   }
@@ -70,7 +73,7 @@ export default class UpdateRelation extends RelationRoute {
     relation: OneToOneSchema,
     parentId: CompositeId,
     linkedId: CompositeId,
-    timezone: string,
+    recipient: QueryRecipient,
   ): Promise<void> {
     // Permissions
     const scope = await this.services.permissions.getScope(this.foreignCollection, context);
@@ -79,6 +82,7 @@ export default class UpdateRelation extends RelationRoute {
     // Load the value that will be used as originKey (=== parentId[0] most of the time)
     const originValue = await CollectionUtils.getValue(
       this.collection,
+      recipient,
       parentId,
       relation.originKeyTarget,
     );
@@ -86,14 +90,16 @@ export default class UpdateRelation extends RelationRoute {
     // Break old relation (may update zero or one records).
     const oldFkOwner = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
     await this.foreignCollection.update(
-      new Filter({ conditionTree: ConditionTreeFactory.intersect(oldFkOwner, scope), timezone }),
+      recipient,
+      new Filter({ conditionTree: ConditionTreeFactory.intersect(oldFkOwner, scope) }),
       { [relation.originKey]: null },
     );
 
     // Create new relation (will update exactly one record).
     const newFkOwner = ConditionTreeFactory.matchIds(this.foreignCollection.schema, [linkedId]);
     await this.foreignCollection.update(
-      new Filter({ conditionTree: ConditionTreeFactory.intersect(newFkOwner, scope), timezone }),
+      recipient,
+      new Filter({ conditionTree: ConditionTreeFactory.intersect(newFkOwner, scope) }),
       { [relation.originKey]: originValue },
     );
   }

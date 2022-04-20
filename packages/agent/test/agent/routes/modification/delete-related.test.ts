@@ -58,10 +58,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
 
       const deleteParams = { delete: true };
       const customProperties = {
-        query: {
-          ...deleteParams,
-          timezone: 'Europe/Paris',
-        },
+        query: { ...deleteParams, timezone: 'Europe/Paris' },
         params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
       };
       const requestBody = {
@@ -74,6 +71,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -96,7 +94,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           search: null,
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -117,10 +114,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
 
         const deleteParams = { delete: true };
         const customProperties = {
-          query: {
-            ...deleteParams,
-            timezone: 'Europe/Paris',
-          },
+          query: { ...deleteParams, timezone: 'Europe/Paris' },
           params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
         };
         const requestBody = {
@@ -138,6 +132,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
+          { timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -160,7 +155,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -180,10 +174,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
 
           const deleteParams = { delete: true };
           const customProperties = {
-            query: {
-              ...deleteParams,
-              timezone: 'Europe/Paris',
-            },
+            query: { ...deleteParams, timezone: 'Europe/Paris' },
             params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
           };
           const requestBody = {
@@ -199,6 +190,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           await count.handleDissociateDeleteRelatedRoute(context);
 
           expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
+            { timezone: 'Europe/Paris' },
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'Equal',
@@ -208,7 +200,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             }),
           );
           expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -302,10 +293,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
 
       const deleteParams = { delete: true };
       const customProperties = {
-        query: {
-          ...deleteParams,
-          timezone: 'Europe/Paris',
-        },
+        query: { ...deleteParams, timezone: 'Europe/Paris' },
         params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
       };
       const requestBody = {
@@ -323,6 +311,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -342,11 +331,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           search: null,
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
         }),
       );
 
       expect(dataSource.getCollection('libraries').delete).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -369,7 +358,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           search: null,
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -390,10 +378,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
 
         const deleteParams = { delete: true };
         const customProperties = {
-          query: {
-            ...deleteParams,
-            timezone: 'Europe/Paris',
-          },
+          query: { ...deleteParams, timezone: 'Europe/Paris' },
           params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
         };
         const requestBody = {
@@ -418,6 +403,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
+          { timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -440,11 +426,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
         );
 
         expect(dataSource.getCollection('libraries').delete).toHaveBeenCalledWith(
+          { timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -470,7 +456,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -489,20 +474,12 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
 
           const deleteParams = { delete: true };
           const customProperties = {
-            query: {
-              ...deleteParams,
-              timezone: 'Europe/Paris',
-            },
+            query: { ...deleteParams, timezone: 'Europe/Paris' },
             params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
           };
           const requestBody = {
-            data: {
-              attributes: {
-                all_records: true,
-                // empty excluded records
-                all_records_ids_excluded: [],
-              },
-            },
+            // empty excluded records
+            data: { attributes: { all_records: true, all_records_ids_excluded: [] } },
           };
           const context = createMockContext({ customProperties, requestBody });
 
@@ -515,6 +492,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           await count.handleDissociateDeleteRelatedRoute(context);
 
           expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
+            { timezone: 'Europe/Paris' },
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'Equal',
@@ -524,11 +502,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             }),
           );
 
           expect(dataSource.getCollection('libraries').delete).toHaveBeenCalledWith(
+            { timezone: 'Europe/Paris' },
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'In',
@@ -538,7 +516,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             }),
           );
 

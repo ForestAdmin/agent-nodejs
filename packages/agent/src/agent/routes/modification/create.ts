@@ -27,15 +27,18 @@ export default class CreateRoute extends CollectionRoute {
     const { serializer } = this.services;
     const rawRecord = serializer.deserialize(this.collection, context.request.body);
 
-    const [record, relations] = await this.makeRecord(rawRecord);
-    const newRecord = await this.createRecord(record);
+    const [record, relations] = await this.makeRecord(context, rawRecord);
+    const newRecord = await this.createRecord(context, record);
 
     await this.linkOneToOneRelations(context, newRecord, relations);
 
     context.response.body = serializer.serialize(this.collection, { ...newRecord, ...relations });
   }
 
-  private async makeRecord(record: RecordData): Promise<[RecordData, Record<string, RecordData>]> {
+  private async makeRecord(
+    context: Context,
+    record: RecordData,
+  ): Promise<[RecordData, Record<string, RecordData>]> {
     const patch: RecordData = {};
     const relations: Record<string, RecordData> = {};
 
@@ -47,7 +50,11 @@ export default class CreateRoute extends CollectionRoute {
       }
 
       if (schema?.type === 'ManyToOne') {
-        patch[schema.foreignKey] = await this.getManyToOneTarget(field, value as CompositeId);
+        patch[schema.foreignKey] = await this.getManyToOneTarget(
+          context,
+          field,
+          value as CompositeId,
+        );
       }
 
       if (schema?.type === 'Column') {
@@ -60,12 +67,14 @@ export default class CreateRoute extends CollectionRoute {
     return [patch, relations];
   }
 
-  private async createRecord(patch: RecordData): Promise<RecordData> {
+  private async createRecord(context: Context, patch: RecordData): Promise<RecordData> {
+    const recipient = QueryStringParser.parseRecipient(context);
+
     if (Object.keys(patch).length) {
       RecordValidator.validate(this.collection, patch);
     }
 
-    const [record] = await this.collection.create([patch]);
+    const [record] = await this.collection.create(recipient, [patch]);
 
     return record;
   }
@@ -75,7 +84,7 @@ export default class CreateRoute extends CollectionRoute {
     record: RecordData,
     relations: Record<string, RecordData>,
   ): Promise<void> {
-    const timezone = QueryStringParser.parseTimezone(context);
+    const recipient = QueryStringParser.parseRecipient(context);
 
     const promises = Object.entries(relations).map(async ([field, linked]) => {
       const relation = this.collection.schema.fields[field];
@@ -92,14 +101,16 @@ export default class CreateRoute extends CollectionRoute {
       // Break old relation (may update zero or one records).
       const oldFkOwner = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
       await foreignCollection.update(
-        new Filter({ conditionTree: ConditionTreeFactory.intersect(oldFkOwner, scope), timezone }),
+        recipient,
+        new Filter({ conditionTree: ConditionTreeFactory.intersect(oldFkOwner, scope) }),
         { [relation.originKey]: null },
       );
 
       // Create new relation (will update exactly one record).
       const newFkOwner = ConditionTreeFactory.matchRecords(foreignCollection.schema, [linked]);
       await foreignCollection.update(
-        new Filter({ conditionTree: ConditionTreeFactory.intersect(newFkOwner, scope), timezone }),
+        recipient,
+        new Filter({ conditionTree: ConditionTreeFactory.intersect(newFkOwner, scope) }),
         { [relation.originKey]: originValue },
       );
     });
@@ -115,10 +126,15 @@ export default class CreateRoute extends CollectionRoute {
     return pkName.reduce((memo, key, index) => ({ ...memo, [key]: id[index] }), {});
   }
 
-  private async getManyToOneTarget(field: string, id: CompositeId): Promise<unknown> {
+  private async getManyToOneTarget(
+    context: Context,
+    field: string,
+    id: CompositeId,
+  ): Promise<unknown> {
+    const recipient = QueryStringParser.parseRecipient(context);
     const schema = this.collection.schema.fields[field] as ManyToOneSchema;
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
 
-    return CollectionUtils.getValue(foreignCollection, id, schema.foreignKeyTarget);
+    return CollectionUtils.getValue(foreignCollection, recipient, id, schema.foreignKeyTarget);
   }
 }

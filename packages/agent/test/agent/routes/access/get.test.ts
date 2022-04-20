@@ -51,12 +51,16 @@ describe('GetRoute', () => {
       services.serializer.serialize = jest.fn().mockReturnValue('test');
       const get = new Get(services, options, dataSource, 'books');
       const context = createMockContext({
-        customProperties: { params: { id: '2d162303-78bf-599e-b197-93590ac3d315' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+        },
       });
 
       await get.handleGet(context);
 
       expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         {
           conditionTree: {
             field: 'id',
@@ -77,7 +81,10 @@ describe('GetRoute', () => {
           jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
           const get = new Get(services, options, dataSource, 'books');
           const context = createMockContext({
-            customProperties: { params: { id: '2d162303-78bf-599e-b197-93590ac3d315' } },
+            customProperties: {
+              query: { timezone: 'Europe/Paris' },
+              params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+            },
           });
 
           await get.handleGet(context);

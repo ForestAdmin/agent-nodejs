@@ -52,9 +52,7 @@ describe('ActionRoute', () => {
     let handleHook: Router.Middleware;
 
     const baseContext = {
-      customProperties: {
-        query: { timezone: 'Europe/Paris' },
-      },
+      customProperties: { query: { timezone: 'Europe/Paris' } },
       requestBody: {
         data: {
           attributes: {
@@ -134,6 +132,7 @@ describe('ActionRoute', () => {
       await handleExecute.call(route, context);
 
       expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         'My_Action',
         { firstname: 'John' },
         {
@@ -145,7 +144,6 @@ describe('ActionRoute', () => {
           search: null,
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
         },
       );
     });
@@ -310,6 +308,7 @@ describe('ActionRoute', () => {
           await handleExecute.call(route, context);
 
           expect(dataSource.getCollection('reviews').execute).toHaveBeenCalledWith(
+            { timezone: 'Europe/Paris' },
             'My_Action',
             expect.any(Object),
             new Filter({
@@ -321,7 +320,6 @@ describe('ActionRoute', () => {
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             }),
           );
         });
@@ -352,17 +350,21 @@ describe('ActionRoute', () => {
       const context = createMockContext(baseContext);
       await handleHook.call(route, context);
 
-      expect(dataSource.getCollection('books').getForm).toHaveBeenCalledWith('My_Action', null, {
-        conditionTree: {
-          field: 'id',
-          operator: 'Equal',
-          value: '123e4567-e89b-12d3-a456-426614174000',
+      expect(dataSource.getCollection('books').getForm).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
+        'My_Action',
+        null,
+        {
+          conditionTree: {
+            field: 'id',
+            operator: 'Equal',
+            value: '123e4567-e89b-12d3-a456-426614174000',
+          },
+          search: null,
+          searchExtended: false,
+          segment: null,
         },
-        search: null,
-        searchExtended: false,
-        segment: null,
-        timezone: 'Europe/Paris',
-      });
+      );
 
       expect(context.response.body).toEqual({ fields: [{ field: 'firstname', type: 'String' }] });
     });
@@ -383,6 +385,7 @@ describe('ActionRoute', () => {
       await handleHook.call(route, context);
 
       expect(dataSource.getCollection('books').getForm).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         'My_Action',
         { firstname: 'John' },
         {
@@ -394,7 +397,6 @@ describe('ActionRoute', () => {
           search: null,
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
         },
       );
 

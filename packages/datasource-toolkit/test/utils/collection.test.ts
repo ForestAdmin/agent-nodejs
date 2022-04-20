@@ -323,6 +323,7 @@ describe('CollectionUtils', () => {
             dataSource.getCollection('books'),
             [2],
             'aNonSupportedRelationField',
+            factories.recipient.build(),
             baseFilter,
             aggregation,
           ),
@@ -345,6 +346,7 @@ describe('CollectionUtils', () => {
           dataSource.getCollection('books'),
           [2],
           'oneToManyRelationField',
+          factories.recipient.build(),
           baseFilter,
           aggregation,
           55,
@@ -355,6 +357,7 @@ describe('CollectionUtils', () => {
           new ConditionTreeLeaf('bookId', 'Equal', 2),
         );
         expect(dataSource.getCollection('reviews').aggregate).toHaveBeenCalledWith(
+          factories.recipient.build(),
           baseFilter.override({ conditionTree: expectedCondition }),
           aggregation,
           55,
@@ -381,6 +384,7 @@ describe('CollectionUtils', () => {
           dataSource.getCollection('books'),
           [2],
           'manyToManyRelationField',
+          factories.recipient.build(),
           baseFilter,
           aggregation,
           55,
@@ -392,6 +396,7 @@ describe('CollectionUtils', () => {
         );
 
         expect(dataSource.getCollection('librariesBooks').aggregate).toHaveBeenCalledWith(
+          factories.recipient.build(),
           baseFilter.override({ conditionTree: expectedCondition }),
           new Aggregation({
             operation: 'Max',
@@ -419,6 +424,7 @@ describe('CollectionUtils', () => {
             dataSource.getCollection('books'),
             [2],
             'aNonSupportedRelationField',
+            factories.recipient.build(),
             baseFilter,
             factories.projection.build(),
           ),
@@ -442,6 +448,7 @@ describe('CollectionUtils', () => {
           dataSource.getCollection('books'),
           [2],
           'oneToManyRelationField',
+          factories.recipient.build(),
           baseFilter,
           projection,
         );
@@ -451,6 +458,7 @@ describe('CollectionUtils', () => {
           new ConditionTreeLeaf('bookId', 'Equal', 2),
         );
         expect(dataSource.getCollection('reviews').list).toHaveBeenCalledWith(
+          factories.recipient.build(),
           baseFilter.override({ conditionTree: expectedCondition }),
           projection,
         );
@@ -473,6 +481,7 @@ describe('CollectionUtils', () => {
           dataSource.getCollection('books'),
           [2],
           'manyToManyRelationField',
+          factories.recipient.build(),
           paginatedFilter,
           projection,
         );
@@ -482,6 +491,7 @@ describe('CollectionUtils', () => {
           paginatedFilter.conditionTree.nest('myLibrary'),
         );
         expect(dataSource.getCollection('librariesBooks').list).toHaveBeenCalledWith(
+          factories.recipient.build(),
           paginatedFilter.override({
             conditionTree: expectedCondition,
             sort: paginatedFilter.sort,
@@ -507,7 +517,12 @@ describe('CollectionUtils', () => {
       test('it should return directly', async () => {
         const books = setupGetValue();
 
-        const value = await CollectionUtils.getValue(books, ['=[id-value]='], 'id');
+        const value = await CollectionUtils.getValue(
+          books,
+          factories.recipient.build(),
+          ['=[id-value]='],
+          'id',
+        );
 
         expect(value).toEqual('=[id-value]=');
         expect(books.list).not.toHaveBeenCalled();
@@ -517,10 +532,16 @@ describe('CollectionUtils', () => {
     test('it should call collection list', async () => {
       const books = setupGetValue();
 
-      const value = await CollectionUtils.getValue(books, ['=[id-value]='], 'field');
+      const value = await CollectionUtils.getValue(
+        books,
+        factories.recipient.build(),
+        ['=[id-value]='],
+        'field',
+      );
 
       expect(value).toEqual(123);
       expect(books.list).toHaveBeenCalledWith(
+        factories.recipient.build(),
         { conditionTree: { field: 'id', operator: 'Equal', value: '=[id-value]=' } },
         ['field'],
       );

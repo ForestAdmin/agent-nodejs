@@ -59,9 +59,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
       );
 
       const customProperties = {
-        query: {
-          timezone: 'Europe/Paris',
-        },
+        query: { timezone: 'Europe/Paris' },
         params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
       };
       const requestBody = {
@@ -74,6 +72,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         new PaginatedFilter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -96,7 +95,6 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
           search: null,
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
         }),
         { bookId: null },
       );
@@ -117,9 +115,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
         );
 
         const customProperties = {
-          query: {
-            timezone: 'Europe/Paris',
-          },
+          query: { timezone: 'Europe/Paris' },
           params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
         };
         const requestBody = {
@@ -137,6 +133,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
+          { timezone: 'Europe/Paris' },
           new PaginatedFilter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -159,7 +156,6 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
           { bookId: null },
         );
@@ -179,9 +175,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
           );
 
           const customProperties = {
-            query: {
-              timezone: 'Europe/Paris',
-            },
+            query: { timezone: 'Europe/Paris' },
             params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
           };
           const requestBody = {
@@ -197,6 +191,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
           await count.handleDissociateDeleteRelatedRoute(context);
 
           expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
+            { timezone: 'Europe/Paris' },
             new PaginatedFilter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'Equal',
@@ -206,7 +201,6 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             }),
             { bookId: null },
           );
@@ -301,9 +295,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
       );
 
       const customProperties = {
-        query: {
-          timezone: 'Europe/Paris',
-        },
+        query: { timezone: 'Europe/Paris' },
         params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
       };
       const requestBody = {
@@ -316,6 +308,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -338,7 +331,6 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
           search: null,
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -357,9 +349,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
         );
 
         const customProperties = {
-          query: {
-            timezone: 'Europe/Paris',
-          },
+          query: { timezone: 'Europe/Paris' },
           params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
         };
         const requestBody = {
@@ -377,6 +367,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
+          { timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -399,7 +390,6 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -417,9 +407,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
           );
 
           const customProperties = {
-            query: {
-              timezone: 'Europe/Paris',
-            },
+            query: { timezone: 'Europe/Paris' },
             params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
           };
           const requestBody = {
@@ -435,6 +423,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
           await count.handleDissociateDeleteRelatedRoute(context);
 
           expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
+            { timezone: 'Europe/Paris' },
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'Equal',
@@ -444,7 +433,6 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             }),
           );
           expect(context.response.status).toEqual(HttpCode.NoContent);

@@ -39,7 +39,7 @@ describe('UpdateRoute', () => {
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
-      const customProperties = { params: { id: '1523' } };
+      const customProperties = { query: { timezone: 'Europe/Paris' }, params: { id: '1523' } };
       const requestBody = { data: { attributes: { name: 'foo name' } } };
       const context = createMockContext({ customProperties, requestBody });
 
@@ -53,8 +53,13 @@ describe('UpdateRoute', () => {
         }),
       });
 
-      expect(bookCollection.update).toHaveBeenCalledWith(expectedFilter, { name: 'foo name' });
+      expect(bookCollection.update).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
+        expectedFilter,
+        { name: 'foo name' },
+      );
       expect(bookCollection.list).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         expectedFilter,
         new Projection('id', 'name'),
       );
@@ -80,19 +85,12 @@ describe('UpdateRoute', () => {
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
-      const customProperties = { params: { id: '1523' } };
+      const customProperties = { query: { timezone: 'Europe/Paris' }, params: { id: '1523' } };
       const requestBody = {
         data: {
-          attributes: {
-            id: 1,
-          },
+          attributes: { id: 1 },
           relationships: {
-            library: {
-              data: {
-                id: '1',
-                type: 'companies',
-              },
-            },
+            library: { data: { id: '1', type: 'companies' } },
           },
         },
       };

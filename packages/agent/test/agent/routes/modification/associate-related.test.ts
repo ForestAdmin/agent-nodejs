@@ -78,9 +78,7 @@ describe('AssociateRelatedRoute', () => {
       const scope = factories.conditionTreeLeaf.build();
       services.permissions.getScope = jest.fn().mockResolvedValue(scope);
       const customProperties = {
-        query: {
-          timezone: 'Europe/Paris',
-        },
+        query: { timezone: 'Europe/Paris' },
         params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
       };
       const requestBody = {
@@ -93,6 +91,7 @@ describe('AssociateRelatedRoute', () => {
 
       // then
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -108,7 +107,6 @@ describe('AssociateRelatedRoute', () => {
           search: null,
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
         }),
         { bookId: '123e4567-e89b-12d3-a456-111111111111' },
       );
@@ -205,9 +203,7 @@ describe('AssociateRelatedRoute', () => {
       const scope = factories.conditionTreeLeaf.build();
       services.permissions.getScope = jest.fn().mockResolvedValue(scope);
       const customProperties = {
-        query: {
-          timezone: 'Europe/Paris',
-        },
+        query: { timezone: 'Europe/Paris' },
         params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
       };
       const requestBody = {
@@ -219,12 +215,15 @@ describe('AssociateRelatedRoute', () => {
       await route.handleAssociateRelatedRoute(context);
 
       // then
-      expect(dataSource.getCollection('librariesBooks').create).toHaveBeenCalledWith([
-        {
-          bookId: '123e4567-e89b-12d3-a456-111111111111',
-          libraryId: '123e4567-e89b-12d3-a456-222222222222',
-        },
-      ]);
+      expect(dataSource.getCollection('librariesBooks').create).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
+        [
+          {
+            bookId: '123e4567-e89b-12d3-a456-111111111111',
+            libraryId: '123e4567-e89b-12d3-a456-222222222222',
+          },
+        ],
+      );
       expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:books');
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });

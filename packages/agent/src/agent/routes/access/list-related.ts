@@ -26,14 +26,13 @@ export default class ListRelatedRoute extends RelationRoute {
       scope,
     );
 
-    const projection = QueryStringParser.parseProjectionWithPks(this.foreignCollection, context);
-
     const records = await CollectionUtils.listRelation(
       this.collection,
       parentId,
       this.relationName,
+      QueryStringParser.parseRecipient(context),
       paginatedFilter,
-      projection,
+      QueryStringParser.parseProjectionWithPks(this.foreignCollection, context),
     );
 
     context.response.body = this.services.serializer.serializeWithSearchMetadata(

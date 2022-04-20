@@ -22,8 +22,8 @@ describe('ActionContext', () => {
   });
 
   test('should factorize calls to list made at the same time', async () => {
-    const filter = new Filter({ timezone: 'Europe/Paris' });
-    const context = new ActionContextSingle(books, {}, filter);
+    const filter = new Filter({});
+    const context = new ActionContextSingle(books, factories.recipient.build(), {}, filter);
     const [id, partial1, partial2, partial3] = await Promise.all([
       context.getRecordId(),
       context.getRecord(['title']),
@@ -32,7 +32,7 @@ describe('ActionContext', () => {
     ]);
 
     expect(books.list).toHaveBeenCalledTimes(1);
-    expect(books.list).toHaveBeenCalledWith(filter, ['id', 'title']);
+    expect(books.list).toHaveBeenCalledWith(factories.recipient.build(), filter, ['id', 'title']);
     expect(id).toEqual([1]);
     expect(partial1).toEqual({ title: 'Foundation' });
     expect(partial2).toEqual({ id: 1 });
@@ -40,9 +40,15 @@ describe('ActionContext', () => {
   });
 
   test('should track calls mades to formValues', async () => {
-    const filter = new Filter({ timezone: 'Europe/Paris' });
+    const filter = new Filter({});
     const used = new Set<string>();
-    const context = new ActionContextSingle(books, { title: 'Foundation' }, filter, used);
+    const context = new ActionContextSingle(
+      books,
+      factories.recipient.build(),
+      { title: 'Foundation' },
+      filter,
+      used,
+    );
 
     expect(context.formValues.title).toEqual('Foundation');
     expect(used).toEqual(new Set(['title']));
@@ -52,9 +58,15 @@ describe('ActionContext', () => {
     // we check that only for load/change hooks, as in the execute handler it does not
     // matter if the user wants to write there (for instance to put defaults values).
 
-    const filter = new Filter({ timezone: 'Europe/Paris' });
+    const filter = new Filter({});
     const used = new Set<string>();
-    const context = new ActionContextSingle(books, { title: 'Foundation' }, filter, used);
+    const context = new ActionContextSingle(
+      books,
+      factories.recipient.build(),
+      { title: 'Foundation' },
+      filter,
+      used,
+    );
 
     expect(() => {
       context.formValues.title = 'toto';
@@ -62,8 +74,13 @@ describe('ActionContext', () => {
   });
 
   test('should work in bulk mode', async () => {
-    const filter = new Filter({ timezone: 'Europe/Paris' });
-    const context = new ActionContextBulk(books, { title: 'Foundation' }, filter);
+    const filter = new Filter({});
+    const context = new ActionContextBulk(
+      books,
+      factories.recipient.build(),
+      { title: 'Foundation' },
+      filter,
+    );
 
     const [ids, partials] = await Promise.all([
       context.getRecordIds(),
@@ -77,8 +94,13 @@ describe('ActionContext', () => {
   test('getrecords should reject all promises if the query fails', async () => {
     (books.list as jest.Mock).mockRejectedValue(new Error('bad request'));
 
-    const filter = new Filter({ timezone: 'Europe/Paris' });
-    const context = new ActionContextBulk(books, { title: 'Foundation' }, filter);
+    const filter = new Filter({});
+    const context = new ActionContextBulk(
+      books,
+      factories.recipient.build(),
+      { title: 'Foundation' },
+      filter,
+    );
 
     const promise1 = context.getRecords(['title']);
     const promise2 = context.getRecords(['id']);

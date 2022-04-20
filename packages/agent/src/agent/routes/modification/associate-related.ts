@@ -6,6 +6,7 @@ import {
   ConditionTreeLeaf,
   ManyToManySchema,
   OneToManySchema,
+  QueryRecipient,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
@@ -14,6 +15,7 @@ import Router from '@koa/router';
 import { HttpCode } from '../../types';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';
+import QueryStringParser from '../../utils/query-string';
 import RelationRoute from '../relation-route';
 
 export default class AssociateRelatedRoute extends RelationRoute {
@@ -33,17 +35,26 @@ export default class AssociateRelatedRoute extends RelationRoute {
     );
     const scope = await this.services.permissions.getScope(this.foreignCollection, context);
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
+    const recipient = QueryStringParser.parseRecipient(context);
 
     if (relation.type === 'OneToMany') {
-      await this.associateOneToMany(scope, relation, parentId, targetedRelationId, context);
+      await this.associateOneToMany(
+        recipient,
+        scope,
+        relation,
+        parentId,
+        targetedRelationId,
+        context,
+      );
     } else {
-      await this.associateManyToMany(relation, parentId, targetedRelationId);
+      await this.associateManyToMany(recipient, relation, parentId, targetedRelationId);
     }
 
     context.response.status = HttpCode.NoContent;
   }
 
   async associateOneToMany(
+    recipient: QueryRecipient,
     scope: ConditionTree,
     relation: OneToManySchema,
     parentId: CompositeId,
@@ -51,29 +62,45 @@ export default class AssociateRelatedRoute extends RelationRoute {
     context: Context,
   ) {
     const [id] = SchemaUtils.getPrimaryKeys(this.foreignCollection.schema);
-    let value = await CollectionUtils.getValue(this.foreignCollection, targetedRelationId, id);
+    let value = await CollectionUtils.getValue(
+      this.foreignCollection,
+      recipient,
+      targetedRelationId,
+      id,
+    );
     const filter = ContextFilterFactory.build(this.collection, context, scope, {
       conditionTree: ConditionTreeFactory.intersect(
         new ConditionTreeLeaf(id, 'Equal', value),
         scope,
       ),
     });
-    value = await CollectionUtils.getValue(this.collection, parentId, relation.originKeyTarget);
-    await this.foreignCollection.update(filter, { [relation.originKey]: value });
+    value = await CollectionUtils.getValue(
+      this.collection,
+      recipient,
+      parentId,
+      relation.originKeyTarget,
+    );
+    await this.foreignCollection.update(recipient, filter, { [relation.originKey]: value });
   }
 
   async associateManyToMany(
+    recipient: QueryRecipient,
     relation: ManyToManySchema,
     parentId: CompositeId,
     targetedRelationId: CompositeId,
   ) {
     let [id] = SchemaUtils.getPrimaryKeys(this.foreignCollection.schema);
-    const foreign = await CollectionUtils.getValue(this.foreignCollection, targetedRelationId, id);
+    const foreign = await CollectionUtils.getValue(
+      this.foreignCollection,
+      recipient,
+      targetedRelationId,
+      id,
+    );
     [id] = SchemaUtils.getPrimaryKeys(this.collection.schema);
-    const origin = await CollectionUtils.getValue(this.collection, parentId, id);
+    const origin = await CollectionUtils.getValue(this.collection, recipient, parentId, id);
     const record = { [relation.originKey]: origin, [relation.foreignKey]: foreign };
 
     const throughCollection = this.dataSource.getCollection(relation.throughCollection);
-    await throughCollection.create([record]);
+    await throughCollection.create(recipient, [record]);
   }
 }

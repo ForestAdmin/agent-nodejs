@@ -4,6 +4,7 @@ import { Factory } from 'fishery';
 import { ActionField } from '../../src/interfaces/action';
 import { ActionSchema, CollectionSchema } from '../../src/interfaces/schema';
 import { Collection, DataSource } from '../../src/interfaces/collection';
+import { QueryRecipient } from '../../src/interfaces/user';
 import CollectionDecorator from '../../src/decorators/collection-decorator';
 import PaginatedFilter from '../../src/interfaces/query/filter/paginated';
 import collectionSchemaFactory from './schema/collection-schema';
@@ -11,8 +12,11 @@ import collectionSchemaFactory from './schema/collection-schema';
 export class DecoratedCollection extends CollectionDecorator {
   public override childCollection: Collection;
 
-  public override async refineFilter(filter: PaginatedFilter): Promise<PaginatedFilter> {
-    return super.refineFilter(filter);
+  public override async refineFilter(
+    recipient: QueryRecipient,
+    filter: PaginatedFilter,
+  ): Promise<PaginatedFilter> {
+    return super.refineFilter(recipient, filter);
   }
 
   public override refineSchema(subSchema: CollectionSchema): CollectionSchema {

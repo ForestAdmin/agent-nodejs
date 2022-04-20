@@ -16,11 +16,18 @@ describe('CollectionDecorator', () => {
       });
       decoratedCollection.refineFilter = jest.fn().mockReturnValue(filter);
 
-      const result = await decoratedCollection.list(filter, projection);
+      const result = await decoratedCollection.list(
+        factories.recipient.build(),
+        filter,
+        projection,
+      );
 
       expect(result).toEqual([recordData]);
-      expect(decoratedCollection.refineFilter).toHaveBeenCalledWith(filter);
-      expect(childList).toHaveBeenCalledWith(filter, projection);
+      expect(decoratedCollection.refineFilter).toHaveBeenCalledWith(
+        factories.recipient.build(),
+        filter,
+      );
+      expect(childList).toHaveBeenCalledWith(factories.recipient.build(), filter, projection);
     });
   });
 
@@ -34,10 +41,13 @@ describe('CollectionDecorator', () => {
       });
       decoratedCollection.refineFilter = jest.fn().mockReturnValue(filter);
 
-      await decoratedCollection.update(filter, recordData);
+      await decoratedCollection.update(factories.recipient.build(), filter, recordData);
 
-      expect(decoratedCollection.refineFilter).toHaveBeenCalledWith(filter);
-      expect(childUpdate).toHaveBeenCalledWith(filter, recordData);
+      expect(decoratedCollection.refineFilter).toHaveBeenCalledWith(
+        factories.recipient.build(),
+        filter,
+      );
+      expect(childUpdate).toHaveBeenCalledWith(factories.recipient.build(), filter, recordData);
     });
   });
 
@@ -50,10 +60,13 @@ describe('CollectionDecorator', () => {
       });
       decoratedCollection.refineFilter = jest.fn().mockReturnValue(filter);
 
-      await decoratedCollection.delete(filter);
+      await decoratedCollection.delete(factories.recipient.build(), filter);
 
-      expect(decoratedCollection.refineFilter).toHaveBeenCalledWith(filter);
-      expect(childDelete).toHaveBeenCalledWith(filter);
+      expect(decoratedCollection.refineFilter).toHaveBeenCalledWith(
+        factories.recipient.build(),
+        filter,
+      );
+      expect(childDelete).toHaveBeenCalledWith(factories.recipient.build(), filter);
     });
   });
 
@@ -70,11 +83,24 @@ describe('CollectionDecorator', () => {
       });
       decoratedCollection.refineFilter = jest.fn().mockReturnValue(filter);
 
-      const result = await decoratedCollection.aggregate(filter, aggregation, null);
+      const result = await decoratedCollection.aggregate(
+        factories.recipient.build(),
+        filter,
+        aggregation,
+        null,
+      );
 
       expect(result).toStrictEqual([aggregateResult]);
-      expect(decoratedCollection.refineFilter).toHaveBeenCalledWith(filter);
-      expect(childAggregate).toHaveBeenCalledWith(filter, aggregation, null);
+      expect(decoratedCollection.refineFilter).toHaveBeenCalledWith(
+        factories.recipient.build(),
+        filter,
+      );
+      expect(childAggregate).toHaveBeenCalledWith(
+        factories.recipient.build(),
+        filter,
+        aggregation,
+        null,
+      );
     });
   });
 
@@ -133,9 +159,9 @@ describe('CollectionDecorator', () => {
         create: childCreate,
       });
 
-      await decoratedCollection.create([recordData]);
+      await decoratedCollection.create(factories.recipient.build(), [recordData]);
 
-      expect(childCreate).toHaveBeenCalledWith([recordData]);
+      expect(childCreate).toHaveBeenCalledWith(factories.recipient.build(), [recordData]);
     });
   });
 
@@ -160,10 +186,20 @@ describe('CollectionDecorator', () => {
         getForm: childGetForm,
       });
 
-      const result = await decoratedCollection.getForm('an action name', {}, null);
+      const result = await decoratedCollection.getForm(
+        factories.recipient.build(),
+        'an action name',
+        {},
+        null,
+      );
 
       expect(result).toStrictEqual(fields);
-      expect(childGetForm).toHaveBeenCalledWith('an action name', {}, null);
+      expect(childGetForm).toHaveBeenCalledWith(
+        factories.recipient.build(),
+        'an action name',
+        {},
+        null,
+      );
     });
   });
 
@@ -175,10 +211,20 @@ describe('CollectionDecorator', () => {
         execute: childExecute,
       });
 
-      const result = await decoratedCollection.execute('an action name', {}, null);
+      const result = await decoratedCollection.execute(
+        factories.recipient.build(),
+        'an action name',
+        {},
+        null,
+      );
 
       expect(result).toStrictEqual(response);
-      expect(childExecute).toHaveBeenCalledWith('an action name', {}, null);
+      expect(childExecute).toHaveBeenCalledWith(
+        factories.recipient.build(),
+        'an action name',
+        {},
+        null,
+      );
     });
   });
 
@@ -197,7 +243,9 @@ describe('CollectionDecorator', () => {
       const decoratedCollection = factories.collection.buildDecoratedCollection({});
       const filter = factories.filter.build();
 
-      expect(await decoratedCollection.refineFilter(filter)).toBe(filter);
+      expect(await decoratedCollection.refineFilter(factories.recipient.build(), filter)).toBe(
+        filter,
+      );
     });
   });
 });

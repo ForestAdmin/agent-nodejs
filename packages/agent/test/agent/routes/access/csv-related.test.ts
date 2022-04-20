@@ -90,6 +90,7 @@ describe('CsvRelatedRoute', () => {
         query: {
           ...projectionParams,
           header: 'id,name',
+          timezone: 'Europe/Paris',
         },
         params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
       };
@@ -119,6 +120,7 @@ describe('CsvRelatedRoute', () => {
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
+        { timezone: 'Europe/Paris' },
         new Projection('id', 'name'),
         'id,name',
         paginatedFilter,
@@ -130,6 +132,7 @@ describe('CsvRelatedRoute', () => {
         dataSource.getCollection('books'),
         ['123e4567-e89b-12d3-a456-111111111111'],
         'myPersons',
+        { timezone: 'Europe/Paris' },
         expect.any(PaginatedFilter),
         expect.any(Projection),
       );

@@ -56,7 +56,7 @@ describe('SortEmulationDecoratorCollection', () => {
           title: factories.columnSchema.build({ isSortable: false }),
         },
       }),
-      list: jest.fn().mockImplementation((filter: PaginatedFilter, projection: Projection) => {
+      list: jest.fn().mockImplementation((_, filter: PaginatedFilter, projection: Projection) => {
         let rows = records.slice();
         if (filter.conditionTree) rows = filter.conditionTree.apply(rows, books, 'Europe/Paris');
         if (filter.sort) rows = filter.sort.apply(rows);
@@ -118,6 +118,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
     test('should work in ascending order', async () => {
       const records = await newBooks.list(
+        factories.recipient.build(),
         new PaginatedFilter({ sort: new Sort({ field: 'title', ascending: true }) }),
         new Projection('id', 'title'),
       );
@@ -131,6 +132,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
     test('should work in descending order', async () => {
       const records = await newBooks.list(
+        factories.recipient.build(),
         new PaginatedFilter({ sort: new Sort({ field: 'title', ascending: false }) }),
         new Projection('id', 'title'),
       );
@@ -144,6 +146,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
     test('should work with pagination', async () => {
       const records = await newBooks.list(
+        factories.recipient.build(),
         new PaginatedFilter({
           page: new Page(2, 1),
           sort: new Sort({ field: 'title', ascending: false }),
@@ -167,6 +170,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
     test('should work in ascending order', async () => {
       const records = await newBooks.list(
+        factories.recipient.build(),
         new PaginatedFilter({ sort: new Sort({ field: 'author:lastName', ascending: true }) }),
         new Projection('id', 'title', 'author:lastName'),
       );
@@ -180,6 +184,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
     test('should work in descending order', async () => {
       const records = await newBooks.list(
+        factories.recipient.build(),
         new PaginatedFilter({ sort: new Sort({ field: 'author:lastName', ascending: false }) }),
         new Projection('id', 'title', 'author:lastName'),
       );
@@ -207,6 +212,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
     test('should work in ascending order', async () => {
       const records = await newBooks.list(
+        factories.recipient.build(),
         new PaginatedFilter({ sort: new Sort({ field: 'title', ascending: true }) }),
         new Projection('id', 'title', 'author:lastName'),
       );
@@ -220,6 +226,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
     test('should work in descending order', async () => {
       const records = await newBooks.list(
+        factories.recipient.build(),
         new PaginatedFilter({ sort: new Sort({ field: 'title', ascending: false }) }),
         new Projection('id', 'title', 'author:lastName'),
       );
