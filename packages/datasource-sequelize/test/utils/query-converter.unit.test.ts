@@ -14,13 +14,19 @@ import QueryConverter from '../../src/utils/query-converter';
 describe('Utils > QueryConverter', () => {
   describe('getWhereFromConditionTreeToByPassInclude', () => {
     describe('with a condition tree acting on relation', () => {
-      it('should generate a valid where clause with ids', async () => {
+      it('should generate a valid "where" clause with the primary keys', async () => {
         const conditionTree = new ConditionTreeLeaf('relation:__field__', 'Equal', '__value__');
 
         const model = {
-          getAttributes: () => ({ relation: { field: '__field__' }, id: { field: 'id' } }),
-          primaryKeyAttributes: ['id'],
-          findAll: jest.fn().mockResolvedValue([{ get: jest.fn().mockReturnValue('1') }]),
+          getAttributes: () => ({
+            relation: { field: '__field__' },
+            idA: { field: 'idA' }, // primary key
+            idB: { field: 'idB' }, // primary key
+          }),
+          primaryKeyAttributes: ['idA', 'idB'],
+          findAll: jest
+            .fn()
+            .mockResolvedValue([{ get: jest.fn().mockReturnValueOnce(1).mockReturnValueOnce(2) }]),
           associations: {
             relation: {
               target: {
@@ -36,7 +42,9 @@ describe('Utils > QueryConverter', () => {
           conditionTree,
         );
 
-        expect(where).toEqual({ id: { [Op.in]: ['1'] } });
+        expect(where).toEqual({
+          [Op.and]: [{ idA: { [Op.in]: [1] } }, { idB: { [Op.in]: [2] } }],
+        });
       });
     });
 
