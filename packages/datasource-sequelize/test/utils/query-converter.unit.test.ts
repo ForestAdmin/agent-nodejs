@@ -19,12 +19,12 @@ describe('Utils > QueryConverter', () => {
 
         const model = {
           getAttributes: () => ({ relation: { field: '__field__' }, id: { field: 'id' } }),
-          primaryKeyAttribute: 'id',
+          primaryKeyAttributes: ['id'],
           findAll: jest.fn().mockResolvedValue([{ get: jest.fn().mockReturnValue('1') }]),
           associations: {
             relation: {
               target: {
-                primaryKeyAttribute: 'id',
+                primaryKeyAttributes: ['id'],
                 getAttributes: () => ({ __field__: { field: 'fieldName' } }),
               } as unknown as ModelDefined<any, any>,
             } as Association,

@@ -1,6 +1,7 @@
 import {
   ConditionTree,
   ConditionTreeBranch,
+  ConditionTreeFactory,
   ConditionTreeLeaf,
   Operator,
   Projection,
@@ -89,19 +90,24 @@ export default class QueryConverter {
       return whereOptions;
     }
 
+    const keys = [...model.primaryKeyAttributes];
     const records = await model.findAll({
-      attributes: [model.primaryKeyAttribute],
+      attributes: keys,
       where: whereOptions,
       include,
     });
 
+    const conditions = keys.map(pk => {
+      return new ConditionTreeLeaf(
+        pk,
+        'In',
+        records.map(r => r.get(pk)),
+      );
+    });
+
     return QueryConverter.getWhereFromConditionTree(
       model,
-      new ConditionTreeLeaf(
-        model.primaryKeyAttribute,
-        'In',
-        records.map(r => r.get(model.primaryKeyAttribute)),
-      ),
+      ConditionTreeFactory.intersect(...conditions),
     );
   }
 
