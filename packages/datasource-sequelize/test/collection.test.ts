@@ -5,8 +5,10 @@ import {
   ConditionTreeLeaf,
   DataSource,
   Filter,
+  PaginatedFilter,
   Projection,
   RecordData,
+  Sort,
 } from '@forestadmin/datasource-toolkit';
 
 import { SequelizeCollection } from '../src';
@@ -131,12 +133,13 @@ describe('SequelizeDataSource > Collection', () => {
       expect(record.get).toHaveBeenCalledWith({ plain: true });
     });
 
-    it('should add include from filter', async () => {
+    it('should add include from condition tree, sort and projection', async () => {
       const { findAll, sequelizeCollection } = setup();
-      const filter = new Filter({
+      const filter = new PaginatedFilter({
+        sort: new Sort({ field: 'relation1:field1', ascending: true }),
         conditionTree: new ConditionTreeLeaf('relation:aField', 'Equal', 42),
       });
-      const projection = new Projection();
+      const projection = new Projection('relation3:field3');
 
       await sequelizeCollection.list(filter, projection);
 
@@ -145,13 +148,23 @@ describe('SequelizeDataSource > Collection', () => {
           where: {
             '$relation.a_field$': { [Op.eq]: 42 },
           },
-          include: expect.arrayContaining([
+          include: [
+            {
+              association: 'relation3',
+              attributes: ['field3'],
+              include: [],
+            },
             {
               association: 'relation',
               attributes: [],
               include: [],
             },
-          ]),
+            {
+              association: 'relation1',
+              attributes: [],
+              include: [],
+            },
+          ],
         }),
       );
     });
