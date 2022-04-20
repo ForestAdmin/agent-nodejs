@@ -1,10 +1,14 @@
 /* eslint-disable no-console */
+import { Sequelize } from 'sequelize';
 import faker from '@faker-js/faker';
 
+import {
+  createCustomerCardRecords,
+  prepareDatabase as prepareSqlDatasource,
+} from './db-seed-direct-sql';
 import { prepareDatabase as prepareDatabaseMssql } from '../src/datasources/sequelize/mssql';
 import { prepareDatabase as prepareDatabaseMysql } from '../src/datasources/sequelize/mysql';
 import { prepareDatabase as prepareDatabasePostgres } from '../src/datasources/sequelize/postgres';
-import prepareSqlDatasource from './db-seed-direct-sql';
 
 async function createOwnerRecords(db) {
   const ownerRecords = [];
@@ -71,29 +75,35 @@ async function createDvdRentalsRecords(db, storeRecords) {
 }
 
 async function seedData() {
-  const [mssql, mysql, postgres] = await Promise.all([
-    prepareDatabaseMssql(),
-    prepareDatabaseMysql(),
-    prepareDatabasePostgres(),
-    prepareSqlDatasource(),
-  ]);
-
-  for (const db of [mssql, mysql, postgres]) {
-    // eslint-disable-next-line no-await-in-loop
-    await db.sync({ force: true });
-  }
+  let mssql: Sequelize;
+  let mysql: Sequelize;
+  let postgres: Sequelize;
+  let mariadb: Sequelize;
 
   try {
+    [mssql, mysql, postgres, mariadb] = await Promise.all([
+      prepareDatabaseMssql(),
+      prepareDatabaseMysql(),
+      prepareDatabasePostgres(),
+      prepareSqlDatasource(),
+    ]);
+
+    for (const db of [mssql, mysql, postgres, mariadb]) {
+      // eslint-disable-next-line no-await-in-loop
+      await db.sync({ force: true });
+    }
+
     const ownerRecords = await createOwnerRecords(postgres);
     const storeRecords = await createStoreRecords(mysql, ownerRecords);
     await createDvdRentalsRecords(mssql, storeRecords);
-  } catch (e) {
+    await createCustomerCardRecords(mariadb);
+  } catch (error) {
     console.error('---------------');
     console.error('The seed failed');
-    console.error(e);
+    console.error(error);
     console.error('---------------');
   } finally {
-    for (const db of [mssql, mysql, postgres]) {
+    for (const db of [mssql, mysql, postgres, mariadb]) {
       // eslint-disable-next-line no-await-in-loop
       await db.close();
     }
