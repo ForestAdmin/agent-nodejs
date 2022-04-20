@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.6...@forestadmin/datasource-sequelize@1.0.0-beta.7) (2022-04-20)
+
+
+### Bug Fixes
+
+* **datasource sequelize:** add include from sort relation for list ([#243](https://github.com/ForestAdmin/agent-nodejs/issues/243)) ([5a81bc0](https://github.com/ForestAdmin/agent-nodejs/commit/5a81bc04e969442dd38d251be0a48c7bce2dc43e))
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.5...@forestadmin/datasource-sequelize@1.0.0-beta.6) (2022-04-19)
 
 
