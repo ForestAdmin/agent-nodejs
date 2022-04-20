@@ -6,7 +6,6 @@ services:
     ports:
       - '5443:5432'
     environment:
-      - POSTGRES_DB=test
       - POSTGRES_USER=test
       - POSTGRES_PASSWORD=password
 
@@ -16,9 +15,6 @@ services:
     ports:
       - '3307:3306'
     environment:
-      - MYSQL_DATABASE=test
-      - MYSQL_USER=test
-      - MYSQL_PASSWORD=password
       - MYSQL_ROOT_PASSWORD=password
 
   mssql:
@@ -36,7 +32,4 @@ services:
     ports:
       - '3809:3306'
     environment:
-      - MARIADB_DATABASE=test
-      - MARIADB_USER=test
-      - MARIADB_PASSWORD=password
       - MARIADB_ROOT_PASSWORD=password

@@ -4,32 +4,42 @@ import ArrayTypeGetter from '../../src/utils/array-type-getter';
 
 describe('ArrayTypeGetter', () => {
   it('should return arrayType', async () => {
-    const sequelize = new Sequelize('postgres://test:password@localhost:5443/test', {
-      logging: false,
-    });
+    let sequelize: Sequelize;
 
-    sequelize.define(
-      'arrayTable',
-      {
-        arrayInt: DataTypes.ARRAY(DataTypes.INTEGER),
-        arrayString: DataTypes.ARRAY(DataTypes.STRING),
-        arrayEnum: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
-      },
-      { tableName: 'arrayTable' },
-    );
+    try {
+      const database = 'datasource-sql-array-type-getter-test';
+      let connectionUri = `postgres://test:password@localhost:5443`;
+      sequelize = new Sequelize(connectionUri, { logging: false });
+      await sequelize.getQueryInterface().dropDatabase(database);
+      await sequelize.getQueryInterface().createDatabase(database);
+      await sequelize.close();
 
-    await sequelize.sync({ force: true });
+      connectionUri = `${connectionUri}/${database}`;
+      sequelize = new Sequelize(connectionUri, { logging: false });
 
-    const arrayTypeGetter = new ArrayTypeGetter(sequelize);
+      sequelize.define(
+        'arrayTable',
+        {
+          arrayInt: DataTypes.ARRAY(DataTypes.INTEGER),
+          arrayString: DataTypes.ARRAY(DataTypes.STRING),
+          arrayEnum: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
+        },
+        { tableName: 'arrayTable' },
+      );
 
-    const typeInt = await arrayTypeGetter.getType('arrayTable', 'arrayInt');
-    const typeString = await arrayTypeGetter.getType('arrayTable', 'arrayString');
-    const typeEnum = await arrayTypeGetter.getType('arrayTable', 'arrayEnum');
+      await sequelize.sync({ force: true });
 
-    await sequelize.close();
+      const arrayTypeGetter = new ArrayTypeGetter(sequelize);
 
-    expect(typeInt).toStrictEqual({ type: 'INTEGER', special: [] });
-    expect(typeString).toStrictEqual({ type: 'CHARACTER VARYING', special: [] });
-    expect(typeEnum).toStrictEqual({ type: 'USER-DEFINED', special: ['enum1', 'enum2'] });
+      const typeInt = await arrayTypeGetter.getType('arrayTable', 'arrayInt');
+      const typeString = await arrayTypeGetter.getType('arrayTable', 'arrayString');
+      const typeEnum = await arrayTypeGetter.getType('arrayTable', 'arrayEnum');
+
+      expect(typeInt).toStrictEqual({ type: 'INTEGER', special: [] });
+      expect(typeString).toStrictEqual({ type: 'CHARACTER VARYING', special: [] });
+      expect(typeEnum).toStrictEqual({ type: 'USER-DEFINED', special: ['enum1', 'enum2'] });
+    } finally {
+      await sequelize?.close();
+    }
   });
 });

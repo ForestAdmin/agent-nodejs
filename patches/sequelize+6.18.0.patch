@@ -66,7 +66,7 @@ index 2eb6262..e3ad609 100644
  
  export interface ArrayDataTypeOptions<T extends AbstractDataTypeConstructor | AbstractDataType> {
 diff --git a/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts b/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts
-index 782ee82..7488200 100644
+index 782ee82..f71dd1f 100644
 --- a/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts
 +++ b/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts
 @@ -274,6 +274,7 @@ export interface ColumnDescription {
@@ -77,6 +77,43 @@ index 782ee82..7488200 100644
  }
  
  export interface ColumnsDescription {
+@@ -461,7 +462,14 @@ export class QueryInterface {
+   /**
+    * Shows the index of a table
+    */
+-  public showIndex(tableName: string | object, options?: QueryOptions): Promise<object>;
++  public showIndex(tableName: string | object, options?: QueryOptions): Promise<{
++    name: string;
++    primary: boolean;
++    unique: boolean;
++    indkey: string;
++    definition: string;
++    fields: { attribute: string }[];
++  }[]>;
+ 
+   /**
+    * Put a name to an index
+@@ -476,7 +484,19 @@ export class QueryInterface {
+   /**
+    * Get foreign key references details for the table
+    */
+-  public getForeignKeyReferencesForTable(tableName: TableName, options?: QueryInterfaceOptions): Promise<object>;
++  public getForeignKeyReferencesForTable(tableName: TableName, options?: QueryInterfaceOptions): Promise<{
++    constraintName: string;
++    constraintSchema: string;
++    constraintCatalog: string;
++    tableName: string;
++    tableSchema: string;
++    tableCatalog: string;
++    columnName: string;
++    referencedTableSchema: string;
++    referencedTableCatalog: string;
++    referencedTableName: string;
++    referencedColumnName: string;
++  }[]>;
+ 
+   /**
+    * Inserts a new record
 diff --git a/node_modules/sequelize/types/model.d.ts b/node_modules/sequelize/types/model.d.ts
 index f42f970..de9e144 100644
 --- a/node_modules/sequelize/types/model.d.ts
