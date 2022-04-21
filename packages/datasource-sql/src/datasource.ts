@@ -45,31 +45,33 @@ export default class SqlDataSource extends SequelizeDataSource {
 
         const fieldDescriptions = await Promise.all(
           Object.entries(colmumnDescriptions).map(async ([columnName, colmumnDescription]) => {
-            const type = await this.sqlTypeConverter.convert(
-              tableName,
-              columnName,
-              colmumnDescription,
-            );
+            try {
+              const type = await this.sqlTypeConverter.convert(
+                tableName,
+                columnName,
+                colmumnDescription,
+              );
 
-            let defaultValue = this.defaultValueParser.parse(colmumnDescription.defaultValue, type);
-
-            if (colmumnDescription.primaryKey && defaultValue) {
-              defaultValue = null;
-              colmumnDescription.autoIncrement = true;
-            }
-
-            return [
-              columnName,
-              {
-                ...colmumnDescription,
+              let defaultValue = this.defaultValueParser.parse(
+                colmumnDescription.defaultValue,
                 type,
-                defaultValue,
-              },
-            ];
+              );
+
+              if (colmumnDescription.primaryKey && defaultValue) {
+                defaultValue = null;
+                colmumnDescription.autoIncrement = true;
+              }
+
+              return [columnName, { ...colmumnDescription, type, defaultValue }];
+            } catch (e) {
+              this.logger?.('Warn', `Skipping column ${tableName}.${columnName} (${e.message})`);
+            }
           }),
         );
 
-        let modelDefinition: ModelAttributes = Object.fromEntries(fieldDescriptions);
+        let modelDefinition: ModelAttributes = Object.fromEntries(
+          fieldDescriptions.filter(Boolean),
+        );
         const columnNames = Object.keys(modelDefinition);
 
         const hasTimestamps = this.hasTimestamps(columnNames);

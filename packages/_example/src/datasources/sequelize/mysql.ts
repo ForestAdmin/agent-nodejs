@@ -14,7 +14,7 @@ export default function prepareDatabase(): Sequelize {
         allowNull: false,
       },
       name: {
-        type: DataTypes.GEOGRAPHY,
+        type: DataTypes.STRING,
         allowNull: false,
       },
       ownerId: {

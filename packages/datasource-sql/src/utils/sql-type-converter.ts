@@ -121,8 +121,7 @@ export default class SqlTypeConverter {
       case 'INET':
         return DataTypes.INET;
       default:
-        // TODO put logging warning
-        console.warn(type, columnInfo);
+        throw new Error(`Unsupported type: ${type}`);
     }
   }
 }
