@@ -14,7 +14,7 @@ describe('OptionsUtils', () => {
 
       expect(options).toHaveProperty('clientId', null);
       expect(options).toHaveProperty('forestServerUrl', 'https://api.forestadmin.com');
-      expect(options).toHaveProperty('logger');
+      expect(options).toHaveProperty('logger', expect.any(Function));
       expect(options).toHaveProperty('prefix', '/forest');
       expect(options).toHaveProperty('schemaPath', '.forestadmin-schema.json');
     });
@@ -53,6 +53,15 @@ describe('OptionsUtils', () => {
       });
 
       expect(options).toHaveProperty('schemaPath', '.forestadmin-schema.json');
+    });
+
+    test('should force to set a default logger when null is passed', () => {
+      const options = OptionsUtils.withDefaults({
+        ...mandatoryOptions,
+        logger: null,
+      });
+
+      expect(options).toHaveProperty('logger', expect.any(Function));
     });
 
     test('should do not modify the given option', () => {
