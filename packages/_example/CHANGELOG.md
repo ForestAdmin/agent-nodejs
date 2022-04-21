@@ -1,3 +1,23 @@
+# example [1.0.0-beta.11](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.10...example@1.0.0-beta.11) (2022-04-21)
+
+
+### Features
+
+* harmonize datasource creation and pass logger to it ([#257](https://github.com/ForestAdmin/agent-nodejs/issues/257)) ([82cb4ea](https://github.com/ForestAdmin/agent-nodejs/commit/82cb4ea37ac0a9fe83423d917226dfd8fad7d0a6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.8
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.6
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.9
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.8
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.12
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.6
+
 # example [1.0.0-beta.10](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.9...example@1.0.0-beta.10) (2022-04-21)
 
 
