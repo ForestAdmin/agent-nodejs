@@ -42,8 +42,8 @@ export default class CsvRelatedRoute extends RelationRoute {
       header,
       filter,
       this.foreignCollection,
-      async (rec: Caller, fil: PaginatedFilter, proj: Projection) =>
-        CollectionUtils.listRelation(this.collection, parentId, this.relationName, rec, fil, proj),
+      async (cal: Caller, fil: PaginatedFilter, proj: Projection) =>
+        CollectionUtils.listRelation(this.collection, parentId, this.relationName, cal, fil, proj),
     );
     context.response.body = Readable.from(gen);
   }

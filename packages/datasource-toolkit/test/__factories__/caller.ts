@@ -7,7 +7,7 @@ export default Factory.define<Caller>(() => ({
   firstName: 'user',
   id: 1,
   lastName: 'domain',
-  renderingId: 1,
+  renderingId: 1 + Math.random(),
   role: 'role',
   tags: {},
   team: 'team',
