@@ -6,6 +6,7 @@ import {
   Sequelize,
 } from 'sequelize';
 
+import { Logger } from '@forestadmin/datasource-toolkit';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
 import DefaultValueParser from './utils/default-value-parser';
@@ -15,10 +16,13 @@ export default class SqlDataSource extends SequelizeDataSource {
   private readonly queryInterface: QueryInterface;
   private readonly defaultValueParser: DefaultValueParser;
   private readonly sqlTypeConverter: SqlTypeConverter;
+  protected logger: Logger;
 
-  constructor(connectionUri: string) {
-    super(new Sequelize(connectionUri, { logging: false }));
+  constructor(connectionUri: string, logger?: Logger) {
+    const logging = (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
+    super(new Sequelize(connectionUri, { logging }));
 
+    this.logger = logger;
     this.queryInterface = this.sequelize.getQueryInterface();
     this.defaultValueParser = new DefaultValueParser(this.sequelize.getDialect() as Dialect);
     this.sqlTypeConverter = new SqlTypeConverter(this.sequelize);
@@ -30,7 +34,7 @@ export default class SqlDataSource extends SequelizeDataSource {
     await this.defineModels(tableNames);
     await this.defineRelations(tableNames);
 
-    this.createCollections(this.sequelize.models);
+    this.createCollections(this.sequelize.models, this.logger);
   }
 
   private async defineModels(tableNames: string[]): Promise<void[]> {
@@ -40,31 +44,33 @@ export default class SqlDataSource extends SequelizeDataSource {
 
         const fieldDescriptions = await Promise.all(
           Object.entries(colmumnDescriptions).map(async ([columnName, colmumnDescription]) => {
-            const type = await this.sqlTypeConverter.convert(
-              tableName,
-              columnName,
-              colmumnDescription,
-            );
+            try {
+              const type = await this.sqlTypeConverter.convert(
+                tableName,
+                columnName,
+                colmumnDescription,
+              );
 
-            let defaultValue = this.defaultValueParser.parse(colmumnDescription.defaultValue, type);
-
-            if (colmumnDescription.primaryKey && defaultValue) {
-              defaultValue = null;
-              colmumnDescription.autoIncrement = true;
-            }
-
-            return [
-              columnName,
-              {
-                ...colmumnDescription,
+              let defaultValue = this.defaultValueParser.parse(
+                colmumnDescription.defaultValue,
                 type,
-                defaultValue,
-              },
-            ];
+              );
+
+              if (colmumnDescription.primaryKey && defaultValue) {
+                defaultValue = null;
+                colmumnDescription.autoIncrement = true;
+              }
+
+              return [columnName, { ...colmumnDescription, type, defaultValue }];
+            } catch (e) {
+              this.logger?.('Warn', `Skipping column ${tableName}.${columnName} (${e.message})`);
+            }
           }),
         );
 
-        let modelDefinition: ModelAttributes = Object.fromEntries(fieldDescriptions);
+        let modelDefinition: ModelAttributes = Object.fromEntries(
+          fieldDescriptions.filter(Boolean),
+        );
         const columnNames = Object.keys(modelDefinition);
 
         const hasTimestamps = this.hasTimestamps(columnNames);

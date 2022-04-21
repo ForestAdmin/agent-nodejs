@@ -1,8 +1,13 @@
+// Misc
+export { default as ValidationError } from './errors';
+export * from './factory';
+
+// Base Collection & Datasource
 export { default as BaseCollection } from './base-collection';
-
 export { default as BaseDataSource } from './base-datasource';
-export { default as DataSourceDecorator } from './decorators/datasource-decorator';
 
+// Decorators (collections)
+export { default as DataSourceDecorator } from './decorators/datasource-decorator';
 export { default as ActionCollectionDecorator } from './decorators/actions/collection';
 export { default as ComputedCollectionDecorator } from './decorators/computed/collection';
 export { default as RelationCollectionDecorator } from './decorators/relation/collection';
@@ -15,6 +20,7 @@ export { default as WriteCollectionDecorator } from './decorators/write/collecti
 export { default as SegmentCollectionDecorator } from './decorators/segment/collection';
 export { default as SortEmulateCollectionDecorator } from './decorators/sort-emulate/collection';
 
+// Decorators (helpers)
 export { Action as ActionDefinition } from './decorators/actions/types/actions';
 export { WriteDefinition } from './decorators/write/types';
 export { SegmentDefinition } from './decorators/segment/types';
@@ -22,6 +28,7 @@ export * from './decorators/computed/types';
 export * from './decorators/relation/types';
 export * from './decorators/operators-emulate/types';
 
+// Query Interface
 export { default as Aggregation } from './interfaces/query/aggregation';
 export { default as ConditionTree } from './interfaces/query/condition-tree/nodes/base';
 export { default as ConditionTreeBranch } from './interfaces/query/condition-tree/nodes/branch';
@@ -48,14 +55,14 @@ export * from './interfaces/query/sort';
 export * from './interfaces/record';
 export * from './interfaces/schema';
 
-export { default as CollectionUtils } from './utils/collection';
-export { default as RecordUtils } from './utils/record';
-export { default as SchemaUtils } from './utils/schema';
-
+// Validation
 export { default as ConditionTreeValidator } from './validation/condition-tree';
 export { default as FieldValidator } from './validation/field';
 export { default as ProjectionValidator } from './validation/projection';
 export { default as RecordValidator } from './validation/record';
 export { default as SortValidator } from './validation/sort';
 
-export { default as ValidationError } from './errors';
+// Utils
+export { default as CollectionUtils } from './utils/collection';
+export { default as RecordUtils } from './utils/record';
+export { default as SchemaUtils } from './utils/schema';

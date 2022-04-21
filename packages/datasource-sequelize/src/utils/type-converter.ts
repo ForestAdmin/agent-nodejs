@@ -66,8 +66,7 @@ export default class TypeConverter {
       case dataType instanceof DataTypes.UUIDV4:
         return 'Uuid';
       default:
-        // TODO put logging warning
-        console.warn(`Unsupported data type: "${dataType}".`);
+        throw new Error(`Unsupported data type: "${dataType}"`);
     }
   }
 

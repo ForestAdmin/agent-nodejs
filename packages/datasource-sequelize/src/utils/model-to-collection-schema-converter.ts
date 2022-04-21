@@ -14,6 +14,7 @@ import {
   CollectionSchema,
   ColumnSchema,
   FieldSchema,
+  Logger,
   RelationSchema,
 } from '@forestadmin/datasource-toolkit';
 
@@ -61,15 +62,23 @@ export default class ModelToCollectionSchemaConverter {
     }
   }
 
-  private static convertAssociations(associations: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: Association<Model<any, any>, Model<any, any>>;
-  }): CollectionSchema['fields'] {
+  private static convertAssociations(
+    modelName: string,
+    associations: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [key: string]: Association<Model<any, any>, Model<any, any>>;
+    },
+    logger: Logger,
+  ): CollectionSchema['fields'] {
     const schemaAssociations = {};
 
     if (associations) {
-      Object.entries(associations).forEach(([key, association]) => {
-        schemaAssociations[key] = this.convertAssociation(association);
+      Object.entries(associations).forEach(([name, association]) => {
+        try {
+          schemaAssociations[name] = this.convertAssociation(association);
+        } catch (error) {
+          logger?.('Warn', `Skipping association '${modelName}.${name}' (${error.message})`);
+        }
       });
     }
 
@@ -115,25 +124,33 @@ export default class ModelToCollectionSchemaConverter {
     return column;
   }
 
-  private static convertAttributes(attributes: ModelAttributes): CollectionSchema['fields'] {
+  private static convertAttributes(
+    modelName: string,
+    attributes: ModelAttributes,
+    logger: Logger,
+  ): CollectionSchema['fields'] {
     const fields: CollectionSchema['fields'] = {};
 
     Object.entries(attributes).forEach(([name, attribute]) => {
-      fields[name] = this.convertAttribute(attribute as ModelAttributeColumnOptions);
+      try {
+        fields[name] = this.convertAttribute(attribute as ModelAttributeColumnOptions);
+      } catch (error) {
+        logger?.('Warn', `Skipping column '${modelName}.${name}' (${error.message})`);
+      }
     });
 
     return fields;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public static convert(model: ModelDefined<any, any>): CollectionSchema {
+  public static convert(model: ModelDefined<any, any>, logger: Logger): CollectionSchema {
     if (!model) throw new Error('Invalid (null) model.');
 
     return {
       actions: {},
       fields: {
-        ...this.convertAttributes(model.getAttributes()),
-        ...this.convertAssociations(model.associations),
+        ...this.convertAttributes(model.name, model.getAttributes(), logger),
+        ...this.convertAssociations(model.name, model.associations, logger),
       },
       searchable: false,
       segments: [],

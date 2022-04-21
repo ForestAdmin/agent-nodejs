@@ -2,8 +2,6 @@ import * as factories from '../agent/__factories__';
 import Agent from '../../src/builder/agent';
 import CollectionBuilder from '../../src/builder/collection';
 
-jest.mock('../../src/agent/forestadmin-http-driver');
-
 describe('Builder > Agent', () => {
   it('should build an agent', async () => {
     const options = factories.forestAdminHttpDriverOptions.build();
@@ -21,7 +19,7 @@ describe('Builder > Agent', () => {
     const options = factories.forestAdminHttpDriverOptions.build();
     const agent = new Agent(options);
 
-    const spy = jest.spyOn(agent.forestAdminHttpDriver, 'start');
+    const spy = jest.spyOn(agent.forestAdminHttpDriver, 'start').mockResolvedValue();
 
     await agent.start();
 
@@ -32,49 +30,54 @@ describe('Builder > Agent', () => {
     const options = factories.forestAdminHttpDriverOptions.build();
     const agent = new Agent(options);
 
-    const spy = jest.spyOn(agent.forestAdminHttpDriver, 'stop');
+    const spy = jest.spyOn(agent.forestAdminHttpDriver, 'stop').mockResolvedValue();
 
     await agent.stop();
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('should add collection datasource to the composite one', () => {
+  it('should add collection datasource to the composite one', async () => {
     const options = factories.forestAdminHttpDriverOptions.build();
     const agent = new Agent(options);
+    jest.spyOn(agent.forestAdminHttpDriver, 'start').mockResolvedValue();
 
     expect(agent.compositeDatasource.collections.length).toBe(0);
 
     const dataSource = factories.dataSource.buildWithCollection(factories.collection.build());
 
-    const chainingAgent = agent.addDatasource(dataSource);
+    await agent.addDatasource(async () => dataSource).start();
 
     expect(agent.compositeDatasource.collections.length).toBe(1);
-    expect(chainingAgent).toBe(agent);
   });
 
   describe('collection', () => {
     describe('when designed collection is unknown', () => {
-      it('should throw an error', () => {
+      it('should throw an error', async () => {
         const options = factories.forestAdminHttpDriverOptions.build();
         const agent = new Agent(options);
+        jest.spyOn(agent.forestAdminHttpDriver, 'start').mockResolvedValue();
 
-        expect(() => agent.customizeCollection('unknown', () => {})).toThrowError(
+        await expect(agent.customizeCollection('unknown', () => {}).start()).rejects.toThrowError(
           'Collection "unknown" not found',
         );
       });
     });
 
-    it('should provide collection builder', () => {
+    it('should provide collection builder', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);
+      jest.spyOn(agent.forestAdminHttpDriver, 'start').mockResolvedValue();
       const dataSource = factories.dataSource.buildWithCollection(
         factories.collection.build({ name: 'collection' }),
       );
 
       const spy = jest.fn();
 
-      agent.addDatasource(dataSource).customizeCollection('collection', spy);
+      await agent
+        .addDatasource(async () => dataSource)
+        .customizeCollection('collection', spy)
+        .start();
 
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith(new CollectionBuilder(agent, 'collection'));

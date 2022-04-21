@@ -147,13 +147,13 @@ describe('SqlTypeConverter', () => {
         const sequelize = new Sequelize('postgres://');
         const sqlTypeConverter = new SqlTypeConverter(sequelize);
 
-        expect(
-          await sqlTypeConverter.convert(
+        await expect(
+          sqlTypeConverter.convert(
             'test',
             'column-WITH-UNKNOWN-TYPE',
             makeColumnDescriptionForType('UNKNOWN'),
           ),
-        ).toEqual(undefined);
+        ).rejects.toThrow('Unsupported type: UNKNOWN');
       });
     });
   });

@@ -1,7 +1,7 @@
-import { LiveDataSource } from '../src';
+import createLiveDataSource from '../src';
 
 describe('exports', () => {
-  describe.each([['LiveDataSource', LiveDataSource]])('class %s', (message, type) => {
+  describe.each([['createLiveDataSource', createLiveDataSource]])('class %s', (message, type) => {
     it('should be defined', () => {
       expect(type).toBeDefined();
     });

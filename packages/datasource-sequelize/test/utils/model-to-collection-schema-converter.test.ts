@@ -15,7 +15,9 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
     };
 
     it('should fail with a null model', () => {
-      expect(() => ModelToCollectionSchemaConverter.convert(null)).toThrow('Invalid (null) model.');
+      expect(() => ModelToCollectionSchemaConverter.convert(null, () => {})).toThrow(
+        'Invalid (null) model.',
+      );
     });
 
     it('should return an "empty" schema with an equally empty model', () => {
@@ -40,7 +42,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
       const model = sequelize.define('__model__', {}, { timestamps: false });
 
-      expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+      expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
     });
 
     it('should honor primary key definition', () => {
@@ -74,7 +76,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         { timestamps: false },
       );
 
-      expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+      expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
     });
 
     it('should convert all model attributes to collection fields', () => {
@@ -173,7 +175,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         { timestamps: true },
       );
 
-      expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+      expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
     });
 
     describe('with model containing associations', () => {
@@ -213,7 +215,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             segments: [],
           };
 
-          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+          expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
       });
 
@@ -251,7 +253,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             segments: [],
           };
 
-          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+          expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
       });
 
@@ -285,7 +287,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             segments: [],
           };
 
-          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+          expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
       });
 
@@ -319,13 +321,14 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             segments: [],
           };
 
-          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+          expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
       });
 
       describe('when association is unknown', () => {
-        it('should throw an error', () => {
+        it('should Warn an error', () => {
           const model = {
+            name: 'modelTest',
             getAttributes: () => ({}),
             associations: {
               relationsModel: {
@@ -334,8 +337,13 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             } as ModelDefined<any, any>['associations'],
           } as ModelDefined<any, any>;
 
-          expect(() => ModelToCollectionSchemaConverter.convert(model)).toThrow(
-            'Unsupported association: "badAssociation".',
+          const logger = jest.fn();
+          ModelToCollectionSchemaConverter.convert(model, logger);
+
+          expect(logger).toHaveBeenCalledWith(
+            'Warn',
+            "Skipping association 'modelTest.relationsModel' " +
+              '(Unsupported association: "badAssociation".)',
           );
         });
       });

@@ -13,7 +13,7 @@ import Agent from '../../src/builder/agent';
 import CollectionBuilder from '../../src/builder/collection';
 
 describe('Builder > Collection', () => {
-  const setup = () => {
+  const setup = async () => {
     const options = factories.forestAdminHttpDriverOptions.build();
     const agent = new Agent(options);
 
@@ -30,7 +30,9 @@ describe('Builder > Collection', () => {
       }),
     );
 
-    agent.addDatasource(dataSource);
+    jest.spyOn(agent.forestAdminHttpDriver, 'start').mockResolvedValue();
+
+    await agent.addDatasource(async () => dataSource).start();
 
     const collectionBuilder = new CollectionBuilder(agent, collectionName);
 
@@ -38,8 +40,8 @@ describe('Builder > Collection', () => {
   };
 
   describe('renameField', () => {
-    it('should rename a field', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should rename a field', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.rename.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'renameField');
@@ -54,8 +56,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('removeField', () => {
-    it('should remove the field given fields', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should remove the field given fields', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.publication.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'changeFieldVisibility');
@@ -72,8 +74,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('addAction', () => {
-    it('should add an action', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should add an action', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.action.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'addAction');
@@ -93,8 +95,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('importField', () => {
-    it('should call addField', () => {
-      const { collectionBuilder } = setup();
+    it('should call addField', async () => {
+      const { collectionBuilder } = await setup();
       const spy = jest.spyOn(collectionBuilder, 'addField');
 
       const self = collectionBuilder.importField('firstNameCopy', { path: 'firstName' });
@@ -110,8 +112,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('addField', () => {
-    it('should add a field', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should add a field', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.lateComputed.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'registerComputed');
@@ -132,8 +134,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('addRelation', () => {
-    it('should add a relation', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should add a relation', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.relation.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'addRelation');
@@ -155,8 +157,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('addSegment', () => {
-    it('should add a segment', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should add a segment', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.segment.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'addSegment');
@@ -173,8 +175,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('emulateFieldSorting', () => {
-    it('should emulate sort on field', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should emulate sort on field', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.sortEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateFieldSorting');
@@ -188,8 +190,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('replaceFieldSorting', () => {
-    it('should replace sort on field', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should replace sort on field', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.sortEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'replaceFieldSorting');
@@ -205,8 +207,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('replaceFieldWriting', () => {
-    it('should replace write on field', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should replace write on field', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.write.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'replaceFieldWriting');
@@ -220,8 +222,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('emulateFieldFiltering', () => {
-    it('should emulate operator on field', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should emulate operator on field', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.earlyOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
@@ -234,8 +236,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('emulateFieldOperator', () => {
-    it('should emulate operator on field', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should emulate operator on field', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.earlyOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
@@ -249,8 +251,8 @@ describe('Builder > Collection', () => {
   });
 
   describe('replaceFieldOperator', () => {
-    it('should replace operator on field', () => {
-      const { agent, collectionBuilder, collectionName } = setup();
+    it('should replace operator on field', async () => {
+      const { agent, collectionBuilder, collectionName } = await setup();
 
       const collection = agent.earlyOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'replaceFieldOperator');

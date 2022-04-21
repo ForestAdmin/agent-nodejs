@@ -8,7 +8,7 @@ Note that:
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const SequelizeDataSource = require('@forestadmin/datasource-sequelize');
+const createSequelizeDataSource = require('@forestadmin/datasource-sequelize');
 const { Sequelize, Model, DataTypes } = require('@sequelize/core');
 
 // Create a sequelize instance
@@ -24,7 +24,5 @@ User.init(
 );
 
 // Create agent and import collections from sequelize
-const agent = new Agent(options);
-
-agent.addDataSource(new SequelizeDataSource(sequelize));
+const agent = new Agent(options).addDataSource(createSequelizeDataSource(sequelize));
 ```

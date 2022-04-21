@@ -25,12 +25,11 @@ Take note that data sources are defined in independant NPM packages (here `@fore
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const SqlDataSource = require('@forestadmin/datasource-sql');
+const createSqlDataSource = require('@forestadmin/datasource-sql');
 
-const agent = new Agent(options);
-const database = new SqlDataSource('postgres://user:pass@localhost:5432/mySchema');
-
-agent.addDataSource(database);
+const agent = new Agent(options).addDataSource(
+  createSqlDataSource('postgres://user:pass@localhost:5432/mySchema'),
+);
 ```
 
 <!--

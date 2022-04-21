@@ -1,21 +1,30 @@
 import { existsSync } from 'fs';
 import { parse as parsePath } from 'path';
 
-import { AgentOptions, LoggerLevel } from '../../types';
+import { AgentOptions } from '../../types';
 import { AgentOptionsWithDefaults } from '../types';
 
 export default class OptionsUtils {
   private static loggerPrefix = {
-    [LoggerLevel.Info]: '\x1b[34minfo:\x1b[0m',
-    [LoggerLevel.Warn]: '\x1b[33mwarning:\x1b[0m',
-    [LoggerLevel.Error]: '\x1b[31merror:\x1b[0m',
+    Debug: '\x1b[34mdebug:\x1b[0m',
+    Info: '\x1b[32minfo:\x1b[0m',
+    Warn: '\x1b[33mwarning:\x1b[0m',
+    Error: '\x1b[31merror:\x1b[0m',
   };
 
   static withDefaults(options: AgentOptions): AgentOptionsWithDefaults {
     return Object.freeze({
       clientId: null,
       forestServerUrl: 'https://api.forestadmin.com',
-      logger: (level, data) => console.error(OptionsUtils.loggerPrefix[level], data),
+      logger: (level, data) => {
+        const loggerLevel = options.loggerLevel ?? 'Info';
+        const levels = Object.keys(this.loggerPrefix);
+
+        if (levels.indexOf(level) >= levels.indexOf(loggerLevel)) {
+          console.error(OptionsUtils.loggerPrefix[level], data);
+        }
+      },
+      loggerLevel: 'Info',
       prefix: '/forest',
       schemaPath: '.forestadmin-schema.json',
       permissionsCacheDurationInSeconds: 15 * 60,
@@ -69,7 +78,7 @@ export default class OptionsUtils {
 
     if (options.clientId === null) {
       options.logger?.(
-        LoggerLevel.Warn,
+        'Warn',
         'options.clientId was not provided. Using NodeJS cluster mode, ' +
           'or multiple instances of the agent  will break authentication',
       );

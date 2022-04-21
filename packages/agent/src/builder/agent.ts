@@ -5,6 +5,7 @@ import {
   ComputedCollectionDecorator,
   DataSource,
   DataSourceDecorator,
+  DataSourceFactory,
   OperatorsEmulateCollectionDecorator,
   OperatorsReplaceCollectionDecorator,
   PublicationCollectionDecorator,
@@ -53,6 +54,8 @@ export default class AgentBuilder {
   sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
   write: DataSourceDecorator<WriteCollectionDecorator>;
 
+  private tasks: (() => Promise<void>)[] = [];
+
   /**
    * Native nodejs HttpCallback object
    * @example
@@ -70,7 +73,7 @@ export default class AgentBuilder {
    * ```
    *  clientId: null,
    *  forestServerUrl: 'https://api.forestadmin.com',
-   *  logger: (level, data) => console.error(OptionsUtils.loggerPrefix[level], data),
+   *  logger: (level, data) => console.error(level, data),
    *  prefix: '/forest',
    *  schemaPath: '.forestadmin-schema.json',
    *  permissionsCacheDurationInSeconds: 15 * 60,
@@ -119,11 +122,14 @@ export default class AgentBuilder {
 
   /**
    * Add a datasource
-   * @param {DataSource} datasource the datasource to add
+   * @param {DataSourceFactory} factory the datasource to add
    */
-  addDatasource(datasource: DataSource): this {
-    datasource.collections.forEach(collection => {
-      this.compositeDatasource.addCollection(collection);
+  addDatasource(factory: DataSourceFactory): this {
+    this.tasks.push(async () => {
+      const datasource = await factory(this.forestAdminHttpDriver.options.logger);
+      datasource.collections.forEach(collection => {
+        this.compositeDatasource.addCollection(collection);
+      });
     });
 
     return this;
@@ -138,9 +144,11 @@ export default class AgentBuilder {
    * .customizeCollection('books', books => books.renameField('xx', 'yy'))
    */
   customizeCollection(name: string, handle: (collection: CollectionBuilder) => unknown): this {
-    if (this.publication.getCollection(name)) {
-      handle(new CollectionBuilder(this, name));
-    }
+    this.tasks.push(async () => {
+      if (this.publication.getCollection(name)) {
+        handle(new CollectionBuilder(this, name));
+      }
+    });
 
     return this;
   }
@@ -149,6 +157,11 @@ export default class AgentBuilder {
    * Start the agent.
    */
   async start(): Promise<void> {
+    for (const task of this.tasks) {
+      // eslint-disable-next-line no-await-in-loop
+      await task();
+    }
+
     return this.forestAdminHttpDriver.start();
   }
 

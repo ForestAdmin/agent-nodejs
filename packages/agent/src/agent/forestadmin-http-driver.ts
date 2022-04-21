@@ -6,7 +6,7 @@ import bodyParser from 'koa-bodyparser';
 import cors from '@koa/cors';
 import path from 'path';
 
-import { AgentOptions, LoggerLevel } from '../types';
+import { AgentOptions } from '../types';
 import { AgentOptionsWithDefaults } from './types';
 import BaseRoute from './routes/base-route';
 import ForestHttpApi from './utils/forest-http-api';
@@ -74,7 +74,7 @@ export default class ForestAdminHttpDriver {
       await ForestHttpApi.uploadSchema(this.options, schema);
     }
 
-    this.options?.logger(LoggerLevel.Info, 'Started');
+    this.options?.logger('Info', 'Started');
   }
 
   /**

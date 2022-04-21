@@ -1,4 +1,3 @@
-import { LoggerLevel } from '../../../src/types';
 import OptionsUtils from '../../../src/agent/utils/http-driver-options';
 
 describe('OptionsUtils', () => {
@@ -25,7 +24,7 @@ describe('OptionsUtils', () => {
 
       const options = OptionsUtils.withDefaults(mandatoryOptions);
 
-      options.logger(LoggerLevel.Info, 'hello!');
+      options.logger('Info', 'hello!');
       expect(console.error).toHaveBeenCalled();
     });
 
@@ -45,10 +44,11 @@ describe('OptionsUtils', () => {
       clientId: null as string,
       forestServerUrl: 'https://api.development.forestadmin.com',
       logger: () => {},
+      loggerLevel: 'Debug',
       prefix: '/forest',
       schemaPath: '.forestadmin-schema.json',
       permissionsCacheDurationInSeconds: 12,
-    };
+    } as const;
 
     test('should work with good format', () => {
       expect(() => OptionsUtils.validate(allOptions)).not.toThrow();
