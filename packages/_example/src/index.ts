@@ -5,14 +5,15 @@ import makeAgent from './agent';
 
 dotenv.config();
 
-const envHost = process.env.SERVER_HOST;
+const envHost: string = process.env.SERVER_HOST;
 const envPort = Number(process.env.SERVER_PORT);
-const envOptions = {
+const envOptions: AgentOptions = {
   authSecret: process.env.FOREST_AUTH_SECRET,
   agentUrl: process.env.FOREST_AGENT_URL,
   envSecret: process.env.FOREST_ENV_SECRET,
   forestServerUrl: process.env.FOREST_SERVER_URL,
   isProduction: false,
+  loggerLevel: 'Debug',
 };
 
 export default async function start(

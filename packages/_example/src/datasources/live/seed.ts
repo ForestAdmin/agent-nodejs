@@ -1,6 +1,5 @@
-import faker from '@faker-js/faker';
-
 import LiveDataSource from '@forestadmin/datasource-live/dist/datasource';
+import faker from '@faker-js/faker';
 
 import prepareDatabaseMysql from '../sequelize/mysql';
 

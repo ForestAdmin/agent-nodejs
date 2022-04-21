@@ -510,11 +510,7 @@ describe('WriteDecorator', () => {
             // given
             const { collection, dataSource } = setupWithManyToOneRelation();
 
-            const decoratedDatasource = new DataSourceDecorator(
-              () => {},
-              dataSource,
-              WriteDecorator,
-            );
+            const decoratedDatasource = new DataSourceDecorator(dataSource, WriteDecorator);
 
             const pricesCollection = decoratedDatasource.getCollection('prices');
             pricesCollection.update = jest.fn();

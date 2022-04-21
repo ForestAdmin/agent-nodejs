@@ -74,7 +74,7 @@ export default class ForestAdminHttpDriver {
       await ForestHttpApi.uploadSchema(this.options, schema);
     }
 
-    this.options?.logger('info', 'Started');
+    this.options?.logger('Info', 'Started');
   }
 
   /**

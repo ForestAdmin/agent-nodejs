@@ -19,9 +19,9 @@ export default class Logger extends BaseRoute {
     try {
       await next();
     } finally {
-      let logLevel: LoggerLevel = 'info';
-      if (context.response.status >= HttpCode.BadRequest) logLevel = 'warn';
-      if (context.response.status >= HttpCode.InternalServerError) logLevel = 'error';
+      let logLevel: LoggerLevel = 'Info';
+      if (context.response.status >= HttpCode.BadRequest) logLevel = 'Warn';
+      if (context.response.status >= HttpCode.InternalServerError) logLevel = 'Error';
 
       let message = `[${context.response.status}]`;
       message += ` ${context.request.method} ${context.request.path}`;

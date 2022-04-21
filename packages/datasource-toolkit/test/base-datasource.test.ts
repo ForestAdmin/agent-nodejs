@@ -7,7 +7,7 @@ class ConcreteDatasource extends BaseDataSource<Collection> {}
 
 describe('BaseDatasource', () => {
   it('should instanciate properly when extended', () => {
-    expect(new ConcreteDatasource(() => {})).toBeDefined();
+    expect(new ConcreteDatasource()).toBeDefined();
   });
 
   describe('collections (getter)', () => {
@@ -15,7 +15,7 @@ describe('BaseDatasource', () => {
 
     class DataSourceWithCollection extends BaseDataSource<Collection> {
       constructor() {
-        super(() => {});
+        super();
 
         this.addCollection(expectedCollection);
       }
@@ -33,7 +33,7 @@ describe('BaseDatasource', () => {
 
     class DataSourceWithCollection extends BaseDataSource<Collection> {
       constructor() {
-        super(() => {});
+        super();
 
         this.addCollection(expectedCollection);
       }
@@ -59,7 +59,7 @@ describe('BaseDatasource', () => {
 
     class DataSourceWithCollection extends ConcreteDatasource {
       constructor() {
-        super(() => {});
+        super();
 
         this.addCollection(expectedCollection);
       }
@@ -67,7 +67,7 @@ describe('BaseDatasource', () => {
 
     class DuplicatedCollectionErrorDataSource extends ConcreteDatasource {
       constructor() {
-        super(() => {});
+        super();
 
         this.addCollection(factories.collection.build({ name: '__duplicated__' }));
         this.addCollection(factories.collection.build({ name: '__duplicated__' }));

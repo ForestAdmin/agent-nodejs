@@ -16,10 +16,13 @@ export default class SqlDataSource extends SequelizeDataSource {
   private readonly queryInterface: QueryInterface;
   private readonly defaultValueParser: DefaultValueParser;
   private readonly sqlTypeConverter: SqlTypeConverter;
+  protected logger: Logger;
 
   constructor(logger: Logger, connectionUri: string) {
-    super(logger, new Sequelize(connectionUri, { logging: false }));
+    const logging = (sql: string) => logger('Debug', sql.substring(sql.indexOf(':') + 2));
+    super(logger, new Sequelize(connectionUri, { logging }));
 
+    this.logger = logger;
     this.queryInterface = this.sequelize.getQueryInterface();
     this.defaultValueParser = new DefaultValueParser(this.sequelize.getDialect() as Dialect);
     this.sqlTypeConverter = new SqlTypeConverter(this.sequelize);
@@ -37,7 +40,7 @@ export default class SqlDataSource extends SequelizeDataSource {
   private async defineModels(tableNames: string[]): Promise<void[]> {
     return Promise.all(
       tableNames.map(async tableName => {
-        this.logger('info', `introspect table "${tableName}"`);
+        this.logger('Debug', `Introspecting table '${tableName}'`);
         const colmumnDescriptions = await this.queryInterface.describeTable(tableName);
 
         const fieldDescriptions = await Promise.all(

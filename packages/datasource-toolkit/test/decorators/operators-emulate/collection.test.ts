@@ -39,11 +39,7 @@ describe('OperatorsEmulate', () => {
 
     // Build decorator
     beforeEach(() => {
-      decoratedDataSource = new DataSourceDecorator(
-        () => {},
-        dataSource,
-        OperatorEmulationDecorator,
-      );
+      decoratedDataSource = new DataSourceDecorator(dataSource, OperatorEmulationDecorator);
       newBooks = decoratedDataSource.getCollection('books');
     });
 
@@ -104,11 +100,7 @@ describe('OperatorsEmulate', () => {
 
     // Build decorator
     beforeEach(() => {
-      decoratedDataSource = new DataSourceDecorator(
-        () => {},
-        dataSource,
-        OperatorEmulationDecorator,
-      );
+      decoratedDataSource = new DataSourceDecorator(dataSource, OperatorEmulationDecorator);
 
       newBooks = decoratedDataSource.getCollection('books');
       newPersons = decoratedDataSource.getCollection('persons');

@@ -72,7 +72,7 @@ describe('ComputedDecorator', () => {
 
   // Build decorator
   beforeEach(() => {
-    decoratedDataSource = new DataSourceDecorator(() => {}, dataSource, ComputedCollection);
+    decoratedDataSource = new DataSourceDecorator(dataSource, ComputedCollection);
 
     newBooks = decoratedDataSource.getCollection('books');
     newPersons = decoratedDataSource.getCollection('persons');

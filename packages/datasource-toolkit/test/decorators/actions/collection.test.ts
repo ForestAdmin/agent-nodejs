@@ -25,7 +25,7 @@ describe('ActionDecorator', () => {
     });
 
     dataSource = factories.dataSource.buildWithCollections([books]);
-    decoratedDataSource = new DataSourceDecorator(() => {}, dataSource, ActionCollection);
+    decoratedDataSource = new DataSourceDecorator(dataSource, ActionCollection);
     newBooks = decoratedDataSource.getCollection('books');
   });
 

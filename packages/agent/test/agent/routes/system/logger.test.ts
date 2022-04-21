@@ -49,7 +49,7 @@ describe('Logger', () => {
 
       await handleLog.call(route, context, next);
 
-      expect(options.logger).toHaveBeenCalledWith('info', '[200] GET someUrl - 0ms');
+      expect(options.logger).toHaveBeenCalledWith('Info', '[200] GET someUrl - 0ms');
     });
 
     test('should log the request when the route respond with 400', async () => {
@@ -60,7 +60,7 @@ describe('Logger', () => {
       const next = jest.fn().mockResolvedValue(undefined);
 
       await handleLog.call(route, context, next);
-      expect(options.logger).toHaveBeenCalledWith('warn', '[400] GET someUrl - 0ms');
+      expect(options.logger).toHaveBeenCalledWith('Warn', '[400] GET someUrl - 0ms');
     });
 
     test('should log the request when the route throws', async () => {
@@ -71,7 +71,7 @@ describe('Logger', () => {
       const next = jest.fn().mockRejectedValue(new Error('RouteError'));
 
       await expect(handleLog.call(route, context, next)).rejects.toThrow('RouteError');
-      expect(options.logger).toHaveBeenCalledWith('error', '[500] GET someUrl - 0ms');
+      expect(options.logger).toHaveBeenCalledWith('Error', '[500] GET someUrl - 0ms');
     });
   });
 });

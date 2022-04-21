@@ -1,4 +1,4 @@
-const dataSourceSchema = {
+export default {
   collections: {
     address: {
       actions: {},
@@ -13,5 +13,3 @@ const dataSourceSchema = {
     },
   },
 } as const;
-
-export default dataSourceSchema;

@@ -73,7 +73,7 @@ export default class AgentBuilder {
    * ```
    *  clientId: null,
    *  forestServerUrl: 'https://api.forestadmin.com',
-   *  logger: (level, data) => console.error(OptionsUtils.loggerPrefix[level], data),
+   *  logger: (level, data) => console.error(level, data),
    *  prefix: '/forest',
    *  schemaPath: '.forestadmin-schema.json',
    *  permissionsCacheDurationInSeconds: 15 * 60,

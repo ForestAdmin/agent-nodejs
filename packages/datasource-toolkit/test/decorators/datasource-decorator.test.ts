@@ -5,7 +5,7 @@ import DataSourceDecorator from '../../src/decorators/datasource-decorator';
 describe('DataSourceDecorator', () => {
   test('should decorate child collections', () => {
     const dataSource = factories.dataSource.buildWithCollections([factories.collection.build()]);
-    const decorator = new DataSourceDecorator(() => {}, dataSource, DecoratedCollection);
+    const decorator = new DataSourceDecorator(dataSource, DecoratedCollection);
 
     expect(decorator.collections).toHaveLength(1);
     expect(decorator.collections[0]).toBeInstanceOf(DecoratedCollection);
@@ -15,7 +15,7 @@ describe('DataSourceDecorator', () => {
 
   test('should add collection to decorator if child datasource add a collection', () => {
     const dataSource = factories.dataSource.build();
-    const decorator = new DataSourceDecorator(() => {}, dataSource, DecoratedCollection);
+    const decorator = new DataSourceDecorator(dataSource, DecoratedCollection);
 
     expect(decorator.collections).toHaveLength(0);
 

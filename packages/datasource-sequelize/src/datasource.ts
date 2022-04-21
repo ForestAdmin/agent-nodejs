@@ -8,7 +8,7 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
   protected sequelize: Sequelize = null;
 
   constructor(logger: Logger, sequelize: Sequelize) {
-    super(logger);
+    super();
 
     if (!sequelize) throw new Error('Invalid (null) Sequelize instance.');
 
