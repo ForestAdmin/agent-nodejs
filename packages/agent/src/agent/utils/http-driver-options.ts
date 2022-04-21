@@ -13,6 +13,10 @@ export default class OptionsUtils {
   };
 
   static withDefaults(options: AgentOptions): AgentOptionsWithDefaults {
+    const copyOptions = { ...options };
+    copyOptions.schemaPath = copyOptions.schemaPath || '.forestadmin-schema.json';
+    copyOptions.forestServerUrl = copyOptions.forestServerUrl || 'https://api.forestadmin.com';
+
     return Object.freeze({
       clientId: null,
       forestServerUrl: 'https://api.forestadmin.com',
@@ -28,7 +32,7 @@ export default class OptionsUtils {
       prefix: '/forest',
       schemaPath: '.forestadmin-schema.json',
       permissionsCacheDurationInSeconds: 15 * 60,
-      ...options,
+      ...copyOptions,
     });
   }
 

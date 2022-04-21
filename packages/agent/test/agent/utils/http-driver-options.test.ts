@@ -36,6 +36,33 @@ describe('OptionsUtils', () => {
 
       expect(options).toHaveProperty('forestServerUrl', 'https://api.development.forestadmin.com');
     });
+
+    test('should force to set a default forestServerUrl when null is passed', () => {
+      const options = OptionsUtils.withDefaults({
+        ...mandatoryOptions,
+        forestServerUrl: null,
+      });
+
+      expect(options).toHaveProperty('forestServerUrl', 'https://api.forestadmin.com');
+    });
+
+    test('should force to set a default schemaPath when null is passed', () => {
+      const options = OptionsUtils.withDefaults({
+        ...mandatoryOptions,
+        schemaPath: null,
+      });
+
+      expect(options).toHaveProperty('schemaPath', '.forestadmin-schema.json');
+    });
+
+    test('should do not modify the given option', () => {
+      const options = OptionsUtils.withDefaults({
+        ...mandatoryOptions,
+        schemaPath: null,
+      });
+
+      expect(options).toEqual(options);
+    });
   });
 
   describe('OptionsValidator.validate', () => {
