@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.6...@forestadmin/agent@1.0.0-beta.7) (2022-04-21)
+
+
+### Bug Fixes
+
+* **cors:** handle future private network access header ([#259](https://github.com/ForestAdmin/agent-nodejs/issues/259)) ([e9442f8](https://github.com/ForestAdmin/agent-nodejs/commit/e9442f8aa508dd4e6c663f1641d3161d35da321a))
+
 # @forestadmin/agent [1.0.0-beta.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.5...@forestadmin/agent@1.0.0-beta.6) (2022-04-19)
 
 
