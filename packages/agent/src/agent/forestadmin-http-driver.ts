@@ -1,4 +1,4 @@
-import { DataSource, LoggerLevel } from '@forestadmin/datasource-toolkit';
+import { DataSource } from '@forestadmin/datasource-toolkit';
 import { IncomingMessage, ServerResponse } from 'http';
 import Koa from 'koa';
 import Router from '@koa/router';
@@ -74,7 +74,7 @@ export default class ForestAdminHttpDriver {
       await ForestHttpApi.uploadSchema(this.options, schema);
     }
 
-    this.options?.logger(LoggerLevel.Info, 'Started');
+    this.options?.logger('Info', 'Started');
   }
 
   /**

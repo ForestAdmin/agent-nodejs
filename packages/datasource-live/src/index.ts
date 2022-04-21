@@ -25,8 +25,8 @@ export default async function makeLiveDataSource(
 
   // Once added to the agent, prune queued logs.
   return (agentLogger: Logger) => {
-    logs.forEach(({ level, message }) => logger(level, message));
     logger = agentLogger;
+    logs.forEach(({ level, message }) => logger(level, message));
 
     return dataSource;
   };

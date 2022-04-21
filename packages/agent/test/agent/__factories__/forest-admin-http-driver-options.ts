@@ -13,4 +13,5 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   clientId: null,
   permissionsCacheDurationInSeconds: 15 * 60,
   logger: () => {},
+  loggerLevel: 'Info',
 }));

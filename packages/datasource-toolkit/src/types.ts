@@ -1,13 +1,7 @@
 import { DataSource } from './interfaces/collection';
 
-/** Logger Level */
-export enum LoggerLevel {
-  Info = 'info',
-  Warn = 'warn',
-  Error = 'error',
-}
-
 /** Logger */
+export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LoggerLevel, message: unknown) => void;
 
 export type DataSourceFactory = (logger: Logger) => DataSource;

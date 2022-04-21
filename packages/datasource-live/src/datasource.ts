@@ -1,4 +1,4 @@
-import { DataSourceSchema, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
+import { DataSourceSchema, Logger } from '@forestadmin/datasource-toolkit';
 import { Sequelize } from 'sequelize';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
@@ -10,7 +10,7 @@ export default class LiveDataSource extends SequelizeDataSource {
   constructor(dataSourceSchema: DataSourceSchema, logger: Logger) {
     super(
       new Sequelize('sqlite::memory:', {
-        logging: (sql, timing) => logger(LoggerLevel.Info, `${sql} ${timing}`),
+        logging: sql => logger('Debug', sql.substring(sql.indexOf(':') + 2)),
       }),
     );
 

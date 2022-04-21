@@ -1,7 +1,6 @@
 import Router from '@koa/router';
 
 import * as factories from '../../__factories__';
-import { LoggerLevel } from '../../../../src/types';
 import Logger from '../../../../src/agent/routes/system/logger';
 
 describe('Logger', () => {
@@ -50,7 +49,7 @@ describe('Logger', () => {
 
       await handleLog.call(route, context, next);
 
-      expect(options.logger).toHaveBeenCalledWith(LoggerLevel.Info, '[200] GET someUrl - 0ms');
+      expect(options.logger).toHaveBeenCalledWith('Info', '[200] GET someUrl - 0ms');
     });
 
     test('should log the request when the route respond with 400', async () => {
@@ -61,7 +60,7 @@ describe('Logger', () => {
       const next = jest.fn().mockResolvedValue(undefined);
 
       await handleLog.call(route, context, next);
-      expect(options.logger).toHaveBeenCalledWith(LoggerLevel.Warn, '[400] GET someUrl - 0ms');
+      expect(options.logger).toHaveBeenCalledWith('Warn', '[400] GET someUrl - 0ms');
     });
 
     test('should log the request when the route throws', async () => {
@@ -72,7 +71,7 @@ describe('Logger', () => {
       const next = jest.fn().mockRejectedValue(new Error('RouteError'));
 
       await expect(handleLog.call(route, context, next)).rejects.toThrow('RouteError');
-      expect(options.logger).toHaveBeenCalledWith(LoggerLevel.Error, '[500] GET someUrl - 0ms');
+      expect(options.logger).toHaveBeenCalledWith('Error', '[500] GET someUrl - 0ms');
     });
   });
 });

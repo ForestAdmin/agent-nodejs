@@ -1,6 +1,5 @@
 import { DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import { Sequelize } from 'sequelize';
-import SequelizeCollection from './collection';
 import SequelizeDataSource from './datasource';
 
 export default async function makeSequelizeDataSource(
@@ -10,4 +9,5 @@ export default async function makeSequelizeDataSource(
 }
 
 export { SequelizeDataSource };
-export { SequelizeCollection };
+export { default as SequelizeCollection } from './collection';
+export { default as TypeConverter } from './utils/type-converter';

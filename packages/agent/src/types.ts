@@ -1,4 +1,4 @@
-import { Logger } from '@forestadmin/datasource-toolkit';
+import { Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
@@ -8,6 +8,7 @@ export type AgentOptions = {
   envSecret: string;
   forestServerUrl?: string;
   logger?: Logger;
+  loggerLevel?: LoggerLevel;
   prefix?: string;
   isProduction: boolean;
   schemaPath?: string;

@@ -5,7 +5,7 @@ import {
   QueryInterface,
   Sequelize,
 } from 'sequelize';
-import { Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
+import { Logger } from '@forestadmin/datasource-toolkit';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import DefaultValueParser from './utils/default-value-parser';
 import SqlTypeConverter from './utils/sql-type-converter';
@@ -18,7 +18,7 @@ export default class SqlDataSource extends SequelizeDataSource {
   constructor(connectionUri: string, logger: Logger) {
     super(
       new Sequelize(connectionUri, {
-        logging: (sql, timing) => logger(LoggerLevel.Info, `${sql} ${timing}`),
+        logging: (sql, timing) => logger('Info', `${sql} ${timing}`),
       }),
     );
 
