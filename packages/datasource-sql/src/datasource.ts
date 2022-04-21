@@ -40,7 +40,6 @@ export default class SqlDataSource extends SequelizeDataSource {
   private async defineModels(tableNames: string[]): Promise<void[]> {
     return Promise.all(
       tableNames.map(async tableName => {
-        this.logger?.('Debug', `Introspecting table '${tableName}'`);
         const colmumnDescriptions = await this.queryInterface.describeTable(tableName);
 
         const fieldDescriptions = await Promise.all(

@@ -17,8 +17,10 @@ describe('Utils > TypeConverter', () => {
   });
 
   describe('fromDataType', () => {
-    it('should return undefined with an unsupported data type', () => {
-      expect(TypeConverter.fromDataType(DataTypes.VIRTUAL())).toBeUndefined();
+    it('should throw an error with an unsupported data type', () => {
+      expect(() => TypeConverter.fromDataType(DataTypes.VIRTUAL())).toThrow(
+        'Unsupported data type: "VIRTUAL"',
+      );
     });
 
     it('should return a column type when known', () => {

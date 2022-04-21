@@ -62,15 +62,23 @@ export default class ModelToCollectionSchemaConverter {
     }
   }
 
-  private static convertAssociations(associations: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: Association<Model<any, any>, Model<any, any>>;
-  }): CollectionSchema['fields'] {
+  private static convertAssociations(
+    modelName: string,
+    associations: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [key: string]: Association<Model<any, any>, Model<any, any>>;
+    },
+    logger: Logger,
+  ): CollectionSchema['fields'] {
     const schemaAssociations = {};
 
     if (associations) {
-      Object.entries(associations).forEach(([key, association]) => {
-        schemaAssociations[key] = this.convertAssociation(association);
+      Object.entries(associations).forEach(([name, association]) => {
+        try {
+          schemaAssociations[name] = this.convertAssociation(association);
+        } catch (error) {
+          logger?.('Warn', `Skipping association '${modelName}.${name}' (${error.message})`);
+        }
       });
     }
 
@@ -126,8 +134,8 @@ export default class ModelToCollectionSchemaConverter {
     Object.entries(attributes).forEach(([name, attribute]) => {
       try {
         fields[name] = this.convertAttribute(attribute as ModelAttributeColumnOptions);
-      } catch (e) {
-        logger?.('Warn', `Skipping column '${modelName}.${name}' (${e.message})`);
+      } catch (error) {
+        logger?.('Warn', `Skipping column '${modelName}.${name}' (${error.message})`);
       }
     });
 
@@ -142,7 +150,7 @@ export default class ModelToCollectionSchemaConverter {
       actions: {},
       fields: {
         ...this.convertAttributes(model.name, model.getAttributes(), logger),
-        ...this.convertAssociations(model.associations),
+        ...this.convertAssociations(model.name, model.associations, logger),
       },
       searchable: false,
       segments: [],

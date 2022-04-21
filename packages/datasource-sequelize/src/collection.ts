@@ -21,10 +21,10 @@ export default class SequelizeCollection extends BaseCollection {
   protected model: ModelDefined<any, any>;
   private aggregationUtils: AggregationUtils;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(
     name: string,
     datasource: DataSource,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     model: ModelDefined<any, any>,
     logger?: Logger,
   ) {
