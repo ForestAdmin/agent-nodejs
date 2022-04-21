@@ -1,3 +1,19 @@
+# @forestadmin/datasource-sql [1.0.0-beta.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.11...@forestadmin/datasource-sql@1.0.0-beta.12) (2022-04-21)
+
+
+### Features
+
+* harmonize datasource creation and pass logger to it ([#257](https://github.com/ForestAdmin/agent-nodejs/issues/257)) ([82cb4ea](https://github.com/ForestAdmin/agent-nodejs/commit/82cb4ea37ac0a9fe83423d917226dfd8fad7d0a6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.8
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.6
+
 # @forestadmin/datasource-sql [1.0.0-beta.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.10...@forestadmin/datasource-sql@1.0.0-beta.11) (2022-04-21)
 
 
