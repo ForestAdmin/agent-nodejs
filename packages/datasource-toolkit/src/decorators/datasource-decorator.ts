@@ -1,5 +1,4 @@
 import { Collection, DataSource } from '../interfaces/collection';
-import { Logger } from '../logger';
 import BaseDataSource from '../base-datasource';
 
 type CollectionDecoratorConstructor<CollectionDecorator> = {
@@ -19,11 +18,10 @@ export default class DataSourceDecorator<
   }
 
   constructor(
-    logger: Logger,
     childDataSource: DataSource,
     CollectionDecoratorCtor: CollectionDecoratorConstructor<CollectionDecorator>,
   ) {
-    super(logger);
+    super();
 
     this.addCollectionToChildDatasource = childDataSource.addCollection.bind(childDataSource);
     Reflect.defineProperty(childDataSource, 'addCollection', {

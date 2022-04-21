@@ -1,15 +1,14 @@
 import {
   DataSourceDecorator,
   DataSourceFactory,
-  Logger,
   RelationCollectionDecorator,
 } from '@forestadmin/datasource-toolkit';
 import DummyDataSource from './datasource';
 
 export default function createDummyDataSource(): DataSourceFactory {
-  return async (logger: Logger) => {
-    const dummy = new DummyDataSource(logger);
-    const relations = new DataSourceDecorator(logger, dummy, RelationCollectionDecorator);
+  return async () => {
+    const dummy = new DummyDataSource();
+    const relations = new DataSourceDecorator(dummy, RelationCollectionDecorator);
 
     relations.getCollection('persons').addRelation('books', {
       type: 'OneToMany',

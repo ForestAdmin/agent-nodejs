@@ -5,7 +5,7 @@ export default class BaseDataSource<T extends Collection = Collection> implement
   protected _collections: { [collectionName: string]: T } = {};
   protected logger: Logger;
 
-  constructor(logger: Logger) {
+  constructor(logger?: Logger) {
     this.logger = logger;
   }
 

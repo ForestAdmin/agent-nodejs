@@ -16,20 +16,11 @@ import seedLiveDatasource from './datasources/live/seed';
 
 export default async function makeAgent(options: AgentOptions) {
   return new Agent(options)
-    .addDatasource(createSequelizeDataSource({ connection: prepareOwnerInPostgres() }))
-    .addDatasource(
-      createLiveDataSource({
-        dataSourceSchema: liveDatasourceSchema,
-        seeder: seedLiveDatasource,
-      }),
-    )
-    .addDatasource(createSequelizeDataSource({ connection: prepareStoreInMysql() }))
-    .addDatasource(createSequelizeDataSource({ connection: await prepareDvdRentalsInMssql() }))
-    .addDatasource(
-      createSqlDataSource({
-        connectionUri: 'mariadb://example:password@localhost:3808/example',
-      }),
-    )
+    .addDatasource(createSequelizeDataSource(prepareOwnerInPostgres()))
+    .addDatasource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }))
+    .addDatasource(createSequelizeDataSource(prepareStoreInMysql()))
+    .addDatasource(createSequelizeDataSource(await prepareDvdRentalsInMssql()))
+    .addDatasource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
 
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('address', customizeAddress)

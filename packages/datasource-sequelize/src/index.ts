@@ -7,12 +7,6 @@ export { default as SequelizeCollection } from './collection';
 export { default as SequelizeDataSource } from './datasource';
 export { default as TypeConverter } from './utils/type-converter';
 
-export type SequelizeDataSourceOptions = {
-  connection: Sequelize;
-};
-
-export default function createSequelizeDataSource(
-  options: SequelizeDataSourceOptions,
-): DataSourceFactory {
-  return async (logger: Logger) => new SequelizeDataSource(logger, options.connection);
+export default function createSequelizeDataSource(connection: Sequelize): DataSourceFactory {
+  return async (logger: Logger) => new SequelizeDataSource(logger, connection);
 }

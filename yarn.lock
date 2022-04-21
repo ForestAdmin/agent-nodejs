@@ -699,61 +699,6 @@
     lodash.isfunction "^3.0.9"
     lodash.isnil "^4.0.0"
 
-"@forestadmin/agent@1.0.0-beta.6":
-  version "1.0.0-beta.6"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.0.0-beta.6.tgz#ead4c8aacfd62507fca6ed4441b05faf5c647052"
-  integrity sha512-ysSF7+nE7EFFF/BXMgYHhJR3V0DwcdjI32Tqt7agjxJa70HfHYLU55FRqa8gg+cV8G00NJwAhyT0YJWBRHePVA==
-  dependencies:
-    "@fast-csv/format" "^4.3.5"
-    "@forestadmin/datasource-toolkit" "1.0.0-beta.5"
-    "@koa/cors" "^3.1.0"
-    "@koa/router" "^10.1.1"
-    forest-ip-utils "^1.0.1"
-    json-api-serializer "^2.6.6"
-    json-stringify-pretty-compact "^3.0.0"
-    jsonwebtoken "^8.5.1"
-    koa "^2.13.4"
-    koa-bodyparser "^4.3.0"
-    koa-jwt "^4.0.3"
-    lru-cache "^7.3.1"
-    luxon "^2.3.0"
-    object-hash "^2.2.0"
-    openid-client "5.1.3"
-    superagent "^7.0.1"
-    uuid "^8.3.2"
-
-"@forestadmin/datasource-dummy@1.0.0-beta.5":
-  version "1.0.0-beta.5"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-dummy/-/datasource-dummy-1.0.0-beta.5.tgz#96d3ff6078a56b198aa31d39cec0e20f3270b2ad"
-  integrity sha512-8NOx3WfNMjAhAG2mZWS3VWSUXTG3j563km6apAK35sKFdNC1JobgCUYCERdx/tt1ZU4rsx/JU4XJDR3bqDjleQ==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.0.0-beta.5"
-
-"@forestadmin/datasource-sequelize@1.0.0-beta.6":
-  version "1.0.0-beta.6"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.0.0-beta.6.tgz#bfdb8520328ba3717f6e8dd9ee942f7f3a50bce3"
-  integrity sha512-Zl0F6AOHw/jZ1GSoWEL8MtLReRe2hPg4GNZoL13Kpr/B3s/IDR3JY216/W+wvBCaRXUghEh+jRPTpWlNtsHV9Q==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.0.0-beta.5"
-
-"@forestadmin/datasource-sql@1.0.0-beta.8":
-  version "1.0.0-beta.8"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sql/-/datasource-sql-1.0.0-beta.8.tgz#53eeb0d6d799aacdc23782a7a5831687e0d6fb42"
-  integrity sha512-Z+GibVZAevCzfRQEX4JgIkozHw6tH7oTjBNP38hunCkiVwP3k35j29VaFpZsCMOWKA3EOHnwMYal00ujCq4YAg==
-  dependencies:
-    "@forestadmin/datasource-sequelize" "1.0.0-beta.6"
-    "@forestadmin/datasource-toolkit" "1.0.0-beta.5"
-    sequelize "6.18.0"
-
-"@forestadmin/datasource-toolkit@1.0.0-beta.5":
-  version "1.0.0-beta.5"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.0.0-beta.5.tgz#030287bf824d0a1cbb71e2d28313a0e7ec446542"
-  integrity sha512-XGOEeWt/DBdHZ3pmLAZusdKN5/F5Bxf0Tuo0zX08aEQF9LjWhub0jwaCIz0Ive2QtjG5HwJZxfi0liF1Vfv7NQ==
-  dependencies:
-    luxon "^2.3.0"
-    object-hash "^2.2.0"
-    uuid "^8.3.2"
-
 "@gar/promisify@^1.0.1":
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.3.tgz#555193ab2e3bb3b6adc3d551c9c030d9e860daf6"
@@ -8226,7 +8171,7 @@ object-assign@^4.1.0, object-assign@^4.1.1:
   resolved "https://registry.yarnpkg.com/object-assign/-/object-assign-4.1.1.tgz#2109adc7965887cfc05cbbd442cac8bfbb360863"
   integrity sha1-IQmtx5ZYh8/AXLvUQsrIv7s2CGM=
 
-object-hash@^2.0.1, object-hash@^2.2.0:
+object-hash@^2.0.1:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/object-hash/-/object-hash-2.2.0.tgz#5ad518581eefc443bd763472b8ff2e9c2c0d54a5"
   integrity sha512-gScRMn0bS5fH+IuwyIFgnh9zBdo4DV+6GhygmWM9HyNJSgS0hScp1f5vjtm7oIIOiT9trXrShAkLFSc2IqKNgw==

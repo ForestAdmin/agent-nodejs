@@ -1,6 +1,4 @@
-import { LiveDataSourceOptions } from '@forestadmin/datasource-live';
-
-const dataSourceSchema: LiveDataSourceOptions['dataSourceSchema'] = {
+const dataSourceSchema = {
   collections: {
     address: {
       actions: {},
@@ -14,6 +12,6 @@ const dataSourceSchema: LiveDataSourceOptions['dataSourceSchema'] = {
       segments: [] as string[],
     },
   },
-};
+} as const;
 
 export default dataSourceSchema;

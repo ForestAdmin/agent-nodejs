@@ -88,68 +88,32 @@ export default class AgentBuilder {
     let last: DataSource;
 
     /* eslint-disable no-multi-assign */
-    last = this.compositeDatasource = new BaseDataSource<Collection>(options.logger);
+    last = this.compositeDatasource = new BaseDataSource<Collection>();
 
     // Step 1: Computed-Relation-Computed sandwich (needed because some emulated relations depend
     // on computed fields, and some computed fields depend on relation...)
     // Note that replacement goes before emulation, as replacements may use emulated operators.
-    last = this.earlyComputed = new DataSourceDecorator(
-      options.logger,
-      last,
-      ComputedCollectionDecorator,
-    );
-    last = this.earlyOpEmulate = new DataSourceDecorator(
-      options.logger,
-      last,
-      OperatorsEmulateCollectionDecorator,
-    );
-    last = this.earlyOpReplace = new DataSourceDecorator(
-      options.logger,
-      last,
-      OperatorsReplaceCollectionDecorator,
-    );
-    last = this.relation = new DataSourceDecorator(
-      options.logger,
-      last,
-      RelationCollectionDecorator,
-    );
-    last = this.lateComputed = new DataSourceDecorator(
-      options.logger,
-      last,
-      ComputedCollectionDecorator,
-    );
-    last = this.lateOpEmulate = new DataSourceDecorator(
-      options.logger,
-      last,
-      OperatorsEmulateCollectionDecorator,
-    );
-    last = this.lateOpReplace = new DataSourceDecorator(
-      options.logger,
-      last,
-      OperatorsReplaceCollectionDecorator,
-    );
+    last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
+    last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
+    last = this.earlyOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
+    last = this.relation = new DataSourceDecorator(last, RelationCollectionDecorator);
+    last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
+    last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
+    last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
 
     // Step 2: Those four need access to all fields. They can be loaded in any order.
-    last = this.search = new DataSourceDecorator(options.logger, last, SearchCollectionDecorator);
-    last = this.segment = new DataSourceDecorator(options.logger, last, SegmentCollectionDecorator);
-    last = this.sortEmulate = new DataSourceDecorator(
-      options.logger,
-      last,
-      SortEmulateCollectionDecorator,
-    );
-    last = this.write = new DataSourceDecorator(options.logger, last, WriteCollectionDecorator);
+    last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
+    last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
+    last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
+    last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
 
     // Step 3: Access to all fields AND emulated capabilities
-    last = this.action = new DataSourceDecorator(options.logger, last, ActionCollectionDecorator);
+    last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
     // is consistent.
-    last = this.publication = new DataSourceDecorator(
-      options.logger,
-      last,
-      PublicationCollectionDecorator,
-    );
-    last = this.rename = new DataSourceDecorator(options.logger, last, RenameCollectionDecorator);
+    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
+    last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
 
     /* eslint-enable no-multi-assign */
 

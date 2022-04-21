@@ -3,16 +3,18 @@ import { DataSourceFactory, DataSourceSchema, Logger } from '@forestadmin/dataso
 import LiveDataSource from './datasource';
 
 export type LiveDataSourceOptions = {
-  dataSourceSchema: DataSourceSchema;
   seeder: (datasource: LiveDataSource) => Promise<void>;
 };
 
-export default function createLiveDataSource(options: LiveDataSourceOptions): DataSourceFactory {
+export default function createLiveDataSource(
+  dataSourceSchema: DataSourceSchema,
+  options?: LiveDataSourceOptions,
+): DataSourceFactory {
   return async (logger: Logger) => {
-    const datasource = new LiveDataSource(logger, options.dataSourceSchema);
+    const datasource = new LiveDataSource(logger, dataSourceSchema);
     await datasource.syncCollections();
 
-    await options.seeder(datasource);
+    if (options?.seeder) await options.seeder(datasource);
 
     return datasource;
   };
