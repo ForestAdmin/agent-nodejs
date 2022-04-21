@@ -20,7 +20,7 @@ export default class OptionsUtils {
         const loggerLevel = options.loggerLevel ?? 'Info';
         const levels = Object.keys(this.loggerPrefix);
 
-        if (levels.indexOf(level) <= levels.indexOf(loggerLevel)) {
+        if (levels.indexOf(level) >= levels.indexOf(loggerLevel)) {
           console.error(OptionsUtils.loggerPrefix[level], data);
         }
       },

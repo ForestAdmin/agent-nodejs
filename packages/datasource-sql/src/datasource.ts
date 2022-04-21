@@ -18,7 +18,7 @@ export default class SqlDataSource extends SequelizeDataSource {
   constructor(connectionUri: string, logger: Logger) {
     super(
       new Sequelize(connectionUri, {
-        logging: (sql, timing) => logger('Info', `${sql} ${timing}`),
+        logging: sql => logger('Debug', sql.substring(sql.indexOf(':') + 2)),
       }),
     );
 
