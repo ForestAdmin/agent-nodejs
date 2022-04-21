@@ -1,3 +1,18 @@
+# @forestadmin/datasource-dummy [1.0.0-beta.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.0-beta.5...@forestadmin/datasource-dummy@1.0.0-beta.6) (2022-04-21)
+
+
+### Features
+
+* harmonize datasource creation and pass logger to it ([#257](https://github.com/ForestAdmin/agent-nodejs/issues/257)) ([82cb4ea](https://github.com/ForestAdmin/agent-nodejs/commit/82cb4ea37ac0a9fe83423d917226dfd8fad7d0a6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.6
+
 # @forestadmin/datasource-dummy [1.0.0-beta.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.0-beta.4...@forestadmin/datasource-dummy@1.0.0-beta.5) (2022-04-19)
 
 
