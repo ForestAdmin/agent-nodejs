@@ -7,9 +7,9 @@ import CollectionRelationsConverter from './utils/collection-schema-to-model-rel
 import LiveCollection from './collection';
 
 export default class LiveDataSource extends SequelizeDataSource {
-  constructor(logger: Logger, dataSourceSchema: DataSourceSchema) {
-    const logging = (sql: string) => logger('Debug', sql.substring(sql.indexOf(':') + 2));
-    super(logger, new Sequelize('sqlite::memory:', { logging }));
+  constructor(dataSourceSchema: DataSourceSchema, logger?: Logger) {
+    const logging = (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
+    super(new Sequelize('sqlite::memory:', { logging }));
 
     const collections = Object.entries(dataSourceSchema.collections);
 

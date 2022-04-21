@@ -20,7 +20,7 @@ export default class SqlDataSource extends SequelizeDataSource {
 
   constructor(logger: Logger, connectionUri: string) {
     const logging = (sql: string) => logger('Debug', sql.substring(sql.indexOf(':') + 2));
-    super(logger, new Sequelize(connectionUri, { logging }));
+    super(new Sequelize(connectionUri, { logging }));
 
     this.logger = logger;
     this.queryInterface = this.sequelize.getQueryInterface();

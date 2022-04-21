@@ -7,11 +7,11 @@ export type LiveDataSourceOptions = {
 };
 
 export default function createLiveDataSource(
-  dataSourceSchema: DataSourceSchema,
+  schema: DataSourceSchema,
   options?: LiveDataSourceOptions,
 ): DataSourceFactory {
   return async (logger: Logger) => {
-    const datasource = new LiveDataSource(logger, dataSourceSchema);
+    const datasource = new LiveDataSource(schema, logger);
     await datasource.syncCollections();
 
     if (options?.seeder) await options.seeder(datasource);
