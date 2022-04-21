@@ -1,4 +1,4 @@
-import Agent, { Collection } from '../src';
+import { Agent, Collection } from '../src';
 
 describe('exports', () => {
   describe.each([

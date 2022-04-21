@@ -19,8 +19,8 @@ Note that, to be able to work, the credentials which are provided to the data so
 Taking database structure changes into account will require restarting the agent.
 
 ```javascript
-const Agent = require('@forestadmin/agent');
-const createSqlDataSource = require('@forestadmin/datasource-sql');
+const { Agent } = require('@forestadmin/agent');
+const { createSqlDataSource } = require('@forestadmin/datasource-sql');
 
 // Create agent and import collections from SQL database
 const agent = new Agent(options).addDataSource(

@@ -24,8 +24,8 @@ In this example, we import a all tables from a PostgreSQL database into Forest A
 Take note that data sources are defined in independant NPM packages (here `@forestadmin/datasource-sql`).
 
 ```javascript
-const Agent = require('@forestadmin/agent');
-const createSqlDataSource = require('@forestadmin/datasource-sql');
+const { Agent } = require('@forestadmin/agent');
+const { createSqlDataSource } = require('@forestadmin/datasource-sql');
 
 const agent = new Agent(options).addDataSource(
   createSqlDataSource('postgres://user:pass@localhost:5432/mySchema'),

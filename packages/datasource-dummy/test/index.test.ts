@@ -1,7 +1,7 @@
-import makeDummyDataSource from '../src/index';
+import { createDummyDataSource } from '../src/index';
 
 describe('getCollections', () => {
   it('should not crash', () => {
-    expect(() => makeDummyDataSource()).not.toThrow();
+    expect(() => createDummyDataSource()).not.toThrow();
   });
 });
