@@ -1,6 +1,3 @@
-import Agent from './builder/agent';
-
-export * from './types';
+export { default as Agent } from './builder/agent';
 export { default as Collection } from './builder/collection';
-
-export default Agent;
+export * from './types';

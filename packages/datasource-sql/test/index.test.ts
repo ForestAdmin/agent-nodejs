@@ -1,7 +1,7 @@
-import SqlDataSource from '../src';
+import { createSqlDataSource } from '../src';
 
 describe('exports', () => {
-  describe.each([['SqlDataSource', SqlDataSource]])('class %s', (message, type) => {
+  describe.each([['createSqlDataSource', createSqlDataSource]])('class %s', (message, type) => {
     it('should be defined', () => {
       expect(type).toBeDefined();
     });

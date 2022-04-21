@@ -7,8 +7,8 @@ Note that:
 - Sequelize association, field aliasing, relationships and validation will be respected
 
 ```javascript
-const Agent = require('@forestadmin/agent');
-const createSequelizeDataSource = require('@forestadmin/datasource-sequelize');
+const { Agent } = require('@forestadmin/agent');
+const { createSequelizeDataSource } = require('@forestadmin/datasource-sequelize');
 const { Sequelize, Model, DataTypes } = require('@sequelize/core');
 
 // Create a sequelize instance

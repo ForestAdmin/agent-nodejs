@@ -1,4 +1,4 @@
-import createLiveDataSource from '../src';
+import { createLiveDataSource } from '../src';
 
 describe('exports', () => {
   describe.each([['createLiveDataSource', createLiveDataSource]])('class %s', (message, type) => {

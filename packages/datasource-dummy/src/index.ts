@@ -5,7 +5,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import DummyDataSource from './datasource';
 
-export default function createDummyDataSource(): DataSourceFactory {
+// eslint-disable-next-line import/prefer-default-export
+export function createDummyDataSource(): DataSourceFactory {
   return async () => {
     const dummy = new DummyDataSource();
     const relations = new DataSourceDecorator(dummy, RelationCollectionDecorator);

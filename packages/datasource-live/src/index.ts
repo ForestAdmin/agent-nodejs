@@ -6,7 +6,7 @@ export type LiveDataSourceOptions = {
   seeder: (datasource: LiveDataSource) => Promise<void>;
 };
 
-export default function createLiveDataSource(
+export function createLiveDataSource(
   schema: DataSourceSchema,
   options?: LiveDataSourceOptions,
 ): DataSourceFactory {

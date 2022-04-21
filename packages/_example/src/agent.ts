@@ -1,7 +1,7 @@
-import Agent, { AgentOptions } from '@forestadmin/agent';
-import createLiveDataSource from '@forestadmin/datasource-live';
-import createSequelizeDataSource from '@forestadmin/datasource-sequelize';
-import createSqlDataSource from '@forestadmin/datasource-sql';
+import { Agent, AgentOptions } from '@forestadmin/agent';
+import { createLiveDataSource } from '@forestadmin/datasource-live';
+import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import customizeAddress from './customizations/address';
 import customizeCustomer from './customizations/customer';
 import customizeDvd from './customizations/dvd';
