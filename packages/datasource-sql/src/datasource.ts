@@ -34,7 +34,7 @@ export default class SqlDataSource extends SequelizeDataSource {
     await this.defineModels(tableNames);
     await this.defineRelations(tableNames);
 
-    this.createCollections(this.sequelize.models);
+    this.createCollections(this.sequelize.models, this.logger);
   }
 
   private async defineModels(tableNames: string[]): Promise<void[]> {

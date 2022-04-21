@@ -6,6 +6,7 @@ import {
   BaseCollection,
   DataSource,
   Filter,
+  Logger,
   PaginatedFilter,
   Projection,
   RecordData,
@@ -21,7 +22,12 @@ export default class SequelizeCollection extends BaseCollection {
   private aggregationUtils: AggregationUtils;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(name: string, datasource: DataSource, model: ModelDefined<any, any>) {
+  constructor(
+    name: string,
+    datasource: DataSource,
+    model: ModelDefined<any, any>,
+    logger?: Logger,
+  ) {
     super(name, datasource);
 
     if (!model) throw new Error('Invalid (null) model instance.');
@@ -29,7 +35,7 @@ export default class SequelizeCollection extends BaseCollection {
     this.model = model;
     this.aggregationUtils = new AggregationUtils(this.model);
 
-    const modelSchema = ModelConverter.convert(this.model);
+    const modelSchema = ModelConverter.convert(this.model, logger);
 
     this.addFields(modelSchema.fields);
     this.addSegments(modelSchema.segments);

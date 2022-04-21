@@ -14,6 +14,7 @@ import {
   CollectionSchema,
   ColumnSchema,
   FieldSchema,
+  Logger,
   RelationSchema,
 } from '@forestadmin/datasource-toolkit';
 
@@ -115,24 +116,32 @@ export default class ModelToCollectionSchemaConverter {
     return column;
   }
 
-  private static convertAttributes(attributes: ModelAttributes): CollectionSchema['fields'] {
+  private static convertAttributes(
+    modelName: string,
+    attributes: ModelAttributes,
+    logger: Logger,
+  ): CollectionSchema['fields'] {
     const fields: CollectionSchema['fields'] = {};
 
     Object.entries(attributes).forEach(([name, attribute]) => {
-      fields[name] = this.convertAttribute(attribute as ModelAttributeColumnOptions);
+      try {
+        fields[name] = this.convertAttribute(attribute as ModelAttributeColumnOptions);
+      } catch (e) {
+        logger?.('Warn', `Skipping column '${modelName}.${name}' (${e.message})`);
+      }
     });
 
     return fields;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public static convert(model: ModelDefined<any, any>): CollectionSchema {
+  public static convert(model: ModelDefined<any, any>, logger: Logger): CollectionSchema {
     if (!model) throw new Error('Invalid (null) model.');
 
     return {
       actions: {},
       fields: {
-        ...this.convertAttributes(model.getAttributes()),
+        ...this.convertAttributes(model.name, model.getAttributes(), logger),
         ...this.convertAssociations(model.associations),
       },
       searchable: false,
