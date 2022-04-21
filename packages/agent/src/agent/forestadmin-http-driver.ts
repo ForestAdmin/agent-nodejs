@@ -62,7 +62,7 @@ export default class ForestAdminHttpDriver {
     await Promise.all(this.routes.map(route => route.bootstrap()));
 
     this.app
-      .use(cors({ credentials: true, maxAge: 24 * 3600 }))
+      .use(cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }))
       .use(bodyParser({ jsonLimit: '50mb' }))
       .use(router.routes());
 
