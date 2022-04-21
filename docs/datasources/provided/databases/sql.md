@@ -20,11 +20,10 @@ Taking database structure changes into account will require restarting the agent
 
 ```javascript
 const Agent = require('@forestadmin/agent');
-const SqlDataSource = require('@forestadmin/datasource-sql');
+const createSqlDataSource = require('@forestadmin/datasource-sql');
 
 // Create agent and import collections from SQL database
-const agent = new Agent(options);
-const sqlDataSource = new SqlDatasource('postgres://user:pass@localhost:5432/mySchema');
-await sqlDataSource.build();
-agent.addDataSource(sqlDataSource);
+const agent = new Agent(options).addDataSource(
+  createSqlDataSource('postgres://user:pass@localhost:5432/mySchema'),
+);
 ```

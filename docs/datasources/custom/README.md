@@ -151,7 +151,9 @@ const MyDataSource = require('./data source');
 
 const agent = new Agent(options);
 
-agent.addDatasource(new MyDataSource());
+const myDataSourceFactory = async () => new MyDataSource();
+
+agent.addDatasource(myDataSourceFactory);
 ```
 
 {% endtab %} {% endtabs %}
