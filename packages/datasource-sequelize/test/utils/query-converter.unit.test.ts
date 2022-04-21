@@ -26,7 +26,10 @@ describe('Utils > QueryConverter', () => {
           primaryKeyAttributes: ['idA', 'idB'],
           findAll: jest
             .fn()
-            .mockResolvedValue([{ get: jest.fn().mockReturnValueOnce(1).mockReturnValueOnce(2) }]),
+            .mockResolvedValue([
+              { get: jest.fn().mockReturnValueOnce(1).mockReturnValueOnce(2) },
+              { get: jest.fn().mockReturnValueOnce(3).mockReturnValueOnce(4) },
+            ]),
           associations: {
             relation: {
               target: {
@@ -43,7 +46,10 @@ describe('Utils > QueryConverter', () => {
         );
 
         expect(where).toEqual({
-          [Op.and]: [{ idA: { [Op.in]: [1] } }, { idB: { [Op.in]: [2] } }],
+          [Op.or]: [
+            { [Op.and]: [{ idA: { [Op.eq]: 1 } }, { idB: { [Op.eq]: 2 } }] },
+            { [Op.and]: [{ idA: { [Op.eq]: 3 } }, { idB: { [Op.eq]: 4 } }] },
+          ],
         });
       });
     });

@@ -91,24 +91,16 @@ export default class QueryConverter {
     }
 
     const keys = [...model.primaryKeyAttributes];
-    const records = await model.findAll({
-      attributes: keys,
-      where: whereOptions,
-      include,
+    const records = await model.findAll({ attributes: keys, where: whereOptions, include });
+    const conditions = records.map(record => {
+      const equals = keys.map(pk => new ConditionTreeLeaf(pk, 'Equal', record.get(pk)));
+
+      return ConditionTreeFactory.intersect(...equals);
     });
 
-    const conditions = keys.map(pk => {
-      return new ConditionTreeLeaf(
-        pk,
-        'In',
-        records.map(r => r.get(pk)),
-      );
-    });
+    const union = ConditionTreeFactory.union(...conditions);
 
-    return QueryConverter.getWhereFromConditionTree(
-      model,
-      ConditionTreeFactory.intersect(...conditions),
-    );
+    return QueryConverter.getWhereFromConditionTree(model, union);
   }
 
   static getWhereFromConditionTree(
