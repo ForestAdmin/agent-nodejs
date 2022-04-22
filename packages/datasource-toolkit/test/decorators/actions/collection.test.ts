@@ -31,13 +31,14 @@ describe('ActionDecorator', () => {
 
   describe('without actions', () => {
     test('should delegate execute calls', async () => {
+      const caller = factories.caller.build();
       const filter = new Filter({});
 
       await expect(
-        newBooks.execute(factories.caller.build(), 'someAction', { firstname: 'John' }, filter),
+        newBooks.execute(caller, 'someAction', { firstname: 'John' }, filter),
       ).rejects.toThrow('no such action');
       expect(books.execute).toHaveBeenCalledWith(
-        factories.caller.build(),
+        caller,
         'someAction',
         { firstname: 'John' },
         filter,
@@ -45,17 +46,13 @@ describe('ActionDecorator', () => {
     });
 
     test('should delegate getForm calls', async () => {
+      const caller = factories.caller.build();
       const filter = new Filter({});
-      const fields = await newBooks.getForm(
-        factories.caller.build(),
-        'someAction',
-        { firstname: 'John' },
-        filter,
-      );
+      const fields = await newBooks.getForm(caller, 'someAction', { firstname: 'John' }, filter);
 
       expect(fields).toEqual([]);
       expect(books.getForm).toHaveBeenCalledWith(
-        factories.caller.build(),
+        caller,
         'someAction',
         { firstname: 'John' },
         filter,

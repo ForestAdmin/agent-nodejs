@@ -16,7 +16,7 @@ export default async function seed(dataSource: LiveDataSource) {
       address: faker.address.streetAddress(),
       storeId: storeRecord.get('id'),
     }));
-    await dataSource.getCollection('address').create(addressRecords);
+    await dataSource.getCollection('address').create(null, addressRecords);
   } catch {
     // eslint-disable-next-line no-console
     console.log('Please run `yarn db:up & yarn db:seed` to run the db with data');

@@ -23,7 +23,9 @@ describe('ActionContext', () => {
 
   test('should factorize calls to list made at the same time', async () => {
     const filter = new Filter({});
-    const context = new ActionContextSingle(books, factories.caller.build(), {}, filter);
+    const caller = factories.caller.build();
+
+    const context = new ActionContextSingle(books, caller, {}, filter);
     const [id, partial1, partial2, partial3] = await Promise.all([
       context.getRecordId(),
       context.getRecord(['title']),
@@ -32,7 +34,7 @@ describe('ActionContext', () => {
     ]);
 
     expect(books.list).toHaveBeenCalledTimes(1);
-    expect(books.list).toHaveBeenCalledWith(factories.caller.build(), filter, ['id', 'title']);
+    expect(books.list).toHaveBeenCalledWith(caller, filter, ['id', 'title']);
     expect(id).toEqual([1]);
     expect(partial1).toEqual({ title: 'Foundation' });
     expect(partial2).toEqual({ id: 1 });
@@ -40,13 +42,12 @@ describe('ActionContext', () => {
   });
 
   test('should track calls mades to formValues', async () => {
-    const filter = new Filter({});
     const used = new Set<string>();
     const context = new ActionContextSingle(
       books,
       factories.caller.build(),
       { title: 'Foundation' },
-      filter,
+      factories.filter.build(),
       used,
     );
 

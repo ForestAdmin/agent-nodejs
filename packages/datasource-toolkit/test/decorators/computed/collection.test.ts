@@ -126,8 +126,9 @@ describe('ComputedDecorator', () => {
     });
 
     test('list() result should contain the computed', async () => {
+      const caller = factories.caller.build();
       const records = await newBooks.list(
-        factories.caller.build(),
+        caller,
         new PaginatedFilter({}),
         new Projection('title', 'author:fullName'),
       );
@@ -137,7 +138,7 @@ describe('ComputedDecorator', () => {
         { title: 'Beat the dealer', author: { fullName: 'Edward O. Thorp' } },
       ]);
 
-      expect(books.list).toHaveBeenCalledWith(factories.caller.build(), {}, [
+      expect(books.list).toHaveBeenCalledWith(caller, {}, [
         'title',
         'author:firstName',
         'author:lastName',

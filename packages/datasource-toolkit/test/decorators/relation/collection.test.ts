@@ -652,24 +652,12 @@ describe('RelationCollectionDecorator', () => {
 
     describe('emulated aggregation', () => {
       test("should not emulate aggregation which don't need it", async () => {
+        const caller = factories.caller.build();
         const filter = new Filter({});
-        const aggregation = new Aggregation({
-          operation: 'Count',
-          groups: [{ field: 'name' }],
-        });
-        const groups = await newPersons.aggregate(
-          factories.caller.build(),
-          filter,
-          aggregation,
-          null,
-        );
+        const aggregation = new Aggregation({ operation: 'Count', groups: [{ field: 'name' }] });
+        const groups = await newPersons.aggregate(caller, filter, aggregation, null);
 
-        expect(persons.aggregate).toHaveBeenCalledWith(
-          factories.caller.build(),
-          filter,
-          aggregation,
-          null,
-        );
+        expect(persons.aggregate).toHaveBeenCalledWith(caller, filter, aggregation, null);
         expect(groups).toStrictEqual([
           { value: 1, group: { name: 'Sharon J. Whalen' } },
           { value: 1, group: { name: 'Mae S. Waldron' } },

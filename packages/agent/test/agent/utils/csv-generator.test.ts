@@ -47,8 +47,9 @@ describe('CsvGenerator', () => {
 
       collection.list = jest.fn().mockResolvedValue(records);
 
+      const caller = factories.caller.build();
       const generator = CsvGenerator.generate(
-        factories.caller.build(),
+        caller,
         projection,
         'id,name',
         filter,
@@ -58,7 +59,7 @@ describe('CsvGenerator', () => {
       await readCsv(generator);
 
       expect(collection.list).toHaveBeenCalledWith(
-        factories.caller.build(),
+        caller,
         factories.filter.build({
           conditionTree: filter.conditionTree,
           page: new Page(0, 1000),
@@ -133,8 +134,9 @@ describe('CsvGenerator', () => {
           .mockReturnValueOnce(records)
           .mockReturnValueOnce([]);
 
+        const caller = factories.caller.build();
         const generator = CsvGenerator.generate(
-          factories.caller.build(),
+          caller,
           projection,
           'name',
           filter,
@@ -146,7 +148,7 @@ describe('CsvGenerator', () => {
         expect(collection.list).toHaveBeenCalledTimes(3);
         expect(collection.list).toHaveBeenNthCalledWith(
           1,
-          factories.caller.build(),
+          caller,
           factories.filter.build({
             page: new Page(0, CHUNK_SIZE),
 
@@ -157,7 +159,7 @@ describe('CsvGenerator', () => {
         );
         expect(collection.list).toHaveBeenNthCalledWith(
           2,
-          factories.caller.build(),
+          caller,
           factories.filter.build({
             page: new Page(CHUNK_SIZE, CHUNK_SIZE),
 
@@ -168,7 +170,7 @@ describe('CsvGenerator', () => {
         );
         expect(collection.list).toHaveBeenNthCalledWith(
           3,
-          factories.caller.build(),
+          caller,
           factories.filter.build({
             page: new Page(CHUNK_SIZE * 2, CHUNK_SIZE),
 
@@ -205,8 +207,9 @@ describe('CsvGenerator', () => {
             .mockReturnValueOnce(records)
             .mockReturnValueOnce(records.slice(0, 500));
 
+          const caller = factories.caller.build();
           const generator = CsvGenerator.generate(
-            factories.caller.build(),
+            caller,
             projection,
             'name',
             filter,
@@ -220,10 +223,9 @@ describe('CsvGenerator', () => {
           const startedSkipFromGivenPage = 500;
           expect(collection.list).toHaveBeenNthCalledWith(
             1,
-            factories.caller.build(),
+            caller,
             factories.filter.build({
               page: new Page(startedSkipFromGivenPage, CHUNK_SIZE),
-
               conditionTree: expect.any(ConditionTreeLeaf),
               sort: expect.any(Sort),
             }),
@@ -231,10 +233,9 @@ describe('CsvGenerator', () => {
           );
           expect(collection.list).toHaveBeenNthCalledWith(
             2,
-            factories.caller.build(),
+            caller,
             factories.filter.build({
               page: new Page(startedSkipFromGivenPage + CHUNK_SIZE, CHUNK_SIZE),
-
               conditionTree: expect.any(ConditionTreeLeaf),
               sort: expect.any(Sort),
             }),
@@ -242,7 +243,7 @@ describe('CsvGenerator', () => {
           );
           expect(collection.list).toHaveBeenNthCalledWith(
             3,
-            factories.caller.build(),
+            caller,
             factories.filter.build({
               page: new Page(startedSkipFromGivenPage + CHUNK_SIZE * 2, startedSkipFromGivenPage),
 
