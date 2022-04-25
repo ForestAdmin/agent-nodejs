@@ -1,3 +1,11 @@
+# @forestadmin/agent [1.0.0-beta.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.8...@forestadmin/agent@1.0.0-beta.9) (2022-04-25)
+
+
+### Bug Fixes
+
+* **agent:** force default value for some options when null or undefined are given ([#258](https://github.com/ForestAdmin/agent-nodejs/issues/258)) ([4d40954](https://github.com/ForestAdmin/agent-nodejs/commit/4d409542b80f21f7195ca1666fd42f2e36c6dc01))
+* import packages from js ([#260](https://github.com/ForestAdmin/agent-nodejs/issues/260)) ([de00886](https://github.com/ForestAdmin/agent-nodejs/commit/de008862971ea5d3559e5a4c3136b0dd2161d760))
+
 # @forestadmin/agent [1.0.0-beta.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.7...@forestadmin/agent@1.0.0-beta.8) (2022-04-21)
 
 
