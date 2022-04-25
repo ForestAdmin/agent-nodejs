@@ -1,21 +1,4 @@
-import {
-  ActionCollectionDecorator,
-  BaseDataSource,
-  Collection,
-  ComputedCollectionDecorator,
-  DataSource,
-  DataSourceDecorator,
-  DataSourceFactory,
-  OperatorsEmulateCollectionDecorator,
-  OperatorsReplaceCollectionDecorator,
-  PublicationCollectionDecorator,
-  RelationCollectionDecorator,
-  RenameCollectionDecorator,
-  SearchCollectionDecorator,
-  SegmentCollectionDecorator,
-  SortEmulateCollectionDecorator,
-  WriteCollectionDecorator,
-} from '@forestadmin/datasource-toolkit';
+import { BaseDataSource, Collection, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 
 import { AgentOptions } from '../types';
 import CollectionBuilder from './collection';
@@ -37,22 +20,6 @@ export default class AgentBuilder {
 
   // Base datasource
   compositeDatasource: BaseDataSource<Collection>;
-
-  // Decorators
-  action: DataSourceDecorator<ActionCollectionDecorator>;
-  earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
-  earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
-  earlyOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
-  relation: DataSourceDecorator<RelationCollectionDecorator>;
-  lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
-  lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
-  lateOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
-  publication: DataSourceDecorator<PublicationCollectionDecorator>;
-  rename: DataSourceDecorator<RenameCollectionDecorator>;
-  search: DataSourceDecorator<SearchCollectionDecorator>;
-  segment: DataSourceDecorator<SegmentCollectionDecorator>;
-  sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
-  write: DataSourceDecorator<WriteCollectionDecorator>;
 
   private tasks: (() => Promise<void>)[] = [];
 
@@ -85,39 +52,12 @@ export default class AgentBuilder {
    *  .start();
    */
   constructor(options: AgentOptions) {
-    let last: DataSource;
+    this.compositeDatasource = new BaseDataSource<Collection>();
 
-    /* eslint-disable no-multi-assign */
-    last = this.compositeDatasource = new BaseDataSource<Collection>();
-
-    // Step 1: Computed-Relation-Computed sandwich (needed because some emulated relations depend
-    // on computed fields, and some computed fields depend on relation...)
-    // Note that replacement goes before emulation, as replacements may use emulated operators.
-    last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
-    last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
-    last = this.earlyOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
-    last = this.relation = new DataSourceDecorator(last, RelationCollectionDecorator);
-    last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
-    last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
-    last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
-
-    // Step 2: Those four need access to all fields. They can be loaded in any order.
-    last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
-    last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
-    last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
-    last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
-
-    // Step 3: Access to all fields AND emulated capabilities
-    last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
-
-    // Step 4: Renaming must be either the very first or very last so that naming in customer code
-    // is consistent.
-    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
-    last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
-
-    /* eslint-enable no-multi-assign */
-
-    this.forestAdminHttpDriver = new ForestAdminHttpDriver(last, options);
+    this.forestAdminHttpDriver = new ForestAdminHttpDriver(
+      CollectionBuilder.init(this.compositeDatasource),
+      options,
+    );
   }
 
   /**
@@ -145,8 +85,8 @@ export default class AgentBuilder {
    */
   customizeCollection(name: string, handle: (collection: CollectionBuilder) => unknown): this {
     this.tasks.push(async () => {
-      if (this.publication.getCollection(name)) {
-        handle(new CollectionBuilder(this, name));
+      if (CollectionBuilder.publication.getCollection(name)) {
+        handle(new CollectionBuilder(name));
       }
     });
 

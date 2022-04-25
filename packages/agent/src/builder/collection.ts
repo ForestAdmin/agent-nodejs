@@ -1,26 +1,85 @@
 import {
+  ActionCollectionDecorator,
   ActionDefinition,
   CollectionUtils,
   ColumnSchema,
+  ComputedCollectionDecorator,
+  DataSource,
+  DataSourceDecorator,
   Operator,
   OperatorReplacer,
+  OperatorsEmulateCollectionDecorator,
+  OperatorsReplaceCollectionDecorator,
   PartialRelationSchema,
   PlainSortClause,
+  PublicationCollectionDecorator,
   RecordUtils,
+  RelationCollectionDecorator,
+  RenameCollectionDecorator,
+  SearchCollectionDecorator,
+  SegmentCollectionDecorator,
   SegmentDefinition,
+  SortEmulateCollectionDecorator,
+  WriteCollectionDecorator,
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
 import { FieldDefinition } from './types';
-import AgentBuilder from './agent';
 import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
 
 export default class CollectionBuilder {
-  private agentBuilder: AgentBuilder;
   private readonly name: string;
 
-  constructor(agentBuilder: AgentBuilder, name: string) {
-    this.agentBuilder = agentBuilder;
+  // Decorators
+  static action: DataSourceDecorator<ActionCollectionDecorator>;
+  static earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
+  static earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
+  static earlyOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
+  static relation: DataSourceDecorator<RelationCollectionDecorator>;
+  static lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
+  static lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
+  static lateOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
+  static publication: DataSourceDecorator<PublicationCollectionDecorator>;
+  static rename: DataSourceDecorator<RenameCollectionDecorator>;
+  static search: DataSourceDecorator<SearchCollectionDecorator>;
+  static segment: DataSourceDecorator<SegmentCollectionDecorator>;
+  static sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
+  static write: DataSourceDecorator<WriteCollectionDecorator>;
+
+  constructor(name: string) {
     this.name = name;
+  }
+
+  static init(dataSource: DataSource) {
+    let last: DataSource;
+
+    /* eslint-disable no-multi-assign */
+    // Step 1: Computed-Relation-Computed sandwich (needed because some emulated relations depend
+    // on computed fields, and some computed fields depend on relation...)
+    // Note that replacement goes before emulation, as replacements may use emulated operators.
+    last = this.earlyComputed = new DataSourceDecorator(dataSource, ComputedCollectionDecorator);
+    last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
+    last = this.earlyOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
+    last = this.relation = new DataSourceDecorator(last, RelationCollectionDecorator);
+    last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
+    last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
+    last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
+
+    // Step 2: Those four need access to all fields. They can be loaded in any order.
+    last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
+    last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
+    last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
+    last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
+
+    // Step 3: Access to all fields AND emulated capabilities
+    last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
+
+    // Step 4: Renaming must be either the very first or very last so that naming in customer code
+    // is consistent.
+    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
+    last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
+
+    /* eslint-enable no-multi-assign */
+    return last;
   }
 
   /**
@@ -32,7 +91,7 @@ export default class CollectionBuilder {
    * .importField('authorName', { path: 'author:fullName' })
    */
   importField(name: string, options: { path: string; beforeRelations?: boolean }): this {
-    const collection = this.agentBuilder.lateComputed.getCollection(this.name);
+    const collection = CollectionBuilder.lateComputed.getCollection(this.name);
     const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
 
     this.addField(name, {
@@ -64,7 +123,7 @@ export default class CollectionBuilder {
    * .renameField('theCurrentNameOfTheField', 'theNewNameOfTheField');
    */
   renameField(oldName: string, newName: string): this {
-    this.agentBuilder.rename.getCollection(this.name).renameField(oldName, newName);
+    CollectionBuilder.rename.getCollection(this.name).renameField(oldName, newName);
 
     return this;
   }
@@ -76,7 +135,7 @@ export default class CollectionBuilder {
    * .removeField('aFieldToRemove', 'anOtherFieldToRemove');
    */
   removeField(...names: string[]): this {
-    const collection = this.agentBuilder.publication.getCollection(this.name);
+    const collection = CollectionBuilder.publication.getCollection(this.name);
     for (const name of names) collection.changeFieldVisibility(name, false);
 
     return this;
@@ -95,7 +154,7 @@ export default class CollectionBuilder {
    *  })
    */
   addAction(name: string, definition: ActionDefinition): this {
-    this.agentBuilder.action.getCollection(this.name).addAction(name, definition);
+    CollectionBuilder.action.getCollection(this.name).addAction(name, definition);
 
     return this;
   }
@@ -114,8 +173,8 @@ export default class CollectionBuilder {
   addField(name: string, definition: FieldDefinition): this {
     const { beforeRelations, ...computedDefinition } = definition;
     const collection = definition.beforeRelations
-      ? this.agentBuilder.earlyComputed.getCollection(this.name)
-      : this.agentBuilder.lateComputed.getCollection(this.name);
+      ? CollectionBuilder.earlyComputed.getCollection(this.name)
+      : CollectionBuilder.lateComputed.getCollection(this.name);
 
     collection.registerComputed(name, computedDefinition);
 
@@ -134,7 +193,7 @@ export default class CollectionBuilder {
    * });
    */
   addRelation(name: string, definition: PartialRelationSchema): this {
-    this.agentBuilder.relation.getCollection(this.name).addRelation(name, definition);
+    CollectionBuilder.relation.getCollection(this.name).addRelation(name, definition);
 
     return this;
   }
@@ -151,7 +210,7 @@ export default class CollectionBuilder {
    * );
    */
   addSegment(name: string, definition: SegmentDefinition): this {
-    this.agentBuilder.segment.getCollection(this.name).addSegment(name, definition);
+    CollectionBuilder.segment.getCollection(this.name).addSegment(name, definition);
 
     return this;
   }
@@ -164,7 +223,7 @@ export default class CollectionBuilder {
    * .emulateFieldSorting('fullName');
    */
   emulateFieldSorting(name: string): this {
-    this.agentBuilder.sortEmulate.getCollection(this.name).emulateFieldSorting(name);
+    CollectionBuilder.sortEmulate.getCollection(this.name).emulateFieldSorting(name);
 
     return this;
   }
@@ -184,7 +243,7 @@ export default class CollectionBuilder {
    * )
    */
   replaceFieldSorting(name: string, equivalentSort: PlainSortClause[]): this {
-    this.agentBuilder.sortEmulate
+    CollectionBuilder.sortEmulate
       .getCollection(this.name)
       .replaceFieldSorting(name, equivalentSort);
 
@@ -199,7 +258,7 @@ export default class CollectionBuilder {
    * .emulateFieldFiltering('aField');
    */
   emulateFieldFiltering(name: string): this {
-    const collection = this.agentBuilder.lateOpEmulate.getCollection(this.name);
+    const collection = CollectionBuilder.lateOpEmulate.getCollection(this.name);
     const field = collection.schema.fields[name] as ColumnSchema;
 
     for (const operator of FrontendFilterableUtils.getRequiredOperators(field.columnType)) {
@@ -220,9 +279,9 @@ export default class CollectionBuilder {
    * .emulateFieldOperator('aField', 'In');
    */
   emulateFieldOperator(name: string, operator: Operator): this {
-    const collection = this.agentBuilder.earlyOpEmulate.getCollection(this.name).schema.fields[name]
-      ? this.agentBuilder.earlyOpEmulate.getCollection(this.name)
-      : this.agentBuilder.lateOpEmulate.getCollection(this.name);
+    const collection = CollectionBuilder.earlyOpEmulate.getCollection(this.name).schema.fields[name]
+      ? CollectionBuilder.earlyOpEmulate.getCollection(this.name)
+      : CollectionBuilder.lateOpEmulate.getCollection(this.name);
 
     collection.emulateFieldOperator(name, operator);
 
@@ -241,9 +300,9 @@ export default class CollectionBuilder {
    * ));
    */
   replaceFieldOperator(name: string, operator: Operator, replacer: OperatorReplacer): this {
-    const collection = this.agentBuilder.earlyOpEmulate.getCollection(this.name).schema.fields[name]
-      ? this.agentBuilder.earlyOpEmulate.getCollection(this.name)
-      : this.agentBuilder.lateOpEmulate.getCollection(this.name);
+    const collection = CollectionBuilder.earlyOpEmulate.getCollection(this.name).schema.fields[name]
+      ? CollectionBuilder.earlyOpEmulate.getCollection(this.name)
+      : CollectionBuilder.lateOpEmulate.getCollection(this.name);
 
     collection.replaceFieldOperator(name, operator, replacer);
 
@@ -261,7 +320,7 @@ export default class CollectionBuilder {
    * });
    */
   replaceFieldWriting(name: string, definition: WriteDefinition): this {
-    this.agentBuilder.write.getCollection(this.name).replaceFieldWriting(name, definition);
+    CollectionBuilder.write.getCollection(this.name).replaceFieldWriting(name, definition);
 
     return this;
   }

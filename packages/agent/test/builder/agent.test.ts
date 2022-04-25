@@ -80,7 +80,7 @@ describe('Builder > Agent', () => {
         .start();
 
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith(new CollectionBuilder(agent, 'collection'));
+      expect(spy).toHaveBeenCalledWith(new CollectionBuilder('collection'));
     });
   });
 });
