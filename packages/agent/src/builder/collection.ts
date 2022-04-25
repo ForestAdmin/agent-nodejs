@@ -203,7 +203,7 @@ export default class CollectionBuilder {
     const field = collection.schema.fields[name] as ColumnSchema;
 
     for (const operator of FrontendFilterableUtils.getRequiredOperators(field.columnType)) {
-      if (!field.filterOperators.has(operator)) {
+      if (!field.filterOperators?.has(operator)) {
         this.emulateFieldOperator(name, operator);
       }
     }
