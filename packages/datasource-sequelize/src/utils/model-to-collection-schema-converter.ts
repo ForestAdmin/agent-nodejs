@@ -95,6 +95,7 @@ export default class ModelToCollectionSchemaConverter {
       type: 'Column',
       validation: [],
       isReadOnly: attribute.autoIncrement,
+      isSortable: true,
     };
 
     if (
