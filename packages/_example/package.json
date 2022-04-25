@@ -16,6 +16,7 @@
     "mysql2": "^2.3.3",
     "pg": "~8.2.2",
     "sequelize": "6.18.0",
+    "superagent": "^7.0.1",
     "tedious": "^14.3.0"
   },
   "scripts": {
@@ -31,7 +32,6 @@
   "devDependencies": {
     "fishery": "^2.1.0",
     "nock": "^13.2.2",
-    "nodemon": "^2.0.15",
-    "superagent": "^7.0.1"
+    "nodemon": "^2.0.15"
   }
 }
