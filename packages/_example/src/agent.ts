@@ -15,7 +15,7 @@ import prepareStoreInMysql from './datasources/sequelize/mysql';
 import seedLiveDatasource from './datasources/live/seed';
 
 export default async function makeAgent(options: AgentOptions) {
-  const a = new Agent(options)
+  return new Agent(options)
     .addDatasource(createSequelizeDataSource(prepareOwnerInPostgres()))
     .addDatasource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }))
     .addDatasource(createSequelizeDataSource(prepareStoreInMysql()))
@@ -28,6 +28,4 @@ export default async function makeAgent(options: AgentOptions) {
     .customizeCollection('rental', customizeRental)
     .customizeCollection('dvd', customizeDvd)
     .customizeCollection('customer', customizeCustomer);
-
-  return a;
 }

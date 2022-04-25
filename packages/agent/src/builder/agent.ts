@@ -15,12 +15,8 @@ import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-d
  *  .start();
  */
 export default class AgentBuilder {
-  // App
-  forestAdminHttpDriver: ForestAdminHttpDriver;
-
-  // Base datasource
-  compositeDatasource: BaseDataSource<Collection>;
-
+  private readonly forestAdminHttpDriver: ForestAdminHttpDriver;
+  private readonly compositeDatasource: BaseDataSource<Collection>;
   private tasks: (() => Promise<void>)[] = [];
 
   /**
@@ -53,7 +49,6 @@ export default class AgentBuilder {
    */
   constructor(options: AgentOptions) {
     this.compositeDatasource = new BaseDataSource<Collection>();
-
     this.forestAdminHttpDriver = new ForestAdminHttpDriver(
       CollectionBuilder.init(this.compositeDatasource),
       options,
@@ -102,7 +97,7 @@ export default class AgentBuilder {
       await task();
     }
 
-    return this.forestAdminHttpDriver.start();
+    await this.forestAdminHttpDriver.start();
   }
 
   /**
