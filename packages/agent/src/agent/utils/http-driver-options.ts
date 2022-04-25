@@ -13,22 +13,27 @@ export default class OptionsUtils {
   };
 
   static withDefaults(options: AgentOptions): AgentOptionsWithDefaults {
-    return Object.freeze({
-      clientId: null,
-      forestServerUrl: 'https://api.forestadmin.com',
-      logger: (level, data) => {
-        const loggerLevel = options.loggerLevel ?? 'Info';
-        const levels = Object.keys(this.loggerPrefix);
+    const copyOptions = { ...options };
 
-        if (levels.indexOf(level) >= levels.indexOf(loggerLevel)) {
-          console.error(OptionsUtils.loggerPrefix[level], data);
-        }
-      },
+    const defaultLogger = (level, data) => {
+      const loggerLevel = options.loggerLevel ?? 'Info';
+      const levels = Object.keys(this.loggerPrefix);
+
+      if (levels.indexOf(level) >= levels.indexOf(loggerLevel)) {
+        console.error(OptionsUtils.loggerPrefix[level], data);
+      }
+    };
+
+    copyOptions.logger = copyOptions.logger || defaultLogger;
+    copyOptions.schemaPath = copyOptions.schemaPath || '.forestadmin-schema.json';
+    copyOptions.forestServerUrl = copyOptions.forestServerUrl || 'https://api.forestadmin.com';
+
+    return <AgentOptionsWithDefaults>Object.freeze({
+      clientId: null,
       loggerLevel: 'Info',
       prefix: '/forest',
-      schemaPath: '.forestadmin-schema.json',
       permissionsCacheDurationInSeconds: 15 * 60,
-      ...options,
+      ...copyOptions,
     });
   }
 
