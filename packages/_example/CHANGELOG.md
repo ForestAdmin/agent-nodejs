@@ -1,3 +1,22 @@
+# example [1.0.0-beta.12](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.11...example@1.0.0-beta.12) (2022-04-25)
+
+
+### Bug Fixes
+
+* import packages from js ([#260](https://github.com/ForestAdmin/agent-nodejs/issues/260)) ([de00886](https://github.com/ForestAdmin/agent-nodejs/commit/de008862971ea5d3559e5a4c3136b0dd2161d760))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.9
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.7
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.10
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.9
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.13
+
 # example [1.0.0-beta.11](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.10...example@1.0.0-beta.11) (2022-04-21)
 
 
