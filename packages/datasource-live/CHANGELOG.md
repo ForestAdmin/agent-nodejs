@@ -1,3 +1,18 @@
+# @forestadmin/datasource-live [1.0.0-beta.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-live@1.0.0-beta.9...@forestadmin/datasource-live@1.0.0-beta.10) (2022-04-25)
+
+
+### Bug Fixes
+
+* import packages from js ([#260](https://github.com/ForestAdmin/agent-nodejs/issues/260)) ([de00886](https://github.com/ForestAdmin/agent-nodejs/commit/de008862971ea5d3559e5a4c3136b0dd2161d760))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.9
+
 # @forestadmin/datasource-live [1.0.0-beta.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-live@1.0.0-beta.8...@forestadmin/datasource-live@1.0.0-beta.9) (2022-04-21)
 
 
