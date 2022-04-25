@@ -1,3 +1,10 @@
+# @forestadmin/datasource-dummy [1.0.0-beta.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.0-beta.6...@forestadmin/datasource-dummy@1.0.0-beta.7) (2022-04-25)
+
+
+### Bug Fixes
+
+* import packages from js ([#260](https://github.com/ForestAdmin/agent-nodejs/issues/260)) ([de00886](https://github.com/ForestAdmin/agent-nodejs/commit/de008862971ea5d3559e5a4c3136b0dd2161d760))
+
 # @forestadmin/datasource-dummy [1.0.0-beta.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.0-beta.5...@forestadmin/datasource-dummy@1.0.0-beta.6) (2022-04-21)
 
 
