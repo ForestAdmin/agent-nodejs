@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.9...@forestadmin/datasource-sequelize@1.0.0-beta.10) (2022-04-25)
+
+
+### Bug Fixes
+
+* **datasource sequelize:** all field are sortable ([#262](https://github.com/ForestAdmin/agent-nodejs/issues/262)) ([8d85346](https://github.com/ForestAdmin/agent-nodejs/commit/8d8534662bc058466901095a0c0d82e06d2f13b0))
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.8...@forestadmin/datasource-sequelize@1.0.0-beta.9) (2022-04-25)
 
 
