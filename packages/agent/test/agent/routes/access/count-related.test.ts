@@ -103,23 +103,26 @@ describe('CountRelatedRoute', () => {
           }),
         };
         const segmentParams = { segment: 'a-valid-segment' };
-        const customProperties = {
-          query: {
-            ...searchParams,
-            ...conditionTreeParams,
-            ...segmentParams,
-            timezone: 'Europe/Paris',
+
+        const context = createMockContext({
+          customProperties: {
+            query: {
+              ...searchParams,
+              ...conditionTreeParams,
+              ...segmentParams,
+              timezone: 'Europe/Paris',
+            },
+            params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
           },
-          params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
-        };
-        const context = createMockContext({ customProperties });
+          state: { user: { email: 'john.doe@domain.com' } },
+        });
         await count.handleCountRelated(context);
 
         expect(CollectionUtils.aggregateRelation).toHaveBeenCalledWith(
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myBookPersons',
-          { timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
             search: 'searched argument',
             searchExtended: false,

@@ -384,15 +384,16 @@ describe('QueryStringParser', () => {
   });
 
   describe('parseRecipient', () => {
-    test('should return the timezone', () => {
+    test('should return the timezone and the user', () => {
       const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
         customProperties: { query: { timezone: 'America/Los_Angeles' } },
       });
 
-      expect(QueryStringParser.parseRecipient(context)).toHaveProperty(
-        'timezone',
-        'America/Los_Angeles',
-      );
+      expect(QueryStringParser.parseRecipient(context)).toEqual({
+        email: 'john.doe@domain.com',
+        timezone: 'America/Los_Angeles',
+      });
     });
 
     test('should throw a ValidationError when the timezone is missing', () => {

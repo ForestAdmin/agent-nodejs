@@ -86,20 +86,22 @@ describe('CsvRelatedRoute', () => {
       const csvRoute = new CsvRoute(services, options, dataSource, 'books', 'myPersons');
 
       const projectionParams = { 'fields[persons]': 'id,name' };
-      const customProperties = {
-        query: {
-          ...projectionParams,
-          header: 'id,name',
-          timezone: 'Europe/Paris',
-        },
-        params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
-      };
-      const requestBody = { data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }] };
       const scopeCondition = factories.conditionTreeLeaf.build();
       services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
       const personsCollection = dataSource.getCollection('persons');
-      const context = createMockContext({ customProperties, requestBody });
+      const context = createMockContext({
+        requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }] },
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: {
+            ...projectionParams,
+            header: 'id,name',
+            timezone: 'Europe/Paris',
+          },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
 
       const listRelation = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
       const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
@@ -120,7 +122,7 @@ describe('CsvRelatedRoute', () => {
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         new Projection('id', 'name'),
         'id,name',
         paginatedFilter,
@@ -132,7 +134,7 @@ describe('CsvRelatedRoute', () => {
         dataSource.getCollection('books'),
         ['123e4567-e89b-12d3-a456-111111111111'],
         'myPersons',
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         expect.any(PaginatedFilter),
         expect.any(Projection),
       );

@@ -38,6 +38,7 @@ describe('ListRoute', () => {
 
       const list = new List(services, options, dataSource, collection.name);
       const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
           query: { search: '2', 'fields[books]': 'id', timezone: 'Europe/Paris' },
         },
@@ -49,7 +50,7 @@ describe('ListRoute', () => {
 
       // then
       expect(collection.list).toHaveBeenCalledWith(
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         {
           conditionTree: null,
           search: '2',

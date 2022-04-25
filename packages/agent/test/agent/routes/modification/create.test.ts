@@ -52,13 +52,17 @@ describe('CreateRoute', () => {
       const create = new CreateRoute(services, options, dataSource, collection.name);
 
       const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         requestBody: { data: { attributes, type: 'books' } },
       });
 
       await create.handleCreate(context);
 
-      expect(collection.create).toHaveBeenCalledWith({ timezone: 'Europe/Paris' }, [attributes]);
+      expect(collection.create).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        [attributes],
+      );
 
       expect(context.response.body).toEqual({
         jsonapi: { version: '1.0' },
@@ -115,6 +119,7 @@ describe('CreateRoute', () => {
     test('should work with a one to one relation', async () => {
       const create = new CreateRoute(services, options, dataSource, 'persons');
       const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         requestBody: {
           data: {
@@ -135,12 +140,12 @@ describe('CreateRoute', () => {
       expect(dataSource.getCollection('persons').create).toHaveBeenCalled();
       expect(spy.mock.calls).toEqual([
         [
-          { timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({ conditionTree: new ConditionTreeLeaf('personId', 'Equal', 1) }),
           { personId: null },
         ],
         [
-          { timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: new ConditionTreeLeaf(
               'id',
@@ -172,6 +177,7 @@ describe('CreateRoute', () => {
 
       const create = new CreateRoute(services, options, dataSource, 'passports');
       const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         requestBody: {
           data: {
@@ -188,7 +194,7 @@ describe('CreateRoute', () => {
       await create.handleCreate(context);
 
       expect(dataSource.getCollection('passports').create).toHaveBeenCalledWith(
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         [{ personId: '1d162304-78bf-599e-b197-000000000000' }],
       );
 

@@ -43,6 +43,7 @@ describe('DeleteRoute', () => {
         const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
         const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
           customProperties: {
             params: { id: '1523|1524' },
             query: { timezone: 'Europe/Paris' },
@@ -51,7 +52,7 @@ describe('DeleteRoute', () => {
         await deleteRoute.handleDelete(context);
 
         expect(bookCollection.delete).toHaveBeenCalledWith(
-          { timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -92,6 +93,7 @@ describe('DeleteRoute', () => {
         const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
         const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
           customProperties: {
             params: { id: '1523' },
             query: { timezone: 'Europe/Paris' },
@@ -100,7 +102,7 @@ describe('DeleteRoute', () => {
         await deleteRoute.handleDelete(context);
 
         expect(bookCollection.delete).toHaveBeenCalledWith(
-          { timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',
@@ -134,6 +136,7 @@ describe('DeleteRoute', () => {
         const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
         const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
           customProperties: { query: { timezone: 'Europe/Paris' } },
           requestBody: {
             data: {
@@ -144,7 +147,7 @@ describe('DeleteRoute', () => {
         await deleteRoute.handleListDelete(context);
 
         expect(bookCollection.delete).toHaveBeenCalledWith(
-          { timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'In',
@@ -175,6 +178,7 @@ describe('DeleteRoute', () => {
           const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
           const context = createMockContext({
+            state: { user: { email: 'john.doe@domain.com' } },
             customProperties: { query: { timezone: 'Europe/Paris' } },
             requestBody: {
               data: {
@@ -190,7 +194,7 @@ describe('DeleteRoute', () => {
           await deleteRoute.handleListDelete(context);
 
           expect(bookCollection.delete).toHaveBeenCalledWith(
-            { timezone: 'Europe/Paris' },
+            { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             factories.filter.build({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'NotEqual',
@@ -229,6 +233,7 @@ describe('DeleteRoute', () => {
         const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
         const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
           customProperties: { query: { timezone: 'Europe/Paris' } },
           requestBody: {
             data: {
@@ -239,7 +244,7 @@ describe('DeleteRoute', () => {
         await deleteRoute.handleListDelete(context);
 
         expect(bookCollection.delete).toHaveBeenCalledWith(
-          { timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'Or',
@@ -305,6 +310,7 @@ describe('DeleteRoute', () => {
           const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
 
           const context = createMockContext({
+            state: { user: { email: 'john.doe@domain.com' } },
             customProperties: { query: { timezone: 'Europe/Paris' } },
             requestBody: {
               data: {
@@ -320,7 +326,7 @@ describe('DeleteRoute', () => {
           await deleteRoute.handleListDelete(context);
 
           expect(bookCollection.delete).toHaveBeenCalledWith(
-            { timezone: 'Europe/Paris' },
+            { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             factories.filter.build({
               conditionTree: factories.conditionTreeBranch.build({
                 aggregator: 'Or',

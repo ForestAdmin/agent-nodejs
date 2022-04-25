@@ -51,6 +51,7 @@ describe('GetRoute', () => {
       services.serializer.serialize = jest.fn().mockReturnValue('test');
       const get = new Get(services, options, dataSource, 'books');
       const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
           query: { timezone: 'Europe/Paris' },
           params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
@@ -60,7 +61,7 @@ describe('GetRoute', () => {
       await get.handleGet(context);
 
       expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         {
           conditionTree: {
             field: 'id',

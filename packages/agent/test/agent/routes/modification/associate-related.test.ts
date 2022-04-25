@@ -37,12 +37,7 @@ describe('AssociateRelatedRoute', () => {
       });
       const dataSource = factories.dataSource.buildWithCollections([bookPersons, books]);
 
-      return {
-        dataSource,
-        services,
-        options,
-        router,
-      };
+      return { dataSource, services, options, router };
     };
 
     test('should register the post route', () => {
@@ -77,21 +72,22 @@ describe('AssociateRelatedRoute', () => {
 
       const scope = factories.conditionTreeLeaf.build();
       services.permissions.getScope = jest.fn().mockResolvedValue(scope);
-      const customProperties = {
-        query: { timezone: 'Europe/Paris' },
-        params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
-      };
-      const requestBody = {
-        data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }],
-      };
-      const context = createMockContext({ customProperties, requestBody });
+
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
 
       // when
       await route.handleAssociateRelatedRoute(context);
 
       // then
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -180,12 +176,7 @@ describe('AssociateRelatedRoute', () => {
         libraries,
       ]);
 
-      return {
-        dataSource,
-        services,
-        options,
-        router,
-      };
+      return { dataSource, services, options, router };
     };
 
     test('creates the relation in the many to many collection', async () => {
@@ -202,21 +193,21 @@ describe('AssociateRelatedRoute', () => {
 
       const scope = factories.conditionTreeLeaf.build();
       services.permissions.getScope = jest.fn().mockResolvedValue(scope);
-      const customProperties = {
-        query: { timezone: 'Europe/Paris' },
-        params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
-      };
-      const requestBody = {
-        data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }],
-      };
-      const context = createMockContext({ customProperties, requestBody });
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
 
       // when
       await route.handleAssociateRelatedRoute(context);
 
       // then
       expect(dataSource.getCollection('librariesBooks').create).toHaveBeenCalledWith(
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         [
           {
             bookId: '123e4567-e89b-12d3-a456-111111111111',

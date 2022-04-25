@@ -70,7 +70,11 @@ describe('UpdateRelationRoute', () => {
         const requestBody = {
           data: { id: '11111111-1111-4111-8111-111111111111', type: 'myPersons' },
         };
-        const context = createMockContext({ customProperties, requestBody });
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties,
+          requestBody,
+        });
 
         const scopeCondition = factories.conditionTreeLeaf.build();
         services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
@@ -78,7 +82,7 @@ describe('UpdateRelationRoute', () => {
         await update.handleUpdateRelationRoute(context);
 
         expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
-          { timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -154,13 +158,17 @@ describe('UpdateRelationRoute', () => {
         const requestBody = {
           data: { id: '11111111-1111-4111-8111-111111111111', type: 'owner' },
         };
-        const context = createMockContext({ customProperties, requestBody });
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties,
+          requestBody,
+        });
 
         await update.handleUpdateRelationRoute(context);
 
         expect(dataSource.getCollection('owner').update).toHaveBeenNthCalledWith(
           1,
-          { timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',
@@ -173,7 +181,7 @@ describe('UpdateRelationRoute', () => {
 
         expect(dataSource.getCollection('owner').update).toHaveBeenNthCalledWith(
           2,
-          { timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',

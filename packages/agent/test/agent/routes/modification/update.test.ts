@@ -41,7 +41,11 @@ describe('UpdateRoute', () => {
 
       const customProperties = { query: { timezone: 'Europe/Paris' }, params: { id: '1523' } };
       const requestBody = { data: { attributes: { name: 'foo name' } } };
-      const context = createMockContext({ customProperties, requestBody });
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties,
+        requestBody,
+      });
 
       await updateRoute.handleUpdate(context);
 
@@ -54,12 +58,12 @@ describe('UpdateRoute', () => {
       });
 
       expect(bookCollection.update).toHaveBeenCalledWith(
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         expectedFilter,
         { name: 'foo name' },
       );
       expect(bookCollection.list).toHaveBeenCalledWith(
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         expectedFilter,
         new Projection('id', 'name'),
       );

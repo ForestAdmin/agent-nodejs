@@ -52,7 +52,8 @@ describe('ActionRoute', () => {
     let handleHook: Router.Middleware;
 
     const baseContext = {
-      customProperties: { query: { timezone: 'Europe/Paris' } },
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: { query: { email: 'john.doe@domain.com', timezone: 'Europe/Paris' } },
       requestBody: {
         data: {
           attributes: {
@@ -132,7 +133,7 @@ describe('ActionRoute', () => {
       await handleExecute.call(route, context);
 
       expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         'My_Action',
         { firstname: 'John' },
         {
@@ -308,7 +309,7 @@ describe('ActionRoute', () => {
           await handleExecute.call(route, context);
 
           expect(dataSource.getCollection('reviews').execute).toHaveBeenCalledWith(
-            { timezone: 'Europe/Paris' },
+            { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             'My_Action',
             expect.any(Object),
             new Filter({
@@ -351,7 +352,7 @@ describe('ActionRoute', () => {
       await handleHook.call(route, context);
 
       expect(dataSource.getCollection('books').getForm).toHaveBeenCalledWith(
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         'My_Action',
         null,
         {
@@ -385,7 +386,7 @@ describe('ActionRoute', () => {
       await handleHook.call(route, context);
 
       expect(dataSource.getCollection('books').getForm).toHaveBeenCalledWith(
-        { timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         'My_Action',
         { firstname: 'John' },
         {
