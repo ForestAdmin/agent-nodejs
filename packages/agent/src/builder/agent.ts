@@ -2,6 +2,7 @@ import { BaseDataSource, Collection, DataSourceFactory } from '@forestadmin/data
 
 import { AgentOptions } from '../types';
 import CollectionBuilder from './collection';
+import DecoratorsStack from './decorators-stack';
 import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-driver';
 
 /**
@@ -17,6 +18,7 @@ import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-d
 export default class AgentBuilder {
   private readonly forestAdminHttpDriver: ForestAdminHttpDriver;
   private readonly compositeDatasource: BaseDataSource<Collection>;
+  private readonly stack: DecoratorsStack;
   private tasks: (() => Promise<void>)[] = [];
 
   /**
@@ -49,10 +51,9 @@ export default class AgentBuilder {
    */
   constructor(options: AgentOptions) {
     this.compositeDatasource = new BaseDataSource<Collection>();
-    this.forestAdminHttpDriver = new ForestAdminHttpDriver(
-      CollectionBuilder.init(this.compositeDatasource),
-      options,
-    );
+    this.stack = new DecoratorsStack(this.compositeDatasource);
+
+    this.forestAdminHttpDriver = new ForestAdminHttpDriver(this.stack.dataSource, options);
   }
 
   /**
@@ -80,8 +81,8 @@ export default class AgentBuilder {
    */
   customizeCollection(name: string, handle: (collection: CollectionBuilder) => unknown): this {
     this.tasks.push(async () => {
-      if (CollectionBuilder.publication.getCollection(name)) {
-        handle(new CollectionBuilder(name));
+      if (this.stack.dataSource.getCollection(name)) {
+        handle(new CollectionBuilder(this.stack, name));
       }
     });
 

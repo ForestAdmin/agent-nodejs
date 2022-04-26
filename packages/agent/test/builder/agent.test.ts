@@ -1,6 +1,7 @@
 import * as factories from '../agent/__factories__';
 import Agent from '../../src/builder/agent';
 import CollectionBuilder from '../../src/builder/collection';
+import DecoratorsStack from '../../src/builder/decorators-stack';
 
 let forestAdminHttpDriverInstance;
 
@@ -23,11 +24,10 @@ jest.mock('../../src/agent/forestadmin-http-driver', () => {
 describe('Builder > Agent', () => {
   it('should build an agent, provide a httpCallback and init the collection builder', async () => {
     const options = factories.forestAdminHttpDriverOptions.build();
-    const initCollectionBuilder = jest.spyOn(CollectionBuilder, 'init');
+
     const agent = new Agent(options);
 
     expect(agent.httpCallback).toBeDefined();
-    expect(initCollectionBuilder).toHaveBeenCalled();
   });
 
   it('should start forestAdminHttpDriver', async () => {
@@ -76,7 +76,9 @@ describe('Builder > Agent', () => {
         .start();
 
       expect(handle).toHaveBeenCalledTimes(1);
-      expect(handle).toHaveBeenCalledWith(new CollectionBuilder('collection'));
+      expect(handle).toHaveBeenCalledWith(
+        new CollectionBuilder(expect.any(DecoratorsStack), 'collection'),
+      );
     });
   });
 });
