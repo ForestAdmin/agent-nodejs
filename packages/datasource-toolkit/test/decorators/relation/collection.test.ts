@@ -83,9 +83,13 @@ describe('RelationCollectionDecorator', () => {
             id: factories.columnSchema.build({
               isPrimaryKey: true,
               columnType: 'Number',
+              filterOperators: new Set(['In']),
             }),
             issueDate: factories.columnSchema.build({ columnType: 'Dateonly' }),
-            ownerId: factories.columnSchema.build({ columnType: 'Number' }),
+            ownerId: factories.columnSchema.build({
+              columnType: 'Number',
+              filterOperators: new Set(['In']),
+            }),
             pictureId: factories.columnSchema.build({ columnType: 'Number' }),
             picture: factories.manyToOneSchema.build({
               foreignCollection: 'pictures',
@@ -113,9 +117,16 @@ describe('RelationCollectionDecorator', () => {
             id: factories.columnSchema.build({
               isPrimaryKey: true,
               columnType: 'Number',
+              filterOperators: new Set(['In']),
             }),
-            otherId: factories.columnSchema.build({ columnType: 'Number' }),
-            name: factories.columnSchema.build(),
+            otherId: factories.columnSchema.build({
+              columnType: 'Number',
+              filterOperators: new Set(['In']),
+            }),
+            name: factories.columnSchema.build({
+              columnType: 'String',
+              filterOperators: new Set(['In']),
+            }),
           },
         }),
         list: jest.fn().mockImplementation((filter, projection) => {
@@ -161,7 +172,7 @@ describe('RelationCollectionDecorator', () => {
     describe('missing operators', () => {
       test('should throw when In is not supported by the fk in the target', () => {
         const schema = passports.schema.fields.ownerId as ColumnSchema;
-        schema.filterOperators.clear();
+        schema.filterOperators = new Set();
 
         expect(() =>
           newPersons.addRelation('passport', {

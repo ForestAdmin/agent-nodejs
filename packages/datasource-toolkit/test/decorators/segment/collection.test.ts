@@ -39,7 +39,9 @@ describe('SegmentCollectionDecorator', () => {
           const collection = factories.collection.build({
             schema: factories.collectionSchema.build({
               fields: {
-                name: factories.columnSchema.build({}),
+                name: factories.columnSchema.build({
+                  filterOperators: new Set(['Equal', 'In']),
+                }),
               },
             }),
           });

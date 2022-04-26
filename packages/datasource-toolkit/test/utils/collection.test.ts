@@ -33,6 +33,7 @@ describe('CollectionUtils', () => {
           id: factories.columnSchema.build({
             isPrimaryKey: true,
             columnType: 'Number',
+            filterOperators: new Set(['In', 'Equal']),
           }),
           oneToManyRelationField: factories.oneToManySchema.build({
             foreignCollection: 'reviews',

@@ -26,7 +26,10 @@ describe('ChartRoute', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
-          name: factories.columnSchema.build({ columnType: 'String' }),
+          name: factories.columnSchema.build({
+            columnType: 'String',
+            filterOperators: new Set(['Present']),
+          }),
           publisher: factories.manyToOneSchema.build({
             foreignCollection: 'publisher',
             foreignKey: 'publisherId',
@@ -37,7 +40,10 @@ describe('ChartRoute', () => {
             foreignCollection: 'persons',
             foreignKey: 'authorId',
           }),
-          publishedAt: factories.columnSchema.build({ columnType: 'Date' }),
+          publishedAt: factories.columnSchema.build({
+            columnType: 'Date',
+            filterOperators: new Set(['Today', 'Yesterday']),
+          }),
         },
       }),
     }),

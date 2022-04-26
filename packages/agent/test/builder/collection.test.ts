@@ -23,8 +23,13 @@ describe('Builder > Collection', () => {
         name: collectionName,
         schema: factories.collectionSchema.build({
           fields: {
-            firstName: factories.columnSchema.build({ isSortable: true }),
-            lastName: factories.columnSchema.build({ filterOperators: new Set() }),
+            firstName: factories.columnSchema.build({
+              isSortable: true,
+              filterOperators: new Set(['In']),
+            }),
+            lastName: factories.columnSchema.build({
+              filterOperators: new Set(),
+            }),
           },
         }),
       }),

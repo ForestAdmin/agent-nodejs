@@ -2,7 +2,6 @@ import { Factory } from 'fishery';
 
 import { ColumnSchema } from '../../../src/interfaces/schema';
 import { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE } from '../../../src/validation/rules';
-import { allOperators } from '../../../src/interfaces/query/condition-tree/nodes/operators';
 
 export class ColumnSchemaFactory extends Factory<ColumnSchema> {
   isPrimaryKey(): ColumnSchemaFactory {
@@ -18,5 +17,4 @@ export class ColumnSchemaFactory extends Factory<ColumnSchema> {
 export default ColumnSchemaFactory.define(() => ({
   type: 'Column' as const,
   columnType: 'String' as const,
-  filterOperators: new Set(allOperators),
 }));

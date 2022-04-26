@@ -48,7 +48,9 @@ describe('ConditionTreeValidation', () => {
               name: 'persons',
               schema: factories.collectionSchema.build({
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build(),
+                  id: factories.columnSchema.isPrimaryKey().build({
+                    filterOperators: new Set(['Equal']),
+                  }),
                 },
               }),
             }),
@@ -88,6 +90,7 @@ describe('ConditionTreeValidation', () => {
               fields: {
                 target: factories.columnSchema.build({
                   columnType: 'String',
+                  filterOperators: new Set(['Equal']),
                 }),
               },
             }),
@@ -112,6 +115,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               target: factories.columnSchema.build({
                 columnType: 'String',
+                filterOperators: new Set(['Equal']),
               }),
             },
           }),
@@ -142,6 +146,7 @@ describe('ConditionTreeValidation', () => {
               fields: {
                 target: factories.columnSchema.build({
                   columnType: 'String',
+                  filterOperators: new Set(['Equal']),
                 }),
               },
             }),
@@ -167,6 +172,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               target: factories.columnSchema.build({
                 columnType: 'Number',
+                filterOperators: new Set(['Contains']),
               }),
             },
           }),
@@ -193,6 +199,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               target: factories.columnSchema.build({
                 columnType: 'Number',
+                filterOperators: new Set(['GreaterThan']),
               }),
             },
           }),
@@ -218,6 +225,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               target: factories.columnSchema.build({
                 columnType: 'String',
+                filterOperators: new Set(['In']),
               }),
             },
           }),
@@ -241,6 +249,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               uuidField: factories.columnSchema.build({
                 columnType: 'Uuid',
+                filterOperators: new Set(['In']),
               }),
             },
           }),
@@ -285,6 +294,7 @@ describe('ConditionTreeValidation', () => {
               enumField: factories.columnSchema.build({
                 columnType: 'Enum',
                 enumValues: ['anAllowedValue'],
+                filterOperators: new Set(['Equal']),
               }),
             },
           }),
@@ -307,6 +317,7 @@ describe('ConditionTreeValidation', () => {
               enumField: factories.columnSchema.build({
                 columnType: 'Enum',
                 enumValues: ['allowedValue'],
+                filterOperators: new Set(['In']),
               }),
             },
           }),
@@ -329,6 +340,7 @@ describe('ConditionTreeValidation', () => {
               enumField: factories.columnSchema.build({
                 columnType: 'Enum',
                 enumValues: ['allowedValue', 'otherAllowedValue'],
+                filterOperators: new Set(['In']),
               }),
             },
           }),
@@ -350,6 +362,7 @@ describe('ConditionTreeValidation', () => {
             fields: {
               pointField: factories.columnSchema.build({
                 columnType: 'Point',
+                filterOperators: new Set(['Equal']),
               }),
             },
           }),
@@ -370,6 +383,7 @@ describe('ConditionTreeValidation', () => {
               fields: {
                 pointField: factories.columnSchema.build({
                   columnType: 'Point',
+                  filterOperators: new Set(['Equal']),
                 }),
               },
             }),
