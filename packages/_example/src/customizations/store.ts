@@ -21,7 +21,7 @@ export default (collection: Collection) =>
       originKeyTarget: 'id',
     })
     .importField('ownerFullName', { path: 'owner:fullName' })
-    .replaceFieldWriting('ownerFullName', ({ action, patch: fullName }) => {
+    .replaceFieldWriting('ownerFullName', (fullName, { action }) => {
       if (action === 'update') {
         return { owner: { fullName } };
       }

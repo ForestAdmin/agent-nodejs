@@ -14,7 +14,7 @@ export default (collection: Collection) =>
       dependencies: new Projection('firstName', 'lastName'),
       getValues: records => records.map(record => `${record.firstName} ${record.lastName}`),
     })
-    .replaceFieldWriting('fullName', ({ patch: fullName }) => {
+    .replaceFieldWriting('fullName', fullName => {
       const [firstName, lastName] = (fullName as string).split(' ');
 
       return { firstName, lastName };
