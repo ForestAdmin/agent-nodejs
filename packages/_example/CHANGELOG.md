@@ -1,3 +1,18 @@
+# example [1.0.0-beta.16](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.15...example@1.0.0-beta.16) (2022-04-26)
+
+
+### Bug Fixes
+
+* example project write override uses an outdated handler prototype ([#267](https://github.com/ForestAdmin/agent-nodejs/issues/267)) ([c32e212](https://github.com/ForestAdmin/agent-nodejs/commit/c32e21245d1703b599f474dfddfc5888e1a6fc77))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.11
+
 # example [1.0.0-beta.15](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.14...example@1.0.0-beta.15) (2022-04-26)
 
 
