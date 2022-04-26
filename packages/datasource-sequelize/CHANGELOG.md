@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.11...@forestadmin/datasource-sequelize@1.0.0-beta.12) (2022-04-26)
+
+
+### Bug Fixes
+
+* **datasource sequelize:**  build a correct where clause when there is relation on delete and update ([#242](https://github.com/ForestAdmin/agent-nodejs/issues/242)) ([75061d4](https://github.com/ForestAdmin/agent-nodejs/commit/75061d447878cd8f32f1fd5bcc245a2791ba0b0a))
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.10...@forestadmin/datasource-sequelize@1.0.0-beta.11) (2022-04-26)
 
 
