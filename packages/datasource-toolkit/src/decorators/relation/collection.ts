@@ -157,7 +157,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
       throw new Error(`Column not found: '${owner.name}.${name}'`);
     }
 
-    if (!column.filterOperators.has('In')) {
+    if (!column.filterOperators?.has('In')) {
       throw new Error(`Column does not support the In operator: '${owner.name}.${name}'`);
     }
   }

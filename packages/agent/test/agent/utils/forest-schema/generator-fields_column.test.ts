@@ -30,15 +30,24 @@ describe('SchemaGeneratorFields > Column', () => {
         fields: {
           isbn: factories.columnSchema.build({
             columnType: 'String',
+            filterOperators: new Set([
+              'Equal',
+              'NotEqual',
+              'Present',
+              'Blank',
+              'In',
+              'StartsWith',
+              'EndsWith',
+              'Contains',
+              'NotContains',
+            ]),
             isPrimaryKey: true,
             isSortable: true,
             isReadOnly: true,
-
             validation: [{ operator: 'Present' }],
           }),
           originKey: factories.columnSchema.build({
             columnType: 'Number',
-            filterOperators: new Set(),
             isPrimaryKey: false,
             isReadOnly: false,
             isSortable: false,
