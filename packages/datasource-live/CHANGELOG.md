@@ -1,3 +1,19 @@
+# @forestadmin/datasource-live [1.0.0-beta.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-live@1.0.0-beta.11...@forestadmin/datasource-live@1.0.0-beta.12) (2022-04-26)
+
+
+### Features
+
+* give access to logged in user to customization context ([#253](https://github.com/ForestAdmin/agent-nodejs/issues/253)) ([be97812](https://github.com/ForestAdmin/agent-nodejs/commit/be978121e47ab06c7a50cc6dec0cdb9284ea9d96))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.11
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.7
+
 # @forestadmin/datasource-live [1.0.0-beta.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-live@1.0.0-beta.10...@forestadmin/datasource-live@1.0.0-beta.11) (2022-04-25)
 
 
