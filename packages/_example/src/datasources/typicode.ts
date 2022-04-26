@@ -5,6 +5,7 @@ import {
   Aggregation,
   BaseCollection,
   BaseDataSource,
+  Caller,
   Filter,
   Logger,
   PaginatedFilter,
@@ -23,7 +24,11 @@ class TypicodeCollection extends BaseCollection {
     this.enableSearch();
   }
 
-  async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+  async list(
+    caller: Caller,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
     let request = this.buildRequest(filter);
 
     if (filter.page) {
@@ -44,6 +49,7 @@ class TypicodeCollection extends BaseCollection {
   }
 
   async aggregate(
+    caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
     limit: number,
@@ -57,8 +63,8 @@ class TypicodeCollection extends BaseCollection {
     }
 
     return aggregation.apply(
-      await this.list(filter, aggregation.projection),
-      filter.timezone,
+      await this.list(caller, filter, aggregation.projection),
+      caller.timezone,
       limit,
     );
   }
@@ -79,9 +85,18 @@ class TypicodeCollection extends BaseCollection {
     let request = superagent.get(`https://jsonplaceholder.typicode.com/${this.name}`);
 
     if (filter.conditionTree) {
+      // Warning: this implementation ignores Or/And
+      // It assumes that leafs targeting the same field are "or", and leaf targeting different
+      // fields are "and", which is good enough for the same of example.
+      const query = {};
+
       filter.conditionTree.forEachLeaf(({ field, value }) => {
-        request = request.query({ [field]: value });
+        if (query[field] && Array.isArray(query[field])) query[field].push(value);
+        else if (query[field]) query[field] = [query[field], value];
+        else query[field] = value;
       });
+
+      request = request.query(query);
     }
 
     if (filter.search) {
