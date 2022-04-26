@@ -1,3 +1,23 @@
+# example [1.0.0-beta.14](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.13...example@1.0.0-beta.14) (2022-04-26)
+
+
+### Features
+
+* give access to logged in user to customization context ([#253](https://github.com/ForestAdmin/agent-nodejs/issues/253)) ([be97812](https://github.com/ForestAdmin/agent-nodejs/commit/be978121e47ab06c7a50cc6dec0cdb9284ea9d96))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.10
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.8
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.12
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.11
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.15
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.7
+
 # example [1.0.0-beta.13](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.12...example@1.0.0-beta.13) (2022-04-25)
 
 
