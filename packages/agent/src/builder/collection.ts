@@ -255,7 +255,7 @@ export default class CollectionBuilder {
    * @param {string} name the name of the field
    * @param {WriteDefinition} definition the function or a value to represent the write behavior
    * @example
-   * .replaceFieldWriting('fullName', ({ patch: fullName }) => {
+   * .replaceFieldWriting('fullName', fullName => {
    *   const [firstName, lastName] = fullName.split(' ');
    *   return { firstName, lastName };
    * });
