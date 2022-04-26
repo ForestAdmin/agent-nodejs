@@ -13,7 +13,7 @@ class MyCollection extends BaseCollection {
     this.addField('title', { /* ... */ isReadOnly: false });
   }
 
-  async create(records) {
+  async create(caller, records) {
     const promises = records.map(async record => {
       const response = await axios.post('https://my-api/my-collection', record);
       return response.body;
@@ -22,7 +22,7 @@ class MyCollection extends BaseCollection {
     return Promise.all(promises); // Must return newly created records
   }
 
-  async update(filter, patch) {
+  async update(caller, filter, patch) {
     const records = await this.list(filter, ['id']); // Retrieve ids
     const promises = records.map(async ({ id }) => {
       await axios.patch(`https://my-api/my-collection/${id}`, patch);
@@ -31,7 +31,7 @@ class MyCollection extends BaseCollection {
     await Promise.all(promises);
   }
 
-  async delete(filter) {
+  async delete(caller, filter) {
     const records = await this.list(filter, ['id']); // Retrieve ids
     const promises = records.map(async ({ id }) => {
       await axios.delete(`https://my-api/my-collection/${id}`);

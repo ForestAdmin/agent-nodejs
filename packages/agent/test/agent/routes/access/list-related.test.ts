@@ -83,27 +83,29 @@ describe('ListRelatedRoute', () => {
         };
         const segmentParams = { segment: 'a-valid-segment' };
         const projectionParams = { 'fields[persons]': 'id,name' };
-        const customProperties = {
-          query: {
-            ...searchParams,
-            ...conditionTreeParams,
-            ...segmentParams,
-            ...projectionParams,
-            timezone: 'Europe/Paris',
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+            query: {
+              ...searchParams,
+              ...conditionTreeParams,
+              ...segmentParams,
+              ...projectionParams,
+              timezone: 'Europe/Paris',
+            },
           },
-          params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
-        };
-        const context = createMockContext({ customProperties });
+        });
         await count.handleListRelated(context);
 
         expect(CollectionUtils.listRelation).toHaveBeenCalledWith(
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new PaginatedFilter({
             search: 'aName',
             searchExtended: false,
-            timezone: 'Europe/Paris',
             page: new Page(0, 15),
             sort: new Sort({ field: 'id', ascending: true }),
             segment: 'a-valid-segment',
@@ -123,14 +125,8 @@ describe('ListRelatedRoute', () => {
           jsonapi: { version: '1.0' },
           meta: {
             decorators: {
-              0: {
-                id: '1',
-                search: ['name'],
-              },
-              1: {
-                id: '2',
-                search: ['name'],
-              },
+              0: { id: '1', search: ['name'] },
+              1: { id: '2', search: ['name'] },
             },
           },
         });

@@ -61,19 +61,16 @@ describe('CsvRoute', () => {
 
       const csvRoute = new CsvRoute(services, options, dataSource, 'books');
 
-      const projectionParams = { 'fields[books]': 'id,name' };
-      const customProperties = {
-        query: {
-          ...projectionParams,
-          header: 'id,name',
-        },
-      };
-      const requestBody = { data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }] };
-
       const scopeCondition = factories.conditionTreeLeaf.build();
       services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
-      const context = createMockContext({ customProperties, requestBody });
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }] },
+        customProperties: {
+          query: { 'fields[books]': 'id,name', header: 'id,name', timezone: 'Europe/Paris' },
+        },
+      });
 
       const booksCollection = dataSource.getCollection('books');
       booksCollection.list = jest.fn().mockReturnValue([]);
@@ -94,6 +91,7 @@ describe('CsvRoute', () => {
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         ['id', 'name'],
         'id,name',
         paginatedFilter,

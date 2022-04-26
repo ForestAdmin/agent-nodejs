@@ -1,4 +1,5 @@
 import * as factories from '../__factories__';
+import { Caller } from '../../src/interfaces/caller';
 import { Collection, DataSource } from '../../src/interfaces/collection';
 import Aggregation from '../../src/interfaces/query/aggregation';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
@@ -17,7 +18,7 @@ describe('RelaxedWrappers', () => {
 
     beforeEach(() => {
       dataSource = factories.dataSource.build();
-      relaxed = new RelaxedDataSource(dataSource);
+      relaxed = new RelaxedDataSource(dataSource, factories.caller.build());
     });
 
     test('should forward collection calls', () => {
@@ -37,10 +38,12 @@ describe('RelaxedWrappers', () => {
   describe('Collection', () => {
     let collection: Collection;
     let relaxed: RelatedCollection;
+    let caller: Caller;
 
     beforeEach(() => {
+      caller = factories.caller.build();
       collection = factories.collection.build();
-      relaxed = new RelatedCollection(collection);
+      relaxed = new RelatedCollection(collection, caller);
     });
 
     test('should return a related datasource', () => {
@@ -61,11 +64,13 @@ describe('RelaxedWrappers', () => {
       await relaxed.list(filter, projection);
 
       expect(collection.list).toHaveBeenCalledWith(
+        expect.anything(),
         expect.any(PaginatedFilter),
         expect.any(Projection),
       );
 
       expect(collection.list).toHaveBeenCalledWith(
+        caller,
         new PaginatedFilter({}),
         new Projection('id', 'truc'),
       );
@@ -82,11 +87,13 @@ describe('RelaxedWrappers', () => {
       );
 
       expect(collection.list).toHaveBeenCalledWith(
+        expect.anything(),
         expect.any(PaginatedFilter),
         expect.any(Projection),
       );
 
       expect(collection.list).toHaveBeenCalledWith(
+        caller,
         new PaginatedFilter({
           conditionTree: new ConditionTreeLeaf('id', 'Equal', 123),
           page: new Page(0, 10),
@@ -103,11 +110,13 @@ describe('RelaxedWrappers', () => {
       );
 
       expect(collection.list).toHaveBeenCalledWith(
+        expect.anything(),
         expect.any(PaginatedFilter),
         expect.any(Projection),
       );
 
       expect(collection.list).toHaveBeenCalledWith(
+        caller,
         new PaginatedFilter({ conditionTree: new ConditionTreeLeaf('id', 'Equal', 123) }),
         new Projection('id', 'truc'),
       );
@@ -116,7 +125,7 @@ describe('RelaxedWrappers', () => {
     test('should forward null filter to execute()', async () => {
       await relaxed.execute('action', {}, null);
 
-      expect(collection.execute).toHaveBeenCalledWith('action', {}, null);
+      expect(collection.execute).toHaveBeenCalledWith(caller, 'action', {}, null);
     });
 
     test('should forward valid filter to execute()', async () => {
@@ -125,9 +134,11 @@ describe('RelaxedWrappers', () => {
       expect(collection.execute).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
+        expect.anything(),
         expect.any(Filter),
       );
       expect(collection.execute).toHaveBeenCalledWith(
+        caller,
         'action',
         {},
         new Filter({ segment: 'some_segment' }),
@@ -137,7 +148,7 @@ describe('RelaxedWrappers', () => {
     test('should forward null filter to update()', async () => {
       await relaxed.getForm('action', {}, null);
 
-      expect(collection.getForm).toHaveBeenCalledWith('action', {}, null);
+      expect(collection.getForm).toHaveBeenCalledWith(caller, 'action', {}, null);
     });
 
     test('should forward valid filter to getForm()', async () => {
@@ -146,9 +157,11 @@ describe('RelaxedWrappers', () => {
       expect(collection.getForm).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
+        expect.anything(),
         expect.any(Filter),
       );
       expect(collection.getForm).toHaveBeenCalledWith(
+        caller,
         'action',
         {},
         new Filter({ segment: 'some_segment' }),
@@ -158,32 +171,47 @@ describe('RelaxedWrappers', () => {
     test('should forward creation to underlying collection', async () => {
       await relaxed.create([{ id: 12 }]);
 
-      expect(collection.create).toHaveBeenCalledWith([{ id: 12 }]);
+      expect(collection.create).toHaveBeenCalledWith(caller, [{ id: 12 }]);
     });
 
     test('should forward update and transform filter', async () => {
       await relaxed.update({ segment: 'some_segment' }, { name: 'something' });
 
-      expect(collection.update).toHaveBeenCalledWith(expect.any(Filter), expect.anything());
-      expect(collection.update).toHaveBeenCalledWith(new Filter({ segment: 'some_segment' }), {
-        name: 'something',
-      });
+      expect(collection.update).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(Filter),
+        expect.anything(),
+      );
+      expect(collection.update).toHaveBeenCalledWith(
+        caller,
+        new Filter({ segment: 'some_segment' }),
+        { name: 'something' },
+      );
     });
 
     test('should forward update and transform filter with real filter', async () => {
       await relaxed.update(new Filter({ segment: 'some_segment' }), { name: 'something' });
 
-      expect(collection.update).toHaveBeenCalledWith(expect.any(Filter), expect.anything());
-      expect(collection.update).toHaveBeenCalledWith(new Filter({ segment: 'some_segment' }), {
-        name: 'something',
-      });
+      expect(collection.update).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(Filter),
+        expect.anything(),
+      );
+      expect(collection.update).toHaveBeenCalledWith(
+        caller,
+        new Filter({ segment: 'some_segment' }),
+        { name: 'something' },
+      );
     });
 
     test('should forward delete and transform filter', async () => {
       await relaxed.delete({ segment: 'some_segment' });
 
-      expect(collection.delete).toHaveBeenCalledWith(expect.any(Filter));
-      expect(collection.delete).toHaveBeenCalledWith(new Filter({ segment: 'some_segment' }));
+      expect(collection.delete).toHaveBeenCalledWith(expect.anything(), expect.any(Filter));
+      expect(collection.delete).toHaveBeenCalledWith(
+        caller,
+        new Filter({ segment: 'some_segment' }),
+      );
     });
 
     test('should call aggregate when provided with a plain object', async () => {
@@ -192,11 +220,13 @@ describe('RelaxedWrappers', () => {
       await relaxed.aggregate(filter, aggregation, 66);
 
       expect(collection.aggregate).toHaveBeenCalledWith(
+        expect.anything(),
         expect.any(Filter),
         expect.any(Aggregation),
         expect.any(Number),
       );
       expect(collection.aggregate).toHaveBeenCalledWith(
+        caller,
         new Filter({ conditionTree: new ConditionTreeLeaf('id', 'Equal', 123) }),
         new Aggregation({ operation: 'Count' }),
         66,
@@ -209,11 +239,13 @@ describe('RelaxedWrappers', () => {
       await relaxed.aggregate(filter, aggregation, 66);
 
       expect(collection.aggregate).toHaveBeenCalledWith(
+        expect.anything(),
         expect.any(Filter),
         expect.any(Aggregation),
         expect.any(Number),
       );
       expect(collection.aggregate).toHaveBeenCalledWith(
+        caller,
         new Filter({ conditionTree: new ConditionTreeLeaf('id', 'Equal', 123) }),
         new Aggregation({ operation: 'Count' }),
         66,

@@ -324,6 +324,7 @@ describe('CollectionUtils', () => {
             dataSource.getCollection('books'),
             [2],
             'aNonSupportedRelationField',
+            factories.caller.build(),
             baseFilter,
             aggregation,
           ),
@@ -338,6 +339,7 @@ describe('CollectionUtils', () => {
       test('should return the aggregate result of the relation', async () => {
         const { dataSource } = setupWithOneToManyRelation();
         const aggregation = factories.aggregation.build();
+        const caller = factories.caller.build();
         const baseFilter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build(),
         });
@@ -346,6 +348,7 @@ describe('CollectionUtils', () => {
           dataSource.getCollection('books'),
           [2],
           'oneToManyRelationField',
+          caller,
           baseFilter,
           aggregation,
           55,
@@ -356,6 +359,7 @@ describe('CollectionUtils', () => {
           new ConditionTreeLeaf('bookId', 'Equal', 2),
         );
         expect(dataSource.getCollection('reviews').aggregate).toHaveBeenCalledWith(
+          caller,
           baseFilter.override({ conditionTree: expectedCondition }),
           aggregation,
           55,
@@ -378,10 +382,12 @@ describe('CollectionUtils', () => {
           .spyOn(dataSource.getCollection('librariesBooks'), 'aggregate')
           .mockResolvedValue([{ value: 34, group: { 'myBook:id': 1, 'myBook:aField': '1' } }]);
 
+        const caller = factories.caller.build();
         const aggregateResults = await CollectionUtils.aggregateRelation(
           dataSource.getCollection('books'),
           [2],
           'manyToManyRelationField',
+          caller,
           baseFilter,
           aggregation,
           55,
@@ -393,6 +399,7 @@ describe('CollectionUtils', () => {
         );
 
         expect(dataSource.getCollection('librariesBooks').aggregate).toHaveBeenCalledWith(
+          caller,
           baseFilter.override({ conditionTree: expectedCondition }),
           new Aggregation({
             operation: 'Max',
@@ -420,6 +427,7 @@ describe('CollectionUtils', () => {
             dataSource.getCollection('books'),
             [2],
             'aNonSupportedRelationField',
+            factories.caller.build(),
             baseFilter,
             factories.projection.build(),
           ),
@@ -437,12 +445,14 @@ describe('CollectionUtils', () => {
         const baseFilter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build(),
         });
+        const caller = factories.caller.build();
         const projection = factories.projection.build();
 
         await CollectionUtils.listRelation(
           dataSource.getCollection('books'),
           [2],
           'oneToManyRelationField',
+          caller,
           baseFilter,
           projection,
         );
@@ -452,6 +462,7 @@ describe('CollectionUtils', () => {
           new ConditionTreeLeaf('bookId', 'Equal', 2),
         );
         expect(dataSource.getCollection('reviews').list).toHaveBeenCalledWith(
+          caller,
           baseFilter.override({ conditionTree: expectedCondition }),
           projection,
         );
@@ -470,10 +481,12 @@ describe('CollectionUtils', () => {
           .spyOn(dataSource.getCollection('librariesBooks'), 'list')
           .mockResolvedValue([{ myLibrary: { id: 1, aField: 'aValue' } }]);
 
+        const caller = factories.caller.build();
         const listResults = await CollectionUtils.listRelation(
           dataSource.getCollection('books'),
           [2],
           'manyToManyRelationField',
+          caller,
           paginatedFilter,
           projection,
         );
@@ -483,6 +496,7 @@ describe('CollectionUtils', () => {
           paginatedFilter.conditionTree.nest('myLibrary'),
         );
         expect(dataSource.getCollection('librariesBooks').list).toHaveBeenCalledWith(
+          caller,
           paginatedFilter.override({
             conditionTree: expectedCondition,
             sort: paginatedFilter.sort,
@@ -508,7 +522,12 @@ describe('CollectionUtils', () => {
       test('it should return directly', async () => {
         const books = setupGetValue();
 
-        const value = await CollectionUtils.getValue(books, ['=[id-value]='], 'id');
+        const value = await CollectionUtils.getValue(
+          books,
+          factories.caller.build(),
+          ['=[id-value]='],
+          'id',
+        );
 
         expect(value).toEqual('=[id-value]=');
         expect(books.list).not.toHaveBeenCalled();
@@ -518,10 +537,12 @@ describe('CollectionUtils', () => {
     test('it should call collection list', async () => {
       const books = setupGetValue();
 
-      const value = await CollectionUtils.getValue(books, ['=[id-value]='], 'field');
+      const caller = factories.caller.build();
+      const value = await CollectionUtils.getValue(books, caller, ['=[id-value]='], 'field');
 
       expect(value).toEqual(123);
       expect(books.list).toHaveBeenCalledWith(
+        caller,
         { conditionTree: { field: 'id', operator: 'Equal', value: '=[id-value]=' } },
         ['field'],
       );

@@ -32,7 +32,6 @@ export default class ContextFilterFactory {
     return new Filter({
       search: QueryStringParser.parseSearch(collection, context),
       segment: QueryStringParser.parseSegment(collection, context),
-      timezone: QueryStringParser.parseTimezone(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(collection, context),

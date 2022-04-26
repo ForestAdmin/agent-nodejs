@@ -1,4 +1,5 @@
 import {
+  Caller,
   CompositeId,
   ConditionTreeFactory,
   Filter,
@@ -32,37 +33,40 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     // Parse route params
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const isDeleteMode = Boolean(context.request.query?.delete);
+    const caller = QueryStringParser.parseRecipient(context);
     const filter = await this.getBaseForeignFilter(context);
 
     // Dissociating a one to many or many many is quite a different job => delegate
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
 
     if (relation.type === 'OneToMany') {
-      await this.dissociateOrDeleteOneToMany(relation, parentId, isDeleteMode, filter);
+      await this.dissociateOrDeleteOneToMany(caller, relation, parentId, isDeleteMode, filter);
     } else {
-      await this.dissociateOrDeleteManyToMany(relation, parentId, isDeleteMode, filter);
+      await this.dissociateOrDeleteManyToMany(caller, relation, parentId, isDeleteMode, filter);
     }
 
     context.response.status = HttpCode.NoContent;
   }
 
   private async dissociateOrDeleteOneToMany(
+    caller: Caller,
     schema: OneToManySchema,
     parentId: CompositeId,
     isDeleteMode: boolean,
     baseTargetFilter: Filter,
   ): Promise<void> {
     // Restrict baseTargetFilter to match only records under the parent record
-    const foreignFilter = await this.makeForeignFilter(parentId, baseTargetFilter);
+    const foreignFilter = await this.makeForeignFilter(caller, parentId, baseTargetFilter);
 
     if (isDeleteMode) {
-      await this.foreignCollection.delete(foreignFilter);
+      await this.foreignCollection.delete(caller, foreignFilter);
     } else {
-      await this.foreignCollection.update(foreignFilter, { [schema.originKey]: null });
+      await this.foreignCollection.update(caller, foreignFilter, { [schema.originKey]: null });
     }
   }
 
   private async dissociateOrDeleteManyToMany(
+    caller: Caller,
     schema: ManyToManySchema,
     parentId: CompositeId,
     isDeleteMode: boolean,
@@ -72,20 +76,20 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
 
     if (isDeleteMode) {
       // Generate filters _BEFORE_ deleting stuff, otherwise things break.
-      const throughFilter = await this.makeThroughFilter(parentId, baseTargetFilter);
-      const foreignFilter = await this.makeForeignFilter(parentId, baseTargetFilter);
+      const throughFilter = await this.makeThroughFilter(caller, parentId, baseTargetFilter);
+      const foreignFilter = await this.makeForeignFilter(caller, parentId, baseTargetFilter);
 
       // Delete records from through collection
-      await throughCollection.delete(throughFilter);
+      await throughCollection.delete(caller, throughFilter);
 
       // Let the datasource crash when:
       // - the records in the foreignCollection are linked to other records in the origin collection
       // - the underlying database/api is not cascading deletes
-      await this.foreignCollection.delete(foreignFilter);
+      await this.foreignCollection.delete(caller, foreignFilter);
     } else {
       // Only delete records from through collection
-      const thoughFilter = await this.makeThroughFilter(parentId, baseTargetFilter);
-      await throughCollection.delete(thoughFilter);
+      const thoughFilter = await this.makeThroughFilter(caller, parentId, baseTargetFilter);
+      await throughCollection.delete(caller, thoughFilter);
     }
   }
 
@@ -115,21 +119,31 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
   }
 
   /** Wrapper around the util to simplify the call */
-  private makeForeignFilter(parentId: CompositeId, baseForeignFilter: Filter): Promise<Filter> {
+  private makeForeignFilter(
+    caller: Caller,
+    parentId: CompositeId,
+    baseForeignFilter: Filter,
+  ): Promise<Filter> {
     return FilterFactory.makeForeignFilter(
       this.collection,
       parentId,
       this.relationName,
+      caller,
       baseForeignFilter,
     );
   }
 
   /** Wrapper around the util to simplify the call */
-  private makeThroughFilter(parentId: CompositeId, baseForeignFilter: Filter): Promise<Filter> {
+  private makeThroughFilter(
+    caller: Caller,
+    parentId: CompositeId,
+    baseForeignFilter: Filter,
+  ): Promise<Filter> {
     return FilterFactory.makeThroughFilter(
       this.collection,
       parentId,
       this.relationName,
+      caller,
       baseForeignFilter,
     );
   }

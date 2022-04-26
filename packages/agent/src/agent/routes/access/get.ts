@@ -9,6 +9,7 @@ import Router from '@koa/router';
 import { HttpCode } from '../../types';
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
+import QueryStringParser from '../../utils/query-string';
 
 export default class GetRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
@@ -26,7 +27,11 @@ export default class GetRoute extends CollectionRoute {
       ),
     });
 
-    const records = await this.collection.list(filter, ProjectionFactory.all(this.collection));
+    const records = await this.collection.list(
+      QueryStringParser.parseRecipient(context),
+      filter,
+      ProjectionFactory.all(this.collection),
+    );
 
     if (!records.length) {
       context.throw(HttpCode.NotFound, 'Record does not exists');

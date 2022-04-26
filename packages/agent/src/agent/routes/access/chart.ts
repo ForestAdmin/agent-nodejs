@@ -15,6 +15,7 @@ import Router from '@koa/router';
 
 import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
+import QueryStringParser from '../../utils/query-string';
 
 enum ChartType {
   Value = 'Value',
@@ -57,6 +58,7 @@ export default class Chart extends CollectionRoute {
   private async makeValueChart(
     context: Context,
   ): Promise<{ countCurrent: number; countPrevious?: number }> {
+    const caller = QueryStringParser.parseRecipient(context);
     const currentFilter = await this.getFilter(context);
     const result = {
       countCurrent: await this.computeValue(context, currentFilter),
@@ -72,7 +74,7 @@ export default class Chart extends CollectionRoute {
     if (withCountPrevious && !isAndAggregator) {
       result.countPrevious = await this.computeValue(
         context,
-        FilterFactory.getPreviousPeriodFilter(currentFilter),
+        FilterFactory.getPreviousPeriodFilter(currentFilter, caller.timezone),
       );
     }
 
@@ -91,6 +93,7 @@ export default class Chart extends CollectionRoute {
     } = context.request.body;
 
     const rows = await this.collection.aggregate(
+      QueryStringParser.parseRecipient(context),
       await this.getFilter(context),
       new Aggregation({
         operation: aggregate,
@@ -114,6 +117,7 @@ export default class Chart extends CollectionRoute {
     } = context.request.body;
 
     const rows = await this.collection.aggregate(
+      QueryStringParser.parseRecipient(context),
       await this.getFilter(context),
       new Aggregation({
         operation: aggregate,
@@ -190,7 +194,12 @@ export default class Chart extends CollectionRoute {
     if (collection && filter && aggregation) {
       const rows = await this.dataSource
         .getCollection(collection)
-        .aggregate(filter, aggregation, Number(body.limit));
+        .aggregate(
+          QueryStringParser.parseRecipient(context),
+          filter,
+          aggregation,
+          Number(body.limit),
+        );
 
       return rows.map(row => ({
         key: row.group[aggregation.groups[0].field] as string,
@@ -207,7 +216,11 @@ export default class Chart extends CollectionRoute {
     const { aggregate, aggregate_field: aggregateField } = context.request.body;
     const aggregation = new Aggregation({ operation: aggregate, field: aggregateField });
 
-    const rows = await this.collection.aggregate(filter, aggregation);
+    const rows = await this.collection.aggregate(
+      QueryStringParser.parseRecipient(context),
+      filter,
+      aggregation,
+    );
 
     return rows.length ? (rows[0].value as number) : 0;
   }

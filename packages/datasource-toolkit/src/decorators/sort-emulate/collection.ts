@@ -1,3 +1,4 @@
+import { Caller } from '../../interfaces/caller';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -33,18 +34,23 @@ export default class SortEmulate extends CollectionDecorator {
     this.markSchemaAsDirty();
   }
 
-  override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+  override async list(
+    caller: Caller,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
     const childFilter = filter.override({
       sort: filter.sort?.replaceClauses(clause => this.rewritePlainSortClause(clause)),
     });
 
     if (!childFilter.sort?.some(({ field }) => this.isEmulated(field))) {
-      return this.childCollection.list(childFilter, projection);
+      return this.childCollection.list(caller, childFilter, projection);
     }
 
     // Fetch the whole collection, but only with the fields we need to sort
     let referenceRecords: RecordData[];
     referenceRecords = await this.childCollection.list(
+      caller,
       childFilter.override({ sort: null, page: null }),
       childFilter.sort.projection.withPks(this),
     );
@@ -57,7 +63,7 @@ export default class SortEmulate extends CollectionDecorator {
     });
 
     let records: RecordData[];
-    records = await this.childCollection.list(newFilter, projection.withPks(this));
+    records = await this.childCollection.list(caller, newFilter, projection.withPks(this));
     records = this.sortRecords(referenceRecords, records);
     records = projection.apply(records);
 

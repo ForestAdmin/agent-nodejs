@@ -1,3 +1,4 @@
+import { Caller } from '../../interfaces/caller';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -43,45 +44,54 @@ export default class WriteDecorator extends CollectionDecorator {
     return schema;
   }
 
-  override async create(data: RecordData[]): Promise<RecordData[]> {
-    return Promise.all(data.map(record => this.applyDefinitionsAndCreate(record)));
+  override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
+    return Promise.all(data.map(record => this.applyDefinitionsAndCreate(caller, record)));
   }
 
-  override async update(filter: Filter, patch: RecordData): Promise<void> {
-    await this.applyDefinitionsAndUpdate(filter, patch);
+  override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+    await this.applyDefinitionsAndUpdate(caller, filter, patch);
   }
 
-  private async applyDefinitionsAndCreate(record: RecordData): Promise<RecordData> {
-    const patch = await this.applyDefinitions(record, 'create');
+  private async applyDefinitionsAndCreate(caller: Caller, record: RecordData): Promise<RecordData> {
+    const patch = await this.applyDefinitions(caller, record, 'create');
 
     if (this.getRelationFields(patch, ['ManyToOne', 'OneToOne']).length === 0) {
-      const result = await this.childCollection.create([patch]);
+      const result = await this.childCollection.create(caller, [patch]);
 
       return result[0];
     }
 
-    const manyToOneRecords = await this.createManyToOneRelations(patch);
+    const manyToOneRecords = await this.createManyToOneRelations(caller, patch);
 
-    const createdRecord = await this.createRecord(patch, manyToOneRecords);
+    const createdRecord = await this.createRecord(caller, patch, manyToOneRecords);
 
-    await this.createOneToOneRelations(patch, createdRecord);
+    await this.createOneToOneRelations(caller, patch, createdRecord);
 
     return createdRecord;
   }
 
-  private async applyDefinitionsAndUpdate(filter: Filter, patch: RecordData): Promise<void> {
-    const updatedPatch = await this.applyDefinitions(patch, 'update');
+  private async applyDefinitionsAndUpdate(
+    caller: Caller,
+    filter: Filter,
+    patch: RecordData,
+  ): Promise<void> {
+    const updatedPatch = await this.applyDefinitions(caller, patch, 'update');
     const relations = this.getRelationFields(updatedPatch, ['OneToOne', 'ManyToOne']);
 
-    const idsList = await this.getImpactedRecordByUpdate(relations, filter);
+    const idsList = await this.getImpactedRecordByUpdate(caller, relations, filter);
 
     await Promise.all([
-      ...this.updateAllRelations(idsList, updatedPatch),
-      this.childCollection.update(filter, this.getPatchWithoutRelations(updatedPatch, relations)),
+      ...this.updateAllRelations(caller, idsList, updatedPatch),
+      this.childCollection.update(
+        caller,
+        filter,
+        this.getPatchWithoutRelations(updatedPatch, relations),
+      ),
     ]);
   }
 
   private async createRecord(
+    caller: Caller,
     patch: RecordData,
     manyToOneRecords: RecordData[][],
   ): Promise<RecordData> {
@@ -107,12 +117,13 @@ export default class WriteDecorator extends CollectionDecorator {
       if (patch[relationSchema.originKey]) delete refinedPatch[relationSchema.originKey];
     }
 
-    const result = await this.childCollection.create([refinedPatch]);
+    const result = await this.childCollection.create(caller, [refinedPatch]);
 
     return result[0];
   }
 
   private async createOneToOneRelations(
+    caller: Caller,
     patch: RecordData,
     createdRecord: RecordData,
   ): Promise<void> {
@@ -127,18 +138,18 @@ export default class WriteDecorator extends CollectionDecorator {
       if (patch[fk]) {
         const conditionTree = new ConditionTreeLeaf(fk, 'Equal', patch[fk]);
         const filter = new Filter({ conditionTree });
-        const update = relation.update(filter, relationRecord);
+        const update = relation.update(caller, filter, relationRecord);
         requests.push(update);
       } else {
         const [pk] = SchemaUtils.getPrimaryKeys(this.schema);
-        requests.push(relation.create([{ ...relationRecord, [fk]: createdRecord[pk] }]));
+        requests.push(relation.create(caller, [{ ...relationRecord, [fk]: createdRecord[pk] }]));
       }
     }
 
     await Promise.all(requests);
   }
 
-  private createManyToOneRelations(patch: RecordData): Promise<RecordData[][]> {
+  private createManyToOneRelations(caller: Caller, patch: RecordData): Promise<RecordData[][]> {
     const resultsManyToOne: Promise<RecordData[]>[] = [];
 
     for (const relationName of this.getRelationFields(patch, ['ManyToOne'])) {
@@ -153,14 +164,14 @@ export default class WriteDecorator extends CollectionDecorator {
 
         const updateWrapper = async (): Promise<RecordData[]> => {
           const conditionTree = new ConditionTreeLeaf(pk, 'Equal', patch[fk]);
-          await relation.update(new Filter({ conditionTree }), relationRecord);
+          await relation.update(caller, new Filter({ conditionTree }), relationRecord);
 
           return [{ [pk]: patch[fk] }];
         };
 
         resultsManyToOne.push(updateWrapper());
       } else {
-        resultsManyToOne.push(relation.create([relationRecord]));
+        resultsManyToOne.push(relation.create(caller, [relationRecord]));
       }
     }
 
@@ -168,6 +179,7 @@ export default class WriteDecorator extends CollectionDecorator {
   }
 
   private updateAllRelations(
+    caller: Caller,
     listIds: RecordData[][],
     patch: RecordData,
   ): Promise<void | RecordData[]>[] {
@@ -189,13 +201,14 @@ export default class WriteDecorator extends CollectionDecorator {
       }
 
       const idsFilter = new Filter({ conditionTree: new ConditionTreeLeaf(key, 'In', ids) });
-      updates.push(relation.update(idsFilter, patch[relationName] as RecordData));
+      updates.push(relation.update(caller, idsFilter, patch[relationName] as RecordData));
     }
 
     return updates;
   }
 
   private async getImpactedRecordByUpdate(
+    caller: Caller,
     relations: string[],
     filter: Filter,
   ): Promise<RecordData[][]> {
@@ -211,13 +224,14 @@ export default class WriteDecorator extends CollectionDecorator {
         projection = new Projection(relationSchema.foreignKey);
       }
 
-      records.push(this.list(filter, projection));
+      records.push(this.list(caller, filter, projection));
     }
 
     return Promise.all(records);
   }
 
   private async applyDefinitions(
+    caller: Caller,
     patch: RecordData,
     action: 'update' | 'create',
     stackCalls: string[] = [],
@@ -226,7 +240,12 @@ export default class WriteDecorator extends CollectionDecorator {
 
     const replacedDefinitionsColumns = this.getReplacedDefinitionsColumns(patch);
     WriteDecorator.checkCyclicDependency(replacedDefinitionsColumns, stackCalls);
-    const patches = await this.getDefinitionResults(patch, replacedDefinitionsColumns, action);
+    const patches = await this.getDefinitionResults(
+      caller,
+      patch,
+      replacedDefinitionsColumns,
+      action,
+    );
 
     const patchToExplore = {};
     const copyPatch = { ...patch };
@@ -260,7 +279,10 @@ export default class WriteDecorator extends CollectionDecorator {
       }
     });
 
-    return { ...copyPatch, ...(await this.applyDefinitions(patchToExplore, action, stackCalls)) };
+    return {
+      ...copyPatch,
+      ...(await this.applyDefinitions(caller, patchToExplore, action, stackCalls)),
+    };
   }
 
   private getReplacedDefinitionsColumns(patch: RecordData): string[] {
@@ -270,6 +292,7 @@ export default class WriteDecorator extends CollectionDecorator {
   }
 
   private async getDefinitionResults(
+    caller: Caller,
     patch: RecordData,
     columns: string[],
     action: 'update' | 'create',
@@ -277,7 +300,7 @@ export default class WriteDecorator extends CollectionDecorator {
     return Promise.all(
       columns.map(column => {
         const definition = this.replacedDefinitions[column];
-        const context = new WriteCustomizationContext(this, action, { ...patch });
+        const context = new WriteCustomizationContext(this, caller, action, { ...patch });
 
         return definition(patch[column], context);
       }),

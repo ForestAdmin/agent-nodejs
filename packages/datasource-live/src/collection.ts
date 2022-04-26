@@ -1,6 +1,7 @@
 import {
   AggregateResult,
   Aggregation,
+  Caller,
   Filter,
   PaginatedFilter,
   Projection,
@@ -26,37 +27,42 @@ export default class LiveCollection extends SequelizeCollection {
     return true;
   }
 
-  override create(data: RecordData[]): Promise<RecordData[]> {
+  override create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     this.ensureSynched();
 
-    return super.create(data);
+    return super.create(caller, data);
   }
 
-  override list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+  override list(
+    caller: Caller,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
     this.ensureSynched();
 
-    return super.list(filter, projection);
+    return super.list(caller, filter, projection);
   }
 
-  override update(filter: Filter, patch: RecordData): Promise<void> {
+  override update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     this.ensureSynched();
 
-    return super.update(filter, patch);
+    return super.update(caller, filter, patch);
   }
 
-  override delete(filter: Filter): Promise<void> {
+  override delete(caller: Caller, filter: Filter): Promise<void> {
     this.ensureSynched();
 
-    return super.delete(filter);
+    return super.delete(caller, filter);
   }
 
   override aggregate(
+    caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
     this.ensureSynched();
 
-    return super.aggregate(filter, aggregation, limit);
+    return super.aggregate(caller, filter, aggregation, limit);
   }
 }

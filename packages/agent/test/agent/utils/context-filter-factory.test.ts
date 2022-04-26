@@ -63,7 +63,6 @@ describe('FilterFactory', () => {
             new ConditionTreeLeaf('id', 'Equal', '123e4567-e89b-12d3-a456-426614174000'),
             new ConditionTreeLeaf('id', 'Equal', '123e4567-e89b-12d3-a456-222222222222'),
           ]),
-          timezone: 'Europe/Paris',
           search: 'searched argument',
           sort: new Sort({ field: 'id', ascending: true }),
           page: new Page(20, 10),
@@ -83,8 +82,6 @@ describe('FilterFactory', () => {
       expect(filter).toEqual(
         new PaginatedFilter({
           conditionTree: null,
-
-          timezone: 'Europe/Paris',
           search: 'searched argument',
           sort: new Sort({ field: 'id', ascending: true }),
           page: new Page(20, 10),

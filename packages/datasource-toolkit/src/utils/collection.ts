@@ -1,3 +1,4 @@
+import { Caller } from '../interfaces/caller';
 import { Collection } from '../interfaces/collection';
 import { CompositeId, RecordData } from '../interfaces/record';
 import { FieldSchema, RelationSchema } from '../interfaces/schema';
@@ -113,6 +114,7 @@ export default class CollectionUtils {
     collection: Collection,
     id: CompositeId,
     relationName: string,
+    caller: Caller,
     foreignFilter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
@@ -126,7 +128,14 @@ export default class CollectionUtils {
       if (foreignRelation) {
         const through = collection.dataSource.getCollection(relation.throughCollection);
         const records = await through.list(
-          await FilterFactory.makeThroughFilter(collection, id, relationName, foreignFilter),
+          caller,
+          await FilterFactory.makeThroughFilter(
+            collection,
+            id,
+            relationName,
+            caller,
+            foreignFilter,
+          ),
           projection.nest(foreignRelation),
         );
 
@@ -136,7 +145,8 @@ export default class CollectionUtils {
 
     // Otherwise fetch the target table (this works with both relation types)
     return foreign.list(
-      await FilterFactory.makeForeignFilter(collection, id, relationName, foreignFilter),
+      caller,
+      await FilterFactory.makeForeignFilter(collection, id, relationName, caller, foreignFilter),
       projection,
     );
   }
@@ -145,6 +155,7 @@ export default class CollectionUtils {
     collection: Collection,
     id: CompositeId,
     relationName: string,
+    caller: Caller,
     foreignFilter: Filter,
     aggregation: Aggregation,
     limit?: number,
@@ -159,7 +170,14 @@ export default class CollectionUtils {
       if (foreignRelation) {
         const through = collection.dataSource.getCollection(relation.throughCollection);
         const records = await through.aggregate(
-          await FilterFactory.makeThroughFilter(collection, id, relationName, foreignFilter),
+          caller,
+          await FilterFactory.makeThroughFilter(
+            collection,
+            id,
+            relationName,
+            caller,
+            foreignFilter,
+          ),
           aggregation.nest(foreignRelation),
           limit,
         );
@@ -176,17 +194,24 @@ export default class CollectionUtils {
 
     // Otherwise fetch the target table (this works with both relation types)
     return foreign.aggregate(
-      await FilterFactory.makeForeignFilter(collection, id, relationName, foreignFilter),
+      caller,
+      await FilterFactory.makeForeignFilter(collection, id, relationName, caller, foreignFilter),
       aggregation,
       limit,
     );
   }
 
-  static async getValue(collection: Collection, id: CompositeId, field: string): Promise<unknown> {
+  static async getValue(
+    collection: Collection,
+    caller: Caller,
+    id: CompositeId,
+    field: string,
+  ): Promise<unknown> {
     const index = SchemaUtils.getPrimaryKeys(collection.schema).indexOf(field);
     if (index !== -1) return id[index];
 
     const [record] = await collection.list(
+      caller,
       new Filter({ conditionTree: ConditionTreeFactory.matchIds(collection.schema, [id]) }),
       new Projection(field),
     );

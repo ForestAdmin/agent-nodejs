@@ -44,6 +44,7 @@ export { default as Sort } from './interfaces/query/sort';
 export { default as SortFactory } from './interfaces/query/sort/factory';
 
 export * from './interfaces/action';
+export * from './interfaces/caller';
 export * from './interfaces/collection';
 export * from './interfaces/query/aggregation';
 export * from './interfaces/query/condition-tree/nodes/branch';

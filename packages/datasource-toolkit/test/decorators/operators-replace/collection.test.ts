@@ -49,15 +49,23 @@ describe('ConditionTreeOperators', () => {
     });
 
     test('list() should work with a null condition tree', async () => {
-      await decorator.list(new PaginatedFilter({}), new Projection('col'));
-      expect(collectionList).toHaveBeenCalledWith({}, ['col']);
+      const caller = factories.caller.build();
+
+      await decorator.list(caller, new PaginatedFilter({}), new Projection('col'));
+      expect(collectionList).toHaveBeenCalledWith(caller, {}, ['col']);
     });
 
     test('list() should not modify supported operators', async () => {
       const tree = new ConditionTreeLeaf('col', 'Equal', 'someDate');
+      const caller = factories.caller.build();
 
-      await decorator.list(new PaginatedFilter({ conditionTree: tree }), new Projection('col'));
+      await decorator.list(
+        caller,
+        new PaginatedFilter({ conditionTree: tree }),
+        new Projection('col'),
+      );
       expect(collectionList).toHaveBeenCalledWith(
+        caller,
         { conditionTree: { field: 'col', operator: 'Equal', value: 'someDate' } },
         ['col'],
       );
@@ -65,9 +73,15 @@ describe('ConditionTreeOperators', () => {
 
     test('list() should transform "In -> Equal"', async () => {
       const tree = new ConditionTreeLeaf('col', 'In', ['someDate']);
+      const caller = factories.caller.build();
 
-      await decorator.list(new PaginatedFilter({ conditionTree: tree }), new Projection('col'));
+      await decorator.list(
+        caller,
+        new PaginatedFilter({ conditionTree: tree }),
+        new Projection('col'),
+      );
       expect(collectionList).toHaveBeenCalledWith(
+        caller,
         { conditionTree: { field: 'col', operator: 'Equal', value: 'someDate' } },
         ['col'],
       );
@@ -75,9 +89,15 @@ describe('ConditionTreeOperators', () => {
 
     test('list() should transform "Blank -> In -> Equal"', async () => {
       const tree = new ConditionTreeLeaf('col', 'Blank');
+      const caller = factories.caller.build();
 
-      await decorator.list(new PaginatedFilter({ conditionTree: tree }), new Projection('col'));
+      await decorator.list(
+        caller,
+        new PaginatedFilter({ conditionTree: tree }),
+        new Projection('col'),
+      );
       expect(collectionList).toHaveBeenCalledWith(
+        caller,
         { conditionTree: { field: 'col', operator: 'Equal', value: null } },
         ['col'],
       );

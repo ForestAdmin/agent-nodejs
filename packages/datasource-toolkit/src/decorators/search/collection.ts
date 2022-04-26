@@ -1,3 +1,4 @@
+import { Caller } from '../../interfaces/caller';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -17,7 +18,10 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     return { ...subSchema, searchable: true };
   }
 
-  public override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
+  public override async refineFilter(
+    caller: Caller,
+    filter?: PaginatedFilter,
+  ): Promise<PaginatedFilter> {
     if (!filter?.search || this.childCollection.schema.searchable) {
       return filter;
     }

@@ -39,9 +39,13 @@ describe('UpdateRoute', () => {
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
-      const customProperties = { params: { id: '1523' } };
+      const customProperties = { query: { timezone: 'Europe/Paris' }, params: { id: '1523' } };
       const requestBody = { data: { attributes: { name: 'foo name' } } };
-      const context = createMockContext({ customProperties, requestBody });
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties,
+        requestBody,
+      });
 
       await updateRoute.handleUpdate(context);
 
@@ -53,8 +57,13 @@ describe('UpdateRoute', () => {
         }),
       });
 
-      expect(bookCollection.update).toHaveBeenCalledWith(expectedFilter, { name: 'foo name' });
+      expect(bookCollection.update).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        expectedFilter,
+        { name: 'foo name' },
+      );
       expect(bookCollection.list).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         expectedFilter,
         new Projection('id', 'name'),
       );
@@ -80,19 +89,12 @@ describe('UpdateRoute', () => {
       const dataSource = factories.dataSource.buildWithCollection(bookCollection);
       const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
-      const customProperties = { params: { id: '1523' } };
+      const customProperties = { query: { timezone: 'Europe/Paris' }, params: { id: '1523' } };
       const requestBody = {
         data: {
-          attributes: {
-            id: 1,
-          },
+          attributes: { id: 1 },
           relationships: {
-            library: {
-              data: {
-                id: '1',
-                type: 'companies',
-              },
-            },
+            library: { data: { id: '1', type: 'companies' } },
           },
         },
       };

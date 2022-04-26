@@ -31,20 +31,32 @@ describe('ActionDecorator', () => {
 
   describe('without actions', () => {
     test('should delegate execute calls', async () => {
-      const filter = new Filter({ timezone: 'Europe/Paris' });
+      const caller = factories.caller.build();
+      const filter = new Filter({});
 
-      await expect(newBooks.execute('someAction', { firstname: 'John' }, filter)).rejects.toThrow(
-        'no such action',
+      await expect(
+        newBooks.execute(caller, 'someAction', { firstname: 'John' }, filter),
+      ).rejects.toThrow('no such action');
+      expect(books.execute).toHaveBeenCalledWith(
+        caller,
+        'someAction',
+        { firstname: 'John' },
+        filter,
       );
-      expect(books.execute).toHaveBeenCalledWith('someAction', { firstname: 'John' }, filter);
     });
 
     test('should delegate getForm calls', async () => {
-      const filter = new Filter({ timezone: 'Europe/Paris' });
-      const fields = await newBooks.getForm('someAction', { firstname: 'John' }, filter);
+      const caller = factories.caller.build();
+      const filter = new Filter({});
+      const fields = await newBooks.getForm(caller, 'someAction', { firstname: 'John' }, filter);
 
       expect(fields).toEqual([]);
-      expect(books.getForm).toHaveBeenCalledWith('someAction', { firstname: 'John' }, filter);
+      expect(books.getForm).toHaveBeenCalledWith(
+        caller,
+        'someAction',
+        { firstname: 'John' },
+        filter,
+      );
     });
   });
 
@@ -65,8 +77,8 @@ describe('ActionDecorator', () => {
     });
 
     test('should execute and return default response', async () => {
-      const filter = new Filter({ timezone: 'Europe/Paris' });
-      const result = await newBooks.execute('make photocopy', {}, filter);
+      const filter = new Filter({});
+      const result = await newBooks.execute(factories.caller.build(), 'make photocopy', {}, filter);
 
       expect(books.execute).not.toHaveBeenCalled();
       expect(result).toEqual({
@@ -78,16 +90,21 @@ describe('ActionDecorator', () => {
     });
 
     test('should generate empty form (without data)', async () => {
-      const filter = new Filter({ timezone: 'Europe/Paris' });
-      const fields = await newBooks.getForm('make photocopy', null, filter);
+      const filter = new Filter({});
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        null,
+        filter,
+      );
 
       expect(books.getForm).not.toHaveBeenCalled();
       expect(fields).toEqual([]);
     });
 
     test('should generate empty form (with data)', async () => {
-      const filter = new Filter({ timezone: 'Europe/Paris' });
-      const fields = await newBooks.getForm('make photocopy', {}, filter);
+      const filter = new Filter({});
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', {}, filter);
 
       expect(books.getForm).not.toHaveBeenCalled();
       expect(fields).toEqual([]);
@@ -117,7 +134,7 @@ describe('ActionDecorator', () => {
     });
 
     test('should return the form', async () => {
-      const fields = await newBooks.getForm('make photocopy', {});
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', {});
 
       expect(fields).toEqual([
         { label: 'firstname', type: 'String', watchChanges: false },
@@ -157,7 +174,7 @@ describe('ActionDecorator', () => {
     });
 
     test('should compute dynamic default value (no data == load hook)', async () => {
-      const fields = await newBooks.getForm('make photocopy', null);
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', null);
 
       expect(fields).toEqual([
         {
@@ -171,7 +188,9 @@ describe('ActionDecorator', () => {
     });
 
     test('should compute readonly (false) and keep null firstname', async () => {
-      const fields = await newBooks.getForm('make photocopy', { firstname: null });
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', {
+        firstname: null,
+      });
 
       expect(fields).toEqual([
         { label: 'firstname', type: 'String', watchChanges: true, value: null },
@@ -180,7 +199,9 @@ describe('ActionDecorator', () => {
     });
 
     test('should compute readonly (true) and keep "John" firstname', async () => {
-      const fields = await newBooks.getForm('make photocopy', { firstname: 'John' });
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', {
+        firstname: 'John',
+      });
 
       expect(fields).toEqual([
         { label: 'firstname', type: 'String', watchChanges: true, value: 'John' },
@@ -210,7 +231,7 @@ describe('ActionDecorator', () => {
       });
 
       test('should be able to compute form', async () => {
-        const fields = await newBooks.getForm('make photocopy');
+        const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy');
         expect(fields).toEqual([
           {
             label: 'lastname',

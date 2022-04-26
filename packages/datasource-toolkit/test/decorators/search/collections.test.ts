@@ -21,7 +21,10 @@ describe('SearchCollectionDecorator', () => {
         const collection = factories.collection.build();
         const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-        const refinedFilter = await searchCollectionDecorator.refineFilter(null);
+        const refinedFilter = await searchCollectionDecorator.refineFilter(
+          factories.caller.build(),
+          null,
+        );
         expect(refinedFilter).toStrictEqual(null);
       });
     });
@@ -33,7 +36,10 @@ describe('SearchCollectionDecorator', () => {
 
         const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-        const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+        const refinedFilter = await searchCollectionDecorator.refineFilter(
+          factories.caller.build(),
+          filter,
+        );
         expect(refinedFilter).toStrictEqual(filter);
       });
     });
@@ -51,7 +57,10 @@ describe('SearchCollectionDecorator', () => {
 
         const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-        const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+        const refinedFilter = await searchCollectionDecorator.refineFilter(
+          factories.caller.build(),
+          filter,
+        );
         expect(refinedFilter).toEqual({
           search: null,
           conditionTree: ConditionTreeFactory.MatchNone,
@@ -68,7 +77,10 @@ describe('SearchCollectionDecorator', () => {
 
         const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-        const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+        const refinedFilter = await searchCollectionDecorator.refineFilter(
+          factories.caller.build(),
+          filter,
+        );
         expect(refinedFilter).toStrictEqual(filter);
       });
     });
@@ -83,7 +95,10 @@ describe('SearchCollectionDecorator', () => {
 
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-          const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+          const refinedFilter = await searchCollectionDecorator.refineFilter(
+            factories.caller.build(),
+            filter,
+          );
           expect(refinedFilter).toEqual({ ...filter, search: null });
         });
       });
@@ -117,7 +132,10 @@ describe('SearchCollectionDecorator', () => {
 
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-          const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+          const refinedFilter = await searchCollectionDecorator.refineFilter(
+            factories.caller.build(),
+            filter,
+          );
           expect(refinedFilter).toEqual({
             search: null,
             conditionTree: {
@@ -148,7 +166,10 @@ describe('SearchCollectionDecorator', () => {
 
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-          const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+          const refinedFilter = await searchCollectionDecorator.refineFilter(
+            factories.caller.build(),
+            filter,
+          );
           expect(refinedFilter).toEqual({
             search: null,
             conditionTree: { field: 'fieldName', operator: 'Contains', value: 'a text' },
@@ -173,7 +194,10 @@ describe('SearchCollectionDecorator', () => {
 
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-          const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+          const refinedFilter = await searchCollectionDecorator.refineFilter(
+            factories.caller.build(),
+            filter,
+          );
           expect(refinedFilter).toEqual({
             search: null,
             conditionTree: {
@@ -202,7 +226,10 @@ describe('SearchCollectionDecorator', () => {
 
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-          const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+          const refinedFilter = await searchCollectionDecorator.refineFilter(
+            factories.caller.build(),
+            filter,
+          );
           expect(refinedFilter).toEqual({
             search: null,
             conditionTree: { field: 'fieldName', operator: 'Equal', value: 1584 },
@@ -228,7 +255,10 @@ describe('SearchCollectionDecorator', () => {
 
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-          const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+          const refinedFilter = await searchCollectionDecorator.refineFilter(
+            factories.caller.build(),
+            filter,
+          );
           expect(refinedFilter).toEqual({
             search: null,
             conditionTree: { field: 'fieldName', operator: 'Equal', value: 'AEnumValue' },
@@ -252,7 +282,10 @@ describe('SearchCollectionDecorator', () => {
 
             const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-            const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+            const refinedFilter = await searchCollectionDecorator.refineFilter(
+              factories.caller.build(),
+              filter,
+            );
             expect(refinedFilter).toEqual({
               search: null,
               conditionTree: ConditionTreeFactory.MatchNone,
@@ -277,7 +310,10 @@ describe('SearchCollectionDecorator', () => {
 
             const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-            const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+            const refinedFilter = await searchCollectionDecorator.refineFilter(
+              factories.caller.build(),
+              filter,
+            );
             expect(refinedFilter).toEqual({
               search: null,
               conditionTree: ConditionTreeFactory.MatchNone,
@@ -303,7 +339,10 @@ describe('SearchCollectionDecorator', () => {
 
             const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-            const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+            const refinedFilter = await searchCollectionDecorator.refineFilter(
+              factories.caller.build(),
+              filter,
+            );
             expect(refinedFilter).toEqual({
               search: null,
               conditionTree: ConditionTreeFactory.MatchNone,
@@ -334,7 +373,10 @@ describe('SearchCollectionDecorator', () => {
 
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-          const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+          const refinedFilter = await searchCollectionDecorator.refineFilter(
+            factories.caller.build(),
+            filter,
+          );
           expect(refinedFilter).toEqual({
             search: null,
             conditionTree: {
@@ -395,7 +437,10 @@ describe('SearchCollectionDecorator', () => {
               null,
             );
 
-            const refinedFilter = await searchCollectionDecorator.refineFilter(filter);
+            const refinedFilter = await searchCollectionDecorator.refineFilter(
+              factories.caller.build(),
+              filter,
+            );
             expect(refinedFilter).toEqual({
               searchExtended: true,
               search: null,

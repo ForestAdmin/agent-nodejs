@@ -35,6 +35,7 @@ export default class DeleteRoute extends CollectionRoute {
     let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
     if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
 
+    const caller = QueryStringParser.parseRecipient(context);
     const filter = ContextFilterFactory.build(this.collection, context, null, {
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(this.collection, context),
@@ -43,6 +44,6 @@ export default class DeleteRoute extends CollectionRoute {
       ),
     });
 
-    await this.collection.delete(filter);
+    await this.collection.delete(caller, filter);
   }
 }

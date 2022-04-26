@@ -143,7 +143,7 @@ describe('OperatorsEmulate', () => {
           }),
         });
 
-        await expect(newBooks.list(filter, projection)).rejects.toThrow(
+        await expect(newBooks.list(factories.caller.build(), filter, projection)).rejects.toThrow(
           "The given operator 'Like' is not supported",
         );
         expect(books.list).not.toHaveBeenCalled();
@@ -175,7 +175,7 @@ describe('OperatorsEmulate', () => {
           }),
         });
 
-        await expect(newBooks.list(filter, projection)).rejects.toThrow(
+        await expect(newBooks.list(factories.caller.build(), filter, projection)).rejects.toThrow(
           'Operator replacement cycle: ' +
             'books.title[StartsWith] -> books.title[Like] -> books.title[StartsWith]',
         );
@@ -199,6 +199,7 @@ describe('OperatorsEmulate', () => {
         (books.list as jest.Mock).mockResolvedValueOnce([{ id: 2, title: 'Foundation' }]);
 
         const projection = new Projection('id', 'title');
+        const caller = factories.caller.build();
         const filter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({
             field: 'author:firstName',
@@ -207,12 +208,12 @@ describe('OperatorsEmulate', () => {
           }),
         });
 
-        const records = await newBooks.list(filter, projection);
+        const records = await newBooks.list(caller, filter, projection);
         expect(records).toStrictEqual([{ id: 2, title: 'Foundation' }]);
 
         expect(persons.list).toHaveBeenCalledTimes(0);
         expect(books.list).toHaveBeenCalledTimes(1);
-        expect(books.list).toHaveBeenCalledWith(filter, projection);
+        expect(books.list).toHaveBeenCalledWith(caller, filter, projection);
       });
 
       test('list() should find books from author:firstname prefix', async () => {
@@ -222,6 +223,7 @@ describe('OperatorsEmulate', () => {
           { id: 2, firstName: 'Isaac' },
         ]);
 
+        const caller = factories.caller.build();
         const projection = new Projection('id', 'title');
         const filter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({
@@ -231,14 +233,15 @@ describe('OperatorsEmulate', () => {
           }),
         });
 
-        const records = await newBooks.list(filter, projection);
+        const records = await newBooks.list(caller, filter, projection);
         expect(records).toStrictEqual([{ id: 2, title: 'Foundation' }]);
 
         expect(persons.list).toHaveBeenCalledTimes(1);
-        expect(persons.list).toHaveBeenCalledWith({}, ['firstName', 'id']);
+        expect(persons.list).toHaveBeenCalledWith(caller, {}, ['firstName', 'id']);
 
         expect(books.list).toHaveBeenCalledTimes(1);
         expect(books.list).toHaveBeenCalledWith(
+          caller,
           { conditionTree: { field: 'author:id', operator: 'Equal', value: 2 } },
           projection,
         );
@@ -263,7 +266,7 @@ describe('OperatorsEmulate', () => {
       test('list() should find books where title = Foundation', async () => {
         // Mock book list() implementation.
         (books.list as jest.Mock).mockImplementation(
-          (filter: PaginatedFilter, projection: Projection) => {
+          (_, filter: PaginatedFilter, projection: Projection) => {
             // Ensure no forbideen operator is used
             const usingForbiddenOperator = filter?.conditionTree?.someLeaf(
               ({ field, operator }) =>
@@ -292,7 +295,11 @@ describe('OperatorsEmulate', () => {
           conditionTree: new ConditionTreeLeaf('title', 'Equal', 'Foundation'),
         });
 
-        const records = await newBooks.list(filter, new Projection('id', 'title'));
+        const records = await newBooks.list(
+          factories.caller.build(),
+          filter,
+          new Projection('id', 'title'),
+        );
         expect(records).toStrictEqual([{ id: 2, title: 'Foundation' }]);
 
         // Not checking the calls to the underlying collection, as current implementation is quite

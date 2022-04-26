@@ -70,7 +70,11 @@ describe('UpdateRelationRoute', () => {
         const requestBody = {
           data: { id: '11111111-1111-4111-8111-111111111111', type: 'myPersons' },
         };
-        const context = createMockContext({ customProperties, requestBody });
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties,
+          requestBody,
+        });
 
         const scopeCondition = factories.conditionTreeLeaf.build();
         services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
@@ -78,8 +82,8 @@ describe('UpdateRelationRoute', () => {
         await update.handleUpdateRelationRoute(context);
 
         expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
-            timezone: 'Europe/Paris',
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
               conditions: [
@@ -154,14 +158,18 @@ describe('UpdateRelationRoute', () => {
         const requestBody = {
           data: { id: '11111111-1111-4111-8111-111111111111', type: 'owner' },
         };
-        const context = createMockContext({ customProperties, requestBody });
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties,
+          requestBody,
+        });
 
         await update.handleUpdateRelationRoute(context);
 
         expect(dataSource.getCollection('owner').update).toHaveBeenNthCalledWith(
           1,
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
-            timezone: 'Europe/Paris',
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',
               value: '00000000-0000-4000-8000-000000000000',
@@ -173,8 +181,8 @@ describe('UpdateRelationRoute', () => {
 
         expect(dataSource.getCollection('owner').update).toHaveBeenNthCalledWith(
           2,
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
-            timezone: 'Europe/Paris',
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',
               value: '11111111-1111-4111-8111-111111111111',

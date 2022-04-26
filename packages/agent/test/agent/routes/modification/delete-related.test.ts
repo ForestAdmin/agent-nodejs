@@ -56,24 +56,24 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         'myBookPersons',
       );
 
-      const deleteParams = { delete: true };
-      const customProperties = {
-        query: {
-          ...deleteParams,
-          timezone: 'Europe/Paris',
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { delete: true, timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
         },
-        params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
-      };
-      const requestBody = {
-        data: [
-          { id: '123e4567-e89b-12d3-a456-426614174001' },
-          { id: '123e4567-e89b-12d3-a456-426614174000' },
-        ],
-      };
-      const context = createMockContext({ customProperties, requestBody });
+        requestBody: {
+          data: [
+            { id: '123e4567-e89b-12d3-a456-426614174001' },
+            { id: '123e4567-e89b-12d3-a456-426614174000' },
+          ],
+        },
+      });
+
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -96,7 +96,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           search: null,
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -115,29 +114,28 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           'myBookPersons',
         );
 
-        const deleteParams = { delete: true };
-        const customProperties = {
-          query: {
-            ...deleteParams,
-            timezone: 'Europe/Paris',
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            query: { delete: true, timezone: 'Europe/Paris' },
+            params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
           },
-          params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
-        };
-        const requestBody = {
-          data: {
-            attributes: {
-              all_records: true,
-              all_records_ids_excluded: [
-                '123e4567-e89b-12d3-a456-426614174001',
-                '123e4567-e89b-12d3-a456-426614174002',
-              ],
+          requestBody: {
+            data: {
+              attributes: {
+                all_records: true,
+                all_records_ids_excluded: [
+                  '123e4567-e89b-12d3-a456-426614174001',
+                  '123e4567-e89b-12d3-a456-426614174002',
+                ],
+              },
             },
           },
-        };
-        const context = createMockContext({ customProperties, requestBody });
+        });
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -160,7 +158,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -178,27 +175,21 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
             'myBookPersons',
           );
 
-          const deleteParams = { delete: true };
-          const customProperties = {
-            query: {
-              ...deleteParams,
-              timezone: 'Europe/Paris',
+          const context = createMockContext({
+            state: { user: { email: 'john.doe@domain.com' } },
+            customProperties: {
+              query: { delete: true, timezone: 'Europe/Paris' },
+              params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
             },
-            params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
-          };
-          const requestBody = {
-            data: {
-              attributes: {
-                all_records: true,
-                // no excluded ids
-                all_records_ids_excluded: [],
-              },
+            requestBody: {
+              // no excluded ids
+              data: { attributes: { all_records: true, all_records_ids_excluded: [] } },
             },
-          };
-          const context = createMockContext({ customProperties, requestBody });
+          });
           await count.handleDissociateDeleteRelatedRoute(context);
 
           expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
+            { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'Equal',
@@ -208,7 +199,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             }),
           );
           expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -300,21 +290,19 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         'manyToManyRelationField',
       );
 
-      const deleteParams = { delete: true };
-      const customProperties = {
-        query: {
-          ...deleteParams,
-          timezone: 'Europe/Paris',
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { delete: true, timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
         },
-        params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
-      };
-      const requestBody = {
-        data: [
-          { id: '123e4567-e89b-12d3-a456-111111111111' },
-          { id: '123e4567-e89b-12d3-a456-222222222222' },
-        ],
-      };
-      const context = createMockContext({ customProperties, requestBody });
+        requestBody: {
+          data: [
+            { id: '123e4567-e89b-12d3-a456-111111111111' },
+            { id: '123e4567-e89b-12d3-a456-222222222222' },
+          ],
+        },
+      });
 
       dataSource.getCollection('librariesBooks').list = jest
         .fn()
@@ -323,6 +311,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -334,7 +323,10 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               }),
               factories.conditionTreeLeaf.build({
                 operator: 'In',
-                value: requestBody.data.map(r => r.id),
+                value: [
+                  '123e4567-e89b-12d3-a456-111111111111',
+                  '123e4567-e89b-12d3-a456-222222222222',
+                ],
                 field: 'myLibrary:id',
               }),
             ],
@@ -342,11 +334,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           search: null,
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
         }),
       );
 
       expect(dataSource.getCollection('libraries').delete).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -354,7 +346,10 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               // user selection
               factories.conditionTreeLeaf.build({
                 operator: 'In',
-                value: requestBody.data.map(r => r.id),
+                value: [
+                  '123e4567-e89b-12d3-a456-111111111111',
+                  '123e4567-e89b-12d3-a456-222222222222',
+                ],
                 field: 'id',
               }),
 
@@ -369,7 +364,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           search: null,
           searchExtended: false,
           segment: null,
-          timezone: 'Europe/Paris',
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -390,10 +384,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
 
         const deleteParams = { delete: true };
         const customProperties = {
-          query: {
-            ...deleteParams,
-            timezone: 'Europe/Paris',
-          },
+          query: { ...deleteParams, timezone: 'Europe/Paris' },
           params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
         };
         const requestBody = {
@@ -407,7 +398,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
             },
           },
         };
-        const context = createMockContext({ customProperties, requestBody });
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties,
+          requestBody,
+        });
 
         const idsToRemove = [
           { libraryId: '123e4567-e89b-12d3-a456-426614174008' },
@@ -418,6 +413,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -440,11 +436,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
         );
 
         expect(dataSource.getCollection('libraries').delete).toHaveBeenCalledWith(
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -470,7 +466,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
             search: null,
             searchExtended: false,
             segment: null,
-            timezone: 'Europe/Paris',
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -489,22 +484,18 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
 
           const deleteParams = { delete: true };
           const customProperties = {
-            query: {
-              ...deleteParams,
-              timezone: 'Europe/Paris',
-            },
+            query: { ...deleteParams, timezone: 'Europe/Paris' },
             params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
           };
           const requestBody = {
-            data: {
-              attributes: {
-                all_records: true,
-                // empty excluded records
-                all_records_ids_excluded: [],
-              },
-            },
+            // empty excluded records
+            data: { attributes: { all_records: true, all_records_ids_excluded: [] } },
           };
-          const context = createMockContext({ customProperties, requestBody });
+          const context = createMockContext({
+            state: { user: { email: 'john.doe@domain.com' } },
+            customProperties,
+            requestBody,
+          });
 
           const idsToRemove = [
             { libraryId: '123e4567-e89b-12d3-a456-426614174008' },
@@ -515,6 +506,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           await count.handleDissociateDeleteRelatedRoute(context);
 
           expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
+            { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'Equal',
@@ -524,11 +516,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             }),
           );
 
           expect(dataSource.getCollection('libraries').delete).toHaveBeenCalledWith(
+            { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'In',
@@ -538,7 +530,6 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             }),
           );
 

@@ -31,18 +31,14 @@ describe('CountRoute', () => {
       const count = new Count(services, options, dataSource, collection.name);
       const context = createMockContext({
         customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
       });
 
       await count.handleCount(context);
 
       expect(aggregateSpy).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { operation: 'Count' },
       );
       expect(context.response.body).toEqual({ count: 2 });

@@ -1,3 +1,4 @@
+import { Caller } from '../../interfaces/caller';
 import { Collection } from '../../interfaces/collection';
 import { CollectionSchema, ColumnSchema, RelationSchema } from '../../interfaces/schema';
 import { PartialRelationSchema } from './types';
@@ -26,32 +27,37 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     this.markSchemaAsDirty();
   }
 
-  override async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    const newFilter = await this.refineFilter(filter);
+  override async list(
+    caller: Caller,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
+    const newFilter = await this.refineFilter(caller, filter);
     const newProjection = projection.replace(this.rewriteField, this).withPks(this);
-    const records = await this.childCollection.list(newFilter, newProjection);
+    const records = await this.childCollection.list(caller, newFilter, newProjection);
 
-    await this.reprojectInPlace(records, projection);
+    await this.reprojectInPlace(caller, records, projection);
 
     return projection.apply(records);
   }
 
   override async aggregate(
+    caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    const newFilter = await this.refineFilter(filter);
+    const newFilter = await this.refineFilter(caller, filter);
 
     // No emulated relations are used in the aggregation
     if (Object.keys(aggregation.projection.relations).every(prefix => !this.relations[prefix])) {
-      return this.childCollection.aggregate(newFilter, aggregation, limit);
+      return this.childCollection.aggregate(caller, newFilter, aggregation, limit);
     }
 
     // Fallback to full emulation.
     return aggregation.apply(
-      await this.list(filter, aggregation.projection),
-      filter.timezone,
+      await this.list(caller, filter, aggregation.projection),
+      caller.timezone,
       limit,
     );
   }
@@ -66,9 +72,15 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     return schema;
   }
 
-  protected override async refineFilter(filter: PaginatedFilter): Promise<PaginatedFilter> {
+  protected override async refineFilter(
+    caller: Caller,
+    filter: PaginatedFilter,
+  ): Promise<PaginatedFilter> {
     return filter?.override({
-      conditionTree: await filter.conditionTree?.replaceLeafsAsync(this.rewriteLeaf, this),
+      conditionTree: await filter.conditionTree?.replaceLeafsAsync(
+        leaf => this.rewriteLeaf(caller, leaf),
+        this,
+      ),
 
       // Replace sort in emulated relations to
       // - sorting by the fk of the relation for many to one
@@ -187,7 +199,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     return result;
   }
 
-  private async rewriteLeaf(leaf: ConditionTreeLeaf): Promise<ConditionTree> {
+  private async rewriteLeaf(caller: Caller, leaf: ConditionTreeLeaf): Promise<ConditionTree> {
     const prefix = leaf.field.split(':').shift();
     const schema = this.schema.fields[prefix];
     if (schema.type === 'Column') return leaf;
@@ -196,9 +208,10 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     let result = leaf as ConditionTree;
 
     if (!this.relations[prefix]) {
-      result = (await relation.rewriteLeaf(leaf.unnest())).nest(prefix);
+      result = (await relation.rewriteLeaf(caller, leaf.unnest())).nest(prefix);
     } else if (schema.type === 'ManyToOne') {
       const records = await relation.list(
+        caller,
         new Filter({ conditionTree: leaf.unnest() }),
         new Projection().withPks(this),
       );
@@ -210,6 +223,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
       );
     } else if (schema.type === 'OneToOne') {
       const records = await relation.list(
+        caller,
         new Filter({ conditionTree: leaf.unnest() }),
         new Projection(schema.originKey),
       );
@@ -224,15 +238,20 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     return result;
   }
 
-  private async reprojectInPlace(records: RecordData[], projection: Projection): Promise<void> {
+  private async reprojectInPlace(
+    caller: Caller,
+    records: RecordData[],
+    projection: Projection,
+  ): Promise<void> {
     const promises = Object.entries(projection.relations).map(async ([prefix, subProjection]) =>
-      this.reprojectRelationInPlace(records, prefix, subProjection),
+      this.reprojectRelationInPlace(caller, records, prefix, subProjection),
     );
 
     await Promise.all(promises);
   }
 
   private async reprojectRelationInPlace(
+    caller: Caller,
     records: RecordData[],
     name: string,
     projection: Projection,
@@ -242,6 +261,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
 
     if (!this.relations[name]) {
       await association.reprojectInPlace(
+        caller,
         records.map(r => r[name]).filter(Boolean) as RecordData[],
         projection,
       );
@@ -251,6 +271,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
         conditionTree: new ConditionTreeLeaf(schema.foreignKeyTarget, 'In', [...new Set(ids)]),
       });
       const subRecords = await association.list(
+        caller,
         subFilter,
         projection.union([schema.foreignKeyTarget]),
       );
@@ -266,7 +287,11 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
       const subFilter = new Filter({
         conditionTree: new ConditionTreeLeaf(schema.originKey, 'In', [...new Set(ids)]),
       });
-      const subRecords = await association.list(subFilter, projection.union([schema.originKey]));
+      const subRecords = await association.list(
+        caller,
+        subFilter,
+        projection.union([schema.originKey]),
+      );
 
       for (const record of records) {
         const subRecord = subRecords.filter(

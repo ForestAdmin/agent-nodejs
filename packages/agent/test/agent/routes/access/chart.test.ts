@@ -93,22 +93,19 @@ describe('ChartRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'aggregate')
         .mockResolvedValue([{ value: 1234, group: null }]);
+
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
         requestBody: { type: 'Value', aggregate: 'Count', collection: 'books', filters: undefined },
         customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
       });
 
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: undefined, operation: 'Count' },
       );
       expect(context.response.body).toMatchObject({
@@ -202,18 +199,19 @@ describe('ChartRoute', () => {
               filters: JSON.stringify({ field: 'name', operator: 'Present', value: null }),
             },
             customProperties: { query: { timezone: 'Europe/Paris' } },
+            state: { user: { email: 'john.doe@domain.com' } },
           });
 
           await chart.handleChart(context);
 
           expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledTimes(1);
           expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
+            { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             {
               conditionTree: { field: 'name', operator: 'Present', value: null },
               search: null,
               searchExtended: false,
               segment: null,
-              timezone: 'Europe/Paris',
             },
             { field: undefined, groups: undefined, operation: 'Count' },
           );
@@ -262,18 +260,14 @@ describe('ChartRoute', () => {
       const context = createMockContext({
         requestBody: { type: 'Objective', aggregate: 'Count', collection: 'books' },
         customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
       });
 
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: undefined, operation: 'Count' },
       );
 
@@ -300,18 +294,14 @@ describe('ChartRoute', () => {
           group_by_field: 'author:firstName',
         },
         customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
       });
 
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: [{ field: 'author:firstName' }], operation: 'Count' },
       );
 
@@ -348,18 +338,14 @@ describe('ChartRoute', () => {
           time_range: 'Week',
         },
         customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
       });
 
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         {
           field: undefined,
           groups: [{ field: 'publication', operation: 'Week' }],
@@ -402,18 +388,14 @@ describe('ChartRoute', () => {
           limit: 2,
         },
         customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
       });
 
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: 'id', groups: [{ field: 'author:id' }], operation: 'Sum' },
         2,
       );
@@ -449,18 +431,14 @@ describe('ChartRoute', () => {
           limit: 2,
         },
         customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
       });
 
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        {
-          conditionTree: null,
-          search: null,
-          searchExtended: false,
-          segment: null,
-          timezone: 'Europe/Paris',
-        },
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { conditionTree: null, search: null, searchExtended: false, segment: null },
         { operation: 'Count', field: null, groups: [{ field: 'publisher:id' }] },
         2,
       );
@@ -497,18 +475,14 @@ describe('ChartRoute', () => {
             limit: 2,
           },
           customProperties: { query: { timezone: 'Europe/Paris' } },
+          state: { user: { email: 'john.doe@domain.com' } },
         });
 
         await chart.handleChart(context);
 
         expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-          {
-            conditionTree: null,
-            search: null,
-            searchExtended: false,
-            segment: null,
-            timezone: 'Europe/Paris',
-          },
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { conditionTree: null, search: null, searchExtended: false, segment: null },
           { groups: [{ field: 'author:id' }], operation: 'Count' },
           2,
         );

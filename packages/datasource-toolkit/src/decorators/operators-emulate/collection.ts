@@ -1,3 +1,4 @@
+import { Caller } from '../../interfaces/caller';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -72,18 +73,21 @@ export default class OperatorsEmulate extends CollectionDecorator {
     return { ...childSchema, fields };
   }
 
-  protected override async refineFilter(filter: PaginatedFilter): Promise<PaginatedFilter> {
+  protected override async refineFilter(
+    caller: Caller,
+    filter: PaginatedFilter,
+  ): Promise<PaginatedFilter> {
     return filter?.override({
       conditionTree: await filter.conditionTree?.replaceLeafsAsync(leaf =>
-        this.replaceLeaf(leaf, [], filter.timezone),
+        this.replaceLeaf(caller, leaf, []),
       ),
     });
   }
 
   private async replaceLeaf(
+    caller: Caller,
     leaf: ConditionTreeLeaf,
     replacements: string[],
-    timezone: string,
   ): Promise<ConditionTree> {
     // ConditionTree is targeting a field on another collection => recurse.
     if (leaf.field.includes(':')) {
@@ -92,20 +96,20 @@ export default class OperatorsEmulate extends CollectionDecorator {
       const association = this.dataSource.getCollection(schema.foreignCollection);
       const associationLeaf = await leaf
         .unnest()
-        .replaceLeafsAsync(subLeaf => association.replaceLeaf(subLeaf, replacements, timezone));
+        .replaceLeafsAsync(subLeaf => association.replaceLeaf(caller, subLeaf, replacements));
 
       return associationLeaf.nest(prefix);
     }
 
     return this.fields.get(leaf.field)?.has(leaf.operator)
-      ? this.computeEquivalent(leaf, replacements, timezone)
+      ? this.computeEquivalent(caller, leaf, replacements)
       : leaf;
   }
 
   private async computeEquivalent(
+    caller: Caller,
     leaf: ConditionTreeLeaf,
     replacements: string[],
-    timezone: string,
   ): Promise<ConditionTree> {
     const handler = this.fields.get(leaf.field)?.get(leaf.operator);
 
@@ -117,14 +121,14 @@ export default class OperatorsEmulate extends CollectionDecorator {
         throw new Error(`Operator replacement cycle: ${subReplacements.join(' -> ')}`);
       }
 
-      const result = await handler(leaf.value, new CollectionCustomizationContext(this, timezone));
+      const result = await handler(leaf.value, new CollectionCustomizationContext(this, caller));
 
       if (result) {
         let equivalent =
           result instanceof ConditionTree ? result : ConditionTreeFactory.fromPlainObject(result);
 
         equivalent = await equivalent.replaceLeafsAsync(subLeaf =>
-          this.replaceLeaf(subLeaf, subReplacements, timezone),
+          this.replaceLeaf(caller, subLeaf, subReplacements),
         );
 
         ConditionTreeValidator.validate(equivalent, this);
@@ -137,9 +141,9 @@ export default class OperatorsEmulate extends CollectionDecorator {
     return ConditionTreeFactory.matchRecords(
       this.schema,
       leaf.apply(
-        await this.list(new PaginatedFilter({}), leaf.projection.withPks(this)),
+        await this.list(caller, new PaginatedFilter({}), leaf.projection.withPks(this)),
         this,
-        timezone,
+        caller.timezone,
       ),
     );
   }

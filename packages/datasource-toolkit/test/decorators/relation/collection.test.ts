@@ -97,7 +97,7 @@ describe('RelationCollectionDecorator', () => {
             }),
           },
         }),
-        list: jest.fn().mockImplementation((filter, projection) => {
+        list: jest.fn().mockImplementation((_, filter, projection) => {
           let result = passportRecords.slice();
           if (filter?.conditionTree)
             result = filter.conditionTree.apply(result, passports, 'Europe/Paris');
@@ -105,7 +105,7 @@ describe('RelationCollectionDecorator', () => {
 
           return projection.apply(result);
         }),
-        aggregate: jest.fn().mockImplementation((_, aggregate: Aggregation) => {
+        aggregate: jest.fn().mockImplementation((_, _2, aggregate: Aggregation) => {
           return aggregate.apply(passportRecords, 'Europe/Paris');
         }),
       }),
@@ -129,7 +129,7 @@ describe('RelationCollectionDecorator', () => {
             }),
           },
         }),
-        list: jest.fn().mockImplementation((filter, projection) => {
+        list: jest.fn().mockImplementation((_, filter, projection) => {
           let result = personsRecords.slice();
           if (filter?.conditionTree)
             result = filter.conditionTree.apply(result, persons, 'Europe/Paris');
@@ -137,7 +137,7 @@ describe('RelationCollectionDecorator', () => {
 
           return projection.apply(result);
         }),
-        aggregate: jest.fn().mockImplementation((_, aggregate: Aggregation) => {
+        aggregate: jest.fn().mockImplementation((_, _2, aggregate: Aggregation) => {
           return aggregate.apply(personsRecords, 'Europe/Paris');
         }),
       }),
@@ -421,7 +421,11 @@ describe('RelationCollectionDecorator', () => {
         foreignKey: 'ownerId',
       });
 
-      const records = await newPassports.list(new Filter({}), new Projection('id', 'owner:name'));
+      const records = await newPassports.list(
+        factories.caller.build(),
+        new Filter({}),
+        new Projection('id', 'owner:name'),
+      );
 
       expect(records).toStrictEqual([
         { id: 101, owner: { name: 'Mae S. Waldron' } },
@@ -439,6 +443,7 @@ describe('RelationCollectionDecorator', () => {
       });
 
       const records = await newPersons.list(
+        factories.caller.build(),
         new Filter({}),
         new Projection('id', 'name', 'passport:issueDate'),
       );
@@ -459,6 +464,7 @@ describe('RelationCollectionDecorator', () => {
       });
 
       const records = await newPersons.list(
+        factories.caller.build(),
         new Filter({}),
         new Projection('id', 'name', 'passport:issueDate'),
       );
@@ -482,6 +488,7 @@ describe('RelationCollectionDecorator', () => {
       } as ManyToManySchema);
 
       const records = await newPersons.list(
+        factories.caller.build(),
         new Filter({}),
         new Projection('id', 'name', 'persons:name'),
       );
@@ -505,6 +512,7 @@ describe('RelationCollectionDecorator', () => {
         foreignKey: 'ownerId',
       });
       const records = await newPersons.list(
+        factories.caller.build(),
         new Filter({}),
         new Projection('id', 'name', 'passport:picture:filename'),
       );
@@ -531,6 +539,7 @@ describe('RelationCollectionDecorator', () => {
         foreignKey: 'ownerId',
       });
       const records = await newPersons.list(
+        factories.caller.build(),
         new Filter({}),
         new Projection('id', 'name', 'passport:owner:passport:issueDate'),
       );
@@ -569,9 +578,9 @@ describe('RelationCollectionDecorator', () => {
     describe('emulated filtering', () => {
       test('should filter by a many to one relation', async () => {
         const records = await newPassports.list(
+          factories.caller.build(),
           new Filter({
             conditionTree: new ConditionTreeLeaf('owner:name', 'Equal', 'Mae S. Waldron'),
-            timezone: 'Europe/Paris',
           }),
           new Projection('id', 'issueDate'),
         );
@@ -581,9 +590,9 @@ describe('RelationCollectionDecorator', () => {
 
       test('should filter by a one to one relation', async () => {
         const records = await newPersons.list(
+          factories.caller.build(),
           new Filter({
             conditionTree: new ConditionTreeLeaf('passport:issueDate', 'Equal', '2017-01-01'),
-            timezone: 'Europe/Paris',
           }),
           new Projection('id', 'name'),
         );
@@ -593,9 +602,9 @@ describe('RelationCollectionDecorator', () => {
 
       test('should filter by native relation behind an emulated one', async () => {
         const records = await newPersons.list(
+          factories.caller.build(),
           new Filter({
             conditionTree: new ConditionTreeLeaf('passport:picture:filename', 'Equal', 'pic1.jpg'),
-            timezone: 'Europe/Paris',
           }),
           new Projection('id', 'name'),
         );
@@ -608,13 +617,13 @@ describe('RelationCollectionDecorator', () => {
 
       test('should not break with deep filters', async () => {
         const records = await newPersons.list(
+          factories.caller.build(),
           new Filter({
             conditionTree: new ConditionTreeLeaf(
               'passport:owner:passport:issueDate',
               'Equal',
               '2017-01-01',
             ),
-            timezone: 'Europe/Paris',
           }),
           new Projection('id', 'name'),
         );
@@ -627,11 +636,13 @@ describe('RelationCollectionDecorator', () => {
       test('should replace sorts in emulated many to one into sort by fk', async () => {
         // check both sides to make sure we're not getting lucky
         const ascending = await newPassports.list(
+          factories.caller.build(),
           new PaginatedFilter({ sort: new Sort({ field: 'owner:name', ascending: true }) }),
           new Projection('id', 'ownerId', 'owner:name'),
         );
 
         const descending = await newPassports.list(
+          factories.caller.build(),
           new PaginatedFilter({ sort: new Sort({ field: 'owner:name', ascending: false }) }),
           new Projection('id', 'ownerId', 'owner:name'),
         );
@@ -652,14 +663,12 @@ describe('RelationCollectionDecorator', () => {
 
     describe('emulated aggregation', () => {
       test("should not emulate aggregation which don't need it", async () => {
+        const caller = factories.caller.build();
         const filter = new Filter({});
-        const aggregation = new Aggregation({
-          operation: 'Count',
-          groups: [{ field: 'name' }],
-        });
-        const groups = await newPersons.aggregate(filter, aggregation, null);
+        const aggregation = new Aggregation({ operation: 'Count', groups: [{ field: 'name' }] });
+        const groups = await newPersons.aggregate(caller, filter, aggregation, null);
 
-        expect(persons.aggregate).toHaveBeenCalledWith(filter, aggregation, null);
+        expect(persons.aggregate).toHaveBeenCalledWith(caller, filter, aggregation, null);
         expect(groups).toStrictEqual([
           { value: 1, group: { name: 'Sharon J. Whalen' } },
           { value: 1, group: { name: 'Mae S. Waldron' } },
@@ -673,7 +682,7 @@ describe('RelationCollectionDecorator', () => {
           operation: 'Count',
           groups: [{ field: 'passport:picture:filename' }],
         });
-        const groups = await newPersons.aggregate(filter, aggregation, 2);
+        const groups = await newPersons.aggregate(factories.caller.build(), filter, aggregation, 2);
 
         expect(groups).toStrictEqual([
           { value: 1, group: { 'passport:picture:filename': 'pic2.jpg' } },

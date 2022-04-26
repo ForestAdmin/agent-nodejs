@@ -52,13 +52,17 @@ describe('CreateRoute', () => {
       const create = new CreateRoute(services, options, dataSource, collection.name);
 
       const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         requestBody: { data: { attributes, type: 'books' } },
       });
 
       await create.handleCreate(context);
 
-      expect(collection.create).toHaveBeenCalledWith([attributes]);
+      expect(collection.create).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        [attributes],
+      );
 
       expect(context.response.body).toEqual({
         jsonapi: { version: '1.0' },
@@ -80,7 +84,7 @@ describe('CreateRoute', () => {
     const dataSource = factories.dataSource.buildWithCollections([
       factories.collection.build({
         name: 'persons',
-        create: jest.fn().mockImplementation(items => items.map(item => ({ ...item, id: 1 }))),
+        create: jest.fn().mockImplementation((_, items) => items.map(item => ({ ...item, id: 1 }))),
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
@@ -96,7 +100,7 @@ describe('CreateRoute', () => {
       }),
       factories.collection.build({
         name: 'passports',
-        create: jest.fn().mockImplementation(items => items),
+        create: jest.fn().mockImplementation((_, items) => items),
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.isPrimaryKey().build(),
@@ -115,6 +119,7 @@ describe('CreateRoute', () => {
     test('should work with a one to one relation', async () => {
       const create = new CreateRoute(services, options, dataSource, 'persons');
       const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         requestBody: {
           data: {
@@ -135,20 +140,18 @@ describe('CreateRoute', () => {
       expect(dataSource.getCollection('persons').create).toHaveBeenCalled();
       expect(spy.mock.calls).toEqual([
         [
-          new Filter({
-            conditionTree: new ConditionTreeLeaf('personId', 'Equal', 1),
-            timezone: 'Europe/Paris',
-          }),
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          new Filter({ conditionTree: new ConditionTreeLeaf('personId', 'Equal', 1) }),
           { personId: null },
         ],
         [
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: new ConditionTreeLeaf(
               'id',
               'Equal',
               '1d162304-78bf-599e-b197-93590ac3d314',
             ),
-            timezone: 'Europe/Paris',
           }),
           { personId: 1 },
         ],
@@ -168,12 +171,13 @@ describe('CreateRoute', () => {
     });
 
     test('should work with a many to one relation', async () => {
-      (dataSource.getCollection('passports').create as jest.Mock).mockImplementation(records =>
+      (dataSource.getCollection('passports').create as jest.Mock).mockImplementation((_, records) =>
         records.map(r => ({ id: '123', ...r })),
       );
 
       const create = new CreateRoute(services, options, dataSource, 'passports');
       const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         requestBody: {
           data: {
@@ -189,9 +193,10 @@ describe('CreateRoute', () => {
 
       await create.handleCreate(context);
 
-      expect(dataSource.getCollection('passports').create).toHaveBeenCalledWith([
-        { personId: '1d162304-78bf-599e-b197-000000000000' },
-      ]);
+      expect(dataSource.getCollection('passports').create).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        [{ personId: '1d162304-78bf-599e-b197-000000000000' }],
+      );
 
       expect(context.response.body).toMatchObject({
         data: {

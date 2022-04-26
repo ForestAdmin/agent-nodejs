@@ -1,16 +1,17 @@
+import { Caller } from '../interfaces/caller';
 import { DataSource } from '../interfaces/collection';
 import RelaxedDataSource from './relaxed-wrappers/datasource';
 
 export default class AgentCustomizationContext {
   private realDataSource: DataSource;
-  readonly timezone: string;
+  readonly caller: Caller;
 
   get dataSource(): RelaxedDataSource {
-    return new RelaxedDataSource(this.realDataSource);
+    return new RelaxedDataSource(this.realDataSource, this.caller);
   }
 
-  constructor(dataSource: DataSource, timezone: string = null) {
+  constructor(dataSource: DataSource, caller: Caller) {
     this.realDataSource = dataSource;
-    this.timezone = timezone;
+    this.caller = caller;
   }
 }

@@ -1,4 +1,5 @@
 import {
+  Caller,
   Collection,
   Page,
   PaginatedFilter,
@@ -18,6 +19,7 @@ export default class CsvGenerator {
    * - we stop making queries to the database if the client closes the connection.
    */
   static async *generate(
+    caller: Caller,
     projection: Projection,
     header: string,
     filter: PaginatedFilter,
@@ -43,7 +45,7 @@ export default class CsvGenerator {
       }
 
       // eslint-disable-next-line no-await-in-loop
-      const records = await list(new PaginatedFilter(copiedFilter), projection);
+      const records = await list(caller, new PaginatedFilter(copiedFilter), projection);
 
       yield CsvGenerator.convert(records, projection);
 

@@ -149,9 +149,7 @@ describe('DissociateDeleteRelatedRoute', () => {
       );
 
       const customProperties = {
-        query: {
-          timezone: 'Europe/Paris',
-        },
+        query: { timezone: 'Europe/Paris' },
         params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
       };
       const requestBody = {
@@ -186,17 +184,17 @@ describe('DissociateDeleteRelatedRoute', () => {
         }),
       };
       const customProperties = {
-        query: {
-          ...conditionTreeParams,
-          segment: 'a-valid-segment',
-          timezone: 'Europe/Paris',
-        },
+        query: { ...conditionTreeParams, segment: 'a-valid-segment', timezone: 'Europe/Paris' },
         params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
       };
       const requestBody = {
         data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }],
       };
-      const context = createMockContext({ customProperties, requestBody });
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties,
+        requestBody,
+      });
 
       const scopeCondition = factories.conditionTreeLeaf.build();
       services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
@@ -204,6 +202,7 @@ describe('DissociateDeleteRelatedRoute', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -219,7 +218,6 @@ describe('DissociateDeleteRelatedRoute', () => {
           search: null,
           searchExtended: false,
           segment: 'a-valid-segment',
-          timezone: 'Europe/Paris',
         }),
         expect.any(Object),
       );

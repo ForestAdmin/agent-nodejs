@@ -1,3 +1,4 @@
+import { Caller } from '../../interfaces/caller';
 import { CollectionSchema, ColumnSchema, FieldSchema } from '../../interfaces/schema';
 import { allOperators } from '../../interfaces/query/condition-tree/nodes/operators';
 import CollectionDecorator from '../collection-decorator';
@@ -31,7 +32,10 @@ export default class OperatorsDecorator extends CollectionDecorator {
     return { ...childSchema, fields };
   }
 
-  protected override async refineFilter(filter?: PaginatedFilter): Promise<PaginatedFilter> {
+  protected override async refineFilter(
+    caller: Caller,
+    filter?: PaginatedFilter,
+  ): Promise<PaginatedFilter> {
     return filter?.override({
       conditionTree: filter.conditionTree?.replaceLeafs(leaf => {
         const schema = CollectionUtils.getFieldSchema(
@@ -43,7 +47,7 @@ export default class OperatorsDecorator extends CollectionDecorator {
           leaf,
           schema.filterOperators,
           schema.columnType,
-          filter.timezone,
+          caller.timezone,
         );
       }),
     });
