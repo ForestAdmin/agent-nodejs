@@ -82,14 +82,20 @@ export default class SequelizeCollection extends BaseCollection {
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     await this.model.update(patch, {
-      where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
+      where: await QueryConverter.getWhereFromConditionTreeToByPassInclude(
+        this.model,
+        filter.conditionTree,
+      ),
       fields: Object.keys(patch),
     });
   }
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
     await this.model.destroy({
-      where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
+      where: await QueryConverter.getWhereFromConditionTreeToByPassInclude(
+        this.model,
+        filter.conditionTree,
+      ),
     });
   }
 

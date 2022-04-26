@@ -1,6 +1,7 @@
 import {
   ConditionTree,
   ConditionTreeBranch,
+  ConditionTreeFactory,
   ConditionTreeLeaf,
   Operator,
   Projection,
@@ -69,6 +70,37 @@ export default class QueryConverter {
       default:
         throw new Error(`Unsupported operator: "${operator}".`);
     }
+  }
+
+  /*
+   * Delete and update sequelize methods does not provide the include options.
+   * This method is developed to by pass this problem.
+   */
+  static async getWhereFromConditionTreeToByPassInclude(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    model: ModelDefined<any, any>,
+    conditionTree?: ConditionTree,
+  ): Promise<WhereOptions> {
+    const include = conditionTree
+      ? QueryConverter.getIncludeFromProjection(conditionTree.projection)
+      : [];
+    const whereOptions = QueryConverter.getWhereFromConditionTree(model, conditionTree);
+
+    if (include.length === 0) {
+      return whereOptions;
+    }
+
+    const keys = [...model.primaryKeyAttributes];
+    const records = await model.findAll({ attributes: keys, where: whereOptions, include });
+    const conditions = records.map(record => {
+      const equals = keys.map(pk => new ConditionTreeLeaf(pk, 'Equal', record.get(pk)));
+
+      return ConditionTreeFactory.intersect(...equals);
+    });
+
+    const union = ConditionTreeFactory.union(...conditions);
+
+    return QueryConverter.getWhereFromConditionTree(model, union);
   }
 
   static getWhereFromConditionTree(
