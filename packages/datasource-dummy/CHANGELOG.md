@@ -1,3 +1,18 @@
+# @forestadmin/datasource-dummy [1.0.0-beta.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.0-beta.7...@forestadmin/datasource-dummy@1.0.0-beta.8) (2022-04-26)
+
+
+### Features
+
+* give access to logged in user to customization context ([#253](https://github.com/ForestAdmin/agent-nodejs/issues/253)) ([be97812](https://github.com/ForestAdmin/agent-nodejs/commit/be978121e47ab06c7a50cc6dec0cdb9284ea9d96))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.7
+
 # @forestadmin/datasource-dummy [1.0.0-beta.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.0-beta.6...@forestadmin/datasource-dummy@1.0.0-beta.7) (2022-04-25)
 
 
