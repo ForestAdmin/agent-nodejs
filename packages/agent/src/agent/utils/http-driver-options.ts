@@ -84,8 +84,8 @@ export default class OptionsUtils {
     if (options.clientId === null) {
       options.logger?.(
         'Warn',
-        'options.clientId was not provided. Using NodeJS cluster mode, ' +
-          'or multiple instances of the agent  will break authentication',
+        'options.clientId was not provided. Using Node.js cluster mode, ' +
+          'or multiple instances of the agent will break authentication',
       );
     } else if (typeof options.clientId !== 'string') {
       throw new Error('options.clientId is invalid.');
