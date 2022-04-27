@@ -28,7 +28,6 @@
     "test": "jest"
   },
   "devDependencies": {
-    "lodash": "^4.17.21",
-    "sequelize": "6.18.0"
+    "lodash": "^4.17.21"
   }
 }
