@@ -9,14 +9,11 @@ import {
 
 import * as factories from '../agent/__factories__';
 import { FieldDefinition } from '../../src/builder/types';
-import Agent from '../../src/builder/agent';
 import CollectionBuilder from '../../src/builder/collection';
+import DecoratorsStack from '../../dist/builder/decorators-stack';
 
 describe('Builder > Collection', () => {
   const setup = async () => {
-    const options = factories.forestAdminHttpDriverOptions.build();
-    const agent = new Agent(options);
-
     const collectionName = '__collection__';
     const dataSource = factories.dataSource.buildWithCollection(
       factories.collection.build({
@@ -34,21 +31,17 @@ describe('Builder > Collection', () => {
         }),
       }),
     );
+    const stack = new DecoratorsStack(dataSource);
+    const collectionBuilder = new CollectionBuilder(stack, collectionName);
 
-    jest.spyOn(agent.forestAdminHttpDriver, 'start').mockResolvedValue();
-
-    await agent.addDatasource(async () => dataSource).start();
-
-    const collectionBuilder = new CollectionBuilder(agent, collectionName);
-
-    return { agent, collectionBuilder, collectionName };
+    return { stack, collectionBuilder, collectionName };
   };
 
   describe('renameField', () => {
     it('should rename a field', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.rename.getCollection(collectionName);
+      const collection = stack.rename.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'renameField');
 
       const self = collectionBuilder.renameField('firstName', 'renamed');
@@ -62,9 +55,9 @@ describe('Builder > Collection', () => {
 
   describe('removeField', () => {
     it('should remove the field given fields', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.publication.getCollection(collectionName);
+      const collection = stack.publication.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'changeFieldVisibility');
 
       const self = collectionBuilder.removeField('firstName', 'lastName');
@@ -80,9 +73,9 @@ describe('Builder > Collection', () => {
 
   describe('addAction', () => {
     it('should add an action', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.action.getCollection(collectionName);
+      const collection = stack.action.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'addAction');
 
       const actionDefinition: ActionDefinition = {
@@ -118,9 +111,9 @@ describe('Builder > Collection', () => {
 
   describe('addField', () => {
     it('should add a field', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.lateComputed.getCollection(collectionName);
+      const collection = stack.lateComputed.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'registerComputed');
 
       const fieldDefinition: FieldDefinition = {
@@ -140,9 +133,9 @@ describe('Builder > Collection', () => {
 
   describe('addRelation', () => {
     it('should add a relation', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.relation.getCollection(collectionName);
+      const collection = stack.relation.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'addRelation');
 
       const relationDefinition = {
@@ -163,9 +156,9 @@ describe('Builder > Collection', () => {
 
   describe('addSegment', () => {
     it('should add a segment', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.segment.getCollection(collectionName);
+      const collection = stack.segment.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'addSegment');
 
       const generator = async () => new ConditionTreeLeaf('fieldName', 'Present');
@@ -181,9 +174,9 @@ describe('Builder > Collection', () => {
 
   describe('emulateFieldSorting', () => {
     it('should emulate sort on field', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.sortEmulate.getCollection(collectionName);
+      const collection = stack.sortEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateFieldSorting');
 
       const self = collectionBuilder.emulateFieldSorting('firstName');
@@ -196,9 +189,9 @@ describe('Builder > Collection', () => {
 
   describe('replaceFieldSorting', () => {
     it('should replace sort on field', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.sortEmulate.getCollection(collectionName);
+      const collection = stack.sortEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'replaceFieldSorting');
 
       const sortClauses: PlainSortClause[] = [{ field: 'firstName', ascending: true }];
@@ -213,9 +206,9 @@ describe('Builder > Collection', () => {
 
   describe('replaceFieldWriting', () => {
     it('should replace write on field', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.write.getCollection(collectionName);
+      const collection = stack.write.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'replaceFieldWriting');
 
       const definition: WriteDefinition = jest.fn();
@@ -228,9 +221,9 @@ describe('Builder > Collection', () => {
 
   describe('emulateFieldFiltering', () => {
     it('should emulate operator on field', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.earlyOpEmulate.getCollection(collectionName);
+      const collection = stack.earlyOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
       const self = collectionBuilder.emulateFieldFiltering('lastName');
@@ -242,9 +235,9 @@ describe('Builder > Collection', () => {
 
   describe('emulateFieldOperator', () => {
     it('should emulate operator on field', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.earlyOpEmulate.getCollection(collectionName);
+      const collection = stack.earlyOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
       const self = collectionBuilder.emulateFieldOperator('firstName', 'Present');
@@ -257,9 +250,9 @@ describe('Builder > Collection', () => {
 
   describe('replaceFieldOperator', () => {
     it('should replace operator on field', async () => {
-      const { agent, collectionBuilder, collectionName } = await setup();
+      const { stack, collectionBuilder, collectionName } = await setup();
 
-      const collection = agent.earlyOpEmulate.getCollection(collectionName);
+      const collection = stack.earlyOpEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'replaceFieldOperator');
 
       const replacer = async () => new ConditionTreeLeaf('fieldName', 'NotEqual', null);

@@ -11,16 +11,16 @@ import {
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
 import { FieldDefinition } from './types';
-import AgentBuilder from './agent';
+import DecoratorsStack from './decorators-stack';
 import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
 
 export default class CollectionBuilder {
-  private agentBuilder: AgentBuilder;
   private readonly name: string;
+  private readonly stack: DecoratorsStack;
 
-  constructor(agentBuilder: AgentBuilder, name: string) {
-    this.agentBuilder = agentBuilder;
+  constructor(stack: DecoratorsStack, name: string) {
     this.name = name;
+    this.stack = stack;
   }
 
   /**
@@ -32,7 +32,7 @@ export default class CollectionBuilder {
    * .importField('authorName', { path: 'author:fullName' })
    */
   importField(name: string, options: { path: string; beforeRelations?: boolean }): this {
-    const collection = this.agentBuilder.lateComputed.getCollection(this.name);
+    const collection = this.stack.lateComputed.getCollection(this.name);
     const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
 
     this.addField(name, {
@@ -64,7 +64,7 @@ export default class CollectionBuilder {
    * .renameField('theCurrentNameOfTheField', 'theNewNameOfTheField');
    */
   renameField(oldName: string, newName: string): this {
-    this.agentBuilder.rename.getCollection(this.name).renameField(oldName, newName);
+    this.stack.rename.getCollection(this.name).renameField(oldName, newName);
 
     return this;
   }
@@ -76,7 +76,7 @@ export default class CollectionBuilder {
    * .removeField('aFieldToRemove', 'anOtherFieldToRemove');
    */
   removeField(...names: string[]): this {
-    const collection = this.agentBuilder.publication.getCollection(this.name);
+    const collection = this.stack.publication.getCollection(this.name);
     for (const name of names) collection.changeFieldVisibility(name, false);
 
     return this;
@@ -95,7 +95,7 @@ export default class CollectionBuilder {
    *  })
    */
   addAction(name: string, definition: ActionDefinition): this {
-    this.agentBuilder.action.getCollection(this.name).addAction(name, definition);
+    this.stack.action.getCollection(this.name).addAction(name, definition);
 
     return this;
   }
@@ -114,8 +114,8 @@ export default class CollectionBuilder {
   addField(name: string, definition: FieldDefinition): this {
     const { beforeRelations, ...computedDefinition } = definition;
     const collection = definition.beforeRelations
-      ? this.agentBuilder.earlyComputed.getCollection(this.name)
-      : this.agentBuilder.lateComputed.getCollection(this.name);
+      ? this.stack.earlyComputed.getCollection(this.name)
+      : this.stack.lateComputed.getCollection(this.name);
 
     collection.registerComputed(name, computedDefinition);
 
@@ -134,7 +134,7 @@ export default class CollectionBuilder {
    * });
    */
   addRelation(name: string, definition: PartialRelationSchema): this {
-    this.agentBuilder.relation.getCollection(this.name).addRelation(name, definition);
+    this.stack.relation.getCollection(this.name).addRelation(name, definition);
 
     return this;
   }
@@ -151,7 +151,7 @@ export default class CollectionBuilder {
    * );
    */
   addSegment(name: string, definition: SegmentDefinition): this {
-    this.agentBuilder.segment.getCollection(this.name).addSegment(name, definition);
+    this.stack.segment.getCollection(this.name).addSegment(name, definition);
 
     return this;
   }
@@ -164,7 +164,7 @@ export default class CollectionBuilder {
    * .emulateFieldSorting('fullName');
    */
   emulateFieldSorting(name: string): this {
-    this.agentBuilder.sortEmulate.getCollection(this.name).emulateFieldSorting(name);
+    this.stack.sortEmulate.getCollection(this.name).emulateFieldSorting(name);
 
     return this;
   }
@@ -184,9 +184,7 @@ export default class CollectionBuilder {
    * )
    */
   replaceFieldSorting(name: string, equivalentSort: PlainSortClause[]): this {
-    this.agentBuilder.sortEmulate
-      .getCollection(this.name)
-      .replaceFieldSorting(name, equivalentSort);
+    this.stack.sortEmulate.getCollection(this.name).replaceFieldSorting(name, equivalentSort);
 
     return this;
   }
@@ -199,7 +197,7 @@ export default class CollectionBuilder {
    * .emulateFieldFiltering('aField');
    */
   emulateFieldFiltering(name: string): this {
-    const collection = this.agentBuilder.lateOpEmulate.getCollection(this.name);
+    const collection = this.stack.lateOpEmulate.getCollection(this.name);
     const field = collection.schema.fields[name] as ColumnSchema;
 
     for (const operator of FrontendFilterableUtils.getRequiredOperators(field.columnType)) {
@@ -220,9 +218,9 @@ export default class CollectionBuilder {
    * .emulateFieldOperator('aField', 'In');
    */
   emulateFieldOperator(name: string, operator: Operator): this {
-    const collection = this.agentBuilder.earlyOpEmulate.getCollection(this.name).schema.fields[name]
-      ? this.agentBuilder.earlyOpEmulate.getCollection(this.name)
-      : this.agentBuilder.lateOpEmulate.getCollection(this.name);
+    const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
+      ? this.stack.earlyOpEmulate.getCollection(this.name)
+      : this.stack.lateOpEmulate.getCollection(this.name);
 
     collection.emulateFieldOperator(name, operator);
 
@@ -241,9 +239,9 @@ export default class CollectionBuilder {
    * ));
    */
   replaceFieldOperator(name: string, operator: Operator, replacer: OperatorReplacer): this {
-    const collection = this.agentBuilder.earlyOpEmulate.getCollection(this.name).schema.fields[name]
-      ? this.agentBuilder.earlyOpEmulate.getCollection(this.name)
-      : this.agentBuilder.lateOpEmulate.getCollection(this.name);
+    const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
+      ? this.stack.earlyOpEmulate.getCollection(this.name)
+      : this.stack.lateOpEmulate.getCollection(this.name);
 
     collection.replaceFieldOperator(name, operator, replacer);
 
@@ -261,7 +259,7 @@ export default class CollectionBuilder {
    * });
    */
   replaceFieldWriting(name: string, definition: WriteDefinition): this {
-    this.agentBuilder.write.getCollection(this.name).replaceFieldWriting(name, definition);
+    this.stack.write.getCollection(this.name).replaceFieldWriting(name, definition);
 
     return this;
   }

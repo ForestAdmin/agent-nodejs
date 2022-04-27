@@ -1,62 +1,58 @@
 import * as factories from '../agent/__factories__';
 import Agent from '../../src/builder/agent';
 import CollectionBuilder from '../../src/builder/collection';
+import DecoratorsStack from '../../src/builder/decorators-stack';
+
+let forestAdminHttpDriverInstance;
+
+jest.mock('../../src/agent/forestadmin-http-driver', () => {
+  return {
+    __esModule: true,
+    default: jest.fn().mockImplementation(options => {
+      forestAdminHttpDriverInstance = {
+        start: jest.fn(),
+        handler: jest.fn(),
+        stop: jest.fn(),
+        options,
+      };
+
+      return forestAdminHttpDriverInstance;
+    }),
+  };
+});
 
 describe('Builder > Agent', () => {
-  it('should build an agent', async () => {
+  it('should build an agent, provide a httpCallback and init the collection builder', async () => {
     const options = factories.forestAdminHttpDriverOptions.build();
+
     const agent = new Agent(options);
 
-    const forestAdminHttpDriverCallback = Symbol('callback');
-    Object.defineProperty(agent.forestAdminHttpDriver, 'handler', {
-      get: () => forestAdminHttpDriverCallback,
-    });
-
-    expect(agent.httpCallback).toBe(forestAdminHttpDriverCallback);
+    expect(agent.httpCallback).toBeDefined();
   });
 
   it('should start forestAdminHttpDriver', async () => {
     const options = factories.forestAdminHttpDriverOptions.build();
     const agent = new Agent(options);
 
-    const spy = jest.spyOn(agent.forestAdminHttpDriver, 'start').mockResolvedValue();
-
     await agent.start();
 
-    expect(spy).toHaveBeenCalledTimes(1);
+    expect(forestAdminHttpDriverInstance.start).toHaveBeenCalled();
   });
 
   it('should stop forestAdminHttpDriver', async () => {
     const options = factories.forestAdminHttpDriverOptions.build();
     const agent = new Agent(options);
 
-    const spy = jest.spyOn(agent.forestAdminHttpDriver, 'stop').mockResolvedValue();
-
     await agent.stop();
 
-    expect(spy).toHaveBeenCalledTimes(1);
+    expect(forestAdminHttpDriverInstance.stop).toHaveBeenCalled();
   });
 
-  it('should add collection datasource to the composite one', async () => {
-    const options = factories.forestAdminHttpDriverOptions.build();
-    const agent = new Agent(options);
-    jest.spyOn(agent.forestAdminHttpDriver, 'start').mockResolvedValue();
-
-    expect(agent.compositeDatasource.collections.length).toBe(0);
-
-    const dataSource = factories.dataSource.buildWithCollection(factories.collection.build());
-
-    await agent.addDatasource(async () => dataSource).start();
-
-    expect(agent.compositeDatasource.collections.length).toBe(1);
-  });
-
-  describe('collection', () => {
+  describe('customizeCollection', () => {
     describe('when designed collection is unknown', () => {
       it('should throw an error', async () => {
         const options = factories.forestAdminHttpDriverOptions.build();
         const agent = new Agent(options);
-        jest.spyOn(agent.forestAdminHttpDriver, 'start').mockResolvedValue();
 
         await expect(agent.customizeCollection('unknown', () => {}).start()).rejects.toThrowError(
           'Collection "unknown" not found',
@@ -64,23 +60,25 @@ describe('Builder > Agent', () => {
       });
     });
 
-    it('should provide collection builder', async () => {
+    it('should provide collection builder when the agent is started', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);
-      jest.spyOn(agent.forestAdminHttpDriver, 'start').mockResolvedValue();
+
       const dataSource = factories.dataSource.buildWithCollection(
         factories.collection.build({ name: 'collection' }),
       );
 
-      const spy = jest.fn();
+      const handle = jest.fn();
 
       await agent
         .addDatasource(async () => dataSource)
-        .customizeCollection('collection', spy)
+        .customizeCollection('collection', handle)
         .start();
 
-      expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith(new CollectionBuilder(agent, 'collection'));
+      expect(handle).toHaveBeenCalledTimes(1);
+      expect(handle).toHaveBeenCalledWith(
+        new CollectionBuilder(expect.any(DecoratorsStack), 'collection'),
+      );
     });
   });
 });
