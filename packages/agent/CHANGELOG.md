@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.11...@forestadmin/agent@1.0.0-beta.12) (2022-04-27)
+
+
+### Bug Fixes
+
+* schema generation retrieves keys in the wrong collection ([#269](https://github.com/ForestAdmin/agent-nodejs/issues/269)) ([7151667](https://github.com/ForestAdmin/agent-nodejs/commit/715166799840c60d9a40098f501e7e236eba443d))
+
 # @forestadmin/agent [1.0.0-beta.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.10...@forestadmin/agent@1.0.0-beta.11) (2022-04-26)
 
 
