@@ -8,10 +8,11 @@ describe('SchemaGeneratorFields > One to Many', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            booksPk: factories.columnSchema.isPrimaryKey().build(),
             author: factories.manyToOneSchema.build({
               foreignCollection: 'persons',
               foreignKey: 'authorId',
+              foreignKeyTarget: 'personsPk',
             }),
             authorId: factories.columnSchema.build({
               columnType: 'Uuid',
@@ -23,11 +24,11 @@ describe('SchemaGeneratorFields > One to Many', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            personsPk: factories.columnSchema.isPrimaryKey().build(),
             writtenBooks: factories.oneToManySchema.build({
               foreignCollection: 'books',
               originKey: 'authorId',
-              originKeyTarget: 'id',
+              originKeyTarget: 'personsPk',
             }),
           },
         }),
@@ -44,7 +45,7 @@ describe('SchemaGeneratorFields > One to Many', () => {
     expect(schema).toMatchObject({
       field: 'author',
       inverseOf: 'writtenBooks',
-      reference: 'persons.id',
+      reference: 'persons.personsPk',
       relationship: 'BelongsTo',
       type: 'Uuid',
     });
@@ -59,7 +60,7 @@ describe('SchemaGeneratorFields > One to Many', () => {
     expect(schema).toStrictEqual({
       field: 'writtenBooks',
       inverseOf: 'author',
-      reference: 'books.id',
+      reference: 'books.personsPk',
       relationship: 'HasMany',
       type: ['Uuid'],
 

@@ -8,11 +8,13 @@ describe('SchemaGeneratorFields > Many to Many', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            booksPk: factories.columnSchema.isPrimaryKey().build(),
             reviewers: factories.manyToManySchema.build({
               foreignCollection: 'persons',
               foreignKey: 'personId',
+              foreignKeyTarget: 'personsPk',
               originKey: 'bookId',
+              originKeyTarget: 'booksPk',
               throughCollection: 'bookPersons',
             }),
           },
@@ -28,7 +30,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
             book: factories.manyToOneSchema.build({
               foreignCollection: 'books',
               foreignKey: 'bookId',
-              foreignKeyTarget: 'id',
+              foreignKeyTarget: 'booksPk',
             }),
             personId: factories.columnSchema
               .isPrimaryKey()
@@ -36,7 +38,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
             person: factories.manyToOneSchema.build({
               foreignCollection: 'person',
               foreignKey: 'personId',
-              foreignKeyTarget: 'id',
+              foreignKeyTarget: 'personsPk',
             }),
           },
         }),
@@ -45,11 +47,13 @@ describe('SchemaGeneratorFields > Many to Many', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            personsPk: factories.columnSchema.isPrimaryKey().build(),
             books: factories.manyToManySchema.build({
               foreignCollection: 'books',
               foreignKey: 'bookId',
+              foreignKeyTarget: 'booksPk',
               originKey: 'personId',
+              originKeyTarget: 'personsPk',
               throughCollection: 'bookPersons',
             }),
           },
@@ -67,7 +71,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
     expect(schema).toStrictEqual({
       field: 'reviewers',
       inverseOf: 'books',
-      reference: 'persons.id',
+      reference: 'persons.personsPk',
       relationship: 'BelongsToMany',
       type: ['Uuid'],
 
@@ -93,7 +97,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
     expect(schema).toStrictEqual({
       field: 'book',
       inverseOf: null,
-      reference: 'books.id',
+      reference: 'books.booksPk',
       relationship: 'BelongsTo',
       type: 'Uuid',
       isRequired: true,
