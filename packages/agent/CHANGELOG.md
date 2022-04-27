@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.12...@forestadmin/agent@1.0.0-beta.13) (2022-04-27)
+
+
+### Bug Fixes
+
+* typos in message at startup ([#270](https://github.com/ForestAdmin/agent-nodejs/issues/270)) ([9fe940a](https://github.com/ForestAdmin/agent-nodejs/commit/9fe940a40da153d2f4ab8674daee1d62c8df6fbf))
+
 # @forestadmin/agent [1.0.0-beta.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.11...@forestadmin/agent@1.0.0-beta.12) (2022-04-27)
 
 
