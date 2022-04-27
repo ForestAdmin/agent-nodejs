@@ -74,12 +74,20 @@ export default class SchemaGeneratorFields {
 
   private static buildToManyRelationSchema(
     relation: OneToManySchema | ManyToManySchema,
+    collection: Collection,
     foreignCollection: Collection,
     baseSchema: ForestServerField,
   ): ForestServerField {
-    const key =
-      relation.type === 'OneToMany' ? relation.originKeyTarget : relation.foreignKeyTarget;
-    const keySchema = foreignCollection.schema.fields[key] as ColumnSchema;
+    let key: string;
+    let keySchema: ColumnSchema;
+
+    if (relation.type === 'OneToMany') {
+      key = relation.originKeyTarget;
+      keySchema = collection.schema.fields[key] as ColumnSchema;
+    } else {
+      key = relation.foreignKeyTarget;
+      keySchema = foreignCollection.schema.fields[key] as ColumnSchema;
+    }
 
     return {
       type: [keySchema.columnType],
@@ -104,11 +112,12 @@ export default class SchemaGeneratorFields {
 
   private static buildOneToOneSchema(
     relation: OneToOneSchema,
+    collection: Collection,
     foreignCollection: Collection,
     baseSchema: ForestServerField,
   ) {
     const key = relation.originKeyTarget;
-    const keySchema = foreignCollection.schema.fields[key] as ColumnSchema;
+    const keySchema = collection.schema.fields[key] as ColumnSchema;
 
     return {
       type: keySchema.columnType,
@@ -164,12 +173,14 @@ export default class SchemaGeneratorFields {
       case 'OneToMany':
         return SchemaGeneratorFields.buildToManyRelationSchema(
           relation,
+          collection,
           foreignCollection,
           relationSchema,
         );
       case 'OneToOne':
         return SchemaGeneratorFields.buildOneToOneSchema(
           relation,
+          collection,
           foreignCollection,
           relationSchema,
         );

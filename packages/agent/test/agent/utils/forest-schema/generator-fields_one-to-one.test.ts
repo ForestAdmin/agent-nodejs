@@ -8,11 +8,17 @@ describe('SchemaGeneratorFields > One to One', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
-            authorId: factories.columnSchema.build({ columnType: 'Uuid', isSortable: true }),
+            bookPk: factories.columnSchema.isPrimaryKey().build({
+              columnType: 'Number',
+            }),
+            authorId: factories.columnSchema.build({
+              columnType: 'String',
+              isSortable: true,
+            }),
             author: factories.manyToOneSchema.build({
               foreignCollection: 'persons',
               foreignKey: 'authorId',
+              foreignKeyTarget: 'personsPk',
             }),
           },
         }),
@@ -21,11 +27,14 @@ describe('SchemaGeneratorFields > One to One', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            personsPk: factories.columnSchema.build({
+              columnType: 'String',
+              isPrimaryKey: true,
+            }),
             book: factories.oneToOneSchema.build({
               foreignCollection: 'books',
               originKey: 'authorId',
-              originKeyTarget: 'id',
+              originKeyTarget: 'personsPk',
             }),
           },
         }),
@@ -42,14 +51,16 @@ describe('SchemaGeneratorFields > One to One', () => {
     expect(schema).toStrictEqual({
       field: 'book',
       inverseOf: 'author',
-      reference: 'books.id',
+
+      // This is super strange, but that is what forest-express is sending.
+      reference: 'books.personsPk',
       relationship: 'HasOne',
-      type: 'Uuid',
+      type: 'String',
 
       defaultValue: null,
       enums: null,
       integration: null,
-      isFilterable: true,
+      isFilterable: false,
       isPrimaryKey: false,
       isReadOnly: false,
       isRequired: false,
@@ -68,15 +79,15 @@ describe('SchemaGeneratorFields > One to One', () => {
     expect(schema).toStrictEqual({
       field: 'author',
       inverseOf: 'book',
-      reference: 'persons.id',
+      reference: 'persons.personsPk',
       relationship: 'BelongsTo',
-      type: 'Uuid',
+      type: 'String',
       isSortable: true,
 
       defaultValue: null,
       enums: null,
       integration: null,
-      isFilterable: true,
+      isFilterable: false,
       isPrimaryKey: false,
       isReadOnly: false,
       isRequired: false,
