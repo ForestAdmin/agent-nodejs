@@ -28,7 +28,10 @@ export default class UpdateRelation extends RelationRoute {
     const relation = this.collection.schema.fields[this.relationName];
     const caller = QueryStringParser.parseRecipient(context);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-    const linkedId = IdUtils.unpackId(this.foreignCollection.schema, context.request.body?.data.id);
+
+    const linkedId = context.request.body?.data?.id
+      ? IdUtils.unpackId(this.foreignCollection.schema, context.request.body.data.id)
+      : null;
 
     if (relation.type === 'ManyToOne') {
       await this.updateManyToOne(context, relation, parentId, linkedId, caller);
@@ -51,12 +54,14 @@ export default class UpdateRelation extends RelationRoute {
     await this.services.permissions.can(context, `edit:${this.collection.name}`);
 
     // Load the value that will be used as foreignKey (=== linkedId[0] most of the time)
-    const foreignValue = await CollectionUtils.getValue(
-      this.foreignCollection,
-      caller,
-      linkedId,
-      relation.foreignKeyTarget,
-    );
+    const foreignValue = linkedId
+      ? await CollectionUtils.getValue(
+          this.foreignCollection,
+          caller,
+          linkedId,
+          relation.foreignKeyTarget,
+        )
+      : null;
 
     // Overwrite old foreign key with new one (only one query needed).
     const fkOwner = ConditionTreeFactory.matchIds(this.collection.schema, [parentId]);
@@ -96,11 +101,13 @@ export default class UpdateRelation extends RelationRoute {
     );
 
     // Create new relation (will update exactly one record).
-    const newFkOwner = ConditionTreeFactory.matchIds(this.foreignCollection.schema, [linkedId]);
-    await this.foreignCollection.update(
-      caller,
-      new Filter({ conditionTree: ConditionTreeFactory.intersect(newFkOwner, scope) }),
-      { [relation.originKey]: originValue },
-    );
+    if (linkedId) {
+      const newFkOwner = ConditionTreeFactory.matchIds(this.foreignCollection.schema, [linkedId]);
+      await this.foreignCollection.update(
+        caller,
+        new Filter({ conditionTree: ConditionTreeFactory.intersect(newFkOwner, scope) }),
+        { [relation.originKey]: originValue },
+      );
+    }
   }
 }
