@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.7...@forestadmin/datasource-toolkit@1.0.0-beta.8) (2022-04-28)
+
+
+### Bug Fixes
+
+* record flattener used for computed is corrupting records ([#272](https://github.com/ForestAdmin/agent-nodejs/issues/272)) ([2736bc0](https://github.com/ForestAdmin/agent-nodejs/commit/2736bc0064a831c910310bed76072f2414d4a1c2))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.6...@forestadmin/datasource-toolkit@1.0.0-beta.7) (2022-04-26)
 
 
