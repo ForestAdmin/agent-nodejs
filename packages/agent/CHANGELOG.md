@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.14...@forestadmin/agent@1.0.0-beta.15) (2022-04-28)
+
+
+### Bug Fixes
+
+* can't set a relation to null in the detail-view form ([#275](https://github.com/ForestAdmin/agent-nodejs/issues/275)) ([06ae054](https://github.com/ForestAdmin/agent-nodejs/commit/06ae054d524717b4eec4e19f85e9bdf675d75cf0))
+
 # @forestadmin/agent [1.0.0-beta.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.13...@forestadmin/agent@1.0.0-beta.14) (2022-04-28)
 
 
