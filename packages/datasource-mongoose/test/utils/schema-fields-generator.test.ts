@@ -1,8 +1,8 @@
-import { FieldTypes, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import { Schema, model, SchemaType } from 'mongoose';
+import { Operator } from '@forestadmin/datasource-toolkit';
+import { Schema, SchemaType, model } from 'mongoose';
 
-import SchemaFieldsGenerator from '../../src/utils/schema-fields-generator';
 import FilterOperatorBuilder from '../../src/utils/filter-operator-builder';
+import SchemaFieldsGenerator from '../../src/utils/schema-fields-generator';
 
 describe('MongooseCollection', () => {
   describe('with array fields', () => {
@@ -22,7 +22,7 @@ describe('MongooseCollection', () => {
 
         expect(schema).toStrictEqual({
           primitiveArray: {
-            columnType: [PrimitiveTypes.Number],
+            columnType: ['Number'],
             filterOperators: new Set<Operator>(),
             defaultValue: undefined,
             enumValues: undefined,
@@ -30,10 +30,10 @@ describe('MongooseCollection', () => {
             isReadOnly: false,
             isRequired: false,
             isSortable: false,
-            type: FieldTypes.Column,
+            type: 'Column',
           },
           anotherPrimitiveArray: {
-            columnType: [PrimitiveTypes.String],
+            columnType: ['String'],
             filterOperators: new Set<Operator>(),
             defaultValue: undefined,
             enumValues: undefined,
@@ -41,10 +41,10 @@ describe('MongooseCollection', () => {
             isReadOnly: false,
             isRequired: false,
             isSortable: false,
-            type: FieldTypes.Column,
+            type: 'Column',
           },
           lastPrimitiveArray: {
-            columnType: [PrimitiveTypes.Date],
+            columnType: ['Date'],
             filterOperators: new Set<Operator>(),
             defaultValue: undefined,
             enumValues: undefined,
@@ -52,7 +52,7 @@ describe('MongooseCollection', () => {
             isReadOnly: false,
             isRequired: false,
             isSortable: false,
-            type: FieldTypes.Column,
+            type: 'Column',
           },
         });
       });
@@ -72,7 +72,7 @@ describe('MongooseCollection', () => {
 
         expect(schema).toStrictEqual({
           objectIdArray: {
-            columnType: [PrimitiveTypes.String],
+            columnType: ['String'],
             filterOperators: new Set<Operator>(),
             defaultValue: undefined,
             enumValues: undefined,
@@ -80,7 +80,7 @@ describe('MongooseCollection', () => {
             isReadOnly: false,
             isRequired: false,
             isSortable: false,
-            type: FieldTypes.Column,
+            type: 'Column',
           },
         });
       });
@@ -139,11 +139,11 @@ describe('MongooseCollection', () => {
           objectArray: {
             columnType: [
               {
-                test: PrimitiveTypes.String,
-                target: [PrimitiveTypes.Number],
+                test: 'String',
+                target: ['Number'],
                 nested: [
                   {
-                    level: PrimitiveTypes.Number,
+                    level: 'Number',
                   },
                 ],
               },
@@ -155,16 +155,16 @@ describe('MongooseCollection', () => {
             isReadOnly: false,
             isRequired: false,
             isSortable: false,
-            type: FieldTypes.Column,
+            type: 'Column',
           },
           anotherObjectArray: {
             columnType: [
               {
-                test: PrimitiveTypes.String,
-                target: [PrimitiveTypes.Number],
+                test: 'String',
+                target: ['Number'],
                 nested: [
                   {
-                    level: PrimitiveTypes.Number,
+                    level: 'Number',
                   },
                 ],
               },
@@ -176,16 +176,16 @@ describe('MongooseCollection', () => {
             isReadOnly: false,
             isRequired: false,
             isSortable: false,
-            type: FieldTypes.Column,
+            type: 'Column',
           },
           lastObjectArray: {
             columnType: [
               {
-                test: PrimitiveTypes.String,
-                target: [PrimitiveTypes.Number],
+                test: 'String',
+                target: ['Number'],
                 nested: [
                   {
-                    level: PrimitiveTypes.Number,
+                    level: 'Number',
                   },
                 ],
               },
@@ -197,7 +197,7 @@ describe('MongooseCollection', () => {
             isReadOnly: false,
             isRequired: false,
             isSortable: false,
-            type: FieldTypes.Column,
+            type: 'Column',
           },
         });
       });
@@ -221,48 +221,48 @@ describe('MongooseCollection', () => {
 
       expect(schema).toStrictEqual({
         primitive: {
-          columnType: PrimitiveTypes.String,
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.String),
+          columnType: 'String',
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
           defaultValue: undefined,
           enumValues: undefined,
           isPrimaryKey: false,
           isReadOnly: false,
           isRequired: false,
           isSortable: true,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
         anotherPrimitive: {
-          columnType: PrimitiveTypes.Boolean,
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.Boolean),
+          columnType: 'Boolean',
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('Boolean'),
           defaultValue: undefined,
           enumValues: undefined,
           isPrimaryKey: false,
           isReadOnly: false,
           isRequired: false,
           isSortable: true,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
         buffer: {
-          columnType: PrimitiveTypes.String,
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.String),
+          columnType: 'String',
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
           defaultValue: undefined,
           enumValues: undefined,
           isPrimaryKey: false,
           isReadOnly: false,
           isRequired: false,
           isSortable: true,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
         map: {
-          columnType: PrimitiveTypes.Json,
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.Json),
+          columnType: 'Json',
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('Json'),
           defaultValue: undefined,
           enumValues: undefined,
           isPrimaryKey: false,
           isReadOnly: false,
           isRequired: false,
           isSortable: false,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
       });
     });
@@ -281,15 +281,15 @@ describe('MongooseCollection', () => {
 
         expect(schema).toStrictEqual({
           objectId: {
-            columnType: PrimitiveTypes.String,
-            filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.String),
+            columnType: 'String',
+            filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
             defaultValue: undefined,
             enumValues: undefined,
             isPrimaryKey: false,
             isReadOnly: false,
             isRequired: false,
             isSortable: true,
-            type: FieldTypes.Column,
+            type: 'Column',
           },
         });
       });
@@ -341,54 +341,54 @@ describe('MongooseCollection', () => {
       expect(schema).toStrictEqual({
         object: {
           columnType: {
-            test: PrimitiveTypes.String,
-            target: [PrimitiveTypes.Number],
+            test: 'String',
+            target: ['Number'],
             nested: {
-              level: PrimitiveTypes.Number,
+              level: 'Number',
             },
           },
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.Json),
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('Json'),
           defaultValue: undefined,
           enumValues: undefined,
           isPrimaryKey: false,
           isReadOnly: false,
           isRequired: false,
           isSortable: false,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
         anotherObject: {
           columnType: {
-            test: PrimitiveTypes.String,
-            target: [PrimitiveTypes.Number],
+            test: 'String',
+            target: ['Number'],
             nested: {
-              level: PrimitiveTypes.Number,
+              level: 'Number',
             },
           },
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.Json),
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('Json'),
           defaultValue: undefined,
           enumValues: undefined,
           isPrimaryKey: false,
           isReadOnly: false,
           isRequired: false,
           isSortable: false,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
         lastObject: {
           columnType: {
-            test: PrimitiveTypes.String,
-            target: [PrimitiveTypes.Number],
+            test: 'String',
+            target: ['Number'],
             nested: {
-              level: PrimitiveTypes.Number,
+              level: 'Number',
             },
           },
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.Json),
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('Json'),
           defaultValue: undefined,
           enumValues: undefined,
           isPrimaryKey: false,
           isReadOnly: false,
           isRequired: false,
           isSortable: false,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
       });
     });
@@ -410,18 +410,18 @@ describe('MongooseCollection', () => {
         belongsTo_manyToOne: {
           foreignCollection: 'companies',
           foreignKey: 'belongsTo',
-          type: FieldTypes.ManyToOne,
+          type: 'ManyToOne',
         },
         belongsTo: {
-          columnType: PrimitiveTypes.String,
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.String),
+          columnType: 'String',
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
           defaultValue: undefined,
           enumValues: undefined,
           isPrimaryKey: false,
           isReadOnly: false,
           isRequired: false,
           isSortable: true,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
       });
     });
@@ -444,10 +444,10 @@ describe('MongooseCollection', () => {
         hasMany_oneToMany: {
           foreignCollection: 'companies1',
           foreignKey: 'hasMany',
-          type: FieldTypes.OneToMany,
+          type: 'OneToMany',
         },
         hasMany: {
-          columnType: [PrimitiveTypes.String],
+          columnType: ['String'],
           filterOperators: new Set<Operator>(),
           defaultValue: undefined,
           enumValues: undefined,
@@ -455,15 +455,15 @@ describe('MongooseCollection', () => {
           isReadOnly: false,
           isRequired: false,
           isSortable: false,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
         anotherHasMany_oneToMany: {
           foreignCollection: 'companies2',
           foreignKey: 'anotherHasMany',
-          type: FieldTypes.OneToMany,
+          type: 'OneToMany',
         },
         anotherHasMany: {
-          columnType: [PrimitiveTypes.String],
+          columnType: ['String'],
           filterOperators: new Set<Operator>(),
           defaultValue: undefined,
           enumValues: undefined,
@@ -471,7 +471,7 @@ describe('MongooseCollection', () => {
           isReadOnly: false,
           isRequired: false,
           isSortable: false,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
       });
     });
@@ -492,15 +492,15 @@ describe('MongooseCollection', () => {
 
       expect(schema).toStrictEqual({
         enum: {
-          columnType: PrimitiveTypes.Enum,
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.Enum),
+          columnType: 'Enum',
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('Enum'),
           defaultValue: undefined,
           enumValues,
           isPrimaryKey: false,
           isReadOnly: false,
           isRequired: false,
           isSortable: true,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
       });
     });
@@ -521,15 +521,15 @@ describe('MongooseCollection', () => {
 
       expect(schema).toStrictEqual({
         default: {
-          columnType: PrimitiveTypes.String,
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.String),
+          columnType: 'String',
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
           defaultValue,
           enumValues: undefined,
           isPrimaryKey: false,
           isReadOnly: false,
           isRequired: false,
           isSortable: true,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
       });
     });
@@ -544,15 +544,15 @@ describe('MongooseCollection', () => {
 
       expect(schema).toStrictEqual({
         _id: {
-          columnType: PrimitiveTypes.String,
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.String),
+          columnType: 'String',
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
           defaultValue: undefined,
           enumValues: undefined,
           isPrimaryKey: true,
           isReadOnly: false,
           isRequired: false,
           isSortable: true,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
       });
     });
@@ -572,15 +572,15 @@ describe('MongooseCollection', () => {
 
       expect(schema).toStrictEqual({
         required: {
-          columnType: PrimitiveTypes.Number,
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.Number),
+          columnType: 'Number',
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('Number'),
           defaultValue: undefined,
           enumValues: undefined,
           isPrimaryKey: false,
           isReadOnly: false,
           isRequired: true,
           isSortable: true,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
       });
     });
@@ -600,15 +600,15 @@ describe('MongooseCollection', () => {
 
       expect(schema).toStrictEqual({
         immutable: {
-          columnType: PrimitiveTypes.Date,
-          filterOperators: FilterOperatorBuilder.getSupportedOperators(PrimitiveTypes.Date),
+          columnType: 'Date',
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('Date'),
           defaultValue: undefined,
           enumValues: undefined,
           isPrimaryKey: false,
           isReadOnly: true,
           isRequired: false,
           isSortable: true,
-          type: FieldTypes.Column,
+          type: 'Column',
         },
       });
     });
@@ -625,7 +625,7 @@ describe('MongooseCollection', () => {
       );
     });
 
-    it('should throw an error on simple type', () => {
+    it('should throw an error on array type', () => {
       const arrayErrorSchema = {
         errors: { instance: 'Array', caster: {}, path: 'errors' } as Schema.Types.Array,
       };

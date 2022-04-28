@@ -1,4 +1,5 @@
 import { Connection } from 'mongoose';
+
 import { BaseDataSource } from '@forestadmin/datasource-toolkit';
 
 import MongooseCollection from './collection';

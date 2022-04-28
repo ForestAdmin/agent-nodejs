@@ -1,8 +1,8 @@
 import { Connection, Model } from 'mongoose';
 import { RecordData } from '@forestadmin/datasource-toolkit';
 
-import MongooseDatasource from '../src/datasource';
 import MongooseCollection from '../src/collection';
+import MongooseDatasource from '../src/datasource';
 
 describe('MongooseDatasource', () => {
   const setupConnection = () => {

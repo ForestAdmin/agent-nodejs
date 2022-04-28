@@ -1,29 +1,24 @@
 import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
-const defaultOperators = [Operator.Blank, Operator.Equal, Operator.NotEqual, Operator.Present];
-const inOperators = [Operator.In, Operator.NotIn];
-const stringOperators = [
-  Operator.Contains,
-  Operator.NotContains,
-  Operator.StartsWith,
-  Operator.EndsWith,
-];
-const comparisonOperators = [Operator.GreaterThan, Operator.LessThan];
+const defaultOperators: Partial<Operator[]> = ['Blank', 'Equal', 'NotEqual', 'Present'];
+const inOperators: Partial<Operator[]> = ['In', 'NotIn'];
+const stringOperators: Partial<Operator[]> = ['Contains', 'NotContains', 'StartsWith', 'EndsWith'];
+const comparisonOperators: Partial<Operator[]> = ['GreaterThan', 'LessThan'];
 
 export default class FilterOperatorBuilder {
   static getSupportedOperators(type: PrimitiveTypes): Set<Operator> {
     switch (type) {
-      case PrimitiveTypes.Boolean:
+      case 'Boolean':
         return new Set<Operator>(defaultOperators);
-      case PrimitiveTypes.Date:
+      case 'Date':
         return new Set<Operator>([...defaultOperators, ...inOperators, ...comparisonOperators]);
-      case PrimitiveTypes.Enum:
+      case 'Enum':
         return new Set<Operator>([...defaultOperators, ...inOperators, ...stringOperators]);
-      case PrimitiveTypes.Json:
+      case 'Json':
         return new Set<Operator>();
-      case PrimitiveTypes.Number:
+      case 'Number':
         return new Set<Operator>([...defaultOperators, ...inOperators, ...comparisonOperators]);
-      case PrimitiveTypes.String:
+      case 'String':
         return new Set<Operator>([...defaultOperators, ...inOperators, ...stringOperators]);
       default:
         return new Set<Operator>();

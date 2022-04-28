@@ -1,10 +1,10 @@
-import { Model } from 'mongoose';
 import {
   AggregateResult,
   BaseCollection,
   DataSource,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+import { Model } from 'mongoose';
 
 import SchemaFieldsGenerator from './utils/schema-fields-generator';
 
@@ -16,10 +16,6 @@ export default class MongooseCollection extends BaseCollection {
     this.model = model;
 
     this.addFields(SchemaFieldsGenerator.buildSchemaFields(model.schema.paths));
-  }
-
-  override getById(): Promise<RecordData> {
-    throw new Error('Method not implemented.');
   }
 
   create(): Promise<RecordData[]> {

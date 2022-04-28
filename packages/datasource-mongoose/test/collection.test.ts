@@ -1,4 +1,5 @@
 import { Model } from 'mongoose';
+
 import { FieldSchema, RecordData } from '@forestadmin/datasource-toolkit';
 
 import MongooseCollection from '../src/collection';

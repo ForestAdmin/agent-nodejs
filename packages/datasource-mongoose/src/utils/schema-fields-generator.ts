@@ -2,7 +2,6 @@ import {
   ColumnSchema,
   ColumnType,
   FieldSchema,
-  FieldTypes,
   FieldsSchema,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
@@ -14,23 +13,23 @@ type MongooseColumnSchema = ColumnSchema & { schema?: FieldsSchema };
 
 class SchemaFieldsGenerator {
   private static getColumnType(instance: string, hasEnum: boolean): ColumnType {
-    if (hasEnum) return PrimitiveTypes.Enum;
+    if (hasEnum) return 'Enum';
 
     switch (instance) {
       case 'String':
       case 'ObjectID':
-        return PrimitiveTypes.String;
+        return 'String';
       case 'Number':
-        return PrimitiveTypes.Number;
+        return 'Number';
       case 'Date':
-        return PrimitiveTypes.Date;
+        return 'Date';
       case 'Buffer':
-        return PrimitiveTypes.String;
+        return 'String';
       case 'Boolean':
-        return PrimitiveTypes.Boolean;
+        return 'Boolean';
       case 'Map':
       case 'Mixed':
-        return PrimitiveTypes.Json;
+        return 'Json';
       default:
         throw new Error(`Unhandled column type "${instance}"`);
     }
@@ -48,8 +47,8 @@ class SchemaFieldsGenerator {
       isPrimaryKey: field.path === '_id',
       isReadOnly: !!field.options?.immutable,
       isRequired: !!field.isRequired,
-      isSortable: !(Array.isArray(columnType) || columnType === PrimitiveTypes.Json),
-      type: FieldTypes.Column,
+      isSortable: !(Array.isArray(columnType) || columnType === 'Json'),
+      type: 'Column',
     };
   }
 
@@ -62,7 +61,7 @@ class SchemaFieldsGenerator {
     }
 
     if (caster.schema) {
-      const fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, [PrimitiveTypes.Json]);
+      const fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, ['Json']);
       fieldSchema.schema = SchemaFieldsGenerator.prebuildSchemaFields(caster.schema.paths);
 
       return fieldSchema;
@@ -94,10 +93,7 @@ class SchemaFieldsGenerator {
     let fieldSchema = schemaFields[fieldPath] as MongooseColumnSchema;
 
     if (!fieldSchema) {
-      fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(
-        {} as SchemaType,
-        PrimitiveTypes.Json,
-      );
+      fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema({} as SchemaType, 'Json');
       fieldSchema.schema = {} as FieldsSchema;
       schemaFields[fieldPath] = fieldSchema;
     }
@@ -119,28 +115,25 @@ class SchemaFieldsGenerator {
       } else if (field.instance === 'Array') {
         let fieldSchema = SchemaFieldsGenerator.buildArraySchema(field as Schema.Types.Array);
 
-        if (fieldSchema.type === FieldTypes.OneToMany) {
+        if (fieldSchema.type === 'OneToMany') {
           schemaFields[`${fieldName}_oneToMany`] = fieldSchema;
           fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, [
-            SchemaFieldsGenerator.getColumnType(PrimitiveTypes.String, !!field.options?.enum),
+            SchemaFieldsGenerator.getColumnType('String', !!field.options?.enum),
           ]);
         }
 
         schemaFields[fieldName] = fieldSchema;
       } else if (field.options.ref) {
         schemaFields[`${fieldName}_manyToOne`] = {
-          type: FieldTypes.ManyToOne,
+          type: 'ManyToOne',
           foreignCollection: field.options.ref,
           foreignKey: field.path,
           foreignKeyTarget: '_id',
         };
 
-        schemaFields[fieldName] = SchemaFieldsGenerator.buildPrimitiveSchema(
-          field,
-          PrimitiveTypes.String,
-        );
+        schemaFields[fieldName] = SchemaFieldsGenerator.buildPrimitiveSchema(field, 'String');
       } else if (field.schema) {
-        const fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, PrimitiveTypes.Json);
+        const fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, 'Json');
         fieldSchema.schema = SchemaFieldsGenerator.prebuildSchemaFields(field.schema.paths);
         schemaFields[fieldName] = fieldSchema;
       } else {
