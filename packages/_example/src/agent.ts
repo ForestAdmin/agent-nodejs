@@ -1,5 +1,6 @@
 import { Agent, AgentOptions } from '@forestadmin/agent';
 import { createLiveDataSource } from '@forestadmin/datasource-live';
+import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 
@@ -13,6 +14,7 @@ import customizePost from './customizations/post';
 import customizeRental from './customizations/rental';
 import customizeStore from './customizations/store';
 import liveDatasourceSchema from './datasources/live/schema';
+import prepareReviewsInMongoose from './datasources/mongoose';
 import seedLiveDatasource from './datasources/live/seed';
 import sequelizeMsSql from './datasources/sequelize/mssql';
 import sequelizeMySql from './datasources/sequelize/mysql';
@@ -26,6 +28,7 @@ export default async function makeAgent(options: AgentOptions) {
     .addDataSource(createSequelizeDataSource(sequelizePostgres))
     .addDataSource(createSequelizeDataSource(sequelizeMySql))
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))
+    .addDataSource(createMongooseDataSource(await prepareReviewsInMongoose()))
 
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('address', customizeAddress)

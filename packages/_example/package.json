@@ -17,6 +17,7 @@
     "pg": "~8.2.2",
     "sequelize": "6.18.0",
     "superagent": "^7.0.1",
+    "mongoose": "^6.3.1",
     "tedious": "^14.3.0"
   },
   "scripts": {
