@@ -118,6 +118,7 @@ export default class FilterFactory {
       return baseThroughFilter.override({
         conditionTree: ConditionTreeFactory.intersect(
           new ConditionTreeLeaf(relation.originKey, 'Equal', originValue),
+          new ConditionTreeLeaf(relation.foreignKey, 'Present'),
           baseThroughFilter.conditionTree,
         ),
       });
@@ -182,7 +183,10 @@ export default class FilterFactory {
     } else {
       // ManyToMany case (more complicated...)
       const through = collection.dataSource.getCollection(relation.throughCollection);
-      const throughTree = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
+      const throughTree = ConditionTreeFactory.intersect(
+        new ConditionTreeLeaf(relation.originKey, 'Equal', originValue),
+        new ConditionTreeLeaf(relation.foreignKey, 'Present'),
+      );
       const records = await through.list(
         caller,
         new Filter({ conditionTree: throughTree }),

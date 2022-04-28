@@ -234,6 +234,7 @@ describe('FilterFactory', () => {
           aggregator: 'And',
           conditions: [
             { field: 'bookId', operator: 'Equal', value: 1 },
+            { field: 'reviewId', operator: 'Present' },
             { field: 'review:someField', operator: 'Equal', value: 1 },
           ],
         },
