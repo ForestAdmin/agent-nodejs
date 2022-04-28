@@ -3,10 +3,10 @@
 import { Sequelize } from 'sequelize';
 import faker from '@faker-js/faker';
 
+import prepareDatabaseMariadb from './mariadb-schema';
 import prepareDatabaseMssql from '../src/datasources/sequelize/mssql';
 import prepareDatabaseMysql from '../src/datasources/sequelize/mysql';
 import prepareDatabasePostgres from '../src/datasources/sequelize/postgres';
-import prepareSqlDatasource from './db-seed-direct-sql';
 
 async function createOwnerRecords(db: Sequelize): Promise<any[]> {
   const ownerRecords = [];
@@ -116,7 +116,7 @@ async function seedData() {
       prepareDatabaseMssql(),
       prepareDatabaseMysql(),
       prepareDatabasePostgres(),
-      prepareSqlDatasource(),
+      prepareDatabaseMariadb(),
     ]);
 
     for (const db of [mssql, mysql, postgres, mariadb]) {
