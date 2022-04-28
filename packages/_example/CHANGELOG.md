@@ -1,3 +1,10 @@
+# example [1.0.0-beta.19](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.18...example@1.0.0-beta.19) (2022-04-28)
+
+
+### Bug Fixes
+
+* **example:** the imports in the seed to prepare the dbs ([#273](https://github.com/ForestAdmin/agent-nodejs/issues/273)) ([95891b7](https://github.com/ForestAdmin/agent-nodejs/commit/95891b7a7c884bc6ef7403dcea82f3cb2c40890c))
+
 # example [1.0.0-beta.18](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.17...example@1.0.0-beta.18) (2022-04-27)
 
 
