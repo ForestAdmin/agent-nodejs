@@ -1,37 +1,35 @@
 import { RecordData } from '../../../interfaces/record';
+import Projection from '../../../interfaces/query/projection';
 import RecordUtils from '../../../utils/record';
 
 type FlatRecordList = Array<unknown[]>;
 
-export function unflatten(flatList: FlatRecordList, projection: string[]): RecordData[] {
+export function unflatten(flatList: FlatRecordList, projection: Projection): RecordData[] {
   const numRecords = flatList[0]?.length ?? 0;
-  const records = new Array(numRecords);
+  const records = [];
+  for (let i = 0; i < numRecords; i += 1) records[i] = {};
 
-  for (let i = 0; i < numRecords; i += 1) {
-    records[i] = {};
+  // Set fields
+  for (const column of projection.columns) {
+    const pathIndex = projection.indexOf(column);
+
+    for (const [index, value] of flatList[pathIndex].entries())
+      records[index][column] = value ?? null;
   }
 
-  for (const [pathIndex, path] of projection.entries()) {
-    for (const [recordIndex, value] of flatList[pathIndex].entries()) {
-      const pathKeys = path.split(':');
-      let current = records[recordIndex];
+  // Set relations
+  for (const [relation, paths] of Object.entries(projection.relations)) {
+    const subFlatList = [];
+    for (const path of paths) subFlatList.push(flatList[projection.indexOf(`${relation}:${path}`)]);
 
-      if (value !== undefined) {
-        const finalKey = pathKeys.pop();
-
-        for (const part of pathKeys) {
-          if (current[part] === undefined || current[part] === null) current[part] = {};
-          current = current[part];
-        }
-
-        current[finalKey] = value;
-      } else {
-        current[pathKeys[0]] = null;
-      }
-    }
+    const subRecords = unflatten(subFlatList, paths);
+    for (const index of records.keys()) records[index][relation] = subRecords[index];
   }
 
-  return records;
+  // Keep only objects where at least a non-null value is set
+  return records.map(r => {
+    return Object.values(r).some(v => v !== null) ? r : null;
+  });
 }
 
 export function flatten(records: RecordData[], projection: string[]): FlatRecordList {
