@@ -3,9 +3,9 @@
 import { Sequelize } from 'sequelize';
 import faker from '@faker-js/faker';
 
-import { prepareDatabase as prepareDatabaseMssql } from '../src/datasources/sequelize/mssql';
-import { prepareDatabase as prepareDatabaseMysql } from '../src/datasources/sequelize/mysql';
-import { prepareDatabase as prepareDatabasePostgres } from '../src/datasources/sequelize/postgres';
+import prepareDatabaseMssql from '../src/datasources/sequelize/mssql';
+import prepareDatabaseMysql from '../src/datasources/sequelize/mysql';
+import prepareDatabasePostgres from '../src/datasources/sequelize/postgres';
 import prepareSqlDatasource from './db-seed-direct-sql';
 
 async function createOwnerRecords(db: Sequelize): Promise<any[]> {
