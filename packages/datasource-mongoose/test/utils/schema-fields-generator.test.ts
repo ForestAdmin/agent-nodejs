@@ -5,6 +5,64 @@ import FilterOperatorBuilder from '../../src/utils/filter-operator-builder';
 import SchemaFieldsGenerator from '../../src/utils/schema-fields-generator';
 
 describe('MongooseCollection', () => {
+  describe('when field is required', () => {
+    it('should build the field schema with a required as true', () => {
+      const requiredSchema = new Schema({ aField: { type: Number, required: true } });
+
+      const requiredModel = model('aModel', requiredSchema);
+      const schema = SchemaFieldsGenerator.buildSchemaFields(requiredModel.schema.paths);
+
+      expect(schema).toMatchObject({ aField: { isRequired: true } });
+    });
+  });
+
+  describe('when field have default value', () => {
+    it('should build the field schema with a default value', () => {
+      const defaultValue = Symbol('default');
+      const defaultSchema = new Schema({ aField: { type: String, default: defaultValue } });
+
+      const defaultModel = model('aModel', defaultSchema);
+      const schema = SchemaFieldsGenerator.buildSchemaFields(defaultModel.schema.paths);
+
+      expect(schema).toMatchObject({ aField: { defaultValue } });
+    });
+  });
+
+  describe('when field is the primary key', () => {
+    it('should build the field schema with a primary key as true', () => {
+      const idSchema = new Schema({});
+
+      const idModel = model('aModel', idSchema);
+      const schema = SchemaFieldsGenerator.buildSchemaFields(idModel.schema.paths);
+
+      expect(schema).toMatchObject({ _id: { isPrimaryKey: true } });
+    });
+  });
+
+  describe('when field is immutable', () => {
+    it('should build the field schema with a is read only as true', () => {
+      const immutableSchema = new Schema({ aField: { type: Date, immutable: true } });
+
+      const immutableModel = model('adModel', immutableSchema);
+      const schema = SchemaFieldsGenerator.buildSchemaFields(immutableModel.schema.paths);
+
+      expect(schema).toMatchObject({ aField: { isReadOnly: true } });
+    });
+  });
+
+  describe('when field have enums', () => {
+    it('should build a field schema with a enum column type and enum values', () => {
+      const enumValues = [Symbol('enum1'), Symbol('enum2')];
+      const enumSchema = new Schema({ aField: { type: String, enum: enumValues } });
+
+      const enumModel = model('aModel', enumSchema);
+      const schema = SchemaFieldsGenerator.buildSchemaFields(enumModel.schema.paths);
+
+      expect(schema).toMatchObject({ aField: { columnType: 'Enum', enumValues } });
+    });
+  });
+
+  //-----------------------------------------------
   describe('with array fields', () => {
     describe('with primitive array', () => {
       it('should build the right schema', () => {
@@ -471,143 +529,6 @@ describe('MongooseCollection', () => {
           isReadOnly: false,
           isRequired: false,
           isSortable: false,
-          type: 'Column',
-        },
-      });
-    });
-  });
-
-  describe('when field have enums', () => {
-    it('should build the right schema', () => {
-      const enumValues = [Symbol('enum1'), Symbol('enum2')];
-      const enumSchema = new Schema(
-        {
-          enum: { type: String, enum: enumValues },
-        },
-        { _id: false },
-      );
-
-      const enumModel = model('enum', enumSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(enumModel.schema.paths);
-
-      expect(schema).toStrictEqual({
-        enum: {
-          columnType: 'Enum',
-          filterOperators: FilterOperatorBuilder.getSupportedOperators('Enum'),
-          defaultValue: undefined,
-          enumValues,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
-          isSortable: true,
-          type: 'Column',
-        },
-      });
-    });
-  });
-
-  describe('when field have default value', () => {
-    it('should build the right schema', () => {
-      const defaultValue = Symbol('default');
-      const defaultSchema = new Schema(
-        {
-          default: { type: String, default: defaultValue },
-        },
-        { _id: false },
-      );
-
-      const defaultModel = model('default', defaultSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(defaultModel.schema.paths);
-
-      expect(schema).toStrictEqual({
-        default: {
-          columnType: 'String',
-          filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
-          defaultValue,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
-          isSortable: true,
-          type: 'Column',
-        },
-      });
-    });
-  });
-
-  describe('when field is the primary key', () => {
-    it('should build the right schema', () => {
-      const idSchema = new Schema({});
-
-      const idModel = model('id', idSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(idModel.schema.paths);
-
-      expect(schema).toStrictEqual({
-        _id: {
-          columnType: 'String',
-          filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: true,
-          isReadOnly: false,
-          isRequired: false,
-          isSortable: true,
-          type: 'Column',
-        },
-      });
-    });
-  });
-
-  describe('when field is required', () => {
-    it('should build the right schema', () => {
-      const requiredSchema = new Schema(
-        {
-          required: { type: Number, required: true },
-        },
-        { _id: false },
-      );
-
-      const requiredModel = model('required', requiredSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(requiredModel.schema.paths);
-
-      expect(schema).toStrictEqual({
-        required: {
-          columnType: 'Number',
-          filterOperators: FilterOperatorBuilder.getSupportedOperators('Number'),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: true,
-          isSortable: true,
-          type: 'Column',
-        },
-      });
-    });
-  });
-
-  describe('when field is immutable', () => {
-    it('should build the right schema', () => {
-      const immutableSchema = new Schema(
-        {
-          immutable: { type: Date, immutable: true },
-        },
-        { _id: false },
-      );
-
-      const immutableModel = model('immutable', immutableSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(immutableModel.schema.paths);
-
-      expect(schema).toStrictEqual({
-        immutable: {
-          columnType: 'Date',
-          filterOperators: FilterOperatorBuilder.getSupportedOperators('Date'),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: true,
-          isRequired: false,
-          isSortable: true,
           type: 'Column',
         },
       });
