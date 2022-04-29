@@ -3,6 +3,7 @@ import {
   ComputedCollectionDecorator,
   DataSource,
   DataSourceDecorator,
+  EmptyCollectionDecorator,
   OperatorsEmulateCollectionDecorator,
   OperatorsReplaceCollectionDecorator,
   PublicationCollectionDecorator,
@@ -20,6 +21,7 @@ export default class DecoratorsStack {
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   earlyOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
+  empty: DataSourceDecorator<EmptyCollectionDecorator>;
   relation: DataSourceDecorator<RelationCollectionDecorator>;
   lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
@@ -33,12 +35,21 @@ export default class DecoratorsStack {
   dataSource: DataSource;
 
   constructor(dataSource: DataSource) {
+    this.dataSource = dataSource;
+
     /* eslint-disable no-multi-assign */
+
+    // Step 0: Do not query datasource when we know the result with yield an empty set.
+    this.dataSource = this.empty = new DataSourceDecorator(
+      this.dataSource,
+      EmptyCollectionDecorator,
+    );
+
     // Step 1: Computed-Relation-Computed sandwich (needed because some emulated relations depend
     // on computed fields, and some computed fields depend on relation...)
     // Note that replacement goes before emulation, as replacements may use emulated operators.
     this.dataSource = this.earlyComputed = new DataSourceDecorator(
-      dataSource,
+      this.dataSource,
       ComputedCollectionDecorator,
     );
     this.dataSource = this.earlyOpEmulate = new DataSourceDecorator(
