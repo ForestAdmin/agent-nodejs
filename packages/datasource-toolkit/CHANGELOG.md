@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.8...@forestadmin/datasource-toolkit@1.0.0-beta.9) (2022-04-29)
+
+
+### Bug Fixes
+
+* fetching computed fields from a null relation calls the customer handler with nulls ([#276](https://github.com/ForestAdmin/agent-nodejs/issues/276)) ([9e581d3](https://github.com/ForestAdmin/agent-nodejs/commit/9e581d3007196496123319919e0890a7ce0ab544))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.7...@forestadmin/datasource-toolkit@1.0.0-beta.8) (2022-04-28)
 
 
