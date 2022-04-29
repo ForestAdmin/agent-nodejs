@@ -219,7 +219,9 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
       result = new ConditionTreeLeaf(
         schema.foreignKey,
         'In',
-        records.map(record => RecordUtils.getFieldValue(record, schema.foreignKeyTarget)),
+        records
+          .map(record => RecordUtils.getFieldValue(record, schema.foreignKeyTarget))
+          .filter(v => v !== null),
       );
     } else if (schema.type === 'OneToOne') {
       const records = await relation.list(
@@ -231,7 +233,9 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
       result = new ConditionTreeLeaf(
         schema.originKeyTarget,
         'In',
-        records.map(record => RecordUtils.getFieldValue(record, schema.originKey)),
+        records
+          .map(record => RecordUtils.getFieldValue(record, schema.originKey))
+          .filter(v => v !== null),
       );
     }
 
@@ -277,13 +281,12 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
       );
 
       for (const record of records) {
-        const subRecord = subRecords.filter(
+        record[name] = subRecords.find(
           sr => sr[schema.foreignKeyTarget] === record[schema.foreignKey],
         );
-        record[name] = subRecord.length ? subRecord[0] : null;
       }
     } else if (schema.type === 'OneToOne' || schema.type === 'OneToMany') {
-      const ids = records.map(record => record[schema.originKeyTarget]);
+      const ids = records.map(record => record[schema.originKeyTarget]).filter(okt => okt !== null);
       const subFilter = new Filter({
         conditionTree: new ConditionTreeLeaf(schema.originKey, 'In', [...new Set(ids)]),
       });
@@ -294,10 +297,9 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
       );
 
       for (const record of records) {
-        const subRecord = subRecords.filter(
+        record[name] = subRecords.find(
           sr => sr[schema.originKey] === record[schema.originKeyTarget],
         );
-        record[name] = subRecord.length ? subRecord[0] : null;
       }
     }
   }
