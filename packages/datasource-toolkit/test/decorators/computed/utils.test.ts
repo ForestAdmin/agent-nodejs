@@ -51,16 +51,12 @@ describe('flattener', () => {
 describe('deduplication', () => {
   test('transformUniqueValues', async () => {
     const inputs = [1, null, 2, 2, null, 666];
-    const handler = jest
-      .fn()
-      .mockImplementation(async (values: number[]) =>
-        values.map(value => (value ? value * 2 : value)),
-      );
+    const multiplyByTwo = async (values: number[]) => values.map(value => value * 2);
+    const handler = jest.fn().mockImplementation(multiplyByTwo);
 
     const result = await transformUniqueValues(inputs, handler);
-
     expect(result).toEqual([2, null, 4, 4, null, 1332]);
     expect(handler).toHaveBeenCalledTimes(1);
-    expect(handler).toHaveBeenCalledWith([1, null, 2, 666]);
+    expect(handler).toHaveBeenCalledWith([1, 2, 666]);
   });
 });

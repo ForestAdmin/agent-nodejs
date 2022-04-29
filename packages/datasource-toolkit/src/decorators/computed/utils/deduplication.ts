@@ -9,17 +9,21 @@ export default async function transformUniqueValues<Input, Output>(
   const uniqueInputs: Input[] = [];
 
   for (const input of inputs) {
-    const hash = hashRecord(input);
+    if (input !== null) {
+      const hash = hashRecord(input);
 
-    if (indexes[hash] === undefined) {
-      indexes[hash] = uniqueInputs.length;
-      uniqueInputs.push(input);
+      if (indexes[hash] === undefined) {
+        indexes[hash] = uniqueInputs.length;
+        uniqueInputs.push(input);
+      }
+
+      mapping.push(indexes[hash]);
+    } else {
+      mapping.push(-1);
     }
-
-    mapping.push(indexes[hash]);
   }
 
   const uniqueOutputs = await callback(uniqueInputs);
 
-  return mapping.map(index => (index !== -1 ? uniqueOutputs[index] : undefined));
+  return mapping.map(index => (index !== -1 ? uniqueOutputs[index] : null));
 }
