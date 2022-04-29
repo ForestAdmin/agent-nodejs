@@ -59,6 +59,42 @@ describe('EmptyCollectionDecorator', () => {
       expect(books.list).toHaveBeenCalled();
     });
 
+    test('list() should be called with empty And', async () => {
+      (books.list as jest.Mock).mockResolvedValue([{ id: 2 }]);
+
+      const records = await newBooks.list(
+        factories.caller.build(),
+        factories.filter.build({
+          conditionTree: factories.conditionTreeBranch.build({
+            aggregator: 'And',
+            conditions: [],
+          }),
+        }),
+        factories.projection.build(),
+      );
+
+      expect(records).toStrictEqual([{ id: 2 }]);
+      expect(books.list).toHaveBeenCalled();
+    });
+
+    test('list() should be called with only non Equal/In leafs', async () => {
+      (books.list as jest.Mock).mockResolvedValue([{ id: 2 }]);
+
+      const records = await newBooks.list(
+        factories.caller.build(),
+        factories.filter.build({
+          conditionTree: factories.conditionTreeBranch.build({
+            aggregator: 'And',
+            conditions: [factories.conditionTreeLeaf.build({ field: 'id', operator: 'Today' })],
+          }),
+        }),
+        factories.projection.build(),
+      );
+
+      expect(records).toStrictEqual([{ id: 2 }]);
+      expect(books.list).toHaveBeenCalled();
+    });
+
     test('update() should be called with overlapping Ored incompatible equals', async () => {
       await newBooks.update(
         factories.caller.build(),
