@@ -57,7 +57,6 @@ export default class EmptyCollectionDecorator extends CollectionDecorator {
     return [];
   }
 
-  /** We can do smarter detection than that */
   private returnsEmptySet(tree: ConditionTree): boolean {
     if (tree instanceof ConditionTreeLeaf) {
       return this.leafReturnsEmptySet(tree);
