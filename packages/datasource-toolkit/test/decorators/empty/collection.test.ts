@@ -39,16 +39,8 @@ describe('EmptyCollectionDecorator', () => {
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
             conditions: [
-              factories.conditionTreeLeaf.build({
-                field: 'id',
-                operator: 'In',
-                value: [1, 2],
-              }),
-              factories.conditionTreeLeaf.build({
-                field: 'id',
-                operator: 'In',
-                value: [2, 3],
-              }),
+              factories.conditionTreeLeaf.build({ field: 'id', operator: 'In', value: [1, 2] }),
+              factories.conditionTreeLeaf.build({ field: 'id', operator: 'In', value: [2, 3] }),
             ],
           }),
         }),
@@ -65,10 +57,7 @@ describe('EmptyCollectionDecorator', () => {
       const records = await newBooks.list(
         factories.caller.build(),
         factories.filter.build({
-          conditionTree: factories.conditionTreeBranch.build({
-            aggregator: 'And',
-            conditions: [],
-          }),
+          conditionTree: factories.conditionTreeBranch.build({ aggregator: 'And', conditions: [] }),
         }),
         factories.projection.build(),
       );
@@ -102,16 +91,8 @@ describe('EmptyCollectionDecorator', () => {
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'Or',
             conditions: [
-              factories.conditionTreeLeaf.build({
-                field: 'id',
-                operator: 'Equal',
-                value: 4,
-              }),
-              factories.conditionTreeLeaf.build({
-                field: 'id',
-                operator: 'Equal',
-                value: 5,
-              }),
+              factories.conditionTreeLeaf.build({ field: 'id', operator: 'Equal', value: 4 }),
+              factories.conditionTreeLeaf.build({ field: 'id', operator: 'Equal', value: 5 }),
             ],
           }),
         }),
@@ -180,11 +161,7 @@ describe('EmptyCollectionDecorator', () => {
                   factories.conditionTreeBranch.build({
                     aggregator: 'Or',
                     conditions: [
-                      factories.conditionTreeLeaf.build({
-                        field: 'id',
-                        operator: 'In',
-                        value: [],
-                      }),
+                      factories.conditionTreeLeaf.build({ field: 'id', operator: 'In', value: [] }),
                     ],
                   }),
                 ],
