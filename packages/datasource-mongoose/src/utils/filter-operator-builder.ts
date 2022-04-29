@@ -1,25 +1,53 @@
 import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
-const defaultOperators: Partial<Operator[]> = ['Blank', 'Equal', 'NotEqual', 'Present'];
-const inOperators: Partial<Operator[]> = ['In', 'NotIn'];
-const stringOperators: Partial<Operator[]> = ['Contains', 'NotContains', 'StartsWith', 'EndsWith'];
-const comparisonOperators: Partial<Operator[]> = ['GreaterThan', 'LessThan'];
-
 export default class FilterOperatorBuilder {
+  static readonly defaultOperators: Partial<Operator[]> = ['Blank', 'Equal', 'NotEqual', 'Present'];
+  static readonly inOperators: Partial<Operator[]> = ['In', 'NotIn'];
+  static readonly stringOperators: Partial<Operator[]> = [
+    'Like',
+    'Contains',
+    'NotContains',
+    'StartsWith',
+    'EndsWith',
+  ];
+
+  static readonly comparisonOperators: Partial<Operator[]> = ['GreaterThan', 'LessThan'];
+
   static getSupportedOperators(type: PrimitiveTypes): Set<Operator> {
     switch (type) {
       case 'Boolean':
-        return new Set<Operator>(defaultOperators);
+        return new Set<Operator>(FilterOperatorBuilder.defaultOperators);
       case 'Date':
-        return new Set<Operator>([...defaultOperators, ...inOperators, ...comparisonOperators]);
+      case 'Dateonly':
+        return new Set<Operator>([
+          ...FilterOperatorBuilder.defaultOperators,
+          ...FilterOperatorBuilder.inOperators,
+          ...FilterOperatorBuilder.comparisonOperators,
+        ]);
       case 'Enum':
-        return new Set<Operator>([...defaultOperators, ...inOperators, ...stringOperators]);
-      case 'Json':
-        return new Set<Operator>();
+        return new Set<Operator>([
+          ...FilterOperatorBuilder.defaultOperators,
+          ...FilterOperatorBuilder.inOperators,
+        ]);
       case 'Number':
-        return new Set<Operator>([...defaultOperators, ...inOperators, ...comparisonOperators]);
+        return new Set<Operator>([
+          ...FilterOperatorBuilder.defaultOperators,
+          ...FilterOperatorBuilder.inOperators,
+          ...FilterOperatorBuilder.comparisonOperators,
+        ]);
       case 'String':
-        return new Set<Operator>([...defaultOperators, ...inOperators, ...stringOperators]);
+        return new Set<Operator>([
+          ...FilterOperatorBuilder.defaultOperators,
+          ...FilterOperatorBuilder.inOperators,
+          ...FilterOperatorBuilder.stringOperators,
+        ]);
+      case 'Uuid':
+        return new Set<Operator>([
+          ...FilterOperatorBuilder.defaultOperators,
+          ...FilterOperatorBuilder.stringOperators,
+        ]);
+      case 'Json':
+        return new Set<Operator>([...FilterOperatorBuilder.defaultOperators]);
       default:
         return new Set<Operator>();
     }

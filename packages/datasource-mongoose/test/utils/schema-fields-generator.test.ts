@@ -13,7 +13,7 @@ const buildModel = schema => {
   return model('aModel', schema);
 };
 
-describe('SchemaFieldsGenerator', () => {
+describe('SchemaFieldsGenerator > buildSchemaFields', () => {
   describe('when column is not recognized', () => {
     it('should throw an error on simple type', () => {
       const simpleErrorSchema = {
@@ -92,7 +92,7 @@ describe('SchemaFieldsGenerator', () => {
   describe('with array fields', () => {
     describe('with primitive array', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const types: Array<[any, PrimitiveTypes]> = [
+      const cases: Array<[any, PrimitiveTypes]> = [
         [Number, 'Number'],
         [{ type: Number }, 'Number'],
         [Date, 'Date'],
@@ -110,7 +110,7 @@ describe('SchemaFieldsGenerator', () => {
         [Schema.Types.Mixed, 'Json'],
         [{ type: Schema.Types.Mixed }, 'Json'],
       ];
-      test.each(types)('[%s] should build the right column type', (type, expectedType) => {
+      test.each(cases)('[%p] should build the right column type', (type, expectedType) => {
         const schema = new Schema({ aField: [type] });
 
         const schemaFields = SchemaFieldsGenerator.buildSchemaFields(
@@ -161,7 +161,7 @@ describe('SchemaFieldsGenerator', () => {
 
   describe('with primitive fields', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const types: Array<[any, PrimitiveTypes, boolean]> = [
+    const cases: Array<[any, PrimitiveTypes, boolean]> = [
       [Number, 'Number', true],
       [{ type: Number }, 'Number', true],
       [Date, 'Date', true],
@@ -179,7 +179,7 @@ describe('SchemaFieldsGenerator', () => {
       [Schema.Types.Mixed, 'Json', false],
       [{ type: Schema.Types.Mixed }, 'Json', false],
     ];
-    test.each(types)(
+    test.each(cases)(
       '[%p] should build the right column type',
       (type, expectedType, expectedIsSortable) => {
         const schema = new Schema({ aField: type });
