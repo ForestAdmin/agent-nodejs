@@ -432,6 +432,15 @@ describe('RelationCollectionDecorator', () => {
         { id: 102, owner: { name: 'Sharon J. Whalen' } },
         { id: 103, owner: null },
       ]);
+
+      // Check that condition tree does NOT contains nulls
+      expect(persons.list).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          conditionTree: { field: 'id', operator: 'In', value: [202, 201] },
+        }),
+        expect.anything(),
+      );
     });
 
     test('should fetch fields from a one to one relation', async () => {
