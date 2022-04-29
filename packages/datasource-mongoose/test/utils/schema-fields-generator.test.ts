@@ -1,10 +1,41 @@
-import { Operator } from '@forestadmin/datasource-toolkit';
-import { Schema, SchemaType, model } from 'mongoose';
+import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { Schema, SchemaType, deleteModel, model } from 'mongoose';
 
 import FilterOperatorBuilder from '../../src/utils/filter-operator-builder';
 import SchemaFieldsGenerator from '../../src/utils/schema-fields-generator';
 
-describe('MongooseCollection', () => {
+const buildModel = schema => {
+  try {
+    deleteModel('aModel');
+    // eslint-disable-next-line no-empty
+  } catch {}
+
+  return model('aModel', schema);
+};
+
+describe('SchemaFieldsGenerator', () => {
+  describe('when column is not recognized', () => {
+    it('should throw an error on simple type', () => {
+      const simpleErrorSchema = {
+        error: { instance: 'unrecognized', options: {} } as SchemaType,
+      };
+
+      expect(() => SchemaFieldsGenerator.buildSchemaFields(simpleErrorSchema)).toThrow(
+        'Unhandled column type "unrecognized"',
+      );
+    });
+
+    it('should throw an error on array type', () => {
+      const arrayErrorSchema = {
+        errors: { instance: 'Array', caster: {}, path: 'errors' } as Schema.Types.Array,
+      };
+
+      expect(() => SchemaFieldsGenerator.buildSchemaFields(arrayErrorSchema)).toThrow(
+        'Unhandled array column "errors"',
+      );
+    });
+  });
+
   describe('when field is required', () => {
     it('should build the field schema with a required as true', () => {
       const requiredSchema = new Schema({ aField: { type: Number, required: true } });
@@ -19,124 +50,77 @@ describe('MongooseCollection', () => {
   describe('when field have default value', () => {
     it('should build the field schema with a default value', () => {
       const defaultValue = Symbol('default');
-      const defaultSchema = new Schema({ aField: { type: String, default: defaultValue } });
+      const schema = new Schema({ aField: { type: String, default: defaultValue } });
 
-      const defaultModel = model('aModel', defaultSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(defaultModel.schema.paths);
+      const schemaFields = SchemaFieldsGenerator.buildSchemaFields(buildModel(schema).schema.paths);
 
-      expect(schema).toMatchObject({ aField: { defaultValue } });
+      expect(schemaFields).toMatchObject({ aField: { defaultValue } });
     });
   });
 
   describe('when field is the primary key', () => {
     it('should build the field schema with a primary key as true', () => {
-      const idSchema = new Schema({});
+      const schema = new Schema({});
 
-      const idModel = model('aModel', idSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(idModel.schema.paths);
+      const schemaFields = SchemaFieldsGenerator.buildSchemaFields(buildModel(schema).schema.paths);
 
-      expect(schema).toMatchObject({ _id: { isPrimaryKey: true } });
+      expect(schemaFields).toMatchObject({ _id: { isPrimaryKey: true } });
     });
   });
 
   describe('when field is immutable', () => {
     it('should build the field schema with a is read only as true', () => {
-      const immutableSchema = new Schema({ aField: { type: Date, immutable: true } });
+      const schema = new Schema({ aField: { type: Date, immutable: true } });
 
-      const immutableModel = model('adModel', immutableSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(immutableModel.schema.paths);
+      const schemaFields = SchemaFieldsGenerator.buildSchemaFields(buildModel(schema).schema.paths);
 
-      expect(schema).toMatchObject({ aField: { isReadOnly: true } });
+      expect(schemaFields).toMatchObject({ aField: { isReadOnly: true } });
     });
   });
 
   describe('when field have enums', () => {
     it('should build a field schema with a enum column type and enum values', () => {
       const enumValues = [Symbol('enum1'), Symbol('enum2')];
-      const enumSchema = new Schema({ aField: { type: String, enum: enumValues } });
+      const schema = new Schema({ aField: { type: String, enum: enumValues } });
 
-      const enumModel = model('aModel', enumSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(enumModel.schema.paths);
+      const schemaFields = SchemaFieldsGenerator.buildSchemaFields(buildModel(schema).schema.paths);
 
-      expect(schema).toMatchObject({ aField: { columnType: 'Enum', enumValues } });
+      expect(schemaFields).toMatchObject({ aField: { columnType: 'Enum', enumValues } });
     });
   });
 
-  //-----------------------------------------------
   describe('with array fields', () => {
     describe('with primitive array', () => {
-      it('should build the right schema', () => {
-        const primitiveArraySchema = new Schema(
-          {
-            primitiveArray: [Number],
-            anotherPrimitiveArray: [{ type: String }],
-            lastPrimitiveArray: { type: [Date] },
-          },
-          { _id: false },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const types: Array<[any, PrimitiveTypes]> = [
+        [Number, 'Number'],
+        [{ type: Number }, 'Number'],
+        [Date, 'Date'],
+        [{ type: Date }, 'Date'],
+        [String, 'String'],
+        [{ type: String }, 'String'],
+        [Schema.Types.ObjectId, 'String'],
+        [{ type: Schema.Types.ObjectId }, 'String'],
+        [Buffer, 'String'],
+        [{ type: Buffer }, 'String'],
+        [Boolean, 'Boolean'],
+        [{ type: Boolean }, 'Boolean'],
+        [Map, 'Json'],
+        [{ type: Map }, 'Json'],
+        [Schema.Types.Mixed, 'Json'],
+        [{ type: Schema.Types.Mixed }, 'Json'],
+      ];
+      test.each(types)('[%s] should build the right column type', (type, expectedType) => {
+        const schema = new Schema({ aField: [type] });
+
+        const schemaFields = SchemaFieldsGenerator.buildSchemaFields(
+          buildModel(schema).schema.paths,
         );
 
-        const primitiveArrayModel = model('primitiveArray', primitiveArraySchema);
-        const schema = SchemaFieldsGenerator.buildSchemaFields(primitiveArrayModel.schema.paths);
-
-        expect(schema).toStrictEqual({
-          primitiveArray: {
-            columnType: ['Number'],
+        expect(schemaFields).toMatchObject({
+          aField: {
+            columnType: [expectedType],
             filterOperators: new Set<Operator>(),
-            defaultValue: undefined,
-            enumValues: undefined,
-            isPrimaryKey: false,
-            isReadOnly: false,
-            isRequired: false,
-            isSortable: false,
-            type: 'Column',
-          },
-          anotherPrimitiveArray: {
-            columnType: ['String'],
-            filterOperators: new Set<Operator>(),
-            defaultValue: undefined,
-            enumValues: undefined,
-            isPrimaryKey: false,
-            isReadOnly: false,
-            isRequired: false,
-            isSortable: false,
-            type: 'Column',
-          },
-          lastPrimitiveArray: {
-            columnType: ['Date'],
-            filterOperators: new Set<Operator>(),
-            defaultValue: undefined,
-            enumValues: undefined,
-            isPrimaryKey: false,
-            isReadOnly: false,
-            isRequired: false,
-            isSortable: false,
-            type: 'Column',
-          },
-        });
-      });
-    });
-
-    describe('with an array of ObjectId', () => {
-      it('should build the right schema', () => {
-        const objectIdArraySchema = new Schema(
-          {
-            objectIdArray: [Schema.Types.ObjectId],
-          },
-          { _id: false },
-        );
-
-        const objectIdArrayModel = model('objectIdArray', objectIdArraySchema);
-        const schema = SchemaFieldsGenerator.buildSchemaFields(objectIdArrayModel.schema.paths);
-
-        expect(schema).toStrictEqual({
-          objectIdArray: {
-            columnType: ['String'],
-            filterOperators: new Set<Operator>(),
-            defaultValue: undefined,
-            enumValues: undefined,
-            isPrimaryKey: false,
-            isReadOnly: false,
-            isRequired: false,
             isSortable: false,
             type: 'Column',
           },
@@ -146,114 +130,27 @@ describe('MongooseCollection', () => {
 
     describe('with object array', () => {
       it('should build the right schema', () => {
-        const nestedSchema = new Schema({ level: Number }, { _id: false });
-        const objectSchema = new Schema(
-          {
-            test: String,
-            target: [Number],
-            nested: [nestedSchema],
-          },
-          { _id: false },
+        const objectSchema = new Schema({ nested: [new Schema({ level: Number })] });
+
+        const schema = new Schema({
+          objectArrayField: [{ type: { nested: [{ type: { level: Number } }] } }],
+          otherObjectArrayField: [objectSchema],
+        });
+
+        const schemaFields = SchemaFieldsGenerator.buildSchemaFields(
+          buildModel(schema).schema.paths,
         );
 
-        const objectArraySchema = new Schema(
-          {
-            objectArray: [
-              {
-                test: String,
-                target: [Number],
-                nested: [
-                  {
-                    level: Number,
-                  },
-                ],
-              },
-            ],
-            anotherObjectArray: [
-              {
-                type: {
-                  test: String,
-                  target: [Number],
-                  nested: [
-                    {
-                      type: {
-                        level: Number,
-                        _id: false,
-                      },
-                    },
-                  ],
-                },
-              },
-            ],
-            lastObjectArray: [objectSchema],
-          },
-          { _id: false },
-        );
-
-        const objectArrayModel = model('objectArray', objectArraySchema);
-        const schema = SchemaFieldsGenerator.buildSchemaFields(objectArrayModel.schema.paths);
-
-        expect(schema).toStrictEqual({
-          objectArray: {
-            columnType: [
-              {
-                test: 'String',
-                target: ['Number'],
-                nested: [
-                  {
-                    level: 'Number',
-                  },
-                ],
-              },
-            ],
+        expect(schemaFields).toMatchObject({
+          objectArrayField: {
+            columnType: [{ nested: [{ level: 'Number' }] }],
             filterOperators: new Set<Operator>(),
-            defaultValue: undefined,
-            enumValues: undefined,
-            isPrimaryKey: false,
-            isReadOnly: false,
-            isRequired: false,
             isSortable: false,
             type: 'Column',
           },
-          anotherObjectArray: {
-            columnType: [
-              {
-                test: 'String',
-                target: ['Number'],
-                nested: [
-                  {
-                    level: 'Number',
-                  },
-                ],
-              },
-            ],
+          otherObjectArrayField: {
+            columnType: [{ nested: [{ level: 'Number' }] }],
             filterOperators: new Set<Operator>(),
-            defaultValue: undefined,
-            enumValues: undefined,
-            isPrimaryKey: false,
-            isReadOnly: false,
-            isRequired: false,
-            isSortable: false,
-            type: 'Column',
-          },
-          lastObjectArray: {
-            columnType: [
-              {
-                test: 'String',
-                target: ['Number'],
-                nested: [
-                  {
-                    level: 'Number',
-                  },
-                ],
-              },
-            ],
-            filterOperators: new Set<Operator>(),
-            defaultValue: undefined,
-            enumValues: undefined,
-            isPrimaryKey: false,
-            isReadOnly: false,
-            isRequired: false,
             isSortable: false,
             type: 'Column',
           },
@@ -263,194 +160,111 @@ describe('MongooseCollection', () => {
   });
 
   describe('with primitive fields', () => {
-    it('should build the right schema', () => {
-      const primitiveSchema = new Schema(
-        {
-          primitive: String,
-          anotherPrimitive: { type: Boolean },
-          buffer: Schema.Types.Buffer,
-          map: Schema.Types.Map,
-        },
-        { _id: false },
-      );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const types: Array<[any, PrimitiveTypes, boolean]> = [
+      [Number, 'Number', true],
+      [{ type: Number }, 'Number', true],
+      [Date, 'Date', true],
+      [{ type: Date }, 'Date', true],
+      [String, 'String', true],
+      [{ type: String }, 'String', true],
+      [Schema.Types.ObjectId, 'String', true],
+      [{ type: Schema.Types.ObjectId }, 'String', true],
+      [Buffer, 'String', true],
+      [{ type: Buffer }, 'String', true],
+      [Boolean, 'Boolean', true],
+      [{ type: Boolean }, 'Boolean', true],
+      [Map, 'Json', false],
+      [{ type: Map }, 'Json', false],
+      [Schema.Types.Mixed, 'Json', false],
+      [{ type: Schema.Types.Mixed }, 'Json', false],
+    ];
+    test.each(types)(
+      '[%p] should build the right column type',
+      (type, expectedType, expectedIsSortable) => {
+        const schema = new Schema({ aField: type });
 
-      const primitiveModel = model('primitive', primitiveSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(primitiveModel.schema.paths);
-
-      expect(schema).toStrictEqual({
-        primitive: {
-          columnType: 'String',
-          filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
-          isSortable: true,
-          type: 'Column',
-        },
-        anotherPrimitive: {
-          columnType: 'Boolean',
-          filterOperators: FilterOperatorBuilder.getSupportedOperators('Boolean'),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
-          isSortable: true,
-          type: 'Column',
-        },
-        buffer: {
-          columnType: 'String',
-          filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
-          isSortable: true,
-          type: 'Column',
-        },
-        map: {
-          columnType: 'Json',
-          filterOperators: FilterOperatorBuilder.getSupportedOperators('Json'),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
-          isSortable: false,
-          type: 'Column',
-        },
-      });
-    });
-
-    describe('with field of type ObjectId', () => {
-      it('should build the right schema', () => {
-        const objectIdSchema = new Schema(
-          {
-            objectId: Schema.Types.ObjectId,
-          },
-          { _id: false },
+        const schemaFields = SchemaFieldsGenerator.buildSchemaFields(
+          buildModel(schema).schema.paths,
         );
 
-        const objectIdModel = model('objectId', objectIdSchema);
-        const schema = SchemaFieldsGenerator.buildSchemaFields(objectIdModel.schema.paths);
-
-        expect(schema).toStrictEqual({
-          objectId: {
-            columnType: 'String',
-            filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
-            defaultValue: undefined,
-            enumValues: undefined,
-            isPrimaryKey: false,
-            isReadOnly: false,
-            isRequired: false,
-            isSortable: true,
+        expect(schemaFields).toMatchObject({
+          aField: {
+            columnType: expectedType,
+            filterOperators: FilterOperatorBuilder.getSupportedOperators(expectedType),
+            isSortable: expectedIsSortable,
             type: 'Column',
           },
         });
-      });
-    });
+      },
+    );
   });
 
   describe('with object field', () => {
     it('should build the right schema', () => {
-      const nestedSchema = new Schema({ level: Number }, { _id: false });
-      const lastObjectSchema = new Schema(
-        {
-          test: String,
-          target: [Number],
-          nested: nestedSchema,
-        },
-        { _id: false },
-      );
+      const lastObjectSchema = new Schema({
+        test: String,
+        target: [Number],
+        nested: new Schema({ level: Number }),
+      });
 
-      const objectSchema = new Schema(
-        {
-          object: {
-            type: {
-              test: String,
-              target: [Number],
-              nested: {
-                type: {
-                  level: Number,
-                  _id: false,
-                },
-              },
-              _id: false,
-            },
-          },
-          anotherObject: {
-            test: String,
-            target: [Number],
+      const objectSchema = new Schema({
+        object: {
+          type: {
             nested: {
-              level: Number,
+              type: {
+                level: Number,
+              },
             },
           },
-          lastObject: lastObjectSchema,
         },
-        { _id: false },
-      );
+        anotherObject: {
+          nested: {
+            level: Number,
+          },
+        },
+        lastObject: lastObjectSchema,
+      });
 
       const objectModel = model('object', objectSchema);
       const schema = SchemaFieldsGenerator.buildSchemaFields(objectModel.schema.paths);
 
-      expect(schema).toStrictEqual({
+      expect(schema).toMatchObject({
         object: {
           columnType: {
-            test: 'String',
-            target: ['Number'],
             nested: {
               level: 'Number',
             },
           },
           filterOperators: FilterOperatorBuilder.getSupportedOperators('Json'),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
           isSortable: false,
           type: 'Column',
         },
         anotherObject: {
           columnType: {
-            test: 'String',
-            target: ['Number'],
             nested: {
               level: 'Number',
             },
           },
           filterOperators: FilterOperatorBuilder.getSupportedOperators('Json'),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
           isSortable: false,
           type: 'Column',
         },
         lastObject: {
           columnType: {
-            test: 'String',
-            target: ['Number'],
             nested: {
               level: 'Number',
             },
           },
           filterOperators: FilterOperatorBuilder.getSupportedOperators('Json'),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
           isSortable: false,
           type: 'Column',
         },
       });
     });
   });
+
+  //-----------------------------------------------
 
   describe('with belongsTo relationship fields', () => {
     it('should build the right schema', () => {
@@ -532,28 +346,6 @@ describe('MongooseCollection', () => {
           type: 'Column',
         },
       });
-    });
-  });
-
-  describe('when column is not recognized', () => {
-    it('should throw an error on simple type', () => {
-      const simpleErrorSchema = {
-        error: { instance: 'unrecognized', options: {} } as SchemaType,
-      };
-
-      expect(() => SchemaFieldsGenerator.buildSchemaFields(simpleErrorSchema)).toThrow(
-        'Unhandled column type "unrecognized"',
-      );
-    });
-
-    it('should throw an error on array type', () => {
-      const arrayErrorSchema = {
-        errors: { instance: 'Array', caster: {}, path: 'errors' } as Schema.Types.Array,
-      };
-
-      expect(() => SchemaFieldsGenerator.buildSchemaFields(arrayErrorSchema)).toThrow(
-        'Unhandled array column "errors"',
-      );
     });
   });
 });

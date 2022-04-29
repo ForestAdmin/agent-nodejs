@@ -11,20 +11,33 @@ import FilterOperatorBuilder from './filter-operator-builder';
 
 type MongooseColumnSchema = ColumnSchema & { schema?: FieldsSchema };
 
-class SchemaFieldsGenerator {
+export default class SchemaFieldsGenerator {
+  static buildSchemaFields(modelFields: { [key: string]: SchemaType }): FieldsSchema {
+    const preBuildSchemaFields = SchemaFieldsGenerator.prebuildSchemaFields(modelFields);
+
+    Object.values(preBuildSchemaFields).forEach((schemaField: MongooseColumnSchema) => {
+      if (schemaField.schema) {
+        const type = SchemaFieldsGenerator.getTypeFromNested(schemaField.schema);
+        schemaField.columnType = Array.isArray(schemaField.columnType) ? [type] : type;
+        delete schemaField.schema;
+      }
+    });
+
+    return preBuildSchemaFields;
+  }
+
   private static getColumnType(instance: string, hasEnum: boolean): ColumnType {
     if (hasEnum) return 'Enum';
 
     switch (instance) {
       case 'String':
       case 'ObjectID':
+      case 'Buffer':
         return 'String';
       case 'Number':
         return 'Number';
       case 'Date':
         return 'Date';
-      case 'Buffer':
-        return 'String';
       case 'Boolean':
         return 'Boolean';
       case 'Map':
@@ -162,20 +175,4 @@ class SchemaFieldsGenerator {
 
     return columnType;
   }
-
-  static buildSchemaFields(modelFields: { [key: string]: SchemaType }): FieldsSchema {
-    const preschemaFields = SchemaFieldsGenerator.prebuildSchemaFields(modelFields);
-
-    Object.values(preschemaFields).forEach((schemaField: MongooseColumnSchema) => {
-      if (schemaField.schema) {
-        const type = SchemaFieldsGenerator.getTypeFromNested(schemaField.schema);
-        schemaField.columnType = Array.isArray(schemaField.columnType) ? [type] : type;
-        delete schemaField.schema;
-      }
-    });
-
-    return preschemaFields;
-  }
 }
-
-export default SchemaFieldsGenerator;
