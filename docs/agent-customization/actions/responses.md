@@ -51,7 +51,7 @@ On our Live Demo, the collection customers has an action Generate invoice. In th
 The example code below will trigger a file download (With the file named `filename.txt`, containing `StringThatWillBeInTheFile` using `text/plain` mimetype).
 
 ```javascript
-collection.registerAction('Download a file', {
+collection.addAction('Download a file', {
   scope: 'Global',
   generateFile: true,
   execute: async (context, responseBuilder) => {
