@@ -26,8 +26,8 @@ export default class SchemaFieldsGenerator {
     return preBuildSchemaFields;
   }
 
-  private static getColumnType(instance: string, hasEnum: boolean): ColumnType {
-    if (hasEnum) return 'Enum';
+  private static getColumnType(instance: string, field: SchemaType): ColumnType {
+    if (field.options?.enum) return 'Enum';
 
     switch (instance) {
       case 'String':
@@ -82,7 +82,7 @@ export default class SchemaFieldsGenerator {
 
     if (caster.instance) {
       return SchemaFieldsGenerator.buildPrimitiveSchema(field, [
-        SchemaFieldsGenerator.getColumnType(caster.instance, !!field.options?.enum),
+        SchemaFieldsGenerator.getColumnType(caster.instance, field),
       ]);
     }
 
@@ -131,7 +131,7 @@ export default class SchemaFieldsGenerator {
         if (fieldSchema.type === 'OneToMany') {
           schemaFields[`${fieldName}_oneToMany`] = fieldSchema;
           fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, [
-            SchemaFieldsGenerator.getColumnType('String', !!field.options?.enum),
+            SchemaFieldsGenerator.getColumnType('String', field),
           ]);
         }
 
@@ -152,7 +152,7 @@ export default class SchemaFieldsGenerator {
       } else {
         schemaFields[fieldName] = SchemaFieldsGenerator.buildPrimitiveSchema(
           field,
-          SchemaFieldsGenerator.getColumnType(field.instance, !!field.options?.enum),
+          SchemaFieldsGenerator.getColumnType(field.instance, field),
         );
       }
     });
