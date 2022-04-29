@@ -216,13 +216,13 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
         new Projection().withPks(this),
       );
 
-      result = new ConditionTreeLeaf(
-        schema.foreignKey,
-        'In',
-        records
-          .map(record => RecordUtils.getFieldValue(record, schema.foreignKeyTarget))
-          .filter(v => v !== null),
-      );
+      result = new ConditionTreeLeaf(schema.foreignKey, 'In', [
+        ...new Set(
+          records
+            .map(record => RecordUtils.getFieldValue(record, schema.foreignKeyTarget))
+            .filter(v => v !== null),
+        ),
+      ]);
     } else if (schema.type === 'OneToOne') {
       const records = await relation.list(
         caller,
@@ -230,13 +230,13 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
         new Projection(schema.originKey),
       );
 
-      result = new ConditionTreeLeaf(
-        schema.originKeyTarget,
-        'In',
-        records
-          .map(record => RecordUtils.getFieldValue(record, schema.originKey))
-          .filter(v => v !== null),
-      );
+      result = new ConditionTreeLeaf(schema.originKeyTarget, 'In', [
+        ...new Set(
+          records
+            .map(record => RecordUtils.getFieldValue(record, schema.originKey))
+            .filter(v => v !== null),
+        ),
+      ]);
     }
 
     return result;
