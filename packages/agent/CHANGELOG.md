@@ -1,3 +1,19 @@
+# @forestadmin/agent [1.0.0-beta.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.16...@forestadmin/agent@1.0.0-beta.17) (2022-04-29)
+
+
+### Bug Fixes
+
+* do not perform queries which are known to yield zero records ([#279](https://github.com/ForestAdmin/agent-nodejs/issues/279)) ([30b4dd7](https://github.com/ForestAdmin/agent-nodejs/commit/30b4dd7d7fcf43568800ff9c23a62c3fafc53d4b))
+* having nulls in the throughTable of a many to many crashes the frontend ([#277](https://github.com/ForestAdmin/agent-nodejs/issues/277)) ([8d9d388](https://github.com/ForestAdmin/agent-nodejs/commit/8d9d388a7ce510be83c9aed76125b49be4b94c69))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.10
+
 # @forestadmin/agent [1.0.0-beta.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.15...@forestadmin/agent@1.0.0-beta.16) (2022-04-29)
 
 
