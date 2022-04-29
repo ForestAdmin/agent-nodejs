@@ -272,12 +272,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         libraries,
       ]);
 
-      return {
-        dataSource,
-        services,
-        options,
-        router,
-      };
+      return { dataSource, services, options, router };
     };
 
     test('removes the records in the many to many and in the foreign collections', async () => {
@@ -321,6 +316,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
                 value: '123e4567-e89b-12d3-a456-426614174088',
                 field: 'bookId',
               }),
+              factories.conditionTreeLeaf.build({ operator: 'Present', field: 'libraryId' }),
               factories.conditionTreeLeaf.build({
                 operator: 'In',
                 value: [
@@ -423,6 +419,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
                   value: '123e4567-e89b-12d3-a456-426614174088',
                   field: 'bookId',
                 }),
+                factories.conditionTreeLeaf.build({ operator: 'Present', field: 'libraryId' }),
                 factories.conditionTreeLeaf.build({
                   operator: 'NotIn',
                   value: [
@@ -508,10 +505,16 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
             { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             new Filter({
-              conditionTree: factories.conditionTreeLeaf.build({
-                operator: 'Equal',
-                value: '123e4567-e89b-12d3-a456-426614174088',
-                field: 'bookId',
+              conditionTree: factories.conditionTreeBranch.build({
+                aggregator: 'And',
+                conditions: [
+                  factories.conditionTreeLeaf.build({
+                    operator: 'Equal',
+                    value: '123e4567-e89b-12d3-a456-426614174088',
+                    field: 'bookId',
+                  }),
+                  factories.conditionTreeLeaf.build({ operator: 'Present', field: 'libraryId' }),
+                ],
               }),
               search: null,
               searchExtended: false,
