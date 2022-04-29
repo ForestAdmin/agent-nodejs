@@ -4,7 +4,7 @@ For example, you might want to specify a reason if you want to block a user acco
 In the following example, an action form will be displayed for the "Charge credit card" action.
 
 ```javascript
-collection.registerAction('Charge credit card', {
+collection.addAction('Charge credit card', {
   scope: 'Bulk',
   form: [
     {
@@ -118,7 +118,7 @@ const value = context.formValues['Amount'];
 The following example takes advantage of a few `ContextHandler` properties:
 
 ```javascript
-collection.registerAction('Tell me a greeting', {
+collection.addAction('Tell me a greeting', {
   scope: 'Single',
   form: [
     {
@@ -157,7 +157,7 @@ Finally, executing the action will display a notification based on the user choi
 Use the `if` property of a field to allow you to hide or display it upon some logic.
 
 ```javascript
-collection.registerAction('Leave a review', {
+collection.addAction('Leave a review', {
   scope: 'Single',
   form: [
     {

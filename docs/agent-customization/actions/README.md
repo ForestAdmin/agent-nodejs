@@ -18,7 +18,7 @@ The action behavior is implemented in the `execute()` function.
 
 ```javascript
 agent.customizeCollection('companies', collection =>
-  collection.registerAction('Mark as live', {
+  collection.addAction('Mark as live', {
     scope: 'Single',
     execute: async (context, responseBuilder) => {
       // Change the company's status to live.
