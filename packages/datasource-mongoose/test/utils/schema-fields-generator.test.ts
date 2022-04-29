@@ -264,85 +264,46 @@ describe('SchemaFieldsGenerator > buildSchemaFields', () => {
     });
   });
 
-  //-----------------------------------------------
+  describe('with many to one relationship fields', () => {
+    it('should add a relation _manyToOne in the schema fields', () => {
+      const schema = new Schema({
+        aField: { type: Schema.Types.ObjectId, ref: 'companies' },
+      });
 
-  describe('with belongsTo relationship fields', () => {
-    it('should build the right schema', () => {
-      const belongsToSchema = new Schema(
-        {
-          belongsTo: { type: Schema.Types.ObjectId, ref: 'companies' },
-        },
-        { _id: false },
-      );
+      const schemaFields = SchemaFieldsGenerator.buildSchemaFields(buildModel(schema).schema.paths);
 
-      const belongsToModel = model('belongsTo', belongsToSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(belongsToModel.schema.paths);
-
-      expect(schema).toStrictEqual({
-        belongsTo_manyToOne: {
+      expect(schemaFields).toMatchObject({
+        aField_manyToOne: {
           foreignCollection: 'companies',
-          foreignKey: 'belongsTo',
+          foreignKey: 'aField',
           type: 'ManyToOne',
+          foreignKeyTarget: '_id',
         },
-        belongsTo: {
+        aField: {
+          type: 'Column',
           columnType: 'String',
           filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
-          isSortable: true,
-          type: 'Column',
         },
       });
     });
   });
 
-  describe('with hasMany relationship fields', () => {
-    it('should build the right schema', () => {
-      const hasManySchema = new Schema(
-        {
-          hasMany: [{ type: Schema.Types.ObjectId, ref: 'companies1' }],
-          anotherHasMany: { type: [Schema.Types.ObjectId], ref: 'companies2' },
-        },
-        { _id: false },
-      );
+  describe('with an array of object ids and ref', () => {
+    it('should returns a array of string in the schema', () => {
+      const schema = new Schema({
+        oneToManyField: [{ type: Schema.Types.ObjectId, ref: 'companies1' }],
+        anotherOneToManyField: { type: [Schema.Types.ObjectId], ref: 'companies2' },
+      });
 
-      const hasManyModel = model('hasMany', hasManySchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(hasManyModel.schema.paths);
+      const schemaFields = SchemaFieldsGenerator.buildSchemaFields(buildModel(schema).schema.paths);
 
-      expect(schema).toStrictEqual({
-        hasMany_oneToMany: {
-          foreignCollection: 'companies1',
-          foreignKey: 'hasMany',
-          type: 'OneToMany',
-        },
-        hasMany: {
+      expect(schemaFields).toMatchObject({
+        oneToManyField: {
           columnType: ['String'],
-          filterOperators: new Set<Operator>(),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
-          isSortable: false,
           type: 'Column',
         },
-        anotherHasMany_oneToMany: {
-          foreignCollection: 'companies2',
-          foreignKey: 'anotherHasMany',
-          type: 'OneToMany',
-        },
-        anotherHasMany: {
+        anotherOneToManyField: {
           columnType: ['String'],
-          filterOperators: new Set<Operator>(),
-          defaultValue: undefined,
-          enumValues: undefined,
-          isPrimaryKey: false,
-          isReadOnly: false,
-          isRequired: false,
-          isSortable: false,
           type: 'Column',
         },
       });
