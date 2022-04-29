@@ -10,6 +10,7 @@ export { default as BaseDataSource } from './base-datasource';
 export { default as DataSourceDecorator } from './decorators/datasource-decorator';
 export { default as ActionCollectionDecorator } from './decorators/actions/collection';
 export { default as ComputedCollectionDecorator } from './decorators/computed/collection';
+export { default as EmptyCollectionDecorator } from './decorators/empty/collection';
 export { default as RelationCollectionDecorator } from './decorators/relation/collection';
 export { default as OperatorsEmulateCollectionDecorator } from './decorators/operators-emulate/collection';
 export { default as OperatorsReplaceCollectionDecorator } from './decorators/operators-replace/collection';
