@@ -12,7 +12,7 @@ import Projection from '../../interfaces/query/projection';
 
 /**
  * Avoid performing useless database requests:
- * Using segments + scopes + filters and jointure emulation often yields requests which have
+ * Using segments + scopes + filters + jointure emulation often yields requests which have
  * mutually exclusive conditions or empty "In" leafs.
  */
 export default class EmptyCollectionDecorator extends CollectionDecorator {
