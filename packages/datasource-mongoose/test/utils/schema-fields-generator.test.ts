@@ -1,4 +1,4 @@
-import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { ColumnSchema, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { Schema, SchemaType, deleteModel, model } from 'mongoose';
 
 import FilterOperatorBuilder from '../../src/utils/filter-operator-builder';
@@ -37,13 +37,13 @@ describe('SchemaFieldsGenerator > buildSchemaFields', () => {
   });
 
   describe('when field is required', () => {
-    it('should build the field schema with a required as true', () => {
+    it('should build the validation with present operator', () => {
       const requiredSchema = new Schema({ aField: { type: Number, required: true } });
 
       const requiredModel = model('aModel', requiredSchema);
       const schema = SchemaFieldsGenerator.buildSchemaFields(requiredModel.schema.paths);
 
-      expect(schema).toMatchObject({ aField: { isRequired: true } });
+      expect((schema.aField as ColumnSchema).validation).toMatchObject([{ operator: 'Present' }]);
     });
   });
 

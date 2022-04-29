@@ -1,18 +1,18 @@
 import {
+  CollectionSchema,
   ColumnSchema,
   ColumnType,
   FieldSchema,
-  FieldsSchema,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
 import { Schema, SchemaType } from 'mongoose';
 
 import FilterOperatorBuilder from './filter-operator-builder';
 
-type MongooseColumnSchema = ColumnSchema & { schema?: FieldsSchema };
+type MongooseColumnSchema = ColumnSchema & { schema?: CollectionSchema['fields'] };
 
 export default class SchemaFieldsGenerator {
-  static buildSchemaFields(modelFields: { [key: string]: SchemaType }): FieldsSchema {
+  static buildSchemaFields(modelFields: { [key: string]: SchemaType }): CollectionSchema['fields'] {
     const preBuildSchemaFields = SchemaFieldsGenerator.prebuildSchemaFields(modelFields);
 
     Object.values(preBuildSchemaFields).forEach((schemaField: MongooseColumnSchema) => {
@@ -59,9 +59,9 @@ export default class SchemaFieldsGenerator {
       enumValues: field.options?.enum,
       isPrimaryKey: field.path === '_id',
       isReadOnly: !!field.options?.immutable,
-      isRequired: !!field.isRequired,
       isSortable: !(Array.isArray(columnType) || columnType === 'Json'),
       type: 'Column',
+      validation: field.isRequired ? [{ operator: 'Present' }] : null,
     };
   }
 
@@ -90,7 +90,7 @@ export default class SchemaFieldsGenerator {
   }
 
   private static buildNestedPathSchema(
-    schemaFields: FieldsSchema,
+    schemaFields: CollectionSchema['fields'],
     fieldName: string,
     field: SchemaType,
   ) {
@@ -107,7 +107,7 @@ export default class SchemaFieldsGenerator {
 
     if (!fieldSchema) {
       fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema({} as SchemaType, 'Json');
-      fieldSchema.schema = {} as FieldsSchema;
+      fieldSchema.schema = {} as CollectionSchema['fields'];
       schemaFields[fieldPath] = fieldSchema;
     }
 
@@ -118,7 +118,9 @@ export default class SchemaFieldsGenerator {
     );
   }
 
-  private static prebuildSchemaFields(modelFields: { [key: string]: SchemaType }): FieldsSchema {
+  private static prebuildSchemaFields(modelFields: {
+    [key: string]: SchemaType;
+  }): CollectionSchema['fields'] {
     const schemaFields = {};
     Object.entries(modelFields).forEach(([fieldName, field]) => {
       if (fieldName.startsWith('__') || fieldName.includes('$*')) return;
@@ -160,7 +162,7 @@ export default class SchemaFieldsGenerator {
     return schemaFields;
   }
 
-  private static getTypeFromNested(fields: FieldsSchema): ColumnType {
+  private static getTypeFromNested(fields: CollectionSchema['fields']): ColumnType {
     const columnType: ColumnType = {};
 
     Object.entries(fields).forEach(([fieldName, fieldSchema]: [string, MongooseColumnSchema]) => {
