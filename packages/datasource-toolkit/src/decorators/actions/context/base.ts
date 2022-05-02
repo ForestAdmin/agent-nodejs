@@ -43,7 +43,7 @@ export default class ActionContext extends CollectionCustomizationContext {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected async getRecords(fields: string[]): Promise<any[]> {
+  async getRecords(fields: string[]): Promise<any[]> {
     // This function just queues the request into this.queries, so that we can merge all calls
     // to getRecords() into a single one.
 
