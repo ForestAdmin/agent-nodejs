@@ -13,10 +13,10 @@ type MongooseColumnSchema = ColumnSchema & { schema?: CollectionSchema['fields']
 type ModelFields = { [key: string]: SchemaType };
 
 export default class SchemaFieldsGenerator {
-  static buildSchemaFields(modelFields: ModelFields): CollectionSchema['fields'] {
-    const preBuildSchemaFields = SchemaFieldsGenerator.prebuildSchemaFields(modelFields);
+  static buildFieldsSchema(modelFields: ModelFields): CollectionSchema['fields'] {
+    const prebuildFieldsSchema = SchemaFieldsGenerator.prebuildFieldsSchema(modelFields);
 
-    Object.values(preBuildSchemaFields).forEach((schemaField: MongooseColumnSchema) => {
+    Object.values(prebuildFieldsSchema).forEach((schemaField: MongooseColumnSchema) => {
       if (schemaField.schema) {
         const type = SchemaFieldsGenerator.getTypeFromNested(schemaField.schema);
         schemaField.columnType = Array.isArray(schemaField.columnType) ? [type] : type;
@@ -24,7 +24,7 @@ export default class SchemaFieldsGenerator {
       }
     });
 
-    return preBuildSchemaFields;
+    return prebuildFieldsSchema;
   }
 
   private static getColumnType(instance: string, field: SchemaType): ColumnType {
@@ -71,7 +71,7 @@ export default class SchemaFieldsGenerator {
 
     if (caster.schema) {
       const fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, ['Json']);
-      fieldSchema.schema = SchemaFieldsGenerator.prebuildSchemaFields(caster.schema.paths);
+      fieldSchema.schema = SchemaFieldsGenerator.prebuildFieldsSchema(caster.schema.paths);
 
       return fieldSchema;
     }
@@ -93,7 +93,7 @@ export default class SchemaFieldsGenerator {
     const [fieldPath, ...nestedFieldsPath] = fieldName.split('.');
 
     if (!nestedFieldsPath.length) {
-      const schemaField = SchemaFieldsGenerator.prebuildSchemaFields({ [fieldPath]: field });
+      const schemaField = SchemaFieldsGenerator.prebuildFieldsSchema({ [fieldPath]: field });
       schemaFields[fieldPath] = schemaField[fieldPath];
 
       return;
@@ -114,7 +114,7 @@ export default class SchemaFieldsGenerator {
     );
   }
 
-  private static prebuildSchemaFields(modelFields: ModelFields): CollectionSchema['fields'] {
+  private static prebuildFieldsSchema(modelFields: ModelFields): CollectionSchema['fields'] {
     const schemaFields = {};
 
     Object.entries(modelFields).forEach(([fieldName, field]) => {
@@ -149,7 +149,7 @@ export default class SchemaFieldsGenerator {
         schemaFields[fieldName] = SchemaFieldsGenerator.buildPrimitiveSchema(field, 'String');
       } else if (field.schema) {
         const fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, 'Json');
-        fieldSchema.schema = SchemaFieldsGenerator.prebuildSchemaFields(field.schema.paths);
+        fieldSchema.schema = SchemaFieldsGenerator.prebuildFieldsSchema(field.schema.paths);
         schemaFields[fieldName] = fieldSchema;
       } else {
         schemaFields[fieldName] = SchemaFieldsGenerator.buildPrimitiveSchema(
