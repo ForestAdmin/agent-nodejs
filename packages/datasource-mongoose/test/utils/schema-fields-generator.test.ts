@@ -38,12 +38,23 @@ describe('SchemaFieldsGenerator > buildSchemaFields', () => {
 
   describe('when field is required', () => {
     it('should build the validation with present operator', () => {
-      const requiredSchema = new Schema({ aField: { type: Number, required: true } });
+      const schema = new Schema({ aField: { type: Number, required: true } });
 
-      const requiredModel = model('aModel', requiredSchema);
-      const schema = SchemaFieldsGenerator.buildSchemaFields(requiredModel.schema.paths);
+      const schemaFields = SchemaFieldsGenerator.buildSchemaFields(buildModel(schema).schema.paths);
 
-      expect((schema.aField as ColumnSchema).validation).toMatchObject([{ operator: 'Present' }]);
+      expect((schemaFields.aField as ColumnSchema).validation).toMatchObject([
+        { operator: 'Present' },
+      ]);
+    });
+  });
+
+  describe('when field is not required', () => {
+    it('should not add a validation', () => {
+      const schema = new Schema({ aField: { type: Number, required: false } });
+
+      const schemaFields = SchemaFieldsGenerator.buildSchemaFields(buildModel(schema).schema.paths);
+
+      expect((schemaFields.aField as ColumnSchema).validation).toEqual(null);
     });
   });
 

@@ -10,9 +10,10 @@ import { Schema, SchemaType } from 'mongoose';
 import FilterOperatorBuilder from './filter-operator-builder';
 
 type MongooseColumnSchema = ColumnSchema & { schema?: CollectionSchema['fields'] };
+type ModelFields = { [key: string]: SchemaType };
 
 export default class SchemaFieldsGenerator {
-  static buildSchemaFields(modelFields: { [key: string]: SchemaType }): CollectionSchema['fields'] {
+  static buildSchemaFields(modelFields: ModelFields): CollectionSchema['fields'] {
     const preBuildSchemaFields = SchemaFieldsGenerator.prebuildSchemaFields(modelFields);
 
     Object.values(preBuildSchemaFields).forEach((schemaField: MongooseColumnSchema) => {
@@ -68,11 +69,6 @@ export default class SchemaFieldsGenerator {
   private static buildArraySchema(field: Schema.Types.Array): FieldSchema {
     const { caster } = field;
 
-    if (caster.options?.ref) {
-      // Commented because this needs to implement a new field type
-      // return SchemaFieldsGenerator.buildRelationshipSchema(caster, FieldTypes.OneToMany);
-    }
-
     if (caster.schema) {
       const fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, ['Json']);
       fieldSchema.schema = SchemaFieldsGenerator.prebuildSchemaFields(caster.schema.paths);
@@ -118,12 +114,16 @@ export default class SchemaFieldsGenerator {
     );
   }
 
-  private static prebuildSchemaFields(modelFields: {
-    [key: string]: SchemaType;
-  }): CollectionSchema['fields'] {
+  private static prebuildSchemaFields(modelFields: ModelFields): CollectionSchema['fields'] {
     const schemaFields = {};
+
     Object.entries(modelFields).forEach(([fieldName, field]) => {
-      if (fieldName.startsWith('__') || fieldName.includes('$*')) return;
+      const mixedFieldPattern = '$*';
+      const privateFieldPattern = '__';
+
+      if (fieldName.startsWith(privateFieldPattern) || fieldName.includes(mixedFieldPattern)) {
+        return schemaFields;
+      }
 
       if (fieldName.includes('.')) {
         SchemaFieldsGenerator.buildNestedPathSchema(schemaFields, fieldName, field);
