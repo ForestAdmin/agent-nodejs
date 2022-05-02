@@ -82,7 +82,7 @@ class TypicodeCollection extends BaseCollection {
   }
 
   private buildRequest(filter: Filter) {
-    let request = superagent.get(`https://jsonplaceholder.typicode.com/${this.name}`);
+    let request = superagent.get(`https://jsonplaceholder.typicode.com/${this.name}s`);
 
     if (filter.conditionTree) {
       // Warning: this implementation ignores Or/And
@@ -109,7 +109,7 @@ class TypicodeCollection extends BaseCollection {
 
 class Posts extends TypicodeCollection {
   constructor(logger: Logger) {
-    super('posts', logger);
+    super('post', logger);
 
     this.addField('id', {
       isPrimaryKey: true,
@@ -118,7 +118,12 @@ class Posts extends TypicodeCollection {
       filterOperators: new Set(['Equal']),
     });
 
-    this.addField('userId', { type: 'Column', columnType: 'Number' });
+    this.addField('userId', {
+      type: 'Column',
+      columnType: 'Number',
+      filterOperators: new Set(['Equal']),
+    });
+
     this.addField('title', { type: 'Column', columnType: 'String' });
     this.addField('body', { type: 'Column', columnType: 'String' });
   }
@@ -126,7 +131,7 @@ class Posts extends TypicodeCollection {
 
 class Comments extends TypicodeCollection {
   constructor(logger: Logger) {
-    super('comments', logger);
+    super('comment', logger);
 
     this.addField('id', {
       isPrimaryKey: true,

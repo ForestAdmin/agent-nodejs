@@ -8,6 +8,11 @@ export default (collection: Collection) =>
       originKey: 'ownerId',
       originKeyTarget: 'id',
     })
+    .addRelation('posts', {
+      type: 'OneToMany',
+      foreignCollection: 'post',
+      originKey: 'userId',
+    })
     .addField('fullName', {
       columnType: 'String',
       dependencies: ['firstName', 'lastName'],
