@@ -5,7 +5,6 @@ import { CollectionSchema } from '../../interfaces/schema';
 import { DynamicField, ValueOrHandler } from './types/fields';
 import { RecordData } from '../../interfaces/record';
 import ActionContext from './context/base';
-import ActionContextBulk from './context/bulk';
 import ActionContextSingle from './context/single';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
@@ -104,7 +103,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   ): ActionContext {
     return new {
       Global: ActionContext,
-      Bulk: ActionContextBulk,
+      Bulk: ActionContext,
       Single: ActionContextSingle,
     }[action.scope](this, caller, formValues, filter, used);
   }

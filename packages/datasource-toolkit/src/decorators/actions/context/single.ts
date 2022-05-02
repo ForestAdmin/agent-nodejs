@@ -4,7 +4,13 @@ import Projection from '../../../interfaces/query/projection';
 import RecordUtils from '../../../utils/record';
 
 export default class ActionContextSingle extends ActionContext {
-  async getRecordId(): Promise<CompositeId> {
+  async getRecordId(): Promise<string | number> {
+    const compositeId = await this.getCompositeRecordId();
+
+    return compositeId[0];
+  }
+
+  async getCompositeRecordId(): Promise<CompositeId> {
     const projection = new Projection().withPks(this.collection.rawCollection);
     const records = await this.getRecords(projection);
 
