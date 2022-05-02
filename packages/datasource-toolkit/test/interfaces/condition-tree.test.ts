@@ -1,5 +1,4 @@
 import * as factories from '../__factories__';
-import { Operator } from '../../src/interfaces/query/condition-tree/nodes/operators';
 import { PlainConditionTree } from '../../src/interfaces/query/condition-tree/nodes/base';
 import ConditionTreeBranch from '../../src/interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
@@ -212,16 +211,6 @@ describe('ConditionTree', () => {
         });
 
         expect(tree).toStrictEqual(new ConditionTreeLeaf('field', 'Equal', 'something'));
-      });
-
-      test('should work with snake case', () => {
-        const tree = ConditionTreeFactory.fromPlainObject({
-          field: 'field',
-          operator: 'less_than' as Operator,
-          value: 'something',
-        });
-
-        expect(tree).toStrictEqual(new ConditionTreeLeaf('field', 'LessThan', 'something'));
       });
 
       test('should remove useless aggregators from the frontend', () => {

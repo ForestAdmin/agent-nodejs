@@ -2,7 +2,6 @@ import {
   Caller,
   Collection,
   ConditionTree,
-  ConditionTreeFactory,
   ConditionTreeValidator,
   Page,
   Projection,
@@ -14,6 +13,7 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
+import ConditionTreeParser from './condition-tree-parser';
 
 const DEFAULT_ITEMS_PER_PAGE = 15;
 const DEFAULT_PAGE_TO_SKIP = 1;
@@ -29,7 +29,7 @@ export default class QueryStringParser {
       if (!filters) return null;
 
       const json = JSON.parse(filters.toString());
-      const conditionTree = ConditionTreeFactory.fromPlainObject(json);
+      const conditionTree = ConditionTreeParser.fromPlainObject(collection, json);
       ConditionTreeValidator.validate(conditionTree, collection);
 
       return conditionTree;
