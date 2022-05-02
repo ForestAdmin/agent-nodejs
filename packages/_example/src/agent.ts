@@ -2,6 +2,7 @@ import { Agent, AgentOptions } from '@forestadmin/agent';
 import { createLiveDataSource } from '@forestadmin/datasource-live';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
+
 import createTypicode from './datasources/typicode';
 import customizeAddress from './customizations/address';
 import customizeComment from './customizations/comment';
@@ -11,20 +12,20 @@ import customizeOwner from './customizations/owner';
 import customizePost from './customizations/post';
 import customizeRental from './customizations/rental';
 import customizeStore from './customizations/store';
-import liveDataSourceSchema from './datasources/live/schema';
-import prepareDvdRentalsInMssql from './datasources/sequelize/mssql';
-import prepareOwnerInPostgres from './datasources/sequelize/postgres';
-import prepareStoreInMysql from './datasources/sequelize/mysql';
-import seedLiveDataSource from './datasources/live/seed';
+import liveDatasourceSchema from './datasources/live/schema';
+import seedLiveDatasource from './datasources/live/seed';
+import sequelizeMsSql from './datasources/sequelize/mssql';
+import sequelizeMySql from './datasources/sequelize/mysql';
+import sequelizePostgres from './datasources/sequelize/postgres';
 
 export default async function makeAgent(options: AgentOptions) {
   return new Agent(options)
-    .addDataSource(createSequelizeDataSource(prepareOwnerInPostgres()))
-    .addDataSource(createLiveDataSource(liveDataSourceSchema, { seeder: seedLiveDataSource }))
-    .addDataSource(createSequelizeDataSource(prepareStoreInMysql()))
-    .addDataSource(createSequelizeDataSource(await prepareDvdRentalsInMssql()))
+    .addDataSource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }))
     .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
     .addDataSource(createTypicode())
+    .addDataSource(createSequelizeDataSource(sequelizePostgres))
+    .addDataSource(createSequelizeDataSource(sequelizeMySql))
+    .addDataSource(createSequelizeDataSource(sequelizeMsSql))
 
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('address', customizeAddress)

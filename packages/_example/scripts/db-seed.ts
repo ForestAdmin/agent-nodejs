@@ -3,10 +3,11 @@
 import { Sequelize } from 'sequelize';
 import faker from '@faker-js/faker';
 
-import prepareDatabaseMariadb from './mariadb-schema';
-import prepareDatabaseMssql from '../src/datasources/sequelize/mssql';
-import prepareDatabaseMysql from '../src/datasources/sequelize/mysql';
-import prepareDatabasePostgres from '../src/datasources/sequelize/postgres';
+import initMsSql from './mssql-init';
+import sequelizeMariaDb from './mariadb-sequelize';
+import sequelizeMsSql from '../src/datasources/sequelize/mssql';
+import sequelizeMySql from '../src/datasources/sequelize/mysql';
+import sequelizePostgres from '../src/datasources/sequelize/postgres';
 
 async function createOwnerRecords(db: Sequelize): Promise<any[]> {
   const ownerRecords = [];
@@ -106,35 +107,27 @@ async function createDvdRentalsRecords(
 }
 
 async function seedData() {
-  let mssql: Sequelize;
-  let mysql: Sequelize;
-  let postgres: Sequelize;
-  let mariadb: Sequelize;
+  await initMsSql();
+
+  const sequelizeInstances = [sequelizeMsSql, sequelizeMySql, sequelizePostgres, sequelizeMariaDb];
 
   try {
-    [mssql, mysql, postgres, mariadb] = await Promise.all([
-      prepareDatabaseMssql(),
-      prepareDatabaseMysql(),
-      prepareDatabasePostgres(),
-      prepareDatabaseMariadb(),
-    ]);
-
-    for (const db of [mssql, mysql, postgres, mariadb]) {
+    for (const db of sequelizeInstances) {
       // eslint-disable-next-line no-await-in-loop
       await db.sync({ force: true });
     }
 
-    const ownerRecords = await createOwnerRecords(postgres);
-    const storeRecords = await createStoreRecords(mysql, ownerRecords);
-    const customerRecords = await createCustomerCardRecords(mariadb);
-    await createDvdRentalsRecords(mssql, storeRecords, customerRecords);
+    const ownerRecords = await createOwnerRecords(sequelizePostgres);
+    const storeRecords = await createStoreRecords(sequelizeMySql, ownerRecords);
+    const customerRecords = await createCustomerCardRecords(sequelizeMariaDb);
+    await createDvdRentalsRecords(sequelizeMsSql, storeRecords, customerRecords);
   } catch (error) {
     console.error('---------------');
     console.error('The seed failed');
     console.error(error);
     console.error('---------------');
   } finally {
-    for (const db of [mssql, mysql, postgres, mariadb]) {
+    for (const db of sequelizeInstances) {
       // eslint-disable-next-line no-await-in-loop
       await db.close();
     }
