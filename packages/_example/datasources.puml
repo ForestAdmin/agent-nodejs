@@ -51,6 +51,20 @@ class CUSTOMER {
 }
 note bottom: TABLE IN MARIADB
 
+class POST {
+  String title
+  String body
+}
+note bottom: TABLE IN TYPICODE
+
+class COMMENT {
+  String name
+  String email
+  String body
+}
+note bottom: TABLE IN TYPICODE
+
+POST "1" -- "*" COMMENT : has
 DVD "*" -- "*" RENTALS : has
 CUSTOMER "1" -- "*" CARD : has
 

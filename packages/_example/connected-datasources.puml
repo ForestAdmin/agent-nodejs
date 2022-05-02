@@ -44,6 +44,19 @@ class CUSTOMER {
   String firstName
 }
 
+class POST {
+  String title
+  String body
+}
+
+class COMMENT {
+  String name
+  String email
+  String body
+}
+
+OWNER "1" -- "*" POST : has
+POST "1" -- "*" COMMENT : has
 STORE "*" -- "1" OWNER : has
 STORE "1" -- "*" DVD : has
 DVD "*" -- "*" RENTALS : has
