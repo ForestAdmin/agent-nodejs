@@ -49,14 +49,14 @@ export default class ConditionTreeParser {
       if (schema.columnType === 'Boolean') {
         return leaf.value
           .split(',')
-          .map(v => !['false', '0', 'no'].includes(v.toLowerCase().trim()));
+          .map(bool => !['false', '0', 'no'].includes(bool.toLowerCase().trim()));
       }
 
       if (schema.columnType === 'Number') {
         return leaf.value
           .split(',')
-          .map(v => Number(v.trim()))
-          .filter(v => Number.isNaN(v));
+          .map(string => Number(string.trim()))
+          .filter(number => !Number.isNaN(number) && Number.isFinite(number));
       }
 
       return leaf.value.split(',').map(v => v.trim());
