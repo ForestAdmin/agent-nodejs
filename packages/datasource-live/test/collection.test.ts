@@ -1,11 +1,9 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
-  CollectionSchema,
   ConditionTreeLeaf,
   DataSource,
   Filter,
-  Operator,
   Page,
   PaginatedFilter,
   Projection,
@@ -14,36 +12,28 @@ import {
 import { Op, Sequelize } from 'sequelize';
 import sortBy from 'lodash/sortBy';
 
+import { LiveCollectionSchema } from '../src/types';
 import CollectionAttributesConverter from '../src/utils/collection-schema-to-model-attributes-converter';
 import LiveCollection from '../src/collection';
 
-const liveCollectionSchema: CollectionSchema = {
-  actions: {},
-  fields: {
-    id: {
-      columnType: 'Number',
-      filterOperators: new Set<Operator>(['Equal']),
-      isPrimaryKey: true,
-      type: 'Column',
-    },
-    fixed: {
-      columnType: 'String',
-      filterOperators: new Set<Operator>(),
-      type: 'Column',
-    },
-    even: {
-      columnType: 'Boolean',
-      filterOperators: new Set<Operator>(),
-      type: 'Column',
-    },
-    value: {
-      columnType: 'String',
-      filterOperators: new Set<Operator>(),
-      type: 'Column',
-    },
+const liveCollectionSchema: LiveCollectionSchema = {
+  id: {
+    columnType: 'Number',
+    isPrimaryKey: true,
+    type: 'Column',
   },
-  searchable: false,
-  segments: [],
+  fixed: {
+    columnType: 'String',
+    type: 'Column',
+  },
+  even: {
+    columnType: 'Boolean',
+    type: 'Column',
+  },
+  value: {
+    columnType: 'String',
+    type: 'Column',
+  },
 };
 
 const instanciateCollection = schema => {

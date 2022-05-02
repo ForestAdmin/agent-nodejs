@@ -1,5 +1,6 @@
-import { DataSourceFactory, DataSourceSchema, Logger } from '@forestadmin/datasource-toolkit';
+import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
+import { LiveSchema } from './types';
 import LiveDataSource from './datasource';
 
 export type LiveDataSourceOptions = {
@@ -7,7 +8,7 @@ export type LiveDataSourceOptions = {
 };
 
 export function createLiveDataSource(
-  schema: DataSourceSchema,
+  schema: LiveSchema,
   options?: LiveDataSourceOptions,
 ): DataSourceFactory {
   return async (logger: Logger) => {
