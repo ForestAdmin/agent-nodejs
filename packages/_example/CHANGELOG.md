@@ -1,3 +1,10 @@
+# example [1.0.0-beta.24](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.23...example@1.0.0-beta.24) (2022-05-03)
+
+
+### Features
+
+* **example:** add custom connector ([#261](https://github.com/ForestAdmin/agent-nodejs/issues/261)) ([69e04de](https://github.com/ForestAdmin/agent-nodejs/commit/69e04ded95a3b528acc07a4463eacd4b7c5a5a2b))
+
 # example [1.0.0-beta.23](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.22...example@1.0.0-beta.23) (2022-04-29)
 
 
