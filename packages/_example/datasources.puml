@@ -55,14 +55,14 @@ class POST {
   String title
   String body
 }
-note bottom: TABLE IN TYPICODE
+note bottom: REST API TYPICODE
 
 class COMMENT {
   String name
   String email
   String body
 }
-note bottom: TABLE IN TYPICODE
+note bottom: REST API TYPICODE
 
 POST "1" -- "*" COMMENT : has
 DVD "*" -- "*" RENTALS : has
