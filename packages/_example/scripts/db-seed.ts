@@ -11,7 +11,7 @@ import prepareDatabasePostgres from '../src/datasources/sequelize/postgres';
 async function createOwnerRecords(db: Sequelize): Promise<any[]> {
   const ownerRecords = [];
 
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 10; i += 1) {
     ownerRecords.push({ firstName: faker.name.firstName(), lastName: faker.name.lastName() });
   }
 
