@@ -5,7 +5,7 @@ import {
   FieldSchema,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
-import { Schema, SchemaType } from 'mongoose';
+import { Document, Model, Schema, SchemaType } from 'mongoose';
 
 import FilterOperatorBuilder from './filter-operator-builder';
 
@@ -13,6 +13,32 @@ type MongooseColumnSchema = ColumnSchema & { schema?: CollectionSchema['fields']
 type ModelFields = { [key: string]: SchemaType };
 
 export default class SchemaFieldsGenerator {
+  static buildRelationsInPlace(
+    fieldsAndModel: [CollectionSchema['fields'], Model<Document>][],
+  ): void {
+    const relations: [FieldSchema, Model<Document>][] = [];
+    fieldsAndModel.forEach(([fields, model]) => {
+      Object.values(fields).forEach(fieldSchema => {
+        if (fieldSchema.type === 'ManyToOne') {
+          relations.push([fieldSchema, model]);
+        }
+      });
+    });
+
+    fieldsAndModel.forEach(([fields]) => {
+      relations.forEach(([relationFieldSchema, relationModel]) => {
+        if (relationFieldSchema.type === 'ManyToOne') {
+          fields[`${relationModel.modelName}__oneToMany`] = {
+            foreignCollection: relationModel.modelName,
+            originKey: '_id',
+            originKeyTarget: relationFieldSchema.foreignKey,
+            type: 'OneToMany',
+          };
+        }
+      });
+    });
+  }
+
   static buildFieldsSchema(modelFields: ModelFields): CollectionSchema['fields'] {
     const prebuildFieldsSchema = SchemaFieldsGenerator.prebuildFieldsSchema(modelFields);
 

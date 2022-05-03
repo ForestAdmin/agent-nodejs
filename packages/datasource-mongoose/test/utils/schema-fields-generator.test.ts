@@ -1,16 +1,16 @@
 import { ColumnSchema, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import { Schema, SchemaType, deleteModel, model } from 'mongoose';
+import { Document, Model, Schema, SchemaType, deleteModel, model } from 'mongoose';
 
 import FilterOperatorBuilder from '../../src/utils/filter-operator-builder';
 import SchemaFieldsGenerator from '../../src/utils/schema-fields-generator';
 
-const buildModel = schema => {
+const buildModel = (schema: Schema, modelName = 'aModel'): Model<Document> => {
   try {
-    deleteModel('aModel');
+    deleteModel(modelName);
     // eslint-disable-next-line no-empty
   } catch {}
 
-  return model('aModel', schema);
+  return model(modelName, schema);
 };
 
 describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
@@ -40,9 +40,9 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
     it('should build the validation with present operator', () => {
       const schema = new Schema({ aField: { type: Number, required: true } });
 
-      const schemaFields = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
+      const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
 
-      expect((schemaFields.aField as ColumnSchema).validation).toMatchObject([
+      expect((fieldsSchema.aField as ColumnSchema).validation).toMatchObject([
         { operator: 'Present' },
       ]);
     });
@@ -52,9 +52,9 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
     it('should not add a validation', () => {
       const schema = new Schema({ aField: { type: Number, required: false } });
 
-      const schemaFields = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
+      const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
 
-      expect((schemaFields.aField as ColumnSchema).validation).toEqual(null);
+      expect((fieldsSchema.aField as ColumnSchema).validation).toEqual(null);
     });
   });
 
@@ -63,9 +63,9 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
       const defaultValue = Symbol('default');
       const schema = new Schema({ aField: { type: String, default: defaultValue } });
 
-      const schemaFields = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
+      const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
 
-      expect(schemaFields).toMatchObject({ aField: { defaultValue } });
+      expect(fieldsSchema).toMatchObject({ aField: { defaultValue } });
     });
   });
 
@@ -73,9 +73,9 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
     it('should build the field schema with a primary key as true', () => {
       const schema = new Schema({});
 
-      const schemaFields = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
+      const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
 
-      expect(schemaFields).toMatchObject({ _id: { isPrimaryKey: true } });
+      expect(fieldsSchema).toMatchObject({ _id: { isPrimaryKey: true } });
     });
   });
 
@@ -83,9 +83,9 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
     it('should build the field schema with a is read only as true', () => {
       const schema = new Schema({ aField: { type: Date, immutable: true } });
 
-      const schemaFields = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
+      const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
 
-      expect(schemaFields).toMatchObject({ aField: { isReadOnly: true } });
+      expect(fieldsSchema).toMatchObject({ aField: { isReadOnly: true } });
     });
   });
 
@@ -94,9 +94,9 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
       const enumValues = [Symbol('enum1'), Symbol('enum2')];
       const schema = new Schema({ aField: { type: String, enum: enumValues } });
 
-      const schemaFields = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
+      const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
 
-      expect(schemaFields).toMatchObject({ aField: { columnType: 'Enum', enumValues } });
+      expect(fieldsSchema).toMatchObject({ aField: { columnType: 'Enum', enumValues } });
     });
   });
 
@@ -124,11 +124,11 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
       test.each(cases)('[%p] should build the right column type', (type, expectedType) => {
         const schema = new Schema({ aField: [type] });
 
-        const schemaFields = SchemaFieldsGenerator.buildFieldsSchema(
+        const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(
           buildModel(schema).schema.paths,
         );
 
-        expect(schemaFields).toMatchObject({
+        expect(fieldsSchema).toMatchObject({
           aField: {
             columnType: [expectedType],
             filterOperators: new Set<Operator>(),
@@ -148,11 +148,11 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
           otherObjectArrayField: [objectSchema],
         });
 
-        const schemaFields = SchemaFieldsGenerator.buildFieldsSchema(
+        const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(
           buildModel(schema).schema.paths,
         );
 
-        expect(schemaFields).toMatchObject({
+        expect(fieldsSchema).toMatchObject({
           objectArrayField: {
             columnType: [{ nested: [{ level: 'Number' }] }],
             filterOperators: new Set<Operator>(),
@@ -195,11 +195,11 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
       (type, expectedType, expectedIsSortable) => {
         const schema = new Schema({ aField: type });
 
-        const schemaFields = SchemaFieldsGenerator.buildFieldsSchema(
+        const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(
           buildModel(schema).schema.paths,
         );
 
-        expect(schemaFields).toMatchObject({
+        expect(fieldsSchema).toMatchObject({
           aField: {
             columnType: expectedType,
             filterOperators: FilterOperatorBuilder.getSupportedOperators(expectedType),
@@ -276,19 +276,54 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
   });
 
   describe('with many to one relationship fields', () => {
-    it('should add a relation _manyToOne in the schema fields', () => {
+    it('should add a relation _manyToOne in the fields schema', () => {
       const schema = new Schema({
         aField: { type: Schema.Types.ObjectId, ref: 'companies' },
       });
 
-      const schemaFields = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
+      const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
 
-      expect(schemaFields).toMatchObject({
+      expect(fieldsSchema).toMatchObject({
         aField_manyToOne: {
           foreignCollection: 'companies',
           foreignKey: 'aField',
           type: 'ManyToOne',
           foreignKeyTarget: '_id',
+        },
+        aField: {
+          type: 'Column',
+          columnType: 'String',
+          filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
+        },
+      });
+    });
+
+    it('should add a relation _oneToMany in the foreign fields schema', () => {
+      const schemaWithManyToOne = new Schema({
+        aFieldTarget: { type: Schema.Types.ObjectId, ref: 'modelB' },
+      });
+
+      const schemaWithOneToMany = new Schema({ aField: { type: 'String' } });
+
+      const modelA = buildModel(schemaWithManyToOne, 'modelA');
+      const fieldsSchemaWithManyToOne = SchemaFieldsGenerator.buildFieldsSchema(
+        modelA.schema.paths,
+      );
+      const modelB = buildModel(schemaWithOneToMany, 'modelB');
+      const fieldsSchemaWithOneToMany = SchemaFieldsGenerator.buildFieldsSchema(
+        modelB.schema.paths,
+      );
+      SchemaFieldsGenerator.buildRelationsInPlace([
+        [fieldsSchemaWithManyToOne, modelA],
+        [fieldsSchemaWithOneToMany, modelB],
+      ]);
+
+      expect(fieldsSchemaWithOneToMany).toMatchObject({
+        modelA__oneToMany: {
+          foreignCollection: 'modelA',
+          originKey: '_id',
+          originKeyTarget: 'aFieldTarget',
+          type: 'OneToMany',
         },
         aField: {
           type: 'Column',
@@ -306,9 +341,9 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
         anotherOneToManyField: { type: [Schema.Types.ObjectId], ref: 'companies2' },
       });
 
-      const schemaFields = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
+      const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema).schema.paths);
 
-      expect(schemaFields).toMatchObject({
+      expect(fieldsSchema).toMatchObject({
         oneToManyField: {
           columnType: ['String'],
           type: 'Column',
