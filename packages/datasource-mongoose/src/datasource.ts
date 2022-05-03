@@ -1,6 +1,6 @@
 import { Connection } from 'mongoose';
 
-import { BaseDataSource, Logger } from '@forestadmin/datasource-toolkit';
+import { BaseDataSource } from '@forestadmin/datasource-toolkit';
 
 import MongooseCollection from './collection';
 import SchemaFieldsGenerator from './utils/schema-fields-generator';
@@ -8,21 +8,21 @@ import SchemaFieldsGenerator from './utils/schema-fields-generator';
 export default class MongooseDatasource extends BaseDataSource<MongooseCollection> {
   private connection: Connection = null;
 
-  constructor(connection: Connection, logger?: Logger) {
+  constructor(connection: Connection) {
     super();
 
     if (!connection) throw new Error('Invalid (null) Mongoose instance.');
 
     this.connection = connection;
 
-    this.createCollections(logger);
+    this.createCollections();
   }
 
-  protected createCollections(logger?: Logger) {
+  protected createCollections() {
     const collections = [];
 
     Object.entries(this.connection.models).forEach(([modelName, model]) => {
-      collections.push(new MongooseCollection(modelName, this, model, logger));
+      collections.push(new MongooseCollection(modelName, this, model));
     });
     SchemaFieldsGenerator.buildRelationsInPlace(collections);
 

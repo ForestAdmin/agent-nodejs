@@ -2,7 +2,6 @@ import {
   AggregateResult,
   BaseCollection,
   DataSource,
-  Logger,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 import { Model } from 'mongoose';
@@ -12,7 +11,7 @@ import SchemaFieldsGenerator from './utils/schema-fields-generator';
 export default class MongooseCollection extends BaseCollection {
   private model: Model<RecordData>;
 
-  constructor(name: string, dataSource: DataSource, model: Model<RecordData>, logger?: Logger) {
+  constructor(name: string, dataSource: DataSource, model: Model<RecordData>) {
     super(name, dataSource);
     this.model = model;
 

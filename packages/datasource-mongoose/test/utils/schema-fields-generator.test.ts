@@ -294,9 +294,9 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
       const schemaWithOneToMany = new Schema({ aField: { type: 'String' } });
 
       const modelA = buildModel(schemaWithManyToOne, 'modelA');
-      const collectionA = new MongooseCollection('modelA', null, modelA, null);
+      const collectionA = new MongooseCollection('modelA', null, modelA);
       const modelB = buildModel(schemaWithOneToMany, 'modelB');
-      const collectionB = new MongooseCollection('modelB', null, modelB, null);
+      const collectionB = new MongooseCollection('modelB', null, modelB);
 
       SchemaFieldsGenerator.buildRelationsInPlace([collectionA, collectionB]);
 
