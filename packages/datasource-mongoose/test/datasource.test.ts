@@ -5,15 +5,15 @@ import MongooseCollection from '../src/collection';
 import MongooseDatasource from '../src/datasource';
 
 describe('MongooseDatasource', () => {
-  const setupConnection = () => {
-    const connection = { models: {} } as Connection;
+  const setupConnection = (): Connection => {
+    const connection = { models: { cars: {} } };
     connection.models.cars = {
       schema: {
         paths: {},
       },
     } as Model<RecordData>;
 
-    return connection;
+    return connection as unknown as Connection;
   };
 
   describe('when connection does not have model', () => {
@@ -36,7 +36,7 @@ describe('MongooseDatasource', () => {
 
     describe('when models have relations', () => {
       it('should add relation to the schema', () => {
-        const connection = { models: {} } as Connection;
+        const connection = { models: { cars: {}, owner: {} } };
         connection.models.cars = {
           modelName: 'cars',
           schema: {
@@ -53,7 +53,7 @@ describe('MongooseDatasource', () => {
           },
         } as Model<RecordData>;
 
-        const mongooseDatasource = new MongooseDatasource(connection);
+        const mongooseDatasource = new MongooseDatasource(connection as unknown as Connection);
 
         expect(mongooseDatasource.collections[1].schema.fields).toHaveProperty('cars__oneToMany');
       });

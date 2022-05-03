@@ -5,7 +5,6 @@ import {
   QueryInterface,
   Sequelize,
 } from 'sequelize';
-
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
