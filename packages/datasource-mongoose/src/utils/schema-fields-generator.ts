@@ -9,28 +9,27 @@ import {
 import { Model, Schema, SchemaType } from 'mongoose';
 
 import FilterOperatorBuilder from './filter-operator-builder';
+import MongooseCollection from '../collection';
 
 type MongooseColumnSchema = ColumnSchema & { schema?: CollectionSchema['fields'] };
 type ModelFields = { [key: string]: SchemaType };
 
 export default class SchemaFieldsGenerator {
-  static buildRelationsInPlace(
-    fieldsAndModel: [CollectionSchema['fields'], Model<RecordData>][],
-  ): void {
-    const relations: [FieldSchema, Model<RecordData>][] = [];
-    fieldsAndModel.forEach(([fields, model]) => {
-      Object.values(fields).forEach(fieldSchema => {
+  static buildRelationsInPlace(collections: MongooseCollection[]): void {
+    const relations: [FieldSchema, string][] = [];
+    collections.forEach(collection => {
+      Object.values(collection.schema.fields).forEach(fieldSchema => {
         if (fieldSchema.type === 'ManyToOne') {
-          relations.push([fieldSchema, model]);
+          relations.push([fieldSchema, collection.name]);
         }
       });
     });
 
-    fieldsAndModel.forEach(([fields]) => {
-      relations.forEach(([relationFieldSchema, relationModel]) => {
+    collections.forEach(collection => {
+      relations.forEach(([relationFieldSchema, collectionName]) => {
         if (relationFieldSchema.type === 'ManyToOne') {
-          fields[`${relationModel.modelName}__oneToMany`] = {
-            foreignCollection: relationModel.modelName,
+          collection.schema.fields[`${collectionName}__oneToMany`] = {
+            foreignCollection: collectionName,
             originKey: '_id',
             originKeyTarget: relationFieldSchema.foreignKey,
             type: 'OneToMany',

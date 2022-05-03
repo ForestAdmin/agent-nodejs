@@ -7,6 +7,7 @@ import {
 import { Model, Schema, deleteModel, model } from 'mongoose';
 
 import FilterOperatorBuilder from '../../src/utils/filter-operator-builder';
+import MongooseCollection from '../../src/collection';
 import SchemaFieldsGenerator from '../../src/utils/schema-fields-generator';
 
 const buildModel = (schema: Schema, modelName = 'aModel'): Model<RecordData> => {
@@ -293,15 +294,13 @@ describe('SchemaFieldsGenerator > buildFieldsSchema', () => {
       const schemaWithOneToMany = new Schema({ aField: { type: 'String' } });
 
       const modelA = buildModel(schemaWithManyToOne, 'modelA');
-      const fieldsSchemaWithManyToOne = SchemaFieldsGenerator.buildFieldsSchema(modelA);
+      const collectionA = new MongooseCollection('modelA', null, modelA, null);
       const modelB = buildModel(schemaWithOneToMany, 'modelB');
-      const fieldsSchemaWithOneToMany = SchemaFieldsGenerator.buildFieldsSchema(modelB);
-      SchemaFieldsGenerator.buildRelationsInPlace([
-        [fieldsSchemaWithManyToOne, modelA],
-        [fieldsSchemaWithOneToMany, modelB],
-      ]);
+      const collectionB = new MongooseCollection('modelB', null, modelB, null);
 
-      expect(fieldsSchemaWithOneToMany).toMatchObject({
+      SchemaFieldsGenerator.buildRelationsInPlace([collectionA, collectionB]);
+
+      expect(collectionB.schema.fields).toMatchObject({
         modelA__oneToMany: {
           foreignCollection: 'modelA',
           originKey: '_id',
