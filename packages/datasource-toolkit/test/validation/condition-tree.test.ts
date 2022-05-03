@@ -1,9 +1,46 @@
 import * as factories from '../__factories__';
+import { Aggregator } from '../../src/interfaces/query/condition-tree/nodes/branch';
 import { Operator, allOperators } from '../../src/interfaces/query/condition-tree/nodes/operators';
+import ConditionTree from '../../src/interfaces/query/condition-tree/nodes/base';
 import ConditionTreeValidator from '../../src/validation/condition-tree';
 
 describe('ConditionTreeValidation', () => {
   describe('validate', () => {
+    describe('Invalid type', () => {
+      it('should throw an error', () => {
+        const collection = factories.collection.build();
+        const conditionTree = new Date() as unknown as ConditionTree;
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrowError(
+          'Unexpected condition tree type',
+        );
+      });
+    });
+
+    describe('Invalid aggregator on branch', () => {
+      it('should throw an error', () => {
+        const collection = factories.collection.build();
+        const conditionTree = factories.conditionTreeBranch.build({
+          aggregator: 'and' as Aggregator, // should be 'And'
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrowError(
+          "The given aggregator 'and' is not supported. The supported values are: ['Or', 'And']",
+        );
+      });
+    });
+
+    describe('Invalid conditions on branch', () => {
+      it('should throw an error', () => {
+        const collection = factories.collection.build();
+        const conditionTree = factories.conditionTreeBranch.build({ conditions: null });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrowError(
+          `The given conditions 'null' were expected to be an array`,
+        );
+      });
+    });
+
     describe('when the field(s) does not exist in the schema', () => {
       it('should throw an error', () => {
         const conditionTree = factories.conditionTreeLeaf.build({

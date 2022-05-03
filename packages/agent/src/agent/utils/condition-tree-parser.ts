@@ -1,4 +1,5 @@
 import {
+  Aggregator,
   Collection,
   CollectionUtils,
   ColumnSchema,
@@ -11,31 +12,24 @@ import {
 export default class ConditionTreeParser {
   static fromPlainObject(collection: Collection, json: unknown): ConditionTree {
     if (ConditionTreeParser.isLeaf(json)) {
-      const operator = ConditionTreeParser.parseOperator(json.operator);
+      const operator = ConditionTreeParser.toPascalCase(json.operator);
       const value = ConditionTreeParser.parseValue(collection, { ...json, operator });
 
       return new ConditionTreeLeaf(json.field, operator, value);
     }
 
     if (ConditionTreeParser.isBranch(json)) {
-      const branch = new ConditionTreeBranch(
-        json.aggregator.toLowerCase() === 'and' ? 'And' : 'Or',
-        json.conditions.map(subTree => ConditionTreeParser.fromPlainObject(collection, subTree)),
+      const aggregator = ConditionTreeParser.toPascalCase(json.aggregator) as Aggregator;
+      const conditions = json.conditions.map(subTree =>
+        ConditionTreeParser.fromPlainObject(collection, subTree),
       );
 
-      return branch.conditions.length !== 1 ? branch : branch.conditions[0];
+      return conditions.length !== 1
+        ? new ConditionTreeBranch(aggregator, conditions)
+        : conditions[0];
     }
 
     throw new Error('Failed to instantiate condition tree from json');
-  }
-
-  /** Convert snake_case to PascalCase */
-  private static parseOperator(operator: string): Operator {
-    const camelCased =
-      operator.slice(0, 1).toUpperCase() +
-      operator.slice(1).replace(/_[a-z]/g, match => match.slice(1).toUpperCase());
-
-    return camelCased as Operator;
   }
 
   /** Handle 'In' where the frontend unexpectedly sends strings */
@@ -63,6 +57,15 @@ export default class ConditionTreeParser {
     }
 
     return leaf.value;
+  }
+
+  /** Convert snake_case to PascalCase */
+  private static toPascalCase(value: string): Operator {
+    const pascalCased =
+      value.slice(0, 1).toUpperCase() +
+      value.slice(1).replace(/_[a-z]/g, match => match.slice(1).toUpperCase());
+
+    return pascalCased as Operator;
   }
 
   private static isLeaf(raw: unknown): raw is { field: string; operator: string; value: unknown } {
