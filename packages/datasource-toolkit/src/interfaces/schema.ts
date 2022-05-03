@@ -15,10 +15,6 @@ export type CollectionSchema = {
   segments: string[];
 };
 
-export type DataSourceSchema = {
-  collections: { [name: string]: CollectionSchema };
-};
-
 export type RelationSchema = ManyToOneSchema | OneToManySchema | OneToOneSchema | ManyToManySchema;
 export type FieldSchema = ColumnSchema | RelationSchema;
 

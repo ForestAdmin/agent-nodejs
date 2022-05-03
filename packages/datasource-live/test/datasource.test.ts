@@ -1,21 +1,11 @@
-import { DataSourceSchema } from '@forestadmin/datasource-toolkit';
-
+import { LiveSchema } from '../src/types';
 import LiveDataSource from '../src/datasource';
 
-const dataSourceWithDummyCollectionSchema: DataSourceSchema = {
-  collections: {
-    dummy: {
-      actions: {},
-      fields: {},
-      searchable: false,
-      segments: [],
-    },
-  },
+const dataSourceWithDummyCollectionSchema: LiveSchema = {
+  dummy: {},
 };
 
-const emptyDataSourceSchema: DataSourceSchema = {
-  collections: {},
-};
+const emptyDataSourceSchema: LiveSchema = {};
 
 describe('LiveDataSource', () => {
   it('should instanciate properly', () => {
@@ -26,9 +16,7 @@ describe('LiveDataSource', () => {
     describe('collections', () => {
       it('should hold collections according to the given schema', () => {
         const liveDataSource = new LiveDataSource(dataSourceWithDummyCollectionSchema);
-        const expectedCollectionCount = Object.entries(
-          dataSourceWithDummyCollectionSchema.collections,
-        ).length;
+        const expectedCollectionCount = Object.entries(dataSourceWithDummyCollectionSchema).length;
 
         expect(liveDataSource.collections).toBeArrayOfSize(expectedCollectionCount);
       });

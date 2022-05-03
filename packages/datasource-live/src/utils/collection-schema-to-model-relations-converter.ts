@@ -1,14 +1,14 @@
 import { Sequelize } from 'sequelize';
 
-import { CollectionSchema } from '@forestadmin/datasource-toolkit';
+import { LiveCollectionSchema } from '../types';
 
 export default class CollectionSchemaToModelRelationsConverter {
-  public static convert(name: string, schema: CollectionSchema, sequelize: Sequelize) {
+  public static convert(name: string, schema: LiveCollectionSchema, sequelize: Sequelize) {
     const relations = [];
 
     const sourceModel = sequelize.model(name);
 
-    Object.entries(schema.fields).forEach(([fieldName, field]) => {
+    Object.entries(schema).forEach(([fieldName, field]) => {
       if (field.type === 'Column') return;
 
       const targetModel = sequelize.model(field.foreignCollection);

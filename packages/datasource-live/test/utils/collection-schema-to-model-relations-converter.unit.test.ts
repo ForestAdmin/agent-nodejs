@@ -1,24 +1,18 @@
-import { CollectionSchema, Operator } from '@forestadmin/datasource-toolkit';
 import { Sequelize } from 'sequelize';
 
+import { LiveCollectionSchema } from '../../src/types';
 import CollectionSchemaToModelRelationsConverter from '../../src/utils/collection-schema-to-model-relations-converter';
 
 describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
   describe('convert', () => {
     describe('with Column fields', () => {
       it('should ignore all fields', () => {
-        const schema: CollectionSchema = {
-          actions: {},
-          fields: {
-            a: {
-              columnType: 'Number',
-              filterOperators: new Set<Operator>(),
-              isPrimaryKey: true,
-              type: 'Column',
-            },
+        const schema: LiveCollectionSchema = {
+          a: {
+            columnType: 'Number',
+            isPrimaryKey: true,
+            type: 'Column',
           },
-          searchable: false,
-          segments: [],
         };
         const sequelize: Sequelize = {
           model: jest.fn(),
@@ -36,17 +30,12 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
     });
 
     describe('with Relation fields', () => {
-      const prepareSchema = (): CollectionSchema => {
-        return {
-          actions: {},
-          fields: {},
-          searchable: false,
-          segments: [],
-        };
+      const prepareSchema = (): LiveCollectionSchema => {
+        return {};
       };
 
       const setup = () => {
-        const schema: CollectionSchema = prepareSchema();
+        const schema: LiveCollectionSchema = prepareSchema();
         const belongsToManyRelation = Symbol('belongsToManyRelation');
         const belongsToRelation = Symbol('belongsToRelation');
         const hasManyRelation = Symbol('hasManyRelation');
@@ -79,7 +68,7 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
         it('should generate a reference', () => {
           const { belongsToMany, belongsToManyRelation, model, schema, sequelize } = setup();
 
-          schema.fields.a = {
+          schema.a = {
             foreignCollection: '__collection__',
             foreignKey: '__fk__',
             originKey: '__origin__',
@@ -114,7 +103,7 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
         it('should generate a reference', () => {
           const { belongsTo, belongsToRelation, model, schema, sequelize } = setup();
 
-          schema.fields.a = {
+          schema.a = {
             foreignCollection: '__collection__',
             foreignKey: '__key__',
             foreignKeyTarget: '__target__',
@@ -133,8 +122,8 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
           expect(belongsTo).toHaveBeenCalledTimes(1);
           expect(belongsTo).toHaveBeenCalledWith(model, {
             as: 'a',
-            foreignKey: schema.fields.a.foreignKey,
-            targetKey: schema.fields.a.foreignKeyTarget,
+            foreignKey: schema.a.foreignKey,
+            targetKey: schema.a.foreignKeyTarget,
           });
         });
       });
@@ -143,7 +132,7 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
         it('should generate a reference', () => {
           const { hasMany, hasManyRelation, model, schema, sequelize } = setup();
 
-          schema.fields.a = {
+          schema.a = {
             foreignCollection: '__collection__',
             originKey: '__key__',
             originKeyTarget: '__target__',
@@ -173,7 +162,7 @@ describe('Utils > CollectionSchemaToModelRelationsConverter', () => {
         it('should generate a reference', () => {
           const { hasOne, hasOneRelation, model, schema, sequelize } = setup();
 
-          schema.fields.a = {
+          schema.a = {
             foreignCollection: '__collection__',
             originKey: '__key__',
             originKeyTarget: '__target__',

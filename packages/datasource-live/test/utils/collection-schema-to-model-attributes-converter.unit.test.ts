@@ -1,41 +1,34 @@
-import { CollectionSchema, Operator } from '@forestadmin/datasource-toolkit';
 import { DataTypes } from 'sequelize';
 
+import { LiveCollectionSchema } from '../../src/types';
 import CollectionSchemaToModelAttributesConverter from '../../src/utils/collection-schema-to-model-attributes-converter';
 
 describe('Utils > CollectionSchemaToModelAttributesConverter', () => {
   describe('convert', () => {
     describe('with Column fields', () => {
-      const prepareSchema = (): CollectionSchema => ({
-        actions: {},
-        fields: {
-          a: {
-            columnType: 'Number',
-            filterOperators: new Set<Operator>(),
-            isPrimaryKey: true,
-            type: 'Column',
-          },
-          b: {
-            columnType: 'String',
-            filterOperators: new Set<Operator>(),
-            isPrimaryKey: false,
-            type: 'Column',
-          },
+      const prepareSchema = (): LiveCollectionSchema => ({
+        a: {
+          columnType: 'Number',
+          isPrimaryKey: true,
+          type: 'Column',
         },
-        searchable: false,
-        segments: [],
+        b: {
+          columnType: 'String',
+          isPrimaryKey: false,
+          type: 'Column',
+        },
       });
 
       it('should convert all fields', () => {
-        const schema: CollectionSchema = prepareSchema();
+        const schema: LiveCollectionSchema = prepareSchema();
 
         const attributes = CollectionSchemaToModelAttributesConverter.convert(schema);
 
-        expect(Object.keys(attributes)).toBeArrayOfSize(Object.keys(schema.fields).length);
+        expect(Object.keys(attributes)).toBeArrayOfSize(Object.keys(schema).length);
       });
 
       it('should properly flag primary keys', () => {
-        const schema: CollectionSchema = prepareSchema();
+        const schema: LiveCollectionSchema = prepareSchema();
 
         const attributes = CollectionSchemaToModelAttributesConverter.convert(schema);
 
@@ -48,7 +41,7 @@ describe('Utils > CollectionSchemaToModelAttributesConverter', () => {
       });
 
       it('should properly convert number primary keys to autoincrementing integer', () => {
-        const schema: CollectionSchema = prepareSchema();
+        const schema: LiveCollectionSchema = prepareSchema();
 
         const attributes = CollectionSchemaToModelAttributesConverter.convert(schema);
 
@@ -66,21 +59,16 @@ describe('Utils > CollectionSchemaToModelAttributesConverter', () => {
 
     describe('with Relation fields', () => {
       it('should ignore all fields', () => {
-        const schema: CollectionSchema = {
-          actions: {},
-          fields: {
-            a: {
-              foreignCollection: '__none__',
-              foreignKey: '__none__',
-              originKey: '__none__',
-              foreignKeyTarget: '__none__',
-              originKeyTarget: '__none__',
-              throughCollection: '__none__',
-              type: 'ManyToMany',
-            },
+        const schema: LiveCollectionSchema = {
+          a: {
+            foreignCollection: '__none__',
+            foreignKey: '__none__',
+            originKey: '__none__',
+            foreignKeyTarget: '__none__',
+            originKeyTarget: '__none__',
+            throughCollection: '__none__',
+            type: 'ManyToMany',
           },
-          searchable: false,
-          segments: [],
         };
 
         const attributes = CollectionSchemaToModelAttributesConverter.convert(schema);

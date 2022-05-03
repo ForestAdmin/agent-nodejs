@@ -1,17 +1,18 @@
-import { DataSourceSchema, Logger } from '@forestadmin/datasource-toolkit';
+import { Logger } from '@forestadmin/datasource-toolkit';
 import { Sequelize } from 'sequelize';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
+import { LiveSchema } from './types';
 import CollectionAttributesConverter from './utils/collection-schema-to-model-attributes-converter';
 import CollectionRelationsConverter from './utils/collection-schema-to-model-relations-converter';
 import LiveCollection from './collection';
 
 export default class LiveDataSource extends SequelizeDataSource {
-  constructor(dataSourceSchema: DataSourceSchema, logger?: Logger) {
+  constructor(dataSourceSchema: LiveSchema, logger?: Logger) {
     const logging = (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
     super(new Sequelize('sqlite::memory:', { logging }));
 
-    const collections = Object.entries(dataSourceSchema.collections);
+    const collections = Object.entries(dataSourceSchema);
 
     // Convert all collections to Sequelize models, only with plain attributes.
     collections.forEach(([name, schema]) => {

@@ -1,13 +1,14 @@
-import { CollectionSchema, ColumnSchema, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { ColumnSchema, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { DataTypes, ModelAttributeColumnOptions, ModelAttributes } from 'sequelize';
-
 import { TypeConverter } from '@forestadmin/datasource-sequelize';
 
+import { LiveCollectionSchema } from '../types';
+
 export default class CollectionSchemaToModelAttributesConverter {
-  public static convert(schema: CollectionSchema): ModelAttributes {
+  public static convert(schema: LiveCollectionSchema): ModelAttributes {
     const attributes: ModelAttributes = {};
 
-    Object.entries(schema.fields).forEach(([name, field]) => {
+    Object.entries(schema).forEach(([name, field]) => {
       if (field.type !== 'Column') return;
 
       attributes[name] = this.convertColumn(field);
