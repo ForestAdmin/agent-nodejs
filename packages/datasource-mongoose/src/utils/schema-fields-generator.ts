@@ -4,8 +4,9 @@ import {
   ColumnType,
   FieldSchema,
   PrimitiveTypes,
+  RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { Document, Model, Schema, SchemaType } from 'mongoose';
+import { Model, Schema, SchemaType } from 'mongoose';
 
 import FilterOperatorBuilder from './filter-operator-builder';
 
@@ -14,9 +15,9 @@ type ModelFields = { [key: string]: SchemaType };
 
 export default class SchemaFieldsGenerator {
   static buildRelationsInPlace(
-    fieldsAndModel: [CollectionSchema['fields'], Model<Document>][],
+    fieldsAndModel: [CollectionSchema['fields'], Model<RecordData>][],
   ): void {
-    const relations: [FieldSchema, Model<Document>][] = [];
+    const relations: [FieldSchema, Model<RecordData>][] = [];
     fieldsAndModel.forEach(([fields, model]) => {
       Object.values(fields).forEach(fieldSchema => {
         if (fieldSchema.type === 'ManyToOne') {
@@ -39,7 +40,8 @@ export default class SchemaFieldsGenerator {
     });
   }
 
-  static buildFieldsSchema(modelFields: ModelFields): CollectionSchema['fields'] {
+  static buildFieldsSchema(model: Model<RecordData>): CollectionSchema['fields'] {
+    const modelFields = model.schema.paths;
     const prebuildFieldsSchema = SchemaFieldsGenerator.prebuildFieldsSchema(modelFields);
 
     Object.values(prebuildFieldsSchema).forEach((schemaField: MongooseColumnSchema) => {

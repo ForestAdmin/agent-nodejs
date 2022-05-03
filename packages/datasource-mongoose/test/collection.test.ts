@@ -1,29 +1,27 @@
-import { Model } from 'mongoose';
+import { Connection, Schema, model } from 'mongoose';
 
-import { FieldSchema, RecordData } from '@forestadmin/datasource-toolkit';
-
+import { MongooseDatasource } from '../dist';
 import MongooseCollection from '../src/collection';
-import SchemaFieldsGenerator from '../src/utils/schema-fields-generator';
 
 describe('MongooseCollection', () => {
-  describe('buildSchema', () => {
-    it('should build the schema', () => {
-      const carsModel = {
-        schema: {
-          paths: {},
-        },
-      } as Model<RecordData>;
+  it('should build a collection with the right datasource and schema', () => {
+    const connection = { models: {} } as Connection;
+    const dataSource = new MongooseDatasource(connection);
 
-      const mockedFields = {
-        field: {} as FieldSchema,
-      };
-      const spy = jest
-        .spyOn(SchemaFieldsGenerator, 'buildSchemaFields')
-        .mockReturnValue(mockedFields);
-      const mongooseCollection = new MongooseCollection('cars', null, carsModel);
+    const carsModel = model('aModel', new Schema({ aField: { type: Number } }));
 
-      expect(spy).toHaveBeenCalledWith(carsModel.schema.paths);
-      expect(mongooseCollection.schema.fields).toStrictEqual(mockedFields);
+    const mongooseCollection = new MongooseCollection('cars', dataSource, carsModel);
+
+    expect(mongooseCollection.dataSource).toEqual(dataSource);
+    expect(mongooseCollection.name).toEqual('cars');
+    expect(mongooseCollection.schema).toEqual({
+      actions: {},
+      fields: {
+        aField: expect.any(Object),
+        _id: expect.any(Object),
+      },
+      searchable: false,
+      segments: [],
     });
   });
 });
