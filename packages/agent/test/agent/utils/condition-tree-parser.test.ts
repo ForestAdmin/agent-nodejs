@@ -1,4 +1,4 @@
-import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeBranch, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../__factories__';
 import ConditionTreeParser from '../../../src/agent/utils/condition-tree-parser';
@@ -17,6 +17,23 @@ describe('ConditionTreeParser', () => {
   test('should failed if provided something else', () => {
     expect(() => ConditionTreeParser.fromPlainObject(collection, {})).toThrow(
       'Failed to instantiate condition tree from json',
+    );
+  });
+
+  test('should work with aggregator', () => {
+    const tree = ConditionTreeParser.fromPlainObject(collection, {
+      aggregator: 'and',
+      conditions: [
+        { field: 'id', operator: 'less_than', value: 'something' },
+        { field: 'id', operator: 'greater_than', value: 'something' },
+      ],
+    });
+
+    expect(tree).toStrictEqual(
+      new ConditionTreeBranch('And', [
+        new ConditionTreeLeaf('id', 'LessThan', 'something'),
+        new ConditionTreeLeaf('id', 'GreaterThan', 'something'),
+      ]),
     );
   });
 
