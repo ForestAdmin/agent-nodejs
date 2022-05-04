@@ -26,7 +26,7 @@ export default class UpdateRelation extends RelationRoute {
 
   public async handleUpdateRelationRoute(context: Context): Promise<void> {
     const relation = this.collection.schema.fields[this.relationName];
-    const caller = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseCaller(context);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 
     const linkedId = context.request.body?.data?.id

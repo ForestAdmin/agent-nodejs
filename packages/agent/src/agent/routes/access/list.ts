@@ -17,7 +17,7 @@ export default class ListRoute extends CollectionRoute {
     const paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
 
     const records = await this.collection.list(
-      QueryStringParser.parseRecipient(context),
+      QueryStringParser.parseCaller(context),
       paginatedFilter,
       QueryStringParser.parseProjectionWithPks(this.collection, context),
     );

@@ -30,7 +30,7 @@ export default class ListRelatedRoute extends RelationRoute {
       this.collection,
       parentId,
       this.relationName,
-      QueryStringParser.parseRecipient(context),
+      QueryStringParser.parseCaller(context),
       paginatedFilter,
       QueryStringParser.parseProjectionWithPks(this.foreignCollection, context),
     );
