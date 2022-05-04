@@ -35,7 +35,7 @@ export default class AssociateRelatedRoute extends RelationRoute {
     );
     const scope = await this.services.permissions.getScope(this.foreignCollection, context);
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
-    const caller = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseCaller(context);
 
     if (relation.type === 'OneToMany') {
       await this.associateOneToMany(caller, scope, relation, parentId, targetedRelationId, context);

@@ -108,7 +108,7 @@ export default class QueryStringParser {
     return segment;
   }
 
-  static parseRecipient(context: Context): Caller {
+  static parseCaller(context: Context): Caller {
     const timezone = context.request.query.timezone?.toString();
 
     if (!timezone) {

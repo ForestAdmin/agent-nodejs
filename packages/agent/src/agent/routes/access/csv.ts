@@ -22,7 +22,7 @@ export default class CsvRoute extends CollectionRoute {
 
     const projection = QueryStringParser.parseProjection(this.collection, context);
     const scope = await this.services.permissions.getScope(this.collection, context);
-    const caller = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
 
     const list = this.collection.list.bind(this.collection);

@@ -44,7 +44,7 @@ export default class ActionRoute extends CollectionRoute {
     await this.checkPermissions(context);
 
     const { dataSource } = this.collection;
-    const caller = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);
     const rawData = context.request.body.data.attributes.values;
 
@@ -89,7 +89,7 @@ export default class ActionRoute extends CollectionRoute {
       ? ForestValueConverter.makeFormDataFromFields(dataSource, forestFields)
       : null;
 
-    const caller = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);
     const fields = await this.collection.getForm(caller, this.actionName, data, filter);
 
@@ -118,7 +118,7 @@ export default class ActionRoute extends CollectionRoute {
       await this.services.permissions.getScope(this.collection, context),
     );
 
-    const caller = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.build(this.collection, context, null, { conditionTree });
     const attributes = context.request?.body?.data?.attributes;
 

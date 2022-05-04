@@ -28,7 +28,7 @@ export default class GetRoute extends CollectionRoute {
     });
 
     const records = await this.collection.list(
-      QueryStringParser.parseRecipient(context),
+      QueryStringParser.parseCaller(context),
       filter,
       ProjectionFactory.all(this.collection),
     );

@@ -15,7 +15,7 @@ export default class CountRoute extends CollectionRoute {
     await this.services.permissions.can(context, `browse:${this.collection.name}`);
 
     const scope = await this.services.permissions.getScope(this.collection, context);
-    const caller = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.build(this.collection, context, scope);
 
     const aggregation = new Aggregation({ operation: 'Count' });

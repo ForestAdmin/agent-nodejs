@@ -33,7 +33,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     // Parse route params
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const isDeleteMode = Boolean(context.request.query?.delete);
-    const caller = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getBaseForeignFilter(context);
 
     // Dissociating a one to many or many many is quite a different job => delegate

@@ -68,7 +68,7 @@ export default class CreateRoute extends CollectionRoute {
   }
 
   private async createRecord(context: Context, patch: RecordData): Promise<RecordData> {
-    const caller = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseCaller(context);
 
     if (Object.keys(patch).length) {
       RecordValidator.validate(this.collection, patch);
@@ -84,7 +84,7 @@ export default class CreateRoute extends CollectionRoute {
     record: RecordData,
     relations: Record<string, RecordData>,
   ): Promise<void> {
-    const caller = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseCaller(context);
 
     const promises = Object.entries(relations).map(async ([field, linked]) => {
       const relation = this.collection.schema.fields[field];
@@ -131,7 +131,7 @@ export default class CreateRoute extends CollectionRoute {
     field: string,
     id: CompositeId,
   ): Promise<unknown> {
-    const caller = QueryStringParser.parseRecipient(context);
+    const caller = QueryStringParser.parseCaller(context);
     const schema = this.collection.schema.fields[field] as ManyToOneSchema;
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
 
