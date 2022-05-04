@@ -51,17 +51,12 @@ export default class ConditionTreeFactory {
 
   static fromPlainObject(json: PlainConditionTree): ConditionTree {
     if (ConditionTreeFactory.isLeaf(json)) {
-      // Convert snake_case to PascalCase
-      const operator =
-        json.operator.slice(0, 1).toUpperCase() +
-        json.operator.slice(1).replace(/_[a-z]/g, match => match.slice(1).toUpperCase());
-
-      return new ConditionTreeLeaf(json.field, operator as Operator, json.value);
+      return new ConditionTreeLeaf(json.field, json.operator as Operator, json.value);
     }
 
     if (ConditionTreeFactory.isBranch(json)) {
       const branch = new ConditionTreeBranch(
-        json.aggregator.toLowerCase() === 'and' ? 'And' : 'Or',
+        json.aggregator,
         json.conditions.map(subTree => ConditionTreeFactory.fromPlainObject(subTree)),
       );
 
