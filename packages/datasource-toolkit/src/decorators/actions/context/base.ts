@@ -1,11 +1,12 @@
 import { Caller } from '../../../interfaces/caller';
 import { Collection } from '../../../interfaces/collection';
-import { RecordData } from '../../../interfaces/record';
+import { CompositeId, RecordData } from '../../../interfaces/record';
 import CollectionCustomizationContext from '../../../context/collection-context';
 import Deferred from '../../../utils/async';
 import Filter from '../../../interfaces/query/filter/unpaginated';
 import Projection from '../../../interfaces/query/projection';
 import ProjectionValidator from '../../../validation/projection';
+import RecordUtils from '../../../utils/record';
 
 export default class ActionContext extends CollectionCustomizationContext {
   readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -41,7 +42,8 @@ export default class ActionContext extends CollectionCustomizationContext {
     }
   }
 
-  protected async getRecords(fields: string[]): Promise<RecordData[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getRecords(fields: string[]): Promise<any[]> {
     // This function just queues the request into this.queries, so that we can merge all calls
     // to getRecords() into a single one.
 
@@ -66,6 +68,19 @@ export default class ActionContext extends CollectionCustomizationContext {
     this.projection = this.projection.union(projection);
 
     return deferred.promise;
+  }
+
+  async getRecordIds(): Promise<Array<string | number>> {
+    const compositeIds = await this.getCompositeRecordIds();
+
+    return compositeIds.map(id => id[0]);
+  }
+
+  async getCompositeRecordIds(): Promise<CompositeId[]> {
+    const projection = new Projection().withPks(this.collection.rawCollection);
+    const records = await this.getRecords(projection);
+
+    return records.map(r => RecordUtils.getPrimaryKey(this.collection.schema, r));
   }
 
   private async runQuery(): Promise<void> {

@@ -1,6 +1,6 @@
 import * as factories from '../../__factories__';
 import { Collection } from '../../../src/interfaces/collection';
-import ActionContextBulk from '../../../src/decorators/actions/context/bulk';
+import ActionContext from '../../../src/decorators/actions/context/base';
 import ActionContextSingle from '../../../src/decorators/actions/context/single';
 import Filter from '../../../src/interfaces/query/filter/unpaginated';
 
@@ -35,7 +35,7 @@ describe('ActionContext', () => {
 
     expect(books.list).toHaveBeenCalledTimes(1);
     expect(books.list).toHaveBeenCalledWith(caller, filter, ['id', 'title']);
-    expect(id).toEqual([1]);
+    expect(id).toEqual(1);
     expect(partial1).toEqual({ title: 'Foundation' });
     expect(partial2).toEqual({ id: 1 });
     expect(partial3).toEqual({ id: 1, title: 'Foundation' });
@@ -76,7 +76,7 @@ describe('ActionContext', () => {
 
   test('should work in bulk mode', async () => {
     const filter = new Filter({});
-    const context = new ActionContextBulk(
+    const context = new ActionContext(
       books,
       factories.caller.build(),
       { title: 'Foundation' },
@@ -88,7 +88,7 @@ describe('ActionContext', () => {
       context.getRecords(['title']),
     ]);
     expect(books.list).toHaveBeenCalledTimes(1);
-    expect(ids).toEqual([[1]]);
+    expect(ids).toEqual([1]);
     expect(partials).toEqual([{ title: 'Foundation' }]);
   });
 
@@ -96,7 +96,7 @@ describe('ActionContext', () => {
     (books.list as jest.Mock).mockRejectedValue(new Error('bad request'));
 
     const filter = new Filter({});
-    const context = new ActionContextBulk(
+    const context = new ActionContext(
       books,
       factories.caller.build(),
       { title: 'Foundation' },
