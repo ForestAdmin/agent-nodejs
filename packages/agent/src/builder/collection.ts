@@ -58,8 +58,8 @@ export default class CollectionBuilder {
 
   /**
    * Allow to rename a field of a given collection.
-   * @param {string} oldName the current name of the field in a given collection
-   * @param {string} newName the new name of the field
+   * @param oldName the current name of the field in a given collection
+   * @param newName the new name of the field
    * @example
    * .renameField('theCurrentNameOfTheField', 'theNewNameOfTheField');
    */
@@ -71,7 +71,7 @@ export default class CollectionBuilder {
 
   /**
    * Remove field by setting its visibility to false.
-   * @param {...string[]} names the fields to remove
+   * @param names the fields to remove
    * @example
    * .removeField('aFieldToRemove', 'anOtherFieldToRemove');
    */
@@ -84,8 +84,8 @@ export default class CollectionBuilder {
 
   /**
    * Add a new action on the collection.
-   * @param {string} name the name of the action
-   * @param {ActionDefinition} definition the definition of the action
+   * @param name the name of the action
+   * @param definition the definition of the action
    * @example
    * .addAction('is live', {
    *    scope: 'Single',
@@ -102,8 +102,8 @@ export default class CollectionBuilder {
 
   /**
    * Add a new field on the collection.
-   * @param {string} name the name of the field
-   * @param {FieldDefinition} definition The definition of the field
+   * @param name the name of the field
+   * @param definition The definition of the field
    * @example
    * .addField('fullName', {
    *    columnType: 'String',
@@ -141,8 +141,8 @@ export default class CollectionBuilder {
 
   /**
    * Add a new segment on the collection.
-   * @param {string} name the name of the segment
-   * @param {SegmentDefinition} definition a function used to generate a condition tree
+   * @param name the name of the segment
+   * @param definition a function used to generate a condition tree
    * or a condition tree
    * @example
    * .addSegment(
@@ -159,7 +159,7 @@ export default class CollectionBuilder {
   /**
    * Enable sorting on a specific field using emulation.
    * As for all the emulation method, the field sorting will be done in-memory.
-   * @param {string} name the name of the field to enable emulation on
+   * @param name the name of the field to enable emulation on
    * @example
    * .emulateFieldSorting('fullName');
    */
@@ -172,8 +172,8 @@ export default class CollectionBuilder {
   /**
    * Replace an implementation for the sorting.
    * The field sorting will be done by the datasource.
-   * @param {string} name the name of the field to enable sort
-   * @param {SortClause[]} equivalentSort the sort equivalent
+   * @param name the name of the field to enable sort
+   * @param equivalentSort the sort equivalent
    * @example
    * .replaceFieldSorting(
    *   'fullName',
@@ -212,8 +212,8 @@ export default class CollectionBuilder {
   /**
    * Enable filtering on a specific field with a specific operator using emulation.
    * As for all the emulation method, the field filtering will be done in-memory.
-   * @param {string} name the name of the field to enable emulation on
-   * @param {Operator} operator the operator to emulate
+   * @param name the name of the field to enable emulation on
+   * @param operator the operator to emulate
    * @example
    * .emulateFieldOperator('aField', 'In');
    */
@@ -230,9 +230,9 @@ export default class CollectionBuilder {
   /**
    * Replace an implementation for a specific operator on a specific field.
    * The operator replacement will be done by the datasource.
-   * @param {string} name the name of the field to filter on
-   * @param {Operator} operator the operator to replace
-   * @param {OperatorReplacer} replacer the proposed implementation
+   * @param name the name of the field to filter on
+   * @param operator the operator to replace
+   * @param replacer the proposed implementation
    * @example
    * .replaceFieldOperator('booksCount', 'Equal', ({ value }) => new ConditionTreeNot(
    *   new ConditionTreeLeaf('booksCount', 'Equal', value),
@@ -250,8 +250,8 @@ export default class CollectionBuilder {
 
   /**
    * Replace the write behavior of a field.
-   * @param {string} name the name of the field
-   * @param {WriteDefinition} definition the function or a value to represent the write behavior
+   * @param name the name of the field
+   * @param definition the function or a value to represent the write behavior
    * @example
    * .replaceFieldWriting('fullName', fullName => {
    *   const [firstName, lastName] = fullName.split(' ');

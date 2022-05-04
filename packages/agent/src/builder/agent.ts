@@ -43,7 +43,7 @@ export default class AgentBuilder {
    *  schemaPath: '.forestadmin-schema.json',
    *  permissionsCacheDurationInSeconds: 15 * 60,
    * ```
-   * @param {AgentOptions} options options
+   * @param options options
    * @example
    * new AgentBuilder(options)
    *  .addDatasource(new Datasource())
@@ -58,7 +58,7 @@ export default class AgentBuilder {
 
   /**
    * Add a datasource
-   * @param {DataSourceFactory} factory the datasource to add
+   * @param factory the datasource to add
    */
   addDatasource(factory: DataSourceFactory): this {
     this.tasks.push(async () => {
@@ -73,8 +73,8 @@ export default class AgentBuilder {
 
   /**
    * Allow to interact with a decorated collection
-   * @param {string} name the name of the collection to manipulate
-   * @param {(collection: CollectionBuilder) => unknown} handle a function that provide a
+   * @param name the name of the collection to manipulate
+   * @param handle a function that provide a
    *   collection builder on the given collection name
    * @example
    * .customizeCollection('books', books => books.renameField('xx', 'yy'))
