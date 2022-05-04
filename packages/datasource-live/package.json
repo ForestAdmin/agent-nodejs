@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-live",
-  "version": "1.0.0-beta.16",
+  "version": "1.0.0-beta.17",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -12,8 +12,8 @@
     "directory": "packages/datasource-live"
   },
   "dependencies": {
-    "@forestadmin/datasource-sequelize": "1.0.0-beta.15",
-    "@forestadmin/datasource-toolkit": "1.0.0-beta.10",
+    "@forestadmin/datasource-sequelize": "1.0.0-beta.16",
+    "@forestadmin/datasource-toolkit": "1.0.0-beta.11",
     "sqlite3": "^5.0.2"
   },
   "files": [
