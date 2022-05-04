@@ -12,6 +12,7 @@ import customizeDvd from './customizations/dvd';
 import customizeOwner from './customizations/owner';
 import customizePost from './customizations/post';
 import customizeRental from './customizations/rental';
+import customizeReview from './customizations/review';
 import customizeStore from './customizations/store';
 import liveDatasourceSchema from './datasources/live/schema';
 import prepareReviewsInMongoose from './datasources/mongoose';
@@ -37,5 +38,6 @@ export default async function makeAgent(options: AgentOptions) {
     .customizeCollection('dvd', customizeDvd)
     .customizeCollection('customer', customizeCustomer)
     .customizeCollection('post', customizePost)
-    .customizeCollection('comment', customizeComment);
+    .customizeCollection('comment', customizeComment)
+    .customizeCollection('review', customizeReview);
 }

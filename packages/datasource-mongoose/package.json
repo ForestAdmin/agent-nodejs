@@ -8,7 +8,7 @@
     "dist/**/*.d.ts"
   ],
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.0.0-beta.10"
+    "@forestadmin/datasource-toolkit": "1.0.0-beta.11"
   },
   "devDependencies": {
     "@types/node": "^16.11.7"

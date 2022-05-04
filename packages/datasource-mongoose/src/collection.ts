@@ -23,7 +23,7 @@ export default class MongooseCollection extends BaseCollection {
   }
 
   list(): Promise<RecordData[]> {
-    return null;
+    throw new Error('Method not implemented.');
   }
 
   update(): Promise<void> {

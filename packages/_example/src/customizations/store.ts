@@ -14,6 +14,12 @@ export default (collection: Collection) =>
       originKey: 'storeId',
       originKeyTarget: 'id',
     })
+    .addRelation('review', {
+      type: 'OneToMany',
+      foreignCollection: 'review',
+      originKey: 'storeId',
+      originKeyTarget: 'id',
+    })
     .addRelation('dvd', {
       type: 'OneToMany',
       foreignCollection: 'dvd',
