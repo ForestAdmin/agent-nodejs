@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.10...@forestadmin/datasource-toolkit@1.0.0-beta.11) (2022-05-04)
+
+
+### Bug Fixes
+
+* correctly parse the value of "in" nodes in conditions trees ([#281](https://github.com/ForestAdmin/agent-nodejs/issues/281)) ([3c34e30](https://github.com/ForestAdmin/agent-nodejs/commit/3c34e30da8922ebf81337c6ac9695eb6bae50397))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.9...@forestadmin/datasource-toolkit@1.0.0-beta.10) (2022-04-29)
 
 
