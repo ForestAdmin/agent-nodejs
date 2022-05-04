@@ -16,7 +16,6 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 export default class DecoratorsStack {
-  // Decorators
   action: DataSourceDecorator<ActionCollectionDecorator>;
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
@@ -35,83 +34,38 @@ export default class DecoratorsStack {
   dataSource: DataSource;
 
   constructor(dataSource: DataSource) {
-    this.dataSource = dataSource;
+    let last: DataSource = dataSource;
 
     /* eslint-disable no-multi-assign */
-
     // Step 0: Do not query datasource when we know the result with yield an empty set.
-    this.dataSource = this.empty = new DataSourceDecorator(
-      this.dataSource,
-      EmptyCollectionDecorator,
-    );
+    last = this.empty = new DataSourceDecorator(last, EmptyCollectionDecorator);
 
     // Step 1: Computed-Relation-Computed sandwich (needed because some emulated relations depend
     // on computed fields, and some computed fields depend on relation...)
     // Note that replacement goes before emulation, as replacements may use emulated operators.
-    this.dataSource = this.earlyComputed = new DataSourceDecorator(
-      this.dataSource,
-      ComputedCollectionDecorator,
-    );
-    this.dataSource = this.earlyOpEmulate = new DataSourceDecorator(
-      this.dataSource,
-      OperatorsEmulateCollectionDecorator,
-    );
-    this.dataSource = this.earlyOpReplace = new DataSourceDecorator(
-      this.dataSource,
-      OperatorsReplaceCollectionDecorator,
-    );
-    this.dataSource = this.relation = new DataSourceDecorator(
-      this.dataSource,
-      RelationCollectionDecorator,
-    );
-    this.dataSource = this.lateComputed = new DataSourceDecorator(
-      this.dataSource,
-      ComputedCollectionDecorator,
-    );
-    this.dataSource = this.lateOpEmulate = new DataSourceDecorator(
-      this.dataSource,
-      OperatorsEmulateCollectionDecorator,
-    );
-    this.dataSource = this.lateOpReplace = new DataSourceDecorator(
-      this.dataSource,
-      OperatorsReplaceCollectionDecorator,
-    );
+    last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
+    last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
+    last = this.earlyOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
+    last = this.relation = new DataSourceDecorator(last, RelationCollectionDecorator);
+    last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
+    last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
+    last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
 
     // Step 2: Those four need access to all fields. They can be loaded in any order.
-    this.dataSource = this.search = new DataSourceDecorator(
-      this.dataSource,
-      SearchCollectionDecorator,
-    );
-    this.dataSource = this.segment = new DataSourceDecorator(
-      this.dataSource,
-      SegmentCollectionDecorator,
-    );
-    this.dataSource = this.sortEmulate = new DataSourceDecorator(
-      this.dataSource,
-      SortEmulateCollectionDecorator,
-    );
-    this.dataSource = this.write = new DataSourceDecorator(
-      this.dataSource,
-      WriteCollectionDecorator,
-    );
+    last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
+    last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
+    last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
+    last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
 
     // Step 3: Access to all fields AND emulated capabilities
-    this.dataSource = this.action = new DataSourceDecorator(
-      this.dataSource,
-      ActionCollectionDecorator,
-    );
+    last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
 
-    // Step 4: Renaming must be either the very first or very
-    // this.dataSource so that naming in customer code
+    // Step 4: Renaming must be either the very first or very last so that naming in customer code
     // is consistent.
-    this.dataSource = this.publication = new DataSourceDecorator(
-      this.dataSource,
-      PublicationCollectionDecorator,
-    );
-    this.dataSource = this.rename = new DataSourceDecorator(
-      this.dataSource,
-      RenameCollectionDecorator,
-    );
+    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
+    last = this.rename = new DataSourceDecorator(last, RenameCollectionDecorator);
     /* eslint-enable no-multi-assign */
+
+    this.dataSource = last;
   }
 }
