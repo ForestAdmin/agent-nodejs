@@ -26,6 +26,7 @@ class DVD {
 }
 class DVD
 note bottom: ACTION => Increase the rental price
+note bottom: FIELD => numRentals
 
 class RENTALS {
   Int numberOfDays
