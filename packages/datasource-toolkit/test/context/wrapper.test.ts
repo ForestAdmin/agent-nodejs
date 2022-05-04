@@ -21,17 +21,9 @@ describe('RelaxedWrappers', () => {
       relaxed = new RelaxedDataSource(dataSource, factories.caller.build());
     });
 
-    test('should forward collection calls', () => {
-      expect(relaxed.collections.length).toEqual(dataSource.collections.length);
-    });
-
     test('should forward getCollection calls', () => {
       relaxed.getCollection('someCollection');
       expect(dataSource.getCollection).toHaveBeenCalledWith('someCollection');
-    });
-
-    test('should throw when calling addColection', () => {
-      expect(() => relaxed.addCollection()).toThrow('Cannot modify existing datasources.');
     });
   });
 
@@ -44,18 +36,6 @@ describe('RelaxedWrappers', () => {
       caller = factories.caller.build();
       collection = factories.collection.build();
       relaxed = new RelatedCollection(collection, caller);
-    });
-
-    test('should return a related datasource', () => {
-      expect(relaxed.dataSource).toBeInstanceOf(RelaxedDataSource);
-    });
-
-    test('should have a name', () => {
-      expect(relaxed.name).toEqual(collection.name);
-    });
-
-    test('should get schema without changes', () => {
-      expect(relaxed.schema).toBe(collection.schema);
     });
 
     test('should call list when provided with a plain object', async () => {
@@ -99,25 +79,6 @@ describe('RelaxedWrappers', () => {
           page: new Page(0, 10),
           sort: new Sort({ field: 'id', ascending: true }),
         }),
-        new Projection('id', 'truc'),
-      );
-    });
-
-    test('should call list when provided with a filter instance', async () => {
-      await relaxed.list(
-        new PaginatedFilter({ conditionTree: new ConditionTreeLeaf('id', 'Equal', 123) }),
-        new Projection('id', 'truc'),
-      );
-
-      expect(collection.list).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.any(PaginatedFilter),
-        expect.any(Projection),
-      );
-
-      expect(collection.list).toHaveBeenCalledWith(
-        caller,
-        new PaginatedFilter({ conditionTree: new ConditionTreeLeaf('id', 'Equal', 123) }),
         new Projection('id', 'truc'),
       );
     });
@@ -189,21 +150,6 @@ describe('RelaxedWrappers', () => {
       );
     });
 
-    test('should forward update and transform filter with real filter', async () => {
-      await relaxed.update(new Filter({ segment: 'some_segment' }), { name: 'something' });
-
-      expect(collection.update).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.any(Filter),
-        expect.anything(),
-      );
-      expect(collection.update).toHaveBeenCalledWith(
-        caller,
-        new Filter({ segment: 'some_segment' }),
-        { name: 'something' },
-      );
-    });
-
     test('should forward delete and transform filter', async () => {
       await relaxed.delete({ segment: 'some_segment' });
 
@@ -217,25 +163,6 @@ describe('RelaxedWrappers', () => {
     test('should call aggregate when provided with a plain object', async () => {
       const filter = { conditionTree: { field: 'id', operator: 'Equal', value: 123 } } as const;
       const aggregation = { operation: 'Count' } as const;
-      await relaxed.aggregate(filter, aggregation, 66);
-
-      expect(collection.aggregate).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.any(Filter),
-        expect.any(Aggregation),
-        expect.any(Number),
-      );
-      expect(collection.aggregate).toHaveBeenCalledWith(
-        caller,
-        new Filter({ conditionTree: new ConditionTreeLeaf('id', 'Equal', 123) }),
-        new Aggregation({ operation: 'Count' }),
-        66,
-      );
-    });
-
-    test('should call aggregate when provided with instances', async () => {
-      const filter = new Filter({ conditionTree: new ConditionTreeLeaf('id', 'Equal', 123) });
-      const aggregation = new Aggregation({ operation: 'Count' });
       await relaxed.aggregate(filter, aggregation, 66);
 
       expect(collection.aggregate).toHaveBeenCalledWith(

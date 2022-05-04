@@ -4,7 +4,7 @@ import AgentCustomizationContext from './agent-context';
 import RelaxedCollection from './relaxed-wrappers/collection';
 
 export default class CollectionCustomizationContext extends AgentCustomizationContext {
-  private realCollection: Collection;
+  protected realCollection: Collection;
 
   get collection(): RelaxedCollection {
     return new RelaxedCollection(this.realCollection, this.caller);
