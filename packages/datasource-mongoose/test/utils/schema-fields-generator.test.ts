@@ -264,6 +264,7 @@ describe('SchemaFieldsGenerator', () => {
             columnType: {
               nested: {
                 level: 'Number',
+                _id: 'String',
               },
             },
             filterOperators: FilterOperatorBuilder.getSupportedOperators('Json'),
@@ -284,12 +285,51 @@ describe('SchemaFieldsGenerator', () => {
             columnType: {
               nested: {
                 level: 'Number',
+                _id: 'String',
               },
             },
             filterOperators: FilterOperatorBuilder.getSupportedOperators('Json'),
             isSortable: false,
             type: 'Column',
           },
+        });
+      });
+
+      describe('with a very deep object', () => {
+        it('should build the right schema', () => {
+          const objectSchema = new Schema({
+            object: {
+              type: {
+                nested: {
+                  nested2: {
+                    type: {
+                      level: Number,
+                    },
+                  },
+                },
+              },
+            },
+          });
+
+          const schema = SchemaFieldsGenerator.buildFieldsSchema(
+            buildModel(objectSchema, 'object'),
+          );
+
+          expect(schema).toMatchObject({
+            object: {
+              columnType: {
+                nested: {
+                  nested2: {
+                    level: 'Number',
+                    _id: 'String',
+                  },
+                },
+              },
+              filterOperators: FilterOperatorBuilder.getSupportedOperators('Json'),
+              isSortable: false,
+              type: 'Column',
+            },
+          });
         });
       });
     });
