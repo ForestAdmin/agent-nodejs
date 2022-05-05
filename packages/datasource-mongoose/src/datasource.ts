@@ -1,12 +1,11 @@
-import { Connection } from 'mongoose';
-
 import { BaseDataSource } from '@forestadmin/datasource-toolkit';
+import { Connection } from 'mongoose';
 
 import MongooseCollection from './collection';
 import SchemaFieldsGenerator from './utils/schema-fields-generator';
 
 export default class MongooseDatasource extends BaseDataSource<MongooseCollection> {
-  private connection: Connection = null;
+  private connection: Connection;
 
   constructor(connection: Connection) {
     super();
@@ -19,13 +18,9 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
   }
 
   protected createCollections() {
-    const collections = [];
-
-    Object.entries(this.connection.models).forEach(([modelName, model]) => {
-      collections.push(new MongooseCollection(modelName, this, model));
+    Object.values(this.connection.models).forEach(model => {
+      this.addCollection(new MongooseCollection(this, model));
     });
-    SchemaFieldsGenerator.buildRelationsInPlace(collections);
-
-    collections.forEach(collection => this.addCollection(collection));
+    SchemaFieldsGenerator.addInverseRelationships(this.collections);
   }
 }

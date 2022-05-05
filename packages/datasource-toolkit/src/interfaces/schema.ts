@@ -10,7 +10,7 @@ export type ActionSchema = {
 
 export type CollectionSchema = {
   actions: { [actionName: string]: ActionSchema };
-  fields: { [key: string]: FieldSchema };
+  fields: { [fieldName: string]: FieldSchema };
   searchable: boolean;
   segments: string[];
 };

@@ -9,6 +9,8 @@ export default class FilterOperatorBuilder {
     'NotContains',
     'StartsWith',
     'EndsWith',
+    'LongerThan',
+    'ShorterThan',
   ];
 
   static readonly comparisonOperators: Partial<Operator[]> = ['GreaterThan', 'LessThan'];

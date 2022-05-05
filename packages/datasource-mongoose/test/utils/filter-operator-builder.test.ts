@@ -25,6 +25,8 @@ describe('FilterOperatorBuilder > getSupportedOperators', () => {
         'NotContains',
         'StartsWith',
         'EndsWith',
+        'LongerThan',
+        'ShorterThan',
       ],
     ],
     [
@@ -39,6 +41,8 @@ describe('FilterOperatorBuilder > getSupportedOperators', () => {
         'NotContains',
         'StartsWith',
         'EndsWith',
+        'LongerThan',
+        'ShorterThan',
       ],
     ],
     ['Json', ['Blank', 'Equal', 'NotEqual', 'Present']],
@@ -46,11 +50,13 @@ describe('FilterOperatorBuilder > getSupportedOperators', () => {
     ['Timeonly', []],
   ];
   test.each(cases)('[%p] returns the supported operators', (type, expectedTypes) => {
-    expect(Array.from(FilterOperatorBuilder.getSupportedOperators(type))).toEqual(expectedTypes);
+    expect(Array.from(FilterOperatorBuilder.getSupportedOperators(type))).toStrictEqual(
+      expectedTypes,
+    );
   });
 
   test('should test all the primitive types', () => {
     const numberOfPrimitiveTypes = 10;
-    expect(cases.length).toEqual(numberOfPrimitiveTypes);
+    expect(cases.length).toStrictEqual(numberOfPrimitiveTypes);
   });
 });

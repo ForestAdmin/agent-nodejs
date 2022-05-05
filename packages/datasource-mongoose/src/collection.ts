@@ -11,8 +11,8 @@ import SchemaFieldsGenerator from './utils/schema-fields-generator';
 export default class MongooseCollection extends BaseCollection {
   private model: Model<RecordData>;
 
-  constructor(name: string, dataSource: DataSource, model: Model<RecordData>) {
-    super(name, dataSource);
+  constructor(dataSource: DataSource, model: Model<RecordData>) {
+    super(model.modelName, dataSource);
     this.model = model;
 
     this.addFields(SchemaFieldsGenerator.buildFieldsSchema(model));

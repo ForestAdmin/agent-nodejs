@@ -18,7 +18,6 @@ export default (collection: Collection) =>
       type: 'OneToMany',
       foreignCollection: 'review',
       originKey: 'storeId',
-      originKeyTarget: 'id',
     })
     .addRelation('dvd', {
       type: 'OneToMany',

@@ -15,7 +15,7 @@ class REVIEW {
   String message
 }
 class REVIEW
-note bottom: TABLE IN MARIADB
+note bottom: TABLE IN MONGODB
 
 class OWNER {
   String firstName

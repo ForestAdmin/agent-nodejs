@@ -15,23 +15,15 @@ type MongooseColumnSchema = ColumnSchema & { schema?: CollectionSchema['fields']
 type ModelFields = { [key: string]: SchemaType };
 
 export default class SchemaFieldsGenerator {
-  static buildRelationsInPlace(collections: MongooseCollection[]): void {
-    const relations: [FieldSchema, string][] = [];
+  static addInverseRelationships(collections: MongooseCollection[]): void {
     collections.forEach(collection => {
       Object.values(collection.schema.fields).forEach(fieldSchema => {
         if (fieldSchema.type === 'ManyToOne') {
-          relations.push([fieldSchema, collection.name]);
-        }
-      });
-    });
-
-    collections.forEach(collection => {
-      relations.forEach(([relationFieldSchema, collectionName]) => {
-        if (relationFieldSchema.type === 'ManyToOne') {
-          collection.schema.fields[`${collectionName}__oneToMany`] = {
-            foreignCollection: collectionName,
-            originKey: '_id',
-            originKeyTarget: relationFieldSchema.foreignKey,
+          const foreignCollection = collections.find(c => c.name === fieldSchema.foreignCollection);
+          foreignCollection.schema.fields[`${collection.name}__oneToMany`] = {
+            foreignCollection: collection.name,
+            originKey: fieldSchema.foreignKey,
+            originKeyTarget: '_id',
             type: 'OneToMany',
           };
         }
@@ -84,7 +76,8 @@ export default class SchemaFieldsGenerator {
       columnType,
       filterOperators: FilterOperatorBuilder.getSupportedOperators(columnType as PrimitiveTypes),
       defaultValue: field.options?.default,
-      enumValues: field.options?.enum,
+      enumValues:
+        field.options?.enum instanceof Array ? field.options.enum : field.options?.enum?.values,
       isPrimaryKey: field.path === '_id',
       isReadOnly: !!field.options?.immutable,
       isSortable: !(Array.isArray(columnType) || columnType === 'Json'),
