@@ -31,6 +31,7 @@ For example, having an `index.js` containing:
 ```javascript
 // Import the requirements
 const { Agent } = require('@forestadmin/agent');
+
 const { createSqlDatasource } = require('@forestadmin/datasource-sql');
 const dotenv = require('dotenv');
 dotenv.config();
@@ -88,3 +89,7 @@ This explains why, if you try to visit https://app.forestadmin.com, you will be 
 Deploying your project to production will enforce HTTPS.
 
 {% endhint %}
+
+# Troubleshooting
+
+#### ❓ Don't you see an answer to your problem? Describe it on our [Developer Community Forum](https://community.forestadmin.com) and we will answer quickly.
