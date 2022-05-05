@@ -8,7 +8,7 @@ import ActionContext from './context/base';
 import ActionContextSingle from './context/single';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
-import Filter from '../../interfaces/query/filter/unpaginated';
+import Filter, { PlainFilter } from '../../interfaces/query/filter/unpaginated';
 import ResultBuilder from './result-builder';
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
@@ -105,7 +105,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       Global: ActionContext,
       Bulk: ActionContext,
       Single: ActionContextSingle,
-    }[action.scope](this, caller, formValues, filter, used);
+    }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used);
   }
 
   private async dropDefaults(

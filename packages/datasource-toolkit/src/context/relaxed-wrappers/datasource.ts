@@ -7,10 +7,6 @@ export default class RelaxedDataSource {
   private dataSource: DataSource;
   private caller: Caller;
 
-  get collections(): RelaxedCollection[] {
-    return this.dataSource.collections.map(c => new RelaxedCollection(c, this.caller));
-  }
-
   constructor(dataSource: DataSource, caller: Caller) {
     this.dataSource = dataSource;
     this.caller = caller;
@@ -18,9 +14,5 @@ export default class RelaxedDataSource {
 
   getCollection(name: string): RelaxedCollection {
     return new RelaxedCollection(this.dataSource.getCollection(name), this.caller);
-  }
-
-  addCollection(): void {
-    throw new Error('Cannot modify existing datasources.');
   }
 }

@@ -22,10 +22,9 @@ describe('ActionContext', () => {
   });
 
   test('should factorize calls to list made at the same time', async () => {
-    const filter = new Filter({});
     const caller = factories.caller.build();
 
-    const context = new ActionContextSingle(books, caller, {}, filter);
+    const context = new ActionContextSingle(books, caller, {}, {});
     const [id, partial1, partial2, partial3] = await Promise.all([
       context.getRecordId(),
       context.getRecord(['title']),
@@ -34,7 +33,7 @@ describe('ActionContext', () => {
     ]);
 
     expect(books.list).toHaveBeenCalledTimes(1);
-    expect(books.list).toHaveBeenCalledWith(caller, filter, ['id', 'title']);
+    expect(books.list).toHaveBeenCalledWith(caller, new Filter({}), ['id', 'title']);
     expect(id).toEqual(1);
     expect(partial1).toEqual({ title: 'Foundation' });
     expect(partial2).toEqual({ id: 1 });
@@ -47,7 +46,7 @@ describe('ActionContext', () => {
       books,
       factories.caller.build(),
       { title: 'Foundation' },
-      factories.filter.build(),
+      {},
       used,
     );
 
@@ -59,14 +58,12 @@ describe('ActionContext', () => {
     // we check that only for load/change hooks, as in the execute handler it does not
     // matter if the user wants to write there (for instance to put defaults values).
 
-    const filter = new Filter({});
-    const used = new Set<string>();
     const context = new ActionContextSingle(
       books,
       factories.caller.build(),
       { title: 'Foundation' },
-      filter,
-      used,
+      {},
+      new Set<string>(),
     );
 
     expect(() => {
@@ -75,18 +72,12 @@ describe('ActionContext', () => {
   });
 
   test('should work in bulk mode', async () => {
-    const filter = new Filter({});
-    const context = new ActionContext(
-      books,
-      factories.caller.build(),
-      { title: 'Foundation' },
-      filter,
-    );
-
+    const context = new ActionContext(books, factories.caller.build(), { title: 'Foundation' }, {});
     const [ids, partials] = await Promise.all([
       context.getRecordIds(),
       context.getRecords(['title']),
     ]);
+
     expect(books.list).toHaveBeenCalledTimes(1);
     expect(ids).toEqual([1]);
     expect(partials).toEqual([{ title: 'Foundation' }]);
@@ -95,14 +86,7 @@ describe('ActionContext', () => {
   test('getrecords should reject all promises if the query fails', async () => {
     (books.list as jest.Mock).mockRejectedValue(new Error('bad request'));
 
-    const filter = new Filter({});
-    const context = new ActionContext(
-      books,
-      factories.caller.build(),
-      { title: 'Foundation' },
-      filter,
-    );
-
+    const context = new ActionContext(books, factories.caller.build(), { title: 'Foundation' }, {});
     const promise1 = context.getRecords(['title']);
     const promise2 = context.getRecords(['id']);
 

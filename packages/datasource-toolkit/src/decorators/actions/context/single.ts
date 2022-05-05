@@ -11,10 +11,10 @@ export default class ActionContextSingle extends ActionContext {
   }
 
   async getCompositeRecordId(): Promise<CompositeId> {
-    const projection = new Projection().withPks(this.collection.rawCollection);
+    const projection = new Projection().withPks(this.realCollection);
     const records = await this.getRecords(projection);
 
-    return RecordUtils.getPrimaryKey(this.collection.schema, records[0]);
+    return RecordUtils.getPrimaryKey(this.realCollection.schema, records[0]);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

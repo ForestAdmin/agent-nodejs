@@ -1,16 +1,16 @@
 import { Caller } from '../../../interfaces/caller';
 import { Collection } from '../../../interfaces/collection';
 import { CompositeId, RecordData } from '../../../interfaces/record';
+import { PlainFilter } from '../../../interfaces/query/filter/unpaginated';
 import CollectionCustomizationContext from '../../../context/collection-context';
 import Deferred from '../../../utils/async';
-import Filter from '../../../interfaces/query/filter/unpaginated';
 import Projection from '../../../interfaces/query/projection';
 import ProjectionValidator from '../../../validation/projection';
 import RecordUtils from '../../../utils/record';
 
 export default class ActionContext extends CollectionCustomizationContext {
   readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  readonly filter: Filter;
+  readonly filter: PlainFilter;
 
   private queries: Array<{ projection: Projection; deferred: Deferred<RecordData[]> }>;
   private projection: Projection;
@@ -19,7 +19,7 @@ export default class ActionContext extends CollectionCustomizationContext {
     collection: Collection,
     caller: Caller,
     formValue: RecordData,
-    filter: Filter,
+    filter: PlainFilter,
     used?: Set<string>,
   ) {
     super(collection, caller);
@@ -58,7 +58,7 @@ export default class ActionContext extends CollectionCustomizationContext {
     // @see https://github.com/graphql/dataloader
     //   A library from facebook from which this pattern is inspired.
 
-    ProjectionValidator.validate(this.collection.rawCollection, fields);
+    ProjectionValidator.validate(this.realCollection, fields);
 
     const deferred = new Deferred<RecordData[]>();
     const projection = new Projection(...fields);
@@ -77,10 +77,10 @@ export default class ActionContext extends CollectionCustomizationContext {
   }
 
   async getCompositeRecordIds(): Promise<CompositeId[]> {
-    const projection = new Projection().withPks(this.collection.rawCollection);
+    const projection = new Projection().withPks(this.realCollection);
     const records = await this.getRecords(projection);
 
-    return records.map(r => RecordUtils.getPrimaryKey(this.collection.schema, r));
+    return records.map(r => RecordUtils.getPrimaryKey(this.realCollection.schema, r));
   }
 
   private async runQuery(): Promise<void> {
