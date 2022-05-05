@@ -86,7 +86,7 @@ describe('SchemaFieldsGenerator', () => {
 
     describe('when field have enums', () => {
       it('should build a field schema with a enum column type and enum values', () => {
-        const enumValues = [Symbol('enum1'), Symbol('enum2')];
+        const enumValues = ['enum1', 'enum2'];
         const schema = new Schema({ aField: { type: String, enum: enumValues } });
 
         const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema));
@@ -96,7 +96,7 @@ describe('SchemaFieldsGenerator', () => {
 
       describe('when it is declared with an other syntax', () => {
         it('should build a field schema with a enum column type and enum values', () => {
-          const enumValues = [Symbol('enum1'), Symbol('enum2')];
+          const enumValues = ['enum1', 'enum2'];
           const schema = new Schema({
             aField: {
               type: String,
@@ -112,6 +112,17 @@ describe('SchemaFieldsGenerator', () => {
           expect(fieldsSchema).toMatchObject({ aField: { columnType: 'Enum', enumValues } });
         });
       });
+
+      describe('when the enum is not a array of string', () => {
+        it('should raise an error', () => {
+          const enumValues = [1, 2];
+          const schema = new Schema({ aField: { type: String, enum: enumValues } });
+
+          expect(() => SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema))).toThrow(
+            'Enum support only String values',
+          );
+        });
+      });
     });
 
     describe('with array fields', () => {
@@ -125,6 +136,7 @@ describe('SchemaFieldsGenerator', () => {
           [String, 'String'],
           [{ type: String }, 'String'],
           [Schema.Types.ObjectId, 'String'],
+          [Schema.Types.Decimal128, 'String'],
           [{ type: Schema.Types.ObjectId }, 'String'],
           [Buffer, 'String'],
           [{ type: Buffer }, 'String'],
@@ -329,6 +341,7 @@ describe('SchemaFieldsGenerator', () => {
       });
     });
   });
+
   describe('addInverseRelationships', () => {
     it('should add a relation _oneToMany in the foreign fields schema', () => {
       const schemaWithManyToOne = new Schema({

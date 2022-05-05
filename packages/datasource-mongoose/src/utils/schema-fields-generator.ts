@@ -47,12 +47,21 @@ export default class SchemaFieldsGenerator {
   }
 
   private static getColumnType(instance: string, field: SchemaType): ColumnType {
-    if (field.options?.enum) return 'Enum';
+    const potentialEnumValues = this.getEnumValues(field);
+
+    if (potentialEnumValues) {
+      if (potentialEnumValues.some(value => !(typeof value === 'string'))) {
+        throw new Error('Enum support only String values');
+      }
+
+      return 'Enum';
+    }
 
     switch (instance) {
       case 'String':
       case 'ObjectID':
       case 'Buffer':
+      case 'Decimal128':
         return 'String';
       case 'Number':
         return 'Number';
@@ -76,14 +85,17 @@ export default class SchemaFieldsGenerator {
       columnType,
       filterOperators: FilterOperatorBuilder.getSupportedOperators(columnType as PrimitiveTypes),
       defaultValue: field.options?.default,
-      enumValues:
-        field.options?.enum instanceof Array ? field.options.enum : field.options?.enum?.values,
+      enumValues: this.getEnumValues(field),
       isPrimaryKey: field.path === '_id',
       isReadOnly: !!field.options?.immutable,
       isSortable: !(Array.isArray(columnType) || columnType === 'Json'),
       type: 'Column',
       validation: field.isRequired ? [{ operator: 'Present' }] : null,
     };
+  }
+
+  private static getEnumValues(field: SchemaType) {
+    return field.options?.enum instanceof Array ? field.options.enum : field.options?.enum?.values;
   }
 
   private static buildArraySchema(field: Schema.Types.Array): FieldSchema {
