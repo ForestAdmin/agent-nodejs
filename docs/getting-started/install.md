@@ -76,6 +76,51 @@ should be enough for you to fully onboard with the `SQL` datasource.
 
 As you can see in the previous paragraph, Forest Admin is able to run in a completely isolated context. However, in order to easily maintain your agent, you may want to attach the it directly. As long as your HTTP server is able to attach a native Node.js `httpCallback`, you should be able to make the Forest Admin agent work within your app.
 
+#### Example with `express`
+
+Express is able to handle the native `agent.httpCallback` directly as a middleware, allow you to attach your Forest Admin agent like so
+
+```javascript
+const express = require('express');
+const app = express();
+const agent = new Agent({
+  ...agentOptions,
+});
+await agent.start();
+app.use(agent.httpCallback);
+app.listen(3000, () => {
+  console.log('Started');
+});
+```
+
+#### Example with `fastify`
+
+After v3.0.0 of `fastify`, middlewares are not supported out-of-the-box ([Link to their documentation](https://www.fastify.io/docs/latest/Reference/Middleware/)).
+
+Using the `middie` package allow you to attach your Forest Admin agent like so
+
+```javascript
+const Fastify = require('fastify');
+const fastify = Fastify({
+  logger: true,
+});
+const agent = new Agent({
+  ...agentOptions,
+});
+await agent.start();
+await fastify.register(require('middie'));
+fastify.use(agent.httpCallback);
+
+fastify.listen({ port: 3000 }, (err, address) => {
+  if (err) throw err;
+  console.log('Started');
+});
+```
+
+#### Example with `koa`
+
+// TODO
+
 ## Help us get better!
 
 Finally, when your local server is started, you should be automatically redirected to a satisfaction form. Rate us so we can improve, then go to your newly created admin panel
