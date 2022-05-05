@@ -257,8 +257,7 @@ describe('SchemaFieldsGenerator', () => {
           lastObject: lastObjectSchema,
         });
 
-        const objectModel = model('object', objectSchema);
-        const schema = SchemaFieldsGenerator.buildFieldsSchema(objectModel);
+        const schema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(objectSchema, 'object'));
 
         expect(schema).toMatchObject({
           object: {

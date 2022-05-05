@@ -1,4 +1,4 @@
-import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export default class FilterOperatorBuilder {
   static readonly defaultOperators: Partial<Operator[]> = ['Blank', 'Equal', 'NotEqual', 'Present'];
@@ -15,7 +15,11 @@ export default class FilterOperatorBuilder {
 
   static readonly comparisonOperators: Partial<Operator[]> = ['GreaterThan', 'LessThan'];
 
-  static getSupportedOperators(type: PrimitiveTypes): Set<Operator> {
+  static getSupportedOperators(type: ColumnType): Set<Operator> {
+    if (type instanceof Object) {
+      return new Set<Operator>(FilterOperatorBuilder.defaultOperators);
+    }
+
     switch (type) {
       case 'Boolean':
         return new Set<Operator>(FilterOperatorBuilder.defaultOperators);
@@ -49,7 +53,7 @@ export default class FilterOperatorBuilder {
           ...FilterOperatorBuilder.stringOperators,
         ]);
       case 'Json':
-        return new Set<Operator>([...FilterOperatorBuilder.defaultOperators]);
+        return new Set<Operator>(FilterOperatorBuilder.defaultOperators);
       default:
         return new Set<Operator>();
     }

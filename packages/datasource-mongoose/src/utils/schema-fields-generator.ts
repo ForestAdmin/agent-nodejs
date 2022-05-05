@@ -11,7 +11,6 @@ import { Model, Schema, SchemaType } from 'mongoose';
 import FilterOperatorBuilder from './filter-operator-builder';
 import MongooseCollection from '../collection';
 
-type MongooseColumnSchema = ColumnSchema & { schema?: CollectionSchema['fields'] };
 type ModelFields = { [key: string]: SchemaType };
 
 export default class SchemaFieldsGenerator {
@@ -32,18 +31,7 @@ export default class SchemaFieldsGenerator {
   }
 
   static buildFieldsSchema(model: Model<RecordData>): CollectionSchema['fields'] {
-    const modelFields = model.schema.paths;
-    const prebuildFieldsSchema = SchemaFieldsGenerator.prebuildFieldsSchema(modelFields);
-
-    Object.values(prebuildFieldsSchema).forEach((schemaField: MongooseColumnSchema) => {
-      if (schemaField.schema) {
-        const type = SchemaFieldsGenerator.getTypeFromNested(schemaField.schema);
-        schemaField.columnType = Array.isArray(schemaField.columnType) ? [type] : type;
-        delete schemaField.schema;
-      }
-    });
-
-    return prebuildFieldsSchema;
+    return SchemaFieldsGenerator.prebuildFieldsSchema(model.schema.paths);
   }
 
   private static getColumnType(instance: string, field: SchemaType): ColumnType {
@@ -72,15 +60,14 @@ export default class SchemaFieldsGenerator {
       case 'Map':
       case 'Mixed':
         return 'Json';
+      case 'Embedded':
+        return SchemaFieldsGenerator.getColumnTypeFromNested(field);
       default:
         throw new Error(`Unhandled column type "${instance}"`);
     }
   }
 
-  private static buildPrimitiveSchema(
-    field: SchemaType,
-    columnType: ColumnType,
-  ): MongooseColumnSchema {
+  private static buildPrimitiveSchema(field: SchemaType, columnType: ColumnType): ColumnSchema {
     return {
       columnType,
       filterOperators: FilterOperatorBuilder.getSupportedOperators(columnType as PrimitiveTypes),
@@ -88,7 +75,7 @@ export default class SchemaFieldsGenerator {
       enumValues: this.getEnumValues(field),
       isPrimaryKey: field.path === '_id',
       isReadOnly: !!field.options?.immutable,
-      isSortable: !(Array.isArray(columnType) || columnType === 'Json'),
+      isSortable: !(Array.isArray(columnType) || columnType instanceof Object),
       type: 'Column',
       validation: field.isRequired ? [{ operator: 'Present' }] : null,
     };
@@ -98,52 +85,20 @@ export default class SchemaFieldsGenerator {
     return field.options?.enum instanceof Array ? field.options.enum : field.options?.enum?.values;
   }
 
-  private static buildArraySchema(field: Schema.Types.Array): FieldSchema {
-    const { caster } = field;
+  private static buildArraySchema(fields: Schema.Types.Array): FieldSchema {
+    const { caster } = fields;
 
     if (caster.schema) {
-      const fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, ['Json']);
-      fieldSchema.schema = SchemaFieldsGenerator.prebuildFieldsSchema(caster.schema.paths);
-
-      return fieldSchema;
+      return SchemaFieldsGenerator.buildPrimitiveSchema(fields, ['Json']);
     }
 
     if (caster.instance) {
-      return SchemaFieldsGenerator.buildPrimitiveSchema(field, [
-        SchemaFieldsGenerator.getColumnType(caster.instance, field),
+      return SchemaFieldsGenerator.buildPrimitiveSchema(fields, [
+        SchemaFieldsGenerator.getColumnType(caster.instance, fields),
       ]);
     }
 
-    throw new Error(`Unhandled array column "${field.path}"`);
-  }
-
-  private static buildNestedPathSchema(
-    schemaFields: CollectionSchema['fields'],
-    fieldName: string,
-    field: SchemaType,
-  ) {
-    const [fieldPath, ...nestedFieldsPath] = fieldName.split('.');
-
-    if (!nestedFieldsPath.length) {
-      const schemaField = SchemaFieldsGenerator.prebuildFieldsSchema({ [fieldPath]: field });
-      schemaFields[fieldPath] = schemaField[fieldPath];
-
-      return;
-    }
-
-    let fieldSchema = schemaFields[fieldPath] as MongooseColumnSchema;
-
-    if (!fieldSchema) {
-      fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema({} as SchemaType, 'Json');
-      fieldSchema.schema = {} as CollectionSchema['fields'];
-      schemaFields[fieldPath] = fieldSchema;
-    }
-
-    SchemaFieldsGenerator.buildNestedPathSchema(
-      fieldSchema.schema,
-      nestedFieldsPath.join('.'),
-      field,
-    );
+    throw new Error(`Unhandled array column "${fields.path}"`);
   }
 
   private static prebuildFieldsSchema(modelFields: ModelFields): CollectionSchema['fields'] {
@@ -154,22 +109,13 @@ export default class SchemaFieldsGenerator {
       const privateFieldPattern = '__';
 
       if (fieldName.startsWith(privateFieldPattern) || fieldName.includes(mixedFieldPattern)) {
-        return schemaFields;
+        return;
       }
 
-      if (fieldName.includes('.')) {
-        SchemaFieldsGenerator.buildNestedPathSchema(schemaFields, fieldName, field);
-      } else if (field.instance === 'Array') {
-        let fieldSchema = SchemaFieldsGenerator.buildArraySchema(field as Schema.Types.Array);
-
-        if (fieldSchema.type === 'OneToMany') {
-          schemaFields[`${fieldName}_oneToMany`] = fieldSchema;
-          fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, [
-            SchemaFieldsGenerator.getColumnType('String', field),
-          ]);
-        }
-
-        schemaFields[fieldName] = fieldSchema;
+      if (field.instance === 'Array') {
+        schemaFields[fieldName] = SchemaFieldsGenerator.buildArraySchema(
+          field as Schema.Types.Array,
+        );
       } else if (field.options.ref) {
         schemaFields[`${fieldName}_manyToOne`] = {
           type: 'ManyToOne',
@@ -179,10 +125,11 @@ export default class SchemaFieldsGenerator {
         };
 
         schemaFields[fieldName] = SchemaFieldsGenerator.buildPrimitiveSchema(field, 'String');
-      } else if (field.schema) {
-        const fieldSchema = SchemaFieldsGenerator.buildPrimitiveSchema(field, 'Json');
-        fieldSchema.schema = SchemaFieldsGenerator.prebuildFieldsSchema(field.schema.paths);
-        schemaFields[fieldName] = fieldSchema;
+      } else if (fieldName.includes('.')) {
+        schemaFields[fieldName.split('.').shift()] = SchemaFieldsGenerator.buildPrimitiveSchema(
+          field,
+          SchemaFieldsGenerator.getColumnTypeFromNestedWithPoint(field),
+        );
       } else {
         schemaFields[fieldName] = SchemaFieldsGenerator.buildPrimitiveSchema(
           field,
@@ -194,16 +141,70 @@ export default class SchemaFieldsGenerator {
     return schemaFields;
   }
 
-  private static getTypeFromNested(fields: CollectionSchema['fields']): ColumnType {
+  private static getColumnTypeFromNested(field: SchemaType): ColumnType {
     const columnType: ColumnType = {};
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    Object.entries(field.schema.singleNestedPaths).forEach(
+      ([fieldPath, fieldSchema]: [string, SchemaType]) => {
+        const fieldsTree = fieldPath.split('.');
+        let previousRef;
 
-    Object.entries(fields).forEach(([fieldName, fieldSchema]: [string, MongooseColumnSchema]) => {
-      if (fieldSchema.schema) {
-        const type = SchemaFieldsGenerator.getTypeFromNested(fieldSchema.schema);
-        columnType[fieldName] = Array.isArray(fieldSchema.columnType) ? [type] : type;
-        delete fieldSchema.schema;
-      } else if (fieldSchema.columnType) {
-        columnType[fieldName] = fieldSchema.columnType;
+        fieldsTree.forEach((fieldName, index) => {
+          if (index !== fieldsTree.length - 1) {
+            if (previousRef) {
+              previousRef[fieldName] = {};
+              previousRef = columnType[fieldName];
+            } else {
+              if (!columnType[fieldName]) {
+                columnType[fieldName] = {};
+              }
+
+              previousRef = columnType[fieldName];
+            }
+          } else {
+            if (!previousRef) {
+              previousRef = columnType;
+            }
+
+            previousRef[fieldName] = SchemaFieldsGenerator.getColumnType(
+              fieldSchema.instance,
+              fieldSchema,
+            );
+          }
+        });
+      },
+    );
+
+    return columnType;
+  }
+
+  private static getColumnTypeFromNestedWithPoint(field: SchemaType): ColumnType {
+    const columnType: ColumnType = {};
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const fieldsTree = field.path.split('.');
+    fieldsTree.shift();
+    let previousRef;
+
+    fieldsTree.forEach((fieldName, index) => {
+      if (index !== fieldsTree.length - 1) {
+        if (previousRef) {
+          previousRef[fieldName] = {};
+          previousRef = columnType[fieldName];
+        } else {
+          if (!columnType[fieldName]) {
+            columnType[fieldName] = {};
+          }
+
+          previousRef = columnType[fieldName];
+        }
+      } else {
+        if (!previousRef) {
+          previousRef = columnType;
+        }
+
+        previousRef[fieldName] = SchemaFieldsGenerator.getColumnType(field.instance, field);
       }
     });
 
