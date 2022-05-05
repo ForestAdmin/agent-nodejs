@@ -16,7 +16,7 @@ export default class FilterOperatorBuilder {
   static readonly comparisonOperators: Partial<Operator[]> = ['GreaterThan', 'LessThan'];
 
   static getSupportedOperators(type: ColumnType): Set<Operator> {
-    if (type instanceof Object) {
+    if (!(type instanceof Array) && type instanceof Object) {
       return new Set<Operator>(FilterOperatorBuilder.defaultOperators);
     }
 
