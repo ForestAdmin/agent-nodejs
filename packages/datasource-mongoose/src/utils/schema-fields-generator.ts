@@ -113,11 +113,7 @@ export default class SchemaFieldsGenerator {
       enumValues: this.getEnumValues(field),
       isPrimaryKey: field.path === '_id',
       isReadOnly: !!field.options?.immutable,
-      isSortable: !(
-        Array.isArray(columnType) ||
-        columnType instanceof Object ||
-        columnType === 'Json'
-      ),
+      isSortable: !(columnType instanceof Object || columnType === 'Json'),
       type: 'Column',
       validation: field.isRequired ? [{ operator: 'Present' }] : null,
     };

@@ -10,7 +10,7 @@ describe('MongooseCollection', () => {
 
     const carsModel = model('aModel', new Schema({ aField: { type: Number } }));
 
-    const mongooseCollection = new MongooseCollection('cars', dataSource, carsModel);
+    const mongooseCollection = new MongooseCollection(dataSource, carsModel);
 
     expect(mongooseCollection.dataSource).toEqual(dataSource);
     expect(mongooseCollection.name).toEqual('cars');

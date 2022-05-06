@@ -1,4 +1,4 @@
-import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { ColumnType, Operator } from '@forestadmin/datasource-toolkit';
 
 export default class FilterOperatorBuilder {
   static readonly defaultOperators: Partial<Operator[]> = ['Blank', 'Equal', 'NotEqual', 'Present'];
