@@ -12,12 +12,12 @@ import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-d
  * Minimal code to add a datasource
  * @example
  * new AgentBuilder(options)
- *  .addDatasource(new SomeDatasource())
+ *  .addDataSource(new SomeDataSource())
  *  .start();
  */
 export default class AgentBuilder {
   private readonly forestAdminHttpDriver: ForestAdminHttpDriver;
-  private readonly compositeDatasource: BaseDataSource<Collection>;
+  private readonly compositeDataSource: BaseDataSource<Collection>;
   private readonly stack: DecoratorsStack;
   private tasks: (() => Promise<void>)[] = [];
 
@@ -46,12 +46,12 @@ export default class AgentBuilder {
    * @param options options
    * @example
    * new AgentBuilder(options)
-   *  .addDatasource(new Datasource())
+   *  .addDataSource(new DataSource())
    *  .start();
    */
   constructor(options: AgentOptions) {
-    this.compositeDatasource = new BaseDataSource<Collection>();
-    this.stack = new DecoratorsStack(this.compositeDatasource);
+    this.compositeDataSource = new BaseDataSource<Collection>();
+    this.stack = new DecoratorsStack(this.compositeDataSource);
 
     this.forestAdminHttpDriver = new ForestAdminHttpDriver(this.stack.dataSource, options);
   }
@@ -60,11 +60,11 @@ export default class AgentBuilder {
    * Add a datasource
    * @param factory the datasource to add
    */
-  addDatasource(factory: DataSourceFactory): this {
+  addDataSource(factory: DataSourceFactory): this {
     this.tasks.push(async () => {
       const datasource = await factory(this.forestAdminHttpDriver.options.logger);
       datasource.collections.forEach(collection => {
-        this.compositeDatasource.addCollection(collection);
+        this.compositeDataSource.addCollection(collection);
       });
     });
 

@@ -353,11 +353,11 @@ describe('datasource', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const sqlDatasource = new SqlDataSource(connectionUri);
+          const sqlDataSource = new SqlDataSource(connectionUri);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dataSourceSequelize = (sqlDatasource as any).sequelize as Sequelize;
+          dataSourceSequelize = (sqlDataSource as any).sequelize as Sequelize;
 
-          await sqlDatasource.build();
+          await sqlDataSource.build();
 
           const dataSourceModels = dataSourceSequelize.models;
 
@@ -450,11 +450,11 @@ describe('datasource', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const sqlDatasource = new SqlDataSource(connectionUri);
+          const sqlDataSource = new SqlDataSource(connectionUri);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dataSourceSequelize = (sqlDatasource as any).sequelize as Sequelize;
+          dataSourceSequelize = (sqlDataSource as any).sequelize as Sequelize;
 
-          await sqlDatasource.build();
+          await sqlDataSource.build();
 
           const dataSourceModels = dataSourceSequelize.models;
 

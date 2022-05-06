@@ -2,7 +2,7 @@
 export { default as ValidationError } from './errors';
 export * from './factory';
 
-// Base Collection & Datasource
+// Base Collection & DataSource
 export { default as BaseCollection } from './base-collection';
 export { default as BaseDataSource } from './base-datasource';
 
