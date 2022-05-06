@@ -21,16 +21,6 @@ const buildModel = (schema: Schema, modelName = 'aModel'): Model<RecordData> => 
 
 describe('SchemaFieldsGenerator', () => {
   describe('buildFieldsSchema', () => {
-    describe('when column is not recognized', () => {
-      it('should throw an error on array type', () => {
-        const arrayErrorSchema = new Schema({ aField: { type: 'Array' } });
-
-        expect(() => SchemaFieldsGenerator.buildFieldsSchema(buildModel(arrayErrorSchema))).toThrow(
-          'Unhandled column type "Array"',
-        );
-      });
-    });
-
     describe('when field is required', () => {
       it('should build the validation with present operator', () => {
         const schema = new Schema({ aField: { type: Number, required: true } });

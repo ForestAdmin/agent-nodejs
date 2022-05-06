@@ -2,7 +2,6 @@ import {
   CollectionSchema,
   ColumnSchema,
   ColumnType,
-  FieldSchema,
   PrimitiveTypes,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -39,11 +38,7 @@ export default class SchemaFieldsGenerator {
         return;
       }
 
-      if (field.instance === 'Array') {
-        schemaFields[fieldName] = SchemaFieldsGenerator.buildArraySchema(
-          field as Schema.Types.Array,
-        );
-      } else if (field.options.ref) {
+      if (field.options.ref) {
         schemaFields[`${fieldName}_manyToOne`] = {
           type: 'ManyToOne',
           foreignCollection: field.options.ref,
@@ -52,20 +47,18 @@ export default class SchemaFieldsGenerator {
         };
 
         schemaFields[fieldName] = SchemaFieldsGenerator.buildPrimitiveSchema(field, 'String');
-      } else {
-        schemaFields[field.path.split('.').shift()] = SchemaFieldsGenerator.buildPrimitiveSchema(
-          field,
-          SchemaFieldsGenerator.getColumnType(field.instance, field),
-        );
       }
+
+      schemaFields[field.path.split('.').shift()] = SchemaFieldsGenerator.buildPrimitiveSchema(
+        field,
+        SchemaFieldsGenerator.getColumnType(field.instance, field),
+      );
     });
 
     return schemaFields;
   }
 
   private static getColumnType(instance: string, field: SchemaType): ColumnType {
-    const potentialEnumValues = this.getEnumValues(field);
-
     if (field.path.includes('.')) {
       const fieldPath = field.path.split('.');
       fieldPath.shift();
@@ -73,6 +66,8 @@ export default class SchemaFieldsGenerator {
 
       return SchemaFieldsGenerator.getColumnTypeFromNestedPath(fieldPath, field);
     }
+
+    const potentialEnumValues = this.getEnumValues(field);
 
     if (potentialEnumValues) {
       if (potentialEnumValues.some(value => !(typeof value === 'string'))) {
@@ -83,6 +78,13 @@ export default class SchemaFieldsGenerator {
     }
 
     switch (instance) {
+      case 'Array':
+        return [
+          SchemaFieldsGenerator.getColumnType(
+            field.schema ? 'Embedded' : (field as Schema.Types.Array).caster.instance,
+            field.schema ? field : (field as Schema.Types.Array).caster,
+          ),
+        ];
       case 'String':
       case 'ObjectID':
       case 'Buffer':
@@ -98,9 +100,8 @@ export default class SchemaFieldsGenerator {
       case 'Mixed':
         return 'Json';
       case 'Embedded':
-        return SchemaFieldsGenerator.getColumnTypeFromNested(field);
       default:
-        throw new Error(`Unhandled column type "${instance}"`);
+        return SchemaFieldsGenerator.getColumnTypeFromNested(field);
     }
   }
 
@@ -126,26 +127,12 @@ export default class SchemaFieldsGenerator {
     return field.options?.enum instanceof Array ? field.options.enum : field.options?.enum?.values;
   }
 
-  private static buildArraySchema(fields: Schema.Types.Array): FieldSchema {
-    const { caster } = fields;
-
-    if (caster.schema) {
-      return SchemaFieldsGenerator.buildPrimitiveSchema(fields, ['Json']);
-    }
-
-    if (caster.instance) {
-      return SchemaFieldsGenerator.buildPrimitiveSchema(fields, [
-        SchemaFieldsGenerator.getColumnType(caster.instance, fields),
-      ]);
-    }
-
-    throw new Error(`Unhandled array column "${fields.path}"`);
-  }
-
   private static getColumnTypeFromNested(field: SchemaType): ColumnType {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    const paths = field.schema.singleNestedPaths;
+    const { singleNestedPaths } = field.schema;
+    const paths =
+      Object.keys(singleNestedPaths).length > 0 ? singleNestedPaths : field.schema.paths;
 
     return Object.entries(paths).reduce((columnType, [fieldPath, fieldSchema]) => {
       return SchemaFieldsGenerator.getColumnTypeFromNestedPath(
