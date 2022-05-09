@@ -13,7 +13,7 @@ describe('MongooseCollection', () => {
     const mongooseCollection = new MongooseCollection(dataSource, carsModel);
 
     expect(mongooseCollection.dataSource).toEqual(dataSource);
-    expect(mongooseCollection.name).toEqual('cars');
+    expect(mongooseCollection.name).toEqual('aModel');
     expect(mongooseCollection.schema).toEqual({
       actions: {},
       fields: {

@@ -16,6 +16,11 @@ export default class SchemaFieldsGenerator {
       Object.values(collection.schema.fields).forEach(fieldSchema => {
         if (fieldSchema.type === 'ManyToOne') {
           const foreignCollection = collections.find(c => c.name === fieldSchema.foreignCollection);
+
+          if (!foreignCollection) {
+            throw new Error(`The collection '${fieldSchema.foreignCollection}' does not exist`);
+          }
+
           foreignCollection.schema.fields[`${collection.name}__oneToMany`] = {
             foreignCollection: collection.name,
             originKey: fieldSchema.foreignKey,

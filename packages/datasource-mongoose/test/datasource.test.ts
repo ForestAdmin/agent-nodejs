@@ -41,7 +41,7 @@ describe('MongooseDatasource', () => {
           modelName: 'cars',
           schema: {
             paths: new Schema({
-              aManyToOneRelation: { type: Schema.Types.ObjectId, ref: 'companies' },
+              aManyToOneRelation: { type: Schema.Types.ObjectId, ref: 'owner' },
             }).paths,
           },
         } as Model<RecordData>;

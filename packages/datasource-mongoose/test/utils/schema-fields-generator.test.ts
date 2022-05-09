@@ -400,5 +400,18 @@ describe('SchemaFieldsGenerator', () => {
         },
       });
     });
+
+    it('should throw an error when the ref does not exist', () => {
+      const schemaWithManyToOne = new Schema({
+        aFieldTarget: { type: Schema.Types.ObjectId, ref: 'modelDoesNotExist' },
+      });
+
+      const modelA = buildModel(schemaWithManyToOne, 'modelA');
+      const collectionA = new MongooseCollection(null, modelA);
+
+      expect(() => SchemaFieldsGenerator.addInverseRelationships([collectionA])).toThrow(
+        "The collection 'modelDoesNotExist' does not exist",
+      );
+    });
   });
 });
