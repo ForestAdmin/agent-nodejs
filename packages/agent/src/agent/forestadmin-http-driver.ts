@@ -53,28 +53,37 @@ export default class ForestAdminHttpDriver {
       throw new Error('Agent cannot be restarted.');
     }
 
-    this.status = 'running';
+    try {
+      this.status = 'running';
 
-    // Build http application
-    const router = new Router({ prefix: path.join('/', this.options.prefix) });
-    this.routes = makeRoutes(this.dataSource, this.options, this.services);
-    this.routes.forEach(route => route.setupRoutes(router));
-    await Promise.all(this.routes.map(route => route.bootstrap()));
+      // Build http application
+      const router = new Router({ prefix: path.join('/', this.options.prefix) });
+      this.routes = makeRoutes(this.dataSource, this.options, this.services);
+      this.routes.forEach(route => route.setupRoutes(router));
+      await Promise.all(this.routes.map(route => route.bootstrap()));
 
-    this.app
-      .use(cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }))
-      .use(bodyParser({ jsonLimit: '50mb' }))
-      .use(router.routes());
+      this.app
+        .use(cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }))
+        .use(bodyParser({ jsonLimit: '50mb' }))
+        .use(router.routes());
 
-    // Send schema to forestadmin-server (if relevant).
-    const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSource);
-    const schemaIsKnown = await ForestHttpApi.hasSchema(this.options, schema.meta.schemaFileHash);
+      // Send schema to forestadmin-server (if relevant).
+      const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSource);
+      const schemaIsKnown = await ForestHttpApi.hasSchema(this.options, schema.meta.schemaFileHash);
 
-    if (!schemaIsKnown) {
-      await ForestHttpApi.uploadSchema(this.options, schema);
+      if (!schemaIsKnown) {
+        this.options.logger('Info', 'Schema was updated, sending new version');
+        await ForestHttpApi.uploadSchema(this.options, schema);
+      } else {
+        this.options.logger('Info', 'Schema was not updated since last run');
+      }
+
+      this.options.logger('Info', 'Started');
+    } catch (e) {
+      this.options.logger('Error', e.message);
+      this.status = 'done';
+      throw e;
     }
-
-    this.options?.logger('Info', 'Started');
   }
 
   /**
