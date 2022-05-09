@@ -10,7 +10,7 @@ export default (collection: Collection) =>
       foreignCollection: 'store',
     })
     .renameField('rentalPrice', 'rentalPriceInDollar')
-    .addField('numRentals', {
+    .addField('numberOfRentals', {
       columnType: 'Number',
       dependencies: ['id'],
       getValues: async (records, context) => {

@@ -29,7 +29,7 @@ class DVD {
   .. Fields ..
   String title
   .. Computed ..
-  Int numRentals
+  Int numberOfRentals
   .. Renamed ..
   Int rentalPriceInDollar
   .. Actions ..
