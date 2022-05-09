@@ -7,7 +7,7 @@ Note that:
 - Sequelize association, field aliasing, relationships and validation will be respected
 
 ```javascript
-const { Agent } = require('@forestadmin/agent');
+const { createAgent } = require('@forestadmin/agent');
 const { createSequelizeDataSource } = require('@forestadmin/datasource-sequelize');
 const { Sequelize, Model, DataTypes } = require('@sequelize/core');
 
@@ -24,5 +24,5 @@ User.init(
 );
 
 // Create agent and import collections from sequelize
-const agent = new Agent(options).addDataSource(createSequelizeDataSource(sequelize));
+const agent = createAgent(options).addDataSource(createSequelizeDataSource(sequelize));
 ```
