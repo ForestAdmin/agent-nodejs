@@ -17,7 +17,5 @@ export default async function seed(dataSource: LiveDataSource) {
   } catch {
     // eslint-disable-next-line no-console
     console.log('Please run `docker-compose up -d && yarn db:seed` to run the db with data');
-  } finally {
-    await sequelizeMySql.close();
   }
 }
