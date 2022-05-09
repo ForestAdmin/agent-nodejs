@@ -1,4 +1,4 @@
-import { Agent, AgentOptions } from '@forestadmin/agent';
+import { AgentOptions, createAgent } from '@forestadmin/agent';
 import { createLiveDataSource } from '@forestadmin/datasource-live';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
@@ -19,7 +19,7 @@ import sequelizeMySql from './datasources/sequelize/mysql';
 import sequelizePostgres from './datasources/sequelize/postgres';
 
 export default async function makeAgent(options: AgentOptions) {
-  return new Agent(options)
+  return createAgent(options)
     .addDataSource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }))
     .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
     .addDataSource(createTypicode())

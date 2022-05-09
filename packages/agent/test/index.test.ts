@@ -1,9 +1,9 @@
-import { Agent, Collection } from '../src';
+import { Collection, createAgent } from '../src';
 
 describe('exports', () => {
   describe.each([
     ['Collection', Collection],
-    ['Agent', Agent],
+    ['createAgent', createAgent],
   ])('class %s', (message, type) => {
     it('should be defined', () => {
       expect(type).toBeDefined();
