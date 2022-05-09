@@ -1,3 +1,23 @@
+# example [1.0.0-beta.26](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.25...example@1.0.0-beta.26) (2022-05-09)
+
+
+### Bug Fixes
+
+* datasource naming consistency ([#292](https://github.com/ForestAdmin/agent-nodejs/issues/292)) ([ff50a1f](https://github.com/ForestAdmin/agent-nodejs/commit/ff50a1f02aa65b3d99824c2bc9fb19d729a4e465))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.19
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.13
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.18
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.17
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.21
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.12
+
 # example [1.0.0-beta.25](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.24...example@1.0.0-beta.25) (2022-05-04)
 
 
