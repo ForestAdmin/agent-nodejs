@@ -53,6 +53,12 @@ describe('SchemaGeneratorFields > Column', () => {
             isSortable: false,
             validation: null,
           }),
+          composite: factories.columnSchema.build({
+            columnType: { firstname: 'String', lastname: 'String' },
+          }),
+          arrayOfComposite: factories.columnSchema.build({
+            columnType: [{ firstname: 'String', lastname: 'String' }],
+          }),
         },
       }),
     });
@@ -84,6 +90,34 @@ describe('SchemaGeneratorFields > Column', () => {
         isSortable: false,
         validations: [],
         type: 'Number',
+      });
+    });
+
+    test('is should generate the proper schema for composite types', () => {
+      const schema = SchemaGeneratorFields.buildSchema(collection, 'composite');
+
+      expect(schema).toMatchObject({
+        type: {
+          fields: [
+            { field: 'firstname', type: 'String' },
+            { field: 'lastname', type: 'String' },
+          ],
+        },
+      });
+    });
+
+    test('is should generate the proper schema for array of composite types', () => {
+      const schema = SchemaGeneratorFields.buildSchema(collection, 'arrayOfComposite');
+
+      expect(schema).toMatchObject({
+        type: [
+          {
+            fields: [
+              { field: 'firstname', type: 'String' },
+              { field: 'lastname', type: 'String' },
+            ],
+          },
+        ],
       });
     });
   });
