@@ -2,7 +2,6 @@ import * as factories from '../../__factories__';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
 import { ColumnSchema } from '../../../src/interfaces/schema';
 import { RecordData } from '../../../src/interfaces/record';
-import ConditionTreeFactory from '../../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import OperatorEmulationDecorator from '../../../src/decorators/operators-emulate/collection';
@@ -126,11 +125,11 @@ describe('OperatorsEmulate', () => {
 
     describe('when implementing an operator from an unsupported one', () => {
       beforeEach(() => {
-        newBooks.replaceFieldOperator(
-          'title',
-          'StartsWith',
-          () => new ConditionTreeLeaf('title', 'Like', 'aTitleValue'),
-        );
+        newBooks.replaceFieldOperator('title', 'StartsWith', () => ({
+          field: 'title',
+          operator: 'Like',
+          value: 'aTitleValue',
+        }));
       });
 
       test('list() should crash', async () => {
@@ -152,17 +151,17 @@ describe('OperatorsEmulate', () => {
 
     describe('when creating a cycle in the replacements graph', () => {
       beforeEach(() => {
-        newBooks.replaceFieldOperator(
-          'title',
-          'StartsWith',
-          async value => new ConditionTreeLeaf('title', 'Like', `${value}%`),
-        );
+        newBooks.replaceFieldOperator('title', 'StartsWith', async value => ({
+          field: 'title',
+          operator: 'Like',
+          value: `${value}%`,
+        }));
 
-        newBooks.replaceFieldOperator(
-          'title',
-          'Like',
-          async value => new ConditionTreeLeaf('title', 'StartsWith', `${value}%`),
-        );
+        newBooks.replaceFieldOperator('title', 'Like', async value => ({
+          field: 'title',
+          operator: 'StartsWith',
+          value: `${value}%`,
+        }));
       });
 
       test('list() should crash', async () => {
@@ -255,12 +254,13 @@ describe('OperatorsEmulate', () => {
         newBooks.emulateFieldOperator('title', 'Contains');
 
         // Define 'Equal(x)' to be 'Contains(x) && ShorterThan(x.length + 1)'
-        newBooks.replaceFieldOperator('title', 'Equal', async value =>
-          ConditionTreeFactory.intersect(
-            new ConditionTreeLeaf('title', 'Contains', value),
-            new ConditionTreeLeaf('title', 'ShorterThan', (value as string).length + 1),
-          ),
-        );
+        newBooks.replaceFieldOperator('title', 'Equal', async value => ({
+          aggregator: 'And',
+          conditions: [
+            { field: 'title', operator: 'Contains', value },
+            { field: 'title', operator: 'ShorterThan', value: (value as string).length + 1 },
+          ],
+        }));
       });
 
       test('list() should find books where title = Foundation', async () => {
