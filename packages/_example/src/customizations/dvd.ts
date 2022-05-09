@@ -15,8 +15,8 @@ export default (collection: Collection) =>
       dependencies: ['id'],
       getValues: async (records, context) => {
         // Query other collection to get the number of rentals per dvd.
-        const thoughCollection = context.dataSource.getCollection('dvd_rental');
-        const rows = await thoughCollection.aggregate(
+        const throughCollection = context.dataSource.getCollection('dvd_rental');
+        const rows = await throughCollection.aggregate(
           { conditionTree: { field: 'dvdId', operator: 'In', value: records.map(r => r.id) } },
           { operation: 'Count', groups: [{ field: 'dvdId' }] },
         );
