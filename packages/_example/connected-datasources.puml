@@ -5,51 +5,65 @@
 title: DataSources connected with ForestAdmin
 
 class STORE {
+  .. Fields ..
   String name
+  .. Imported ..
   String ownerFullName
 }
 
 class OWNER {
+  .. Fields ..
   String firstName
   String lastName
+  .. Computed ..
   String fullName
 }
 
 class ADDRESS {
+  .. Fields ..
   String zipCode
   String address
 }
 
 class DVD {
+  .. Fields ..
   String title
+  .. Computed ..
+  Int numberOfRentals
+  .. Renamed ..
   Int rentalPriceInDollar
+  .. Actions ..
+  IncreaseTheRentalPrice()
 }
-class DVD
-note bottom: ACTION => Increase the rental price
 
 class RENTALS {
+  .. Computed ..
   Int numberOfDays
+  .. Segments ..
+  MoreThan50Days()
 }
-class RENTALS
-note bottom: SEQUENCE => More than 50 days
 
 class CARD {
+  .. Fields ..
   BigInt cardNumber
   Enum cardType
   Boolean isActive
 }
 
 class CUSTOMER {
+  .. Fields ..
   String name
   String firstName
 }
 
 class POST {
+  .. Fields ..
   String title
   String body
 }
 
 class COMMENT {
+  .. Fields ..
   String name
   String email
   String body

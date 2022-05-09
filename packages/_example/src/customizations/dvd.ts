@@ -1,4 +1,5 @@
 import { Collection } from '@forestadmin/agent';
+import sequelizeMsSql from '../datasources/sequelize/mssql';
 
 export default (collection: Collection) =>
   collection
@@ -9,30 +10,37 @@ export default (collection: Collection) =>
       foreignCollection: 'store',
     })
     .renameField('rentalPrice', 'rentalPriceInDollar')
+    .addField('numberOfRentals', {
+      columnType: 'Number',
+      dependencies: ['id'],
+      getValues: async (records, context) => {
+        // Query other collection to get the number of rentals per dvd.
+        const thoughCollection = context.dataSource.getCollection('dvd_rental');
+        const rows = await thoughCollection.aggregate(
+          { conditionTree: { field: 'dvdId', operator: 'In', value: records.map(r => r.id) } },
+          { operation: 'Count', groups: [{ field: 'dvdId' }] },
+        );
+
+        // getValues should return values in the same order than the initial `records` array.
+        return records.map(record => rows.find(r => r.group.dvdId === record.id)?.value ?? 0);
+      },
+    })
     .addAction('Increase the rental price', {
       scope: 'Bulk',
+      form: [{ label: 'percentage', type: 'Number', defaultValue: 10, isRequired: true }],
       execute: async (context, responseBuilder) => {
-        const records = await context.collection.list(context.filter, ['rentalPrice', 'id']);
+        // Increase prices
+        const replacements = {
+          multiplier: 1 + context.formValues.percentage / 100,
+          ids: await context.getRecordIds(),
+        };
 
-        // increase the rental price by a given a percentage
-        const givenPercentage = context.formValues.percentage / 100;
-        const updates = records.map(
-          (record: { id: string; rentalPrice: number }): Promise<void> =>
-            context.collection.update(
-              { conditionTree: { field: 'id', operator: 'Equal', value: record.id } },
-              { rentalPrice: record.rentalPrice + record.rentalPrice * givenPercentage },
-            ),
+        await sequelizeMsSql.query(
+          'UPDATE dvd SET rental_price = ROUND(rental_price * :multiplier, 2) WHERE id IN (:ids)',
+          { replacements },
         );
-        await Promise.all(updates);
 
-        return responseBuilder.success('Rental price is updated');
+        // Customize success message.
+        return responseBuilder.success(`Rental price increased`);
       },
-      form: [
-        {
-          label: 'percentage',
-          type: 'Number',
-          defaultValue: 10,
-          isRequired: true,
-        },
-      ],
     });

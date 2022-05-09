@@ -6,6 +6,8 @@ import {
   BaseCollection,
   BaseDataSource,
   Caller,
+  DataSource,
+  DataSourceFactory,
   Filter,
   Logger,
   PaginatedFilter,
@@ -152,12 +154,12 @@ class Comments extends TypicodeCollection {
   }
 }
 
-export default () => {
-  return async (logger: Logger) => {
+export default function createTypicode(): DataSourceFactory {
+  return async (logger: Logger): Promise<DataSource> => {
     const dataSource = new BaseDataSource();
     dataSource.addCollection(new Posts(logger));
     dataSource.addCollection(new Comments(logger));
 
     return dataSource;
   };
-};
+}
