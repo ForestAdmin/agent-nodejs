@@ -87,7 +87,7 @@ describe('ComputedDecorator', () => {
         dependencies: [],
         getValues: () => Promise.reject(),
       });
-    }).toThrow(`Computed field 'books.newField' must have at least one dependency`);
+    }).toThrow(`Computed field 'books.newField' must have at least one dependency.`);
   });
 
   test('should throw if defining a field with missing dependencies', () => {

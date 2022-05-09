@@ -36,7 +36,7 @@ export default class ComputedCollection extends CollectionDecorator {
     }
 
     if (computed.dependencies.length <= 0) {
-      throw new Error(`Computed field '${this.name}.${name}' must have at least one dependency`);
+      throw new Error(`Computed field '${this.name}.${name}' must have at least one dependency.`);
     }
 
     this.computeds[name] = computed;
