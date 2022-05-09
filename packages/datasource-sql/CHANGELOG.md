@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.0.0-beta.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.23...@forestadmin/datasource-sql@1.0.0-beta.24) (2022-05-09)
+
+
+### Bug Fixes
+
+* **datasource sql:** throw an user friendly error when the provided connection uri is invalid ([#297](https://github.com/ForestAdmin/agent-nodejs/issues/297)) ([db1ac83](https://github.com/ForestAdmin/agent-nodejs/commit/db1ac83d3ef023c7875e4affbaecdc52de1e5fc3))
+
 # @forestadmin/datasource-sql [1.0.0-beta.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.22...@forestadmin/datasource-sql@1.0.0-beta.23) (2022-05-09)
 
 
