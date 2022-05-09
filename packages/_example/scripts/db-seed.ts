@@ -5,7 +5,7 @@ import { Sequelize } from 'sequelize';
 import faker from '@faker-js/faker';
 
 import initMsSql from './mssql-init';
-import prepareDatabaseMongodb from '../src/datasources/mongoose/mongodb';
+import mongoose from '../src/datasources/mongoose/mongodb';
 import sequelizeMariaDb from './mariadb-sequelize';
 import sequelizeMsSql from '../src/datasources/sequelize/mssql';
 import sequelizeMySql from '../src/datasources/sequelize/mysql';
@@ -122,22 +122,16 @@ async function createDvdRentalsRecords(
   ]);
 }
 
-async function clearDatabases() {
-  const sequelizeInstances = [sequelizeMsSql, sequelizeMySql, sequelizePostgres, sequelizeMariaDb];
-
+async function clearDatabases(mongooseInstance: Connection, sequelizeInstances: Sequelize[]) {
   for (const db of sequelizeInstances) {
     // eslint-disable-next-line no-await-in-loop
     await db.sync({ force: true });
   }
 
-  const mongooseInstance = await prepareDatabaseMongodb();
   await mongooseInstance.dropDatabase();
 }
 
-async function closeDatabases() {
-  const sequelizeInstances = [sequelizeMsSql, sequelizeMySql, sequelizePostgres, sequelizeMariaDb];
-  const mongooseInstance = await prepareDatabaseMongodb();
-
+async function closeDatabases(mongooseInstance: Connection, sequelizeInstances: Sequelize[]) {
   for (const db of [...sequelizeInstances, mongooseInstance]) {
     // eslint-disable-next-line no-await-in-loop
     await db.close();
@@ -145,15 +139,16 @@ async function closeDatabases() {
 }
 
 async function seedData() {
+  const sequelizeInstances = [sequelizeMsSql, sequelizeMySql, sequelizePostgres, sequelizeMariaDb];
+
   try {
     await initMsSql();
-    await clearDatabases();
-    const mongooseInstance = await prepareDatabaseMongodb();
+    await clearDatabases(mongoose, sequelizeInstances);
 
     const ownerRecords = await createOwnerRecords(sequelizePostgres);
     const storeRecords = await createStoreRecords(sequelizeMySql, ownerRecords);
     const customerRecords = await createCustomerCardRecords(sequelizeMariaDb);
-    await createReviewRecords(mongooseInstance, storeRecords);
+    await createReviewRecords(mongoose, storeRecords);
     await createDvdRentalsRecords(sequelizeMsSql, storeRecords, customerRecords);
   } catch (error) {
     console.error('---------------');
@@ -161,7 +156,7 @@ async function seedData() {
     console.error(error);
     console.error('---------------');
   } finally {
-    await closeDatabases();
+    await closeDatabases(mongoose, sequelizeInstances);
   }
 }
 

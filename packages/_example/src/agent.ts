@@ -15,7 +15,7 @@ import customizeRental from './customizations/rental';
 import customizeReview from './customizations/review';
 import customizeStore from './customizations/store';
 import liveDatasourceSchema from './datasources/live/schema';
-import prepareReviewsInMongoose from './datasources/mongoose';
+import mongoose from './datasources/mongoose/mongodb';
 import seedLiveDatasource from './datasources/live/seed';
 import sequelizeMsSql from './datasources/sequelize/mssql';
 import sequelizeMySql from './datasources/sequelize/mysql';
@@ -29,7 +29,7 @@ export default async function makeAgent(options: AgentOptions) {
     .addDataSource(createSequelizeDataSource(sequelizePostgres))
     .addDataSource(createSequelizeDataSource(sequelizeMySql))
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))
-    .addDataSource(createMongooseDataSource(await prepareReviewsInMongoose()))
+    .addDataSource(createMongooseDataSource(mongoose))
 
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('address', customizeAddress)
