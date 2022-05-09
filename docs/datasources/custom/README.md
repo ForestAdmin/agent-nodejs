@@ -149,11 +149,9 @@ module.exports = MyDataSource;
 ```javascript
 const MyDataSource = require('./data source');
 
-const agent = new Agent(options);
-
 const myDataSourceFactory = async () => new MyDataSource();
 
-agent.addDataSource(myDataSourceFactory);
+const agent = createAgent(options).addDataSource(myDataSourceFactory);
 ```
 
 {% endtab %} {% endtabs %}

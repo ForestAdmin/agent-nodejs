@@ -24,10 +24,10 @@ In this example, we import a all tables from a PostgreSQL database into Forest A
 Take note that data sources are defined in independant NPM packages (here `@forestadmin/datasource-sql`).
 
 ```javascript
-const { Agent } = require('@forestadmin/agent');
+const { createAgent } = require('@forestadmin/agent');
 const { createSqlDataSource } = require('@forestadmin/datasource-sql');
 
-const agent = new Agent(options).addDataSource(
+const agent = createAgent(options).addDataSource(
   createSqlDataSource('postgres://user:pass@localhost:5432/mySchema'),
 );
 ```
@@ -40,10 +40,10 @@ Some data source may implement more collections, and associated actions and segm
 By provided options when pluging a data source, you can specify which entities should get loaded.
 
 ```javascript
-const Agent = require('@forestadmin/agent');
+const { createAgent } = require('@forestadmin/agent');
 const StripeDataSource = require('@forestadmin/datasource-stripe');
 
-const agent = new Agent(options);
+const agent = createAgent(options);
 const stripe = new StripeDataSource({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
 
 agent.addDataSource(stripe, {
@@ -72,11 +72,11 @@ You can tackle them by renaming the collection which are causing issues.
 Don't worry if you leave naming collisions, your development agent will warn you while starting.
 
 ```javascript
-const Agent = require('@forestadmin/agent');
+const { createAgent } = require('@forestadmin/agent');
 const StripeDataSource = require('@forestadmin/datasource-stripe');
 const IntercomDataSource = require('@forestadmin/datasource-intercom');
 
-const agent = new Agent(options);
+const agent = createAgent(options);
 const stripe = new StripeDataSource({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
 const intercom = new IntercomDataSource({ accessToken: 'TmljZSB0cnkgOik=' });
 
