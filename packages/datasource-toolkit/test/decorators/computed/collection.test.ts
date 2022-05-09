@@ -80,11 +80,21 @@ describe('ComputedDecorator', () => {
     newPersons = decoratedDataSource.getCollection('persons');
   });
 
+  test('should throw if defining a field with no dependencies', () => {
+    expect(() => {
+      newBooks.registerComputed('newField', {
+        columnType: 'String',
+        dependencies: [],
+        getValues: () => Promise.reject(),
+      });
+    }).toThrow(`Computed field 'books.newField' must have at least one dependency`);
+  });
+
   test('should throw if defining a field with missing dependencies', () => {
     expect(() => {
       newBooks.registerComputed('newField', {
         columnType: 'String',
-        dependencies: new Projection('__nonExisting__'),
+        dependencies: ['__nonExisting__'],
         getValues: () => Promise.reject(),
       });
     }).toThrow("Column not found: 'books.__nonExisting__'");
@@ -94,7 +104,7 @@ describe('ComputedDecorator', () => {
     expect(() => {
       newBooks.registerComputed('newField', {
         columnType: 'String',
-        dependencies: new Projection('author'),
+        dependencies: ['author'],
         getValues: () => Promise.reject(),
       });
     }).toThrow("Unexpected field type: 'books.author' (found 'ManyToOne' expected 'Column')");
@@ -104,7 +114,7 @@ describe('ComputedDecorator', () => {
     beforeEach(() => {
       newPersons.registerComputed('fullName', {
         columnType: 'String',
-        dependencies: new Projection('firstName', 'lastName'),
+        dependencies: ['firstName', 'lastName'],
         getValues: records => {
           return new Promise(resolve => {
             const result = records.map(record => `${record.firstName} ${record.lastName}`);

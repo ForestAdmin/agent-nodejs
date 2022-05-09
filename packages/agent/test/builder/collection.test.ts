@@ -1,8 +1,6 @@
 import {
   ActionDefinition,
   ConditionTreeLeaf,
-  PlainSortClause,
-  Projection,
   Sort,
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
@@ -118,7 +116,7 @@ describe('Builder > Collection', () => {
 
       const fieldDefinition: FieldDefinition = {
         columnType: 'String',
-        dependencies: new Projection(),
+        dependencies: ['firstName'],
         getValues: () => [],
       };
 
@@ -194,8 +192,7 @@ describe('Builder > Collection', () => {
       const collection = stack.sortEmulate.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'replaceFieldSorting');
 
-      const sortClauses: PlainSortClause[] = [{ field: 'firstName', ascending: true }];
-
+      const sortClauses = [{ field: 'firstName', ascending: true }];
       const self = collectionBuilder.replaceFieldSorting('firstName', sortClauses);
 
       expect(spy).toBeCalledTimes(1);
