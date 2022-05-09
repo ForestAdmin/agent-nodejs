@@ -1,3 +1,18 @@
+# example [1.0.0-beta.30](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.29...example@1.0.0-beta.30) (2022-05-09)
+
+
+### Bug Fixes
+
+* **agent:** export a factory to create the agent ([#298](https://github.com/ForestAdmin/agent-nodejs/issues/298)) ([8370ab7](https://github.com/ForestAdmin/agent-nodejs/commit/8370ab7a7d58cbbbbae0991d48ab89033573fbb2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.22
+
 # example [1.0.0-beta.29](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.28...example@1.0.0-beta.29) (2022-05-09)
 
 
