@@ -520,12 +520,12 @@ describe('WriteDecorator', () => {
             // given
             const { collection, dataSource } = setupWithManyToOneRelation();
 
-            const decoratedDatasource = new DataSourceDecorator(dataSource, WriteDecorator);
+            const decoratedDataSource = new DataSourceDecorator(dataSource, WriteDecorator);
 
-            const pricesCollection = decoratedDatasource.getCollection('prices');
+            const pricesCollection = decoratedDataSource.getCollection('prices');
             pricesCollection.update = jest.fn();
 
-            const decoratedCollection = decoratedDatasource.getCollection('books');
+            const decoratedCollection = decoratedDataSource.getCollection('books');
             const titleDefinition = jest
               .fn()
               .mockResolvedValue({ myAuthor: { myPrice: { value: 10 } } });
@@ -535,7 +535,7 @@ describe('WriteDecorator', () => {
               .fn()
               .mockResolvedValue([{ authorId: '123e4567-e89b-12d3-a456-111111111111' }]);
 
-            const personsCollection = decoratedDatasource.getCollection('persons');
+            const personsCollection = decoratedDataSource.getCollection('persons');
             personsCollection.list = jest
               .fn()
               .mockResolvedValue([{ priceId: '123e4567-e89b-12d3-a456-333333333333' }]);

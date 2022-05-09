@@ -9,7 +9,7 @@ When relationships are defined between collections Forest Admin acts as if the t
 
 # Example
 
-## Inter-Datasource relationship
+## Inter-DataSource relationship
 
 In this simple example, we have two collections which are not linked together:
 
@@ -46,7 +46,7 @@ agent.customizeCollection('payments', collection =>
 Note that relationships can target any unique key with `foreignKeyTarget` and `originKeyTarget`.
 {% endhint %}
 
-## Intra-Datasource relationship
+## Intra-DataSource relationship
 
 When plugging a new data source, relationships will work out of the box, however you may want to add additional relations for user convenience.
 

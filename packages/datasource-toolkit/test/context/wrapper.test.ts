@@ -12,7 +12,7 @@ import RelaxedDataSource from '../../src/context/relaxed-wrappers/datasource';
 import Sort from '../../src/interfaces/query/sort';
 
 describe('RelaxedWrappers', () => {
-  describe('Datasource', () => {
+  describe('DataSource', () => {
     let dataSource: DataSource;
     let relaxed: RelaxedDataSource;
 

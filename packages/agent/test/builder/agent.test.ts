@@ -71,7 +71,7 @@ describe('Builder > Agent', () => {
       const handle = jest.fn();
 
       await agent
-        .addDatasource(async () => dataSource)
+        .addDataSource(async () => dataSource)
         .customizeCollection('collection', handle)
         .start();
 

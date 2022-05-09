@@ -2,7 +2,7 @@
 !pragma layout smetana
 !theme cyborg-outline
 
-title: Datasources connected with ForestAdmin
+title: DataSources connected with ForestAdmin
 
 class STORE {
   String name

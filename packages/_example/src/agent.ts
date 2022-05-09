@@ -11,20 +11,20 @@ import customizeOwner from './customizations/owner';
 import customizePost from './customizations/post';
 import customizeRental from './customizations/rental';
 import customizeStore from './customizations/store';
-import liveDatasourceSchema from './datasources/live/schema';
+import liveDataSourceSchema from './datasources/live/schema';
 import prepareDvdRentalsInMssql from './datasources/sequelize/mssql';
 import prepareOwnerInPostgres from './datasources/sequelize/postgres';
 import prepareStoreInMysql from './datasources/sequelize/mysql';
-import seedLiveDatasource from './datasources/live/seed';
+import seedLiveDataSource from './datasources/live/seed';
 
 export default async function makeAgent(options: AgentOptions) {
   return new Agent(options)
-    .addDatasource(createSequelizeDataSource(prepareOwnerInPostgres()))
-    .addDatasource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }))
-    .addDatasource(createSequelizeDataSource(prepareStoreInMysql()))
-    .addDatasource(createSequelizeDataSource(await prepareDvdRentalsInMssql()))
-    .addDatasource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
-    .addDatasource(createTypicode())
+    .addDataSource(createSequelizeDataSource(prepareOwnerInPostgres()))
+    .addDataSource(createLiveDataSource(liveDataSourceSchema, { seeder: seedLiveDataSource }))
+    .addDataSource(createSequelizeDataSource(prepareStoreInMysql()))
+    .addDataSource(createSequelizeDataSource(await prepareDvdRentalsInMssql()))
+    .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
+    .addDataSource(createTypicode())
 
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('address', customizeAddress)

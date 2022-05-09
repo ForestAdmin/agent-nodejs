@@ -38,7 +38,7 @@ Query Translation:
 
 ## Minimal example
 
-{% tabs %} {% tab title="Datasource: Using a local cache" %}
+{% tabs %} {% tab title="DataSource: Using a local cache" %}
 
 ```javascript
 const { CachedCollection } = require('@forestadmin/datasource-toolkit');
@@ -83,7 +83,7 @@ class MyDataSource extends CachedDataSource {
 module.exports = MyDataSource;
 ```
 
-{% endtab %} {% tab title="Datasource: Using query translation" %}
+{% endtab %} {% tab title="DataSource: Using query translation" %}
 
 ```javascript
 const { BaseCollection } = require('@forestadmin/datasource-toolkit');
@@ -153,7 +153,7 @@ const agent = new Agent(options);
 
 const myDataSourceFactory = async () => new MyDataSource();
 
-agent.addDatasource(myDataSourceFactory);
+agent.addDataSource(myDataSourceFactory);
 ```
 
 {% endtab %} {% endtabs %}

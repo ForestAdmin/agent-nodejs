@@ -3,11 +3,11 @@ import * as factories from './__factories__';
 import { Collection } from '../src/interfaces/collection';
 import BaseDataSource from '../src/base-datasource';
 
-class ConcreteDatasource extends BaseDataSource<Collection> {}
+class ConcreteDataSource extends BaseDataSource<Collection> {}
 
-describe('BaseDatasource', () => {
+describe('BaseDataSource', () => {
   it('should instanciate properly when extended', () => {
-    expect(new ConcreteDatasource()).toBeDefined();
+    expect(new ConcreteDataSource()).toBeDefined();
   });
 
   describe('collections (getter)', () => {
@@ -57,7 +57,7 @@ describe('BaseDatasource', () => {
   describe('addCollection', () => {
     const expectedCollection = factories.collection.build({ name: '__collection__' });
 
-    class DataSourceWithCollection extends ConcreteDatasource {
+    class DataSourceWithCollection extends ConcreteDataSource {
       constructor() {
         super();
 
@@ -65,7 +65,7 @@ describe('BaseDatasource', () => {
       }
     }
 
-    class DuplicatedCollectionErrorDataSource extends ConcreteDatasource {
+    class DuplicatedCollectionErrorDataSource extends ConcreteDataSource {
       constructor() {
         super();
 

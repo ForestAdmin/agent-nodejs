@@ -10,10 +10,10 @@ export default class DataSourceDecorator<
 > extends BaseDataSource<CollectionDecorator> {
   private readonly CollectionDecoratorCtor: CollectionDecoratorConstructor<CollectionDecorator>;
   private readonly childDataSource: DataSource;
-  private addCollectionToChildDatasource: (collection: Collection) => void;
+  private addCollectionToChildDataSource: (collection: Collection) => void;
 
   addCollectionObserver(collection: Collection) {
-    this.addCollectionToChildDatasource(collection);
+    this.addCollectionToChildDataSource(collection);
     this.addCollection(new this.CollectionDecoratorCtor(collection, this));
   }
 
@@ -23,7 +23,7 @@ export default class DataSourceDecorator<
   ) {
     super();
 
-    this.addCollectionToChildDatasource = childDataSource.addCollection.bind(childDataSource);
+    this.addCollectionToChildDataSource = childDataSource.addCollection.bind(childDataSource);
     Reflect.defineProperty(childDataSource, 'addCollection', {
       value: this.addCollectionObserver.bind(this),
     });

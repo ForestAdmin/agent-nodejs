@@ -2,7 +2,7 @@
 !pragma layout smetana
 !theme cyborg-outline
 
-title: Datasources not connected
+title: DataSources not connected
 
 class STORE {
   String name
