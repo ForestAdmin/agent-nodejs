@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.12...@forestadmin/datasource-toolkit@1.0.0-beta.13) (2022-05-09)
+
+
+### Bug Fixes
+
+* **autocomplete:** improve operator replacement autocompletion ([#295](https://github.com/ForestAdmin/agent-nodejs/issues/295)) ([49d22cb](https://github.com/ForestAdmin/agent-nodejs/commit/49d22cbd81fa714c09d038938ca55559f087dad6))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.11...@forestadmin/datasource-toolkit@1.0.0-beta.12) (2022-05-09)
 
 
