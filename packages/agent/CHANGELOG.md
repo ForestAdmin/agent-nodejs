@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.0.0-beta.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.20...@forestadmin/agent@1.0.0-beta.21) (2022-05-09)
+
+
+### Bug Fixes
+
+* **computed:** crash at construction when making computed fields which have zero dependencies ([#293](https://github.com/ForestAdmin/agent-nodejs/issues/293)) ([7fe0319](https://github.com/ForestAdmin/agent-nodejs/commit/7fe031933a46189f8c6951ffe4b5a23912febc99))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.14
+
 # @forestadmin/agent [1.0.0-beta.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.19...@forestadmin/agent@1.0.0-beta.20) (2022-05-09)
 
 
