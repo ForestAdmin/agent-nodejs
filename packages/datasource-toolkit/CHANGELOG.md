@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.13...@forestadmin/datasource-toolkit@1.0.0-beta.14) (2022-05-09)
+
+
+### Bug Fixes
+
+* **computed:** crash at construction when making computed fields which have zero dependencies ([#293](https://github.com/ForestAdmin/agent-nodejs/issues/293)) ([7fe0319](https://github.com/ForestAdmin/agent-nodejs/commit/7fe031933a46189f8c6951ffe4b5a23912febc99))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.12...@forestadmin/datasource-toolkit@1.0.0-beta.13) (2022-05-09)
 
 
