@@ -1,3 +1,19 @@
+# @forestadmin/datasource-sql [1.0.0-beta.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.20...@forestadmin/datasource-sql@1.0.0-beta.21) (2022-05-09)
+
+
+### Bug Fixes
+
+* datasource naming consistency ([#292](https://github.com/ForestAdmin/agent-nodejs/issues/292)) ([ff50a1f](https://github.com/ForestAdmin/agent-nodejs/commit/ff50a1f02aa65b3d99824c2bc9fb19d729a4e465))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.17
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.12
+
 # @forestadmin/datasource-sql [1.0.0-beta.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.19...@forestadmin/datasource-sql@1.0.0-beta.20) (2022-05-04)
 
 
