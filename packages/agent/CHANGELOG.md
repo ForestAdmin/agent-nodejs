@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.0.0-beta.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.18...@forestadmin/agent@1.0.0-beta.19) (2022-05-09)
+
+
+### Bug Fixes
+
+* datasource naming consistency ([#292](https://github.com/ForestAdmin/agent-nodejs/issues/292)) ([ff50a1f](https://github.com/ForestAdmin/agent-nodejs/commit/ff50a1f02aa65b3d99824c2bc9fb19d729a4e465))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.12
+
 # @forestadmin/agent [1.0.0-beta.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.17...@forestadmin/agent@1.0.0-beta.18) (2022-05-04)
 
 
