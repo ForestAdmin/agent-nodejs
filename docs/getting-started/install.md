@@ -95,10 +95,8 @@ await createAgent({
 const { createAgent } = require('@forestadmin/agent');
 const Fastify = require('fastify');
 
-const app = Fastify({
-  logger: true,
-});
-app.listen({ port: 3000 }, (err, address) => {
+const app = Fastify();
+app.listen(3000, () => {
   console.log('Started');
 });
 
