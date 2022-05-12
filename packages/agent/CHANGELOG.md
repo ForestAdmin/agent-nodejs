@@ -1,3 +1,23 @@
+# @forestadmin/agent [1.0.0-beta.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.22...@forestadmin/agent@1.0.0-beta.23) (2022-05-12)
+
+
+### Bug Fixes
+
+* **schema:** broken generation for composite types ([#291](https://github.com/ForestAdmin/agent-nodejs/issues/291)) ([b1cb7e8](https://github.com/ForestAdmin/agent-nodejs/commit/b1cb7e86070acce0dc303f54c8d400d870e705a9))
+
+
+### Features
+
+* implement api-charts ([#284](https://github.com/ForestAdmin/agent-nodejs/issues/284)) ([5917b8c](https://github.com/ForestAdmin/agent-nodejs/commit/5917b8cf645998cd3c0d750310cd81920b250e71))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.15
+
 # @forestadmin/agent [1.0.0-beta.22](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.21...@forestadmin/agent@1.0.0-beta.22) (2022-05-09)
 
 
