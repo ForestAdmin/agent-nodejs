@@ -28,7 +28,9 @@ export class DataSourceFactory extends Factory<DataSource> {
 }
 
 export default DataSourceFactory.define(() => ({
+  schema: { charts: [] },
   collections: [],
   getCollection: jest.fn(),
   addCollection: jest.fn(),
+  renderChart: jest.fn(),
 }));

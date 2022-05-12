@@ -202,5 +202,25 @@ describe('Route index', () => {
         );
       });
     });
+
+    describe('with a data source with a chart', () => {
+      const setupWithChart = (): DataSource => {
+        return factories.dataSource.build({
+          schema: { charts: ['myChart'] },
+        });
+      };
+
+      test('should instantiate the basic routes', async () => {
+        const dataSource = setupWithChart();
+
+        const routes = makeRoutes(
+          dataSource,
+          factories.forestAdminHttpDriverOptions.build(),
+          factories.forestAdminHttpDriverServices.build(),
+        );
+
+        expect(routes.length).toEqual(ROOT_ROUTES_CTOR.length + 1);
+      });
+    });
   });
 });

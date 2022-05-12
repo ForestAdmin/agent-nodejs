@@ -24,7 +24,7 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
     this.markSchemaAsDirty();
   }
 
-  protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
+  protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
     const fields: Record<string, FieldSchema> = {};
 
     for (const [name, field] of Object.entries(childSchema.fields)) {

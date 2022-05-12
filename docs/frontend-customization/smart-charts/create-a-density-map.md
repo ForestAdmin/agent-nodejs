@@ -2,62 +2,92 @@
 
 This last example shows how you can achieve virtually anything, since you are basically coding in a sandbox. There's no limit to what you can do with Smart charts.
 
-{% code title="Template tab" %}
+In this snippet, notice how we import the **D3js** library. Of course, you can choose to use any other library of your choice.
 
-```handlebars
-<div class='c-smart-view'>{{this.chart}}</div>
-```
+{% hint style="info" %}
+This density map chart is inspired from [this one](https://observablehq.com/@d3/bubble-map).
+{% endhint %}
 
-{% endcode %}
+The resulting chart can be resized to fit your use.
 
-{% code title="Component tab" %}
+{% tabs %} {% tab title="Agent" %}
 
 ```javascript
+agent.addChart('densityMap', async (context, resultBuilder) => {
+  // Load contours to draw the map
+  // Ref.: https://github.com/d3/d3-fetch/blob/v2.0.0/README.md#json
+  const contours = await superagent
+    .get(
+      `https://static.observableusercontent.com/files/6b1776f5a0a0e76e6428805c0074a8f262e3` +
+        `f34b1b50944da27903e014b409958dc29b03a1c9cc331949d6a2a404c19dfd0d9d36d9c32274e6ffb` +
+        `c07c11350ee?response-content-disposition=attachment%3Bfilename*%3DUTF-8%27%27coun` +
+        `ties-albers-10m.json`,
+    )
+    .buffer(true);
+
+  // Load population data
+  const population = await superagent
+    .get(
+      `https://static.observableusercontent.com/files/beb56a2d9534662123fa352ffff2db8472e4` +
+        `81776fcc1608ee4adbd532ea9ccf2f1decc004d57adc76735478ee68c0fd18931ba01fc859ee4901d` +
+        `eb1bee2ed1b?response-content-disposition=attachment%3Bfilename*%3DUTF-8%27%27popu` +
+        `lation.json`,
+    )
+    .buffer(true);
+
+  return resultBuilder.smart({
+    contours: JSON.parse(contours.body.toString('utf-8')),
+    population: JSON.parse(population.body.toString('utf-8')),
+  });
+});
+```
+
+{% endtab %} {% tab title="Component" %}
+
+```javascript
+/* eslint-disable */
+
 import Component from '@glimmer/component';
-import { loadExternalStyle, loadExternalJavascript } from 'client/utils/smart-view-utils';
+import { loadExternalJavascript } from 'client/utils/smart-view-utils';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
+import { inject as service } from '@ember/service';
+
+// Settings
+const height = 610;
+const width = 975;
 
 export default class extends Component {
+  @service lianaServerFetch;
+  @tracked chart;
+
   constructor(...args) {
     super(...args);
 
-    this.loadPlugin();
+    this.load();
   }
 
-  @tracked chart;
-  @tracked loaded = false;
-
-  async loadPlugin() {
+  async load() {
+    // Load charting library
     await loadExternalJavascript('https://d3js.org/d3.v6.min.js');
     await loadExternalJavascript('https://unpkg.com/topojson-client@3');
 
-    this.loaded = true;
-    this.renderChart();
+    // Load data from agent
+    const response = await this.lianaServerFetch.fetch('/forest/_charts/densityMap', {});
+    const data = await response.json();
+
+    // Render chart
+    this.renderChart(data.contours, data.population);
   }
 
   @action
-  async renderChart() {
-    if (!this.loaded) {
-      return;
-    }
-
-    const height = 610;
-    const width = 975;
+  async renderChart(us, population) {
+    // Format data
     const format = d3.format(',.0f');
     const path = d3.geoPath();
 
-    // This is the JSON for drawing the contours of the map
-    // Ref.: https://github.com/d3/d3-fetch/blob/v2.0.0/README.md#json
-    const us = await d3.json(
-      'https://static.observableusercontent.com/files/6b1776f5a0a0e76e6428805c0074a8f262e3f34b1b50944da27903e014b409958dc29b03a1c9cc331949d6a2a404c19dfd0d9d36d9c32274e6ffbc07c11350ee?response-content-disposition=attachment%3Bfilename*%3DUTF-8%27%27counties-albers-10m.json',
-    );
     const features = new Map(
       topojson.feature(us, us.objects.counties).features.map(d => [d.id, d]),
-    );
-    // Population should contain data about the dencity
-    const population = await d3.json(
-      'https://static.observableusercontent.com/files/beb56a2d9534662123fa352ffff2db8472e481776fcc1608ee4adbd532ea9ccf2f1decc004d57adc76735478ee68c0fd18931ba01fc859ee4901deb1bee2ed1b?response-content-disposition=attachment%3Bfilename*%3DUTF-8%27%27population.json',
     );
 
     const data = population.slice(1).map(([population, state, county]) => {
@@ -73,6 +103,7 @@ export default class extends Component {
 
     const radius = d3.scaleSqrt([0, d3.max(data, d => d.value)], [0, 40]);
 
+    // Render SVG
     const svg = d3.create('svg').attr('viewBox', [0, 0, width, height]);
 
     svg
@@ -131,12 +162,10 @@ export default class extends Component {
 }
 ```
 
-{% endcode %}
+{% endtab %} {% tab title="Template" %}
 
-In the above snippet, notice how we import the **D3js** library. Of course, you can choose to use any other library of your choice.
+```handlebars
+<div class='c-smart-view'>{{this.chart}}</div>
+```
 
-{% hint style="info" %}
-This density map chart is inspired from [this one](https://observablehq.com/@d3/bubble-map).
-{% endhint %}
-
-The resulting chart can be resized to fit your use.
+{% endtab %} {% endtabs %}

@@ -8,7 +8,7 @@ import Filter from '../interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Projection from '../interfaces/query/projection';
 
-export default abstract class CollectionDecorator implements Collection {
+export default class CollectionDecorator implements Collection {
   readonly dataSource: DataSource;
   protected childCollection: Collection;
 
@@ -102,5 +102,7 @@ export default abstract class CollectionDecorator implements Collection {
     return filter;
   }
 
-  protected abstract refineSchema(subSchema: CollectionSchema): CollectionSchema;
+  protected refineSchema(subSchema: CollectionSchema): CollectionSchema {
+    return subSchema;
+  }
 }

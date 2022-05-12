@@ -48,6 +48,29 @@ describe('Builder > Agent', () => {
     expect(forestAdminHttpDriverInstance.stop).toHaveBeenCalled();
   });
 
+  describe('addChart', () => {
+    it('should add the chart to the schema', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      await agent
+        .addChart('myChart', (context, resultBuilder) => resultBuilder.value(12332, 3224))
+        .start();
+
+      // Access private variable
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
+      const { dataSource } = agent.stack;
+
+      // Check that the chart was added to the datasource
+      expect(dataSource.schema.charts).toContain('myChart');
+      await expect(dataSource.renderChart(null, 'myChart')).resolves.toStrictEqual({
+        countCurrent: 12332,
+        countPrevious: 3224,
+      });
+    });
+  });
+
   describe('customizeCollection', () => {
     describe('when designed collection is unknown', () => {
       it('should throw an error', async () => {
@@ -55,7 +78,7 @@ describe('Builder > Agent', () => {
         const agent = new Agent(options);
 
         await expect(agent.customizeCollection('unknown', () => {}).start()).rejects.toThrowError(
-          'Collection "unknown" not found',
+          "Collection 'unknown' not found",
         );
       });
     });

@@ -6,8 +6,11 @@ export * from './factory';
 export { default as BaseCollection } from './base-collection';
 export { default as BaseDataSource } from './base-datasource';
 
-// Decorators (collections)
+// Decorators (datasource)
 export { default as DataSourceDecorator } from './decorators/datasource-decorator';
+export { default as ChartDataSourceDecorator } from './decorators/chart/datasource';
+
+// Decorators (collections)
 export { default as ActionCollectionDecorator } from './decorators/actions/collection';
 export { default as ComputedCollectionDecorator } from './decorators/computed/collection';
 export { default as EmptyCollectionDecorator } from './decorators/empty/collection';
@@ -23,11 +26,12 @@ export { default as SortEmulateCollectionDecorator } from './decorators/sort-emu
 
 // Decorators (helpers)
 export { Action as ActionDefinition } from './decorators/actions/types/actions';
-export { WriteDefinition } from './decorators/write/types';
+export { ChartDefinition } from './decorators/chart/types';
+export { ComputedDefinition } from './decorators/computed/types';
+export { OperatorReplacer as OperatorDefinition } from './decorators/operators-emulate/types';
+export { PartialRelationSchema as RelationDefinition } from './decorators/relation/types';
 export { SegmentDefinition } from './decorators/segment/types';
-export * from './decorators/computed/types';
-export * from './decorators/relation/types';
-export * from './decorators/operators-emulate/types';
+export { WriteDefinition } from './decorators/write/types';
 
 // Query Interface
 export { default as Aggregation } from './interfaces/query/aggregation';

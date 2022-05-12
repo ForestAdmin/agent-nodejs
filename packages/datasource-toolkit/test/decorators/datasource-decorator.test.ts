@@ -23,4 +23,19 @@ describe('DataSourceDecorator', () => {
 
     expect(decorator.collections).toHaveLength(1);
   });
+
+  test('should proxy calls to schema', () => {
+    const dataSource = factories.dataSource.build();
+    const decorator = new DataSourceDecorator(dataSource, DecoratedCollection);
+
+    expect(decorator.schema).toBe(dataSource.schema);
+  });
+
+  test('should proxy calls to renderChart', () => {
+    const dataSource = factories.dataSource.build();
+    const decorator = new DataSourceDecorator(dataSource, DecoratedCollection);
+
+    decorator.renderChart(null, 'myChart');
+    expect(dataSource.renderChart).toHaveBeenCalledWith(null, 'myChart');
+  });
 });

@@ -16,7 +16,7 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
     this.markSchemaAsDirty();
   }
 
-  protected refineSchema(subSchema: CollectionSchema): CollectionSchema {
+  protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     return {
       ...subSchema,
       segments: [...subSchema.segments, ...Object.keys(this.segments)],

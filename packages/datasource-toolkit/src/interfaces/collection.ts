@@ -1,6 +1,7 @@
 import { ActionField, ActionResult } from './action';
 import { Caller } from './caller';
-import { CollectionSchema } from './schema';
+import { Chart } from './chart';
+import { CollectionSchema, DataSourceSchema } from './schema';
 import { RecordData } from './record';
 import Aggregation, { AggregateResult } from './query/aggregation';
 import Filter from './query/filter/unpaginated';
@@ -9,8 +10,12 @@ import Projection from './query/projection';
 
 export interface DataSource {
   get collections(): Collection[];
+  get schema(): DataSourceSchema;
+
   getCollection(name: string): Collection;
   addCollection(collection: Collection): void;
+
+  renderChart(caller: Caller, name: string): Promise<Chart>;
 }
 
 export interface Collection {

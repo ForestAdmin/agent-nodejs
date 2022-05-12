@@ -10,9 +10,8 @@ describe('BaseDataSource', () => {
     expect(new ConcreteDataSource()).toBeDefined();
   });
 
-  describe('collections (getter)', () => {
+  describe('With a single collection', () => {
     const expectedCollection = factories.collection.build({ name: '__collection__' });
-
     class DataSourceWithCollection extends BaseDataSource<Collection> {
       constructor() {
         super();
@@ -23,21 +22,13 @@ describe('BaseDataSource', () => {
 
     it('should expose collections from datasource as an array', () => {
       const dataSource = new DataSourceWithCollection();
-      expect(dataSource.collections).toBeArrayOfSize(1);
-      expect(dataSource.collections[0]).toBe(expectedCollection);
+      expect(dataSource.collections).toStrictEqual([expectedCollection]);
     });
-  });
 
-  describe('getCollection', () => {
-    const expectedCollection = factories.collection.build({ name: '__collection__' });
-
-    class DataSourceWithCollection extends BaseDataSource<Collection> {
-      constructor() {
-        super();
-
-        this.addCollection(expectedCollection);
-      }
-    }
+    it('should export an empty schema', () => {
+      const dataSource = new DataSourceWithCollection();
+      expect(dataSource.schema).toStrictEqual({ charts: [] });
+    });
 
     it('should get collection from datasource', () => {
       const dataSource = new DataSourceWithCollection();
@@ -49,22 +40,20 @@ describe('BaseDataSource', () => {
       const dataSource = new DataSourceWithCollection();
 
       expect(() => dataSource.getCollection('__no_such_collection__')).toThrow(
-        'Collection "__no_such_collection__" not found.',
+        "Collection '__no_such_collection__' not found.",
+      );
+    });
+
+    it('should throw if renderChart() is called', () => {
+      const dataSource = new DataSourceWithCollection();
+
+      expect(() => dataSource.renderChart(null, 'myChart')).toThrow(
+        `No chart named 'myChart' exists on this datasource.`,
       );
     });
   });
 
-  describe('addCollection', () => {
-    const expectedCollection = factories.collection.build({ name: '__collection__' });
-
-    class DataSourceWithCollection extends ConcreteDataSource {
-      constructor() {
-        super();
-
-        this.addCollection(expectedCollection);
-      }
-    }
-
+  describe('With conflicting collection names', () => {
     class DuplicatedCollectionErrorDataSource extends ConcreteDataSource {
       constructor() {
         super();
@@ -76,15 +65,8 @@ describe('BaseDataSource', () => {
 
     it('should prevent instanciation when adding collection with duplicated name', () => {
       expect(() => new DuplicatedCollectionErrorDataSource()).toThrow(
-        'Collection "__duplicated__" already defined in datasource',
+        "Collection '__duplicated__' already defined in datasource",
       );
-    });
-
-    it('should add collection with unique name', () => {
-      const dataSource = new DataSourceWithCollection();
-
-      expect(dataSource.collections).toBeArrayOfSize(1);
-      expect(dataSource.collections[0]).toBe(expectedCollection);
     });
   });
 });

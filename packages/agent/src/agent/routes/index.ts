@@ -3,6 +3,7 @@ import { DataSource } from '@forestadmin/datasource-toolkit';
 import { AgentOptionsWithDefaults as Options } from '../types';
 import { ForestAdminHttpDriverServices as Services } from '../services';
 import ActionRoute from './modification/action';
+import ApiChartRoute from './access/api-chart';
 import AssociateRelated from './modification/associate-related';
 import Authentication from './security/authentication';
 import BaseRoute from './base-route';
@@ -45,6 +46,16 @@ export const RELATED_RELATION_ROUTES_CTOR = [UpdateRelation];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {
   return ROOT_ROUTES_CTOR.map(Route => new Route(services, options));
+}
+
+function getApiChartRoutes(
+  dataSource: DataSource,
+  options: Options,
+  services: Services,
+): BaseRoute[] {
+  return dataSource.schema.charts.map(chartName => {
+    return new ApiChartRoute(services, options, dataSource, chartName);
+  });
 }
 
 function getCrudRoutes(dataSource: DataSource, options: Options, services: Services): BaseRoute[] {
@@ -111,6 +122,7 @@ export default function makeRoutes(
   const routes = [
     ...getRootRoutes(options, services),
     ...getCrudRoutes(dataSource, options, services),
+    ...getApiChartRoutes(dataSource, options, services),
     ...getRelatedRoutes(dataSource, options, services),
     ...getActionRoutes(dataSource, options, services),
   ];

@@ -272,7 +272,7 @@ describe('RelationCollectionDecorator', () => {
             foreignCollection: '__nonExisting__',
             foreignKey: 'ownerId',
           }),
-        ).toThrow('Collection "__nonExisting__" not found.');
+        ).toThrow("Collection '__nonExisting__' not found.");
       });
 
       test('should throw with a non existent fk', () => {
@@ -338,7 +338,7 @@ describe('RelationCollectionDecorator', () => {
             originKey: 'ownerId',
             throughCollection: '__nonExisting__',
           } as ManyToManySchema),
-        ).toThrow('Collection "__nonExisting__" not found.');
+        ).toThrow("Collection '__nonExisting__' not found.");
       });
 
       test('should throw with a non existent originKey', () => {

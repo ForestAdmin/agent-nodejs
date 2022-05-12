@@ -13,13 +13,13 @@ The default behavior, when no exception is thrown in the handler is to display a
 The notification message and color can be customized
 
 ```javascript
-return responseBuilder.success('Company is now live!');
+return resultBuilder.success('Company is now live!');
 ```
 
 <img src="../../assets/actions-custom-success-response.png" width="300">
 
 ```javascript
-return responseBuilder.error('The company was already live!');
+return resultBuilder.error('The company was already live!');
 ```
 
 <img src="../../assets/actions-custom-error-response.png" width="300">
@@ -32,7 +32,7 @@ For instance:
 
 ```javascript
 const record = await context.getRecord();
-return responseBuilder.success(
+return resultBuilder.success(
   `
     <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has been successfuly charged.</p>
     <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
@@ -54,8 +54,8 @@ The example code below will trigger a file download (With the file named `filena
 collection.addAction('Download a file', {
   scope: 'Global',
   generateFile: true,
-  execute: async (context, responseBuilder) => {
-    return responseBuilder.file('StringThatWillBeInTheFile', 'filename.txt', 'text/plain');
+  execute: async (context, resultBuilder) => {
+    return resultBuilder.file('StringThatWillBeInTheFile', 'filename.txt', 'text/plain');
   },
 });
 ```
@@ -71,7 +71,7 @@ The redirection works both for internal (\*.forestadmin.com pages) and external 
 {% tabs %} {% tab title="Internal link" %}
 
 ```javascript
-return responseBuilder.redirectTo(
+return resultBuilder.redirectTo(
   '/MyProject/MyEnvironment/MyTeam/data/20/index/record/20/108/activity',
 );
 ```
@@ -79,7 +79,7 @@ return responseBuilder.redirectTo(
 {% endtab %} {% tab title="External link" %}
 
 ```javascript
-return responseBuilder.redirectTo(
+return resultBuilder.redirectTo(
   'https://www.royalmail.com/portal/rm/track?trackNumber=ZW924750388GB',
 );
 ```
@@ -91,7 +91,7 @@ return responseBuilder.redirectTo(
 After an action you can set up a HTTP (or HTTPS) callback - a webhook - to forward information to other applications.
 
 ```javascript
-return responseBuilder.webhook(
+return resultBuilder.webhook(
   'http://my-company-name', // The url of the company providing the service.
   'POST', // The method you would like to use (typically a POST).
   {}, // You can add some headers if needed.
@@ -106,7 +106,7 @@ If you want to create an action accessible from the details or the summary view 
 In the example below, the “Add new transaction” action is accessible from the summary view. This action creates a new transaction and automatically refresh the “Emitted transactions” related data section to see the new transaction.
 
 ```javascript
-return responseBuilder.success('New transaction emitted', {
+return resultBuilder.success('New transaction emitted', {
   invalidated: ['emitted_transactions'],
 });
 ```

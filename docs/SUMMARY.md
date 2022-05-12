@@ -51,8 +51,8 @@
 
   - [Create a table chart](frontend-customization/smart-charts/create-a-table-chart.md)
   - [Create a bar chart](frontend-customization/smart-charts/create-a-bar-chart.md)
-  - [Create a density map](frontend-customization/smart-charts/create-a-density-map.md)
   - [Create a cohort chart](frontend-customization/smart-charts/create-a-cohort-chart.md)
+  - [Create a density map](frontend-customization/smart-charts/create-a-density-map.md)
 
 - [Smart Views](frontend-customization/smart-views/README.md)
   - [Create a Map view](frontend-customization/smart-views/create-a-map-view.md)

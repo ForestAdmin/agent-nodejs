@@ -18,7 +18,7 @@ This is done in three steps:
 
 - Implement the chart from the agent code
 - Create a new chart on a Dashboard, and choose "API" as the data source.
-- Enter the URL of the chart you just created (`/forest/stats/<chartName>`)
+- Enter the URL of the chart you just created (`/forest/_charts/<chartName>`)
 
 ![](../assets/chart-api.png)
 
@@ -33,8 +33,6 @@ Note that, when defining a chart from your agent:
 
 Coding a chart handler from your agent, in the other hand, give your freedom in how the data powering a native chart is computed.
 
-Both features can be used together, by calling the published URL from a Smart Chart.
-
 ## Examples
 
 {% hint style='notice' %}
@@ -48,57 +46,28 @@ As Forest Admin does not impose any restriction on the handler, you are free to 
 ![Value chart example](../assets/chart-value.png)
 
 ```javascript
-agent.addChart('frenchBooks', async (context, responseBuilder) => {
-  // Count books which have a french author.
-  const rows = await context.dataSource
-    .getCollection('books')
-    .aggregate(
-      { conditionTree: { field: 'author:country:name', operator: 'Equal', value: 'France' } },
-      { operation: 'Count' },
-    );
-
-  return responseBuilder.value(rows[0].value);
-});
-```
-
-### Objective chart
-
-![Objective chart example](../assets/chart-objective.png)
-
-Objective charts are very similar to value charts, the only difference being that two numbers should be provided to the `responseBuilder`
-
-```javascript
-agent.addChart('frenchBooksObjective', async (context, responseBuilder) => {
+agent.addChart('mrr', async (context, resultBuilder) => {
   // [...]
 
-  return responseBuilder.objective(rows[0].value, 250);
+  return resultBuilder.value(25751);
 });
 ```
 
-### Repartition chart
+### Distribution chart
 
-![Repartition chart example](../assets/chart-repartition.png)
+![Distribution chart example](../assets/chart-distribution.png)
 
-Repartition charts should return a plain object in the form
-
-```json
-{ "France": 32, "Spain": 23, "Portugal": 45 }
-```
+Distribution charts should return a plain object
 
 ```javascript
-agent.addChart('booksByAuthorCountry', async (context, responseBuilder) => {
-  // Count books by their author's country
-  const rows = await context.dataSource
-    .getCollection('books')
-    .aggregate({}, { operation: 'Count', groups: [{ field: 'author:country:name' }] });
+agent.addChart('booksByAuthorCountry', async (context, resultBuilder) => {
+  // [...]
 
-  // Make plain object
-  const obj = {};
-  for (const row of rows) {
-    obj[row.group['author:country:name']] = row.value;
-  }
-
-  return responseBuilder.repartition(obj);
+  return resultBuilder.distribution({
+    validated: 100,
+    rejected: 100,
+    to_validate: 100,
+  });
 });
 ```
 
@@ -106,29 +75,69 @@ agent.addChart('booksByAuthorCountry', async (context, responseBuilder) => {
 
 ![Time chart example](../assets/chart-time.png)
 
-Time-based charts are very similar to repartition charts, the only difference being that the keys of the provided object must be ISO-8601 compliant dates
+Time-based charts are very similar to distribution charts, the only differences being that
 
-```json
-{
-  "1955-11-05T01:22:00-08:00": 45,
-  "1985-10-26T01:22:00-08:00": 32,
-  "2015-10-21T01:22:00-08:00": 23
-}
-```
+- An additional parameter tells the frontend if the dates should be displayed by `Day`, `Week`, `Month` or `Year`.
+- The keys of the provided object must be ISO-8601 compliant dates
 
 ```javascript
-agent.addChart('numBooksByReleaseMonth', async (context, responseBuilder) => {
-  // Count books by release month
-  const rows = await context.dataSource
-    .getCollection('books')
-    .aggregate({}, { operation: 'Count', groups: [{ field: 'releaseDate', operation: 'Month' }] });
+agent.addChart('transactionVolume', async (context, resultBuilder) => {
+  // [...]
 
-  // Make plain object
-  const obj = {};
-  for (const row of rows) {
-    obj[row.group['releaseDate']] = row.value;
-  }
+  return resultBuilder.timeBased('Month', {
+    '2017-02-01': 636,
+    '2017-03-01': 740,
+    '2017-04-01': 648,
+    '2017-05-01': 726,
+    // [...]
+  });
+});
+```
 
-  return responseBuilder.time(obj);
+### Percentage
+
+![Percentage chart example](../assets/chart-percentage.png)
+
+Percentage charts are very similar to value charts
+
+```javascript
+agent.addChart('averageVolumeIncrease', async (context, resultBuilder) => {
+  // [...]
+
+  return resultBuilder.percentage(11);
+});
+```
+
+### Objective chart
+
+![Objective chart example](../assets/chart-objective.png)
+
+Objective charts are very similar to value charts, the only difference being that two numbers should be provided to the `resultBuilder`
+
+```javascript
+agent.addChart('companiesLive', async (context, resultBuilder) => {
+  // [...]
+
+  return resultBuilder.objective(235, 300);
+});
+```
+
+### Leaderboard chart
+
+![Leaderboard chart example](../assets/chart-leaderboard.png)
+
+Leaderboard chart display a list of records sorted by their value.
+
+```javascript
+agent.addChart('companiesLive', async (context, resultBuilder) => {
+  // [...]
+
+  return resultBuilder.leaderboard({
+    Bonanza: 5835694,
+    TalkSpace: 4179218,
+    Tesco: 3959931,
+    BitPesa: 3856685,
+    Octiv: 3747458,
+  });
 });
 ```

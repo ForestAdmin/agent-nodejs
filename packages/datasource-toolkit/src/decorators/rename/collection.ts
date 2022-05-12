@@ -46,7 +46,7 @@ export default class RenameCollectionDecorator extends CollectionDecorator {
     }
   }
 
-  protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
+  protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
     const fields: Record<string, FieldSchema> = {};
 
     for (const [oldName, oldSchema] of Object.entries(childSchema.fields)) {

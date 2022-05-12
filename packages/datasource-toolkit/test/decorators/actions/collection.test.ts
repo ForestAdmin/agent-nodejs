@@ -115,8 +115,8 @@ describe('ActionDecorator', () => {
     beforeEach(() => {
       newBooks.addAction('make photocopy', {
         scope: 'Single',
-        execute: (context, responseBuilder) => {
-          return responseBuilder.error('meeh');
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
         },
         form: [
           { label: 'firstname', type: 'String' },
@@ -147,8 +147,8 @@ describe('ActionDecorator', () => {
     beforeEach(() => {
       newBooks.addAction('make photocopy', {
         scope: 'Single',
-        execute: (context, responseBuilder) => {
-          return responseBuilder.error('meeh');
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
         },
         form: [
           {

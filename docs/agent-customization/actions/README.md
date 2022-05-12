@@ -20,7 +20,7 @@ The action behavior is implemented in the `execute()` function.
 agent.customizeCollection('companies', collection =>
   collection.addAction('Mark as live', {
     scope: 'Single',
-    execute: async (context, responseBuilder) => {
+    execute: async (context, resultBuilder) => {
       // Change the company's status to live.
       await context.collection.update(context.filter, { status: 'live' });
     },

@@ -32,8 +32,8 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const context = this.getContext(caller, action, data, filter) as any;
-    const responseBuilder = new ResultBuilder();
-    const result = await action.execute(context, responseBuilder);
+    const resultBuilder = new ResultBuilder();
+    const result = await action.execute(context, resultBuilder);
 
     return (
       result || {
@@ -78,7 +78,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     return fields;
   }
 
-  protected refineSchema(subSchema: CollectionSchema): CollectionSchema {
+  protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     const newSchema = { ...subSchema, actions: { ...subSchema.actions } };
 
     for (const [name, { form, scope, generateFile }] of Object.entries(this.actions)) {

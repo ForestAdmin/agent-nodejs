@@ -1,4 +1,9 @@
-import { BaseDataSource, Collection, DataSourceFactory } from '@forestadmin/datasource-toolkit';
+import {
+  BaseDataSource,
+  ChartDefinition,
+  Collection,
+  DataSourceFactory,
+} from '@forestadmin/datasource-toolkit';
 
 import { AgentOptions } from '../types';
 import CollectionBuilder from './collection';
@@ -66,6 +71,26 @@ export default class AgentBuilder {
       datasource.collections.forEach(collection => {
         this.compositeDataSource.addCollection(collection);
       });
+    });
+
+    return this;
+  }
+
+  /**
+   * Create a new API chart
+   * @param name name of the chart
+   * @param definition definition of the chart
+   * @example
+   * .addChart('numCustomers', {
+   *   type: 'Value',
+   *   render: (context, resultBuilder) => {
+   *     return resultBuilder.value(123);
+   *   }
+   * })
+   */
+  addChart(name: string, definition: ChartDefinition): this {
+    this.tasks.push(async () => {
+      this.stack.chart.addChart(name, definition);
     });
 
     return this;

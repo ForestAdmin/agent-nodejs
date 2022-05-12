@@ -99,7 +99,7 @@ describe('CollectionDecorator', () => {
       // "Identity decorator"
       const refineSchema = jest.fn().mockImplementation(child => child);
       const MyDecorator = class extends CollectionDecorator {
-        refineSchema = refineSchema;
+        override refineSchema = refineSchema;
       };
 
       // Create collections
@@ -114,7 +114,7 @@ describe('CollectionDecorator', () => {
       // "Identity decorator"
       const refineSchema = jest.fn().mockImplementation(child => child);
       const MyDecorator = class extends CollectionDecorator {
-        refineSchema = refineSchema;
+        override refineSchema = refineSchema;
       };
 
       // Create collections

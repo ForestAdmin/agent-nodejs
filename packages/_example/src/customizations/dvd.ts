@@ -28,7 +28,7 @@ export default (collection: Collection) =>
     .addAction('Increase the rental price', {
       scope: 'Bulk',
       form: [{ label: 'percentage', type: 'Number', defaultValue: 10, isRequired: true }],
-      execute: async (context, responseBuilder) => {
+      execute: async (context, resultBuilder) => {
         // Increase prices
         const replacements = {
           multiplier: 1 + context.formValues.percentage / 100,
@@ -41,6 +41,6 @@ export default (collection: Collection) =>
         );
 
         // Customize success message.
-        return responseBuilder.success(`Rental price increased`);
+        return resultBuilder.success(`Rental price increased`);
       },
     });

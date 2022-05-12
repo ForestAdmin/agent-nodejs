@@ -1,6 +1,6 @@
 import ResultBuilder from '../../../src/decorators/actions/result-builder';
 
-describe('ResponseBuilder', () => {
+describe('ResultBuilder', () => {
   const builder = new ResultBuilder();
 
   test('success', () => {
