@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.14...@forestadmin/datasource-toolkit@1.0.0-beta.15) (2022-05-12)
+
+
+### Features
+
+* implement api-charts ([#284](https://github.com/ForestAdmin/agent-nodejs/issues/284)) ([5917b8c](https://github.com/ForestAdmin/agent-nodejs/commit/5917b8cf645998cd3c0d750310cd81920b250e71))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.13...@forestadmin/datasource-toolkit@1.0.0-beta.14) (2022-05-09)
 
 
