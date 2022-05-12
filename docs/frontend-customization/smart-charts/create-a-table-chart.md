@@ -2,7 +2,51 @@
 
 Our first Smart Chart example will be a simple table: however you may choose to make it as complex and customized as you wish.
 
-{% code title="" %}
+We will code it in three steps:
+
+1. Creating the chart in your agent (so that the data can be dynamically loaded)
+2. Loading that data inside of the component (and passing it down to the template)
+3. Writing a template
+
+{% tabs %} {% tab title="Agent" %}
+
+```javascript
+agent.addChart('myTableChart', async (context, resultBuilder) => {
+  // You may want to load the data dynamically
+  // [...]
+
+  return resultBuilder.smart([
+    { username: 'Darth Vador', points: 1500000 },
+    { username: 'Luke Skywalker', points: 2 },
+  ]);
+});
+```
+
+{% endtab %} {% tab title="Component" %}
+
+```javascript
+import Component from '@glimmer/component';
+import { inject as service } from '@ember/service';
+import { tracked } from '@glimmer/tracking';
+
+export default class extends Component {
+  @service lianaServerFetch;
+  @tracked users;
+
+  constructor(...args) {
+    super(...args);
+    this.fetchData();
+  }
+
+  /** Load data from agent, and pass it to the template */
+  async fetchData() {
+    const response = await this.lianaServerFetch.fetch('/forest/_charts/myTableChart', {});
+    this.users = await response.json();
+  }
+}
+```
+
+{% endtab %} {% tab title="Template" %}
 
 ```handlebars
 <BetaTable
@@ -20,56 +64,4 @@ Our first Smart Chart example will be a simple table: however you may choose to 
 </BetaTable>
 ```
 
-{% endcode %}
-
-Using a trivial set of hardcoded data for example's sake:
-
-{% code title="Component tab" %}
-
-```javascript
-import Component from '@glimmer/component';
-import { loadExternalStyle, loadExternalJavascript } from 'client/utils/smart-view-utils';
-
-export default class extends Component {
-  users = [
-    {
-      username: 'Darth Vador',
-      points: 1500000,
-    },
-    {
-      username: 'Luke Skywalker',
-      points: 2,
-    },
-  ];
-}
-```
-
-{% endcode %}
-
-To query a custom route of your Forest server as your datasource, you may use this syntax instead:
-
-{% code title="Component tab" %}
-
-```javascript
-import Component from '@glimmer/component';
-import { inject as service } from '@ember/service';
-import { tracked } from '@glimmer/tracking';
-
-export default class extends Component {
-  @service lianaServerFetch;
-
-  @tracked users;
-
-  constructor(...args) {
-    super(...args);
-    this.fetchData();
-  }
-
-  async fetchData() {
-    const response = await this.lianaServerFetch.fetch('/forest/custom-data', {});
-    this.users = await response.json();
-  }
-}
-```
-
-{% endcode %}
+{% endtab %} {% endtabs %}

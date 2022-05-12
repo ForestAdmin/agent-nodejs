@@ -74,7 +74,7 @@ export default class ComputedCollection extends CollectionDecorator {
     );
   }
 
-  protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
+  protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
     const schema = { ...childSchema, fields: { ...childSchema.fields } };
 
     for (const [name, computed] of Object.entries(this.computeds)) {

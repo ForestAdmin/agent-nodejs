@@ -2,81 +2,89 @@
 
 This second example shows how you can achieve any format of charts, as you can benefit from external libraries like D3js.
 
-{% code title="Template tab" %}
+{% tabs %} {% tab title="Agent" %}
 
-```handlebars
-<div class='c-smart-view'>{{this.chart}}</div>
+```javascript
+agent.addChart('alphabetFrequency', async (context, resultBuilder) => {
+  // You may want to load that data dynamically
+  // [...]
+
+  return resultBuilder.smart([
+    { name: 'E', value: 0.12702 },
+    { name: 'T', value: 0.09056 },
+    { name: 'A', value: 0.08167 },
+    { name: 'O', value: 0.07507 },
+    { name: 'I', value: 0.06966 },
+    { name: 'N', value: 0.06749 },
+    { name: 'S', value: 0.06327 },
+    { name: 'H', value: 0.06094 },
+    { name: 'R', value: 0.05987 },
+    { name: 'D', value: 0.04253 },
+    { name: 'L', value: 0.04025 },
+    { name: 'C', value: 0.02782 },
+    { name: 'U', value: 0.02758 },
+    { name: 'M', value: 0.02406 },
+    { name: 'W', value: 0.0236 },
+    { name: 'F', value: 0.02288 },
+    { name: 'G', value: 0.02015 },
+    { name: 'Y', value: 0.01974 },
+    { name: 'P', value: 0.01929 },
+    { name: 'B', value: 0.01492 },
+    // [...]
+  ]);
+);
 ```
 
-{% endcode %}
-
-{% code title="Component tab" %}
+{% endtab %} {% tab title="Component" %}
 
 ```javascript
 import Component from '@glimmer/component';
-import { loadExternalStyle, loadExternalJavascript } from 'client/utils/smart-view-utils';
+import { loadExternalJavascript } from 'client/utils/smart-view-utils';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
+import { inject as service } from '@ember/service';
 
+// Settings
+const color = 'steelblue';
+const height = 500;
+const width = 800;
+const margin = { top: 30, right: 0, bottom: 30, left: 40 };
+
+// Component
 export default class extends Component {
+  @service lianaServerFetch;
+  @tracked chart;
+
   constructor(...args) {
     super(...args);
-
-    this.loadPlugin();
+    this.load();
   }
 
-  @tracked chart;
-  @tracked loaded = false;
-
-  async loadPlugin() {
+  async load() {
+    // Load charting library
     await loadExternalJavascript('https://d3js.org/d3.v6.min.js');
 
-    this.loaded = true;
-    this.renderChart();
-  }
+    // Load data from agent
+    const response = await this.lianaServerFetch.fetch('/forest/_charts/alphabetFrequency', {});
+    const alphabet = await response.json();
 
-  async fetchData() {
-    const response = await this.lianaServerFetch.fetch('/forest/custom-data', {});
-    const data = await response.json();
-    return data;
+    // Render chart
+    this.renderChart(alphabet);
   }
 
   @action
-  async renderChart() {
-    if (!this.loaded) {
-      return;
-    }
-
-    const color = 'steelblue';
-
-    // Don't comment the lines below if you want to fetch data from your Forest server
-    // const usersData = await this.fetchData()
-    // const data = Object.assign(usersData.sort((a, b) => d3.descending(a.points, b.points)), {format: "%", y: "↑ Frequency"})
-
-    // To remove if you're using data from your Forest server
-    const alphabet = await d3.csv(
-      'https://static.observableusercontent.com/files/09f63bb9ff086fef80717e2ea8c974f918a996d2bfa3d8773d3ae12753942c002d0dfab833d7bee1e0c9cd358cd3578c1cd0f9435595e76901508adc3964bbdc?response-content-disposition=attachment%3Bfilename*%3DUTF-8%27%27alphabet.csv',
-      function (d) {
-        return {
-          name: d.letter,
-          value: +d.frequency,
-        };
-      },
-    );
+  async renderChart(alphabet) {
     const data = Object.assign(
       alphabet.sort((a, b) => d3.descending(a.value, b.value)),
       { format: '%', y: '↑ Frequency' },
     );
-
-    const height = 500;
-    const width = 800;
-    const margin = { top: 30, right: 0, bottom: 30, left: 40 };
 
     const x = d3
       .scaleBand()
       .domain(d3.range(data.length))
       .range([margin.left, width - margin.right])
       .padding(0.1);
+
     const y = d3
       .scaleLinear()
       .domain([0, d3.max(data, d => d.value)])
@@ -120,7 +128,6 @@ export default class extends Component {
       .attr('width', x.bandwidth());
 
     svg.append('g').call(xAxis);
-
     svg.append('g').call(yAxis);
 
     this.chart = svg.node();
@@ -128,7 +135,13 @@ export default class extends Component {
 }
 ```
 
-{% endcode %}
+{% endtab %} {% tab title="Template" %}
+
+```handlebars
+<div class='c-smart-view'>{{this.chart}}</div>
+```
+
+{% endtab %} {% endtabs %}
 
 In the above snippet, notice how we import the **D3js** library. Of course, you can choose to use any other library of your choice.
 

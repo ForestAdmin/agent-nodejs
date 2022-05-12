@@ -24,12 +24,12 @@ collection.addAction('Charge credit card', {
       type: 'String',
     },
   ],
-  execute: async (context, responseBuilder) => {
+  execute: async (context, resultBuilder) => {
     try {
       // Add your business logic here
-      return responseBuilder.success(`Amount charged!`);
+      return resultBuilder.success(`Amount charged!`);
     } catch (error) {
-      return responseBuilder.error(`Failed to charge amount: ${error}`);
+      return resultBuilder.error(`Failed to charge amount: ${error}`);
     }
   },
 });
@@ -142,8 +142,8 @@ collection.addAction('Tell me a greeting', {
       },
     },
   ],
-  execute: async (context, responseBuilder) => {
-    return responseBuilder.success(`Hello ${context.formValues['How should we refer to you?']}!`);
+  execute: async (context, resultBuilder) => {
+    return resultBuilder.success(`Hello ${context.formValues['How should we refer to you?']}!`);
   },
 });
 ```
@@ -171,9 +171,9 @@ collection.addAction('Leave a review', {
       if: context => Number(context.formValues.Rating) < 4,
     },
   ],
-  execute: async (context, responseBuilder) => {
+  execute: async (context, resultBuilder) => {
     // use context.formValues to save theses informations or trigger an event.
-    return responseBuilder.success(`Thank you for your review!`);
+    return resultBuilder.success(`Thank you for your review!`);
   },
 });
 ```

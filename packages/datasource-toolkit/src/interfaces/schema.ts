@@ -8,6 +8,10 @@ export type ActionSchema = {
   staticForm?: boolean;
 };
 
+export type DataSourceSchema = {
+  charts: string[];
+};
+
 export type CollectionSchema = {
   actions: { [actionName: string]: ActionSchema };
   fields: { [fieldName: string]: FieldSchema };

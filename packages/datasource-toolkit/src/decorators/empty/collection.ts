@@ -1,5 +1,4 @@
 import { Caller } from '../../interfaces/caller';
-import { CollectionSchema } from '../../interfaces/schema';
 import { RecordData } from '../../interfaces/record';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionDecorator from '../collection-decorator';
@@ -16,10 +15,6 @@ import Projection from '../../interfaces/query/projection';
  * mutually exclusive conditions or empty "In" leafs.
  */
 export default class EmptyCollectionDecorator extends CollectionDecorator {
-  protected refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    return subSchema;
-  }
-
   override async list(
     caller: Caller,
     filter: PaginatedFilter,

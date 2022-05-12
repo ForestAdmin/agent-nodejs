@@ -70,7 +70,7 @@ export default class SortEmulate extends CollectionDecorator {
     return records;
   }
 
-  protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
+  protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
     const fields: Record<string, FieldSchema> = {};
 
     for (const [name, schema] of Object.entries(childSchema.fields)) {

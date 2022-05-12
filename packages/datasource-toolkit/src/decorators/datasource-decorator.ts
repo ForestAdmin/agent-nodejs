@@ -1,4 +1,7 @@
+import { Caller } from '../interfaces/caller';
+import { Chart } from '../interfaces/chart';
 import { Collection, DataSource } from '../interfaces/collection';
+import { DataSourceSchema } from '../interfaces/schema';
 import BaseDataSource from '../base-datasource';
 
 type CollectionDecoratorConstructor<CollectionDecorator> = {
@@ -6,11 +9,15 @@ type CollectionDecoratorConstructor<CollectionDecorator> = {
 };
 
 export default class DataSourceDecorator<
-  CollectionDecorator extends Collection,
+  CollectionDecorator extends Collection = Collection,
 > extends BaseDataSource<CollectionDecorator> {
+  protected readonly childDataSource: DataSource;
   private readonly CollectionDecoratorCtor: CollectionDecoratorConstructor<CollectionDecorator>;
-  private readonly childDataSource: DataSource;
   private addCollectionToChildDataSource: (collection: Collection) => void;
+
+  override get schema(): DataSourceSchema {
+    return this.childDataSource.schema;
+  }
 
   addCollectionObserver(collection: Collection) {
     this.addCollectionToChildDataSource(collection);
@@ -34,5 +41,9 @@ export default class DataSourceDecorator<
     this.childDataSource.collections.forEach(collection =>
       this.addCollection(new this.CollectionDecoratorCtor(collection, this)),
     );
+  }
+
+  override renderChart(caller: Caller, name: string): Promise<Chart> {
+    return this.childDataSource.renderChart(caller, name);
   }
 }

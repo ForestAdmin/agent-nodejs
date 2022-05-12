@@ -10,7 +10,7 @@ import PaginatedFilter from '../../interfaces/query/filter/paginated';
  * Decorator which emulates filter operators from others.
  */
 export default class OperatorsDecorator extends CollectionDecorator {
-  protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
+  protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
     const fields: Record<string, FieldSchema> = {};
 
     for (const [name, schema] of Object.entries(childSchema.fields)) {

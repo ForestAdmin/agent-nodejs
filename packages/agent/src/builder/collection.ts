@@ -3,10 +3,10 @@ import {
   CollectionUtils,
   ColumnSchema,
   Operator,
-  OperatorReplacer,
-  PartialRelationSchema,
+  OperatorDefinition,
   PlainSortClause,
   RecordUtils,
+  RelationDefinition,
   SegmentDefinition,
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
@@ -89,8 +89,8 @@ export default class CollectionBuilder {
    * @example
    * .addAction('is live', {
    *    scope: 'Single',
-   *    execute: async (context, responseBuilder) => {
-   *      return responseBuilder.success(`Is live!`);
+   *    execute: async (context, resultBuilder) => {
+   *      return resultBuilder.success(`Is live!`);
    *    },
    *  })
    */
@@ -133,7 +133,7 @@ export default class CollectionBuilder {
    *   foreignKey: 'authorId'
    * });
    */
-  addRelation(name: string, definition: PartialRelationSchema): this {
+  addRelation(name: string, definition: RelationDefinition): this {
     this.stack.relation.getCollection(this.name).addRelation(name, definition);
 
     return this;
@@ -238,7 +238,7 @@ export default class CollectionBuilder {
    *   new ConditionTreeLeaf('booksCount', 'Equal', value),
    * ));
    */
-  replaceFieldOperator(name: string, operator: Operator, replacer: OperatorReplacer): this {
+  replaceFieldOperator(name: string, operator: Operator, replacer: OperatorDefinition): this {
     const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
       ? this.stack.earlyOpEmulate.getCollection(this.name)
       : this.stack.lateOpEmulate.getCollection(this.name);

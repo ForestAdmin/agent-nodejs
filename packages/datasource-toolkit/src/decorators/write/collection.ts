@@ -34,7 +34,7 @@ export default class WriteDecorator extends CollectionDecorator {
     this.markSchemaAsDirty();
   }
 
-  protected refineSchema(childSchema: CollectionSchema): CollectionSchema {
+  protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
     const schema = { ...childSchema, fields: { ...childSchema.fields } };
 
     for (const name of Object.keys(this.replacedDefinitions)) {

@@ -62,7 +62,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     );
   }
 
-  protected refineSchema(subSchema: CollectionSchema): CollectionSchema {
+  protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     const schema = { ...subSchema, fields: { ...subSchema.fields } };
 
     for (const [name, relation] of Object.entries(this.relations)) {

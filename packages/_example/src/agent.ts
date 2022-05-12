@@ -27,6 +27,13 @@ export default async function makeAgent(options: AgentOptions) {
     .addDataSource(createSequelizeDataSource(sequelizeMySql))
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))
 
+    .addChart('numRentals', async (context, resultBuilder) => {
+      const rentals = context.dataSource.getCollection('rentals');
+      const rows = await rentals.aggregate({}, { operation: 'Count' });
+
+      return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
+    })
+
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('address', customizeAddress)
     .customizeCollection('store', customizeStore)
