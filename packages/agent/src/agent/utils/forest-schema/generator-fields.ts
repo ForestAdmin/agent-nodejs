@@ -2,14 +2,16 @@ import {
   Collection,
   CollectionUtils,
   ColumnSchema,
+  ColumnType,
   FieldTypes,
   ManyToManySchema,
   ManyToOneSchema,
   OneToManySchema,
   OneToOneSchema,
+  PrimitiveTypes,
   RelationSchema,
 } from '@forestadmin/datasource-toolkit';
-import { ForestServerField } from './types';
+import { ForestServerColumnType, ForestServerField } from './types';
 import FrontendFilterableUtils from './filterable';
 import FrontendValidationUtils from './validation';
 
@@ -67,8 +69,23 @@ export default class SchemaGeneratorFields {
       isSortable: Boolean(column.isSortable),
       isVirtual: false,
       reference: null,
-      type: column.columnType,
+      type: this.convertColumnType(column.columnType),
       validations: FrontendValidationUtils.convertValidationList(column.validation),
+    };
+  }
+
+  private static convertColumnType(type: ColumnType): ForestServerColumnType {
+    if (typeof type === 'string') return type;
+
+    if (Array.isArray(type)) {
+      return [this.convertColumnType(type[0])];
+    }
+
+    return {
+      fields: Object.entries(type).map(([key, subType]) => ({
+        field: key,
+        type: this.convertColumnType(subType),
+      })),
     };
   }
 
@@ -90,7 +107,7 @@ export default class SchemaGeneratorFields {
     }
 
     return {
-      type: [keySchema.columnType],
+      type: [keySchema.columnType as PrimitiveTypes],
       defaultValue: null,
       isFilterable: false,
       isPrimaryKey: false,
@@ -102,7 +119,7 @@ export default class SchemaGeneratorFields {
     };
   }
 
-  private static isForeignCollectionFilterable(foreignCollection: Collection) {
+  private static isForeignCollectionFilterable(foreignCollection: Collection): boolean {
     return Object.values(foreignCollection.schema.fields).some(
       field =>
         field.type === 'Column' &&
@@ -115,12 +132,12 @@ export default class SchemaGeneratorFields {
     collection: Collection,
     foreignCollection: Collection,
     baseSchema: ForestServerField,
-  ) {
+  ): ForestServerField {
     const key = relation.originKeyTarget;
     const keySchema = collection.schema.fields[key] as ColumnSchema;
 
     return {
-      type: keySchema.columnType,
+      type: keySchema.columnType as PrimitiveTypes,
       defaultValue: null,
       isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
       isPrimaryKey: false,
@@ -137,12 +154,12 @@ export default class SchemaGeneratorFields {
     collection: Collection,
     foreignCollection: Collection,
     baseSchema: ForestServerField,
-  ) {
+  ): ForestServerField {
     const key = relation.foreignKey;
     const keySchema = collection.schema.fields[key] as ColumnSchema;
 
     return {
-      type: keySchema.columnType,
+      type: keySchema.columnType as PrimitiveTypes,
       defaultValue: keySchema.defaultValue ?? null,
       isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
       isPrimaryKey: Boolean(keySchema.isPrimaryKey),

@@ -1,4 +1,9 @@
-import { ColumnType } from '@forestadmin/datasource-toolkit';
+import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+
+export type ForestServerColumnType =
+  | PrimitiveTypes
+  | [ForestServerColumnType]
+  | { fields: Array<{ field: string; type: ForestServerColumnType }> };
 
 export type ForestServerCollection = {
   name: string;
@@ -40,13 +45,13 @@ export type ForestServerActionField = {
   isReadOnly: boolean;
   isRequired: boolean;
   reference: string | null;
-  type: ColumnType;
+  type: ForestServerColumnType;
   widget: null | 'belongsto select' | 'file picker';
 };
 
 export type ForestServerField = Partial<{
   field: string;
-  type: ColumnType;
+  type: ForestServerColumnType;
   defaultValue: unknown;
   enums: null | string[];
   integration: null; // Always null on forest-express
