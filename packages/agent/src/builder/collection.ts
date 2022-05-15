@@ -123,18 +123,106 @@ export default class CollectionBuilder {
   }
 
   /**
-   * Add a relation between two collections.
+   * Add a many to one relation to the collection
    * @param name name of the new relation
-   * @param definition definition of the new relation
+   * @param foreignCollection name of the targeted collection
+   * @param options extra information about the relation
    * @example
-   * .addRelation('author', {
-   *   type: 'ManyToOne',
-   *   foreignCollection: 'persons',
-   *   foreignKey: 'authorId'
-   * });
+   * books.addManyToOne('myAuthor', 'persons', { foreignKey: 'author_id' })
    */
-  addRelation(name: string, definition: RelationDefinition): this {
-    this.stack.relation.getCollection(this.name).addRelation(name, definition);
+  addManyToOne(
+    name: string,
+    foreignCollection: string,
+    options: { foreignKey: string; foreignKeyTarget?: string },
+  ): this {
+    this.addRelation(name, {
+      type: 'ManyToOne',
+      foreignCollection,
+      foreignKey: options.foreignKey,
+      foreignKeyTarget: options.foreignKeyTarget,
+    });
+
+    return this;
+  }
+
+  /**
+   * Add a one to many relation to the collection
+   * @param name name of the new relation
+   * @param foreignCollection name of the targeted collection
+   * @param options extra information about the relation
+   * @example
+   * persons.addOneToMany('writtenBooks', 'books', { originKey: 'author_id' })
+   */
+  addOneToMany(
+    name: string,
+    foreignCollection: string,
+    options: { originKey: string; originKeyTarget?: string },
+  ): this {
+    this.addRelation(name, {
+      type: 'OneToMany',
+      foreignCollection,
+      originKey: options.originKey,
+      originKeyTarget: options.originKeyTarget,
+    });
+
+    return this;
+  }
+
+  /**
+   * Add a one to one relation to the collection
+   * @param name name of the new relation
+   * @param foreignCollection name of the targeted collection
+   * @param options extra information about the relation
+   * @example
+   * persons.addOneToOne('bestFriend', 'persons', { originKey: 'best_friend_id' })
+   */
+  addOneToOne(
+    name: string,
+    foreignCollection: string,
+    options: { originKey: string; originKeyTarget?: string },
+  ): this {
+    this.addRelation(name, {
+      type: 'OneToOne',
+      foreignCollection,
+      originKey: options.originKey,
+      originKeyTarget: options.originKeyTarget,
+    });
+
+    return this;
+  }
+
+  /**
+   * Add a many to many relation to the collection
+   * @param name name of the new relation
+   * @param foreignCollection name of the targeted collection
+   * @param throughCollection name of the intermediary collection
+   * @param options extra information about the relation
+   * @example
+   * dvds.addManyToMany('rentalsOfThisDvd', 'rentals', 'dvd_rentals', {
+   *   originKey: 'dvd_id',
+   *   foreignKey: 'rental_id'
+   * })
+   */
+  addManyToMany(
+    name: string,
+    foreignCollection: string,
+    throughCollection: string,
+    options: {
+      originKey: string;
+      foreignKey: string;
+      originKeyTarget?: string;
+      foreignKeyTarget?: string;
+    },
+  ): this {
+    this.addRelation(name, {
+      type: 'ManyToMany',
+      foreignCollection,
+      throughCollection,
+      originKey: options.originKey,
+      originKeyTarget: options.originKeyTarget,
+      foreignKey: options.foreignKey,
+      foreignKeyTarget: options.foreignKeyTarget,
+    });
 
     return this;
   }
@@ -260,6 +348,23 @@ export default class CollectionBuilder {
    */
   replaceFieldWriting(name: string, definition: WriteDefinition): this {
     this.stack.write.getCollection(this.name).replaceFieldWriting(name, definition);
+
+    return this;
+  }
+
+  /**
+   * Add a relation between two collections.
+   * @param name name of the new relation
+   * @param definition definition of the new relation
+   * @example
+   * .addRelation('author', {
+   *   type: 'ManyToOne',
+   *   foreignCollection: 'persons',
+   *   foreignKey: 'authorId'
+   * });
+   */
+  private addRelation(name: string, definition: RelationDefinition): this {
+    this.stack.relation.getCollection(this.name).addRelation(name, definition);
 
     return this;
   }

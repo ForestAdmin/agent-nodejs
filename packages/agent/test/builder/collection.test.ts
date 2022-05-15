@@ -129,24 +129,94 @@ describe('Builder > Collection', () => {
     });
   });
 
-  describe('addRelation', () => {
-    it('should add a relation', async () => {
+  describe('relations', () => {
+    it('should add a many to one', async () => {
+      const { stack, collectionBuilder, collectionName } = await setup();
+
+      const collection = stack.relation.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'addRelation');
+      const self = collectionBuilder.addManyToOne('myself', collectionName, {
+        foreignKey: 'firstName',
+        foreignKeyTarget: 'firstName',
+      });
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('myself', {
+        type: 'ManyToOne',
+        foreignCollection: collectionName,
+        foreignKey: 'firstName',
+        foreignKeyTarget: 'firstName',
+      });
+      expect(collection.schema.fields.myself).toBeDefined();
+      expect(self).toEqual(collectionBuilder);
+    });
+
+    it('should add a one to one', async () => {
       const { stack, collectionBuilder, collectionName } = await setup();
 
       const collection = stack.relation.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'addRelation');
 
-      const relationDefinition = {
-        type: 'ManyToOne' as const,
-        foreignCollection: collectionName,
-        foreignKey: 'firstName',
-        foreignKeyTarget: 'firstName',
-      };
-
-      const self = collectionBuilder.addRelation('myself', relationDefinition);
+      const self = collectionBuilder.addOneToOne('myself', collectionName, {
+        originKey: 'firstName',
+        originKeyTarget: 'firstName',
+      });
 
       expect(spy).toBeCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith('myself', relationDefinition);
+      expect(spy).toHaveBeenCalledWith('myself', {
+        type: 'OneToOne',
+        foreignCollection: collectionName,
+        originKey: 'firstName',
+        originKeyTarget: 'firstName',
+      });
+      expect(collection.schema.fields.myself).toBeDefined();
+      expect(self).toEqual(collectionBuilder);
+    });
+
+    it('should add a one to many', async () => {
+      const { stack, collectionBuilder, collectionName } = await setup();
+
+      const collection = stack.relation.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'addRelation');
+
+      const self = collectionBuilder.addOneToMany('myself', collectionName, {
+        originKey: 'firstName',
+        originKeyTarget: 'firstName',
+      });
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('myself', {
+        type: 'OneToMany',
+        foreignCollection: collectionName,
+        originKey: 'firstName',
+        originKeyTarget: 'firstName',
+      });
+      expect(collection.schema.fields.myself).toBeDefined();
+      expect(self).toEqual(collectionBuilder);
+    });
+
+    it('should add a many to many', async () => {
+      const { stack, collectionBuilder, collectionName } = await setup();
+
+      const collection = stack.relation.getCollection(collectionName);
+      const spy = jest.spyOn(collection, 'addRelation');
+      const self = collectionBuilder.addManyToMany('myself', collectionName, collectionName, {
+        foreignKey: 'firstName',
+        foreignKeyTarget: 'firstName',
+        originKey: 'firstName',
+        originKeyTarget: 'firstName',
+      });
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('myself', {
+        type: 'ManyToMany',
+        foreignCollection: collectionName,
+        throughCollection: collectionName,
+        foreignKey: 'firstName',
+        foreignKeyTarget: 'firstName',
+        originKey: 'firstName',
+        originKeyTarget: 'firstName',
+      });
       expect(collection.schema.fields.myself).toBeDefined();
       expect(self).toEqual(collectionBuilder);
     });

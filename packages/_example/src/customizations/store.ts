@@ -2,24 +2,9 @@ import { Collection } from '@forestadmin/agent';
 
 export default (collection: Collection) =>
   collection
-    .addRelation('owner', {
-      type: 'ManyToOne',
-      foreignKey: 'ownerId',
-      foreignKeyTarget: 'id',
-      foreignCollection: 'owner',
-    })
-    .addRelation('address', {
-      type: 'OneToOne',
-      foreignCollection: 'address',
-      originKey: 'storeId',
-      originKeyTarget: 'id',
-    })
-    .addRelation('dvd', {
-      type: 'OneToMany',
-      foreignCollection: 'dvd',
-      originKey: 'storeId',
-      originKeyTarget: 'id',
-    })
+    .addManyToOne('owner', 'owner', { foreignKey: 'ownerId' })
+    .addOneToOne('address', 'address', { originKey: 'storeId' })
+    .addOneToMany('dvd', 'dvd', { originKey: 'storeId' })
     .importField('ownerFullName', { path: 'owner:fullName' })
     .replaceFieldWriting('ownerFullName', (fullName, { action }) => {
       if (action === 'update') {

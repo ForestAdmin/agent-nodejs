@@ -2,10 +2,5 @@ import { Collection } from '@forestadmin/agent';
 
 export default (collection: Collection) =>
   collection
-    .addRelation('store', {
-      type: 'ManyToOne',
-      foreignCollection: 'store',
-      foreignKey: 'storeId',
-      foreignKeyTarget: 'id',
-    })
+    .addManyToOne('store', 'store', { foreignKey: 'storeId' })
     .removeField('updatedAt', 'createdAt');
