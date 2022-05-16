@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.24...@forestadmin/agent@1.0.0-beta.25) (2022-05-16)
+
+
+### Features
+
+* **builder:** create one method per relation type in the collection customizer ([#302](https://github.com/ForestAdmin/agent-nodejs/issues/302)) ([df5438d](https://github.com/ForestAdmin/agent-nodejs/commit/df5438d641bd8c4f8ad7c114120189d9dda26c44))
+
 # @forestadmin/agent [1.0.0-beta.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.23...@forestadmin/agent@1.0.0-beta.24) (2022-05-16)
 
 
