@@ -23,6 +23,7 @@ describe('Builder > Collection', () => {
             }),
             firstName: factories.columnSchema.build({
               isSortable: true,
+              filterOperators: new Set(['Equal']),
             }),
             lastName: factories.columnSchema.build({
               filterOperators: new Set(),
