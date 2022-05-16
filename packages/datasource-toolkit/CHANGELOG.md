@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.15...@forestadmin/datasource-toolkit@1.0.0-beta.16) (2022-05-16)
+
+
+### Features
+
+* autocomplete on field names ([#263](https://github.com/ForestAdmin/agent-nodejs/issues/263)) ([e2025d5](https://github.com/ForestAdmin/agent-nodejs/commit/e2025d57d930edf6d326bd0c6d7fffcd4aad728d))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.14...@forestadmin/datasource-toolkit@1.0.0-beta.15) (2022-05-12)
 
 
