@@ -69,7 +69,7 @@ export default class OptionsUtils {
     if (options.typingsPath && !OptionsUtils.isExistingPath(options.typingsPath)) {
       throw new Error(
         'options.typingsPath is invalid. It should contain a relative filepath ' +
-          'where the schema should be loaded/updated (i.e. "./src/globals.ts")',
+          'where the schema should be loaded/updated (i.e. "./src/typings.ts")',
       );
     }
   }
