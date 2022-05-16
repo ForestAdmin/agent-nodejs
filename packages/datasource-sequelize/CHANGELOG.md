@@ -1,3 +1,18 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.20...@forestadmin/datasource-sequelize@1.0.0-beta.21) (2022-05-16)
+
+
+### Features
+
+* autocomplete on field names ([#263](https://github.com/ForestAdmin/agent-nodejs/issues/263)) ([e2025d5](https://github.com/ForestAdmin/agent-nodejs/commit/e2025d57d930edf6d326bd0c6d7fffcd4aad728d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.16
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.19...@forestadmin/datasource-sequelize@1.0.0-beta.20) (2022-05-12)
 
 
