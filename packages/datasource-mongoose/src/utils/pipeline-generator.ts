@@ -346,12 +346,11 @@ export default class PipelineGenerator {
 
   private static addJoints(joints: Set<string>, field): void {
     const paths = this.getParentPath(this.formatNestedFieldPath(field));
-
     let isJointAlreadyExists = false;
     Array.from(joints).forEach(joint => {
       if (joint.startsWith(paths)) {
         isJointAlreadyExists = true;
-      } else {
+      } else if (paths.startsWith(joint)) {
         joints.delete(joint);
       }
     });
