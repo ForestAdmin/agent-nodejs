@@ -5,7 +5,7 @@ import {
   OneToOneSchema,
 } from '../../interfaces/schema';
 
-type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+type PartialBy<T, K extends Extract<keyof T, string>> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export type PartialRelationSchema =
   | PartialBy<ManyToOneSchema, 'foreignKeyTarget'>

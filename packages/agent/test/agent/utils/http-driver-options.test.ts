@@ -84,20 +84,22 @@ describe('OptionsUtils', () => {
       prefix: '/forest',
       schemaPath: '.forestadmin-schema.json',
       permissionsCacheDurationInSeconds: 12,
+      typingsPath: null,
+      typingsMaxDepth: 5,
     } as const;
 
     test('should work with good format', () => {
       expect(() => OptionsUtils.validate(allOptions)).not.toThrow();
     });
 
-    describe('schemaPath', () => {
+    describe.each(['schemaPath', 'typingsPath'])('%s', path => {
       test('should fail on a folder which does not exists', () => {
         expect(() =>
           OptionsUtils.validate({
             ...allOptions,
-            schemaPath: '/i_dont_exist/forestadminschema.json',
+            [path]: '/i_dont_exist/file',
           }),
-        ).toThrow(`options.schemaPath is invalid.`);
+        ).toThrow(`options.${path} is invalid.`);
       });
     });
 

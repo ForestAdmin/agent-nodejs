@@ -8,13 +8,20 @@ import {
   RecordUtils,
   RelationDefinition,
   SegmentDefinition,
+  TCollectionName,
+  TColumnName,
+  TFieldName,
+  TSchema,
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
 import { FieldDefinition } from './types';
 import DecoratorsStack from './decorators-stack';
 import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
 
-export default class CollectionBuilder {
+export default class CollectionBuilder<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> {
   private readonly name: string;
   private readonly stack: DecoratorsStack;
 
@@ -31,7 +38,7 @@ export default class CollectionBuilder {
    * @example
    * .importField('authorName', { path: 'author:fullName' })
    */
-  importField(name: string, options: { path: string; beforeRelations?: boolean }): this {
+  importField(name: string, options: { path: TFieldName<S, N>; beforeRelations?: boolean }): this {
     const collection = this.stack.lateComputed.getCollection(this.name);
     const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
 
@@ -45,12 +52,18 @@ export default class CollectionBuilder {
     });
 
     for (const operator of schema.filterOperators) {
-      const handler = (value: unknown) => ({ field: options.path, operator, value });
-      this.replaceFieldOperator(name, operator, handler);
+      const handler = value => ({ field: options.path, operator, value });
+      this.replaceFieldOperator(
+        name as TFieldName<S, N>,
+        operator,
+        handler as OperatorDefinition<S, N>,
+      );
     }
 
     if (schema.isSortable) {
-      this.replaceFieldSorting(name, [{ field: options.path, ascending: true }]);
+      this.replaceFieldSorting(name as TFieldName<S, N>, [
+        { field: options.path, ascending: true },
+      ]);
     }
 
     return this;
@@ -63,7 +76,7 @@ export default class CollectionBuilder {
    * @example
    * .renameField('theCurrentNameOfTheField', 'theNewNameOfTheField');
    */
-  renameField(oldName: string, newName: string): this {
+  renameField(oldName: TColumnName<S, N>, newName: string): this {
     this.stack.rename.getCollection(this.name).renameField(oldName, newName);
 
     return this;
@@ -75,7 +88,7 @@ export default class CollectionBuilder {
    * @example
    * .removeField('aFieldToRemove', 'anOtherFieldToRemove');
    */
-  removeField(...names: string[]): this {
+  removeField(...names: TColumnName<S, N>[]): this {
     const collection = this.stack.publication.getCollection(this.name);
     for (const name of names) collection.changeFieldVisibility(name, false);
 
@@ -94,8 +107,11 @@ export default class CollectionBuilder {
    *    },
    *  })
    */
-  addAction(name: string, definition: ActionDefinition): this {
-    this.stack.action.getCollection(this.name).addAction(name, definition);
+  addAction(name: string, definition: ActionDefinition<S, N>): this {
+    this.stack.action
+      .getCollection(this.name)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .addAction(name, definition as ActionDefinition<any, any>);
 
     return this;
   }
@@ -111,7 +127,7 @@ export default class CollectionBuilder {
    *    getValues: (records) => records.map(record => `${record.lastName} ${record.firstName}`),
    * });
    */
-  addField(name: string, definition: FieldDefinition): this {
+  addField(name: string, definition: FieldDefinition<S, N>): this {
     const { beforeRelations, ...computedDefinition } = definition;
     const collection = definition.beforeRelations
       ? this.stack.earlyComputed.getCollection(this.name)
@@ -130,10 +146,10 @@ export default class CollectionBuilder {
    * @example
    * books.addManyToOne('myAuthor', 'persons', { foreignKey: 'author_id' })
    */
-  addManyToOne(
+  addManyToOne<T extends TCollectionName<S>>(
     name: string,
-    foreignCollection: string,
-    options: { foreignKey: string; foreignKeyTarget?: string },
+    foreignCollection: T,
+    options: { foreignKey: TColumnName<S, N>; foreignKeyTarget?: TColumnName<S, T> },
   ): this {
     this.addRelation(name, {
       type: 'ManyToOne',
@@ -153,10 +169,10 @@ export default class CollectionBuilder {
    * @example
    * persons.addOneToMany('writtenBooks', 'books', { originKey: 'author_id' })
    */
-  addOneToMany(
+  addOneToMany<T extends TCollectionName<S>>(
     name: string,
-    foreignCollection: string,
-    options: { originKey: string; originKeyTarget?: string },
+    foreignCollection: T,
+    options: { originKey: TColumnName<S, T>; originKeyTarget?: TColumnName<S, N> },
   ): this {
     this.addRelation(name, {
       type: 'OneToMany',
@@ -176,10 +192,10 @@ export default class CollectionBuilder {
    * @example
    * persons.addOneToOne('bestFriend', 'persons', { originKey: 'best_friend_id' })
    */
-  addOneToOne(
+  addOneToOne<T extends TCollectionName<S>>(
     name: string,
-    foreignCollection: string,
-    options: { originKey: string; originKeyTarget?: string },
+    foreignCollection: T,
+    options: { originKey: TColumnName<S, T>; originKeyTarget?: TColumnName<S, N> },
   ): this {
     this.addRelation(name, {
       type: 'OneToOne',
@@ -203,15 +219,15 @@ export default class CollectionBuilder {
    *   foreignKey: 'rental_id'
    * })
    */
-  addManyToMany(
+  addManyToMany<Foreign extends TCollectionName<S>, Through extends TCollectionName<S>>(
     name: string,
-    foreignCollection: string,
-    throughCollection: string,
+    foreignCollection: Foreign,
+    throughCollection: Through,
     options: {
-      originKey: string;
-      foreignKey: string;
-      originKeyTarget?: string;
-      foreignKeyTarget?: string;
+      originKey: TColumnName<S, Through>;
+      foreignKey: TColumnName<S, Through>;
+      originKeyTarget?: TColumnName<S, N>;
+      foreignKeyTarget?: TColumnName<S, Foreign>;
     },
   ): this {
     this.addRelation(name, {
@@ -235,11 +251,11 @@ export default class CollectionBuilder {
    * @example
    * .addSegment(
    *    'Wrote more than 2 books',
-   *    new ConditionTreeLeaf('booksCount', 'GreaterThan', 2),
+   *    {field: 'booksCount', operator: 'GreaterThan', value: 2}
    * );
    */
-  addSegment(name: string, definition: SegmentDefinition): this {
-    this.stack.segment.getCollection(this.name).addSegment(name, definition);
+  addSegment(name: string, definition: SegmentDefinition<S, N>): this {
+    this.stack.segment.getCollection(this.name).addSegment(name, definition as SegmentDefinition);
 
     return this;
   }
@@ -251,7 +267,7 @@ export default class CollectionBuilder {
    * @example
    * .emulateFieldSorting('fullName');
    */
-  emulateFieldSorting(name: string): this {
+  emulateFieldSorting(name: TColumnName<S, N>): this {
     this.stack.sortEmulate.getCollection(this.name).emulateFieldSorting(name);
 
     return this;
@@ -271,8 +287,10 @@ export default class CollectionBuilder {
    *   ]
    * )
    */
-  replaceFieldSorting(name: string, equivalentSort: PlainSortClause[]): this {
-    this.stack.sortEmulate.getCollection(this.name).replaceFieldSorting(name, equivalentSort);
+  replaceFieldSorting(name: TColumnName<S, N>, equivalentSort: PlainSortClause<S, N>[]): this {
+    this.stack.sortEmulate
+      .getCollection(this.name)
+      .replaceFieldSorting(name, equivalentSort as PlainSortClause[]);
 
     return this;
   }
@@ -284,7 +302,7 @@ export default class CollectionBuilder {
    * @example
    * .emulateFieldFiltering('aField');
    */
-  emulateFieldFiltering(name: string): this {
+  emulateFieldFiltering(name: TColumnName<S, N>): this {
     const collection = this.stack.lateOpEmulate.getCollection(this.name);
     const field = collection.schema.fields[name] as ColumnSchema;
 
@@ -305,7 +323,7 @@ export default class CollectionBuilder {
    * @example
    * .emulateFieldOperator('aField', 'In');
    */
-  emulateFieldOperator(name: string, operator: Operator): this {
+  emulateFieldOperator(name: TColumnName<S, N>, operator: Operator): this {
     const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
       ? this.stack.earlyOpEmulate.getCollection(this.name)
       : this.stack.lateOpEmulate.getCollection(this.name);
@@ -326,12 +344,16 @@ export default class CollectionBuilder {
    *   new ConditionTreeLeaf('booksCount', 'Equal', value),
    * ));
    */
-  replaceFieldOperator(name: string, operator: Operator, replacer: OperatorDefinition): this {
+  replaceFieldOperator<C extends TColumnName<S, N>>(
+    name: C,
+    operator: Operator,
+    replacer: OperatorDefinition<S, N, C>,
+  ): this {
     const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
       ? this.stack.earlyOpEmulate.getCollection(this.name)
       : this.stack.lateOpEmulate.getCollection(this.name);
 
-    collection.replaceFieldOperator(name, operator, replacer);
+    collection.replaceFieldOperator(name, operator, replacer as OperatorDefinition);
 
     return this;
   }
@@ -346,7 +368,10 @@ export default class CollectionBuilder {
    *   return { firstName, lastName };
    * });
    */
-  replaceFieldWriting(name: string, definition: WriteDefinition): this {
+  replaceFieldWriting<C extends TColumnName<S, N>>(
+    name: C,
+    definition: WriteDefinition<S, N, C>,
+  ): this {
     this.stack.write.getCollection(this.name).replaceFieldWriting(name, definition);
 
     return this;

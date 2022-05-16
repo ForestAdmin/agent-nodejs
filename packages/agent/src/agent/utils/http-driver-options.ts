@@ -27,6 +27,7 @@ export default class OptionsUtils {
     copyOptions.logger = copyOptions.logger || defaultLogger;
     copyOptions.schemaPath = copyOptions.schemaPath || '.forestadmin-schema.json';
     copyOptions.forestServerUrl = copyOptions.forestServerUrl || 'https://api.forestadmin.com';
+    copyOptions.typingsMaxDepth = copyOptions.typingsMaxDepth ?? 5;
 
     return <AgentOptionsWithDefaults>Object.freeze({
       clientId: null,
@@ -62,6 +63,13 @@ export default class OptionsUtils {
       throw new Error(
         'options.schemaPath is invalid. It should contain a relative filepath ' +
           'where the schema should be loaded/updated (i.e. "./.forestadmin-schema.json")',
+      );
+    }
+
+    if (options.typingsPath && !OptionsUtils.isExistingPath(options.typingsPath)) {
+      throw new Error(
+        'options.typingsPath is invalid. It should contain a relative filepath ' +
+          'where the schema should be loaded/updated (i.e. "./src/typings.ts")',
       );
     }
   }

@@ -3,40 +3,55 @@ import Agent from '../../src/builder/agent';
 import CollectionBuilder from '../../src/builder/collection';
 import DecoratorsStack from '../../src/builder/decorators-stack';
 
-let forestAdminHttpDriverInstance;
+const mockStart = jest.fn();
+const mockHandler = jest.fn();
+const mockStop = jest.fn();
+const mockWriteFile = jest.fn().mockResolvedValue(null);
 
-jest.mock('../../src/agent/forestadmin-http-driver', () => {
-  return {
-    __esModule: true,
-    default: jest.fn().mockImplementation(options => {
-      forestAdminHttpDriverInstance = {
-        start: jest.fn(),
-        handler: jest.fn(),
-        stop: jest.fn(),
-        options,
-      };
+jest.mock('fs/promises', () => ({
+  writeFile: (...args: unknown[]) => mockWriteFile(...args),
+}));
 
-      return forestAdminHttpDriverInstance;
-    }),
-  };
-});
+jest.mock('../../src/agent/forestadmin-http-driver', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation((dataSource, options) => ({
+    start: mockStart,
+    handler: mockHandler,
+    stop: mockStop,
+    options,
+  })),
+}));
 
 describe('Builder > Agent', () => {
   it('should build an agent, provide a httpCallback and init the collection builder', async () => {
     const options = factories.forestAdminHttpDriverOptions.build();
-
     const agent = new Agent(options);
 
     expect(agent.httpCallback).toBeDefined();
   });
 
-  it('should start forestAdminHttpDriver', async () => {
+  it('should start forestAdminHttpDriver and not generate types', async () => {
     const options = factories.forestAdminHttpDriverOptions.build();
     const agent = new Agent(options);
 
     await agent.start();
 
-    expect(forestAdminHttpDriverInstance.start).toHaveBeenCalled();
+    expect(mockStart).toHaveBeenCalled();
+    expect(mockWriteFile).not.toHaveBeenCalled();
+  });
+
+  it('should generate types on start and generate types', async () => {
+    const options = factories.forestAdminHttpDriverOptions.build({
+      isProduction: false,
+      typingsPath: 'typings.d.ts',
+      typingsMaxDepth: 5,
+    });
+
+    const agent = new Agent(options);
+    await agent.start();
+
+    expect(mockStart).toHaveBeenCalled();
+    expect(mockWriteFile).toHaveBeenCalled();
   });
 
   it('should stop forestAdminHttpDriver', async () => {
@@ -45,7 +60,7 @@ describe('Builder > Agent', () => {
 
     await agent.stop();
 
-    expect(forestAdminHttpDriverInstance.stop).toHaveBeenCalled();
+    expect(mockStop).toHaveBeenCalled();
   });
 
   describe('addChart', () => {

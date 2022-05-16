@@ -1,9 +1,11 @@
 import { CompositeId } from '../../../interfaces/record';
+import { TCollectionName, TFieldName, TRow, TSchema } from '../../../interfaces/templates';
 import ActionContext from './base';
-import Projection from '../../../interfaces/query/projection';
-import RecordUtils from '../../../utils/record';
 
-export default class ActionContextSingle extends ActionContext {
+export default class ActionContextSingle<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> extends ActionContext<S, N> {
   async getRecordId(): Promise<string | number> {
     const compositeId = await this.getCompositeRecordId();
 
@@ -11,14 +13,12 @@ export default class ActionContextSingle extends ActionContext {
   }
 
   async getCompositeRecordId(): Promise<CompositeId> {
-    const projection = new Projection().withPks(this.realCollection);
-    const records = await this.getRecords(projection);
+    const ids = await this.getCompositeRecordIds();
 
-    return RecordUtils.getPrimaryKey(this.realCollection.schema, records[0]);
+    return ids[0];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async getRecord(fields: string[]): Promise<any> {
+  async getRecord(fields: TFieldName<S, N>[]): Promise<TRow<S, N>> {
     const records = await this.getRecords(fields);
 
     return records[0];

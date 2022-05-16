@@ -1,3 +1,8 @@
-import { ComputedDefinition } from '@forestadmin/datasource-toolkit';
+import { ComputedDefinition, TCollectionName, TSchema } from '@forestadmin/datasource-toolkit';
 
-export type FieldDefinition = ComputedDefinition & { beforeRelations?: boolean };
+export type FieldDefinition<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = ComputedDefinition<S, N> & {
+  beforeRelations?: boolean;
+};

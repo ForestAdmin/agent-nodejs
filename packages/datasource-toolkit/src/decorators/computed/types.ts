@@ -1,16 +1,19 @@
 import { ColumnType } from '../../interfaces/schema';
-import { RecordData } from '../../interfaces/record';
+import { TCollectionName, TFieldName, TRow, TSchema } from '../../interfaces/templates';
 import CollectionCustomizationContext from '../../context/collection-context';
 
-export interface ComputedDefinition {
+export interface ComputedDefinition<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> {
   readonly columnType: ColumnType;
-  readonly dependencies: string[];
+  readonly dependencies: TFieldName<S, N>[];
   readonly isRequired?: boolean;
   readonly defaultValue?: unknown;
   readonly enumValues?: string[];
 
   getValues(
-    records: RecordData[],
-    context: CollectionCustomizationContext,
+    records: TRow<S, N>[],
+    context: CollectionCustomizationContext<S, N>,
   ): Promise<unknown[]> | unknown[];
 }

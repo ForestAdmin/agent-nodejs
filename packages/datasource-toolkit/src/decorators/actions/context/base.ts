@@ -2,15 +2,19 @@ import { Caller } from '../../../interfaces/caller';
 import { Collection } from '../../../interfaces/collection';
 import { CompositeId, RecordData } from '../../../interfaces/record';
 import { PlainFilter } from '../../../interfaces/query/filter/unpaginated';
+import { TCollectionName, TFieldName, TRow, TSchema } from '../../../interfaces/templates';
 import CollectionCustomizationContext from '../../../context/collection-context';
 import Deferred from '../../../utils/async';
 import Projection from '../../../interfaces/query/projection';
 import ProjectionValidator from '../../../validation/projection';
 import RecordUtils from '../../../utils/record';
 
-export default class ActionContext extends CollectionCustomizationContext {
+export default class ActionContext<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> extends CollectionCustomizationContext<S, N> {
   readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  readonly filter: PlainFilter;
+  readonly filter: PlainFilter<S, N>;
 
   private queries: Array<{ projection: Projection; deferred: Deferred<RecordData[]> }>;
   private projection: Projection;
@@ -19,7 +23,7 @@ export default class ActionContext extends CollectionCustomizationContext {
     collection: Collection,
     caller: Caller,
     formValue: RecordData,
-    filter: PlainFilter,
+    filter: PlainFilter<S, N>,
     used?: Set<string>,
   ) {
     super(collection, caller);
@@ -42,8 +46,7 @@ export default class ActionContext extends CollectionCustomizationContext {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async getRecords(fields: string[]): Promise<any[]> {
+  async getRecords(fields: TFieldName<S, N>[]): Promise<TRow<S, N>[]> {
     // This function just queues the request into this.queries, so that we can merge all calls
     // to getRecords() into a single one.
 
@@ -60,7 +63,7 @@ export default class ActionContext extends CollectionCustomizationContext {
 
     ProjectionValidator.validate(this.realCollection, fields);
 
-    const deferred = new Deferred<RecordData[]>();
+    const deferred = new Deferred<TRow<S, N>[]>();
     const projection = new Projection(...fields);
 
     if (this.queries.length === 0) setTimeout(() => this.runQuery());
@@ -77,8 +80,8 @@ export default class ActionContext extends CollectionCustomizationContext {
   }
 
   async getCompositeRecordIds(): Promise<CompositeId[]> {
-    const projection = new Projection().withPks(this.realCollection);
-    const records = await this.getRecords(projection);
+    const projection = new Projection().withPks(this.realCollection) as string[];
+    const records = await this.getRecords(projection as TFieldName<S, N>[]);
 
     return records.map(r => RecordUtils.getPrimaryKey(this.realCollection.schema, r));
   }
@@ -90,7 +93,10 @@ export default class ActionContext extends CollectionCustomizationContext {
     try {
       // Run a single query which contains all fields / relations which were requested by
       // the different calls made to getRecords
-      const records = await this.collection.list(this.filter, projection);
+      const records = await this.collection.list(
+        this.filter,
+        projection as string[] as TFieldName<S, N>[],
+      );
 
       // Resolve each on of the promises only with the requested fields.
       for (const query of queries) query.deferred.resolve(query.projection.apply(records));

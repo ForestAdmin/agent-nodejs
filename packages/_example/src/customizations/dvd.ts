@@ -1,7 +1,8 @@
 import { Collection } from '@forestadmin/agent';
+import { Schema } from '../typings';
 import sequelizeMsSql from '../datasources/sequelize/mssql';
 
-export default (collection: Collection) =>
+export default (collection: Collection<Schema, 'dvd'>) =>
   collection
     .addManyToOne('store', 'store', { foreignKey: 'storeId' })
     .renameField('rentalPrice', 'rentalPriceInDollar')

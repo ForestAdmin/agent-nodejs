@@ -12,5 +12,7 @@ export type AgentOptions = {
   prefix?: string;
   isProduction: boolean;
   schemaPath?: string;
+  typingsPath?: string;
+  typingsMaxDepth?: number;
   permissionsCacheDurationInSeconds?: number;
 };
