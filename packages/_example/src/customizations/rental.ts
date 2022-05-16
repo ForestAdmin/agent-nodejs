@@ -16,9 +16,4 @@ export default (collection: Collection) =>
     .removeField('startDate', 'endDate')
     .emulateFieldOperator('numberOfDays', 'GreaterThan')
     .addSegment('More than 50 Days', { field: 'numberOfDays', operator: 'GreaterThan', value: 50 })
-    .addRelation('customer', {
-      type: 'ManyToOne',
-      foreignCollection: 'customer',
-      foreignKey: 'customerId',
-      foreignKeyTarget: 'id',
-    });
+    .addManyToOne('customer', 'customer', { foreignKey: 'customerId' });

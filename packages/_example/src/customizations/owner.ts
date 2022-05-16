@@ -2,17 +2,8 @@ import { Collection } from '@forestadmin/agent';
 
 export default (collection: Collection) =>
   collection
-    .addRelation('store', {
-      type: 'OneToMany',
-      foreignCollection: 'store',
-      originKey: 'ownerId',
-      originKeyTarget: 'id',
-    })
-    .addRelation('posts', {
-      type: 'OneToMany',
-      foreignCollection: 'post',
-      originKey: 'userId',
-    })
+    .addOneToMany('stores', 'store', { originKey: 'ownerId' })
+    .addOneToMany('posts', 'post', { originKey: 'userId' })
     .addField('fullName', {
       columnType: 'String',
       dependencies: ['firstName', 'lastName'],

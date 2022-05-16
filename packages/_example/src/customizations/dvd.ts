@@ -3,12 +3,7 @@ import sequelizeMsSql from '../datasources/sequelize/mssql';
 
 export default (collection: Collection) =>
   collection
-    .addRelation('store', {
-      type: 'ManyToOne',
-      foreignKey: 'storeId',
-      foreignKeyTarget: 'id',
-      foreignCollection: 'store',
-    })
+    .addManyToOne('store', 'store', { foreignKey: 'storeId' })
     .renameField('rentalPrice', 'rentalPriceInDollar')
     .addField('numberOfRentals', {
       columnType: 'Number',
