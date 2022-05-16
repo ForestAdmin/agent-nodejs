@@ -82,6 +82,8 @@ jobs:
           path: 'packages/'
       - name: Start docker datasource-sql containers
         run: docker-compose -f ./packages/datasource-sql/docker-compose.yml up -d; sleep 20
+      - name: Start docker datasource-mongoose containers
+        run: docker-compose -f ./packages/datasource-mongoose/docker-compose.yml up -d; sleep 20
       - name: Send coverage
         uses: paambaati/codeclimate-action@84cea27117a473d605400ca3a97fcef7e433e2d6
         env:

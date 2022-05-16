@@ -49,6 +49,17 @@ services:
     volumes:
       - mariadb-data:/var/lib/mysql
 
+  mongodb:
+    image: mongo:latest
+    container_name: forest_agent_example_mongodb
+    ports:
+      - '27017:27017'
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - mongodb-data:/var/lib/mongodb
+
 volumes:
   postgres-data:
     driver: local
@@ -57,4 +68,6 @@ volumes:
   mssql-data:
     driver: local
   mariadb-data:
+    driver: local
+  mongodb-data:
     driver: local
