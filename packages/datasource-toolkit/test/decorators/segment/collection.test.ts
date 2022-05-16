@@ -1,10 +1,10 @@
 import * as factories from '../../__factories__';
-import ConditionTree from '../../../src/interfaces/query/condition-tree/nodes/base';
+import { PlainConditionTree } from '../../../src/interfaces/query/condition-tree/nodes/base';
 import SegmentCollectionDecorator from '../../../src/decorators/segment/collection';
 
 describe('SegmentCollectionDecorator', () => {
   let segmentDecorator: SegmentCollectionDecorator;
-  let conditionTreeGenerator: () => Promise<ConditionTree>;
+  let conditionTreeGenerator: () => Promise<PlainConditionTree>;
 
   beforeEach(() => {
     const collection = factories.collection.build();

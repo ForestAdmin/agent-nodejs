@@ -2,15 +2,19 @@ import { DateTime } from 'luxon';
 import hashRecord from 'object-hash';
 
 import { RecordData } from '../record';
+import { TCollectionName, TFieldName, TPartialFlatRow, TSchema } from '../templates';
 import Projection from './projection';
 import RecordUtils from '../../utils/record';
 
 export type AggregationOperation = 'Count' | 'Sum' | 'Avg' | 'Max' | 'Min';
 export type DateOperation = 'Year' | 'Month' | 'Week' | 'Day';
 
-export type AggregateResult = {
+export type AggregateResult<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = {
   value: unknown;
-  group: { [field: string]: unknown };
+  group: TPartialFlatRow<S, N>;
 };
 
 type Summary = {
@@ -22,21 +26,25 @@ type Summary = {
   Min: unknown;
 };
 
-export interface PlainAggregation {
-  field?: string;
+export interface PlainAggregation<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> {
+  field?: TFieldName<S, N>;
   operation: AggregationOperation;
-  groups?: AggregationGroup[];
+  groups?: Array<{ field: TFieldName<S, N>; operation?: DateOperation }>;
 }
 
-export interface AggregationGroup {
-  field: string;
-  operation?: DateOperation;
-}
-
-export default class Aggregation implements PlainAggregation {
+type GenericAggregation = {
   field?: string;
   operation: AggregationOperation;
-  groups?: AggregationGroup[];
+  groups?: Array<{ field: string; operation?: DateOperation }>;
+};
+
+export default class Aggregation {
+  field?: GenericAggregation['field'];
+  operation: GenericAggregation['operation'];
+  groups?: GenericAggregation['groups'];
 
   get projection(): Projection {
     const { field, groups } = this;
@@ -45,7 +53,7 @@ export default class Aggregation implements PlainAggregation {
     return new Projection(...aggregateFields);
   }
 
-  constructor(components: PlainAggregation) {
+  constructor(components: GenericAggregation) {
     this.field = components.field;
     this.operation = components.operation;
     this.groups = components.groups;
@@ -73,7 +81,7 @@ export default class Aggregation implements PlainAggregation {
     }
 
     let nestedField: string;
-    let nestedGroups: AggregationGroup[];
+    let nestedGroups: GenericAggregation['groups'];
 
     if (this.field) {
       nestedField = `${prefix}:${this.field}`;

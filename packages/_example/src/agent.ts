@@ -3,6 +3,7 @@ import { createLiveDataSource } from '@forestadmin/datasource-live';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 
+import { Schema } from './typings';
 import createTypicode from './datasources/typicode';
 import customizeAddress from './customizations/address';
 import customizeComment from './customizations/comment';
@@ -19,7 +20,7 @@ import sequelizeMySql from './datasources/sequelize/mysql';
 import sequelizePostgres from './datasources/sequelize/postgres';
 
 export default async function makeAgent(options: AgentOptions) {
-  return createAgent(options)
+  return createAgent<Schema>(options)
     .addDataSource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }))
     .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
     .addDataSource(createTypicode())
@@ -28,7 +29,7 @@ export default async function makeAgent(options: AgentOptions) {
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))
 
     .addChart('numRentals', async (context, resultBuilder) => {
-      const rentals = context.dataSource.getCollection('rentals');
+      const rentals = context.dataSource.getCollection('rental');
       const rows = await rentals.aggregate({}, { operation: 'Count' });
 
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);

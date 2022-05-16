@@ -2,6 +2,7 @@ import { Collection } from '../../../collection';
 import { ColumnSchema } from '../../../schema';
 import { Operator, allOperators, intervalOperators, uniqueOperators } from './operators';
 import { RecordData } from '../../../record';
+import { TCollectionName, TFieldName, TSchema } from '../../../templates';
 import CollectionUtils from '../../../../utils/collection';
 import ConditionTree, { PlainConditionTree } from './base';
 import ConditionTreeEquivalent from '../equivalence';
@@ -9,7 +10,14 @@ import ConditionTreeFactory from '../factory';
 import Projection from '../../projection';
 import RecordUtils from '../../../../utils/record';
 
-export type PlainConditionTreeLeaf = { field: string; operator: Operator; value?: unknown };
+export type PlainConditionTreeLeaf<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = {
+  field: TFieldName<S, N>;
+  operator: Operator;
+  value?: unknown;
+};
 
 type LeafHandler<R> = (leaf: ConditionTreeLeaf) => R;
 export type LeafReplacer = LeafHandler<ConditionTree | PlainConditionTree>;

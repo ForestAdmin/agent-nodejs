@@ -60,6 +60,7 @@ export * from './interfaces/query/filter/unpaginated';
 export * from './interfaces/query/sort';
 export * from './interfaces/record';
 export * from './interfaces/schema';
+export * from './interfaces/templates';
 
 // Validation
 export { default as ConditionTreeValidator } from './validation/condition-tree';

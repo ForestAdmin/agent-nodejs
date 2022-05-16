@@ -3,12 +3,16 @@ import {
   ChartDefinition,
   Collection,
   DataSourceFactory,
+  TCollectionName,
+  TSchema,
 } from '@forestadmin/datasource-toolkit';
+import { writeFile } from 'fs/promises';
 
 import { AgentOptions } from '../types';
 import CollectionBuilder from './collection';
 import DecoratorsStack from './decorators-stack';
 import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-driver';
+import TypingGenerator from './typing-generator';
 
 /**
  * Allow to create a new Forest Admin agent from scratch.
@@ -20,7 +24,7 @@ import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-d
  *  .addDataSource(new SomeDataSource())
  *  .start();
  */
-export default class AgentBuilder {
+export default class AgentBuilder<S extends TSchema = TSchema> {
   private readonly forestAdminHttpDriver: ForestAdminHttpDriver;
   private readonly compositeDataSource: BaseDataSource<Collection>;
   private readonly stack: DecoratorsStack;
@@ -88,7 +92,7 @@ export default class AgentBuilder {
    *   }
    * })
    */
-  addChart(name: string, definition: ChartDefinition): this {
+  addChart(name: string, definition: ChartDefinition<S>): this {
     this.tasks.push(async () => {
       this.stack.chart.addChart(name, definition);
     });
@@ -104,10 +108,13 @@ export default class AgentBuilder {
    * @example
    * .customizeCollection('books', books => books.renameField('xx', 'yy'))
    */
-  customizeCollection(name: string, handle: (collection: CollectionBuilder) => unknown): this {
+  customizeCollection<N extends TCollectionName<S>>(
+    name: N,
+    handle: (collection: CollectionBuilder<S, N>) => unknown,
+  ): this {
     this.tasks.push(async () => {
       if (this.stack.dataSource.getCollection(name)) {
-        handle(new CollectionBuilder(this.stack, name));
+        handle(new CollectionBuilder<S, N>(this.stack, name));
       }
     });
 
@@ -118,12 +125,19 @@ export default class AgentBuilder {
    * Start the agent.
    */
   async start(): Promise<void> {
+    const { options } = this.forestAdminHttpDriver;
+
     for (const task of this.tasks) {
       // eslint-disable-next-line no-await-in-loop
       await task();
     }
 
-    await this.forestAdminHttpDriver.start();
+    if (!options.isProduction && options.typingsPath) {
+      const types = TypingGenerator.generateTypes(this.stack.action, options.typingsMaxDepth);
+      await writeFile(options.typingsPath, types, { encoding: 'utf-8' });
+    }
+
+    return this.forestAdminHttpDriver.start();
   }
 
   /**

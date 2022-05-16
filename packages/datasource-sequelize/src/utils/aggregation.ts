@@ -1,3 +1,4 @@
+import { AggregateResult, Aggregation, ValidationError } from '@forestadmin/datasource-toolkit';
 import {
   Dialect,
   GroupOption,
@@ -8,12 +9,6 @@ import {
   col,
 } from 'sequelize';
 import { Fn } from 'sequelize/types/utils';
-
-import {
-  AggregateResult,
-  AggregationGroup,
-  ValidationError,
-} from '@forestadmin/datasource-toolkit';
 
 import DateAggregationConverter from './date-aggregation-converter';
 
@@ -70,7 +65,7 @@ export default class AggregationUtils {
     return this.model.sequelize.getQueryInterface().quoteIdentifiers(`${tableName}.${fieldName}`);
   }
 
-  getGroupAndAttributesFromAggregation(aggregationQueryGroup: AggregationGroup[]): {
+  getGroupAndAttributesFromAggregation(aggregationQueryGroup: Aggregation['groups']): {
     groups: GroupOption;
     attributes: ProjectionAlias[];
   } {
@@ -121,7 +116,7 @@ export default class AggregationUtils {
   computeResult(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rows: Model<any, any>[],
-    aggregationQueryGroup: AggregationGroup[],
+    aggregationQueryGroup: Aggregation['groups'],
   ): AggregateResult[] {
     return rows.map(aggregate => {
       const aggregateResult = {

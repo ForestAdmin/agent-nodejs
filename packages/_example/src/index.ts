@@ -14,6 +14,7 @@ const envOptions: AgentOptions = {
   forestServerUrl: process.env.FOREST_SERVER_URL,
   isProduction: false,
   loggerLevel: 'Info',
+  typingsPath: 'src/typings.ts',
 };
 
 export default async function start(

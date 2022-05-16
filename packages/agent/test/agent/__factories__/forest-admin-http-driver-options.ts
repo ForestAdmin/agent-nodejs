@@ -14,4 +14,6 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   permissionsCacheDurationInSeconds: 15 * 60,
   logger: () => {},
   loggerLevel: 'Error',
+  typingsPath: null,
+  typingsMaxDepth: 5,
 }));
