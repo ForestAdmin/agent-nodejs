@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.23...@forestadmin/agent@1.0.0-beta.24) (2022-05-16)
+
+
+### Bug Fixes
+
+* **onboarding:** display better errors when the agent fails to start ([#294](https://github.com/ForestAdmin/agent-nodejs/issues/294)) ([03f756b](https://github.com/ForestAdmin/agent-nodejs/commit/03f756b9964ba5970d7f5be37b47956fbcf9c5f7))
+
 # @forestadmin/agent [1.0.0-beta.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.22...@forestadmin/agent@1.0.0-beta.23) (2022-05-12)
 
 
