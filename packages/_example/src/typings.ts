@@ -174,6 +174,15 @@ export type Schema = {
       'owner:fullName': string;
     };
   };
+  relationReview: {
+    plain: {
+      aField: string;
+      aDate: string;
+      _id: string;
+    };
+    nested: {};
+    flat: {};
+  };
   rental: {
     plain: {
       id: number;
@@ -192,6 +201,38 @@ export type Schema = {
       'customer:createdAt': string;
       'customer:updatedAt': string;
       'customer:deletedAt': string;
+    };
+  };
+  review: {
+    plain: {
+      title: string;
+      message: string;
+      storeId: number;
+      relationReview: string;
+      _id: string;
+    };
+    nested: {
+      relationReview_manyToOne: Schema['relationReview']['plain'] & Schema['relationReview']['nested'];
+      store: Schema['store']['plain'] & Schema['store']['nested'];
+    };
+    flat: {
+      'relationReview_manyToOne:aField': string;
+      'relationReview_manyToOne:aDate': string;
+      'relationReview_manyToOne:_id': string;
+      'store:id': number;
+      'store:name': string;
+      'store:ownerId': number;
+      'store:ownerFullName': string;
+      'store:owner:id': number;
+      'store:owner:firstName': string;
+      'store:owner:lastName': string;
+      'store:owner:fullName': string;
+      'store:address:id': number;
+      'store:address:zipCode': string;
+      'store:address:address': string;
+      'store:address:storeId': number;
+      'store:address:createdAt': string;
+      'store:address:updatedAt': string;
     };
   };
   store: {
