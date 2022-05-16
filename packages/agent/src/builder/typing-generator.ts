@@ -19,19 +19,19 @@ export default class TypingGenerator {
           this.getRow(collection),
           this.getRelations(collection),
           this.getFlatRelations(collection, maxDepth),
-          '  }',
+          '  };',
         ].join(`\n`),
       ),
-      '}\n',
+      '};\n',
     ].join('\n');
   }
 
   private static getRow(collection: Collection): string {
     const content = Object.entries(collection.schema.fields).reduce((memo, [name, field]) => {
-      return field.type === 'Column' ? [...memo, `      ${name}: ${this.getType(field)}`] : memo;
+      return field.type === 'Column' ? [...memo, `      ${name}: ${this.getType(field)};`] : memo;
     }, []);
 
-    return `    plain: {\n${content.join('\n')}\n    }`;
+    return `    plain: {\n${content.join('\n')}\n    };`;
   }
 
   private static getRelations(collection: Collection): string {
@@ -41,20 +41,22 @@ export default class TypingGenerator {
 
         return [
           ...memo,
-          `      ${name}: Schema['${relation}']['plain'] & Schema['${relation}']['nested']`,
+          `      ${name}: Schema['${relation}']['plain'] & Schema['${relation}']['nested'];`,
         ];
       }
 
       return memo;
     }, []);
 
-    return content.length ? `    nested: {\n${content.join('\n')}\n    }` : `    nested: {}`;
+    return content.length ? `    nested: {\n${content.join('\n')}\n    };` : `    nested: {};`;
   }
 
   private static getFlatRelations(collection: Collection, maxDepth: number): string {
     const fields = this.getFieldsRec(collection, maxDepth, []);
 
-    return fields.length ? `    flat: {\n      ${fields.join('\n      ')}\n    }` : `    flat: {}`;
+    return fields.length
+      ? `    flat: {\n      ${fields.join('\n      ')}\n    };`
+      : `    flat: {};`;
   }
 
   private static getFieldsRec(
@@ -66,7 +68,7 @@ export default class TypingGenerator {
       traversed.length > 0
         ? Object.entries(collection.schema.fields)
             .filter(([, schema]) => schema.type === 'Column')
-            .map(([name, schema]) => `'${name}': ${this.getType(schema as ColumnSchema)}`)
+            .map(([name, schema]) => `'${name}': ${this.getType(schema as ColumnSchema)};`)
         : [];
 
     const relations = Object.entries(collection.schema.fields).reduce((memo, [name, schema]) => {

@@ -28,18 +28,18 @@ describe('TypingGenerator', () => {
       export type Schema = {
         a collection: {
           plain: {
-            id: number
-            boolean: boolean
-            string: string
-            point: [number, number]
-            enum: 'a' | 'b' | 'c'
-            complex: { firstname: string; lastname: string }
-            array: Array<string>
-          }
-          nested: {}
-          flat: {}
-        }
-      }`;
+            id: number;
+            boolean: boolean;
+            string: string;
+            point: [number, number];
+            enum: 'a' | 'b' | 'c';
+            complex: { firstname: string; lastname: string };
+            array: Array<string>;
+          };
+          nested: {};
+          flat: {};
+        };
+      };`;
 
     expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
   });
@@ -62,17 +62,21 @@ describe('TypingGenerator', () => {
       /* eslint-disable */
       export type Schema = {
         col1: {
-          plain: { id: number }
-          nested: { col1: Schema['col1']['plain'] & Schema['col1']['nested'] }
+          plain: { 
+            id: number;
+          };
+          nested: {
+            col1: Schema['col1']['plain'] & Schema['col1']['nested'];
+          };
           flat: {
-            'col1:id': number
-            'col1:col1:id': number
-            'col1:col1:col1:id': number
-            'col1:col1:col1:col1:id': number
-            'col1:col1:col1:col1:col1:id': number
-          }
-        }
-      }`;
+            'col1:id': number;
+            'col1:col1:id': number;
+            'col1:col1:col1:id': number;
+            'col1:col1:col1:col1:id': number;
+            'col1:col1:col1:col1:col1:id': number;
+          };
+        };
+      };`;
 
     expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
   });
@@ -104,17 +108,28 @@ describe('TypingGenerator', () => {
       /* eslint-disable */
       export type Schema = {
         col1: {
-          plain: { id: number }
-          nested: { col2: Schema['col2']['plain'] & Schema['col2']['nested'] }
-          flat: { 'col2:id':number }
-        }
+          plain: {
+            id: number;
+          };
+          nested: {
+            col2: Schema['col2']['plain'] & Schema['col2']['nested'];
+          };
+          flat: {
+            'col2:id':number;
+          };
+        };
         col2: {
-          plain: { id: number }
-          nested: { col1: Schema['col1']['plain'] & Schema['col1']['nested'] }
-          flat: { 'col1:id':number }
-        }
-      }
-    `;
+          plain: {
+            id: number;
+          };
+          nested: {
+            col1: Schema['col1']['plain'] & Schema['col1']['nested'];
+          };
+          flat: {
+            'col1:id':number;
+          };
+        };
+      };`;
 
     expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
   });
@@ -155,33 +170,45 @@ describe('TypingGenerator', () => {
       /* eslint-disable */
       export type Schema = {
         col1: {
-          plain: { id: number }
-          nested: { col2: Schema['col2']['plain'] & Schema['col2']['nested'] }
+          plain: { 
+            id: number;
+          };
+          nested: {
+            col2: Schema['col2']['plain'] & Schema['col2']['nested'];
+          };
           flat: {
-            'col2:id': number
-            'col2:col3:id': number
-            'col2:col3:col1:id': number
-          }
-        }
+            'col2:id': number;
+            'col2:col3:id': number;
+            'col2:col3:col1:id': number;
+          };
+        };
         col2: {
-          plain: { id: number }
-          nested: { col3: Schema['col3']['plain'] & Schema['col3']['nested'] }
+          plain: {
+            id: number;
+          };
+          nested: {
+            col3: Schema['col3']['plain'] & Schema['col3']['nested'];
+          };
           flat: {
-            'col3:id': number
-            'col3:col1:id': number
-            'col3:col1:col2:id': number
-          }
-        }
+            'col3:id': number;
+            'col3:col1:id': number;
+            'col3:col1:col2:id': number;
+          };
+        };
         col3: {
-          plain: { id: number }
-          nested: { col1: Schema['col1']['plain'] & Schema['col1']['nested'] }
+          plain: {
+            id: number;
+          };
+          nested: {
+            col1: Schema['col1']['plain'] & Schema['col1']['nested'];
+          };
           flat: {
-            'col1:id': number
-            'col1:col2:id': number
-            'col1:col2:col3:id': number
-          }
-        }
-      }`;
+            'col1:id': number;
+            'col1:col2:id': number;
+            'col1:col2:col3:id': number;
+          };
+        };
+      };`;
 
     expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
   });
