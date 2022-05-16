@@ -1,8 +1,6 @@
 import { Collection } from '@forestadmin/agent';
 
-export default (collection: Collection) =>
-  collection.addRelation('store', {
-    type: 'ManyToOne',
-    foreignKey: 'storeId',
-    foreignCollection: 'store',
-  });
+import { Schema } from '../typings';
+
+export default (collection: Collection<Schema, 'review'>) =>
+  collection.addManyToOne('store', 'store', { foreignKey: 'storeId' });
