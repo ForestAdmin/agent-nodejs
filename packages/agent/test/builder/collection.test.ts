@@ -12,15 +12,17 @@ import DecoratorsStack from '../../dist/builder/decorators-stack';
 
 describe('Builder > Collection', () => {
   const setup = async () => {
-    const collectionName = '__collection__';
-    const dataSource = factories.dataSource.buildWithCollection(
+    const dataSource = factories.dataSource.buildWithCollections([
       factories.collection.build({
-        name: collectionName,
+        name: 'authors',
         schema: factories.collectionSchema.build({
           fields: {
+            authorId: factories.columnSchema.build({
+              columnType: 'Number',
+              filterOperators: new Set(['In']),
+            }),
             firstName: factories.columnSchema.build({
               isSortable: true,
-              filterOperators: new Set(['In']),
             }),
             lastName: factories.columnSchema.build({
               filterOperators: new Set(),
@@ -28,74 +30,99 @@ describe('Builder > Collection', () => {
           },
         }),
       }),
-    );
+      factories.collection.build({
+        name: 'book_author',
+        schema: factories.collectionSchema.build({
+          fields: {
+            authorFk: factories.columnSchema.build({
+              columnType: 'Number',
+              isPrimaryKey: true,
+              filterOperators: new Set(['In']),
+            }),
+            bookFk: factories.columnSchema.build({
+              columnType: 'Number',
+              isPrimaryKey: true,
+              filterOperators: new Set(['In']),
+            }),
+          },
+        }),
+      }),
+      factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: {
+            bookId: factories.columnSchema.build({
+              columnType: 'Number',
+              filterOperators: new Set(['In']),
+            }),
+            title: factories.columnSchema.build({ columnType: 'String' }),
+          },
+        }),
+      }),
+    ]);
     const stack = new DecoratorsStack(dataSource);
-    const collectionBuilder = new CollectionBuilder(stack, collectionName);
 
-    return { stack, collectionBuilder, collectionName };
+    return { stack };
   };
 
   describe('renameField', () => {
     it('should rename a field', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.rename.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.rename.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'renameField');
 
-      const self = collectionBuilder.renameField('firstName', 'renamed');
+      const self = builder.renameField('firstName', 'renamed');
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'renamed');
       expect(collection.schema.fields.renamed).toBeDefined();
-      expect(self).toEqual(collectionBuilder);
+      expect(self).toEqual(builder);
     });
   });
 
   describe('removeField', () => {
     it('should remove the field given fields', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.publication.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.publication.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'changeFieldVisibility');
 
-      const self = collectionBuilder.removeField('firstName', 'lastName');
+      const self = builder.removeField('firstName', 'lastName');
 
       expect(spy).toBeCalledTimes(2);
       expect(spy).toHaveBeenNthCalledWith(1, 'firstName', false);
       expect(spy).toHaveBeenNthCalledWith(2, 'lastName', false);
       expect(collection.schema.fields.firstName).toBeUndefined();
       expect(collection.schema.fields.lastName).toBeUndefined();
-      expect(self).toEqual(collectionBuilder);
+      expect(self).toEqual(builder);
     });
   });
 
   describe('addAction', () => {
     it('should add an action', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
+      const { stack } = await setup();
+      const collection = stack.action.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
 
-      const collection = stack.action.getCollection(collectionName);
       const spy = jest.spyOn(collection, 'addAction');
 
-      const actionDefinition: ActionDefinition = {
-        scope: 'Global',
-        execute: () => {},
-      };
-
-      const self = collectionBuilder.addAction('action name', actionDefinition);
+      const actionDefinition: ActionDefinition = { scope: 'Global', execute: () => {} };
+      const self = builder.addAction('action name', actionDefinition);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('action name', actionDefinition);
       expect(collection.schema.actions['action name']).toBeDefined();
-      expect(self).toEqual(collectionBuilder);
+      expect(self).toEqual(builder);
     });
   });
 
   describe('importField', () => {
     it('should call addField', async () => {
-      const { collectionBuilder } = await setup();
-      const spy = jest.spyOn(collectionBuilder, 'addField');
-
-      const self = collectionBuilder.importField('firstNameCopy', { path: 'firstName' });
+      const { stack } = await setup();
+      const builder = new CollectionBuilder(stack, 'authors');
+      const spy = jest.spyOn(builder, 'addField');
+      const self = builder.importField('firstNameCopy', { path: 'firstName' });
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstNameCopy', {
@@ -103,183 +130,191 @@ describe('Builder > Collection', () => {
         dependencies: ['firstName'],
         getValues: expect.any(Function),
       });
-      expect(self).toEqual(collectionBuilder);
+      expect(self).toEqual(builder);
+
+      const { getValues } = spy.mock.calls[0][1];
+      expect(getValues([{ firstName: 'John' }], null)).toStrictEqual(['John']);
     });
   });
 
   describe('addField', () => {
     it('should add a field', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.lateComputed.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.lateComputed.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'registerComputed');
 
       const fieldDefinition: FieldDefinition = {
         columnType: 'String',
         dependencies: ['firstName'],
-        getValues: () => [],
+        getValues: records => records.map(() => 'aaa'),
       };
 
-      const self = collectionBuilder.addField('new field', fieldDefinition);
+      const self = builder.addField('new field', fieldDefinition);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
       expect(collection.schema.fields['new field']).toBeDefined();
-      expect(self).toEqual(collectionBuilder);
+      expect(self).toEqual(builder);
+
+      const { getValues } = spy.mock.calls[0][1];
+      expect(getValues([{ firstName: 'John' }], null)).toStrictEqual(['aaa']);
     });
   });
 
   describe('relations', () => {
     it('should add a many to one', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.relation.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.relation.getCollection('book_author');
+      const builder = new CollectionBuilder(stack, 'book_author');
       const spy = jest.spyOn(collection, 'addRelation');
-      const self = collectionBuilder.addManyToOne('myself', collectionName, {
-        foreignKey: 'firstName',
-        foreignKeyTarget: 'firstName',
+
+      const self = builder.addManyToOne('myAuthor', 'authors', {
+        foreignKey: 'authorFk',
+        foreignKeyTarget: 'authorId',
       });
 
       expect(spy).toBeCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith('myself', {
+      expect(spy).toHaveBeenCalledWith('myAuthor', {
         type: 'ManyToOne',
-        foreignCollection: collectionName,
-        foreignKey: 'firstName',
-        foreignKeyTarget: 'firstName',
+        foreignCollection: 'authors',
+        foreignKey: 'authorFk',
+        foreignKeyTarget: 'authorId',
       });
-      expect(collection.schema.fields.myself).toBeDefined();
-      expect(self).toEqual(collectionBuilder);
+      expect(collection.schema.fields.myAuthor).toBeDefined();
+      expect(self).toEqual(builder);
     });
 
     it('should add a one to one', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.relation.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.relation.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'addRelation');
 
-      const self = collectionBuilder.addOneToOne('myself', collectionName, {
-        originKey: 'firstName',
-        originKeyTarget: 'firstName',
+      const self = builder.addOneToOne('myBookAuthor', 'book_author', {
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
       });
 
       expect(spy).toBeCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith('myself', {
+      expect(spy).toHaveBeenCalledWith('myBookAuthor', {
         type: 'OneToOne',
-        foreignCollection: collectionName,
-        originKey: 'firstName',
-        originKeyTarget: 'firstName',
+        foreignCollection: 'book_author',
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
       });
-      expect(collection.schema.fields.myself).toBeDefined();
-      expect(self).toEqual(collectionBuilder);
+      expect(collection.schema.fields.myBookAuthor).toBeDefined();
+      expect(self).toEqual(builder);
     });
 
     it('should add a one to many', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.relation.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.relation.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'addRelation');
 
-      const self = collectionBuilder.addOneToMany('myself', collectionName, {
-        originKey: 'firstName',
-        originKeyTarget: 'firstName',
+      const self = builder.addOneToMany('myBookAuthors', 'book_author', {
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
       });
 
       expect(spy).toBeCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith('myself', {
+      expect(spy).toHaveBeenCalledWith('myBookAuthors', {
         type: 'OneToMany',
-        foreignCollection: collectionName,
-        originKey: 'firstName',
-        originKeyTarget: 'firstName',
+        foreignCollection: 'book_author',
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
       });
-      expect(collection.schema.fields.myself).toBeDefined();
-      expect(self).toEqual(collectionBuilder);
+      expect(collection.schema.fields.myBookAuthors).toBeDefined();
+      expect(self).toEqual(builder);
     });
 
     it('should add a many to many', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.relation.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.relation.getCollection('authors');
       const spy = jest.spyOn(collection, 'addRelation');
-      const self = collectionBuilder.addManyToMany('myself', collectionName, collectionName, {
-        foreignKey: 'firstName',
-        foreignKeyTarget: 'firstName',
-        originKey: 'firstName',
-        originKeyTarget: 'firstName',
+      const builder = new CollectionBuilder(stack, 'authors');
+
+      const self = builder.addManyToMany('myBooks', 'books', 'book_author', {
+        foreignKey: 'bookFk',
+        foreignKeyTarget: 'bookId',
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
       });
 
       expect(spy).toBeCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith('myself', {
+      expect(spy).toHaveBeenCalledWith('myBooks', {
         type: 'ManyToMany',
-        foreignCollection: collectionName,
-        throughCollection: collectionName,
-        foreignKey: 'firstName',
-        foreignKeyTarget: 'firstName',
-        originKey: 'firstName',
-        originKeyTarget: 'firstName',
+        foreignCollection: 'books',
+        throughCollection: 'book_author',
+        foreignKey: 'bookFk',
+        foreignKeyTarget: 'bookId',
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
       });
-      expect(collection.schema.fields.myself).toBeDefined();
-      expect(self).toEqual(collectionBuilder);
+      expect(collection.schema.fields.myBooks).toBeDefined();
+      expect(self).toEqual(builder);
     });
   });
 
   describe('addSegment', () => {
     it('should add a segment', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.segment.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.segment.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'addSegment');
 
       const generator = async () => new ConditionTreeLeaf('fieldName', 'Present');
 
-      const self = collectionBuilder.addSegment('new segment', generator);
+      const self = builder.addSegment('new segment', generator);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new segment', generator);
       expect(collection.schema.segments).toEqual(expect.arrayContaining(['new segment']));
-      expect(self).toEqual(collectionBuilder);
+      expect(self).toEqual(builder);
     });
   });
 
   describe('emulateFieldSorting', () => {
     it('should emulate sort on field', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.sortEmulate.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.sortEmulate.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'emulateFieldSorting');
 
-      const self = collectionBuilder.emulateFieldSorting('firstName');
+      const self = builder.emulateFieldSorting('firstName');
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName');
-      expect(self).toEqual(collectionBuilder);
+      expect(self).toEqual(builder);
     });
   });
 
   describe('replaceFieldSorting', () => {
     it('should replace sort on field', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.sortEmulate.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.sortEmulate.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'replaceFieldSorting');
 
       const sortClauses = [{ field: 'firstName', ascending: true }];
-      const self = collectionBuilder.replaceFieldSorting('firstName', sortClauses);
+      const self = builder.replaceFieldSorting('firstName', sortClauses);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', new Sort(...sortClauses));
-      expect(self).toEqual(collectionBuilder);
+      expect(self).toEqual(builder);
     });
   });
 
   describe('replaceFieldWriting', () => {
     it('should replace write on field', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.write.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.write.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'replaceFieldWriting');
 
       const definition: WriteDefinition = jest.fn();
-      collectionBuilder.replaceFieldWriting('firstName', definition);
+      builder.replaceFieldWriting('firstName', definition);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', definition);
@@ -288,47 +323,47 @@ describe('Builder > Collection', () => {
 
   describe('emulateFieldFiltering', () => {
     it('should emulate operator on field', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.earlyOpEmulate.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.earlyOpEmulate.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
-      const self = collectionBuilder.emulateFieldFiltering('lastName');
+      const self = builder.emulateFieldFiltering('lastName');
 
       expect(spy).toBeCalledTimes(9);
-      expect(self).toEqual(collectionBuilder);
+      expect(self).toEqual(builder);
     });
   });
 
   describe('emulateFieldOperator', () => {
     it('should emulate operator on field', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.earlyOpEmulate.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.earlyOpEmulate.getCollection('authors');
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
+      const builder = new CollectionBuilder(stack, 'authors');
 
-      const self = collectionBuilder.emulateFieldOperator('firstName', 'Present');
+      const self = builder.emulateFieldOperator('firstName', 'Present');
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'Present');
-      expect(self).toEqual(collectionBuilder);
+      expect(self).toEqual(builder);
     });
   });
 
   describe('replaceFieldOperator', () => {
     it('should replace operator on field', async () => {
-      const { stack, collectionBuilder, collectionName } = await setup();
-
-      const collection = stack.earlyOpEmulate.getCollection(collectionName);
+      const { stack } = await setup();
+      const collection = stack.earlyOpEmulate.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'replaceFieldOperator');
 
       const replacer = async () => new ConditionTreeLeaf('fieldName', 'NotEqual', null);
 
-      const self = collectionBuilder.replaceFieldOperator('firstName', 'Present', replacer);
+      const self = builder.replaceFieldOperator('firstName', 'Present', replacer);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'Present', replacer);
-      expect(self).toEqual(collectionBuilder);
+      expect(self).toEqual(builder);
     });
   });
 });
