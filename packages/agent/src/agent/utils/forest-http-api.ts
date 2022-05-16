@@ -54,8 +54,8 @@ export default class ForestHttpApi {
       const { attributes } = response.body.data;
 
       return { isFeatureEnabled: attributes.use_ip_whitelist, ipRules: attributes.rules };
-    } catch {
-      throw new Error('An error occurred while retrieving your IP whitelist.');
+    } catch (e) {
+      this.handleResponseError(e);
     }
   }
 
@@ -66,8 +66,8 @@ export default class ForestHttpApi {
         .set('forest-secret-key', options.envSecret);
 
       return response.body;
-    } catch {
-      throw new Error('Failed to fetch open-id issuer metadata.');
+    } catch (e) {
+      this.handleResponseError(e);
     }
   }
 
@@ -99,18 +99,22 @@ export default class ForestHttpApi {
         tags: attributes.tags?.reduce((memo, { key, value }) => ({ ...memo, [key]: value }), {}),
         renderingId,
       };
-    } catch {
-      throw new Error('Failed to retrieve authorization informations.');
+    } catch (e) {
+      this.handleResponseError(e);
     }
   }
 
   static async hasSchema(options: HttpOptions, hash: string): Promise<boolean> {
-    const response = await superagent
-      .post(new URL('/forest/apimaps/hashcheck', options.forestServerUrl).toString())
-      .send({ schemaFileHash: hash })
-      .set('forest-secret-key', options.envSecret);
+    try {
+      const response = await superagent
+        .post(new URL('/forest/apimaps/hashcheck', options.forestServerUrl).toString())
+        .send({ schemaFileHash: hash })
+        .set('forest-secret-key', options.envSecret);
 
-    return !response?.body?.sendSchema;
+      return !response?.body?.sendSchema;
+    } catch (e) {
+      this.handleResponseError(e);
+    }
   }
 
   static async uploadSchema(options: HttpOptions, apimap: JSONAPIDocument): Promise<void> {
@@ -120,31 +124,7 @@ export default class ForestHttpApi {
         .send(apimap)
         .set('forest-secret-key', options.envSecret);
     } catch (e) {
-      // Sending the schema to forestadmin-server is mandatory: crash the server gracefully
-      let message: string;
-
-      switch ((e as ResponseError).response?.status) {
-        case 0:
-          message = 'Cannot send the apimap to Forest. Are you online?';
-          break;
-        case 404:
-          message =
-            'Cannot find the project related to the envSecret you configured. ' +
-            'Can you check on Forest that you copied it properly in the Forest initialization?';
-          break;
-        case 503:
-          message =
-            'Forest is in maintenance for a few minutes. ' +
-            'We are upgrading your experience in the forest. ' +
-            'We just need a few more minutes to get it right.';
-          break;
-        default:
-          message =
-            'An error occured with the apimap sent to Forest. ' +
-            'Please contact support@forestadmin.com for further investigations.';
-      }
-
-      throw new Error(message);
+      this.handleResponseError(e);
     }
   }
 
@@ -152,26 +132,30 @@ export default class ForestHttpApi {
     options: HttpOptions,
     renderingId: number,
   ): Promise<RenderingPermissions> {
-    const { body } = await superagent
-      .get(`${options.forestServerUrl}/liana/v3/permissions`)
-      .set('forest-secret-key', options.envSecret)
-      .query(`renderingId=${renderingId}`);
+    try {
+      const { body } = await superagent
+        .get(`${options.forestServerUrl}/liana/v3/permissions`)
+        .set('forest-secret-key', options.envSecret)
+        .query(`renderingId=${renderingId}`);
 
-    if (!body.meta?.rolesACLActivated) {
-      throw new Error('Roles V2 are unsupported');
+      if (!body.meta?.rolesACLActivated) {
+        throw new Error('Roles V2 are unsupported');
+      }
+
+      const actions = new Set<string>();
+      const actionsByUser = {};
+
+      ForestHttpApi.decodeChartPermissions(body?.stats ?? {}, actions);
+      ForestHttpApi.decodeActionPermissions(body?.data?.collections ?? {}, actions, actionsByUser);
+
+      return {
+        actions,
+        actionsByUser,
+        scopes: ForestHttpApi.decodeScopePermissions(body?.data?.renderings?.[renderingId] ?? {}),
+      };
+    } catch (e) {
+      this.handleResponseError(e);
     }
-
-    const actions = new Set<string>();
-    const actionsByUser = {};
-
-    ForestHttpApi.decodeChartPermissions(body?.stats ?? {}, actions);
-    ForestHttpApi.decodeActionPermissions(body?.data?.collections ?? {}, actions, actionsByUser);
-
-    return {
-      actions,
-      actionsByUser,
-      scopes: ForestHttpApi.decodeScopePermissions(body?.data?.renderings?.[renderingId] ?? {}),
-    };
   }
 
   /** Helper to format permissions into something easy to validate against */
@@ -238,5 +222,40 @@ export default class ForestHttpApi {
     }
 
     return scopes;
+  }
+
+  private static handleResponseError(e: Error): void {
+    if (/certificate/i.test(e.message))
+      throw new Error(
+        'ForestAdmin server TLS certificate cannot be verified. ' +
+          'Please check that your system time is set properly.',
+      );
+
+    if ((e as ResponseError).response) {
+      const status = (e as ResponseError)?.response?.status;
+
+      // 0 == offline, 502 == bad gateway from proxy
+      if (status === 0 || status === 502)
+        throw new Error('Failed to reach ForestAdmin server. Are you online?');
+
+      if (status === 404)
+        throw new Error(
+          'ForestAdmin server failed to find the project related to the envSecret you configured.' +
+            ' Can you check that you copied it properly in the Forest initialization?',
+        );
+
+      if (status === 503)
+        throw new Error(
+          'Forest is in maintenance for a few minutes. We are upgrading your experience in ' +
+            'the forest. We just need a few more minutes to get it right.',
+        );
+
+      throw new Error(
+        'An unexpected error occured while contacting the ForestAdmin server. ' +
+          'Please contact support@forestadmin.com for further investigations.',
+      );
+    }
+
+    throw e;
   }
 }

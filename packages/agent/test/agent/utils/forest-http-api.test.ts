@@ -68,37 +68,24 @@ describe('ForestHttpApi', () => {
       );
     });
 
-    describe('when the call succeeds', () => {
-      test('should return the ip rules and the isFeatureEnabled attributes', async () => {
-        const ipRules = [{ type: 1, ip: '10.20.15.10' }];
-        const isFeatureEnabled = true;
+    test('should return the ip rules and the isFeatureEnabled attributes', async () => {
+      const ipRules = [{ type: 1, ip: '10.20.15.10' }];
+      const isFeatureEnabled = true;
 
-        superagentMock.set.mockResolvedValue({
-          body: {
-            data: {
-              attributes: {
-                use_ip_whitelist: isFeatureEnabled,
-                rules: ipRules,
-              },
+      superagentMock.set.mockResolvedValue({
+        body: {
+          data: {
+            attributes: {
+              use_ip_whitelist: isFeatureEnabled,
+              rules: ipRules,
             },
           },
-        });
-
-        const result = await ForestHttpApi.getIpWhitelistConfiguration(options);
-
-        expect(result).toStrictEqual({ isFeatureEnabled, ipRules });
+        },
       });
-    });
 
-    describe('when the call fails', () => {
-      test('should throw an error', async () => {
-        superagentMock.set.mockRejectedValue();
+      const result = await ForestHttpApi.getIpWhitelistConfiguration(options);
 
-        const result = ForestHttpApi.getIpWhitelistConfiguration(options);
-        await expect(result).rejects.toThrow(
-          'An error occurred while retrieving your IP whitelist.',
-        );
-      });
+      expect(result).toStrictEqual({ isFeatureEnabled, ipRules });
     });
   });
 
@@ -116,30 +103,17 @@ describe('ForestHttpApi', () => {
       );
     });
 
-    describe('when the call succeeds', () => {
-      test('should return the openid configuration', async () => {
-        const openidConfiguration = {
-          registration_endpoint: 'http://fake-registration-endpoint.com',
-        };
-        superagentMock.set.mockResolvedValue({
-          body: openidConfiguration,
-        });
-
-        const result = await ForestHttpApi.getOpenIdIssuerMetadata(options);
-
-        expect(result).toStrictEqual(openidConfiguration);
+    test('should return the openid configuration', async () => {
+      const openidConfiguration = {
+        registration_endpoint: 'http://fake-registration-endpoint.com',
+      };
+      superagentMock.set.mockResolvedValue({
+        body: openidConfiguration,
       });
-    });
 
-    describe('when the call fails', () => {
-      test('should throw an error', async () => {
-        superagentMock.set.mockImplementation(() => {
-          throw new Error();
-        });
+      const result = await ForestHttpApi.getOpenIdIssuerMetadata(options);
 
-        const result = ForestHttpApi.getOpenIdIssuerMetadata(options);
-        await expect(result).rejects.toThrow('Failed to fetch open-id issuer metadata');
-      });
+      expect(result).toStrictEqual(openidConfiguration);
     });
   });
 
@@ -153,15 +127,8 @@ describe('ForestHttpApi', () => {
       role: 'developer',
       tags: [{ key: 'tag1', value: 'value1' }],
     };
+    const body = { body: { data: { id: '1', attributes: user } } };
 
-    const body = {
-      body: {
-        data: {
-          id: '1',
-          attributes: user,
-        },
-      },
-    };
     test('should fetch the correct end point with the env secret', async () => {
       const firstSetSpy = jest.fn().mockReturnValue(body);
       const secondSetSpy = jest.fn().mockImplementation(() => ({
@@ -178,35 +145,20 @@ describe('ForestHttpApi', () => {
       );
     });
 
-    describe('when the call succeeds', () => {
-      test('should return the user information', async () => {
-        superagentMock.set.mockReturnValue({ ...body, set: () => body });
+    test('should return the user information', async () => {
+      superagentMock.set.mockReturnValue({ ...body, set: () => body });
 
-        const result = await ForestHttpApi.getUserInformation(options, 1, 'tokenset');
+      const result = await ForestHttpApi.getUserInformation(options, 1, 'tokenset');
 
-        expect(result).toStrictEqual({
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          team: user.teams[0],
-          role: user.role,
-          tags: { tag1: 'value1' },
-          renderingId: 1,
-        });
-      });
-    });
-
-    describe('when the call fails', () => {
-      test('should throw an error', async () => {
-        superagentMock.set.mockImplementation(() => ({
-          set: () => {
-            throw new Error();
-          },
-        }));
-
-        const result = ForestHttpApi.getUserInformation(options, 1, 'tokenset');
-        await expect(result).rejects.toThrow('Failed to retrieve authorization informations.');
+      expect(result).toStrictEqual({
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        team: user.teams[0],
+        role: user.role,
+        tags: { tag1: 'value1' },
+        renderingId: 1,
       });
     });
   });
@@ -222,22 +174,12 @@ describe('ForestHttpApi', () => {
       expect(superagentMock.post).toHaveBeenCalledWith('https://api.url/forest/apimaps/hashcheck');
     });
 
-    describe('when the call succeeds', () => {
-      test('should return the correct value', async () => {
-        superagentMock.set.mockResolvedValue({ body: { sendSchema: true } });
+    test('should return the correct value', async () => {
+      superagentMock.set.mockResolvedValue({ body: { sendSchema: true } });
 
-        const result = await ForestHttpApi.hasSchema(options, 'myHash');
+      const result = await ForestHttpApi.hasSchema(options, 'myHash');
 
-        expect(result).toStrictEqual(false);
-      });
-    });
-
-    describe('when the call fails', () => {
-      test('should throw an error', async () => {
-        superagentMock.set.mockRejectedValue(new Error());
-
-        await expect(ForestHttpApi.hasSchema(options, 'myHash')).rejects.toThrow();
-      });
+      expect(result).toStrictEqual(false);
     });
   });
 
@@ -257,38 +199,6 @@ describe('ForestHttpApi', () => {
         superagentMock.set.mockResolvedValue({ body: {} });
 
         await expect(ForestHttpApi.uploadSchema(options, {})).resolves.not.toThrowError();
-      });
-    });
-
-    describe('when the call fails', () => {
-      test('should throw an error if an error with no status code is dispatched', async () => {
-        superagentMock.set.mockRejectedValue({ response: { status: 0 } });
-
-        await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(/Are you online/);
-      });
-
-      test('should throw an error if an error with 404 status is dispatched', async () => {
-        superagentMock.set.mockRejectedValue({ response: { status: 404 } });
-
-        await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(
-          /Cannot find the project related to the envSecret you configured/,
-        );
-      });
-
-      test('should throw an error if an error with 503 status is dispatched', async () => {
-        superagentMock.set.mockRejectedValue({ response: { status: 503 } });
-
-        await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(
-          /Forest is in maintenance for a few minutes/,
-        );
-      });
-
-      test('should throw an error if a unexpected error is dispatched', async () => {
-        superagentMock.set.mockRejectedValue(new Error());
-
-        await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(
-          /Please contact support@forestadmin.com/,
-        );
       });
     });
   });
@@ -494,11 +404,54 @@ describe('ForestHttpApi', () => {
         'Roles V2 are unsupported',
       );
     });
+  });
 
-    test('should throw an error when the call fails', async () => {
-      superagentMock.query.mockRejectedValue(new Error());
+  describe('Forest server error handling', () => {
+    test('should throw an error if an error with no status code is dispatched', async () => {
+      superagentMock.set.mockRejectedValue({ response: { status: 0 } });
 
-      await expect(ForestHttpApi.getPermissions(options, 1)).rejects.toThrow();
+      await expect(ForestHttpApi.getIpWhitelistConfiguration(options)).rejects.toThrow(
+        /Are you online/,
+      );
+    });
+
+    test('should throw an error if an error with 404 status is dispatched', async () => {
+      superagentMock.set.mockRejectedValue({ response: { status: 404 } });
+
+      await expect(ForestHttpApi.getOpenIdIssuerMetadata(options)).rejects.toThrow(
+        /failed to find the project related to the envSecret you configured/,
+      );
+    });
+
+    test('should throw an error if an error with 503 status is dispatched', async () => {
+      superagentMock.set.mockImplementation(() => {
+        throw { name: 'error', message: 'request failed', response: { status: 503 } } as Error;
+      });
+
+      await expect(ForestHttpApi.getUserInformation(options, 1, '')).rejects.toThrow(
+        /Forest is in maintenance for a few minutes/,
+      );
+    });
+
+    test('should throw an error if a certificate error is dispatched', async () => {
+      superagentMock.set.mockRejectedValue(new Error('invalid certificate'));
+
+      await expect(ForestHttpApi.hasSchema(options, '')).rejects.toThrow(
+        /ForestAdmin server TLS certificate cannot be verified/,
+      );
+    });
+
+    test('should rethrow unexpected errors', async () => {
+      superagentMock.set.mockRejectedValue(new Error('i am unexpected'));
+      await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow('i am unexpected');
+    });
+
+    test('should throw an error if an unknown response error is dispatched', async () => {
+      superagentMock.query.mockRejectedValue({ response: {} });
+
+      await expect(ForestHttpApi.getPermissions(options, 1)).rejects.toThrow(
+        /Please contact support@forestadmin.com/,
+      );
     });
   });
 });

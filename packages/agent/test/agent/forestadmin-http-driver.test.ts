@@ -8,7 +8,13 @@ import makeRoutes from '../../src/agent/routes';
 
 jest.mock('../../src/agent/routes', () => ({
   __esModule: true,
-  default: jest.fn().mockReturnValue([]),
+  default: jest.fn().mockReturnValue([
+    {
+      setupRoutes: () => {},
+      bootstrap: async () => {},
+      tearDown: async () => {},
+    },
+  ]),
 }));
 
 jest.mock('../../src/agent/utils/forest-http-api', () => ({
@@ -98,6 +104,18 @@ describe('ForestAdminHttpDriver', () => {
 
       expect(ForestHttpApi.hasSchema).toHaveBeenCalled();
       expect(ForestHttpApi.uploadSchema).toHaveBeenCalled();
+    });
+  });
+
+  describe('if we fail to contact forestadmin-server', () => {
+    beforeEach(() => {
+      (ForestHttpApi.hasSchema as jest.Mock).mockRejectedValue(new Error('an error'));
+    });
+
+    test('start() should rethrow the error and be done', async () => {
+      const httpDriver = new ForestAdminHttpDriver(dataSource, options);
+
+      await expect(() => httpDriver.start()).rejects.toThrow('an error');
     });
   });
 });
