@@ -25,7 +25,7 @@ describe('TypingGenerator', () => {
     const generated = TypingGenerator.generateTypes(datasource, 5);
     const expected = `
       /* eslint-disable */
-      type Schema = {
+      export type Schema = {
         a collection: {
           plain: {
             id: number
@@ -60,7 +60,7 @@ describe('TypingGenerator', () => {
     const generated = TypingGenerator.generateTypes(datasource, 5);
     const expected = `
       /* eslint-disable */
-      type Schema = {
+      export type Schema = {
         col1: {
           plain: { id: number }
           nested: { col1: Schema['col1']['plain'] & Schema['col1']['nested'] }
@@ -102,7 +102,7 @@ describe('TypingGenerator', () => {
     const generated = TypingGenerator.generateTypes(datasource, 5);
     const expected = `
       /* eslint-disable */
-      type Schema = {
+      export type Schema = {
         col1: {
           plain: { id: number }
           nested: { col2: Schema['col2']['plain'] & Schema['col2']['nested'] }
@@ -152,8 +152,8 @@ describe('TypingGenerator', () => {
 
     const generated = TypingGenerator.generateTypes(datasource, 3);
     const expected = `
-      /*eslint-disable*/
-      type Schema = {
+      /* eslint-disable */
+      export type Schema = {
         col1: {
           plain: { id: number }
           nested: { col2: Schema['col2']['plain'] & Schema['col2']['nested'] }
