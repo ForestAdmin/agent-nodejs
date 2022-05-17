@@ -1033,17 +1033,18 @@ describe('MongooseCollection', () => {
   });
 
   describe('aggregate', () => {
-    it('count(column) with simple grouping', async () => {
+    it('count(column) with grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
-      const message1 = { message: 'message 1' };
-      const message2 = { message: 'message 2' };
-      await review.create(factories.caller.build(), [message1, message1, message2]);
+      const message1 = { title: 'present', message: 'message 1' };
+      const message2 = { title: 'present', message: 'message 2' };
+      const message3 = { title: null, message: 'message 3' };
+      await review.create(factories.caller.build(), [message1, message1, message2, message3]);
 
       const aggregation = new Aggregation({
         operation: 'Count',
-        field: '_id',
+        field: 'title',
         groups: [{ field: 'message' }],
       });
       const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
@@ -1051,6 +1052,7 @@ describe('MongooseCollection', () => {
       expect(records).toIncludeSameMembers([
         { value: 2, group: { message: 'message 1' } },
         { value: 1, group: { message: 'message 2' } },
+        { value: 0, group: { message: 'message 3' } },
       ]);
     });
 
@@ -1160,6 +1162,28 @@ describe('MongooseCollection', () => {
       expect(records).toIncludeSameMembers([
         { value: 5, group: { createdDate: 2 } },
         { value: 4, group: { createdDate: 11 } },
+      ]);
+    });
+
+    it('Avg(rating) with Week grouping', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const rating1 = { createdDate: new Date('2022-01-13'), rating: 5 };
+      const rating2 = { createdDate: new Date('2022-03-13'), rating: 1 };
+      const rating3 = { createdDate: new Date('2023-03-14'), rating: 3 };
+      await review.create(factories.caller.build(), [rating1, rating2, rating3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Avg',
+        field: 'rating',
+        groups: [{ field: 'createdDate', operation: 'Week' }],
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([
+        { value: 5, group: { createdDate: 2 } },
+        { value: (3 + 1) / 2, group: { createdDate: 11 } },
       ]);
     });
   });

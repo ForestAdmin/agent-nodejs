@@ -66,34 +66,54 @@ export default class MongooseCollection extends BaseCollection {
   ): Promise<AggregateResult[]> {
     const pipeline = PipelineGenerator.find(this, this.model, filter, aggregation.projection);
 
-    if (aggregation.operation === 'Sum') {
-      const dateOperation: Record<string, string> = {
-        Year: '$year',
-        Month: '$month',
-        Day: '$dayOfMonth',
-        Week: '$week',
-      };
+    aggregation.groups.forEach(group => {
+      if (
+        aggregation.operation === 'Sum' ||
+        aggregation.operation === 'Avg' ||
+        aggregation.operation === 'Count'
+      ) {
+        const aggregationOperation: Record<string, string> = {
+          Sum: '$sum',
+          Avg: '$avg',
+          Count: '$sum',
+        };
 
-      aggregation.groups.forEach(group => {
-        pipeline.push({
+        const groupOperation: Record<string, string> = {
+          Year: '$year',
+          Month: '$month',
+          Day: '$dayOfMonth',
+          Week: '$week',
+        };
+
+        const computedGroup = {
           $group: {
-            _id: {
-              [dateOperation[group.operation]]: `$${group.field}`,
-            },
-            value: { $sum: `$${aggregation.field}` },
+            value: undefined,
+            _id: undefined,
           },
-        });
-      });
-    } else if (aggregation.operation === 'Count') {
-      aggregation.groups.forEach(group => {
-        pipeline.push({
-          $group: {
-            _id: `$${group.field}`,
-            value: { $count: {} },
-          },
-        });
-      });
-    }
+        };
+
+        if (group.operation) {
+          // eslint-disable-next-line no-underscore-dangle
+          computedGroup.$group._id = {
+            [groupOperation[group.operation]]: `$${group.field}`,
+          };
+        } else {
+          // eslint-disable-next-line no-underscore-dangle
+          computedGroup.$group._id = `$${group.field}`;
+        }
+
+        if (aggregation.operation) {
+          let value: unknown = `$${aggregation.field}`;
+          if (aggregation.operation === 'Count') value = { $cond: [{ $ne: [value, null] }, 1, 0] };
+
+          computedGroup.$group.value = {
+            [aggregationOperation[aggregation.operation]]: value,
+          };
+        }
+
+        pipeline.push(computedGroup);
+      }
+    });
 
     const records = await this.model.aggregate(pipeline);
 
