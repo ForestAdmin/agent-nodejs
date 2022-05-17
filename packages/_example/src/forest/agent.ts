@@ -5,6 +5,7 @@ import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 
 import { Schema } from './typings';
+import { liveDatasourceSchema, seedLiveDatasource } from './datasources/live';
 import createTypicode from './datasources/typicode';
 import customizeAddress from './customizations/address';
 import customizeComment from './customizations/comment';
@@ -15,15 +16,23 @@ import customizePost from './customizations/post';
 import customizeRental from './customizations/rental';
 import customizeReview from './customizations/review';
 import customizeStore from './customizations/store';
-import liveDatasourceSchema from './datasources/live/schema';
-import mongoose from './datasources/mongoose/mongodb';
-import seedLiveDatasource from './datasources/live/seed';
-import sequelizeMsSql from './datasources/sequelize/mssql';
-import sequelizeMySql from './datasources/sequelize/mysql';
-import sequelizePostgres from './datasources/sequelize/postgres';
+import mongoose from '../orms/mongodb';
+import sequelizeMsSql from '../orms/mssql';
+import sequelizeMySql from '../orms/mysql';
+import sequelizePostgres from '../orms/postgres';
 
-export default async function makeAgent(options: AgentOptions) {
-  return createAgent<Schema>(options)
+export default function makeAgent() {
+  const envOptions: AgentOptions = {
+    authSecret: process.env.FOREST_AUTH_SECRET,
+    agentUrl: process.env.FOREST_AGENT_URL,
+    envSecret: process.env.FOREST_ENV_SECRET,
+    forestServerUrl: process.env.FOREST_SERVER_URL,
+    isProduction: false,
+    loggerLevel: 'Info',
+    typingsPath: 'src/forest/typings.ts',
+  };
+
+  return createAgent<Schema>(envOptions)
     .addDataSource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }))
     .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
     .addDataSource(createTypicode())
