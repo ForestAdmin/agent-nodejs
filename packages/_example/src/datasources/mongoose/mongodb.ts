@@ -13,6 +13,9 @@ connection.model(
     message: {
       type: String,
     },
+    rating: {
+      type: Number,
+    },
     storeId: {
       type: Number,
       required: true,
