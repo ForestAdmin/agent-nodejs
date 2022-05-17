@@ -11,7 +11,9 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import Aggregation from '@forestadmin/datasource-toolkit/dist/src/interfaces/query/aggregation';
+import Aggregation, {
+  DateOperation,
+} from '@forestadmin/datasource-toolkit/dist/src/interfaces/query/aggregation';
 import PipelineGenerator from './utils/pipeline-generator';
 import SchemaFieldsGenerator from './utils/schema-fields-generator';
 
@@ -65,13 +67,20 @@ export default class MongooseCollection extends BaseCollection {
     const pipeline = PipelineGenerator.find(this, this.model, filter, aggregation.projection);
 
     if (aggregation.operation === 'Sum') {
+      const dateOperation: Record<string, string> = {
+        Year: '$year',
+        Month: '$month',
+        Day: '$dayOfMonth',
+        Week: '$week',
+      };
+
       aggregation.groups.forEach(group => {
         pipeline.push({
           $group: {
             _id: {
-              $year: '$createdDate',
+              [dateOperation[group.operation]]: `$${group.field}`,
             },
-            value: { $sum: '$rating' },
+            value: { $sum: `$${aggregation.field}` },
           },
         });
       });
@@ -96,13 +105,8 @@ export default class MongooseCollection extends BaseCollection {
 
     records.forEach(record => {
       const group = aggregation.groups.reduce((memo, g) => {
-        if (g.operation === 'Year') {
-          // eslint-disable-next-line no-underscore-dangle
-          memo[g.field] = new Date(record._id.toString());
-        } else {
-          // eslint-disable-next-line no-underscore-dangle
-          memo[g.field] = record._id;
-        }
+        // eslint-disable-next-line no-underscore-dangle
+        memo[g.field] = record._id;
 
         return memo;
       }, {});

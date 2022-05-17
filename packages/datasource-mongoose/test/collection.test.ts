@@ -1074,7 +1074,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('Sum(rating) with simple grouping', async () => {
+    it('Sum(rating) with Year grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1091,8 +1091,75 @@ describe('MongooseCollection', () => {
       const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
 
       expect(records).toIncludeSameMembers([
-        { value: 3, group: { createdDate: new Date('2023') } },
-        { value: 6, group: { createdDate: new Date('2022') } },
+        { value: 3, group: { createdDate: 2023 } },
+        { value: 6, group: { createdDate: 2022 } },
+      ]);
+    });
+
+    it('Sum(rating) with Month grouping', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const rating1 = { createdDate: new Date('2022-01-13'), rating: 5 };
+      const rating2 = { createdDate: new Date('2022-02-13'), rating: 1 };
+      const rating3 = { createdDate: new Date('2023-03-14'), rating: 3 };
+      await review.create(factories.caller.build(), [rating1, rating2, rating3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Sum',
+        field: 'rating',
+        groups: [{ field: 'createdDate', operation: 'Month' }],
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([
+        { value: 5, group: { createdDate: 1 } },
+        { value: 1, group: { createdDate: 2 } },
+        { value: 3, group: { createdDate: 3 } },
+      ]);
+    });
+
+    it('Sum(rating) with Day grouping', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const rating1 = { createdDate: new Date('2022-01-13'), rating: 5 };
+      const rating2 = { createdDate: new Date('2022-02-13'), rating: 1 };
+      const rating3 = { createdDate: new Date('2023-03-14'), rating: 3 };
+      await review.create(factories.caller.build(), [rating1, rating2, rating3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Sum',
+        field: 'rating',
+        groups: [{ field: 'createdDate', operation: 'Day' }],
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([
+        { value: 6, group: { createdDate: 13 } },
+        { value: 3, group: { createdDate: 14 } },
+      ]);
+    });
+
+    it('Sum(rating) with Week grouping', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const rating1 = { createdDate: new Date('2022-01-13'), rating: 5 };
+      const rating2 = { createdDate: new Date('2022-03-13'), rating: 1 };
+      const rating3 = { createdDate: new Date('2023-03-14'), rating: 3 };
+      await review.create(factories.caller.build(), [rating1, rating2, rating3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Sum',
+        field: 'rating',
+        groups: [{ field: 'createdDate', operation: 'Week' }],
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([
+        { value: 5, group: { createdDate: 2 } },
+        { value: 4, group: { createdDate: 11 } },
       ]);
     });
   });
