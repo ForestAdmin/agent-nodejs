@@ -1033,6 +1033,91 @@ describe('MongooseCollection', () => {
   });
 
   describe('aggregate', () => {
+    it('applies an aggregation operator on a nested field', async () => {
+      await setupWithManyToOneRelation();
+      const dataSource = new MongooseDatasource(connection);
+      const store = dataSource.getCollection('store');
+      const owner = dataSource.getCollection('owner');
+
+      const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
+      const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
+      await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
+      const ownerRecordA = {
+        // eslint-disable-next-line no-underscore-dangle
+        storeId: storeRecordA._id,
+      };
+      const ownerRecordB = {
+        // eslint-disable-next-line no-underscore-dangle
+        storeId: storeRecordB._id,
+      };
+      await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
+
+      const aggregation = new Aggregation({
+        operation: 'Max',
+        field: 'storeId_manyToOne:name',
+      });
+      const records = await owner.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([{ value: 'B', group: {} }]);
+    });
+
+    it('applies group on a nested field', async () => {
+      await setupWithManyToOneRelation();
+      const dataSource = new MongooseDatasource(connection);
+      const store = dataSource.getCollection('store');
+      const owner = dataSource.getCollection('owner');
+
+      const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
+      const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
+      await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
+      const ownerRecordA = {
+        // eslint-disable-next-line no-underscore-dangle
+        storeId: storeRecordA._id,
+      };
+      const ownerRecordB = {
+        // eslint-disable-next-line no-underscore-dangle
+        storeId: storeRecordB._id,
+      };
+      await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordA, ownerRecordB]);
+
+      const aggregation = new Aggregation({
+        operation: 'Count',
+        field: 'storeId_manyToOne:name',
+        groups: [{ field: 'storeId_manyToOne:name' }],
+      });
+      const records = await owner.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([
+        { group: { 'storeId_manyToOne.name': 'A' }, value: 2 },
+        { group: { 'storeId_manyToOne.name': 'B' }, value: 1 },
+      ]);
+    });
+
+    it('returns the number of the limit records', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const rating1 = { rating: 1, message: 'message 1' };
+      const rating2 = { rating: 2, message: 'message 1' };
+      const rating3 = { rating: 15, message: 'message 2' };
+      await review.create(factories.caller.build(), [rating1, rating2, rating3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Max',
+        field: 'rating',
+        groups: [{ field: 'message' }],
+      });
+      const limit = 1;
+      const records = await review.aggregate(
+        factories.caller.build(),
+        new Filter({}),
+        aggregation,
+        limit,
+      );
+
+      expect(records).toHaveLength(limit);
+    });
+
     it('Max(column)', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
