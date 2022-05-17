@@ -1,3 +1,18 @@
+# example [1.0.0-beta.35](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.34...example@1.0.0-beta.35) (2022-05-17)
+
+
+### Features
+
+* **mongoose:** add schema generator ([#303](https://github.com/ForestAdmin/agent-nodejs/issues/303)) ([55fa26a](https://github.com/ForestAdmin/agent-nodejs/commit/55fa26a3d1c975c35bdab6a20655573ecaceb31e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0-beta.1
+
 # example [1.0.0-beta.34](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.33...example@1.0.0-beta.34) (2022-05-16)
 
 
