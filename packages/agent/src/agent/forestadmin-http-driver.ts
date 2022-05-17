@@ -1,5 +1,4 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
-import { IncomingMessage, ServerResponse } from 'http';
 import Router from '@koa/router';
 import bodyParser from 'koa-bodyparser';
 import cors from '@koa/cors';
@@ -9,9 +8,6 @@ import ForestHttpApi from './utils/forest-http-api';
 import SchemaEmitter from './utils/forest-schema/emitter';
 import makeRoutes from './routes';
 import makeServices from './services';
-
-/** Native Node.js callback that can be passed to an HTTP Server */
-export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
 
 export default class ForestAdminHttpDriver {
   public readonly dataSource: DataSource;
