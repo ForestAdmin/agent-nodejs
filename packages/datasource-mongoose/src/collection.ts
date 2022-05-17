@@ -65,56 +65,7 @@ export default class MongooseCollection extends BaseCollection {
     limit?: number,
   ): Promise<AggregateResult[]> {
     const pipeline = PipelineGenerator.find(this, this.model, filter, aggregation.projection);
-
-    aggregation.groups.forEach(group => {
-      if (
-        aggregation.operation === 'Sum' ||
-        aggregation.operation === 'Avg' ||
-        aggregation.operation === 'Count'
-      ) {
-        const aggregationOperation: Record<string, string> = {
-          Sum: '$sum',
-          Avg: '$avg',
-          Count: '$sum',
-        };
-
-        const groupOperation: Record<string, string> = {
-          Year: '$year',
-          Month: '$month',
-          Day: '$dayOfMonth',
-          Week: '$week',
-        };
-
-        const computedGroup = {
-          $group: {
-            value: undefined,
-            _id: undefined,
-          },
-        };
-
-        if (group.operation) {
-          // eslint-disable-next-line no-underscore-dangle
-          computedGroup.$group._id = {
-            [groupOperation[group.operation]]: `$${group.field}`,
-          };
-        } else {
-          // eslint-disable-next-line no-underscore-dangle
-          computedGroup.$group._id = `$${group.field}`;
-        }
-
-        if (aggregation.operation) {
-          let value: unknown = `$${aggregation.field}`;
-          if (aggregation.operation === 'Count') value = { $cond: [{ $ne: [value, null] }, 1, 0] };
-
-          computedGroup.$group.value = {
-            [aggregationOperation[aggregation.operation]]: value,
-          };
-        }
-
-        pipeline.push(computedGroup);
-      }
-    });
-
+    pipeline.push(...PipelineGenerator.groups(aggregation));
     const records = await this.model.aggregate(pipeline);
 
     return MongooseCollection.formatRecords(records, aggregation);
@@ -124,14 +75,14 @@ export default class MongooseCollection extends BaseCollection {
     const results: AggregateResult[] = [];
 
     records.forEach(record => {
-      const group = aggregation.groups.reduce((memo, g) => {
+      const group = aggregation.groups?.reduce((memo, g) => {
         // eslint-disable-next-line no-underscore-dangle
         memo[g.field] = record._id;
 
         return memo;
       }, {});
 
-      results.push({ value: record.value, group });
+      results.push({ value: record.value, group: group || {} });
     });
 
     return results;
