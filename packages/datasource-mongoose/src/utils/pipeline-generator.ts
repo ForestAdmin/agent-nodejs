@@ -53,14 +53,14 @@ export default class PipelineGenerator {
         if (group.operation) {
           // eslint-disable-next-line no-underscore-dangle
           computedGroup.$group._id = {
-            [GROUP_OPERATION[group.operation]]: `$${group.field}`,
+            [GROUP_OPERATION[group.operation]]: this.formatNestedFieldPath(`$${group.field}`),
           };
         } else {
           // eslint-disable-next-line no-underscore-dangle
-          computedGroup.$group._id = `$${group.field}`;
+          computedGroup.$group._id = this.formatNestedFieldPath(`$${group.field}`);
         }
 
-        let value: unknown = `$${aggregation.field}`;
+        let value: unknown = this.formatNestedFieldPath(`$${aggregation.field}`);
         if (aggregation.operation === 'Count') value = { $cond: [{ $ne: [value, null] }, 1, 0] };
 
         computedGroup.$group.value = {
@@ -70,10 +70,10 @@ export default class PipelineGenerator {
         groups.push(computedGroup);
       });
     } else {
-      let condition: unknown = `$${aggregation.field}`;
+      let condition: unknown = this.formatNestedFieldPath(`$${aggregation.field}`);
 
       if (aggregation.operation === 'Count') {
-        condition = { $cond: [{ $ne: [`$${aggregation.field}`, null] }, 1, 0] };
+        condition = { $cond: [{ $ne: [condition, null] }, 1, 0] };
       }
 
       groups.push({

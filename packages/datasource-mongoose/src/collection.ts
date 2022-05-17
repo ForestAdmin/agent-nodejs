@@ -66,9 +66,12 @@ export default class MongooseCollection extends BaseCollection {
   ): Promise<AggregateResult[]> {
     const pipeline = PipelineGenerator.find(this, this.model, filter, aggregation.projection);
     pipeline.push(...PipelineGenerator.groups(aggregation));
-    const records = await this.model.aggregate(pipeline);
 
-    return MongooseCollection.formatRecords(records, aggregation);
+    if (limit) {
+      pipeline.push({ $limit: limit });
+    }
+
+    return MongooseCollection.formatRecords(await this.model.aggregate(pipeline), aggregation);
   }
 
   private static formatRecords(records: RecordData[], aggregation: Aggregation): AggregateResult[] {
@@ -77,7 +80,7 @@ export default class MongooseCollection extends BaseCollection {
     records.forEach(record => {
       const group = aggregation.groups?.reduce((memo, g) => {
         // eslint-disable-next-line no-underscore-dangle
-        memo[g.field] = record._id;
+        memo[g.field.replace(':', '.')] = record._id;
 
         return memo;
       }, {});
