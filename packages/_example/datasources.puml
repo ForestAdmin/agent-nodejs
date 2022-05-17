@@ -8,7 +8,14 @@ class STORE {
   String name
 }
 class STORE
-note left: TABLE IN MYSQL
+note bottom: TABLE IN MYSQL
+
+class REVIEW {
+  String title
+  String message
+}
+class REVIEW
+note bottom: TABLE IN MONGODB
 
 class OWNER {
   String firstName

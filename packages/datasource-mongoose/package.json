@@ -1,0 +1,22 @@
+{
+  "name": "@forestadmin/datasource-mongoose",
+  "version": "1.0.0-beta",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "dependencies": {
+    "@forestadmin/datasource-toolkit": "1.0.0-beta.16",
+    "mongoose": "^6.3.2"
+  },
+  "peerDependencies": {},
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  }
+}

@@ -194,6 +194,33 @@ export type Schema = {
       'customer:deletedAt': string;
     };
   };
+  review: {
+    plain: {
+      title: string;
+      message: string;
+      storeId: number;
+      _id: string;
+    };
+    nested: {
+      store: Schema['store']['plain'] & Schema['store']['nested'];
+    };
+    flat: {
+      'store:id': number;
+      'store:name': string;
+      'store:ownerId': number;
+      'store:ownerFullName': string;
+      'store:owner:id': number;
+      'store:owner:firstName': string;
+      'store:owner:lastName': string;
+      'store:owner:fullName': string;
+      'store:address:id': number;
+      'store:address:zipCode': string;
+      'store:address:address': string;
+      'store:address:storeId': number;
+      'store:address:createdAt': string;
+      'store:address:updatedAt': string;
+    };
+  };
   store: {
     plain: {
       id: number;

@@ -1,26 +1,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
+import { Connection } from 'mongoose';
 import { Sequelize } from 'sequelize';
 import faker from '@faker-js/faker';
 
 import initMsSql from './mssql-init';
+import mongoose from '../src/datasources/mongoose/mongodb';
 import sequelizeMariaDb from './mariadb-sequelize';
 import sequelizeMsSql from '../src/datasources/sequelize/mssql';
 import sequelizeMySql from '../src/datasources/sequelize/mysql';
 import sequelizePostgres from '../src/datasources/sequelize/postgres';
 
-async function createOwnerRecords(db: Sequelize): Promise<any[]> {
+async function createOwnerRecords(connection: Sequelize): Promise<any[]> {
   const ownerRecords = [];
 
   for (let i = 0; i < 10; i += 1) {
     ownerRecords.push({ firstName: faker.name.firstName(), lastName: faker.name.lastName() });
   }
 
-  return db.model('owner').bulkCreate(ownerRecords);
+  return connection.model('owner').bulkCreate(ownerRecords);
 }
 
-async function createStoreRecords(db: Sequelize, ownerRecords: any[]): Promise<any[]> {
-  return db.model('store').bulkCreate(
+async function createStoreRecords(connection: Sequelize, ownerRecords: any[]): Promise<any[]> {
+  return connection.model('store').bulkCreate(
     ownerRecords.reduce((records, ownerRecord) => {
       for (let i = 0; i < faker.datatype.number({ min: 1, max: 2 }); i += 1) {
         records.push({ name: faker.company.companyName(), ownerId: ownerRecord.id });
@@ -29,6 +31,20 @@ async function createStoreRecords(db: Sequelize, ownerRecords: any[]): Promise<a
       return records;
     }, []),
   );
+}
+
+async function createReviewRecords(connection: Connection, storeRecords: any[]): Promise<void> {
+  const reviewsRecords = [];
+
+  for (let i = 0; i < 30; i += 1) {
+    reviewsRecords.push({
+      title: faker.word.adjective(),
+      message: faker.lorem.paragraphs(1),
+      storeId: faker.helpers.randomize(storeRecords.map(({ id }) => id)),
+    });
+  }
+
+  await connection.models.review.create(reviewsRecords);
 }
 
 async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> {
@@ -60,7 +76,7 @@ async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> 
 }
 
 async function createDvdRentalsRecords(
-  db: Sequelize,
+  connection: Sequelize,
   storeRecords: any[],
   customerRecords: any[],
 ): Promise<void> {
@@ -100,26 +116,39 @@ async function createDvdRentalsRecords(
   });
 
   await Promise.all([
-    db.model('dvd').bulkCreate(dvdRecords),
-    db.model('rental').bulkCreate(rentalRecords),
-    db.model('dvd_rental').bulkCreate(dvdRentalRecords),
+    connection.model('dvd').bulkCreate(dvdRecords),
+    connection.model('rental').bulkCreate(rentalRecords),
+    connection.model('dvd_rental').bulkCreate(dvdRentalRecords),
   ]);
 }
 
-async function seedData() {
-  await initMsSql();
+async function clearDatabases(mongooseInstance: Connection, sequelizeInstances: Sequelize[]) {
+  for (const db of sequelizeInstances) {
+    // eslint-disable-next-line no-await-in-loop
+    await db.sync({ force: true });
+  }
 
+  await mongooseInstance.dropDatabase();
+}
+
+async function closeDatabases(mongooseInstance: Connection, sequelizeInstances: Sequelize[]) {
+  for (const db of [...sequelizeInstances, mongooseInstance]) {
+    // eslint-disable-next-line no-await-in-loop
+    await db.close();
+  }
+}
+
+async function seedData() {
   const sequelizeInstances = [sequelizeMsSql, sequelizeMySql, sequelizePostgres, sequelizeMariaDb];
 
   try {
-    for (const db of sequelizeInstances) {
-      // eslint-disable-next-line no-await-in-loop
-      await db.sync({ force: true });
-    }
+    await initMsSql();
+    await clearDatabases(mongoose, sequelizeInstances);
 
     const ownerRecords = await createOwnerRecords(sequelizePostgres);
     const storeRecords = await createStoreRecords(sequelizeMySql, ownerRecords);
     const customerRecords = await createCustomerCardRecords(sequelizeMariaDb);
+    await createReviewRecords(mongoose, storeRecords);
     await createDvdRentalsRecords(sequelizeMsSql, storeRecords, customerRecords);
   } catch (error) {
     console.error('---------------');
@@ -127,10 +156,7 @@ async function seedData() {
     console.error(error);
     console.error('---------------');
   } finally {
-    for (const db of sequelizeInstances) {
-      // eslint-disable-next-line no-await-in-loop
-      await db.close();
-    }
+    await closeDatabases(mongoose, sequelizeInstances);
   }
 }
 
