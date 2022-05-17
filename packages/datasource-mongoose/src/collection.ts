@@ -1,6 +1,6 @@
-import { Aggregate, Model } from 'mongoose';
 import {
   AggregateResult,
+  Aggregation,
   BaseCollection,
   Caller,
   ConditionTreeLeaf,
@@ -10,10 +10,8 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+import { Model } from 'mongoose';
 
-import Aggregation, {
-  DateOperation,
-} from '@forestadmin/datasource-toolkit/dist/src/interfaces/query/aggregation';
 import PipelineGenerator from './utils/pipeline-generator';
 import SchemaFieldsGenerator from './utils/schema-fields-generator';
 

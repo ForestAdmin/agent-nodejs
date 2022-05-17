@@ -198,6 +198,7 @@ export type Schema = {
     plain: {
       title: string;
       message: string;
+      rating: number;
       storeId: number;
       _id: string;
     };

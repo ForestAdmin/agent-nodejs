@@ -39,6 +39,7 @@ async function createReviewRecords(connection: Connection, storeRecords: any[]):
   for (let i = 0; i < 30; i += 1) {
     reviewsRecords.push({
       title: faker.word.adjective(),
+      rating: faker.datatype.number({ min: 1, max: 5 }),
       message: faker.lorem.paragraphs(1),
       storeId: faker.helpers.randomize(storeRecords.map(({ id }) => id)),
     });
