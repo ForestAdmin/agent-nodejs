@@ -1,6 +1,6 @@
 import { Collection } from '@forestadmin/agent';
 import { Schema } from '../typings';
-import sequelizeMsSql from '../../orms/mssql';
+import sequelizeMsSql from '../../orms/sequelize-mssql';
 
 export default (collection: Collection<Schema, 'dvd'>) =>
   collection

@@ -5,11 +5,11 @@ import { Sequelize } from 'sequelize';
 import faker from '@faker-js/faker';
 
 import initMsSql from './mssql-init';
-import mongoose from '../src/datasources/mongoose/mongodb';
+import mongoose from '../src/orms/mongoose';
 import sequelizeMariaDb from './mariadb-sequelize';
-import sequelizeMsSql from '../src/datasources/sequelize/mssql';
-import sequelizeMySql from '../src/datasources/sequelize/mysql';
-import sequelizePostgres from '../src/datasources/sequelize/postgres';
+import sequelizeMsSql from '../src/orms/sequelize-mssql';
+import sequelizeMySql from '../src/orms/sequelize-mysql';
+import sequelizePostgres from '../src/orms/sequelize-postgres';
 
 async function createOwnerRecords(connection: Sequelize): Promise<any[]> {
   const ownerRecords = [];

@@ -1,7 +1,7 @@
 import LiveDataSource from '@forestadmin/datasource-live/dist/datasource';
 import faker from '@faker-js/faker';
 
-import sequelizeMySql from '../../orms/mysql';
+import sequelizeMySql from '../../orms/sequelize-mysql';
 
 // This seed is in this file because the records are loaded in the memory.
 export async function seedLiveDatasource(dataSource: LiveDataSource) {
