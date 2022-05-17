@@ -1,100 +1,47 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
-import { IncomingMessage, ServerResponse } from 'http';
-import Koa from 'koa';
 import Router from '@koa/router';
 import bodyParser from 'koa-bodyparser';
 import cors from '@koa/cors';
-import path from 'path';
 
-import { AgentOptions } from '../types';
 import { AgentOptionsWithDefaults } from './types';
-import BaseRoute from './routes/base-route';
 import ForestHttpApi from './utils/forest-http-api';
-import OptionsUtils from './utils/http-driver-options';
 import SchemaEmitter from './utils/forest-schema/emitter';
 import makeRoutes from './routes';
-import makeServices, { ForestAdminHttpDriverServices } from './services';
-
-/** Native Node.js callback that can be passed to an HTTP Server */
-export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
+import makeServices from './services';
 
 export default class ForestAdminHttpDriver {
   public readonly dataSource: DataSource;
   public readonly options: AgentOptionsWithDefaults;
-  public readonly services: ForestAdminHttpDriverServices;
-  public routes: BaseRoute[] = [];
 
-  private readonly app = new Koa();
-  private status: 'waiting' | 'running' | 'done' = 'waiting';
-
-  /**
-   * Native request handler.
-   * Can be used directly with express.js or the Node.js http module.
-   * Other frameworks will require adapters.
-   */
-  get handler(): HttpCallback {
-    return this.app.callback();
-  }
-
-  constructor(dataSource: DataSource, options: AgentOptions) {
+  constructor(dataSource: DataSource, options: AgentOptionsWithDefaults) {
     this.dataSource = dataSource;
-    this.options = OptionsUtils.withDefaults(options);
-    this.services = makeServices(this.options);
-
-    OptionsUtils.validate(this.options);
+    this.options = options;
   }
 
-  /**
-   * Builds the underlying application from the datasource.
-   * This method can only be called once.
-   */
-  async start(): Promise<void> {
-    if (this.status !== 'waiting') {
-      throw new Error('Agent cannot be restarted.');
-    }
+  async getRouter(): Promise<Router> {
+    // Bootstrap app
+    const services = makeServices(this.options);
+    const routes = makeRoutes(this.dataSource, this.options, services);
+    await Promise.all(routes.map(route => route.bootstrap()));
 
-    try {
-      this.status = 'running';
+    // Build router
+    const router = new Router();
+    router.all('(.*)', cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }));
+    router.use(bodyParser({ jsonLimit: '50mb' }));
+    routes.forEach(route => route.setupRoutes(router));
 
-      // Build http application
-      const router = new Router({ prefix: path.join('/', this.options.prefix) });
-      this.routes = makeRoutes(this.dataSource, this.options, this.services);
-      this.routes.forEach(route => route.setupRoutes(router));
-      await Promise.all(this.routes.map(route => route.bootstrap()));
-
-      this.app
-        .use(cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }))
-        .use(bodyParser({ jsonLimit: '50mb' }))
-        .use(router.routes());
-
-      // Send schema to forestadmin-server (if relevant).
-      const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSource);
-      const schemaIsKnown = await ForestHttpApi.hasSchema(this.options, schema.meta.schemaFileHash);
-
-      if (!schemaIsKnown) {
-        this.options.logger('Info', 'Schema was updated, sending new version');
-        await ForestHttpApi.uploadSchema(this.options, schema);
-      } else {
-        this.options.logger('Info', 'Schema was not updated since last run');
-      }
-
-      this.options.logger('Info', 'Started');
-    } catch (e) {
-      this.options.logger('Error', e.message);
-      this.status = 'done';
-      throw e;
-    }
+    return router;
   }
 
-  /**
-   * Tear down all routes (close open sockets, ...)
-   */
-  async stop(): Promise<void> {
-    if (this.status !== 'running') {
-      throw new Error('Agent is not running.');
-    }
+  async sendSchema(): Promise<void> {
+    const schema = await SchemaEmitter.getSerializedSchema(this.options, this.dataSource);
+    const schemaIsKnown = await ForestHttpApi.hasSchema(this.options, schema.meta.schemaFileHash);
 
-    this.status = 'done';
-    await Promise.all(this.routes.map(route => route.tearDown()));
+    if (!schemaIsKnown) {
+      this.options.logger('Info', 'Schema was updated, sending new version');
+      await ForestHttpApi.uploadSchema(this.options, schema);
+    } else {
+      this.options.logger('Info', 'Schema was not updated since last run');
+    }
   }
 }

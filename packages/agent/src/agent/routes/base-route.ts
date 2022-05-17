@@ -18,9 +18,5 @@ export default abstract class BaseRoute {
     // Do nothing by default
   }
 
-  async tearDown(): Promise<void> {
-    // Do nothing by default
-  }
-
   abstract setupRoutes(router: Router): void;
 }

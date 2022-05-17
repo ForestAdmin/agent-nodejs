@@ -1,25 +1,24 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
+import Router from '@koa/router';
 
 import * as factories from './__factories__';
 import { AgentOptionsWithDefaults } from '../../src/agent/types';
 import ForestAdminHttpDriver from '../../src/agent/forestadmin-http-driver';
-import ForestHttpApi from '../../src/agent/utils/forest-http-api';
-import makeRoutes from '../../src/agent/routes';
+
+const mockSetupRoute = jest.fn();
+const mockBootstrap = jest.fn();
+const mockHasSchema = jest.fn();
+const mockUploadSchema = jest.fn();
+const mockMakeRoutes = jest.fn();
 
 jest.mock('../../src/agent/routes', () => ({
   __esModule: true,
-  default: jest.fn().mockReturnValue([
-    {
-      setupRoutes: () => {},
-      bootstrap: async () => {},
-      tearDown: async () => {},
-    },
-  ]),
+  default: (...args) => mockMakeRoutes(...args),
 }));
 
 jest.mock('../../src/agent/utils/forest-http-api', () => ({
-  hasSchema: jest.fn(),
-  uploadSchema: jest.fn(),
+  hasSchema: (...args) => mockHasSchema(...args),
+  uploadSchema: (...args) => mockUploadSchema(...args),
 }));
 
 describe('ForestAdminHttpDriver', () => {
@@ -27,6 +26,10 @@ describe('ForestAdminHttpDriver', () => {
   let options: AgentOptionsWithDefaults;
 
   beforeEach(() => {
+    jest.resetAllMocks();
+    mockBootstrap.mockResolvedValue(undefined);
+    mockMakeRoutes.mockReturnValue([{ setupRoutes: mockSetupRoute, bootstrap: mockBootstrap }]);
+
     dataSource = factories.dataSource.buildWithCollection({
       name: 'person',
       schema: factories.collectionSchema.build({
@@ -37,85 +40,41 @@ describe('ForestAdminHttpDriver', () => {
         },
       }),
     });
+
     options = factories.forestAdminHttpDriverOptions.build();
-
-    (ForestHttpApi.hasSchema as jest.Mock).mockReset();
-    (ForestHttpApi.uploadSchema as jest.Mock).mockReset();
   });
 
-  test('should allow access to the request handler before being started', () => {
-    // This is a requirement for forestadmin of forestadmin.
-    // Otherwise forestadmin-server's in app integration can't be started.
-    const httpDriver = new ForestAdminHttpDriver(dataSource, options);
-    expect(httpDriver.handler).toBeTruthy();
-  });
-
-  describe('start', () => {
-    it('should start with one database', async () => {
+  describe('getRouter', () => {
+    test('should initialize everything', async () => {
       const httpDriver = new ForestAdminHttpDriver(dataSource, options);
-      await httpDriver.start();
+      const router = await httpDriver.getRouter();
 
-      expect(ForestHttpApi.hasSchema).toHaveBeenCalled();
-      expect(makeRoutes).toHaveBeenCalled();
+      expect(router).toBeInstanceOf(Router);
+      expect(mockBootstrap).toHaveBeenCalled();
+      expect(mockMakeRoutes).toHaveBeenCalled();
+      expect(mockSetupRoute).toHaveBeenCalled();
     });
   });
 
-  describe('if forestadmin-server already has the schema', () => {
-    beforeEach(() => {
-      (ForestHttpApi.hasSchema as jest.Mock).mockResolvedValue(true);
-    });
+  describe('sendSchema', () => {
+    test('should not send the schema if forestadmin already has it', async () => {
+      mockHasSchema.mockResolvedValue(true);
 
-    test('should not allow to start multiple times', async () => {
       const httpDriver = new ForestAdminHttpDriver(dataSource, options);
-      await httpDriver.start();
+      await httpDriver.sendSchema();
 
-      await expect(httpDriver.start()).rejects.toThrow('Agent cannot be restarted.');
+      expect(mockHasSchema).toHaveBeenCalled();
+      expect(mockUploadSchema).not.toHaveBeenCalled();
     });
 
-    test('should not allow to stop multiple times', async () => {
+    test('should send the schema if forestadmin does not have it', async () => {
+      mockHasSchema.mockResolvedValue(false);
+
       const httpDriver = new ForestAdminHttpDriver(dataSource, options);
-      await httpDriver.start();
-      await httpDriver.stop();
-      await expect(httpDriver.stop()).rejects.toThrow('Agent is not running.');
-    });
+      await httpDriver.sendSchema();
 
-    test('should not allow to stop without starting', async () => {
-      const httpDriver = new ForestAdminHttpDriver(dataSource, options);
-      await expect(httpDriver.stop()).rejects.toThrow('Agent is not running.');
-    });
-
-    test('start() should not upload the schema', async () => {
-      const httpDriver = new ForestAdminHttpDriver(dataSource, options);
-      await httpDriver.start();
-
-      expect(ForestHttpApi.hasSchema).toHaveBeenCalled();
-      expect(ForestHttpApi.uploadSchema).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('if forestadmin-server does not have the schema', () => {
-    beforeEach(() => {
-      (ForestHttpApi.hasSchema as jest.Mock).mockResolvedValue(false);
-    });
-
-    test('start() should upload the schema', async () => {
-      const httpDriver = new ForestAdminHttpDriver(dataSource, options);
-      await httpDriver.start();
-
-      expect(ForestHttpApi.hasSchema).toHaveBeenCalled();
-      expect(ForestHttpApi.uploadSchema).toHaveBeenCalled();
-    });
-  });
-
-  describe('if we fail to contact forestadmin-server', () => {
-    beforeEach(() => {
-      (ForestHttpApi.hasSchema as jest.Mock).mockRejectedValue(new Error('an error'));
-    });
-
-    test('start() should rethrow the error and be done', async () => {
-      const httpDriver = new ForestAdminHttpDriver(dataSource, options);
-
-      await expect(() => httpDriver.start()).rejects.toThrow('an error');
+      expect(mockHasSchema).toHaveBeenCalled();
+      expect(mockUploadSchema).toHaveBeenCalled();
     });
   });
 });
