@@ -1,7 +1,9 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
+  Aggregation,
   Aggregator,
   ConditionTree,
+  Filter,
   Operator,
   Page,
   Projection,
@@ -1027,6 +1029,71 @@ describe('MongooseCollection', () => {
           expect(persistedRecord).toHaveLength(3);
         });
       });
+    });
+  });
+
+  describe('aggregate', () => {
+    it('count(column) with simple grouping', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const message1 = { message: 'message 1' };
+      const message2 = { message: 'message 2' };
+      await review.create(factories.caller.build(), [message1, message1, message2]);
+
+      const aggregation = new Aggregation({
+        operation: 'Count',
+        field: '_id',
+        groups: [{ field: 'message' }],
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([
+        { value: 2, group: { message: 'message 1' } },
+        { value: 1, group: { message: 'message 2' } },
+      ]);
+    });
+
+    it('count(*) with simple grouping', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const message1 = { message: 'message 1' };
+      const message2 = { message: 'message 2' };
+      await review.create(factories.caller.build(), [message1, message1, message2]);
+
+      const aggregation = new Aggregation({
+        operation: 'Count',
+        groups: [{ field: 'message' }],
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([
+        { value: 2, group: { message: 'message 1' } },
+        { value: 1, group: { message: 'message 2' } },
+      ]);
+    });
+
+    it('Sum(rating) with simple grouping', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const rating1 = { createdDate: new Date('2022-01-13'), rating: 5 };
+      const rating2 = { createdDate: new Date('2022-02-13'), rating: 1 };
+      const rating3 = { createdDate: new Date('2023-03-14'), rating: 3 };
+      await review.create(factories.caller.build(), [rating1, rating2, rating3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Sum',
+        field: 'rating',
+        groups: [{ field: 'createdDate', operation: 'Year' }],
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([
+        { value: 3, group: { createdDate: new Date('2023') } },
+        { value: 6, group: { createdDate: new Date('2022') } },
+      ]);
     });
   });
 });

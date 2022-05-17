@@ -1,3 +1,4 @@
+import { Aggregate, Model } from 'mongoose';
 import {
   AggregateResult,
   BaseCollection,
@@ -9,8 +10,8 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { Model } from 'mongoose';
 
+import Aggregation from '@forestadmin/datasource-toolkit/dist/src/interfaces/query/aggregation';
 import PipelineGenerator from './utils/pipeline-generator';
 import SchemaFieldsGenerator from './utils/schema-fields-generator';
 
@@ -55,8 +56,61 @@ export default class MongooseCollection extends BaseCollection {
     await this.model.deleteMany({ _id: ids.map(record => record._id) });
   }
 
-  async aggregate(): Promise<AggregateResult[]> {
-    throw new Error('not implemented');
+  async aggregate(
+    caller: Caller,
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]> {
+    const pipeline = PipelineGenerator.find(this, this.model, filter, aggregation.projection);
+
+    if (aggregation.operation === 'Sum') {
+      aggregation.groups.forEach(group => {
+        pipeline.push({
+          $group: {
+            _id: {
+              $year: '$createdDate',
+            },
+            value: { $sum: '$rating' },
+          },
+        });
+      });
+    } else if (aggregation.operation === 'Count') {
+      aggregation.groups.forEach(group => {
+        pipeline.push({
+          $group: {
+            _id: `$${group.field}`,
+            value: { $count: {} },
+          },
+        });
+      });
+    }
+
+    const records = await this.model.aggregate(pipeline);
+
+    return MongooseCollection.formatRecords(records, aggregation);
+  }
+
+  private static formatRecords(records: RecordData[], aggregation: Aggregation): AggregateResult[] {
+    const results: AggregateResult[] = [];
+
+    records.forEach(record => {
+      const group = aggregation.groups.reduce((memo, g) => {
+        if (g.operation === 'Year') {
+          // eslint-disable-next-line no-underscore-dangle
+          memo[g.field] = new Date(record._id.toString());
+        } else {
+          // eslint-disable-next-line no-underscore-dangle
+          memo[g.field] = record._id;
+        }
+
+        return memo;
+      }, {});
+
+      results.push({ value: record.value, group });
+    });
+
+    return results;
   }
 
   private parseJSONToNestedFieldsInPlace(data: RecordData[]) {
