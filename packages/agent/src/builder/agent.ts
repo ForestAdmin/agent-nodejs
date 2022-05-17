@@ -164,7 +164,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    * Mount the agent on a fastify app
    * @param fastify instance of the fastify app, or of a fastify context
    */
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mountOnFastify(fastify: any): this {
     this.mounts.push(async router => {
       const callback = this.getConnectCallback(router, false);
