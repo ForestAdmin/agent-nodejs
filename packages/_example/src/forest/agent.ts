@@ -16,10 +16,10 @@ import customizePost from './customizations/post';
 import customizeRental from './customizations/rental';
 import customizeReview from './customizations/review';
 import customizeStore from './customizations/store';
-import mongoose from '../orms/mongoose';
-import sequelizeMsSql from '../orms/sequelize-mssql';
-import sequelizeMySql from '../orms/sequelize-mysql';
-import sequelizePostgres from '../orms/sequelize-postgres';
+import mongoose from '../connections/mongoose';
+import sequelizeMsSql from '../connections/sequelize-mssql';
+import sequelizeMySql from '../connections/sequelize-mysql';
+import sequelizePostgres from '../connections/sequelize-postgres';
 
 export default function makeAgent() {
   const envOptions: AgentOptions = {
