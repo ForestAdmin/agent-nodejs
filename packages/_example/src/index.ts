@@ -29,8 +29,6 @@ export default async () => {
     .mountOnNestJs(nestExpressV8)
     .mountOnNestJs(nestFastifyV8);
 
-  await agent.start();
-
   // Run the servers!
   expressAppV4.listen(Number(process.env.HTTP_PORT_EXPRESS));
   koaAppV2.listen(Number(process.env.HTTP_PORT_KOA));
@@ -38,4 +36,7 @@ export default async () => {
   fastifyAppV3.listen(Number(process.env.HTTP_PORT_FASTIFY_V3));
   await nestExpressV8.listen(Number(process.env.HTTP_PORT_NEST_EXPRESS_V8));
   await nestFastifyV8.listen(Number(process.env.HTTP_PORT_NEST_FASTIFY_V8));
+
+  // We can start agent later.
+  await agent.start();
 };

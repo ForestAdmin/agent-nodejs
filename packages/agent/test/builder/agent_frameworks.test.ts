@@ -20,6 +20,20 @@ jest.mock('../../src/agent/routes', () => ({
 }));
 
 describe('Builder > Agent', () => {
+  it('should return an error when not started', async () => {
+    expect.assertions(1);
+
+    const options = factories.forestAdminHttpDriverOptions.build();
+    const agent = new Agent(options).mountOnStandaloneServer(9997, 'localhost');
+
+    try {
+      const response = await superagent.get('http://localhost:9997/forest');
+      expect(response.body).toStrictEqual({ error: 'Agent is not started' });
+    } finally {
+      await agent.stop();
+    }
+  });
+
   it('should work in standalone mode', async () => {
     expect.assertions(1);
 
