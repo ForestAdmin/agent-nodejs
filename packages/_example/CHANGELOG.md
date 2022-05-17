@@ -1,3 +1,18 @@
+# example [1.0.0-beta.36](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.35...example@1.0.0-beta.36) (2022-05-17)
+
+
+### Features
+
+* add support for standalone mode ([#304](https://github.com/ForestAdmin/agent-nodejs/issues/304)) ([c2bca75](https://github.com/ForestAdmin/agent-nodejs/commit/c2bca75a882c1591ad7560583ba0c56fb8020e12))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.27
+
 # example [1.0.0-beta.35](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.34...example@1.0.0-beta.35) (2022-05-17)
 
 
