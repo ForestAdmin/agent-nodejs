@@ -441,7 +441,7 @@ describe('SequelizeDataSource > Collection', () => {
           it('should count on *', async () => {
             const { findAll, sequelizeCollection } = setup();
             const aggregation = new Aggregation({
-              field: 'relations:undefined',
+              field: 'relat@ions:undefined',
               operation: 'Count',
             });
             const filter = new Filter({});
