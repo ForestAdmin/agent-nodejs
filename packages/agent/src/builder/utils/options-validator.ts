@@ -1,10 +1,10 @@
 import { existsSync } from 'fs';
-import { parse as parsePath } from 'path';
+import { join as joinPath, parse as parsePath } from 'path';
 
 import { AgentOptions } from '../../types';
-import { AgentOptionsWithDefaults } from '../types';
+import { AgentOptionsWithDefaults } from '../../agent/types';
 
-export default class OptionsUtils {
+export default class OptionsValidator {
   private static loggerPrefix = {
     Debug: '\x1b[34mdebug:\x1b[0m',
     Info: '\x1b[32minfo:\x1b[0m',
@@ -12,7 +12,7 @@ export default class OptionsUtils {
     Error: '\x1b[31merror:\x1b[0m',
   };
 
-  static withDefaults(options: AgentOptions): AgentOptionsWithDefaults {
+  static withDefaults(options: AgentOptions): AgentOptions {
     const copyOptions = { ...options };
 
     const defaultLogger = (level, data) => {
@@ -20,7 +20,7 @@ export default class OptionsUtils {
       const levels = Object.keys(this.loggerPrefix);
 
       if (levels.indexOf(level) >= levels.indexOf(loggerLevel)) {
-        console.error(OptionsUtils.loggerPrefix[level], data);
+        console.error(OptionsValidator.loggerPrefix[level], data);
       }
     };
 
@@ -29,22 +29,27 @@ export default class OptionsUtils {
     copyOptions.forestServerUrl = copyOptions.forestServerUrl || 'https://api.forestadmin.com';
     copyOptions.typingsMaxDepth = copyOptions.typingsMaxDepth ?? 5;
 
-    return <AgentOptionsWithDefaults>Object.freeze({
+    const parsed = new URL(options.agentUrl);
+    copyOptions.prefix ??= joinPath('/', parsed.pathname, 'forest');
+
+    return {
       clientId: null,
       loggerLevel: 'Info',
       prefix: '/forest',
       permissionsCacheDurationInSeconds: 15 * 60,
       ...copyOptions,
-    });
+    };
   }
 
-  static validate(options: AgentOptionsWithDefaults): void {
-    OptionsUtils.checkForestServerOptions(options);
-    OptionsUtils.checkAuthOptions(options);
-    OptionsUtils.checkOtherOptions(options);
+  static validate(options: AgentOptions): AgentOptionsWithDefaults {
+    OptionsValidator.checkForestServerOptions(options);
+    OptionsValidator.checkAuthOptions(options);
+    OptionsValidator.checkOtherOptions(options);
+
+    return options as AgentOptionsWithDefaults;
   }
 
-  private static checkForestServerOptions(options: AgentOptionsWithDefaults): void {
+  private static checkForestServerOptions(options: AgentOptions): void {
     if (typeof options.envSecret !== 'string' || !/^[0-9a-f]{64}$/.test(options.envSecret)) {
       throw new Error(
         'options.envSecret is invalid. You can retrieve its value from ' +
@@ -52,21 +57,21 @@ export default class OptionsUtils {
       );
     }
 
-    if (!OptionsUtils.isUrl(options.forestServerUrl)) {
+    if (!OptionsValidator.isUrl(options.forestServerUrl)) {
       throw new Error(
         'options.forestServerUrl is invalid. It should contain an URL ' +
           '(i.e. "https://api.forestadmin.com")',
       );
     }
 
-    if (!OptionsUtils.isExistingPath(options.schemaPath)) {
+    if (!OptionsValidator.isExistingPath(options.schemaPath)) {
       throw new Error(
         'options.schemaPath is invalid. It should contain a relative filepath ' +
           'where the schema should be loaded/updated (i.e. "./.forestadmin-schema.json")',
       );
     }
 
-    if (options.typingsPath && !OptionsUtils.isExistingPath(options.typingsPath)) {
+    if (options.typingsPath && !OptionsValidator.isExistingPath(options.typingsPath)) {
       throw new Error(
         'options.typingsPath is invalid. It should contain a relative filepath ' +
           'where the schema should be loaded/updated (i.e. "./src/typings.ts")',
@@ -74,8 +79,8 @@ export default class OptionsUtils {
     }
   }
 
-  private static checkAuthOptions(options: AgentOptionsWithDefaults): void {
-    if (!OptionsUtils.isUrl(options.agentUrl)) {
+  private static checkAuthOptions(options: AgentOptions): void {
+    if (!OptionsValidator.isUrl(options.agentUrl)) {
       throw new Error(
         'options.agentUrl is invalid. It should contain an url where your agent is reachable ' +
           '(i.e. "https://api-forestadmin.mycompany.com")',
@@ -100,7 +105,7 @@ export default class OptionsUtils {
     }
   }
 
-  private static checkOtherOptions(options: AgentOptionsWithDefaults): void {
+  private static checkOtherOptions(options: AgentOptions): void {
     if (typeof options.prefix !== 'string' || !/[-/a-z+]/.test(options.prefix)) {
       throw new Error(
         'options.prefix is invalid. It should contain the prefix on which ' +

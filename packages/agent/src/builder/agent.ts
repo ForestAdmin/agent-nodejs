@@ -7,12 +7,16 @@ import {
   TSchema,
 } from '@forestadmin/datasource-toolkit';
 import { writeFile } from 'fs/promises';
+import Koa from 'koa';
+import Router from '@koa/router';
+import http from 'http';
 
 import { AgentOptions } from '../types';
 import CollectionBuilder from './collection';
 import DecoratorsStack from './decorators-stack';
-import ForestAdminHttpDriver, { HttpCallback } from '../agent/forestadmin-http-driver';
-import TypingGenerator from './typing-generator';
+import ForestAdminHttpDriver from '../agent/forestadmin-http-driver';
+import OptionsValidator from './utils/options-validator';
+import TypingGenerator from './utils/typing-generator';
 
 /**
  * Allow to create a new Forest Admin agent from scratch.
@@ -25,21 +29,12 @@ import TypingGenerator from './typing-generator';
  *  .start();
  */
 export default class AgentBuilder<S extends TSchema = TSchema> {
-  private readonly forestAdminHttpDriver: ForestAdminHttpDriver;
   private readonly compositeDataSource: BaseDataSource<Collection>;
   private readonly stack: DecoratorsStack;
-  private tasks: (() => Promise<void>)[] = [];
-
-  /**
-   * Native nodejs HttpCallback object
-   * @example
-   * import http from 'http';
-   * ...
-   * const server = http.createServer(agent.httpCallback);
-   */
-  get httpCallback(): HttpCallback {
-    return this.forestAdminHttpDriver.handler;
-  }
+  private readonly options: AgentOptions;
+  private customizations: (() => Promise<void>)[] = [];
+  private mounts: ((router: Router) => Promise<void>)[] = [];
+  private termination: (() => Promise<void>)[] = [];
 
   /**
    * Create a new Agent Builder.
@@ -59,10 +54,9 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    *  .start();
    */
   constructor(options: AgentOptions) {
+    this.options = OptionsValidator.withDefaults(options);
     this.compositeDataSource = new BaseDataSource<Collection>();
     this.stack = new DecoratorsStack(this.compositeDataSource);
-
-    this.forestAdminHttpDriver = new ForestAdminHttpDriver(this.stack.dataSource, options);
   }
 
   /**
@@ -70,8 +64,8 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    * @param factory the datasource to add
    */
   addDataSource(factory: DataSourceFactory): this {
-    this.tasks.push(async () => {
-      const datasource = await factory(this.forestAdminHttpDriver.options.logger);
+    this.customizations.push(async () => {
+      const datasource = await factory(this.options.logger);
       datasource.collections.forEach(collection => {
         this.compositeDataSource.addCollection(collection);
       });
@@ -93,7 +87,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    * })
    */
   addChart(name: string, definition: ChartDefinition<S>): this {
-    this.tasks.push(async () => {
+    this.customizations.push(async () => {
       this.stack.chart.addChart(name, definition);
     });
 
@@ -112,7 +106,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     name: N,
     handle: (collection: CollectionBuilder<S, N>) => unknown,
   ): this {
-    this.tasks.push(async () => {
+    this.customizations.push(async () => {
       if (this.stack.dataSource.getCollection(name)) {
         handle(new CollectionBuilder<S, N>(this.stack, name));
       }
@@ -122,28 +116,55 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   }
 
   /**
+   * Expose the agent on a given port and host
+   * @param port port that should be used.
+   * @param host host that should be used.
+   */
+  mountStandalone(port = 3351, host = 'localhost'): this {
+    let server: http.Server;
+
+    this.mounts.push(async router => {
+      const koa = new Koa();
+      const parentRouter = new Router({ prefix: '/forest' });
+      parentRouter.use(router.routes());
+      koa.use(parentRouter.routes());
+
+      server = http.createServer(koa.callback());
+      server.listen(port, host);
+      this.options.logger('Info', `Agent mounted at http://${host}:${port} (Standalone)`);
+    });
+
+    this.termination.push(async () => {
+      server.close();
+    });
+
+    return this;
+  }
+
+  /**
    * Start the agent.
    */
   async start(): Promise<void> {
-    const { options } = this.forestAdminHttpDriver;
+    // Customize agent
+    for (const task of this.customizations) await task(); // eslint-disable-line no-await-in-loop
 
-    for (const task of this.tasks) {
-      // eslint-disable-next-line no-await-in-loop
-      await task();
-    }
+    // Check that options are valid
+    const options = OptionsValidator.validate(this.options);
 
+    // Write typings file
     if (!options.isProduction && options.typingsPath) {
       const types = TypingGenerator.generateTypes(this.stack.action, options.typingsMaxDepth);
       await writeFile(options.typingsPath, types, { encoding: 'utf-8' });
     }
 
-    return this.forestAdminHttpDriver.start();
+    const httpDriver = new ForestAdminHttpDriver(this.stack.dataSource, options);
+    await httpDriver.sendSchema();
+
+    const router = await httpDriver.getRouter();
+    for (const task of this.mounts) await task(router); // eslint-disable-line no-await-in-loop
   }
 
-  /**
-   * Stop the agent gracefully.
-   */
   async stop(): Promise<void> {
-    return this.forestAdminHttpDriver.stop();
+    for (const task of this.termination) await task(); // eslint-disable-line no-await-in-loop
   }
 }

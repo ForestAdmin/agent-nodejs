@@ -1,6 +1,5 @@
 import { AgentOptions } from '@forestadmin/agent';
 import dotenv from 'dotenv';
-import http from 'http';
 import makeAgent from './agent';
 
 dotenv.config();
@@ -23,10 +22,7 @@ export default async function start(
   options: AgentOptions = envOptions,
 ) {
   const agent = await makeAgent(options);
-  await agent.start();
+  await agent.mountStandalone(port, host).start();
 
-  const server = http.createServer(agent.httpCallback);
-  server.listen(port, host);
-
-  return () => server.close();
+  return () => agent.stop();
 }

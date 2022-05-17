@@ -1,5 +1,5 @@
-import * as factories from '../agent/__factories__';
-import TypingGenerator from '../../src/builder/typing-generator';
+import * as factories from '../../agent/__factories__';
+import TypingGenerator from '../../../src/builder/utils/typing-generator';
 
 describe('TypingGenerator', () => {
   test('should work with a single collection', () => {
