@@ -146,6 +146,10 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     return this;
   }
 
+  /**
+   * Mount the agent on an express app.
+   * @param express instance of the express app or router.
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mountOnExpress(express: any): this {
     this.mounts.push(async router => {
@@ -156,7 +160,11 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     return this;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /**
+   * Mount the agent on a fastify app
+   * @param fastify instance of the fastify app, or of a fastify context
+   */
+  // eslint-disable-line @typescript-eslint/no-explicit-any
   mountOnFastify(fastify: any): this {
     this.mounts.push(async router => {
       const callback = this.getConnectCallback(router, false);
@@ -167,6 +175,10 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     return this;
   }
 
+  /**
+   * Mount the agent on a koa app
+   * @param koa instance of a koa app or a koa Router.
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mountOnKoa(koa: any): this {
     this.mounts.push(async router => {
@@ -177,6 +189,10 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     return this;
   }
 
+  /**
+   * Mount the agent on a NestJS app
+   * @param nestJs instance of a NestJS application
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mountOnNestJs(nestJs: any): this {
     this.mounts.push(async router => {
