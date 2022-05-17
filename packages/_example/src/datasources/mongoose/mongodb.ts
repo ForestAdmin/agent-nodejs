@@ -17,19 +17,6 @@ connection.model(
       type: Number,
       required: true,
     },
-    relationReview: { type: mongoose.Schema.Types.ObjectId, ref: 'relationReview' },
-  }),
-);
-
-connection.model(
-  'relationReview',
-  new mongoose.Schema({
-    aField: {
-      type: String,
-    },
-    aDate: {
-      type: Date,
-    },
   }),
 );
 

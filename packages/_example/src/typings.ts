@@ -174,15 +174,6 @@ export type Schema = {
       'owner:fullName': string;
     };
   };
-  relationReview: {
-    plain: {
-      aField: string;
-      aDate: string;
-      _id: string;
-    };
-    nested: {};
-    flat: {};
-  };
   rental: {
     plain: {
       id: number;
@@ -208,17 +199,12 @@ export type Schema = {
       title: string;
       message: string;
       storeId: number;
-      relationReview: string;
       _id: string;
     };
     nested: {
-      relationReview_manyToOne: Schema['relationReview']['plain'] & Schema['relationReview']['nested'];
       store: Schema['store']['plain'] & Schema['store']['nested'];
     };
     flat: {
-      'relationReview_manyToOne:aField': string;
-      'relationReview_manyToOne:aDate': string;
-      'relationReview_manyToOne:_id': string;
       'store:id': number;
       'store:name': string;
       'store:ownerId': number;
