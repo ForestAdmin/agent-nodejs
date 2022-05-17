@@ -1,9 +1,12 @@
 import {
+  Aggregation,
+  AggregationOperation,
   Collection,
   CollectionSchema,
   ConditionTree,
   ConditionTreeBranch,
   ConditionTreeLeaf,
+  DateOperation,
   ManyToOneSchema,
   Operator,
   PaginatedFilter,
@@ -19,7 +22,68 @@ const STRING_OPERATORS = [
   'LongerThan',
   'ShorterThan',
 ];
+
+const AGGREGATION_OPERATION: Record<AggregationOperation, string> = {
+  Sum: '$sum',
+  Avg: '$avg',
+  Count: '$sum',
+  Max: '$max',
+  Min: '$min',
+};
+const GROUP_OPERATION: Record<DateOperation, string> = {
+  Year: '$year',
+  Month: '$month',
+  Day: '$dayOfMonth',
+  Week: '$week',
+};
+
 export default class PipelineGenerator {
+  static groups(aggregation: Aggregation) {
+    const groups = [];
+
+    if (aggregation.groups) {
+      aggregation.groups.forEach(group => {
+        const computedGroup = {
+          $group: {
+            value: undefined,
+            _id: undefined,
+          },
+        };
+
+        if (group.operation) {
+          // eslint-disable-next-line no-underscore-dangle
+          computedGroup.$group._id = {
+            [GROUP_OPERATION[group.operation]]: `$${group.field}`,
+          };
+        } else {
+          // eslint-disable-next-line no-underscore-dangle
+          computedGroup.$group._id = `$${group.field}`;
+        }
+
+        let value: unknown = `$${aggregation.field}`;
+        if (aggregation.operation === 'Count') value = { $cond: [{ $ne: [value, null] }, 1, 0] };
+
+        computedGroup.$group.value = {
+          [AGGREGATION_OPERATION[aggregation.operation]]: value,
+        };
+
+        groups.push(computedGroup);
+      });
+    } else {
+      let condition: unknown = `$${aggregation.field}`;
+
+      if (aggregation.operation === 'Count') {
+        condition = { $cond: [{ $ne: [`$${aggregation.field}`, null] }, 1, 0] };
+      }
+
+      groups.push({
+        $group: { _id: null, value: { [AGGREGATION_OPERATION[aggregation.operation]]: condition } },
+      });
+    }
+
+    return groups;
+  }
+
   static find(
     collection: Collection,
     model: Model<unknown>,

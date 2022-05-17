@@ -1033,6 +1033,104 @@ describe('MongooseCollection', () => {
   });
 
   describe('aggregate', () => {
+    it('Max(column)', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const rating1 = { rating: 1 };
+      const rating2 = { rating: 2 };
+      const rating3 = { rating: 15 };
+      await review.create(factories.caller.build(), [rating1, rating2, rating3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Max',
+        field: 'rating',
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([{ value: 15, group: {} }]);
+    });
+
+    it('Max(column) with grouping', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const rating1 = { rating: 1, message: 'message 1' };
+      const rating2 = { rating: 2, message: 'message 1' };
+      const rating3 = { rating: 15, message: 'message 2' };
+      await review.create(factories.caller.build(), [rating1, rating2, rating3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Max',
+        field: 'rating',
+        groups: [{ field: 'message' }],
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([
+        { group: { message: 'message 2' }, value: 15 },
+        { group: { message: 'message 1' }, value: 2 },
+      ]);
+    });
+
+    it('Min(column)', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const rating1 = { rating: 1 };
+      const rating2 = { rating: 2 };
+      const rating3 = { rating: 15 };
+      await review.create(factories.caller.build(), [rating1, rating2, rating3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Min',
+        field: 'rating',
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([{ value: 1, group: {} }]);
+    });
+
+    it('Min(column) with grouping', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const rating1 = { rating: 1, message: 'message 1' };
+      const rating2 = { rating: 2, message: 'message 1' };
+      const rating3 = { rating: 15, message: 'message 2' };
+      await review.create(factories.caller.build(), [rating1, rating2, rating3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Min',
+        field: 'rating',
+        groups: [{ field: 'message' }],
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([
+        { group: { message: 'message 2' }, value: 15 },
+        { group: { message: 'message 1' }, value: 1 },
+      ]);
+    });
+
+    it('count(column)', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const message1 = { title: 'present', message: 'message 1' };
+      const message2 = { title: 'present', message: 'message 2' };
+      const message3 = { title: null, message: 'message 3' };
+      await review.create(factories.caller.build(), [message1, message1, message2, message3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Count',
+        field: 'title',
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([{ value: 3, group: {} }]);
+    });
+
     it('count(column) with grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
@@ -1076,7 +1174,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('Sum(rating) with Year grouping', async () => {
+    it('Sum(field) with Year grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1098,7 +1196,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('Sum(rating) with Month grouping', async () => {
+    it('Sum(field) with Month grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1121,7 +1219,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('Sum(rating) with Day grouping', async () => {
+    it('Sum(field) with Day grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1143,7 +1241,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('Sum(rating) with Week grouping', async () => {
+    it('Sum(field) with Week grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1165,7 +1263,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('Avg(rating) with Week grouping', async () => {
+    it('Avg(field) with Week grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
