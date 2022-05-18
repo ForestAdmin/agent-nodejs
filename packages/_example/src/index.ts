@@ -21,7 +21,8 @@ export default async () => {
 
   // Make and mount agent.
   const agent = makeAgent()
-    .mountOnStandaloneServer(Number(process.env.HTTP_PORT_STANDALONE))
+    .mountOnLocalMachine(Number(process.env.HTTP_PORT_STANDALONE))
+    .mountOnRemoteServer()
     .mountOnExpress(expressAppV4)
     .mountOnKoa(koaAppV2)
     .mountOnFastify(fastifyAppV2)

@@ -1,3 +1,4 @@
+import { AddressInfo } from 'net';
 import {
   BaseDataSource,
   ChartDefinition,
@@ -9,8 +10,10 @@ import {
 import { writeFile } from 'fs/promises';
 import Koa from 'koa';
 import Router from '@koa/router';
+import crypto from 'crypto';
 import fastifyExpress from '@fastify/express';
 import http from 'http';
+import localtunnel from 'localtunnel';
 
 import { AgentOptions } from '../types';
 import { HttpCallback } from './types';
@@ -34,8 +37,9 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   private readonly compositeDataSource: BaseDataSource<Collection>;
   private readonly stack: DecoratorsStack;
   private readonly options: AgentOptions;
+  private preStart: (() => Promise<void>)[] = [];
   private customizations: (() => Promise<void>)[] = [];
-  private mounts: ((router: Router) => Promise<void>)[] = [];
+  private postStart: ((router: Router) => Promise<void>)[] = [];
   private termination: (() => Promise<void>)[] = [];
 
   /**
@@ -122,17 +126,50 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    * @param port port that should be used.
    * @param host host that should be used.
    */
-  mountOnStandaloneServer(port = 3351, host = 'localhost'): this {
+  mountOnLocalMachine(port = 3351, host = 'localhost'): this {
     const server = http.createServer(this.getConnectCallback(true));
     server.listen(port, host);
 
-    this.options.logger(
-      'Info',
-      `Successfully mounted on Standalone server (http://${host}:${port})`,
-    );
+    this.preStart.push(async () => {
+      this.options.logger('Info', `Successfully mounted locally (at http://${host}:${port})`);
+    });
 
     this.termination.push(async () => {
       server.close();
+    });
+
+    return this;
+  }
+
+  mountOnRemoteServer(): this {
+    let tunnel;
+
+    // Mount locally on a random port
+    const server = http.createServer(this.getConnectCallback(true));
+
+    // Make sure we get the same url at every start
+    const hash = crypto
+      .createHash('sha256')
+      .update(this.options.envSecret.slice(0, 10))
+      .digest('hex')
+      .substring(0, 10);
+
+    // Create tunnel
+    this.preStart.push(() => {
+      // Start server and tunnel
+      return new Promise(resolve => {
+        server.listen(0, async () => {
+          const address = server.address() as AddressInfo;
+          tunnel = await localtunnel({ port: address.port, subdomain: `forest-${hash}` });
+
+          this.options.logger('Info', `Successfully mounted remotely (at ${tunnel.url})`);
+          resolve();
+        });
+      });
+    });
+
+    this.termination.push(async () => {
+      tunnel.close();
     });
 
     return this;
@@ -145,7 +182,10 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mountOnExpress(express: any): this {
     express.use('/forest', this.getConnectCallback(false));
-    this.options.logger('Info', `Successfully mounted on Express.js`);
+
+    this.preStart.push(async () => {
+      this.options.logger('Info', `Successfully mounted on Express.js`);
+    });
 
     return this;
   }
@@ -159,7 +199,9 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     const callback = this.getConnectCallback(false);
     this.useCallbackOnFastify(fastify, callback);
 
-    this.options.logger('Info', `Successfully mounted on Fastify`);
+    this.preStart.push(async () => {
+      this.options.logger('Info', `Successfully mounted on Fastify`);
+    });
 
     return this;
   }
@@ -172,9 +214,12 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   mountOnKoa(koa: any): this {
     const parentRouter = new Router({ prefix: '/forest' });
     koa.use(parentRouter.routes());
-    this.options.logger('Info', `Successfully mounted on Koa`);
 
-    this.mounts.push(async router => {
+    this.preStart.push(async () => {
+      this.options.logger('Info', `Successfully mounted on Koa`);
+    });
+
+    this.postStart.push(async router => {
       parentRouter.use(router.routes());
     });
 
@@ -196,7 +241,9 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
       this.useCallbackOnFastify(nestJs, callback);
     }
 
-    this.options.logger('Info', `Successfully mounted on NestJS`);
+    this.preStart.push(async () => {
+      this.options.logger('Info', `Successfully mounted on NestJS`);
+    });
 
     return this;
   }
@@ -206,6 +253,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    */
   async start(): Promise<void> {
     // Customize agent
+    for (const task of this.preStart) await task(); // eslint-disable-line no-await-in-loop
     for (const task of this.customizations) await task(); // eslint-disable-line no-await-in-loop
 
     // Check that options are valid
@@ -221,7 +269,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     await httpDriver.sendSchema();
 
     const router = await httpDriver.getRouter();
-    for (const task of this.mounts) await task(router); // eslint-disable-line no-await-in-loop
+    for (const task of this.postStart) await task(router); // eslint-disable-line no-await-in-loop
   }
 
   async stop(): Promise<void> {
@@ -253,7 +301,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   private getConnectCallback(nested: boolean): HttpCallback {
     let handler = null;
 
-    this.mounts.push(async driverRouter => {
+    this.postStart.push(async driverRouter => {
       let router = driverRouter;
 
       if (nested) {

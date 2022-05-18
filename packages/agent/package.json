@@ -24,6 +24,7 @@
     "koa": "^2.13.4",
     "koa-bodyparser": "^4.3.0",
     "koa-jwt": "^4.0.3",
+    "localtunnel": "^2.0.2",
     "lru-cache": "^7.3.1",
     "luxon": "^2.3.0",
     "object-hash": "^3.0.0",
