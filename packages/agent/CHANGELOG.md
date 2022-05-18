@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.27...@forestadmin/agent@1.0.0-beta.28) (2022-05-18)
+
+
+### Features
+
+* compatibility with Express.js, Koa, Fastify & NestJS ([#300](https://github.com/ForestAdmin/agent-nodejs/issues/300)) ([904639e](https://github.com/ForestAdmin/agent-nodejs/commit/904639ec66f4116b3c5557d83ec43656e55ccbbc))
+
 # @forestadmin/agent [1.0.0-beta.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.26...@forestadmin/agent@1.0.0-beta.27) (2022-05-17)
 
 
