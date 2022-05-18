@@ -3,6 +3,7 @@ import {
   Aggregation,
   BaseCollection,
   Caller,
+  Collection,
   ConditionTreeLeaf,
   DataSource,
   Filter,
@@ -10,7 +11,7 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { Model } from 'mongoose';
+import { Model, PipelineStage, SchemaType } from 'mongoose';
 
 import PipelineGenerator from './utils/pipeline-generator';
 import SchemaFieldsGenerator from './utils/schema-fields-generator';
@@ -39,9 +40,36 @@ export default class MongooseCollection extends BaseCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    const pipeline = PipelineGenerator.find(this, this.model, filter, projection);
+    let pipeline: PipelineStage[];
+    let model;
 
-    return this.model.aggregate(pipeline);
+    if (this.isManyToManyCollection(this)) {
+      const [originName, foreignName] = this.name.split('_');
+      const collection = this.dataSource.getCollection(originName) as MongooseCollection;
+      const updatedFilter = new PaginatedFilter({});
+      const updatedProjection = new Projection();
+      model = collection.model;
+      pipeline = PipelineGenerator.find(collection, model, updatedFilter, updatedProjection);
+
+      const fieldName = this.getManyToManyFieldName(collection, this.name);
+      pipeline.push({ $unwind: `$${fieldName}` });
+      pipeline.push({
+        $addFields: {
+          [`${originName}_id`]: '$_id',
+          [`${foreignName}_id`]: `$${fieldName}`,
+          _id: { $concat: [{ $toString: '$_id' }, '|', { $toString: `$${fieldName}` }] },
+        },
+      });
+      pipeline.push({
+        $project: { _id: true, [`${originName}_id`]: true, [`${foreignName}_id`]: true },
+      });
+      pipeline = PipelineGenerator.find(this, model, filter, projection, pipeline);
+    } else {
+      model = this.model;
+      pipeline = PipelineGenerator.find(this, model, filter, projection);
+    }
+
+    return model.aggregate(pipeline);
   }
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
@@ -70,6 +98,27 @@ export default class MongooseCollection extends BaseCollection {
     }
 
     return MongooseCollection.formatRecords(await this.model.aggregate(pipeline));
+  }
+
+  private isManyToManyCollection(collection: MongooseCollection): boolean {
+    return !!collection.dataSource.collections.find(col => {
+      const schemas = Object.values(col.schema.fields);
+
+      return schemas.find(s => s.type === 'ManyToMany' && s.throughCollection === collection.name);
+    });
+  }
+
+  private getManyToManyFieldName(
+    collection: MongooseCollection,
+    throughCollectionName: string,
+  ): string {
+    const schemas = Object.entries(collection.schema.fields);
+
+    const fieldAndSchema = schemas.find(
+      ([, s]) => s.type === 'ManyToMany' && s.throughCollection === throughCollectionName,
+    );
+
+    return fieldAndSchema ? fieldAndSchema[0].split('_').slice(0, -1).join('.') : null;
   }
 
   private static formatRecords(records: RecordData[]): AggregateResult[] {
