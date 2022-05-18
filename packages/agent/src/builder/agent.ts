@@ -157,9 +157,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mountOnFastify(fastify: any): this {
     const callback = this.getConnectCallback(false);
-    this.useCallbackOnFastify(fastify, callback).catch(e => {
-      this.options.logger('Error', e.message);
-    });
+    this.useCallbackOnFastify(fastify, callback);
 
     this.options.logger('Info', `Successfully mounted on Fastify`);
 
@@ -195,9 +193,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     if (adapter.constructor.name === 'ExpressAdapter') {
       nestJs.use('/forest', callback);
     } else {
-      this.useCallbackOnFastify(nestJs, callback).catch(e => {
-        this.options.logger('Error', e.message);
-      });
+      this.useCallbackOnFastify(nestJs, callback);
     }
 
     this.options.logger('Info', `Successfully mounted on NestJS`);
@@ -233,15 +229,21 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async useCallbackOnFastify(fastify: any, callback: HttpCallback): Promise<void> {
+  private useCallbackOnFastify(fastify: any, callback: HttpCallback): void {
     try {
       // 'fastify 2' or 'middie' or 'fastify-express'
       fastify.use('/forest', callback);
     } catch (e) {
       // 'fastify 3'
       if (e.code === 'FST_ERR_MISSING_MIDDLEWARE') {
-        await fastify.register(fastifyExpress);
-        fastify.use('/forest', callback);
+        fastify
+          .register(fastifyExpress)
+          .then(() => {
+            fastify.use('/forest', callback);
+          })
+          .catch(err => {
+            this.options.logger('Error', err.message);
+          });
       } else {
         throw e;
       }
