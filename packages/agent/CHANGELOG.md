@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.28...@forestadmin/agent@1.0.0-beta.29) (2022-05-18)
+
+
+### Bug Fixes
+
+* **agent:** import fastify/express only if needed ([#312](https://github.com/ForestAdmin/agent-nodejs/issues/312)) ([81933c1](https://github.com/ForestAdmin/agent-nodejs/commit/81933c1aa67a5e08ef89c7c9d913da9518fdb660))
+
 # @forestadmin/agent [1.0.0-beta.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.27...@forestadmin/agent@1.0.0-beta.28) (2022-05-18)
 
 
