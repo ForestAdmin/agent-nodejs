@@ -235,9 +235,8 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     } catch (e) {
       // 'fastify 3'
       if (e.code === 'FST_ERR_MISSING_MIDDLEWARE') {
-        const fastifyExpress = import('@fastify/express');
         fastify
-          .register(fastifyExpress)
+          .register(import('@fastify/express'))
           .then(() => {
             fastify.use('/forest', callback);
           })
