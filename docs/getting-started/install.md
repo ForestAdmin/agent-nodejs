@@ -29,27 +29,23 @@ Depending on the database type you want to use, you may also need to install the
 For example, having an `index.js` containing:
 
 ```javascript
+require('dotenv').config();
+
 // Import the requirements
 const { createAgent } = require('@forestadmin/agent');
-const { createSqlDatasource } = require('@forestadmin/datasource-sql');
-const dotenv = require('dotenv');
+const { createSqlDataSource } = require('@forestadmin/datasource-sql');
 
-dotenv.config();
-
-(aysnc () => {
+// Create your Forest Admin agent
+(async () => {
   await createAgent({
-    // This is another secret key used to perform authentication
     authSecret: process.env.FOREST_AUTH_SECRET,
-    // This is the place to set the secret key provided to you when you onboard. This identifies your environment and your project. In this snippet, our `envSecret` is stored as an environment variable
-    envSecret: process.env.FOREST_ENV_SECRET,
-    // This is the URL your agent will be running on
     agentUrl: process.env.FOREST_AGENT_URL,
-    // This is used to distinguish when your agent is running on production
+    envSecret: process.env.FOREST_ENV_SECRET,
+    forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: process.env.NODE_ENV === 'production',
   })
-    .addDatasource(createSqlDatasource(process.env.DATABASE_URL))
-    // Create the local http server
-    .exposeHttpLocal(3000);
+    .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
+    .mountOnStandaloneServer(3000)
     .start();
 })();
 ```
@@ -66,65 +62,133 @@ DATABASE_URL=your://development:database@connection.string
 
 should be enough for you to fully onboard with the `SQL` datasource.
 
-## Install Forest Admin with an existing javascript app
+## Install Forest Admin within an existing javascript app
 
 As you can see in the previous paragraph, Forest Admin is able to run in a completely isolated context. However, in order to easily maintain your agent, you may want to attach the it directly.
 
 ### Example with `express`
 
 ```javascript
+require('dotenv').config();
+
+// Import the requirements
 const { createAgent } = require('@forestadmin/agent');
+const { createSqlDataSource } = require('@forestadmin/datasource-sql');
+
 const express = require('express');
 
-const app = express();
-app.listen(3000, () => {
-  console.log('Started');
-});
+// Create your Forest Admin agent
+(async () => {
+  const app = express();
 
-await createAgent({
-  ...agentOptions,
-})
-  // Add your datasourses here .addDatasource(...)
-  .mountOnExpress('http://localhost:3000', app)
-  .start();
+  app.listen(3000);
+
+  await createAgent({
+    authSecret: process.env.FOREST_AUTH_SECRET,
+    agentUrl: process.env.FOREST_AGENT_URL,
+    envSecret: process.env.FOREST_ENV_SECRET,
+    forestServerUrl: process.env.FOREST_SERVER_URL,
+    isProduction: process.env.NODE_ENV === 'production',
+  })
+    .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
+    .mountOnExpress(app)
+    .start();
+})();
 ```
 
 ### Example with `fastify`
 
 ```javascript
+require('dotenv').config();
+
+// Import the requirements
 const { createAgent } = require('@forestadmin/agent');
-const Fastify = require('fastify');
+const { createSqlDataSource } = require('@forestadmin/datasource-sql');
 
-const app = Fastify();
-app.listen(3000, () => {
-  console.log('Started');
-});
+const { fastify } = require('fastify');
 
-await createAgent({
-  ...agentOptions,
-})
-  // Add your datasourses here .addDatasource(...)
-  .mountOnFastify('http://localhost:3000', app)
-  .start();
+// Create your Forest Admin agent
+(async () => {
+  const app = fastify();
+
+  app.listen(3000);
+
+  await createAgent({
+    authSecret: process.env.FOREST_AUTH_SECRET,
+    agentUrl: process.env.FOREST_AGENT_URL,
+    envSecret: process.env.FOREST_ENV_SECRET,
+    forestServerUrl: process.env.FOREST_SERVER_URL,
+    isProduction: process.env.NODE_ENV === 'production',
+  })
+    .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
+    .mountOnFastify(app)
+    .start();
+})();
 ```
 
 ### Example with `koa`
 
 ```javascript
+require('dotenv').config();
+
+// Import the requirements
 const { createAgent } = require('@forestadmin/agent');
+const { createSqlDataSource } = require('@forestadmin/datasource-sql');
+
 const Koa = require('koa');
 
-const app = new Koa();
-app.listen(3000, () => {
-  console.log('Started');
-});
+// Create your Forest Admin agent
+(async () => {
+  const app = new Koa();
 
-await createAgent({
-  ...agentOptions,
-})
-  // Add your datasourses here .addDatasource(...)
-  .mountOnKoa('http://localhost:3000', app)
-  .start();
+  app.listen(3000);
+
+  await createAgent({
+    authSecret: process.env.FOREST_AUTH_SECRET,
+    agentUrl: process.env.FOREST_AGENT_URL,
+    envSecret: process.env.FOREST_ENV_SECRET,
+    forestServerUrl: process.env.FOREST_SERVER_URL,
+    isProduction: process.env.NODE_ENV === 'production',
+  })
+    .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
+    .mountOnKoa(app)
+    .start();
+})();
+```
+
+### Example with `NestJs`
+
+```javascript
+require('dotenv').config();
+
+// Import the requirements
+import { createAgent } from '@forestadmin/agent';
+import { createSqlDataSource } from '@forestadmin/datasource-sql';
+
+import { Module } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+
+@Module({ imports: [], controllers: [], providers: [] })
+class AppModule {}
+
+// Create your Forest Admin agent
+(async () => {
+  const app = await NestFactory.create(AppModule, { logger: false });
+
+  const agent = createAgent({
+    authSecret: process.env.FOREST_AUTH_SECRET,
+    agentUrl: process.env.FOREST_AGENT_URL,
+    envSecret: process.env.FOREST_ENV_SECRET,
+    forestServerUrl: process.env.FOREST_SERVER_URL,
+    isProduction: process.env.NODE_ENV === 'production',
+  })
+    .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
+    .mountOnNestJs(app);
+
+  await app.listen(3000);
+
+  await agent.start();
+})();
 ```
 
 ## Help us get better!
