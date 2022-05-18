@@ -84,14 +84,26 @@ describe('MongooseCollection', () => {
       }),
     );
 
+    connection.model('address', new Schema({ name: { type: String } }));
+
+    await connection.dropDatabase();
+  };
+
+  const setupWithManyToManyRelation = async () => {
+    const connectionString = 'mongodb://root:password@localhost:27019';
+    connection = createConnection(connectionString);
+
     connection.model(
-      'address',
+      'owner',
       new Schema({
+        stores: { type: [Schema.Types.ObjectId], ref: 'store' },
         name: {
           type: String,
         },
       }),
     );
+
+    connection.model('store', new Schema({ name: { type: String } }));
 
     await connection.dropDatabase();
   };
@@ -883,6 +895,49 @@ describe('MongooseCollection', () => {
           );
 
           expect(expectedOwner).toEqual([{ name: 'owner with the store A' }]);
+        });
+      });
+
+      describe('with a many to many relation', () => {
+        it('applies correctly the condition tree', async () => {
+          await setupWithManyToManyRelation();
+          const dataSource = new MongooseDatasource(connection);
+          const store = dataSource.getCollection('store');
+          const owner = dataSource.getCollection('owner');
+          const ownerStore = dataSource.getCollection('owner_store');
+
+          const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
+          const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
+          await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
+          const ownerRecordA = {
+            _id: new Types.ObjectId(),
+            // eslint-disable-next-line no-underscore-dangle
+            stores: [storeRecordA._id, storeRecordB._id],
+            name: 'owner with the store A and B',
+          };
+          const ownerRecordB = {
+            _id: new Types.ObjectId(),
+            // eslint-disable-next-line no-underscore-dangle
+            stores: [storeRecordB._id],
+            name: 'owner with the store B',
+          };
+          await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
+
+          const expectedOwner = await ownerStore.list(
+            factories.caller.build(),
+            factories.filter.build({
+              conditionTree: factories.conditionTreeLeaf.build({
+                // eslint-disable-next-line no-underscore-dangle
+                value: storeRecordA._id,
+                operator: 'Equal',
+                field: 'store_id',
+              }),
+            }),
+            new Projection('store_id'),
+          );
+
+          // eslint-disable-next-line no-underscore-dangle
+          expect(expectedOwner).toEqual([{ store_id: storeRecordA._id }]);
         });
       });
 

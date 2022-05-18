@@ -74,6 +74,7 @@ export default class PipelineGenerator {
     model: Model<unknown>,
     filter: PaginatedFilter,
     projection: Projection,
+    pipeline: PipelineStage[] = [],
   ): PipelineStage[] {
     const { schema } = collection;
     const joints = new Set<string>();
@@ -83,8 +84,6 @@ export default class PipelineGenerator {
     const match = PipelineGenerator.computeMatch(schema, model, tree, joints, fields);
     const sort = PipelineGenerator.computeSort(schema, filter?.sort, joints);
     const project = PipelineGenerator.computeProject(schema, model, projection, joints, fields);
-
-    const pipeline: PipelineStage[] = [];
 
     pipeline.push(...PipelineGenerator.computeLookups(collection, model, joints));
     if (fields.size) pipeline.push(PipelineGenerator.computeFields(fields));

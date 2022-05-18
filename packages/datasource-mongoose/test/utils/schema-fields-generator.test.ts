@@ -4,10 +4,11 @@ import {
   PrimitiveTypes,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { Model, Schema, deleteModel, model } from 'mongoose';
+import { Connection, Model, Schema, deleteModel, model } from 'mongoose';
 
 import FilterOperatorBuilder from '../../src/utils/filter-operator-builder';
 import MongooseCollection from '../../src/collection';
+import MongooseDatasource from '../../src/datasource';
 import SchemaFieldsGenerator from '../../src/utils/schema-fields-generator';
 
 const buildModel = (schema: Schema, modelName = 'aModel'): Model<RecordData> => {
@@ -331,7 +332,7 @@ describe('SchemaFieldsGenerator', () => {
       });
     });
 
-    describe('with many to one relationship fields', () => {
+    describe('with an objectId and a ref', () => {
       it('should add a relation _manyToOne in the fields schema', () => {
         const schema = new Schema({
           aField: { type: Schema.Types.ObjectId, ref: 'companies' },
@@ -355,23 +356,25 @@ describe('SchemaFieldsGenerator', () => {
       });
     });
 
-    describe('with an array of object ids and ref', () => {
+    describe('with an array of objectId and a ref', () => {
       it('should returns a array of string in the schema', () => {
         const schema = new Schema({
-          oneToManyField: [{ type: Schema.Types.ObjectId, ref: 'companies1' }],
-          anotherOneToManyField: { type: [Schema.Types.ObjectId], ref: 'companies2' },
+          manyToManyField: { type: [Schema.Types.ObjectId], ref: 'companies' },
         });
 
-        const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema));
+        const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(
+          buildModel(schema, 'aModelName'),
+        );
 
         expect(fieldsSchema).toMatchObject({
-          oneToManyField: {
-            columnType: ['String'],
-            type: 'Column',
-          },
-          anotherOneToManyField: {
-            columnType: ['String'],
-            type: 'Column',
+          manyToManyField_manyToMany: {
+            type: 'ManyToMany',
+            foreignCollection: 'companies',
+            throughCollection: 'aModelName_companies',
+            foreignKey: 'companies_id',
+            foreignKeyTarget: '_id',
+            originKey: 'aModelName_id',
+            originKeyTarget: '_id',
           },
         });
       });
@@ -379,32 +382,86 @@ describe('SchemaFieldsGenerator', () => {
   });
 
   describe('addInverseRelationships', () => {
-    it('should add a relation _oneToMany in the foreign fields schema', () => {
-      const schemaWithManyToOne = new Schema({
-        aFieldTarget: { type: Schema.Types.ObjectId, ref: 'modelB' },
+    describe('when there is a many to one relation', () => {
+      it('should add a relation _oneToMany in the referenced model', () => {
+        const schemaWithManyToOne = new Schema({
+          aFieldRelation: { type: Schema.Types.ObjectId, ref: 'modelB' },
+        });
+        const schemaWithOneToMany = new Schema({ aField: { type: 'String' } });
+
+        const modelA = buildModel(schemaWithManyToOne, 'modelA');
+        const modelB = buildModel(schemaWithOneToMany, 'modelB');
+        const collectionA = new MongooseCollection(null, modelA);
+        const collectionB = new MongooseCollection(null, modelB);
+
+        SchemaFieldsGenerator.addInverseRelationships([collectionA, collectionB]);
+
+        expect(collectionB.schema.fields).toMatchObject({
+          modelB__aFieldRelation__oneToMany: {
+            foreignCollection: 'modelA',
+            originKeyTarget: '_id',
+            originKey: 'aFieldRelation',
+            type: 'OneToMany',
+          },
+          aField: {
+            type: 'Column',
+            columnType: 'String',
+            filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
+          },
+        });
       });
+    });
 
-      const schemaWithOneToMany = new Schema({ aField: { type: 'String' } });
+    describe('when there is a many to many relation', () => {
+      it('adds a _ManyToMany relation to the references model and create a new collection', () => {
+        // given
+        const schemaWithManyToMany = new Schema({
+          aFieldRelation: { type: [Schema.Types.ObjectId], ref: 'modelB' },
+        });
+        const referencedSchema = new Schema();
 
-      const modelA = buildModel(schemaWithManyToOne, 'modelA');
-      const modelB = buildModel(schemaWithOneToMany, 'modelB');
-      const collectionA = new MongooseCollection(null, modelA);
-      const collectionB = new MongooseCollection(null, modelB);
+        const modelA = buildModel(schemaWithManyToMany, 'modelA');
+        const modelB = buildModel(referencedSchema, 'modelB');
+        const dataSource = new MongooseDatasource({ models: {} } as Connection);
 
-      SchemaFieldsGenerator.addInverseRelationships([collectionA, collectionB]);
+        const collectionA = new MongooseCollection(dataSource, modelA);
+        const collectionB = new MongooseCollection(dataSource, modelB);
+        dataSource.addCollection(collectionA);
+        dataSource.addCollection(collectionB);
 
-      expect(collectionB.schema.fields).toMatchObject({
-        modelB__aFieldTarget__oneToMany: {
+        // when
+        SchemaFieldsGenerator.addInverseRelationships(dataSource.collections);
+
+        // then
+        expect(collectionB.schema.fields.modelB__modelA_id__ManyToMany).toEqual({
+          type: 'ManyToMany',
           foreignCollection: 'modelA',
+          throughCollection: 'modelA_modelB',
+          foreignKey: 'modelA_id',
+          foreignKeyTarget: '_id',
+          originKey: 'modelB_id',
           originKeyTarget: '_id',
-          originKey: 'aFieldTarget',
-          type: 'OneToMany',
-        },
-        aField: {
-          type: 'Column',
-          columnType: 'String',
-          filterOperators: FilterOperatorBuilder.getSupportedOperators('String'),
-        },
+        });
+
+        // be aware to not create two times the collection
+        expect(() => dataSource.getCollection('modelB_modelA')).toThrow();
+        expect(dataSource.getCollection('modelA_modelB').schema.fields).toEqual({
+          modelA_id_manyToOne: {
+            type: 'ManyToOne',
+            foreignCollection: 'modelA',
+            foreignKey: 'modelA_id',
+            foreignKeyTarget: '_id',
+          },
+          modelA_id: expect.any(Object),
+          modelB_id_manyToOne: {
+            type: 'ManyToOne',
+            foreignCollection: 'modelB',
+            foreignKey: 'modelB_id',
+            foreignKeyTarget: '_id',
+          },
+          modelB_id: expect.any(Object),
+          _id: expect.any(Object),
+        });
       });
     });
 
