@@ -9,9 +9,11 @@ import {
 import { writeFile } from 'fs/promises';
 import Koa from 'koa';
 import Router from '@koa/router';
+import fastifyExpress from '@fastify/express';
 import http from 'http';
 
 import { AgentOptions } from '../types';
+import { HttpCallback } from './types';
 import CollectionBuilder from './collection';
 import DecoratorsStack from './decorators-stack';
 import ForestAdminHttpDriver from '../agent/forestadmin-http-driver';
@@ -120,23 +122,81 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    * @param port port that should be used.
    * @param host host that should be used.
    */
-  mountStandalone(port = 3351, host = 'localhost'): this {
-    let server: http.Server;
+  mountOnStandaloneServer(port = 3351, host = 'localhost'): this {
+    const server = http.createServer(this.getConnectCallback(true));
+    server.listen(port, host);
 
-    this.mounts.push(async router => {
-      const koa = new Koa();
-      const parentRouter = new Router({ prefix: '/forest' });
-      parentRouter.use(router.routes());
-      koa.use(parentRouter.routes());
-
-      server = http.createServer(koa.callback());
-      server.listen(port, host);
-      this.options.logger('Info', `Agent mounted at http://${host}:${port} (Standalone)`);
-    });
+    this.options.logger(
+      'Info',
+      `Successfully mounted on Standalone server (http://${host}:${port})`,
+    );
 
     this.termination.push(async () => {
       server.close();
     });
+
+    return this;
+  }
+
+  /**
+   * Mount the agent on an express app.
+   * @param express instance of the express app or router.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mountOnExpress(express: any): this {
+    express.use('/forest', this.getConnectCallback(false));
+    this.options.logger('Info', `Successfully mounted on Express.js`);
+
+    return this;
+  }
+
+  /**
+   * Mount the agent on a fastify app
+   * @param fastify instance of the fastify app, or of a fastify context
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mountOnFastify(fastify: any): this {
+    const callback = this.getConnectCallback(false);
+    this.useCallbackOnFastify(fastify, callback);
+
+    this.options.logger('Info', `Successfully mounted on Fastify`);
+
+    return this;
+  }
+
+  /**
+   * Mount the agent on a koa app
+   * @param koa instance of a koa app or a koa Router.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mountOnKoa(koa: any): this {
+    const parentRouter = new Router({ prefix: '/forest' });
+    koa.use(parentRouter.routes());
+    this.options.logger('Info', `Successfully mounted on Koa`);
+
+    this.mounts.push(async router => {
+      parentRouter.use(router.routes());
+    });
+
+    return this;
+  }
+
+  /**
+   * Mount the agent on a NestJS app
+   * @param nestJs instance of a NestJS application
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mountOnNestJs(nestJs: any): this {
+    const adapter = nestJs.getHttpAdapter();
+    const callback = this.getConnectCallback(false);
+
+    if (adapter.constructor.name === 'ExpressAdapter') {
+      nestJs.use('/forest', callback);
+    } else {
+      this.useCallbackOnFastify(nestJs, callback);
+    }
+
+    this.options.logger('Info', `Successfully mounted on NestJS`);
 
     return this;
   }
@@ -166,5 +226,50 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
 
   async stop(): Promise<void> {
     for (const task of this.termination) await task(); // eslint-disable-line no-await-in-loop
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private useCallbackOnFastify(fastify: any, callback: HttpCallback): void {
+    try {
+      // 'fastify 2' or 'middie' or 'fastify-express'
+      fastify.use('/forest', callback);
+    } catch (e) {
+      // 'fastify 3'
+      if (e.code === 'FST_ERR_MISSING_MIDDLEWARE') {
+        fastify
+          .register(fastifyExpress)
+          .then(() => {
+            fastify.use('/forest', callback);
+          })
+          .catch(err => {
+            this.options.logger('Error', err.message);
+          });
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  private getConnectCallback(nested: boolean): HttpCallback {
+    let handler = null;
+
+    this.mounts.push(async driverRouter => {
+      let router = driverRouter;
+
+      if (nested) {
+        router = new Router({ prefix: '/forest' }).use(router.routes());
+      }
+
+      handler = new Koa().use(router.routes()).callback();
+    });
+
+    return (req, res) => {
+      if (handler) {
+        handler(req, res);
+      } else {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Agent is not started' }));
+      }
+    };
   }
 }
