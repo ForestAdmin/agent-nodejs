@@ -9,7 +9,6 @@ import {
 import { writeFile } from 'fs/promises';
 import Koa from 'koa';
 import Router from '@koa/router';
-import fastifyExpress from '@fastify/express';
 import http from 'http';
 
 import { AgentOptions } from '../types';
@@ -237,7 +236,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
       // 'fastify 3'
       if (e.code === 'FST_ERR_MISSING_MIDDLEWARE') {
         fastify
-          .register(fastifyExpress)
+          .register(import('@fastify/express'))
           .then(() => {
             fastify.use('/forest', callback);
           })
