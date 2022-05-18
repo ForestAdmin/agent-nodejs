@@ -31,57 +31,42 @@ const AGGREGATION_OPERATION: Record<AggregationOperation, string> = {
   Min: '$min',
 };
 const GROUP_OPERATION: Record<DateOperation, string> = {
-  Year: '$year',
-  Month: '$month',
-  Day: '$dayOfMonth',
-  Week: '$week',
+  Year: '%Y-01-01',
+  Month: '%Y-%m-01',
+  Day: '%Y-%m-%d',
+  Week: '%Y-%m-%d',
 };
 
 export default class PipelineGenerator {
-  static groups(aggregation: Aggregation) {
-    const groups = [];
+  static group(aggregation: Aggregation) {
+    const aggregationOperation = AGGREGATION_OPERATION[aggregation.operation];
+    let value: unknown = this.formatNestedFieldPath(`$${aggregation.field}`);
+    if (aggregation.operation === 'Count') value = { $cond: [{ $ne: [value, null] }, 1, 0] };
+    const condition = { [aggregationOperation]: value };
 
-    if (aggregation.groups) {
-      aggregation.groups.forEach(group => {
-        const computedGroup = {
-          $group: {
-            value: undefined,
-            _id: undefined,
-          },
-        };
-
-        if (group.operation) {
-          // eslint-disable-next-line no-underscore-dangle
-          computedGroup.$group._id = {
-            [GROUP_OPERATION[group.operation]]: this.formatNestedFieldPath(`$${group.field}`),
-          };
-        } else {
-          // eslint-disable-next-line no-underscore-dangle
-          computedGroup.$group._id = this.formatNestedFieldPath(`$${group.field}`);
-        }
-
-        let value: unknown = this.formatNestedFieldPath(`$${aggregation.field}`);
-        if (aggregation.operation === 'Count') value = { $cond: [{ $ne: [value, null] }, 1, 0] };
-
-        computedGroup.$group.value = {
-          [AGGREGATION_OPERATION[aggregation.operation]]: value,
-        };
-
-        groups.push(computedGroup);
-      });
-    } else {
-      let condition: unknown = this.formatNestedFieldPath(`$${aggregation.field}`);
-
-      if (aggregation.operation === 'Count') {
-        condition = { $cond: [{ $ne: [condition, null] }, 1, 0] };
-      }
-
-      groups.push({
-        $group: { _id: null, value: { [AGGREGATION_OPERATION[aggregation.operation]]: condition } },
-      });
+    if (!aggregation.groups) {
+      return { $group: { value: { [aggregationOperation]: condition }, _id: null } };
     }
 
-    return groups;
+    // eslint-disable-next-line no-underscore-dangle,@typescript-eslint/naming-convention
+    const _id = aggregation.groups.reduce((ids, group) => {
+      let field: unknown = this.formatNestedFieldPath(`$${group.field}`);
+
+      if (group.operation) {
+        if (group.operation === 'Week') {
+          const date = { $dateTrunc: { date: field, startOfWeek: 'Monday', unit: 'week' } };
+          field = { $dateToString: { format: GROUP_OPERATION[group.operation], date } };
+        } else {
+          field = { $dateToString: { format: GROUP_OPERATION[group.operation], date: field } };
+        }
+      }
+
+      ids[group.field] = field;
+
+      return ids;
+    }, {});
+
+    return { $group: { value: condition, _id } };
   }
 
   static find(
