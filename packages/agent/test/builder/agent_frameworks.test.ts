@@ -5,16 +5,25 @@ import { NestFactory } from '@nestjs/core';
 import Fastify2 from 'fastify2';
 import Fastify3 from 'fastify';
 import Koa from 'koa';
+import Router from '@koa/router';
 import express from 'express';
 import superagent from 'superagent';
 
 import * as factories from '../agent/__factories__';
 import Agent from '../../src/builder/agent';
-import HealthCheck from '../../src/agent/routes/system/healthcheck';
 
-jest.mock('../../src/agent/routes', () => ({
+jest.mock('../../src/agent/forestadmin-http-driver', () => ({
   __esModule: true,
-  default: () => [new HealthCheck(null, null)],
+  default: class {
+    async getRouter() {
+      return new Router().get('/', ctx => {
+        ctx.response.body = { error: null, message: 'Agent is running' };
+      });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    async sendSchema() {}
+  },
 }));
 
 describe('Builder > Agent', () => {
