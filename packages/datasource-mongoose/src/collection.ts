@@ -63,27 +63,27 @@ export default class MongooseCollection extends BaseCollection {
     limit?: number,
   ): Promise<AggregateResult[]> {
     const pipeline = PipelineGenerator.find(this, this.model, filter, aggregation.projection);
-    pipeline.push(...PipelineGenerator.groups(aggregation));
+    pipeline.push(PipelineGenerator.group(aggregation));
 
     if (limit) {
       pipeline.push({ $limit: limit });
     }
 
-    return MongooseCollection.formatRecords(await this.model.aggregate(pipeline), aggregation);
+    return MongooseCollection.formatRecords(await this.model.aggregate(pipeline));
   }
 
-  private static formatRecords(records: RecordData[], aggregation: Aggregation): AggregateResult[] {
+  private static formatRecords(records: RecordData[]): AggregateResult[] {
     const results: AggregateResult[] = [];
 
     records.forEach(record => {
-      const group = aggregation.groups?.reduce((memo, g) => {
-        // eslint-disable-next-line no-underscore-dangle
-        memo[g.field.replace(':', '.')] = record._id;
+      // eslint-disable-next-line no-underscore-dangle
+      const group = Object.entries(record?._id || {}).reduce((memo, [field, value]) => {
+        memo[field.replace(':', '.')] = value;
 
         return memo;
       }, {});
 
-      results.push({ value: record.value, group: group || {} });
+      results.push({ value: record.value, group });
     });
 
     return results;

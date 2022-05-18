@@ -1033,7 +1033,7 @@ describe('MongooseCollection', () => {
   });
 
   describe('aggregate', () => {
-    it('applies an aggregation operator on a nested field', async () => {
+    it('applies an aggregation operator on a relation field', async () => {
       await setupWithManyToOneRelation();
       const dataSource = new MongooseDatasource(connection);
       const store = dataSource.getCollection('store');
@@ -1061,7 +1061,7 @@ describe('MongooseCollection', () => {
       expect(records).toIncludeSameMembers([{ value: 'B', group: {} }]);
     });
 
-    it('applies group on a nested field', async () => {
+    it('applies a group on a relation field', async () => {
       await setupWithManyToOneRelation();
       const dataSource = new MongooseDatasource(connection);
       const store = dataSource.getCollection('store');
@@ -1118,7 +1118,7 @@ describe('MongooseCollection', () => {
       expect(records).toHaveLength(limit);
     });
 
-    it('Max(column)', async () => {
+    it('applies Max on a column', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1136,7 +1136,7 @@ describe('MongooseCollection', () => {
       expect(records).toIncludeSameMembers([{ value: 15, group: {} }]);
     });
 
-    it('Max(column) with grouping', async () => {
+    it('applies Max on a column with grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1158,7 +1158,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('Min(column)', async () => {
+    it('applies Min on a column', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1176,7 +1176,7 @@ describe('MongooseCollection', () => {
       expect(records).toIncludeSameMembers([{ value: 1, group: {} }]);
     });
 
-    it('Min(column) with grouping', async () => {
+    it('applies Min on a column with grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1198,7 +1198,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('count(column)', async () => {
+    it('applies Count', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1216,7 +1216,7 @@ describe('MongooseCollection', () => {
       expect(records).toIncludeSameMembers([{ value: 3, group: {} }]);
     });
 
-    it('count(column) with grouping', async () => {
+    it('applies Count on a column with grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1239,7 +1239,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('count(*) with simple grouping', async () => {
+    it('applies Count on the record with grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1259,7 +1259,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('Sum(field) with Year grouping', async () => {
+    it('applies Sum on a column', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1276,12 +1276,12 @@ describe('MongooseCollection', () => {
       const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
 
       expect(records).toIncludeSameMembers([
-        { value: 3, group: { createdDate: 2023 } },
-        { value: 6, group: { createdDate: 2022 } },
+        { group: { createdDate: '2023-01-01' }, value: 3 },
+        { group: { createdDate: '2022-01-01' }, value: 6 },
       ]);
     });
 
-    it('Sum(field) with Month grouping', async () => {
+    it('applies Sum on a column with grouping and Month operator', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1298,13 +1298,13 @@ describe('MongooseCollection', () => {
       const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
 
       expect(records).toIncludeSameMembers([
-        { value: 5, group: { createdDate: 1 } },
-        { value: 1, group: { createdDate: 2 } },
-        { value: 3, group: { createdDate: 3 } },
+        { group: { createdDate: '2022-02-01' }, value: 1 },
+        { group: { createdDate: '2023-03-01' }, value: 3 },
+        { group: { createdDate: '2022-01-01' }, value: 5 },
       ]);
     });
 
-    it('Sum(field) with Day grouping', async () => {
+    it('applies Sum on a column with grouping and Day operator', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1321,18 +1321,19 @@ describe('MongooseCollection', () => {
       const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
 
       expect(records).toIncludeSameMembers([
-        { value: 6, group: { createdDate: 13 } },
-        { value: 3, group: { createdDate: 14 } },
+        { group: { createdDate: '2022-02-13' }, value: 1 },
+        { group: { createdDate: '2022-01-13' }, value: 5 },
+        { group: { createdDate: '2023-03-14' }, value: 3 },
       ]);
     });
 
-    it('Sum(field) with Week grouping', async () => {
+    it('applies Sum on a column with grouping and Week operator', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
       const rating1 = { createdDate: new Date('2022-01-13'), rating: 5 };
-      const rating2 = { createdDate: new Date('2022-03-13'), rating: 1 };
-      const rating3 = { createdDate: new Date('2023-03-14'), rating: 3 };
+      const rating2 = { createdDate: new Date('2022-03-15'), rating: 1 };
+      const rating3 = { createdDate: new Date('2022-03-14'), rating: 3 };
       await review.create(factories.caller.build(), [rating1, rating2, rating3]);
 
       const aggregation = new Aggregation({
@@ -1343,18 +1344,18 @@ describe('MongooseCollection', () => {
       const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
 
       expect(records).toIncludeSameMembers([
-        { value: 5, group: { createdDate: 2 } },
-        { value: 4, group: { createdDate: 11 } },
+        { group: { createdDate: '2022-01-10' }, value: 5 },
+        { group: { createdDate: '2022-03-14' }, value: 4 },
       ]);
     });
 
-    it('Avg(field) with Week grouping', async () => {
+    it('applies Avg on a column with grouping and Week operator', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
       const rating1 = { createdDate: new Date('2022-01-13'), rating: 5 };
-      const rating2 = { createdDate: new Date('2022-03-13'), rating: 1 };
-      const rating3 = { createdDate: new Date('2023-03-14'), rating: 3 };
+      const rating2 = { createdDate: new Date('2022-03-15'), rating: 1 };
+      const rating3 = { createdDate: new Date('2022-03-14'), rating: 3 };
       await review.create(factories.caller.build(), [rating1, rating2, rating3]);
 
       const aggregation = new Aggregation({
@@ -1365,9 +1366,39 @@ describe('MongooseCollection', () => {
       const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
 
       expect(records).toIncludeSameMembers([
-        { value: 5, group: { createdDate: 2 } },
-        { value: (3 + 1) / 2, group: { createdDate: 11 } },
+        { group: { createdDate: '2022-01-10' }, value: 5 },
+        { group: { createdDate: '2022-03-14' }, value: (3 + 1) / 2 },
       ]);
+    });
+
+    describe('when there are multiple groups', () => {
+      it('should apply all the given group', async () => {
+        await setupReview();
+        const dataSource = new MongooseDatasource(connection);
+        const review = dataSource.getCollection('review');
+        const message1 = { title: 'title 1', message: 'message 1' };
+        const message2 = { title: 'title 1', message: 'message 1' };
+        const message3 = { title: 'title 2', message: 'message 1' };
+        const message4 = { title: 'title 3', message: 'message 2' };
+        await review.create(factories.caller.build(), [message1, message2, message3, message4]);
+
+        const aggregation = new Aggregation({
+          operation: 'Count',
+          field: 'title',
+          groups: [{ field: 'message' }, { field: 'title' }],
+        });
+        const records = await review.aggregate(
+          factories.caller.build(),
+          new Filter({}),
+          aggregation,
+        );
+
+        expect(records).toIncludeSameMembers([
+          { value: 2, group: { message: 'message 1', title: 'title 1' } },
+          { value: 1, group: { message: 'message 1', title: 'title 2' } },
+          { value: 1, group: { message: 'message 2', title: 'title 3' } },
+        ]);
+      });
     });
   });
 });
