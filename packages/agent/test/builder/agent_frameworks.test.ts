@@ -12,11 +12,9 @@ import * as factories from '../agent/__factories__';
 import Agent from '../../src/builder/agent';
 import HealthCheck from '../../src/agent/routes/system/healthcheck';
 
-const mockMakeRoutes = jest.fn().mockReturnValue([new HealthCheck(null, null)]);
-
 jest.mock('../../src/agent/routes', () => ({
   __esModule: true,
-  default: (...args) => mockMakeRoutes(...args),
+  default: () => [new HealthCheck(null, null)],
 }));
 
 describe('Builder > Agent', () => {
