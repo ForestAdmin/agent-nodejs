@@ -41,7 +41,6 @@ const { createSqlDataSource } = require('@forestadmin/datasource-sql');
     authSecret: process.env.FOREST_AUTH_SECRET,
     agentUrl: process.env.FOREST_AGENT_URL,
     envSecret: process.env.FOREST_ENV_SECRET,
-    forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: process.env.NODE_ENV === 'production',
   })
     .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
@@ -87,7 +86,6 @@ const express = require('express');
     authSecret: process.env.FOREST_AUTH_SECRET,
     agentUrl: process.env.FOREST_AGENT_URL,
     envSecret: process.env.FOREST_ENV_SECRET,
-    forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: process.env.NODE_ENV === 'production',
   })
     .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
@@ -117,7 +115,6 @@ const { fastify } = require('fastify');
     authSecret: process.env.FOREST_AUTH_SECRET,
     agentUrl: process.env.FOREST_AGENT_URL,
     envSecret: process.env.FOREST_ENV_SECRET,
-    forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: process.env.NODE_ENV === 'production',
   })
     .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
@@ -147,7 +144,6 @@ const Koa = require('koa');
     authSecret: process.env.FOREST_AUTH_SECRET,
     agentUrl: process.env.FOREST_AGENT_URL,
     envSecret: process.env.FOREST_ENV_SECRET,
-    forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: process.env.NODE_ENV === 'production',
   })
     .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
@@ -179,7 +175,6 @@ class AppModule {}
     authSecret: process.env.FOREST_AUTH_SECRET,
     agentUrl: process.env.FOREST_AGENT_URL,
     envSecret: process.env.FOREST_ENV_SECRET,
-    forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: process.env.NODE_ENV === 'production',
   })
     .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
