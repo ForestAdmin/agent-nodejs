@@ -6,6 +6,8 @@ import {
   PrimitiveTypes,
 } from '../../interfaces/schema';
 import { DataSource } from '../../interfaces/collection';
+import { SearchReplacer } from './types';
+import CollectionCustomizationContext from '../../context/collection-context';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
@@ -14,6 +16,12 @@ import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import TypeGetter from '../../validation/type-getter';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
+  replacer: SearchReplacer = null;
+
+  replaceSearch(replacer: SearchReplacer): void {
+    this.replacer = replacer;
+  }
+
   public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     return { ...subSchema, searchable: true };
   }
@@ -22,36 +30,46 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     caller: Caller,
     filter?: PaginatedFilter,
   ): Promise<PaginatedFilter> {
-    if (!filter?.search || this.childCollection.schema.searchable) {
-      return filter;
-    }
-
-    if (SearchCollectionDecorator.checkEmptyString(filter.search)) {
+    // Search string is not significant
+    if (!filter?.search || SearchCollectionDecorator.checkEmptyString(filter.search)) {
       return filter.override({ search: null });
     }
 
+    // Implement search ourselves
+    if (this.replacer || !this.childCollection.schema.searchable) {
+      const ctx = new CollectionCustomizationContext(this, caller);
+      let tree = this.defaultReplacer(filter.search, filter.searchExtended);
+
+      if (this.replacer) {
+        const plainTree = await this.replacer(filter.search, filter.searchExtended, ctx);
+        tree = ConditionTreeFactory.fromPlainObject(plainTree);
+      }
+
+      // Note that if no fields are searchable with the provided searchString, the conditions
+      // array might be empty, which will create a condition returning zero records
+      // (this is the desired behavior).
+      return filter.override({
+        conditionTree: ConditionTreeFactory.intersect(filter.conditionTree, tree),
+        search: null,
+      });
+    }
+
+    // Let subcollection deal with the search
+    return filter;
+  }
+
+  private defaultReplacer(search: string, extended: boolean): ConditionTree {
     const searchableFields = SearchCollectionDecorator.getSearchFields(
       this.childCollection.schema,
       this.childCollection.dataSource,
-      filter.searchExtended,
+      extended,
     );
 
     const conditions = searchableFields
-      .map(([field, schema]) =>
-        SearchCollectionDecorator.buildCondition(field, schema, filter.search),
-      )
+      .map(([field, schema]) => SearchCollectionDecorator.buildCondition(field, schema, search))
       .filter(Boolean);
 
-    // Note that if not fields are searchable with the provided searchString, the conditions
-    // array might be empty, which will create a condition returning zero records
-    // (this is the desired behavior).
-    return filter.override({
-      conditionTree: ConditionTreeFactory.intersect(
-        filter.conditionTree,
-        ConditionTreeFactory.union(...conditions),
-      ),
-      search: null,
-    });
+    return ConditionTreeFactory.union(...conditions);
   }
 
   private static buildCondition(

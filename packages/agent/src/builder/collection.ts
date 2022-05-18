@@ -7,6 +7,7 @@ import {
   PlainSortClause,
   RecordUtils,
   RelationDefinition,
+  SearchDefinition,
   SegmentDefinition,
   TCollectionName,
   TColumnName,
@@ -373,6 +374,15 @@ export default class CollectionBuilder<
     definition: WriteDefinition<S, N, C>,
   ): this {
     this.stack.write.getCollection(this.name).replaceFieldWriting(name, definition);
+
+    return this;
+  }
+
+  replaceSearch(definition: SearchDefinition<S, N>): this {
+    this.stack.search
+      .getCollection(this.name)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .replaceSearch(definition as SearchDefinition<any, any>);
 
     return this;
   }

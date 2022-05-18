@@ -54,6 +54,8 @@ export default class ConditionTreeFactory {
   }
 
   static fromPlainObject(json: GenericTree): ConditionTree {
+    if (json === null) return null;
+
     if (ConditionTreeFactory.isLeaf(json)) {
       return new ConditionTreeLeaf(json.field, json.operator as Operator, json.value);
     }
