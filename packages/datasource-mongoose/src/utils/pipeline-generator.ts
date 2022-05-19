@@ -39,21 +39,31 @@ const GROUP_OPERATION: Record<DateOperation, string> = {
 
 export default class PipelineGenerator {
   static emulateManyToManyCollection(
-    fieldName: string,
+    model: Model<unknown>,
+    manyToManyField: string,
     originName: string,
     foreignName: string,
   ): PipelineStage[] {
+    const originId = `${originName}_id`;
+    const foreignId = `${foreignName}_id`;
+    // fake also the schema to provide the type of the computed fields
+    model.schema.paths = {
+      ...model.schema.paths,
+      [originId]: { instance: 'ObjectID' } as SchemaType,
+      [foreignId]: { instance: 'ObjectID' } as SchemaType,
+    };
+
     const pipeline: PipelineStage[] = [];
-    pipeline.push({ $unwind: `$${fieldName}` });
+    pipeline.push({ $unwind: `$${manyToManyField}` });
     pipeline.push({
       $addFields: {
-        [`${originName}_id`]: '$_id',
-        [`${foreignName}_id`]: `$${fieldName}`,
-        _id: { $concat: [{ $toString: '$_id' }, '-', { $toString: `$${fieldName}` }] },
+        [originId]: '$_id',
+        [foreignId]: `$${manyToManyField}`,
+        _id: { $concat: [{ $toString: '$_id' }, '-', { $toString: `$${manyToManyField}` }] },
       },
     });
     pipeline.push({
-      $project: { _id: true, [`${originName}_id`]: true, [`${foreignName}_id`]: true },
+      $project: { _id: true, [originId]: true, [foreignId]: true },
     });
 
     return pipeline;
