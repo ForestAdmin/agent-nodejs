@@ -57,7 +57,7 @@ export default class MongooseCollection extends BaseCollection {
         $addFields: {
           [`${originName}_id`]: '$_id',
           [`${foreignName}_id`]: `$${fieldName}`,
-          _id: { $concat: [{ $toString: '$_id' }, '|', { $toString: `$${fieldName}` }] },
+          _id: { $concat: [{ $toString: '$_id' }, '-', { $toString: `$${fieldName}` }] },
         },
       });
       pipeline.push({
