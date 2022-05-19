@@ -3,7 +3,6 @@ import {
   Aggregation,
   BaseCollection,
   Caller,
-  Collection,
   ConditionTreeLeaf,
   DataSource,
   Filter,
@@ -11,7 +10,7 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { Model, PipelineStage, SchemaType } from 'mongoose';
+import { Model, PipelineStage } from 'mongoose';
 
 import PipelineGenerator from './utils/pipeline-generator';
 import SchemaFieldsGenerator from './utils/schema-fields-generator';
@@ -40,34 +39,21 @@ export default class MongooseCollection extends BaseCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    let pipeline: PipelineStage[];
-    let model;
+    let pipeline: PipelineStage[] = [];
+    let { model } = this;
 
     if (this.isManyToManyCollection(this)) {
       const [originName, foreignName] = this.name.split('_');
-      const collection = this.dataSource.getCollection(originName) as MongooseCollection;
-      const updatedFilter = new PaginatedFilter({});
-      const updatedProjection = new Projection();
-      model = collection.model;
-      pipeline = PipelineGenerator.find(collection, model, updatedFilter, updatedProjection);
+      const origin = this.dataSource.getCollection(originName) as MongooseCollection;
+      model = origin.model;
 
-      const fieldName = this.getManyToManyFieldName(collection, this.name);
-      pipeline.push({ $unwind: `$${fieldName}` });
-      pipeline.push({
-        $addFields: {
-          [`${originName}_id`]: '$_id',
-          [`${foreignName}_id`]: `$${fieldName}`,
-          _id: { $concat: [{ $toString: '$_id' }, '-', { $toString: `$${fieldName}` }] },
-        },
-      });
-      pipeline.push({
-        $project: { _id: true, [`${originName}_id`]: true, [`${foreignName}_id`]: true },
-      });
-      pipeline = PipelineGenerator.find(this, model, filter, projection, pipeline);
-    } else {
-      model = this.model;
-      pipeline = PipelineGenerator.find(this, model, filter, projection);
+      const fieldName = this.getManyToManyFieldName(origin, this.name);
+
+      pipeline = PipelineGenerator.find(origin, model, new PaginatedFilter({}), new Projection());
+      pipeline = PipelineGenerator.emulateManyToManyCollection(fieldName, originName, foreignName);
     }
+
+    pipeline = PipelineGenerator.find(this, model, filter, projection, pipeline);
 
     return model.aggregate(pipeline);
   }

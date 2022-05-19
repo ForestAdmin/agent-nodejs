@@ -38,7 +38,28 @@ const GROUP_OPERATION: Record<DateOperation, string> = {
 };
 
 export default class PipelineGenerator {
-  static group(aggregation: Aggregation) {
+  static emulateManyToManyCollection(
+    fieldName: string,
+    originName: string,
+    foreignName: string,
+  ): PipelineStage[] {
+    const pipeline: PipelineStage[] = [];
+    pipeline.push({ $unwind: `$${fieldName}` });
+    pipeline.push({
+      $addFields: {
+        [`${originName}_id`]: '$_id',
+        [`${foreignName}_id`]: `$${fieldName}`,
+        _id: { $concat: [{ $toString: '$_id' }, '-', { $toString: `$${fieldName}` }] },
+      },
+    });
+    pipeline.push({
+      $project: { _id: true, [`${originName}_id`]: true, [`${foreignName}_id`]: true },
+    });
+
+    return pipeline;
+  }
+
+  static group(aggregation: Aggregation): PipelineStage.Group {
     const aggregationOperation = AGGREGATION_OPERATION[aggregation.operation];
     let value: unknown = this.formatNestedFieldPath(`$${aggregation.field}`);
     if (aggregation.operation === 'Count') value = { $cond: [{ $ne: [value, null] }, 1, 0] };
