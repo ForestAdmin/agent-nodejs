@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.30](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.29...@forestadmin/agent@1.0.0-beta.30) (2022-05-19)
+
+
+### Bug Fixes
+
+* **permissions:** switch read to browse for csv permissions ([#313](https://github.com/ForestAdmin/agent-nodejs/issues/313)) ([ac06dae](https://github.com/ForestAdmin/agent-nodejs/commit/ac06daec8593a26a2232a1c699fb5c9557643313))
+
 # @forestadmin/agent [1.0.0-beta.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.28...@forestadmin/agent@1.0.0-beta.29) (2022-05-18)
 
 
