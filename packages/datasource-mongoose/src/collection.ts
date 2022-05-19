@@ -43,14 +43,13 @@ export default class MongooseCollection extends BaseCollection {
     let { model } = this;
 
     if (this.isManyToManyCollection(this)) {
-      const [originName, foreignName] = this.name.split('_');
+      const [originName, foreign] = this.name.split('_');
       const origin = this.dataSource.getCollection(originName) as MongooseCollection;
       model = origin.model;
-
-      const fieldName = this.getManyToManyFieldName(origin, this.name);
+      const name = this.getManyToManyFieldName(origin, this.name);
 
       pipeline = PipelineGenerator.find(origin, model, new PaginatedFilter({}), new Projection());
-      pipeline = PipelineGenerator.emulateManyToManyCollection(fieldName, originName, foreignName);
+      pipeline = PipelineGenerator.emulateManyToManyCollection(model, name, originName, foreign);
     }
 
     pipeline = PipelineGenerator.find(this, model, filter, projection, pipeline);
