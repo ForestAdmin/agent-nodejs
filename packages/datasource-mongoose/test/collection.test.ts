@@ -89,7 +89,7 @@ describe('MongooseCollection', () => {
     await connection.dropDatabase();
   };
 
-  const setupWithManyToManyRelation = async () => {
+  const setupWith2ManyToManyRelations = async () => {
     const connectionString = 'mongodb://root:password@localhost:27019';
     connection = createConnection(connectionString);
 
@@ -97,6 +97,7 @@ describe('MongooseCollection', () => {
       'owner',
       new Schema({
         stores: { type: [Schema.Types.ObjectId], ref: 'store' },
+        oldStores: { type: [Schema.Types.ObjectId], ref: 'store' },
         name: {
           type: String,
         },
@@ -900,7 +901,7 @@ describe('MongooseCollection', () => {
 
       describe('with a many to many relation', () => {
         it('applies correctly the condition tree', async () => {
-          await setupWithManyToManyRelation();
+          await setupWith2ManyToManyRelations();
           const dataSource = new MongooseDatasource(connection);
           const store = dataSource.getCollection('store');
           const owner = dataSource.getCollection('owner');
