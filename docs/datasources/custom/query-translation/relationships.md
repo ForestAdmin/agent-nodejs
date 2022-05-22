@@ -19,7 +19,7 @@ class MovieCollection extends BaseCollection {
 
     // [...]
 
-    this.ManyToOne('director', 'people', {
+    this.addManyToOne('director', 'people', {
       foreignKey: 'directorId',
       foreignKeyTarget: 'id',
     });
