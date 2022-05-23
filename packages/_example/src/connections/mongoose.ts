@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
 const connectionString = 'mongodb://root:password@localhost:27027';
 const connection = mongoose.createConnection(connectionString);
@@ -19,6 +19,26 @@ connection.model(
     storeId: {
       type: Number,
       required: true,
+    },
+    testArrayIds: {
+      type: [Number],
+    },
+    ownerIds: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'ownerMongo',
+    },
+    oldOwnerIds: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'ownerMongo',
+    },
+  }),
+);
+
+connection.model(
+  'ownerMongo',
+  new Schema({
+    name: {
+      type: String,
     },
   }),
 );

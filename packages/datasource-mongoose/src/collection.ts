@@ -21,7 +21,7 @@ export default class MongooseCollection extends BaseCollection {
   constructor(dataSource: DataSource, model: Model<RecordData>) {
     super(model.modelName, dataSource);
     this.model = model;
-    this.addFields(SchemaFieldsGenerator.buildFieldsSchema(model));
+    this.addFields(SchemaFieldsGenerator.buildFieldsSchema(model, this.dataSource));
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
@@ -43,7 +43,7 @@ export default class MongooseCollection extends BaseCollection {
     let { model } = this;
 
     if (this.isManyToManyCollection(this)) {
-      const [originName, foreign] = this.name.split('_');
+      const [originName, foreign] = this.name.split('--')[0].split('_');
       const origin = this.dataSource.getCollection(originName) as MongooseCollection;
       model = origin.model;
       const name = this.getManyToManyFieldName(origin, this.name);
@@ -103,7 +103,11 @@ export default class MongooseCollection extends BaseCollection {
       ([, s]) => s.type === 'ManyToMany' && s.throughCollection === throughCollectionName,
     );
 
-    return fieldAndSchema ? fieldAndSchema[0].split('_').slice(0, -1).join('.') : null;
+    if (!fieldAndSchema) {
+      throw new Error(`The '${throughCollectionName}' collection does not exist`);
+    }
+
+    return fieldAndSchema[0].split('__').slice(0, -1).join('.');
   }
 
   private static formatRecords(records: RecordData[]): AggregateResult[] {

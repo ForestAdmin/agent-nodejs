@@ -236,7 +236,7 @@ export default class PipelineGenerator {
 
     if (this.isRelationField(field, collectionSchema)) {
       field = this.getFieldName(leaf.field);
-      const refField = this.getParentPath(leaf.field).replace('_manyToOne', '');
+      const refField = this.getParentPath(leaf.field).split('__').slice(0, -1).join(':');
       const referenceName = model.schema.paths[refField].options.ref;
       schema = this.getMongooseModel(model, referenceName).schema;
     }
