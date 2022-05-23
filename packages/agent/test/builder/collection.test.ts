@@ -367,4 +367,22 @@ describe('Builder > Collection', () => {
       expect(self).toEqual(builder);
     });
   });
+
+  describe('replaceSearch', () => {
+    it('should call the search decorator', async () => {
+      const { stack } = await setup();
+      const collection = stack.search.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
+      const spy = jest.spyOn(collection, 'replaceSearch');
+
+      const replacer = async search =>
+        ({ field: 'firstName', operator: 'Equal', value: search } as const);
+
+      const self = builder.replaceSearch(replacer);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith(replacer);
+      expect(self).toEqual(builder);
+    });
+  });
 });
