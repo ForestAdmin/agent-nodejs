@@ -2,6 +2,7 @@ import {
   CollectionSchema,
   ColumnSchema,
   ColumnType,
+  DataSource,
   ManyToManySchema,
   ManyToOneSchema,
   OneToManySchema,
@@ -21,7 +22,11 @@ export default class SchemaFieldsGenerator {
         if (fieldSchema.type === 'ManyToOne') {
           const foreignCollection = this.getCollection(collections, fieldSchema);
 
-          const field = `${foreignCollection.name}__${fieldSchema.foreignKey}__oneToMany`;
+          const field = this.generateUniqueFieldName(
+            `${foreignCollection.name}__${fieldSchema.foreignKey}`,
+            'oneToMany',
+            foreignCollection.schema.fields,
+          );
           foreignCollection.schema.fields[field] = {
             foreignCollection: collection.name,
             originKey: fieldSchema.foreignKey,
@@ -30,14 +35,22 @@ export default class SchemaFieldsGenerator {
           } as OneToManySchema;
         } else if (
           fieldSchema.type === 'ManyToMany' &&
-          !createdFakeManyToManyRelations.find(name => name === fieldName)
+          !createdFakeManyToManyRelations.includes(fieldName)
         ) {
           const foreignCollection = this.getCollection(collections, fieldSchema);
-          const throughCollection = `${collection.name}_${foreignCollection.name}`;
           const foreignKey = `${collection.name}_id`;
           const originKey = `${fieldSchema.foreignKey}`;
 
-          const field = `${foreignCollection.name}__${fieldSchema.originKey}__ManyToMany`;
+          const field = this.generateUniqueFieldName(
+            `${foreignCollection.name}__${fieldSchema.originKey}`,
+            'ManyToMany',
+            foreignCollection.schema.fields,
+          );
+          const throughCollection = this.generateUniqueCollectionName(
+            `${collection.name}_${foreignCollection.name}`,
+            collection.dataSource,
+          );
+
           foreignCollection.schema.fields[field] = {
             throughCollection,
             foreignKey,
@@ -52,12 +65,70 @@ export default class SchemaFieldsGenerator {
             [foreignKey]: { type: Schema.Types.ObjectId, ref: collection.name },
             [originKey]: { type: Schema.Types.ObjectId, ref: foreignCollection.name },
           });
+
           const model = mongooseModel(throughCollection, schema);
           collection.dataSource.addCollection(new MongooseCollection(collection.dataSource, model));
+
           createdFakeManyToManyRelations.push(field);
         }
       });
     });
+  }
+
+  private static generateUniqueFieldName(
+    prefix: string,
+    relationName: string,
+    fields: CollectionSchema['fields'],
+    uniqueId = 1,
+  ): string {
+    const uniqueFieldName = `${prefix}__${relationName}--${uniqueId}`;
+
+    if (fields[uniqueFieldName]) {
+      return SchemaFieldsGenerator.generateUniqueFieldName(
+        prefix,
+        relationName,
+        fields,
+        uniqueId + 1,
+      );
+    }
+
+    return uniqueFieldName;
+  }
+
+  private static generateUniqueCollectionName(
+    collectionName: string,
+    dataSource: DataSource,
+    uniqueId = 1,
+  ): string {
+    const uniqueCollectionName = `${collectionName}--${uniqueId}`;
+
+    if (dataSource.collections.find(coll => coll.name === uniqueCollectionName)) {
+      return SchemaFieldsGenerator.generateUniqueCollectionName(
+        collectionName,
+        dataSource,
+        uniqueId + 1,
+      );
+    }
+
+    return uniqueCollectionName;
+  }
+
+  private static generateUniqueCollectionNameTest(
+    collectionName: string,
+    names: string[],
+    uniqueId = 1,
+  ): string {
+    const uniqueCollectionName = `${collectionName}--${uniqueId}`;
+
+    if (names.includes(uniqueCollectionName)) {
+      return SchemaFieldsGenerator.generateUniqueCollectionNameTest(
+        collectionName,
+        names,
+        uniqueId + 1,
+      );
+    }
+
+    return uniqueCollectionName;
   }
 
   private static getCollection(
@@ -73,9 +144,13 @@ export default class SchemaFieldsGenerator {
     return foreignCollection;
   }
 
-  static buildFieldsSchema(model: Model<RecordData>): CollectionSchema['fields'] {
-    const schemaFields = {};
+  static buildFieldsSchema(
+    model: Model<RecordData>,
+    dataSource: DataSource,
+  ): CollectionSchema['fields'] {
+    const schemaFields: CollectionSchema['fields'] = {};
 
+    const throughCollections = [];
     Object.entries(model.schema.paths).forEach(([fieldName, field]) => {
       const mixedFieldPattern = '$*';
       const privateFieldPattern = '__';
@@ -85,21 +160,29 @@ export default class SchemaFieldsGenerator {
       }
 
       if (field.options?.type[0]?.schemaName === 'ObjectId' && field.options?.ref) {
-        const foreignCollection = field.options?.ref;
+        const foreignCollectionName = field.options?.ref;
 
         const { modelName } = model;
-        schemaFields[`${fieldName}_manyToMany`] = {
+        const newFieldName = this.generateUniqueFieldName(fieldName, 'manyToOne', schemaFields);
+        const throughCollection = this.generateUniqueCollectionNameTest(
+          `${modelName}_${foreignCollectionName}`,
+          throughCollections,
+        );
+
+        throughCollections.push(throughCollection);
+        schemaFields[newFieldName] = {
           type: 'ManyToMany',
-          foreignCollection,
-          throughCollection: `${modelName}_${foreignCollection}`,
-          foreignKey: `${foreignCollection}_id`,
+          foreignCollection: foreignCollectionName,
+          throughCollection,
+          foreignKey: `${foreignCollectionName}_id`,
           originKey: `${modelName}_id`,
           foreignKeyTarget: '_id',
           originKeyTarget: '_id',
         } as ManyToManySchema;
         schemaFields[fieldName] = SchemaFieldsGenerator.buildColumnSchema(field, 'String');
       } else if (field.options.ref) {
-        schemaFields[`${fieldName}_manyToOne`] = {
+        const newFieldName = this.generateUniqueFieldName(fieldName, 'manyToOne', schemaFields);
+        schemaFields[newFieldName] = {
           type: 'ManyToOne',
           foreignCollection: field.options.ref,
           foreignKey: field.path,

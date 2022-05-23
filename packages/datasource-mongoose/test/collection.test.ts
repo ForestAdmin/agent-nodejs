@@ -297,7 +297,7 @@ describe('MongooseCollection', () => {
           const expectedOwner = await owner.list(
             factories.caller.build(),
             factories.filter.build({
-              sort: new Sort({ field: 'storeId_manyToOne:name', ascending: false }),
+              sort: new Sort({ field: 'storeId__manyToOne--1:name', ascending: false }),
             }),
             new Projection('name'),
           );
@@ -348,7 +348,9 @@ describe('MongooseCollection', () => {
               new Projection(),
             );
 
-            expect(expectedOwner).toEqual([{ ...ownerRecord, storeId_manyToOne: storeRecord }]);
+            expect(expectedOwner).toEqual([
+              { ...ownerRecord, 'storeId__manyToOne--1': storeRecord },
+            ]);
           });
         });
 
@@ -372,11 +374,11 @@ describe('MongooseCollection', () => {
             const expectedOwner = await owner.list(
               factories.caller.build(),
               factories.filter.build(),
-              new Projection('name', 'storeId_manyToOne:name'),
+              new Projection('name', 'storeId__manyToOne--1:name'),
             );
 
             expect(expectedOwner).toEqual([
-              { name: 'aOwner', storeId_manyToOne: { name: 'aStore' } },
+              { name: 'aOwner', 'storeId__manyToOne--1': { name: 'aStore' } },
             ]);
           });
 
@@ -889,7 +891,7 @@ describe('MongooseCollection', () => {
               conditionTree: factories.conditionTreeLeaf.build({
                 value: 'A',
                 operator: 'Equal',
-                field: 'storeId_manyToOne:name',
+                field: 'storeId__manyToOne--1:name',
               }),
             }),
             new Projection('name'),
@@ -905,7 +907,7 @@ describe('MongooseCollection', () => {
           const dataSource = new MongooseDatasource(connection);
           const store = dataSource.getCollection('store');
           const owner = dataSource.getCollection('owner');
-          const ownerStore = dataSource.getCollection('owner_store');
+          const ownerStore = dataSource.getCollection('owner_store--1');
 
           const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
           const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
@@ -988,7 +990,7 @@ describe('MongooseCollection', () => {
               conditionTree: factories.conditionTreeLeaf.build({
                 value: 'A',
                 operator: 'Equal',
-                field: 'storeId_manyToOne:addressId_manyToOne:name',
+                field: 'storeId__manyToOne--1:addressId__manyToOne--1:name',
               }),
             }),
             new Projection(),
@@ -999,11 +1001,11 @@ describe('MongooseCollection', () => {
               _id: expect.any(Object),
               storeId: expect.any(Object),
               name: 'owner with the store address A',
-              storeId_manyToOne: {
+              'storeId__manyToOne--1': {
                 _id: expect.any(Object),
                 name: 'A',
                 addressId: expect.any(Object),
-                addressId_manyToOne: {
+                'addressId__manyToOne--1': {
                   _id: expect.any(Object),
                   name: 'A',
                 },
@@ -1110,7 +1112,7 @@ describe('MongooseCollection', () => {
 
       const aggregation = new Aggregation({
         operation: 'Max',
-        field: 'storeId_manyToOne:name',
+        field: 'storeId__manyToOne--1:name',
       });
       const records = await owner.aggregate(factories.caller.build(), new Filter({}), aggregation);
 
@@ -1139,13 +1141,13 @@ describe('MongooseCollection', () => {
       const aggregation = new Aggregation({
         operation: 'Count',
         field: 'storeId_manyToOne:name',
-        groups: [{ field: 'storeId_manyToOne:name' }],
+        groups: [{ field: 'storeId__manyToOne--1:name' }],
       });
       const records = await owner.aggregate(factories.caller.build(), new Filter({}), aggregation);
 
       expect(records).toIncludeSameMembers([
-        { group: { 'storeId_manyToOne.name': 'A' }, value: 2 },
-        { group: { 'storeId_manyToOne.name': 'B' }, value: 1 },
+        { group: { 'storeId__manyToOne--1.name': 'A' }, value: 2 },
+        { group: { 'storeId__manyToOne--1.name': 'B' }, value: 1 },
       ]);
     });
 
