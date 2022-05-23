@@ -378,6 +378,14 @@ export default class CollectionBuilder<
     return this;
   }
 
+  /**
+   * Replace the behavior of the search bar
+   * @param definition handler to describe the new behavior
+   * @example
+   * .replaceSearch(async (searchString) => {
+   *   return { field: 'name', operator: 'Contains', value: searchString };
+   * });
+   */
   replaceSearch(definition: SearchDefinition<S, N>): this {
     this.stack.search
       .getCollection(this.name)
