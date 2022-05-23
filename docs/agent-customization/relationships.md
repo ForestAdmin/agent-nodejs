@@ -19,11 +19,10 @@ In this simple example, we have two collections which are not linked together:
 ```javascript
 // Link 'customers' to 'payments'
 agent.customizeCollection('customers', collection =>
-  collection.addRelation('myPayments', {
-    type: 'OneToMany',
-    foreignCollection: 'payments',
-    originKey: 'external_id',
-    originKeyTarget: 'id', // Optional (uses primary key by default)
+  collection.addOneToMany('myPayments', 'payments', {
+      originKey: 'external_id',
+      originKeyTarget: 'id', // Optional (uses primary key by default)
+    }
   }),
 );
 ```
@@ -33,11 +32,10 @@ The inverse relation can be declared in a similar way:
 ```javascript
 // Link 'payments' to 'customers'
 agent.customizeCollection('payments', collection =>
-  collection.addRelation('myCustomer', {
-    type: 'ManyToOne',
-    foreignCollection: 'customers',
-    foreignKey: 'external_id',
-    foreignKeyTarget: 'id', // Optional (uses primary key by default)
+  collection.addManyToOne('myCustomer', 'customers', {
+      foreignKey: 'external_id',
+      foreignKeyTarget: 'id', // Optional (uses primary key by default)
+    }
   }),
 );
 ```
@@ -90,9 +88,7 @@ agent.customizeCollection('customers', collection => {
   });
 
   // Create relationships using the foreign key we just added.
-  collection.addRelation('lastMessage', {
-    type: 'ManyToOne',
-    foreignCollection: 'messages',
+  collection.addManyToOne('lastMessage', 'messages', {
     foreignKey: 'lastMessageId',
   });
 });
@@ -110,17 +106,14 @@ Take note that the inverse of a `OneToOne` is a `ManyToOne`. This may seem count
 
 ```javascript
 agent.customizeCollection('customers', collection => {
-  collection.addRelation('myPassport', {
-    type: 'OneToOne',
-    foreignCollection: 'passports',
+  collection.addOneToOne('myPassport', 'passports', {
     originKey: 'customer_id',
   });
 });
 
 agent.customizeCollection('passports', collection => {
-  collection.addRelation('myOwner', {
-    type: 'ManyToOne', // ⚠️ Not 'OneToOne'
-    foreignCollection: 'customer',
+  // ⚠️ Not 'OneToOne'
+  collection.addManyToOne('myOwner', 'customer', {
     foreignKey: 'customer_id',
   });
 });
@@ -132,20 +125,14 @@ agent.customizeCollection('passports', collection => {
 
 ```javascript
 agent.customizeCollection('customers', collection => {
-  collection.addRelation('myLanguages', {
-    type: 'ManyToMany',
-    foreignCollection: 'languages',
-    thoughCollection: 'customerLanguages',
+  collection.addManyToMany('myLanguages', 'languages', 'customerLanguages', {
     originKey: 'customer_id',
     foreignKey: 'language_id',
   });
 });
 
 agent.customizeCollection('languages', collection => {
-  collection.addRelation('mySpeakers', {
-    type: 'ManyToMany',
-    foreignCollection: 'customers',
-    thoughCollection: 'customerLanguages',
+  collection.addManyToMany('mySpeakers', 'customers', 'customerLanguages', {
     originKey: 'language_id',
     foreignKey: 'customer_id',
   });
