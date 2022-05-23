@@ -2,8 +2,6 @@ In Forest Admin, pages which show lists of records have a free-text search widge
 
 ![Search bar on main list-view](../assets/search-bar.png)
 
-# Default behavior
-
 ## Search modes
 
 Two search modes are supported: normal and extended.
@@ -27,7 +25,7 @@ By default, Forest Admin won't search only on some columns, depending on their r
 | Uuid        | Column is equal to the search string (if the search string contains an uuid)             |
 | Other types | Column is ignored by the default search handler                                          |
 
-# Customization
+## Customization
 
 You may want to change how the search bar behaves in your admin-panel.
 
@@ -36,10 +34,6 @@ For instance:
 - Use case sensitive search
 - Search only on the columns which are relevant to your use-case.
 - Use a full-text indexes of your data (i.e Postgres `tsquery` and `tsvector`, Algolia, Elastic search, ...)
-
-## Examples
-
-Customizing how the search works is done some a single handler during the collection customization step
 
 ### Changing searched columns
 
