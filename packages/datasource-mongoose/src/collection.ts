@@ -21,7 +21,7 @@ export default class MongooseCollection extends BaseCollection {
   constructor(dataSource: DataSource, model: Model<RecordData>) {
     super(model.modelName, dataSource);
     this.model = model;
-    this.addFields(SchemaFieldsGenerator.buildFieldsSchema(model, this.dataSource));
+    this.addFields(SchemaFieldsGenerator.buildFieldsSchema(model));
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {

@@ -2,7 +2,6 @@ import {
   CollectionSchema,
   ColumnSchema,
   ColumnType,
-  DataSource,
   ManyToManySchema,
   ManyToOneSchema,
   OneToManySchema,
@@ -16,141 +15,30 @@ import MongooseCollection from '../collection';
 
 export default class SchemaFieldsGenerator {
   static addInverseRelationships(collections: MongooseCollection[]): void {
-    const createdFakeManyToManyRelations = [];
+    const createdFakeManyToManyRelations: string[] = [];
     collections.forEach(collection => {
       Object.entries(collection.schema.fields).forEach(([fieldName, fieldSchema]) => {
         if (fieldSchema.type === 'ManyToOne') {
-          const foreignCollection = this.getCollection(collections, fieldSchema);
-
-          const field = this.generateUniqueFieldName(
-            `${foreignCollection.name}__${fieldSchema.foreignKey}`,
-            'oneToMany',
-            foreignCollection.schema.fields,
-          );
-          foreignCollection.schema.fields[field] = {
-            foreignCollection: collection.name,
-            originKey: fieldSchema.foreignKey,
-            originKeyTarget: '_id',
-            type: 'OneToMany',
-          } as OneToManySchema;
+          this.createOneToManyRelation(collections, fieldSchema, collection);
         } else if (
           fieldSchema.type === 'ManyToMany' &&
           !createdFakeManyToManyRelations.includes(fieldName)
         ) {
-          const foreignCollection = this.getCollection(collections, fieldSchema);
-          const foreignKey = `${collection.name}_id`;
-          const originKey = `${fieldSchema.foreignKey}`;
-
-          const field = this.generateUniqueFieldName(
-            `${foreignCollection.name}__${fieldSchema.originKey}`,
-            'ManyToMany',
-            foreignCollection.schema.fields,
+          this.createManyToManyCollection(
+            collections,
+            fieldSchema,
+            collection,
+            createdFakeManyToManyRelations,
           );
-          const throughCollection = this.generateUniqueCollectionName(
-            `${collection.name}_${foreignCollection.name}`,
-            collection.dataSource,
-          );
-
-          foreignCollection.schema.fields[field] = {
-            throughCollection,
-            foreignKey,
-            originKey,
-            foreignCollection: collection.name,
-            type: 'ManyToMany',
-            foreignKeyTarget: '_id',
-            originKeyTarget: '_id',
-          } as ManyToManySchema;
-
-          const schema = new Schema({
-            [foreignKey]: { type: Schema.Types.ObjectId, ref: collection.name },
-            [originKey]: { type: Schema.Types.ObjectId, ref: foreignCollection.name },
-          });
-
-          const model = mongooseModel(throughCollection, schema);
-          collection.dataSource.addCollection(new MongooseCollection(collection.dataSource, model));
-
-          createdFakeManyToManyRelations.push(field);
         }
       });
     });
   }
 
-  private static generateUniqueFieldName(
-    prefix: string,
-    relationName: string,
-    fields: CollectionSchema['fields'],
-    uniqueId = 1,
-  ): string {
-    const uniqueFieldName = `${prefix}__${relationName}--${uniqueId}`;
-
-    if (fields[uniqueFieldName]) {
-      return SchemaFieldsGenerator.generateUniqueFieldName(
-        prefix,
-        relationName,
-        fields,
-        uniqueId + 1,
-      );
-    }
-
-    return uniqueFieldName;
-  }
-
-  private static generateUniqueCollectionName(
-    collectionName: string,
-    dataSource: DataSource,
-    uniqueId = 1,
-  ): string {
-    const uniqueCollectionName = `${collectionName}--${uniqueId}`;
-
-    if (dataSource.collections.find(coll => coll.name === uniqueCollectionName)) {
-      return SchemaFieldsGenerator.generateUniqueCollectionName(
-        collectionName,
-        dataSource,
-        uniqueId + 1,
-      );
-    }
-
-    return uniqueCollectionName;
-  }
-
-  private static generateUniqueCollectionNameTest(
-    collectionName: string,
-    names: string[],
-    uniqueId = 1,
-  ): string {
-    const uniqueCollectionName = `${collectionName}--${uniqueId}`;
-
-    if (names.includes(uniqueCollectionName)) {
-      return SchemaFieldsGenerator.generateUniqueCollectionNameTest(
-        collectionName,
-        names,
-        uniqueId + 1,
-      );
-    }
-
-    return uniqueCollectionName;
-  }
-
-  private static getCollection(
-    collections: MongooseCollection[],
-    fieldSchema: ManyToOneSchema | ManyToManySchema,
-  ): MongooseCollection {
-    const foreignCollection = collections.find(c => c.name === fieldSchema.foreignCollection);
-
-    if (!foreignCollection) {
-      throw new Error(`The collection '${fieldSchema.foreignCollection}' does not exist`);
-    }
-
-    return foreignCollection;
-  }
-
-  static buildFieldsSchema(
-    model: Model<RecordData>,
-    dataSource: DataSource,
-  ): CollectionSchema['fields'] {
+  static buildFieldsSchema(model: Model<RecordData>): CollectionSchema['fields'] {
     const schemaFields: CollectionSchema['fields'] = {};
 
-    const throughCollections = [];
+    const throughCollectionNames = [];
     Object.entries(model.schema.paths).forEach(([fieldName, field]) => {
       const mixedFieldPattern = '$*';
       const privateFieldPattern = '__';
@@ -164,12 +52,12 @@ export default class SchemaFieldsGenerator {
 
         const { modelName } = model;
         const newFieldName = this.generateUniqueFieldName(fieldName, 'manyToOne', schemaFields);
-        const throughCollection = this.generateUniqueCollectionNameTest(
+        const throughCollection = this.generateUniqueCollectionName(
           `${modelName}_${foreignCollectionName}`,
-          throughCollections,
+          throughCollectionNames,
         );
+        throughCollectionNames.push(throughCollection);
 
-        throughCollections.push(throughCollection);
         schemaFields[newFieldName] = {
           type: 'ManyToMany',
           foreignCollection: foreignCollectionName,
@@ -198,6 +86,118 @@ export default class SchemaFieldsGenerator {
     });
 
     return schemaFields;
+  }
+
+  private static createManyToManyCollection(
+    collections: MongooseCollection[],
+    fieldSchema: ManyToManySchema,
+    collection: MongooseCollection,
+    createdFakeManyToManyRelations: string[],
+  ) {
+    const foreignCollection = this.getCollection(collections, fieldSchema);
+    const foreignKey = `${collection.name}_id`;
+    const originKey = `${fieldSchema.foreignKey}`;
+
+    const field = this.generateUniqueFieldName(
+      `${foreignCollection.name}__${fieldSchema.originKey}`,
+      'ManyToMany',
+      foreignCollection.schema.fields,
+    );
+    const throughCollection = this.generateUniqueCollectionName(
+      `${collection.name}_${foreignCollection.name}`,
+      collection.dataSource.collections.map(coll => coll.name),
+    );
+
+    foreignCollection.schema.fields[field] = {
+      throughCollection,
+      foreignKey,
+      originKey,
+      foreignCollection: collection.name,
+      type: 'ManyToMany',
+      foreignKeyTarget: '_id',
+      originKeyTarget: '_id',
+    } as ManyToManySchema;
+
+    const schema = new Schema({
+      [foreignKey]: { type: Schema.Types.ObjectId, ref: collection.name },
+      [originKey]: { type: Schema.Types.ObjectId, ref: foreignCollection.name },
+    });
+
+    const model = mongooseModel(throughCollection, schema);
+    collection.dataSource.addCollection(new MongooseCollection(collection.dataSource, model));
+
+    createdFakeManyToManyRelations.push(field);
+  }
+
+  private static createOneToManyRelation(
+    collections: MongooseCollection[],
+    fieldSchema: ManyToOneSchema,
+    collection: MongooseCollection,
+  ): void {
+    const foreignCollection = this.getCollection(collections, fieldSchema);
+
+    const field = this.generateUniqueFieldName(
+      `${foreignCollection.name}__${fieldSchema.foreignKey}`,
+      'oneToMany',
+      foreignCollection.schema.fields,
+    );
+    foreignCollection.schema.fields[field] = {
+      foreignCollection: collection.name,
+      originKey: fieldSchema.foreignKey,
+      originKeyTarget: '_id',
+      type: 'OneToMany',
+    } as OneToManySchema;
+  }
+
+  private static generateUniqueFieldName(
+    prefix: string,
+    relationName: string,
+    fields: CollectionSchema['fields'],
+    uniqueId = 1,
+  ): string {
+    const uniqueFieldName = `${prefix}__${relationName}--${uniqueId}`;
+
+    if (fields[uniqueFieldName]) {
+      return SchemaFieldsGenerator.generateUniqueFieldName(
+        prefix,
+        relationName,
+        fields,
+        uniqueId + 1,
+      );
+    }
+
+    return uniqueFieldName;
+  }
+
+  private static generateUniqueCollectionName(
+    collectionName: string,
+    existingNames: string[],
+    uniqueId = 1,
+  ): string {
+    const uniqueCollectionName = `${collectionName}--${uniqueId}`;
+
+    if (existingNames.includes(uniqueCollectionName)) {
+      return SchemaFieldsGenerator.generateUniqueCollectionName(
+        collectionName,
+        existingNames,
+        uniqueId + 1,
+      );
+    }
+
+    return uniqueCollectionName;
+  }
+
+  private static getCollection(
+    collections: MongooseCollection[],
+    fieldSchema: ManyToOneSchema | ManyToManySchema,
+  ): MongooseCollection {
+    const foreignCollection = collections.find(c => c.name === fieldSchema.foreignCollection);
+
+    if (!foreignCollection) {
+      throw new Error(`The collection '${fieldSchema.foreignCollection}' does not exist`);
+    }
+
+    return foreignCollection;
   }
 
   private static getColumnType(instance: string, field: SchemaType): ColumnType {
