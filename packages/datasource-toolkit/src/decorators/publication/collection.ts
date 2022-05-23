@@ -1,4 +1,6 @@
+import { Caller } from '../../interfaces/caller';
 import { CollectionSchema, FieldSchema } from '../../interfaces/schema';
+import { RecordData } from '../../interfaces/record';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 
@@ -22,6 +24,18 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
     if (!visible) this.unpublished.add(name);
     else this.unpublished.delete(name);
     this.markSchemaAsDirty();
+  }
+
+  override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
+    const records = await super.create(caller, data);
+
+    return records.map(childRecord => {
+      const record = {};
+      for (const key of Object.keys(childRecord))
+        if (!this.unpublished.has(key)) record[key] = childRecord[key];
+
+      return record;
+    });
   }
 
   protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {

@@ -126,6 +126,14 @@ describe('PublicationCollectionDecorator', () => {
       expect(newPersons.schema).toStrictEqual(persons.schema);
       expect(newBooks.schema).toStrictEqual(books.schema);
     });
+
+    test('create should proxies return value (removing extra columns)', async () => {
+      const created = { id: 1, bookId: 2, personId: 3, date: '1985-10-26' };
+      (bookPersons.create as jest.Mock).mockResolvedValue([created]);
+
+      const result = await newBookPersons.create(null, [{ something: true }]);
+      expect(result).toStrictEqual([{ id: 1, bookId: 2, personId: 3 }]);
+    });
   });
 
   describe('When hiding foreign keys', () => {
