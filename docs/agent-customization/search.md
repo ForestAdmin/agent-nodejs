@@ -41,7 +41,7 @@ For instance:
 
 Customizing how the search works is done some a single handler during the collection customization step
 
-### Advanced: changing searched columns
+### Changing searched columns
 
 ```javascript
 const productReferenceRegexp = /^[a-f]{16}$/i;
@@ -73,7 +73,7 @@ agent.customizeCollection('products', collection =>
 );
 ```
 
-### Advanced: calling an external API to implement search
+### Calling an external API to implement search
 
 If you data is indexed using a SaaS, external store or full-text index, you can call it in the search handler.
 
