@@ -226,6 +226,10 @@ describe('SearchCollectionDecorator', () => {
                   columnType: 'Number',
                   filterOperators: new Set(['Equal']),
                 }),
+                fieldName2: factories.columnSchema.build({
+                  columnType: 'String',
+                  filterOperators: new Set(['Contains']),
+                }),
               },
             }),
           });
@@ -240,7 +244,13 @@ describe('SearchCollectionDecorator', () => {
           );
           expect(refinedFilter).toEqual({
             search: null,
-            conditionTree: { field: 'fieldName', operator: 'Equal', value: 1584 },
+            conditionTree: {
+              aggregator: 'Or',
+              conditions: [
+                { field: 'fieldName', operator: 'Equal', value: 1584 },
+                { field: 'fieldName2', operator: 'Contains', value: '1584' },
+              ],
+            },
           });
         });
       });
@@ -252,14 +262,14 @@ describe('SearchCollectionDecorator', () => {
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: 'Enum',
-                  enumValues: ['AEnumValue'],
+                  enumValues: ['AnEnUmVaLue'],
                   filterOperators: new Set(['Equal']),
                 }),
               },
             }),
           });
 
-          const filter = factories.filter.build({ search: 'AEnumValue' });
+          const filter = factories.filter.build({ search: 'anenumvalue' });
 
           const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
@@ -269,7 +279,7 @@ describe('SearchCollectionDecorator', () => {
           );
           expect(refinedFilter).toEqual({
             search: null,
-            conditionTree: { field: 'fieldName', operator: 'Equal', value: 'AEnumValue' },
+            conditionTree: { field: 'fieldName', operator: 'Equal', value: 'AnEnUmVaLue' },
           });
         });
 

@@ -47,10 +47,10 @@ export default class QueryConverter {
         return {
           [Op.or]: [this.makeWhereClause('Missing', field) as OrOperator, { [Op.eq]: '' }],
         };
-      case 'Contains':
-        return where(fn('LOWER', col(field)), 'LIKE', `%${value.toLocaleLowerCase()}%`);
-      case 'EndsWith':
-        return where(fn('LOWER', col(field)), 'LIKE', `%${value.toLocaleLowerCase()}`);
+      case 'Like':
+        return { [Op.like]: value };
+      case 'ILike':
+        return where(fn('LOWER', col(field)), 'LIKE', value);
       case 'Equal':
         return { [Op.eq]: value };
       case 'GreaterThan':
@@ -71,8 +71,6 @@ export default class QueryConverter {
         return { [Op.notIn]: this.asArray(value) };
       case 'Present':
         return { [Op.ne]: null };
-      case 'StartsWith':
-        return where(fn('LOWER', col(field)), 'LIKE', `${value.toLocaleLowerCase()}%`);
       default:
         throw new Error(`Unsupported operator: "${operator}".`);
     }

@@ -1,10 +1,7 @@
+import { validate as uuidValidate } from 'uuid';
+
 import { Caller } from '../../interfaces/caller';
-import {
-  CollectionSchema,
-  ColumnSchema,
-  FieldSchema,
-  PrimitiveTypes,
-} from '../../interfaces/schema';
+import { CollectionSchema, ColumnSchema, FieldSchema } from '../../interfaces/schema';
 import { DataSource } from '../../interfaces/collection';
 import { SearchReplacer } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
@@ -13,7 +10,6 @@ import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf from '../../interfaces/query/condition-tree/nodes/leaf';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
-import TypeGetter from '../../validation/type-getter';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   replacer: SearchReplacer = null;
@@ -78,35 +74,33 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     searchString: string,
   ): ConditionTree {
     const { columnType, enumValues } = schema;
-    let condition: ConditionTree = null;
+    const isNumber = Number(searchString).toString() === searchString;
+    const isUuid = uuidValidate(searchString);
 
-    const type = columnType as PrimitiveTypes;
-    const value = columnType === 'Number' ? Number(searchString) : searchString;
-    const searchType = TypeGetter.get(value, type);
-
-    if (
-      SearchCollectionDecorator.isValidEnum(enumValues, searchString, type) ||
-      searchType === 'Number' ||
-      searchType === 'Uuid'
-    ) {
-      condition = new ConditionTreeLeaf(field, 'Equal', value);
-    } else if (searchType === 'String') {
-      condition = new ConditionTreeLeaf(field, 'Contains', value);
+    if (columnType === 'Number' && isNumber) {
+      return new ConditionTreeLeaf(field, 'Equal', Number(searchString));
     }
 
-    return condition;
+    if (columnType === 'Enum') {
+      const searchValue = SearchCollectionDecorator.lenientFind(enumValues, searchString);
+      if (searchValue) return new ConditionTreeLeaf(field, 'Equal', searchValue);
+    }
+
+    if (columnType === 'String') {
+      return new ConditionTreeLeaf(field, 'Contains', searchString);
+    }
+
+    if (columnType === 'Uuid' && isUuid) {
+      return new ConditionTreeLeaf(field, 'Equal', searchString);
+    }
+
+    return null;
   }
 
-  private static isValidEnum(
-    enumValues: string[],
-    searchString: string,
-    searchType: PrimitiveTypes,
-  ): boolean {
+  private static lenientFind(enumValues: string[], searchString: string): string {
     return (
-      searchType === 'Enum' &&
-      !!enumValues?.find(
-        enumValue => enumValue.toLocaleLowerCase() === searchString.toLocaleLowerCase().trim(),
-      )
+      enumValues?.find(v => v === searchString.trim()) ??
+      enumValues?.find(v => v.toLocaleLowerCase() === searchString.toLocaleLowerCase().trim())
     );
   }
 

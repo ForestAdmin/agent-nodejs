@@ -115,15 +115,13 @@ export default class TypeConverter {
       case 'String':
         return new Set<Operator>([
           ...TypeConverter.baseOperators,
-          'Contains',
-          'EndsWith',
           'In',
           'Like',
+          'ILike',
           'LongerThan',
           'NotContains',
           'NotIn',
           'ShorterThan',
-          'StartsWith',
         ]);
       case 'Date':
       case 'Dateonly':

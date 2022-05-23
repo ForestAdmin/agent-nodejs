@@ -202,6 +202,7 @@ describe('Utils > QueryConverter', () => {
       describe('with a ConditionTreeLeaf node', () => {
         const defaultArrayValue = [21, 42, 84];
         const defaultIntegerValue = 42;
+        const defaultStringValue = 'value';
 
         it.each([
           ['Blank', undefined, { [Op.or]: [{ [Op.is]: null }, { [Op.eq]: '' }] }],
@@ -214,6 +215,7 @@ describe('Utils > QueryConverter', () => {
           ['NotEqual', defaultIntegerValue, { [Op.ne]: defaultIntegerValue }],
           ['NotIn', defaultArrayValue, { [Op.notIn]: defaultArrayValue }],
           ['Present', undefined, { [Op.ne]: null }],
+          ['Like', defaultStringValue, { [Op.like]: defaultStringValue }],
         ])(
           'should generate a "where" Sequelize filter from a "%s" operator',
           (operator, value, where) => {
@@ -236,9 +238,7 @@ describe('Utils > QueryConverter', () => {
 
         describe('using operator translate to SQL "LIKE" clause', () => {
           it.each([
-            ['StartsWith', '__Value__', 'LIKE', '__value__%'],
-            ['EndsWith', '__vAlue__', 'LIKE', '%__value__'],
-            ['Contains', '__vaLue__', 'LIKE', '%__value__%'],
+            ['ILike', '__VaLuE__', 'LIKE', '__VaLuE__'],
             ['NotContains', '__valUe__', 'NOT LIKE', '%__value__%'],
           ])(
             'should generate a "where" Sequelize filter from a "%s" operator',
