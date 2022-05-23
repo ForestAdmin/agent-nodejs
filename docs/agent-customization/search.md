@@ -11,9 +11,9 @@ Two search modes are supported: normal and extended.
 
 ![Extended search call to action](../assets/search-bar-extended.png)
 
-When not defined otherwise by the [datasource](../datasources/README.md), the search behavior is to attempt to search within columns of the collection (in normal mode), or columns of the collection of direct relations (in extended mode).
-
 ## Default behavior
+
+When not defined otherwise by the [datasource](../datasources/README.md), the search behavior is to attempt to search within columns of the collection (in normal mode), or columns of the collection of direct relations (in extended mode).
 
 By default, Forest Admin will search only on some columns, depending on their respective types.
 
