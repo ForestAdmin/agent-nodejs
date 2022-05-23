@@ -43,6 +43,7 @@
   - [Sort overrides](agent-customization/fields/sort.md)
 
 - [Relationships](agent-customization/relationships.md)
+- [Search](agent-customization/relationships.md)
 - [Segments](agent-customization/segments.md)
 
 ## Frontend customization
