@@ -1,3 +1,24 @@
+# example [1.0.0-beta.40](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.39...example@1.0.0-beta.40) (2022-05-23)
+
+
+### Features
+
+* add replaceSearch to collection customizer ([#310](https://github.com/ForestAdmin/agent-nodejs/issues/310)) ([09a45c7](https://github.com/ForestAdmin/agent-nodejs/commit/09a45c783c277dd5642aa9b289a43750f3d97ade))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.31
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.18
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.23
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.22
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.27
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.17
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0-beta.2
+
 # example [1.0.0-beta.39](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.38...example@1.0.0-beta.39) (2022-05-19)
 
 
