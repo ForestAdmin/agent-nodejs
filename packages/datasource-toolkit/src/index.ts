@@ -30,6 +30,7 @@ export { ChartDefinition } from './decorators/chart/types';
 export { ComputedDefinition } from './decorators/computed/types';
 export { OperatorReplacer as OperatorDefinition } from './decorators/operators-emulate/types';
 export { PartialRelationSchema as RelationDefinition } from './decorators/relation/types';
+export { SearchReplacer as SearchDefinition } from './decorators/search/types';
 export { SegmentDefinition } from './decorators/segment/types';
 export { WriteDefinition } from './decorators/write/types';
 

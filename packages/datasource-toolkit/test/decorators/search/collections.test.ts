@@ -1,5 +1,6 @@
 import * as factories from '../../__factories__';
 import ConditionTreeFactory from '../../../src/interfaces/query/condition-tree/factory';
+import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
 
 describe('SearchCollectionDecorator', () => {
@@ -16,19 +17,6 @@ describe('SearchCollectionDecorator', () => {
   });
 
   describe('refineFilter', () => {
-    describe('when the given filter is null', () => {
-      test('should return the given filter to return all records', async () => {
-        const collection = factories.collection.build();
-        const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
-
-        const refinedFilter = await searchCollectionDecorator.refineFilter(
-          factories.caller.build(),
-          null,
-        );
-        expect(refinedFilter).toStrictEqual(null);
-      });
-    });
-
     describe('when the search value is null', () => {
       test('should return the given filter to return all records', async () => {
         const collection = factories.collection.build();
@@ -82,6 +70,26 @@ describe('SearchCollectionDecorator', () => {
           filter,
         );
         expect(refinedFilter).toStrictEqual(filter);
+      });
+    });
+
+    describe('when a replacer is provided', () => {
+      test('it should be used instead of the default one', async () => {
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: { id: factories.columnSchema.isPrimaryKey().build() },
+          }),
+        });
+        const filter = factories.filter.build({ search: 'something' });
+        const decorator = new SearchCollectionDecorator(collection, null);
+        decorator.replaceSearch(value => ({ field: 'id', operator: 'Equal', value }));
+
+        const refinedFilter = await decorator.refineFilter(factories.caller.build(), filter);
+        expect(refinedFilter).toEqual({
+          ...filter,
+          conditionTree: new ConditionTreeLeaf('id', 'Equal', 'something'),
+          search: null,
+        });
       });
     });
 
