@@ -12,7 +12,7 @@ import {
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
-import { Model, PipelineStage, SchemaType, Types, isValidObjectId } from 'mongoose';
+import { Model, PipelineStage, Schema, SchemaType, Types, isValidObjectId } from 'mongoose';
 
 const STRING_OPERATORS = [
   'Like',
@@ -43,17 +43,16 @@ export default class PipelineGenerator {
     manyToManyField: string,
     originName: string,
     foreignName: string,
+    pipeline: PipelineStage[],
   ): PipelineStage[] {
     const originId = `${originName}_id`;
     const foreignId = `${foreignName}_id`;
     // fake also the schema to provide the type of the computed fields
-    model.schema.paths = {
-      ...model.schema.paths,
-      [originId]: { instance: 'ObjectID' } as SchemaType,
-      [foreignId]: { instance: 'ObjectID' } as SchemaType,
-    };
+    model.schema.add(new Schema({ [originId]: { type: Schema.Types.ObjectId, ref: originName } }));
+    model.schema.add(
+      new Schema({ [foreignId]: { type: Schema.Types.ObjectId, ref: foreignName } }),
+    );
 
-    const pipeline: PipelineStage[] = [];
     pipeline.push({ $unwind: `$${manyToManyField}` });
     pipeline.push({
       $addFields: {
@@ -69,14 +68,16 @@ export default class PipelineGenerator {
     return pipeline;
   }
 
-  static group(aggregation: Aggregation): PipelineStage.Group {
+  static group(aggregation: Aggregation, pipeline: PipelineStage[]): PipelineStage[] {
     const aggregationOperation = AGGREGATION_OPERATION[aggregation.operation];
     let value: unknown = this.formatNestedFieldPath(`$${aggregation.field}`);
     if (aggregation.operation === 'Count') value = { $cond: [{ $ne: [value, null] }, 1, 0] };
     const condition = { [aggregationOperation]: value };
 
     if (!aggregation.groups) {
-      return { $group: { value: { [aggregationOperation]: condition }, _id: null } };
+      pipeline.push({ $group: { value: { [aggregationOperation]: condition }, _id: null } });
+
+      return pipeline;
     }
 
     // eslint-disable-next-line no-underscore-dangle,@typescript-eslint/naming-convention
@@ -97,7 +98,9 @@ export default class PipelineGenerator {
       return ids;
     }, {});
 
-    return { $group: { value: condition, _id } };
+    pipeline.push({ $group: { value: condition, _id } });
+
+    return pipeline;
   }
 
   static find(

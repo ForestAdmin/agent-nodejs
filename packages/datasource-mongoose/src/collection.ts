@@ -39,20 +39,8 @@ export default class MongooseCollection extends BaseCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    let pipeline: PipelineStage[] = [];
-    let { model } = this;
-
-    if (this.isManyToManyCollection(this)) {
-      const [originName, foreign] = this.name.split('--')[0].split('_');
-      const origin = this.dataSource.getCollection(originName) as MongooseCollection;
-      model = origin.model;
-      const name = this.getManyToManyFieldName(origin, this.name);
-
-      pipeline = PipelineGenerator.find(origin, model, new PaginatedFilter({}), new Projection());
-      pipeline = PipelineGenerator.emulateManyToManyCollection(model, name, originName, foreign);
-    }
-
-    pipeline = PipelineGenerator.find(this, model, filter, projection, pipeline);
+    const model = this.getModelToRequest();
+    const pipeline = this.buildListPipeline(model, filter, projection);
 
     return model.aggregate(pipeline);
   }
@@ -75,14 +63,47 @@ export default class MongooseCollection extends BaseCollection {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    const pipeline = PipelineGenerator.find(this, this.model, filter, aggregation.projection);
-    pipeline.push(PipelineGenerator.group(aggregation));
+    const model = this.getModelToRequest();
+    let pipeline = this.buildListPipeline(model, filter, aggregation.projection);
+    pipeline = PipelineGenerator.group(aggregation, pipeline);
+    if (limit) pipeline.push({ $limit: limit });
 
-    if (limit) {
-      pipeline.push({ $limit: limit });
+    return MongooseCollection.formatRecords(await model.aggregate(pipeline));
+  }
+
+  private buildListPipeline(
+    model: Model<RecordData>,
+    filter: Filter,
+    projection: Projection,
+  ): PipelineStage[] {
+    let pipeline: PipelineStage[] = [];
+
+    if (this.isManyToManyCollection(this)) {
+      const [originCollectionName, foreignCollectionName] = this.name.split('--')[0].split('_');
+      const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
+
+      pipeline = PipelineGenerator.find(origin, model, new PaginatedFilter({}), new Projection());
+      pipeline = PipelineGenerator.emulateManyToManyCollection(
+        model,
+        this.getManyToManyFieldName(origin, this.name),
+        originCollectionName,
+        foreignCollectionName,
+        pipeline,
+      );
     }
 
-    return MongooseCollection.formatRecords(await this.model.aggregate(pipeline));
+    return PipelineGenerator.find(this, model, filter, projection, pipeline);
+  }
+
+  private getModelToRequest(): Model<RecordData> {
+    if (this.isManyToManyCollection(this)) {
+      const [originName] = this.name.split('--')[0].split('_');
+      const origin = this.dataSource.getCollection(originName) as MongooseCollection;
+
+      return origin.model;
+    }
+
+    return this.model;
   }
 
   private isManyToManyCollection(collection: MongooseCollection): boolean {
