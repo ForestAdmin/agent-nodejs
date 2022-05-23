@@ -16,7 +16,7 @@
     "dist/**/*.d.ts"
   ],
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.0.0-beta.17",
+    "@forestadmin/datasource-toolkit": "1.0.0-beta.16",
     "mongoose": "^6.3.2"
   },
   "peerDependencies": {},
