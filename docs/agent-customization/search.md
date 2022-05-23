@@ -11,7 +11,7 @@ Two search modes are supported: normal and extended.
 
 ![Extended search call to action](../assets/search-bar-extended.png)
 
-When not defined otherwise by the [datasource](../datasources/README.md), the search behavior is to attempt to search within columns of the collection (in normal mode), or columns of the collection and columns of direct relations
+When not defined otherwise by the [datasource](../datasources/README.md), the search behavior is to attempt to search within columns of the collection (in normal mode), or columns of the collection of direct relations (in extended mode).
 
 ## Default behavior
 
@@ -31,7 +31,6 @@ You may want to change how the search bar behaves in your admin-panel.
 
 For instance:
 
-- Use case sensitive search
 - Search only on the columns which are relevant to your use-case.
 - Use a full-text indexes of your data (i.e Postgres `tsquery` and `tsvector`, Algolia, Elastic search, ...)
 
