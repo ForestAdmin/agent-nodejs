@@ -143,7 +143,7 @@ export default class SchemaFieldsGenerator {
       [originKey]: { type: Schema.Types.ObjectId, ref: foreignCollection.name },
     });
 
-    const model = mongooseModel(throughCollection, schema);
+    const model = mongooseModel(throughCollection, schema, null, { overwriteModels: true });
     collection.dataSource.addCollection(new MongooseCollection(collection.dataSource, model));
 
     createdFakeManyToManyRelations.push(field);

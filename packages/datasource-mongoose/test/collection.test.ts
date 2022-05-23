@@ -1151,7 +1151,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('returns the number of the limit records', async () => {
+    it('applies Limit on the results', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1176,7 +1176,7 @@ describe('MongooseCollection', () => {
       expect(records).toHaveLength(limit);
     });
 
-    it('applies Max on a column', async () => {
+    it('applies Max on a field', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1194,7 +1194,7 @@ describe('MongooseCollection', () => {
       expect(records).toIncludeSameMembers([{ value: 15, group: {} }]);
     });
 
-    it('applies Max on a column with grouping', async () => {
+    it('applies Max on a field with grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1216,7 +1216,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('applies Min on a column', async () => {
+    it('applies Min on a field', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1234,7 +1234,7 @@ describe('MongooseCollection', () => {
       expect(records).toIncludeSameMembers([{ value: 1, group: {} }]);
     });
 
-    it('applies Min on a column with grouping', async () => {
+    it('applies Min on a field with grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1274,7 +1274,7 @@ describe('MongooseCollection', () => {
       expect(records).toIncludeSameMembers([{ value: 3, group: {} }]);
     });
 
-    it('applies Count on a column with grouping', async () => {
+    it('applies Count on a field with grouping', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1317,7 +1317,24 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('applies Sum on a column', async () => {
+    it('applies Count without providing a field', async () => {
+      await setupReview();
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const rating1 = { rating: 1 };
+      const rating2 = { rating: 2 };
+      const rating3 = { rating: 15 };
+      await review.create(factories.caller.build(), [rating1, rating2, rating3]);
+
+      const aggregation = new Aggregation({
+        operation: 'Count',
+      });
+      const records = await review.aggregate(factories.caller.build(), new Filter({}), aggregation);
+
+      expect(records).toIncludeSameMembers([{ value: 3, group: {} }]);
+    });
+
+    it('applies Sum on a field', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1339,7 +1356,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('applies Sum on a column with grouping and Month operator', async () => {
+    it('applies Sum on a field with grouping and Month operator', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1362,7 +1379,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('applies Sum on a column with grouping and Day operator', async () => {
+    it('applies Sum on a field with grouping and Day operator', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1385,7 +1402,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('applies Sum on a column with grouping and Week operator', async () => {
+    it('applies Sum on a field with grouping and Week operator', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1407,7 +1424,7 @@ describe('MongooseCollection', () => {
       ]);
     });
 
-    it('applies Avg on a column with grouping and Week operator', async () => {
+    it('applies Avg on a field with grouping and Week operator', async () => {
       await setupReview();
       const dataSource = new MongooseDatasource(connection);
       const review = dataSource.getCollection('review');
@@ -1456,6 +1473,53 @@ describe('MongooseCollection', () => {
           { value: 1, group: { message: 'message 1', title: 'title 2' } },
           { value: 1, group: { message: 'message 2', title: 'title 3' } },
         ]);
+      });
+    });
+
+    describe('with a many to many', () => {
+      it('applies correctly the aggregation', async () => {
+        await setupWith2ManyToManyRelations();
+        const dataSource = new MongooseDatasource(connection);
+        const store = dataSource.getCollection('store');
+        const owner = dataSource.getCollection('owner');
+        const ownerStore = dataSource.getCollection('owner_store--1');
+
+        const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
+        const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
+        await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
+        const ownerRecordA = {
+          _id: new Types.ObjectId(),
+          // eslint-disable-next-line no-underscore-dangle
+          stores: [storeRecordA._id, storeRecordB._id],
+          name: 'owner with the store A and B',
+        };
+        const ownerRecordB = {
+          _id: new Types.ObjectId(),
+          // eslint-disable-next-line no-underscore-dangle
+          stores: [storeRecordB._id],
+          name: 'owner with the store B',
+        };
+        await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
+
+        const aggregation = new Aggregation({
+          operation: 'Count',
+          groups: [],
+        });
+        const expectedCount = await ownerStore.aggregate(
+          factories.caller.build(),
+          factories.filter.build({
+            conditionTree: factories.conditionTreeLeaf.build({
+              // eslint-disable-next-line no-underscore-dangle
+              value: storeRecordA._id,
+              operator: 'Equal',
+              field: 'store_id',
+            }),
+          }),
+          aggregation,
+        );
+
+        // eslint-disable-next-line no-underscore-dangle
+        expect(expectedCount).toEqual([{ value: 1, group: {} }]);
       });
     });
   });
