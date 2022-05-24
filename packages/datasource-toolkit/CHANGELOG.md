@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.16...@forestadmin/datasource-toolkit@1.0.0-beta.17) (2022-05-24)
+
+
+### Features
+
+* add replaceSearch to collection customizer ([#310](https://github.com/ForestAdmin/agent-nodejs/issues/310)) ([09a45c7](https://github.com/ForestAdmin/agent-nodejs/commit/09a45c783c277dd5642aa9b289a43750f3d97ade))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.15...@forestadmin/datasource-toolkit@1.0.0-beta.16) (2022-05-16)
 
 
