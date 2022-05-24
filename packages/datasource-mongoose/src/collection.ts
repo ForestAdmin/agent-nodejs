@@ -102,16 +102,19 @@ export default class MongooseCollection extends BaseCollection {
 export class ManyToManyMongooseCollection extends MongooseCollection {
   private readonly originCollection: MongooseCollection;
   private readonly foreignCollection: MongooseCollection;
+  private readonly fieldNameOfIds: string;
 
   constructor(
     dataSource: DataSource,
     model: Model<RecordData>,
     originCollectionName: MongooseCollection,
     foreignCollectionName: MongooseCollection,
+    fieldNameOfIds: string,
   ) {
     super(dataSource, model);
     this.originCollection = originCollectionName;
     this.foreignCollection = foreignCollectionName;
+    this.fieldNameOfIds = fieldNameOfIds;
   }
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
@@ -156,16 +159,12 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
   }
 
   private async createManyToMany(data: RecordData[]): Promise<RecordData[]> {
-    const [originCollectionName, foreignCollectionName] = this.name.split('__');
-    const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
-    const manyToManyFieldName = this.getManyToManyFieldName(origin, this.name);
-
     return Promise.all(
       data.map(item => {
-        return origin.model.updateOne(
-          { _id: item[`${originCollectionName}_id`] },
+        return this.originCollection.model.updateOne(
+          { _id: item[`${this.originCollection.name}_id`] },
           {
-            $addToSet: { [manyToManyFieldName]: item[`${foreignCollectionName}_id`] },
+            $addToSet: { [this.fieldNameOfIds]: item[`${this.foreignCollection.name}_id`] },
           },
         );
       }),
@@ -177,52 +176,32 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
     filter: Filter,
     patch?: RecordData,
   ): Promise<void> {
-    const [originCollectionName, foreignCollectionName] = this.name.split('__');
     const records = await this.list(
       caller,
       filter,
-      new Projection(`${originCollectionName}_id`, `${foreignCollectionName}_id`),
+      new Projection(`${this.originCollection.name}_id`, `${this.foreignCollection.name}_id`),
     );
 
     for (const record of records) {
-      const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
-      const manyToManyFieldName = this.getManyToManyFieldName(origin, this.name);
       // improve by grouping by origin id
       // eslint-disable-next-line no-await-in-loop
-      await origin.model.updateOne(
-        { _id: record[`${originCollectionName}_id`] },
+      await this.originCollection.model.updateOne(
+        { _id: record[`${this.originCollection.name}_id`] },
         {
-          $pull: { [manyToManyFieldName]: record[`${foreignCollectionName}_id`] },
+          $pull: { [this.fieldNameOfIds]: record[`${this.foreignCollection.name}_id`] },
         },
       );
 
       if (patch) {
         // eslint-disable-next-line no-await-in-loop
-        await origin.model.updateOne(
-          { _id: patch[`${originCollectionName}_id`] },
+        await this.originCollection.model.updateOne(
+          { _id: patch[`${this.originCollection.name}_id`] },
           {
-            $addToSet: { [manyToManyFieldName]: patch[`${foreignCollectionName}_id`] },
+            $addToSet: { [this.fieldNameOfIds]: patch[`${this.foreignCollection.name}_id`] },
           },
         );
       }
     }
-  }
-
-  private getManyToManyFieldName(
-    collection: MongooseCollection,
-    throughCollectionName: string,
-  ): string {
-    const schemas = Object.entries(collection.schema.fields);
-
-    const fieldAndSchema = schemas.find(
-      ([, s]) => s.type === 'ManyToMany' && s.throughCollection === throughCollectionName,
-    );
-
-    if (!fieldAndSchema) {
-      throw new Error(`The '${throughCollectionName}' collection does not exist`);
-    }
-
-    return fieldAndSchema[0].split('__').slice(0, -2).join('.');
   }
 
   private buildListPipeline(
@@ -230,17 +209,14 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
     filter: Filter,
     projection: Projection,
   ): PipelineStage[] {
-    let pipeline: PipelineStage[] = [];
-
-    const [originCollectionName, foreignCollectionName] = this.name.split('__');
-    const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
-
-    pipeline = PipelineGenerator.find(origin, model, new PaginatedFilter({}), new Projection());
+    const allFilter = new PaginatedFilter({});
+    const allProjection = new Projection();
+    let pipeline = PipelineGenerator.find(this.originCollection, model, allFilter, allProjection);
     pipeline = PipelineGenerator.emulateManyToManyCollection(
       model,
-      this.getManyToManyFieldName(origin, this.name),
-      originCollectionName,
-      foreignCollectionName,
+      this.fieldNameOfIds,
+      this.originCollection.name,
+      this.foreignCollection.name,
       pipeline,
     );
 
