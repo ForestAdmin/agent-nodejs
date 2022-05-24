@@ -22,13 +22,13 @@ agent.customizeCollection('towns', collection =>
     // Towns have multiple inhabitants
     .addOneToManyRelation('myMayor', 'persons', { originKey: 'town_id' })
 
-    // Town are supplied by multiple power-plant, but those also supply other cities
+    // Towns electricity is supplied by power-plants which are shared with other towns.
     .addManyToManyRelation('myPowerPlants', 'powerPlants', 'utilityContracts', {
       originKey: 'town_id',
       foreignKey: 'powerplant_id',
     })
 
-    // Town have a list of honorary citizen which can be retrieve through an API
+    // Towns have a list of honorary citizen which can be retrieve through a public API
     .addExternalRelation('honoraryCitizen', {
       schema: { firstName: 'String', lastName: 'String' },
       listRecords: async ({ id }) => {

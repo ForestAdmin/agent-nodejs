@@ -1,8 +1,8 @@
 It may happen that you want to create a relationship between two collection, but you don't have a foreign key which is ready to use in order to connect them together.
 
-To solve that use-case, during the customization process, you can combine the use of [computed fields](../fields/computed.md) and relationships.
+To solve that use-case, you should use both [computed fields](../fields/computed.md) and relationships.
 
-## Displaying the last message of a customer as a Many-to-One relationship
+## Displaying a link to the last message sent by a customer
 
 We have two collections: `Customers` and `Messages` which are linked together by a `OneToMany` relationships.
 

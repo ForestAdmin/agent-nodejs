@@ -1,6 +1,6 @@
-Relation that points to a single record are displayed in the frontend as links, and can be used in filters.
+Relation that points to a single record are displayed in the frontend as links.
 
-Once configured, the relation can used in
+Once configured, they can be used in
 [charts](https://docs.forestadmin.com/user-guide/dashboards/charts),
 [filters](https://docs.forestadmin.com/user-guide/getting-started/master-your-ui/the-table-view#add-one-or-several-filters),
 [scopes](https://docs.forestadmin.com/user-guide/collections/scopes) and
@@ -10,7 +10,7 @@ Once configured, the relation can used in
 
 ## Many-to-One relations
 
-In a many-to-one relation, many records from a collection are connected to a one record in another.
+Many-to-One relations are by far the most common type of relation: many records from a collection are connected to a one record in another.
 
 Think about countries and towns: a town belongs to a single country, but each country can have multiple towns.
 
@@ -25,7 +25,7 @@ agent.customizeCollection('towns', collection =>
 
 ## One-to-One relations
 
-In a one-to-one relation, there is at most a one-to-one mapping between records in two collections (the relation can be unset for some records, but no record from the first collection can be linked to more than one record in the other).
+In a one-to-one relation, there is a one-to-one mapping between records in two collections. The relation can be unset for some records, but no record from the first collection can be linked to more than one record in the other collection.
 
 Think about persons and passports: A person can have at most one passport, and each passport belong to a single person.
 

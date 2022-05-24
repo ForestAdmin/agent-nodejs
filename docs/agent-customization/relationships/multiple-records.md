@@ -26,7 +26,7 @@ In a many-to-many relation, three collections are used instead of two to build t
 This allows multiple records from one collection to be connected to multiple records from another.
 
 For instance, in a movie recommendation website, each user can rate many movies, and each movie can be rated by many users.
-The three collections which are being used are `users` (the origin collection), `ratings` (the "throught" collection) and `movies` (the "foreign" collection).
+The three collections which are being used are `users` (the "origin" collection), `ratings` (the "throught" collection) and `movies` (the "foreign" collection).
 
 ```javascript
 // Create one side of the relation ...
@@ -72,7 +72,9 @@ agent.customizeCollection('address', collection => {
     // Which fields are needed from the parent record to run the handler?
     // Dependencies are optional: by default only the primary key of address would be provided
     dependencies: ['country', 'zipCode'],
-    getRecords: async ({ country, zipCode }) => {
+
+    // Compute list of records from the parent record
+    listRecords: async ({ country, zipCode }) => {
       if (country === 'USA') {
         const state = states.find(s => s.zipMin < zipCode && zipCode < s.zipMax);
         return states.filter(s => state.closeTo.includes(s.code));
