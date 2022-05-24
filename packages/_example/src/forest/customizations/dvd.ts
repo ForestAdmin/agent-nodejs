@@ -4,7 +4,7 @@ import sequelizeMsSql from '../../connections/sequelize-mssql';
 
 export default (collection: Collection<Schema, 'dvd'>) =>
   collection
-    .addManyToOne('store', 'store', { foreignKey: 'storeId' })
+    .addManyToOneRelation('store', 'store', { foreignKey: 'storeId' })
     .renameField('rentalPrice', 'rentalPriceInDollar')
     .addField('numberOfRentals', {
       columnType: 'Number',

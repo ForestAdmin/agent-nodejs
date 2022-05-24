@@ -7,6 +7,7 @@ import {
   PlainSortClause,
   RecordUtils,
   RelationDefinition,
+  SchemaUtils,
   SearchDefinition,
   SegmentDefinition,
   TCollectionName,
@@ -15,7 +16,7 @@ import {
   TSchema,
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
-import { FieldDefinition } from './types';
+import { FieldDefinition, OneToManyEmbeddedDefinition } from './types';
 import DecoratorsStack from './decorators-stack';
 import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
 
@@ -145,9 +146,9 @@ export default class CollectionBuilder<
    * @param foreignCollection name of the targeted collection
    * @param options extra information about the relation
    * @example
-   * books.addManyToOne('myAuthor', 'persons', { foreignKey: 'author_id' })
+   * books.addManyToOneRelation('myAuthor', 'persons', { foreignKey: 'author_id' })
    */
-  addManyToOne<T extends TCollectionName<S>>(
+  addManyToOneRelation<T extends TCollectionName<S>>(
     name: string,
     foreignCollection: T,
     options: { foreignKey: TColumnName<S, N>; foreignKeyTarget?: TColumnName<S, T> },
@@ -168,9 +169,9 @@ export default class CollectionBuilder<
    * @param foreignCollection name of the targeted collection
    * @param options extra information about the relation
    * @example
-   * persons.addOneToMany('writtenBooks', 'books', { originKey: 'author_id' })
+   * persons.addOneToManyRelation('writtenBooks', 'books', { originKey: 'author_id' })
    */
-  addOneToMany<T extends TCollectionName<S>>(
+  addOneToManyRelation<T extends TCollectionName<S>>(
     name: string,
     foreignCollection: T,
     options: { originKey: TColumnName<S, T>; originKeyTarget?: TColumnName<S, N> },
@@ -191,9 +192,9 @@ export default class CollectionBuilder<
    * @param foreignCollection name of the targeted collection
    * @param options extra information about the relation
    * @example
-   * persons.addOneToOne('bestFriend', 'persons', { originKey: 'best_friend_id' })
+   * persons.addOneToOneRelation('bestFriend', 'persons', { originKey: 'best_friend_id' })
    */
-  addOneToOne<T extends TCollectionName<S>>(
+  addOneToOneRelation<T extends TCollectionName<S>>(
     name: string,
     foreignCollection: T,
     options: { originKey: TColumnName<S, T>; originKeyTarget?: TColumnName<S, N> },
@@ -215,12 +216,12 @@ export default class CollectionBuilder<
    * @param throughCollection name of the intermediary collection
    * @param options extra information about the relation
    * @example
-   * dvds.addManyToMany('rentalsOfThisDvd', 'rentals', 'dvd_rentals', {
+   * dvds.addManyToManyRelation('rentalsOfThisDvd', 'rentals', 'dvd_rentals', {
    *   originKey: 'dvd_id',
    *   foreignKey: 'rental_id'
    * })
    */
-  addManyToMany<Foreign extends TCollectionName<S>, Through extends TCollectionName<S>>(
+  addManyToManyRelation<Foreign extends TCollectionName<S>, Through extends TCollectionName<S>>(
     name: string,
     foreignCollection: Foreign,
     throughCollection: Through,
@@ -242,6 +243,35 @@ export default class CollectionBuilder<
     });
 
     return this;
+  }
+
+  /**
+   * Add a virtual collection into the related data of a record.
+   *
+   * @param name name of the relation
+   * @param definition the definition of the new relation
+   * @example
+   * .addExternalRelation('states', {
+   *   schema: { code: 'Number', name: 'String' },
+   *   getRecords: ({ id }) => {
+   *     return [
+   *       { code: 'AL', name: 'Alabama' },
+   *       { code: 'AK', name: 'Alaska' },
+   *       { code: 'AZ', name: 'Arizona' },
+   *     ]
+   *   }
+   * })
+   */
+  addExternalRelation(name: string, definition: OneToManyEmbeddedDefinition<S, N>): this {
+    const { schema } = this.stack.action.getCollection(this.name);
+    const primaryKeys = SchemaUtils.getPrimaryKeys(schema) as TFieldName<S, N>[];
+
+    return this.addField(name, {
+      dependencies: definition.dependencies ?? primaryKeys,
+      columnType: [definition.schema],
+      getValues: async (records, context) =>
+        Promise.all(records.map(async record => definition.getRecords(record, context))),
+    });
   }
 
   /**

@@ -6,6 +6,9 @@ export * from './factory';
 export { default as BaseCollection } from './base-collection';
 export { default as BaseDataSource } from './base-datasource';
 
+// Context
+export { default as CollectionCustomizationContext } from './context/collection-context';
+
 // Decorators (datasource)
 export { default as DataSourceDecorator } from './decorators/datasource-decorator';
 export { default as ChartDataSourceDecorator } from './decorators/chart/datasource';

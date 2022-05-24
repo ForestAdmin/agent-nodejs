@@ -3,9 +3,9 @@ import { Schema } from '../typings';
 
 export default (collection: Collection<Schema, 'store'>) =>
   collection
-    .addManyToOne('owner', 'owner', { foreignKey: 'ownerId' })
-    .addOneToOne('address', 'address', { originKey: 'storeId' })
-    .addOneToMany('dvds', 'dvd', { originKey: 'storeId' })
+    .addManyToOneRelation('owner', 'owner', { foreignKey: 'ownerId' })
+    .addOneToOneRelation('address', 'address', { originKey: 'storeId' })
+    .addOneToManyRelation('dvds', 'dvd', { originKey: 'storeId' })
     .importField('ownerFullName', { path: 'owner:fullName' })
     .replaceFieldWriting('ownerFullName', (fullName, { action }) => {
       if (action === 'update') {

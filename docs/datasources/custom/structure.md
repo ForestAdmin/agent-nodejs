@@ -82,12 +82,12 @@ class MovieCollection extends BaseCollection {
   constructor() {
     // [...]
 
-    this.addManyToOne('director', 'people', {
+    this.addManyToOneRelation('director', 'people', {
       foreignKey: 'directorId',
       foreignKeyTarget: 'id',
     });
 
-    this.addManyToMany('actors', 'people', 'actorsOnMovies', {
+    this.addManyToManyRelation('actors', 'people', 'actorsOnMovies', {
       originKey: 'movieId',
       originKeyTarget: 'id',
       foreignKey: 'actorId',
