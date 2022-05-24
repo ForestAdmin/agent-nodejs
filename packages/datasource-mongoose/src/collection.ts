@@ -25,8 +25,15 @@ export default class MongooseCollection extends BaseCollection {
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
-    this.parseJSONToNestedFieldsInPlace(data);
-    const records = await this.model.insertMany(data);
+    let records: RecordData[];
+
+    if (this.isManyToManyCollection(this)) {
+      records = await this.createManyToMany(data);
+    } else {
+      this.parseJSONToNestedFieldsInPlace(data);
+      records = await this.model.insertMany(data);
+    }
+
     // eslint-disable-next-line no-underscore-dangle
     const ids = records.map(record => record._id);
     const conditionTree = new ConditionTreeLeaf('_id', 'In', ids);
@@ -47,39 +54,41 @@ export default class MongooseCollection extends BaseCollection {
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     if (this.isManyToManyCollection(this)) {
-      const [originCollectionName, foreignCollectionName] = this.name.split('--')[0].split('_');
-      const records = await this.list(
-        caller,
-        filter,
-        new Projection(`${originCollectionName}_id`, `${foreignCollectionName}_id`),
-      );
-
-      for (const record of records) {
-        const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
-        const manyToManyFieldName = this.getManyToManyFieldName(origin, this.name);
-        // improve by grouping by origin id
-        // eslint-disable-next-line no-await-in-loop
-        await origin.model.updateOne(
-          { _id: record[`${originCollectionName}_id`] },
-          {
-            $pull: { [manyToManyFieldName]: record[`${foreignCollectionName}_id`] },
-          },
-        );
-        // eslint-disable-next-line no-await-in-loop
-        await origin.model.updateOne(
-          { _id: patch[`${originCollectionName}_id`] },
-          {
-            $push: { [manyToManyFieldName]: patch[`${foreignCollectionName}_id`] },
-          },
-        );
-      }
-
-      return;
+      return this.updateManyToMany(caller, filter, patch);
     }
 
     const ids = await this.list(caller, filter, new Projection('_id'));
     // eslint-disable-next-line no-underscore-dangle
     await this.model.updateMany({ _id: ids.map(record => record._id) }, patch);
+  }
+
+  private async updateManyToMany(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+    const [originCollectionName, foreignCollectionName] = this.name.split('--')[0].split('_');
+    const records = await this.list(
+      caller,
+      filter,
+      new Projection(`${originCollectionName}_id`, `${foreignCollectionName}_id`),
+    );
+
+    for (const record of records) {
+      const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
+      const manyToManyFieldName = this.getManyToManyFieldName(origin, this.name);
+      // improve by grouping by origin id
+      // eslint-disable-next-line no-await-in-loop
+      await origin.model.updateOne(
+        { _id: record[`${originCollectionName}_id`] },
+        {
+          $pull: { [manyToManyFieldName]: record[`${foreignCollectionName}_id`] },
+        },
+      );
+      // eslint-disable-next-line no-await-in-loop
+      await origin.model.updateOne(
+        { _id: patch[`${originCollectionName}_id`] },
+        {
+          $push: { [manyToManyFieldName]: patch[`${foreignCollectionName}_id`] },
+        },
+      );
+    }
   }
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
@@ -100,6 +109,23 @@ export default class MongooseCollection extends BaseCollection {
     if (limit) pipeline.push({ $limit: limit });
 
     return MongooseCollection.formatRecords(await model.aggregate(pipeline));
+  }
+
+  private async createManyToMany(data: RecordData[]): Promise<RecordData[]> {
+    const [originCollectionName, foreignCollectionName] = this.name.split('--')[0].split('_');
+    const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
+    const manyToManyFieldName = this.getManyToManyFieldName(origin, this.name);
+
+    return Promise.all(
+      data.map(item => {
+        return origin.model.updateOne(
+          { _id: item[`${originCollectionName}_id`] },
+          {
+            $addToSet: { [manyToManyFieldName]: item[`${foreignCollectionName}_id`] },
+          },
+        );
+      }),
+    );
   }
 
   private buildListPipeline(
