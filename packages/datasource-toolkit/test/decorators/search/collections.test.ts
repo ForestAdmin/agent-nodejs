@@ -118,7 +118,7 @@ describe('SearchCollectionDecorator', () => {
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: 'String',
-                  filterOperators: new Set(['Contains']),
+                  filterOperators: new Set(['IContains']),
                 }),
               },
             }),
@@ -150,7 +150,7 @@ describe('SearchCollectionDecorator', () => {
               aggregator: 'And',
               conditions: [
                 { operator: 'Equal', field: 'aFieldName', value: 'fieldValue' },
-                { field: 'fieldName', operator: 'Contains', value: 'a text' },
+                { field: 'fieldName', operator: 'IContains', value: 'a text' },
               ],
             },
           });
@@ -164,7 +164,7 @@ describe('SearchCollectionDecorator', () => {
               fields: {
                 fieldName: factories.columnSchema.build({
                   columnType: 'String',
-                  filterOperators: new Set(['Contains']),
+                  filterOperators: new Set(['IContains']),
                 }),
               },
             }),
@@ -180,7 +180,7 @@ describe('SearchCollectionDecorator', () => {
           );
           expect(refinedFilter).toEqual({
             search: null,
-            conditionTree: { field: 'fieldName', operator: 'Contains', value: 'a text' },
+            conditionTree: { field: 'fieldName', operator: 'IContains', value: 'a text' },
           });
         });
       });
@@ -228,7 +228,7 @@ describe('SearchCollectionDecorator', () => {
                 }),
                 fieldName2: factories.columnSchema.build({
                   columnType: 'String',
-                  filterOperators: new Set(['Contains']),
+                  filterOperators: new Set(['IContains']),
                 }),
               },
             }),
@@ -248,7 +248,7 @@ describe('SearchCollectionDecorator', () => {
               aggregator: 'Or',
               conditions: [
                 { field: 'fieldName', operator: 'Equal', value: 1584 },
-                { field: 'fieldName2', operator: 'Contains', value: '1584' },
+                { field: 'fieldName2', operator: 'IContains', value: '1584' },
               ],
             },
           });

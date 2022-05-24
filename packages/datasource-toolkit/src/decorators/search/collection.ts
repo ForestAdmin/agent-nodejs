@@ -87,7 +87,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     }
 
     if (columnType === 'String') {
-      return new ConditionTreeLeaf(field, 'Contains', searchString);
+      return new ConditionTreeLeaf(field, 'IContains', searchString);
     }
 
     if (columnType === 'Uuid' && isUuid) {
@@ -145,7 +145,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       }
 
       if (columnType === 'String') {
-        return filterOperators?.has('Contains');
+        return filterOperators?.has('IContains');
       }
     }
 
