@@ -3,5 +3,5 @@ import { Schema } from '../typings';
 
 export default (collection: Collection<Schema, 'post'>) =>
   collection
-    // .addOneToMany('comments', 'comment', { originKey: 'postId' })
+    .addOneToMany('comments', 'comment', { originKey: 'postId' })
     .addManyToOne('owner', 'owner', { foreignKey: 'userId' });

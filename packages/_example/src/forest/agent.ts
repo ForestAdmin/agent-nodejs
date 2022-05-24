@@ -1,6 +1,6 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
 import { createLiveDataSource } from '@forestadmin/datasource-live';
-// import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
+import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 
@@ -16,7 +16,7 @@ import customizePost from './customizations/post';
 import customizeRental from './customizations/rental';
 import customizeReview from './customizations/review';
 import customizeStore from './customizations/store';
-// import mongoose from '../connections/mongoose';
+import mongoose from '../connections/mongoose';
 import sequelizeMsSql from '../connections/sequelize-mssql';
 import sequelizeMySql from '../connections/sequelize-mysql';
 import sequelizePostgres from '../connections/sequelize-postgres';
@@ -39,6 +39,7 @@ export default function makeAgent() {
     .addDataSource(createSequelizeDataSource(sequelizePostgres))
     .addDataSource(createSequelizeDataSource(sequelizeMySql))
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))
+    .addDataSource(createMongooseDataSource(mongoose))
 
     .addChart('numRentals', async (context, resultBuilder) => {
       const rentals = context.dataSource.getCollection('rental');
