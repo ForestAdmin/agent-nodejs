@@ -28,7 +28,7 @@ agent.customizeCollection('towns', collection =>
       foreignKey: 'powerplant_id',
     })
 
-    // Towns have a list of honorary citizen which can be retrieve through a public API
+    // Towns have a list of honorary citizen which can be retrieved through a public API
     .addExternalRelation('honoraryCitizen', {
       schema: { firstName: 'String', lastName: 'String' },
       listRecords: async ({ id }) => {
