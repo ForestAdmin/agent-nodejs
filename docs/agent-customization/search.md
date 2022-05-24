@@ -21,8 +21,8 @@ By default, Forest Admin will search only on some columns, depending on their re
 | ----------- | ---------------------------------------------------------------------- |
 | Enum        | Column is equal to the search string (case-insensitive)                |
 | Number      | Column is equal to the search string (if the search string is numeric) |
-| String      | Column contains the search string (case-sensitive)                     |
-| Uuid        | Column is equal to the search string (case-sensitive)                  |
+| String      | Column contains the search string (case-insensitive)                   |
+| Uuid        | Column is equal to the search string                                   |
 | Other types | Column is ignored by the default search handler                        |
 
 ## Customization
