@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.17...@forestadmin/datasource-toolkit@1.0.0-beta.18) (2022-05-24)
+
+
+### Bug Fixes
+
+* publication decorator should not return unpublished columns ([#316](https://github.com/ForestAdmin/agent-nodejs/issues/316)) ([6bb14e4](https://github.com/ForestAdmin/agent-nodejs/commit/6bb14e47b839aba92e11accee10eeb22fb66404a))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.16...@forestadmin/datasource-toolkit@1.0.0-beta.17) (2022-05-24)
 
 
