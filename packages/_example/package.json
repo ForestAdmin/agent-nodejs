@@ -11,6 +11,7 @@
     "@forestadmin/datasource-sequelize": "1.0.0-beta.22",
     "@forestadmin/datasource-sql": "1.0.0-beta.27",
     "@forestadmin/datasource-toolkit": "1.0.0-beta.17",
+    "@forestadmin/datasource-mongoose": "1.0.0-beta.3",
     "@koa/router": "^10.1.1",
     "@nestjs/common": "^8.4.5",
     "@nestjs/core": "^8.4.5",
