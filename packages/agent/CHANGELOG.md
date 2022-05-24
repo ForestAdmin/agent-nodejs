@@ -1,3 +1,13 @@
+# @forestadmin/agent [1.0.0-beta.32](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.31...@forestadmin/agent@1.0.0-beta.32) (2022-05-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.18
+
 # @forestadmin/agent [1.0.0-beta.31](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.30...@forestadmin/agent@1.0.0-beta.31) (2022-05-24)
 
 
