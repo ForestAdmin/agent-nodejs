@@ -1,5 +1,4 @@
 /* eslint-disable no-underscore-dangle */
-
 import {
   CollectionSchema,
   ColumnSchema,
@@ -41,7 +40,7 @@ export default class SchemaFieldsGenerator {
     const schemaFields: CollectionSchema['fields'] = {};
 
     const existingCollectionNames: string[] = [];
-    Object.entries(model.schema.paths).forEach(([fieldName, field]) => {
+    Object.entries(model.schema.paths).forEach(([fieldName, schemaType]) => {
       const mixedFieldPattern = '$*';
       const privateFieldPattern = '__';
 
@@ -50,27 +49,27 @@ export default class SchemaFieldsGenerator {
       }
 
       const isArrayOfIdsColumn =
-        field.options?.type[0]?.schemaName === 'ObjectId' && field.options?.ref;
-      const isIdColumn = field.options.ref;
+        schemaType.options?.type[0]?.schemaName === 'ObjectId' && schemaType.options?.ref;
+      const isIdColumn = schemaType.options.ref;
 
       if (isArrayOfIdsColumn) {
         this.emulateManyToManyRelation(
-          field,
+          schemaType,
           model,
           fieldName,
           schemaFields,
           existingCollectionNames,
         );
       } else if (isIdColumn) {
-        const newFieldName = this.generateUniqueFieldName(fieldName, 'manyToOne', schemaFields);
+        const newFieldName = `${fieldName}__${model.modelName.split('_').pop()}__manyToOne`;
         schemaFields[newFieldName] = {
           type: 'ManyToOne',
-          foreignCollection: field.options.ref,
-          foreignKey: field.path,
+          foreignCollection: schemaType.options.ref,
+          foreignKey: schemaType.path,
           foreignKeyTarget: '_id',
         } as ManyToOneSchema;
         schemaFields[fieldName] = SchemaFieldsGenerator.buildColumnSchema(
-          field,
+          schemaType,
           'String',
           !schemaFields._id,
         );
@@ -78,9 +77,9 @@ export default class SchemaFieldsGenerator {
         return;
       }
 
-      schemaFields[field.path.split('.').shift()] = SchemaFieldsGenerator.buildColumnSchema(
-        field,
-        SchemaFieldsGenerator.getColumnType(field.instance, field),
+      schemaFields[schemaType.path.split('.').shift()] = SchemaFieldsGenerator.buildColumnSchema(
+        schemaType,
+        SchemaFieldsGenerator.getColumnType(schemaType.instance, schemaType),
       );
     });
 
@@ -88,20 +87,17 @@ export default class SchemaFieldsGenerator {
   }
 
   private static emulateManyToManyRelation(
-    field: SchemaType,
+    schema: SchemaType,
     model: Model<RecordData>,
     fieldName: string,
     schemaFields: CollectionSchema['fields'],
     existingCollectionNames: string[],
   ) {
-    const foreignCollectionName = field.options?.ref;
+    const foreignCollectionName = schema.options?.ref;
 
     const { modelName } = model;
-    const newFieldName = this.generateUniqueFieldName(fieldName, 'manyToOne', schemaFields);
-    const throughCollection = this.generateUniqueCollectionName(
-      `${modelName}_${foreignCollectionName}`,
-      existingCollectionNames,
-    );
+    const newFieldName = `${fieldName}__${model.modelName.split('_').pop()}__manyToOne`;
+    const throughCollection = `${modelName}__${foreignCollectionName}__${fieldName}`;
     existingCollectionNames.push(throughCollection);
 
     schemaFields[newFieldName] = {
@@ -113,7 +109,7 @@ export default class SchemaFieldsGenerator {
       foreignKeyTarget: '_id',
       originKeyTarget: '_id',
     } as ManyToManySchema;
-    schemaFields[fieldName] = SchemaFieldsGenerator.buildColumnSchema(field, 'String');
+    schemaFields[fieldName] = SchemaFieldsGenerator.buildColumnSchema(schema, 'String');
   }
 
   private static createManyToManyCollection(
@@ -125,18 +121,14 @@ export default class SchemaFieldsGenerator {
     const foreignCollection = this.getCollection(collections, fieldSchema);
     const foreignKey = `${collection.name}_id`;
     const originKey = `${fieldSchema.foreignKey}`;
+    const { throughCollection } = fieldSchema;
 
-    const field = this.generateUniqueFieldName(
-      `${foreignCollection.name}__${fieldSchema.originKey}`,
-      'ManyToMany',
-      foreignCollection.schema.fields,
-    );
-    const throughCollection = this.generateUniqueCollectionName(
-      `${collection.name}_${foreignCollection.name}`,
-      collection.dataSource.collections.map(coll => coll.name),
-    );
+    const newFieldName = `${foreignCollection.name}__${fieldSchema.originKey}__${throughCollection
+      .split('_')
+      .pop()}`;
+    createdFakeManyToManyRelations.push(newFieldName);
 
-    foreignCollection.schema.fields[field] = {
+    foreignCollection.schema.fields[newFieldName] = {
       throughCollection,
       foreignKey,
       originKey,
@@ -156,8 +148,6 @@ export default class SchemaFieldsGenerator {
 
     const model = mongooseModel(throughCollection, schema, null, { overwriteModels: true });
     collection.dataSource.addCollection(new MongooseCollection(collection.dataSource, model));
-
-    createdFakeManyToManyRelations.push(field);
   }
 
   private static createOneToManyRelation(
@@ -167,55 +157,13 @@ export default class SchemaFieldsGenerator {
   ): void {
     const foreignCollection = this.getCollection(collections, fieldSchema);
 
-    const field = this.generateUniqueFieldName(
-      `${foreignCollection.name}__${fieldSchema.foreignKey}`,
-      'oneToMany',
-      foreignCollection.schema.fields,
-    );
-    foreignCollection.schema.fields[field] = {
+    const newFieldName = `${foreignCollection.name}__${fieldSchema.foreignKey}__oneToMany`;
+    foreignCollection.schema.fields[newFieldName] = {
       foreignCollection: collection.name,
       originKey: fieldSchema.foreignKey,
       originKeyTarget: '_id',
       type: 'OneToMany',
     } as OneToManySchema;
-  }
-
-  private static generateUniqueFieldName(
-    prefix: string,
-    relationName: string,
-    fields: CollectionSchema['fields'],
-    uniqueId = 1,
-  ): string {
-    const uniqueFieldName = `${prefix}__${relationName}--${uniqueId}`;
-
-    if (fields[uniqueFieldName]) {
-      return SchemaFieldsGenerator.generateUniqueFieldName(
-        prefix,
-        relationName,
-        fields,
-        uniqueId + 1,
-      );
-    }
-
-    return uniqueFieldName;
-  }
-
-  private static generateUniqueCollectionName(
-    collectionName: string,
-    existingNames: string[],
-    uniqueId = 1,
-  ): string {
-    const uniqueCollectionName = `${collectionName}--${uniqueId}`;
-
-    if (existingNames.includes(uniqueCollectionName)) {
-      return SchemaFieldsGenerator.generateUniqueCollectionName(
-        collectionName,
-        existingNames,
-        uniqueId + 1,
-      );
-    }
-
-    return uniqueCollectionName;
   }
 
   private static getCollection(

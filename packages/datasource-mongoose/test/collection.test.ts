@@ -1,5 +1,4 @@
 /* eslint-disable no-underscore-dangle */
-
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
@@ -175,7 +174,7 @@ describe('MongooseCollection', () => {
           const dataSource = new MongooseDatasource(connection);
           const store = dataSource.getCollection('store');
           const owner = dataSource.getCollection('owner');
-          const ownerStore = dataSource.getCollection('owner_store--1');
+          const ownerStore = dataSource.getCollection('owner__store__stores');
 
           const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
           const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
@@ -228,7 +227,7 @@ describe('MongooseCollection', () => {
           const dataSource = new MongooseDatasource(connection);
           const store = dataSource.getCollection('store');
           const owner = dataSource.getCollection('owner');
-          const ownerStore = dataSource.getCollection('owner_store--1');
+          const ownerStore = dataSource.getCollection('owner__store__stores');
 
           const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
           const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
@@ -309,7 +308,7 @@ describe('MongooseCollection', () => {
         const dataSource = new MongooseDatasource(connection);
         const store = dataSource.getCollection('store');
         const owner = dataSource.getCollection('owner');
-        const ownerStore = dataSource.getCollection('owner_store--1');
+        const ownerStore = dataSource.getCollection('owner__store__stores');
 
         const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
         const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
@@ -455,7 +454,7 @@ describe('MongooseCollection', () => {
           const expectedOwner = await owner.list(
             factories.caller.build(),
             factories.filter.build({
-              sort: new Sort({ field: 'storeId__manyToOne--1:name', ascending: false }),
+              sort: new Sort({ field: 'storeId__owner__manyToOne:name', ascending: false }),
             }),
             new Projection('name'),
           );
@@ -506,7 +505,7 @@ describe('MongooseCollection', () => {
             );
 
             expect(expectedOwner).toEqual([
-              { ...ownerRecord, 'storeId__manyToOne--1': storeRecord },
+              { ...ownerRecord, storeId__owner__manyToOne: storeRecord },
             ]);
           });
         });
@@ -530,11 +529,11 @@ describe('MongooseCollection', () => {
             const expectedOwner = await owner.list(
               factories.caller.build(),
               factories.filter.build(),
-              new Projection('name', 'storeId__manyToOne--1:name'),
+              new Projection('name', 'storeId__owner__manyToOne:name'),
             );
 
             expect(expectedOwner).toEqual([
-              { name: 'aOwner', 'storeId__manyToOne--1': { name: 'aStore' } },
+              { name: 'aOwner', storeId__owner__manyToOne: { name: 'aStore' } },
             ]);
           });
 
@@ -1044,7 +1043,7 @@ describe('MongooseCollection', () => {
               conditionTree: factories.conditionTreeLeaf.build({
                 value: 'A',
                 operator: 'Equal',
-                field: 'storeId__manyToOne--1:name',
+                field: 'storeId__owner__manyToOne:name',
               }),
             }),
             new Projection('name'),
@@ -1060,7 +1059,7 @@ describe('MongooseCollection', () => {
           const dataSource = new MongooseDatasource(connection);
           const store = dataSource.getCollection('store');
           const owner = dataSource.getCollection('owner');
-          const ownerStore = dataSource.getCollection('owner_store--1');
+          const ownerStore = dataSource.getCollection('owner__store__stores');
 
           const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
           const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
@@ -1136,7 +1135,7 @@ describe('MongooseCollection', () => {
               conditionTree: factories.conditionTreeLeaf.build({
                 value: 'A',
                 operator: 'Equal',
-                field: 'storeId__manyToOne--1:addressId__manyToOne--1:name',
+                field: 'storeId__owner__manyToOne:addressId__store__manyToOne:name',
               }),
             }),
             new Projection(),
@@ -1147,11 +1146,11 @@ describe('MongooseCollection', () => {
               _id: expect.any(Object),
               storeId: expect.any(Object),
               name: 'owner with the store address A',
-              'storeId__manyToOne--1': {
+              storeId__owner__manyToOne: {
                 _id: expect.any(Object),
                 name: 'A',
                 addressId: expect.any(Object),
-                'addressId__manyToOne--1': {
+                addressId__store__manyToOne: {
                   _id: expect.any(Object),
                   name: 'A',
                 },
@@ -1243,7 +1242,7 @@ describe('MongooseCollection', () => {
           const dataSource = new MongooseDatasource(connection);
           const store = dataSource.getCollection('store');
           const owner = dataSource.getCollection('owner');
-          const ownerStore = dataSource.getCollection('owner_store--1');
+          const ownerStore = dataSource.getCollection('owner__store__stores');
 
           const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
           const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
@@ -1296,7 +1295,7 @@ describe('MongooseCollection', () => {
           const dataSource = new MongooseDatasource(connection);
           const store = dataSource.getCollection('store');
           const owner = dataSource.getCollection('owner');
-          const ownerStore = dataSource.getCollection('owner_store--1');
+          const ownerStore = dataSource.getCollection('owner__store__stores');
 
           const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
           const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
@@ -1349,7 +1348,7 @@ describe('MongooseCollection', () => {
 
       const aggregation = new Aggregation({
         operation: 'Max',
-        field: 'storeId__manyToOne--1:name',
+        field: 'storeId__owner__manyToOne:name',
       });
       const records = await owner.aggregate(factories.caller.build(), new Filter({}), aggregation);
 
@@ -1376,13 +1375,13 @@ describe('MongooseCollection', () => {
       const aggregation = new Aggregation({
         operation: 'Count',
         field: 'storeId_manyToOne:name',
-        groups: [{ field: 'storeId__manyToOne--1:name' }],
+        groups: [{ field: 'storeId__owner__manyToOne:name' }],
       });
       const records = await owner.aggregate(factories.caller.build(), new Filter({}), aggregation);
 
       expect(records).toIncludeSameMembers([
-        { group: { 'storeId__manyToOne--1.name': 'A' }, value: 2 },
-        { group: { 'storeId__manyToOne--1.name': 'B' }, value: 1 },
+        { group: { 'storeId__owner__manyToOne:name': 'A' }, value: 2 },
+        { group: { 'storeId__owner__manyToOne:name': 'B' }, value: 1 },
       ]);
     });
 
@@ -1717,7 +1716,7 @@ describe('MongooseCollection', () => {
         const dataSource = new MongooseDatasource(connection);
         const store = dataSource.getCollection('store');
         const owner = dataSource.getCollection('owner');
-        const ownerStore = dataSource.getCollection('owner_store--1');
+        const ownerStore = dataSource.getCollection('owner__store__stores');
 
         const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
         const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
