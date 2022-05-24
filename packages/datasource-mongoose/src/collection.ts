@@ -46,6 +46,37 @@ export default class MongooseCollection extends BaseCollection {
   }
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+    if (this.isManyToManyCollection(this)) {
+      const [originCollectionName, foreignCollectionName] = this.name.split('--')[0].split('_');
+      const records = await this.list(
+        caller,
+        filter,
+        new Projection(`${originCollectionName}_id`, `${foreignCollectionName}_id`),
+      );
+
+      for (const record of records) {
+        const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
+        const manyToManyFieldName = this.getManyToManyFieldName(origin, this.name);
+        // improve by grouping by origin id
+        // eslint-disable-next-line no-await-in-loop
+        await origin.model.updateOne(
+          { _id: record[`${originCollectionName}_id`] },
+          {
+            $pull: { [manyToManyFieldName]: record[`${foreignCollectionName}_id`] },
+          },
+        );
+        // eslint-disable-next-line no-await-in-loop
+        await origin.model.updateOne(
+          { _id: patch[`${originCollectionName}_id`] },
+          {
+            $push: { [manyToManyFieldName]: patch[`${foreignCollectionName}_id`] },
+          },
+        );
+      }
+
+      return;
+    }
+
     const ids = await this.list(caller, filter, new Projection('_id'));
     // eslint-disable-next-line no-underscore-dangle
     await this.model.updateMany({ _id: ids.map(record => record._id) }, patch);
