@@ -445,7 +445,14 @@ describe('SchemaFieldsGenerator', () => {
 
         // be aware to not create two times the collection
         expect(() => dataSource.getCollection('modelB_modelA--1')).toThrow();
-        expect(dataSource.getCollection('modelA_modelB--1').schema.fields).toEqual({
+        const manyToManyCollection = dataSource.getCollection('modelA_modelB--1');
+
+        expect(manyToManyCollection.schema.fields.modelA_id).toHaveProperty('isPrimaryKey', true);
+        expect(manyToManyCollection.schema.fields.modelB_id).toHaveProperty('isPrimaryKey', true);
+        // eslint-disable-next-line no-underscore-dangle
+        expect(manyToManyCollection.schema.fields._id).toEqual(undefined);
+
+        expect(manyToManyCollection.schema.fields).toEqual({
           'modelA_id__manyToOne--1': {
             type: 'ManyToOne',
             foreignCollection: 'modelA',
@@ -460,7 +467,6 @@ describe('SchemaFieldsGenerator', () => {
             foreignKeyTarget: '_id',
           },
           modelB_id: expect.any(Object),
-          _id: expect.any(Object),
         });
       });
     });

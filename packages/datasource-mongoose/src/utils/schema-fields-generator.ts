@@ -1,3 +1,5 @@
+/* eslint-disable no-underscore-dangle */
+
 import {
   CollectionSchema,
   ColumnSchema,
@@ -67,7 +69,13 @@ export default class SchemaFieldsGenerator {
           foreignKey: field.path,
           foreignKeyTarget: '_id',
         } as ManyToOneSchema;
-        schemaFields[fieldName] = SchemaFieldsGenerator.buildColumnSchema(field, 'String');
+        schemaFields[fieldName] = SchemaFieldsGenerator.buildColumnSchema(
+          field,
+          'String',
+          !schemaFields._id,
+        );
+
+        return;
       }
 
       schemaFields[field.path.split('.').shift()] = SchemaFieldsGenerator.buildColumnSchema(
@@ -138,10 +146,13 @@ export default class SchemaFieldsGenerator {
       originKeyTarget: '_id',
     } as ManyToManySchema;
 
-    const schema = new Schema({
-      [foreignKey]: { type: Schema.Types.ObjectId, ref: collection.name },
-      [originKey]: { type: Schema.Types.ObjectId, ref: foreignCollection.name },
-    });
+    const schema = new Schema(
+      {
+        [foreignKey]: { type: Schema.Types.ObjectId, ref: collection.name },
+        [originKey]: { type: Schema.Types.ObjectId, ref: foreignCollection.name },
+      },
+      { _id: false },
+    );
 
     const model = mongooseModel(throughCollection, schema, null, { overwriteModels: true });
     collection.dataSource.addCollection(new MongooseCollection(collection.dataSource, model));
@@ -267,13 +278,17 @@ export default class SchemaFieldsGenerator {
     }
   }
 
-  private static buildColumnSchema(field: SchemaType, columnType: ColumnType): ColumnSchema {
+  private static buildColumnSchema(
+    field: SchemaType,
+    columnType: ColumnType,
+    isPrimaryKey = false,
+  ): ColumnSchema {
     return {
       columnType,
       filterOperators: FilterOperatorBuilder.getSupportedOperators(columnType as PrimitiveTypes),
       defaultValue: field.options?.default,
       enumValues: this.getEnumValues(field),
-      isPrimaryKey: field.path === '_id',
+      isPrimaryKey: field.path === '_id' || isPrimaryKey,
       isReadOnly: !!field.options?.immutable,
       isSortable: !(columnType instanceof Object || columnType === 'Json'),
       type: 'Column',
