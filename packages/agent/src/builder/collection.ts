@@ -253,7 +253,7 @@ export default class CollectionBuilder<
    * @example
    * .addExternalRelation('states', {
    *   schema: { code: 'Number', name: 'String' },
-   *   getRecords: ({ id }) => {
+   *   listRecords: ({ id }) => {
    *     return [
    *       { code: 'AL', name: 'Alabama' },
    *       { code: 'AK', name: 'Alaska' },
@@ -270,7 +270,7 @@ export default class CollectionBuilder<
       dependencies: definition.dependencies ?? primaryKeys,
       columnType: [definition.schema],
       getValues: async (records, context) =>
-        Promise.all(records.map(async record => definition.getRecords(record, context))),
+        Promise.all(records.map(async record => definition.listRecords(record, context))),
     });
   }
 

@@ -8,12 +8,33 @@ However, you may want to create additional intra-datasource and cross-datasource
 - Create charts which use data from multiple datasources.
 - Let users filter, use scopes or segment with conditions which cross data-source boundaries.
 
-## Display
+## Minimal example
 
-| Name                | Visible in           | Definition                                                                 | Example                                                                          |
-| ------------------- | -------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `OneToMany`         | Related Data         | One record in a collection is connected to multiple records in another     | A country can have multiple cities, but cities belong to a country               |
-| `OneToManyEmbedded` | Related Data         |                                                                            |                                                                                  |
-| `ManyToMany`        | Related Data         | Many records from a collection are connected to many records in another    | A user can rate many movies, and a movie can be rated by many users              |
-| `ManyToOne`         | List and Detail view | Many records from a collection are connected to a single record in another | A city belongs to a country, but countries can have multiple cities              |
-| `OneToOne`          | List and Detail view | There is a one-to-one mapping between records in two collections           | A person can have only one passport, and each passport belong to a single person |
+```javascript
+agent.customizeCollection('towns', collection =>
+  collection
+    // Towns belong to countries
+    .addManyToOneRelation('myCountry', 'countries', { foreignKey: 'country_id' })
+
+    // Towns have one mayor
+    .addOneToOneRelation('myMayor', 'persons', { originKey: 'mayor_id' })
+
+    // Towns have multiple inhabitants
+    .addOneToManyRelation('myMayor', 'persons', { originKey: 'town_id' })
+
+    // Town are supplied by multiple power-plant, but those also supply other cities
+    .addManyToManyRelation('myPowerPlants', 'powerPlants', 'utilityContracts', {
+      originKey: 'town_id',
+      foreignKey: 'powerplant_id',
+    })
+
+    // Town have a list of honorary citizen which can be retrieve through an API
+    .addExternalRelation('honoraryCitizen', {
+      schema: { firstName: 'String', lastName: 'String' },
+      listRecords: async ({ id }) => {
+        const response = await axios.get(`https://api.mytown.com/cities/${id}/honorary-citizen`);
+        return response.body;
+      },
+    }),
+);
+```

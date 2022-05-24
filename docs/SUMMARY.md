@@ -44,7 +44,7 @@
   - [Sort overrides](agent-customization/fields/sort.md)
 
 - [Relationships](agent-customization/relationships/README.md)
-  - [To single records](agent-customization/relationships/single-record.md)
+  - [To a single record](agent-customization/relationships/single-record.md)
   - [To multiple records](agent-customization/relationships/multiple-records.md)
   - [Computed foreign keys](agent-customization/relationships/computed-fks.md)
   - [Under the hood](agent-customization/relationships/under-the-hood.md)

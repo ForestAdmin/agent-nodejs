@@ -7,7 +7,7 @@ export default (collection: Collection<Schema, 'address'>) =>
     .addExternalRelation('nearStates', {
       schema: { code: 'Number', name: 'String' },
       dependencies: ['zipCode'],
-      getRecords: ({ zipCode }) =>
+      listRecords: ({ zipCode }) =>
         zipCode.charAt(0) < '5'
           ? [
               { code: 'AL', name: 'Alabama' },

@@ -22,7 +22,7 @@ export type OneToManyEmbeddedDefinition<
 > = {
   schema: Record<string, PrimitiveTypes>;
   dependencies?: TFieldName<S, N>[];
-  getRecords(
+  listRecords(
     records: TRow<S, N>,
     context: CollectionCustomizationContext<S, N>,
   ): Promise<unknown[]> | unknown[];

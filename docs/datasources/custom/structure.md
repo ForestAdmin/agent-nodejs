@@ -15,23 +15,27 @@ class MovieCollection extends BaseCollection {
   constructor() {
     // [...]
 
-    this.addColumn('id', {
+    this.addField('id', {
+      type: 'Column',
       columnType: 'Number',
       isPrimaryKey: true,
     });
 
-    this.addColumn('title', {
+    this.addField('title', {
+      type: 'Column',
       columnType: 'String',
       validation: [{ operator: 'Present' }],
     });
 
-    this.addColumn('mpa_rating', {
+    this.addField('mpa_rating', {
+      type: 'Column',
       columnType: 'Enum',
       enumValues: ['G', 'PG', 'PG-13', 'R', 'NC-17'],
       defaultValue: 'G',
     });
 
-    this.addColumn('stars', {
+    this.addField('stars', {
+      type: 'Column',
       columnType: [{ firstName: 'String', lastName: 'String' }],
     });
   }
@@ -82,12 +86,18 @@ class MovieCollection extends BaseCollection {
   constructor() {
     // [...]
 
-    this.addManyToOneRelation('director', 'people', {
+    this.addField('director', {
+      type: 'ManyToOne',
+      foreignCollection: 'people',
       foreignKey: 'directorId',
       foreignKeyTarget: 'id',
     });
 
-    this.addManyToManyRelation('actors', 'people', 'actorsOnMovies', {
+    this.addField('actors', {
+      type: 'ManyToMany',
+      foreignCollection: 'people',
+      throughCollection: 'actorsOnMovies',
+
       originKey: 'movieId',
       originKeyTarget: 'id',
       foreignKey: 'actorId',

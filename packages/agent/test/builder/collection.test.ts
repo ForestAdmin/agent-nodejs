@@ -172,7 +172,7 @@ describe('Builder > Collection', () => {
       const spy = jest.spyOn(builder, 'addField');
       const self = builder.addExternalRelation('firstNameCopy', {
         schema: { firstname: 'String', lastName: 'String' },
-        getRecords: () => {
+        listRecords: () => {
           return [{ firstname: 'John', lastName: 'Doe' }];
         },
       });
