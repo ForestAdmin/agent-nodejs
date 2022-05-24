@@ -69,15 +69,15 @@ export default class MongooseCollection extends BaseCollection {
     return MongooseCollection.formatRecords(await this.model.aggregate(pipeline));
   }
 
-  protected static formatRecords(records: RecordData[]): AggregateResult[] {
+  public static formatRecords(records: RecordData[]): AggregateResult[] {
     const results: AggregateResult[] = [];
 
     records.forEach(record => {
       // eslint-disable-next-line no-underscore-dangle
-      const group = Object.entries(record?._id || {}).reduce((memo, [field, value]) => {
-        memo[field.replace(':', ':')] = value;
+      const group = Object.entries(record?._id || {}).reduce((computed, [field, value]) => {
+        computed[field] = value;
 
-        return memo;
+        return computed;
       }, {});
 
       results.push({ value: record.value, group });
@@ -86,7 +86,7 @@ export default class MongooseCollection extends BaseCollection {
     return results;
   }
 
-  protected parseJSONToNestedFieldsInPlace(data: RecordData[]) {
+  private parseJSONToNestedFieldsInPlace(data: RecordData[]) {
     data.forEach(currentData => {
       Object.entries(this.schema.fields).forEach(([fieldName, schema]) => {
         if (schema.type === 'Column' && typeof schema.columnType === 'object') {
@@ -155,7 +155,7 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
     return MongooseCollection.formatRecords(await model.aggregate(pipeline));
   }
 
-  protected async createManyToMany(data: RecordData[]): Promise<RecordData[]> {
+  private async createManyToMany(data: RecordData[]): Promise<RecordData[]> {
     const [originCollectionName, foreignCollectionName] = this.name.split('__');
     const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
     const manyToManyFieldName = this.getManyToManyFieldName(origin, this.name);
@@ -172,7 +172,7 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
     );
   }
 
-  protected async updateManyToMany(
+  private async updateManyToMany(
     caller: Caller,
     filter: Filter,
     patch?: RecordData,
@@ -208,7 +208,7 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
     }
   }
 
-  protected getManyToManyFieldName(
+  private getManyToManyFieldName(
     collection: MongooseCollection,
     throughCollectionName: string,
   ): string {
@@ -225,7 +225,7 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
     return fieldAndSchema[0].split('__').slice(0, -2).join('.');
   }
 
-  protected buildListPipeline(
+  private buildListPipeline(
     model: Model<RecordData>,
     filter: Filter,
     projection: Projection,
