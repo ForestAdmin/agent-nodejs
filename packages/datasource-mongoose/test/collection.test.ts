@@ -1185,6 +1185,99 @@ describe('MongooseCollection', () => {
         });
       });
     });
+
+    describe('with a many to many relation', () => {
+      describe('when there is the foreign relation to update', () => {
+        it('updates the right id in the array of objectId', async () => {
+          // given
+          await setupWith2ManyToManyRelations();
+          const dataSource = new MongooseDatasource(connection);
+          const store = dataSource.getCollection('store');
+          const owner = dataSource.getCollection('owner');
+          const ownerStore = dataSource.getCollection('owner_store--1');
+
+          const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
+          const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
+          await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
+          const ownerRecordA = { _id: new Types.ObjectId(), stores: [storeRecordA._id] };
+          const ownerRecordB = { _id: new Types.ObjectId() };
+          await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
+
+          // when
+          await ownerStore.update(
+            factories.caller.build(),
+            new Filter({
+              conditionTree: factories.conditionTreeBranch.build({
+                aggregator: 'And',
+                conditions: [
+                  factories.conditionTreeLeaf.build({
+                    value: ownerRecordA._id,
+                    operator: 'Equal',
+                    field: 'owner_id',
+                  }),
+                  factories.conditionTreeLeaf.build({
+                    value: storeRecordA._id,
+                    operator: 'Equal',
+                    field: 'store_id',
+                  }),
+                ],
+              }),
+            }),
+
+            { owner_id: ownerRecordA._id, store_id: storeRecordB._id },
+          );
+
+          // then
+
+          const expectedOwnerStore = await ownerStore.list(
+            factories.caller.build(),
+            factories.filter.build(),
+            new Projection('store_id', 'owner_id'),
+          );
+          expect(expectedOwnerStore).toEqual([
+            { owner_id: ownerRecordA._id, store_id: storeRecordB._id },
+          ]);
+        });
+      });
+
+      describe('when it a many to many collection', () => {
+        it('adds the right id to the right record', async () => {
+          // given
+          await setupWith2ManyToManyRelations();
+          const dataSource = new MongooseDatasource(connection);
+          const store = dataSource.getCollection('store');
+          const owner = dataSource.getCollection('owner');
+          const ownerStore = dataSource.getCollection('owner_store--1');
+
+          const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
+          const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
+          await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
+
+          const ownerRecordA = { _id: new Types.ObjectId(), stores: [storeRecordA._id] };
+          const ownerRecordB = { _id: new Types.ObjectId() };
+          await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
+
+          // when
+          await ownerStore.create(factories.caller.build(), [
+            {
+              owner_id: ownerRecordB._id,
+              store_id: storeRecordB._id,
+            },
+          ]);
+
+          // then
+          const expectedOwnerStore = await ownerStore.list(
+            factories.caller.build(),
+            factories.filter.build(),
+            new Projection('store_id', 'owner_id'),
+          );
+          expect(expectedOwnerStore).toEqual([
+            { owner_id: ownerRecordA._id, store_id: storeRecordA._id },
+            { owner_id: ownerRecordB._id, store_id: storeRecordB._id },
+          ]);
+        });
+      });
+    });
   });
 
   describe('aggregate', () => {
