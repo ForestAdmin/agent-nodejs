@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.0.0-beta.31](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.30...@forestadmin/agent@1.0.0-beta.31) (2022-05-24)
+
+
+### Features
+
+* add replaceSearch to collection customizer ([#310](https://github.com/ForestAdmin/agent-nodejs/issues/310)) ([09a45c7](https://github.com/ForestAdmin/agent-nodejs/commit/09a45c783c277dd5642aa9b289a43750f3d97ade))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.17
+
 # @forestadmin/agent [1.0.0-beta.30](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.29...@forestadmin/agent@1.0.0-beta.30) (2022-05-19)
 
 
