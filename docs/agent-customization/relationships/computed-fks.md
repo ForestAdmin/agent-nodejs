@@ -57,18 +57,15 @@ There is no common id between them that can be used to tell Forest Admin how to 
 
 ```javascript
 agent
-  // Concatenate firstname and last name to make a unique identifier on both sides
   .customizeCollection('databaseUsers', createFilterableIdentityField)
   .customizeCollection('crmUsers', createFilterableIdentityField)
+  .customizeCollection('databaseUsers', createRelationship)
+  .customizeCollection('crmUsers', createInverseRelationship);
 
-  // Create relationships using the foreign key we just added
-  .customizeCollection('databaseUsers', collection => {
-    collection.addManyToOneRelation('userFromCrm', 'crmUsers', {
-      foreignKey: 'userIdentifier',
-      foreignKeyTarget: 'userIdentifier',
-    });
-  });
-
+/**
+ * Concatenate firstname, lastname and birthData to make a unique identifier
+ * and ensure that the new field is filterable
+ */
 function createFilterableIdentityField(collection) {
   // Create foreign key on the collection from the database
   collection.addField('userIdentifier', {
@@ -89,5 +86,21 @@ function createFilterableIdentityField(collection) {
       ],
     })),
   }));
+}
+
+/** Create relationship between databaseUsers and crmUsers */
+function createRelationship(databaseUsers) {
+  databaseUsers.addOneToOneRelation('userFromCrm', 'crmUsers', {
+    originKey: 'userIdentifier',
+    originKeyTarget: 'userIdentifier',
+  });
+}
+
+/** Create relationship between crmUsers and databaseUsers */
+function createInverseRelationship(crmUsers) {
+  databaseUsers.addManyToOneRelation('userFromDatabase', 'databaseUsers', {
+    foreignKey: 'userIdentifier',
+    foreignKeyTarget: 'userIdentifier',
+  });
 }
 ```
