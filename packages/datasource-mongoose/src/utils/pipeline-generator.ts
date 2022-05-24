@@ -58,10 +58,9 @@ export default class PipelineGenerator {
       $addFields: {
         [originId]: '$_id',
         [foreignId]: `$${manyToManyField}`,
-        _id: { $concat: [{ $toString: '$_id' }, '-', { $toString: `$${manyToManyField}` }] },
       },
     });
-    pipeline.push({ $project: { _id: true, [originId]: true, [foreignId]: true } });
+    pipeline.push({ $project: { _id: false, [originId]: true, [foreignId]: true } });
 
     return pipeline;
   }
