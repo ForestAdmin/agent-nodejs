@@ -12,7 +12,7 @@ import {
 import { Model, Schema, SchemaType, model as mongooseModel } from 'mongoose';
 
 import FilterOperatorBuilder from './filter-operator-builder';
-import MongooseCollection from '../collection';
+import MongooseCollection, { ManyToManyMongooseCollection } from '../collection';
 
 export default class SchemaFieldsGenerator {
   static addInverseRelationships(collections: MongooseCollection[]): void {
@@ -147,7 +147,9 @@ export default class SchemaFieldsGenerator {
     );
 
     const model = mongooseModel(throughCollection, schema, null, { overwriteModels: true });
-    collection.dataSource.addCollection(new MongooseCollection(collection.dataSource, model));
+    collection.dataSource.addCollection(
+      new ManyToManyMongooseCollection(collection.dataSource, model, collection, foreignCollection),
+    );
   }
 
   private static createOneToManyRelation(

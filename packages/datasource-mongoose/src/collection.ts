@@ -1,3 +1,4 @@
+// eslint-disable-next-line max-classes-per-file
 import {
   AggregateResult,
   Aggregation,
@@ -16,7 +17,7 @@ import PipelineGenerator from './utils/pipeline-generator';
 import SchemaFieldsGenerator from './utils/schema-fields-generator';
 
 export default class MongooseCollection extends BaseCollection {
-  private readonly model: Model<RecordData>;
+  public readonly model: Model<RecordData>;
 
   constructor(dataSource: DataSource, model: Model<RecordData>) {
     super(model.modelName, dataSource);
@@ -25,14 +26,8 @@ export default class MongooseCollection extends BaseCollection {
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
-    let records: RecordData[];
-
-    if (this.isManyToManyCollection(this)) {
-      records = await this.createManyToMany(data);
-    } else {
-      this.parseJSONToNestedFieldsInPlace(data);
-      records = await this.model.insertMany(data);
-    }
+    this.parseJSONToNestedFieldsInPlace(data);
+    const records = await this.model.insertMany(data);
 
     // eslint-disable-next-line no-underscore-dangle
     const ids = records.map(record => record._id);
@@ -46,27 +41,16 @@ export default class MongooseCollection extends BaseCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    const model = this.getModelToRequest();
-    const pipeline = this.buildListPipeline(model, filter, projection);
-
-    return model.aggregate(pipeline);
+    return this.model.aggregate(PipelineGenerator.find(this, this.model, filter, projection));
   }
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
-    if (this.isManyToManyCollection(this)) {
-      return this.updateManyToMany(caller, filter, patch);
-    }
-
     const ids = await this.list(caller, filter, new Projection('_id'));
     // eslint-disable-next-line no-underscore-dangle
     await this.model.updateMany({ _id: ids.map(record => record._id) }, patch);
   }
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
-    if (this.isManyToManyCollection(this)) {
-      return this.updateManyToMany(caller, filter);
-    }
-
     const ids = await this.list(caller, filter, new Projection('_id'));
     // eslint-disable-next-line no-underscore-dangle
     await this.model.deleteMany({ _id: ids.map(record => record._id) });
@@ -78,7 +62,92 @@ export default class MongooseCollection extends BaseCollection {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    const model = this.getModelToRequest();
+    let pipeline = PipelineGenerator.find(this, this.model, filter, aggregation.projection);
+    pipeline = PipelineGenerator.group(aggregation, pipeline);
+    if (limit) pipeline.push({ $limit: limit });
+
+    return MongooseCollection.formatRecords(await this.model.aggregate(pipeline));
+  }
+
+  protected static formatRecords(records: RecordData[]): AggregateResult[] {
+    const results: AggregateResult[] = [];
+
+    records.forEach(record => {
+      // eslint-disable-next-line no-underscore-dangle
+      const group = Object.entries(record?._id || {}).reduce((memo, [field, value]) => {
+        memo[field.replace(':', ':')] = value;
+
+        return memo;
+      }, {});
+
+      results.push({ value: record.value, group });
+    });
+
+    return results;
+  }
+
+  protected parseJSONToNestedFieldsInPlace(data: RecordData[]) {
+    data.forEach(currentData => {
+      Object.entries(this.schema.fields).forEach(([fieldName, schema]) => {
+        if (schema.type === 'Column' && typeof schema.columnType === 'object') {
+          if (typeof currentData[fieldName] === 'string') {
+            currentData[fieldName] = JSON.parse(<string>currentData[fieldName]);
+          }
+        }
+      });
+    });
+  }
+}
+
+export class ManyToManyMongooseCollection extends MongooseCollection {
+  private readonly originCollection: MongooseCollection;
+  private readonly foreignCollection: MongooseCollection;
+
+  constructor(
+    dataSource: DataSource,
+    model: Model<RecordData>,
+    originCollectionName: MongooseCollection,
+    foreignCollectionName: MongooseCollection,
+  ) {
+    super(dataSource, model);
+    this.originCollection = originCollectionName;
+    this.foreignCollection = foreignCollectionName;
+  }
+
+  override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
+    const records = await this.createManyToMany(data);
+    // eslint-disable-next-line no-underscore-dangle
+    const ids = records.map(record => record._id);
+    const conditionTree = new ConditionTreeLeaf('_id', 'In', ids);
+
+    return this.list(caller, new Filter({ conditionTree }), new Projection());
+  }
+
+  override async list(
+    caller: Caller,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
+    const { model } = this.originCollection;
+
+    return model.aggregate(this.buildListPipeline(model, filter, projection));
+  }
+
+  override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+    return this.updateManyToMany(caller, filter, patch);
+  }
+
+  override async delete(caller: Caller, filter: Filter): Promise<void> {
+    return this.updateManyToMany(caller, filter);
+  }
+
+  override async aggregate(
+    caller: Caller,
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]> {
+    const { model } = this.originCollection;
     let pipeline = this.buildListPipeline(model, filter, aggregation.projection);
     pipeline = PipelineGenerator.group(aggregation, pipeline);
     if (limit) pipeline.push({ $limit: limit });
@@ -86,7 +155,24 @@ export default class MongooseCollection extends BaseCollection {
     return MongooseCollection.formatRecords(await model.aggregate(pipeline));
   }
 
-  private async updateManyToMany(
+  protected async createManyToMany(data: RecordData[]): Promise<RecordData[]> {
+    const [originCollectionName, foreignCollectionName] = this.name.split('__');
+    const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
+    const manyToManyFieldName = this.getManyToManyFieldName(origin, this.name);
+
+    return Promise.all(
+      data.map(item => {
+        return origin.model.updateOne(
+          { _id: item[`${originCollectionName}_id`] },
+          {
+            $addToSet: { [manyToManyFieldName]: item[`${foreignCollectionName}_id`] },
+          },
+        );
+      }),
+    );
+  }
+
+  protected async updateManyToMany(
     caller: Caller,
     filter: Filter,
     patch?: RecordData,
@@ -122,67 +208,7 @@ export default class MongooseCollection extends BaseCollection {
     }
   }
 
-  private async createManyToMany(data: RecordData[]): Promise<RecordData[]> {
-    const [originCollectionName, foreignCollectionName] = this.name.split('__');
-    const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
-    const manyToManyFieldName = this.getManyToManyFieldName(origin, this.name);
-
-    return Promise.all(
-      data.map(item => {
-        return origin.model.updateOne(
-          { _id: item[`${originCollectionName}_id`] },
-          {
-            $addToSet: { [manyToManyFieldName]: item[`${foreignCollectionName}_id`] },
-          },
-        );
-      }),
-    );
-  }
-
-  private buildListPipeline(
-    model: Model<RecordData>,
-    filter: Filter,
-    projection: Projection,
-  ): PipelineStage[] {
-    let pipeline: PipelineStage[] = [];
-
-    if (this.isManyToManyCollection(this)) {
-      const [originCollectionName, foreignCollectionName] = this.name.split('__');
-      const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
-
-      pipeline = PipelineGenerator.find(origin, model, new PaginatedFilter({}), new Projection());
-      pipeline = PipelineGenerator.emulateManyToManyCollection(
-        model,
-        this.getManyToManyFieldName(origin, this.name),
-        originCollectionName,
-        foreignCollectionName,
-        pipeline,
-      );
-    }
-
-    return PipelineGenerator.find(this, model, filter, projection, pipeline);
-  }
-
-  private getModelToRequest(): Model<RecordData> {
-    if (this.isManyToManyCollection(this)) {
-      const [originName] = this.name.split('__');
-      const origin = this.dataSource.getCollection(originName) as MongooseCollection;
-
-      return origin.model;
-    }
-
-    return this.model;
-  }
-
-  private isManyToManyCollection(collection: MongooseCollection): boolean {
-    return !!collection.dataSource.collections.find(col => {
-      const schemas = Object.values(col.schema.fields);
-
-      return schemas.find(s => s.type === 'ManyToMany' && s.throughCollection === collection.name);
-    });
-  }
-
-  private getManyToManyFieldName(
+  protected getManyToManyFieldName(
     collection: MongooseCollection,
     throughCollectionName: string,
   ): string {
@@ -199,32 +225,25 @@ export default class MongooseCollection extends BaseCollection {
     return fieldAndSchema[0].split('__').slice(0, -2).join('.');
   }
 
-  private static formatRecords(records: RecordData[]): AggregateResult[] {
-    const results: AggregateResult[] = [];
+  protected buildListPipeline(
+    model: Model<RecordData>,
+    filter: Filter,
+    projection: Projection,
+  ): PipelineStage[] {
+    let pipeline: PipelineStage[] = [];
 
-    records.forEach(record => {
-      // eslint-disable-next-line no-underscore-dangle
-      const group = Object.entries(record?._id || {}).reduce((memo, [field, value]) => {
-        memo[field.replace(':', ':')] = value;
+    const [originCollectionName, foreignCollectionName] = this.name.split('__');
+    const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
 
-        return memo;
-      }, {});
+    pipeline = PipelineGenerator.find(origin, model, new PaginatedFilter({}), new Projection());
+    pipeline = PipelineGenerator.emulateManyToManyCollection(
+      model,
+      this.getManyToManyFieldName(origin, this.name),
+      originCollectionName,
+      foreignCollectionName,
+      pipeline,
+    );
 
-      results.push({ value: record.value, group });
-    });
-
-    return results;
-  }
-
-  private parseJSONToNestedFieldsInPlace(data: RecordData[]) {
-    data.forEach(currentData => {
-      Object.entries(this.schema.fields).forEach(([fieldName, schema]) => {
-        if (schema.type === 'Column' && typeof schema.columnType === 'object') {
-          if (typeof currentData[fieldName] === 'string') {
-            currentData[fieldName] = JSON.parse(<string>currentData[fieldName]);
-          }
-        }
-      });
-    });
+    return PipelineGenerator.find(this, model, filter, projection, pipeline);
   }
 }
