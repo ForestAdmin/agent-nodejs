@@ -338,10 +338,10 @@ describe('SchemaFieldsGenerator', () => {
           aField: { type: Schema.Types.ObjectId, ref: 'companies' },
         });
 
-        const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema));
+        const fieldsSchema = SchemaFieldsGenerator.buildFieldsSchema(buildModel(schema, 'aModel'));
 
         expect(fieldsSchema).toMatchObject({
-          'aField__manyToOne--1': {
+          aField__aModel__manyToOne: {
             foreignCollection: 'companies',
             foreignKey: 'aField',
             type: 'ManyToOne',
@@ -367,10 +367,10 @@ describe('SchemaFieldsGenerator', () => {
         );
 
         expect(fieldsSchema).toMatchObject({
-          'manyToManyField__manyToOne--1': {
+          manyToManyField__aModelName__manyToOne: {
             type: 'ManyToMany',
             foreignCollection: 'companies',
-            throughCollection: 'aModelName_companies--1',
+            throughCollection: 'aModelName__companies__manyToManyField',
             foreignKey: 'companies_id',
             foreignKeyTarget: '_id',
             originKey: 'aModelName_id',
@@ -397,7 +397,7 @@ describe('SchemaFieldsGenerator', () => {
         SchemaFieldsGenerator.addInverseRelationships([collectionA, collectionB]);
 
         expect(collectionB.schema.fields).toMatchObject({
-          'modelB__aFieldRelation__oneToMany--1': {
+          modelB__aFieldRelation__oneToMany: {
             foreignCollection: 'modelA',
             originKeyTarget: '_id',
             originKey: 'aFieldRelation',
@@ -433,10 +433,10 @@ describe('SchemaFieldsGenerator', () => {
         SchemaFieldsGenerator.addInverseRelationships(dataSource.collections);
 
         // then
-        expect(collectionB.schema.fields['modelB__modelA_id__ManyToMany--1']).toEqual({
+        expect(collectionB.schema.fields.modelB__modelA_id__aFieldRelation).toEqual({
           type: 'ManyToMany',
           foreignCollection: 'modelA',
-          throughCollection: 'modelA_modelB--1',
+          throughCollection: 'modelA__modelB__aFieldRelation',
           foreignKey: 'modelA_id',
           foreignKeyTarget: '_id',
           originKey: 'modelB_id',
@@ -444,8 +444,8 @@ describe('SchemaFieldsGenerator', () => {
         });
 
         // be aware to not create two times the collection
-        expect(() => dataSource.getCollection('modelB_modelA--1')).toThrow();
-        const manyToManyCollection = dataSource.getCollection('modelA_modelB--1');
+        expect(() => dataSource.getCollection('modelB__modelA__aFieldRelation')).toThrow();
+        const manyToManyCollection = dataSource.getCollection('modelA__modelB__aFieldRelation');
 
         expect(manyToManyCollection.schema.fields.modelA_id).toHaveProperty('isPrimaryKey', true);
         expect(manyToManyCollection.schema.fields.modelB_id).toHaveProperty('isPrimaryKey', true);
@@ -453,14 +453,14 @@ describe('SchemaFieldsGenerator', () => {
         expect(manyToManyCollection.schema.fields._id).toEqual(undefined);
 
         expect(manyToManyCollection.schema.fields).toEqual({
-          'modelA_id__manyToOne--1': {
+          modelA_id__aFieldRelation__manyToOne: {
             type: 'ManyToOne',
             foreignCollection: 'modelA',
             foreignKey: 'modelA_id',
             foreignKeyTarget: '_id',
           },
           modelA_id: expect.any(Object),
-          'modelB_id__manyToOne--1': {
+          modelB_id__aFieldRelation__manyToOne: {
             type: 'ManyToOne',
             foreignCollection: 'modelB',
             foreignKey: 'modelB_id',

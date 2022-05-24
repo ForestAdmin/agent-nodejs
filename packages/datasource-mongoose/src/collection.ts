@@ -91,7 +91,7 @@ export default class MongooseCollection extends BaseCollection {
     filter: Filter,
     patch?: RecordData,
   ): Promise<void> {
-    const [originCollectionName, foreignCollectionName] = this.name.split('--')[0].split('_');
+    const [originCollectionName, foreignCollectionName] = this.name.split('__');
     const records = await this.list(
       caller,
       filter,
@@ -123,7 +123,7 @@ export default class MongooseCollection extends BaseCollection {
   }
 
   private async createManyToMany(data: RecordData[]): Promise<RecordData[]> {
-    const [originCollectionName, foreignCollectionName] = this.name.split('--')[0].split('_');
+    const [originCollectionName, foreignCollectionName] = this.name.split('__');
     const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
     const manyToManyFieldName = this.getManyToManyFieldName(origin, this.name);
 
@@ -147,7 +147,7 @@ export default class MongooseCollection extends BaseCollection {
     let pipeline: PipelineStage[] = [];
 
     if (this.isManyToManyCollection(this)) {
-      const [originCollectionName, foreignCollectionName] = this.name.split('--')[0].split('_');
+      const [originCollectionName, foreignCollectionName] = this.name.split('__');
       const origin = this.dataSource.getCollection(originCollectionName) as MongooseCollection;
 
       pipeline = PipelineGenerator.find(origin, model, new PaginatedFilter({}), new Projection());
@@ -165,7 +165,7 @@ export default class MongooseCollection extends BaseCollection {
 
   private getModelToRequest(): Model<RecordData> {
     if (this.isManyToManyCollection(this)) {
-      const [originName] = this.name.split('--')[0].split('_');
+      const [originName] = this.name.split('__');
       const origin = this.dataSource.getCollection(originName) as MongooseCollection;
 
       return origin.model;
@@ -196,7 +196,7 @@ export default class MongooseCollection extends BaseCollection {
       throw new Error(`The '${throughCollectionName}' collection does not exist`);
     }
 
-    return fieldAndSchema[0].split('__').slice(0, -1).join('.');
+    return fieldAndSchema[0].split('__').slice(0, -2).join('.');
   }
 
   private static formatRecords(records: RecordData[]): AggregateResult[] {
@@ -205,7 +205,7 @@ export default class MongooseCollection extends BaseCollection {
     records.forEach(record => {
       // eslint-disable-next-line no-underscore-dangle
       const group = Object.entries(record?._id || {}).reduce((memo, [field, value]) => {
-        memo[field.replace(':', '.')] = value;
+        memo[field.replace(':', ':')] = value;
 
         return memo;
       }, {});

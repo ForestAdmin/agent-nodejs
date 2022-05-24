@@ -54,12 +54,7 @@ export default class PipelineGenerator {
     );
 
     pipeline.push({ $unwind: `$${manyToManyField}` });
-    pipeline.push({
-      $addFields: {
-        [originId]: '$_id',
-        [foreignId]: `$${manyToManyField}`,
-      },
-    });
+    pipeline.push({ $addFields: { [originId]: '$_id', [foreignId]: `$${manyToManyField}` } });
     pipeline.push({ $project: { _id: false, [originId]: true, [foreignId]: true } });
 
     return pipeline;
@@ -236,7 +231,7 @@ export default class PipelineGenerator {
 
     if (this.isRelationField(field, collectionSchema)) {
       field = this.getFieldName(leaf.field);
-      const refField = this.getParentPath(leaf.field).split('__').slice(0, -1).join(':');
+      const refField = this.getParentPath(leaf.field).split('__').slice(0, -2).join(':');
       const referenceName = model.schema.paths[refField].options.ref;
       schema = this.getMongooseModel(model, referenceName).schema;
     }
