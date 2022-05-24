@@ -389,10 +389,13 @@ describe('SchemaFieldsGenerator', () => {
         });
         const schemaWithOneToMany = new Schema({ aField: { type: 'String' } });
 
+        const dataSource = new MongooseDatasource({ models: {} } as Connection);
         const modelA = buildModel(schemaWithManyToOne, 'modelA');
         const modelB = buildModel(schemaWithOneToMany, 'modelB');
-        const collectionA = new MongooseCollection(null, modelA);
-        const collectionB = new MongooseCollection(null, modelB);
+        const collectionA = new MongooseCollection(dataSource, modelA);
+        const collectionB = new MongooseCollection(dataSource, modelB);
+        dataSource.addCollection(collectionA);
+        dataSource.addCollection(collectionB);
 
         SchemaFieldsGenerator.addInverseRelationships([collectionA, collectionB]);
 
@@ -476,11 +479,12 @@ describe('SchemaFieldsGenerator', () => {
         aFieldTarget: { type: Schema.Types.ObjectId, ref: 'modelDoesNotExist' },
       });
 
+      const dataSource = new MongooseDatasource({ models: {} } as Connection);
       const modelA = buildModel(schemaWithManyToOne, 'modelA');
-      const collectionA = new MongooseCollection(null, modelA);
+      const collectionA = new MongooseCollection(dataSource, modelA);
 
       expect(() => SchemaFieldsGenerator.addInverseRelationships([collectionA])).toThrow(
-        "The collection 'modelDoesNotExist' does not exist",
+        "Collection 'modelDoesNotExist' not found.",
       );
     });
   });
