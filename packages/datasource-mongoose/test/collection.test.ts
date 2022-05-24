@@ -1,3 +1,5 @@
+/* eslint-disable no-underscore-dangle */
+
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
@@ -146,7 +148,6 @@ describe('MongooseCollection', () => {
       const filter = factories.filter.build({
         conditionTree: factories.conditionTreeLeaf.build({
           field: '_id',
-          // eslint-disable-next-line no-underscore-dangle
           value: record._id,
           operator: 'Equal',
         }),
@@ -165,6 +166,115 @@ describe('MongooseCollection', () => {
       );
       expect(updatedRecord).toEqual([{ message: 'new message' }]);
     });
+
+    describe('with a many to many relation', () => {
+      describe('when there is the foreign relation to update', () => {
+        it('updates the right id in the array of objectId', async () => {
+          // given
+          await setupWith2ManyToManyRelations();
+          const dataSource = new MongooseDatasource(connection);
+          const store = dataSource.getCollection('store');
+          const owner = dataSource.getCollection('owner');
+          const ownerStore = dataSource.getCollection('owner_store--1');
+
+          const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
+          const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
+          await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
+          const ownerRecordA = { _id: new Types.ObjectId(), stores: [storeRecordA._id] };
+          const ownerRecordB = { _id: new Types.ObjectId() };
+          await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
+
+          // when
+          await ownerStore.update(
+            factories.caller.build(),
+            new Filter({
+              conditionTree: factories.conditionTreeBranch.build({
+                aggregator: 'And',
+                conditions: [
+                  factories.conditionTreeLeaf.build({
+                    value: ownerRecordA._id,
+                    operator: 'Equal',
+                    field: 'owner_id',
+                  }),
+                  factories.conditionTreeLeaf.build({
+                    value: storeRecordA._id,
+                    operator: 'Equal',
+                    field: 'store_id',
+                  }),
+                ],
+              }),
+            }),
+
+            { owner_id: ownerRecordA._id, store_id: storeRecordB._id },
+          );
+
+          // then
+
+          const expectedOwnerStore = await ownerStore.list(
+            factories.caller.build(),
+            factories.filter.build(),
+            new Projection('store_id', 'owner_id'),
+          );
+          expect(expectedOwnerStore).toEqual([
+            { owner_id: ownerRecordA._id, store_id: storeRecordB._id },
+          ]);
+        });
+      });
+
+      describe('when there is the origin and the foreign relation to update', () => {
+        it('moves the right id to the right record', async () => {
+          // given
+          await setupWith2ManyToManyRelations();
+          const dataSource = new MongooseDatasource(connection);
+          const store = dataSource.getCollection('store');
+          const owner = dataSource.getCollection('owner');
+          const ownerStore = dataSource.getCollection('owner_store--1');
+
+          const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
+          const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
+          await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
+
+          const ownerRecordA = { _id: new Types.ObjectId(), stores: [storeRecordA._id] };
+          const ownerRecordB = { _id: new Types.ObjectId() };
+          await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
+
+          // when
+          await ownerStore.update(
+            factories.caller.build(),
+            new Filter({
+              conditionTree: factories.conditionTreeBranch.build({
+                aggregator: 'And',
+                conditions: [
+                  factories.conditionTreeLeaf.build({
+                    value: ownerRecordA._id,
+                    operator: 'Equal',
+                    field: 'owner_id',
+                  }),
+                  factories.conditionTreeLeaf.build({
+                    value: storeRecordA._id,
+                    operator: 'Equal',
+                    field: 'store_id',
+                  }),
+                ],
+              }),
+            }),
+
+            { owner_id: ownerRecordB._id, store_id: storeRecordB._id },
+          );
+
+          // then
+
+          const expectedOwnerStore = await ownerStore.list(
+            factories.caller.build(),
+            factories.filter.build(),
+            new Projection('store_id', 'owner_id'),
+          );
+          expect(expectedOwnerStore).toEqual([
+            { owner_id: ownerRecordB._id, store_id: storeRecordB._id },
+          ]);
+        });
+      });
+    });
   });
 
   describe('delete', () => {
@@ -179,7 +289,6 @@ describe('MongooseCollection', () => {
       const filter = factories.filter.build({
         conditionTree: factories.conditionTreeLeaf.build({
           field: '_id',
-          // eslint-disable-next-line no-underscore-dangle
           value: record._id,
           operator: 'Equal',
         }),
@@ -282,13 +391,13 @@ describe('MongooseCollection', () => {
           await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
           const ownerRecordA = {
             _id: new Types.ObjectId(),
-            // eslint-disable-next-line no-underscore-dangle
+
             storeId: storeRecordA._id,
             name: 'the second',
           };
           const ownerRecordB = {
             _id: new Types.ObjectId(),
-            // eslint-disable-next-line no-underscore-dangle
+
             storeId: storeRecordB._id,
             name: 'the first',
           };
@@ -336,7 +445,6 @@ describe('MongooseCollection', () => {
             await store.create(factories.caller.build(), [storeRecord]);
             const ownerRecord = {
               _id: new Types.ObjectId(),
-              // eslint-disable-next-line no-underscore-dangle
               storeId: storeRecord._id,
               name: 'aOwner',
             };
@@ -365,7 +473,6 @@ describe('MongooseCollection', () => {
             await store.create(factories.caller.build(), [storeRecord]);
             const ownerRecord = {
               _id: new Types.ObjectId(),
-              // eslint-disable-next-line no-underscore-dangle
               storeId: storeRecord._id,
               name: 'aOwner',
             };
@@ -393,7 +500,6 @@ describe('MongooseCollection', () => {
               await store.create(factories.caller.build(), [storeRecord]);
               const ownerRecord = {
                 _id: new Types.ObjectId(),
-                // eslint-disable-next-line no-underscore-dangle
                 storeId: null,
                 name: 'aOwner',
               };
@@ -873,13 +979,11 @@ describe('MongooseCollection', () => {
           await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
           const ownerRecordA = {
             _id: new Types.ObjectId(),
-            // eslint-disable-next-line no-underscore-dangle
             storeId: storeRecordA._id,
             name: 'owner with the store A',
           };
           const ownerRecordB = {
             _id: new Types.ObjectId(),
-            // eslint-disable-next-line no-underscore-dangle
             storeId: storeRecordB._id,
             name: 'owner with the store B',
           };
@@ -914,13 +1018,11 @@ describe('MongooseCollection', () => {
           await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
           const ownerRecordA = {
             _id: new Types.ObjectId(),
-            // eslint-disable-next-line no-underscore-dangle
             stores: [storeRecordA._id, storeRecordB._id],
             name: 'owner with the store A and B',
           };
           const ownerRecordB = {
             _id: new Types.ObjectId(),
-            // eslint-disable-next-line no-underscore-dangle
             stores: [storeRecordB._id],
             name: 'owner with the store B',
           };
@@ -930,7 +1032,6 @@ describe('MongooseCollection', () => {
             factories.caller.build(),
             factories.filter.build({
               conditionTree: factories.conditionTreeLeaf.build({
-                // eslint-disable-next-line no-underscore-dangle
                 value: storeRecordA._id,
                 operator: 'Equal',
                 field: 'store_id',
@@ -939,7 +1040,6 @@ describe('MongooseCollection', () => {
             new Projection('store_id'),
           );
 
-          // eslint-disable-next-line no-underscore-dangle
           expect(expectedOwner).toEqual([{ store_id: storeRecordA._id }]);
         });
       });
@@ -959,26 +1059,23 @@ describe('MongooseCollection', () => {
           const storeRecordA = {
             _id: new Types.ObjectId(),
             name: 'A',
-            // eslint-disable-next-line no-underscore-dangle
             addressId: addressRecordA._id,
           };
           const storeRecordB = {
             _id: new Types.ObjectId(),
             name: 'B',
-            // eslint-disable-next-line no-underscore-dangle
             addressId: addressRecordB._id,
           };
           await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
 
           const ownerRecordA = {
             _id: new Types.ObjectId(),
-            // eslint-disable-next-line no-underscore-dangle
+
             storeId: storeRecordA._id,
             name: 'owner with the store address A',
           };
           const ownerRecordB = {
             _id: new Types.ObjectId(),
-            // eslint-disable-next-line no-underscore-dangle
             storeId: storeRecordB._id,
             name: 'owner with the store address B',
           };
@@ -1101,11 +1198,9 @@ describe('MongooseCollection', () => {
       const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
       await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
       const ownerRecordA = {
-        // eslint-disable-next-line no-underscore-dangle
         storeId: storeRecordA._id,
       };
       const ownerRecordB = {
-        // eslint-disable-next-line no-underscore-dangle
         storeId: storeRecordB._id,
       };
       await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
@@ -1129,11 +1224,9 @@ describe('MongooseCollection', () => {
       const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
       await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
       const ownerRecordA = {
-        // eslint-disable-next-line no-underscore-dangle
         storeId: storeRecordA._id,
       };
       const ownerRecordB = {
-        // eslint-disable-next-line no-underscore-dangle
         storeId: storeRecordB._id,
       };
       await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordA, ownerRecordB]);
@@ -1489,13 +1582,11 @@ describe('MongooseCollection', () => {
         await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
         const ownerRecordA = {
           _id: new Types.ObjectId(),
-          // eslint-disable-next-line no-underscore-dangle
           stores: [storeRecordA._id, storeRecordB._id],
           name: 'owner with the store A and B',
         };
         const ownerRecordB = {
           _id: new Types.ObjectId(),
-          // eslint-disable-next-line no-underscore-dangle
           stores: [storeRecordB._id],
           name: 'owner with the store B',
         };
@@ -1509,7 +1600,6 @@ describe('MongooseCollection', () => {
           factories.caller.build(),
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
-              // eslint-disable-next-line no-underscore-dangle
               value: storeRecordA._id,
               operator: 'Equal',
               field: 'store_id',
@@ -1518,7 +1608,6 @@ describe('MongooseCollection', () => {
           aggregation,
         );
 
-        // eslint-disable-next-line no-underscore-dangle
         expect(expectedCount).toEqual([{ value: 1, group: {} }]);
       });
     });
