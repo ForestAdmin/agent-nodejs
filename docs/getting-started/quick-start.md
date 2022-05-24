@@ -28,7 +28,7 @@ At the end of your onboarding, you will **out-of-the-box** be able to:
 
 ## Prerequisites
 
-- Node.js > 14.0.0
+- Node.js ^14.15.0 || ^16.13.0
 - NPM > 6.14.4 or yarn > 1.22.17
 
 If you meet those prerequisites, we strongly recommand to follow our [Install guide](./install.md)
