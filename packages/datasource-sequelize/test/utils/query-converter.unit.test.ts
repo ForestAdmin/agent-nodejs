@@ -7,38 +7,59 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-import { Association, ModelDefined, Op } from 'sequelize';
+import { DataTypes, Dialect, Op, Sequelize } from 'sequelize';
 
 import QueryConverter from '../../src/utils/query-converter';
 
 describe('Utils > QueryConverter', () => {
+  const setupModel = (dialect: Dialect = 'postgres') => {
+    const sequelize = new Sequelize({ dialect });
+    const model = sequelize.define('model', {
+      __field_1__: {
+        type: DataTypes.STRING,
+      },
+      __field_2__: {
+        type: DataTypes.STRING,
+      },
+      __renamed_field__: {
+        type: DataTypes.STRING,
+        field: 'fieldRenamed',
+      },
+    });
+
+    return model;
+  };
+
   describe('getWhereFromConditionTreeToByPassInclude', () => {
     describe('with a condition tree acting on relation', () => {
       it('should generate a valid "where" clause with the primary keys', async () => {
         const conditionTree = new ConditionTreeLeaf('relation:__field__', 'Equal', '__value__');
 
-        const model = {
-          getAttributes: () => ({
-            relation: { field: '__field__' },
-            idA: { field: 'idA' }, // primary key
-            idB: { field: 'idB' }, // primary key
-          }),
-          primaryKeyAttributes: ['idA', 'idB'],
-          findAll: jest
-            .fn()
-            .mockResolvedValue([
-              { get: jest.fn().mockReturnValueOnce(1).mockReturnValueOnce(2) },
-              { get: jest.fn().mockReturnValueOnce(3).mockReturnValueOnce(4) },
-            ]),
-          associations: {
-            relation: {
-              target: {
-                primaryKeyAttributes: ['id'],
-                getAttributes: () => ({ __field__: { field: 'fieldName' } }),
-              } as unknown as ModelDefined<any, any>,
-            } as Association,
+        const sequelize = new Sequelize({ dialect: 'postgres' });
+        const model = sequelize.define('model', {
+          idA: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
           },
-        } as unknown as ModelDefined<any, any>;
+          idB: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+          },
+        });
+        const relation = sequelize.define('relation', {
+          __field__: {
+            type: DataTypes.STRING,
+            field: 'fieldName',
+          },
+        });
+        model.belongsTo(relation);
+
+        model.findAll = jest
+          .fn()
+          .mockResolvedValue([
+            { get: jest.fn().mockReturnValueOnce(1).mockReturnValueOnce(2) },
+            { get: jest.fn().mockReturnValueOnce(3).mockReturnValueOnce(4) },
+          ]);
 
         const queryConverter = new QueryConverter(model);
         const where = await queryConverter.getWhereFromConditionTreeToByPassInclude(conditionTree);
@@ -54,25 +75,18 @@ describe('Utils > QueryConverter', () => {
 
     describe('with a condition tree without relation', () => {
       it('should generate a valid where clause with ids', async () => {
-        const conditionTree = new ConditionTreeLeaf('__field__', 'Equal', '__value__');
-
-        const model = {
-          getAttributes: () => ({
-            __field__: { field: '__field__' },
-          }),
-        } as unknown as ModelDefined<any, any>;
-
+        const conditionTree = new ConditionTreeLeaf('__field_1__', 'Equal', '__value__');
+        const model = setupModel();
         const queryConverter = new QueryConverter(model);
         const where = await queryConverter.getWhereFromConditionTreeToByPassInclude(conditionTree);
 
-        expect(where).toEqual({ __field__: { [Op.eq]: '__value__' } });
+        expect(where).toEqual({ __field_1__: { [Op.eq]: '__value__' } });
       });
     });
 
     describe('without condition tree', () => {
       it('should generate a valid where clause with ids', async () => {
-        const model = {} as unknown as ModelDefined<any, any>;
-
+        const model = setupModel();
         const queryConverter = new QueryConverter(model);
         const where = await queryConverter.getWhereFromConditionTreeToByPassInclude(null);
 
@@ -87,7 +101,8 @@ describe('Utils > QueryConverter', () => {
         operator: undefined,
       } as unknown as ConditionTreeBranch;
 
-      const queryConverter = new QueryConverter({} as ModelDefined<any, any>);
+      const model = setupModel();
+      const queryConverter = new QueryConverter(model);
 
       expect(() => queryConverter.getWhereFromConditionTree(conditionTree)).toThrow(
         'Invalid ConditionTree.',
@@ -97,7 +112,8 @@ describe('Utils > QueryConverter', () => {
     describe('with a condition tree', () => {
       describe('when a null condition tree is given', () => {
         it('should return an empty object', () => {
-          const queryConverter = new QueryConverter({} as ModelDefined<any, any>);
+          const model = setupModel();
+          const queryConverter = new QueryConverter(model);
 
           expect(queryConverter.getWhereFromConditionTree(null)).toEqual({});
         });
@@ -110,7 +126,8 @@ describe('Utils > QueryConverter', () => {
             new ConditionTreeLeaf('__field__', 'Equal', '__value__'),
           ]);
 
-          const queryConverter = new QueryConverter({} as ModelDefined<any, any>);
+          const model = setupModel();
+          const queryConverter = new QueryConverter(model);
 
           expect(() => queryConverter.getWhereFromConditionTree(conditionTree)).toThrow(
             'Invalid (null) aggregator.',
@@ -119,7 +136,8 @@ describe('Utils > QueryConverter', () => {
 
         it('should throw an error when conditions is not an array', () => {
           const conditionTree = new ConditionTreeBranch('And', null);
-          const queryConverter = new QueryConverter({} as ModelDefined<any, any>);
+          const model = setupModel();
+          const queryConverter = new QueryConverter(model);
 
           expect(() => queryConverter.getWhereFromConditionTree(conditionTree)).toThrow(
             'Conditions must be an array.',
@@ -128,7 +146,8 @@ describe('Utils > QueryConverter', () => {
 
         it('should not throw an error when there is no condition', () => {
           const conditionTree = new ConditionTreeBranch('And', []);
-          const queryConverter = new QueryConverter({} as ModelDefined<any, any>);
+          const model = setupModel();
+          const queryConverter = new QueryConverter(model);
 
           expect(() => queryConverter.getWhereFromConditionTree(conditionTree)).not.toThrow();
         });
@@ -139,10 +158,7 @@ describe('Utils > QueryConverter', () => {
               new ConditionTreeLeaf('__field_1__', 'Equal', '__value_1__'),
             ]);
 
-            const model = {
-              getAttributes: () => ({ __field_1__: { field: '__field_1__' } }),
-            } as unknown as ModelDefined<any, any>;
-
+            const model = setupModel();
             const queryConverter = new QueryConverter(model);
 
             expect(() => queryConverter.getWhereFromConditionTree(conditionTree)).not.toThrow();
@@ -153,10 +169,7 @@ describe('Utils > QueryConverter', () => {
               new ConditionTreeLeaf('__field_1__', 'Equal', '__value_1__'),
             ]);
 
-            const model = {
-              getAttributes: () => ({ __field_1__: { field: '__field_1__' } }),
-            } as unknown as ModelDefined<any, any>;
-
+            const model = setupModel();
             const queryConverter = new QueryConverter(model);
 
             expect(() => queryConverter.getWhereFromConditionTree(conditionTree)).not.toThrow();
@@ -176,23 +189,13 @@ describe('Utils > QueryConverter', () => {
 
             const conditionTree = new ConditionTreeBranch(aggregator as Aggregator, conditions);
 
-            const model = {
-              getAttributes: () => ({
-                __field_1__: { field: '__field_1__' },
-                __field_2__: { field: '__field_2__' },
-              }),
-            } as unknown as ModelDefined<any, any>;
-
+            const model = setupModel();
             const queryConverter = new QueryConverter(model);
 
             expect(queryConverter.getWhereFromConditionTree(conditionTree)).toEqual({
               [operator]: [
-                {
-                  [conditions[0].field]: { [Op.eq]: conditions[0].value },
-                },
-                {
-                  [conditions[1].field]: { [Op.eq]: conditions[1].value },
-                },
+                { [conditions[0].field]: { [Op.eq]: conditions[0].value } },
+                { [conditions[1].field]: { [Op.eq]: conditions[1].value } },
               ],
             });
           },
@@ -202,7 +205,7 @@ describe('Utils > QueryConverter', () => {
       describe('with a ConditionTreeLeaf node', () => {
         const defaultArrayValue = [21, 42, 84];
         const defaultIntegerValue = 42;
-        const defaultStringValue = 'value';
+        const defaultStringValue = 'VaLuE';
 
         it.each([
           ['Blank', undefined, { [Op.or]: [{ [Op.is]: null }, { [Op.eq]: '' }] }],
@@ -215,83 +218,104 @@ describe('Utils > QueryConverter', () => {
           ['NotEqual', defaultIntegerValue, { [Op.ne]: defaultIntegerValue }],
           ['NotIn', defaultArrayValue, { [Op.notIn]: defaultArrayValue }],
           ['Present', undefined, { [Op.ne]: null }],
-          ['Like', defaultStringValue, { [Op.like]: defaultStringValue }],
+          [
+            'NotContains',
+            defaultStringValue,
+            { [Op.not]: { [Op.like]: `%${defaultStringValue}%` } },
+          ],
         ])(
           'should generate a "where" Sequelize filter from a "%s" operator',
           (operator, value, where) => {
-            const conditionTree = new ConditionTreeLeaf('__field__', operator as Operator, value);
+            const conditionTree = new ConditionTreeLeaf('__field_1__', operator as Operator, value);
 
-            const model = {
-              getAttributes: () => ({ __field__: { field: '__field__' } }),
-            } as unknown as ModelDefined<any, any>;
-
+            const model = setupModel();
             const queryConverter = new QueryConverter(model);
             const sequelizeFilter = queryConverter.getWhereFromConditionTree(conditionTree);
 
-            expect(sequelizeFilter).toEqual(
-              expect.objectContaining({
-                __field__: where,
-              }),
-            );
+            expect(sequelizeFilter).toHaveProperty('__field_1__', where);
           },
         );
 
-        describe('using operator translate to SQL "LIKE" clause', () => {
+        describe('whith "Like" operator', () => {
           it.each([
-            ['ILike', '__VaLuE__', 'LIKE', '__VaLuE__'],
-            ['NotContains', '__valUe__', 'NOT LIKE', '%__value__%'],
-          ])(
-            'should generate a "where" Sequelize filter from a "%s" operator',
-            (operator, value, sqlClause, like) => {
-              const conditionTree = new ConditionTreeLeaf('__field__', operator as Operator, value);
+            [
+              'mariadb',
+              {
+                attribute: { fn: 'BINARY', args: [{ col: '__field_1__' }] },
+                comparator: 'LIKE',
+                logic: 'VaLuE',
+              },
+            ],
+            ['mssql', { [Op.like]: 'VaLuE' }],
+            [
+              'mysql',
+              {
+                attribute: { fn: 'BINARY', args: [{ col: '__field_1__' }] },
+                comparator: 'LIKE',
+                logic: 'VaLuE',
+              },
+            ],
+            ['postgres', { [Op.like]: 'VaLuE' }],
+            [
+              'sqlite',
+              {
+                attribute: { col: '__field_1__' },
+                comparator: 'GLOB',
+                logic: 'VaLuE',
+              },
+            ],
+          ])('should generate a "where" Sequelize filter for "%s"', (dialect, where) => {
+            const tree = new ConditionTreeLeaf('__field_1__', 'Like', 'VaLuE');
+            const model = setupModel(dialect as Dialect);
+            const queryConverter = new QueryConverter(model);
+            const sequelizeFilter = queryConverter.getWhereFromConditionTree(tree);
 
-              const model = {
-                getAttributes: () => ({ __field__: { field: '__field__' } }),
-              } as unknown as ModelDefined<any, any>;
+            expect(sequelizeFilter).toHaveProperty('__field_1__', where);
+          });
+        });
 
-              const queryConverter = new QueryConverter(model);
-              const sequelizeFilter = queryConverter.getWhereFromConditionTree(conditionTree);
+        describe('with "ILike" operator', () => {
+          it.each([
+            ['mariadb', { [Op.like]: 'VaLuE' }],
+            [
+              'mssql',
+              {
+                attribute: { fn: 'LOWER', args: [{ col: '__field_1__' }] },
+                comparator: 'LIKE',
+                logic: 'value',
+              },
+            ],
+            ['mysql', { [Op.like]: 'VaLuE' }],
+            ['postgres', { [Op.iLike]: 'VaLuE' }],
+            ['sqlite', { [Op.like]: 'VaLuE' }],
+          ])('should generate a "where" Sequelize filter for "%s"', (dialect, where) => {
+            const tree = new ConditionTreeLeaf('__field_1__', 'ILike', 'VaLuE');
+            const model = setupModel(dialect as Dialect);
+            const queryConverter = new QueryConverter(model);
+            const sequelizeFilter = queryConverter.getWhereFromConditionTree(tree);
 
-              expect(sequelizeFilter).toEqual(
-                expect.objectContaining({
-                  __field__: {
-                    attribute: {
-                      fn: 'LOWER',
-                      args: [{ col: '__field__' }],
-                    },
-                    comparator: sqlClause,
-                    logic: like,
-                  },
-                }),
-              );
-            },
-          );
+            expect(sequelizeFilter).toHaveProperty('__field_1__', where);
+          });
         });
 
         it('should fail with a null operator', () => {
-          const model = {
-            getAttributes: () => ({ __field__: { field: '__field__' } }),
-          } as unknown as ModelDefined<any, any>;
-
+          const model = setupModel();
           const queryConverter = new QueryConverter(model);
 
           expect(() =>
             queryConverter.getWhereFromConditionTree(
-              new ConditionTreeLeaf('__field__', null, '__value__'),
+              new ConditionTreeLeaf('__field_1__', null, '__value__'),
             ),
           ).toThrow('Invalid (null) operator.');
         });
 
         it('should fail with an invalid operator', () => {
-          const model = {
-            getAttributes: () => ({ __field__: { field: '__field__' } }),
-          } as unknown as ModelDefined<any, any>;
-
+          const model = setupModel();
           const queryConverter = new QueryConverter(model);
 
           expect(() =>
             queryConverter.getWhereFromConditionTree(
-              new ConditionTreeLeaf('__field__', '__invalid__' as Operator, '__value__'),
+              new ConditionTreeLeaf('__field_1__', '__invalid__' as Operator, '__value__'),
             ),
           ).toThrow('Unsupported operator: "__invalid__".');
         });
@@ -299,67 +323,61 @@ describe('Utils > QueryConverter', () => {
 
       describe('with a renamed field', () => {
         it('should generate a valid where clause', () => {
-          const conditionTree = new ConditionTreeLeaf('__field__', 'Equal', '__value__');
-
-          const model = {
-            getAttributes: () => ({ __field__: { field: 'fieldName' } }),
-          } as unknown as ModelDefined<any, any>;
+          const conditionTree = new ConditionTreeLeaf('__renamed_field__', 'Equal', '__value__');
+          const model = setupModel();
           const queryConverter = new QueryConverter(model);
 
           expect(queryConverter.getWhereFromConditionTree(conditionTree)).toEqual({
-            fieldName: { [Op.eq]: '__value__' },
+            fieldRenamed: { [Op.eq]: '__value__' },
           });
         });
       });
 
       describe('with a condition tree acting on relation', () => {
-        it('should generate a valid where clause', () => {
-          const conditionTree = new ConditionTreeLeaf('relation:__field__', 'Equal', '__value__');
-
-          const model = {
-            associations: {
-              relation: {
-                target: {
-                  getAttributes: () => ({ __field__: { field: 'fieldName' } }),
-                } as unknown as ModelDefined<any, any>,
-              } as Association,
+        const setupModelWithRelation = () => {
+          const model = setupModel();
+          const relation = model.sequelize.define('relation', {
+            __field_a__: {
+              type: DataTypes.STRING,
+              field: 'fieldNameA',
             },
-          } as unknown as ModelDefined<any, any>;
+          });
+          const relationB = model.sequelize.define('relationB', {
+            __field_b__: {
+              type: DataTypes.STRING,
+              field: 'fieldNameB',
+            },
+          });
+
+          relation.belongsTo(relationB);
+          model.belongsTo(relation);
+
+          return model;
+        };
+
+        it('should generate a valid where clause', () => {
+          const conditionTree = new ConditionTreeLeaf('relation:__field_a__', 'Equal', '__value__');
+          const model = setupModelWithRelation();
           const queryConverter = new QueryConverter(model);
 
           expect(queryConverter.getWhereFromConditionTree(conditionTree)).toEqual({
-            '$relation.fieldName$': { [Op.eq]: '__value__' },
+            '$relation.fieldNameA$': { [Op.eq]: '__value__' },
           });
         });
 
         describe('with deep relation', () => {
           it('should generate a valid where clause', () => {
             const conditionTree = new ConditionTreeLeaf(
-              'relation:relationB:__field__',
+              'relation:relationB:__field_b__',
               'Equal',
               '__value__',
             );
 
-            const model = {
-              associations: {
-                relation: {
-                  target: {
-                    associations: {
-                      relationB: {
-                        target: {
-                          getAttributes: () => ({ __field__: { field: 'fieldName' } }),
-                        },
-                      },
-                    },
-                  } as unknown as ModelDefined<any, any>,
-                } as Association,
-              },
-            } as unknown as ModelDefined<any, any>;
-
+            const model = setupModelWithRelation();
             const queryConverter = new QueryConverter(model);
 
             expect(queryConverter.getWhereFromConditionTree(conditionTree)).toEqual({
-              '$relation.relationB.fieldName$': { [Op.eq]: '__value__' },
+              '$relation.relationB.fieldNameB$': { [Op.eq]: '__value__' },
             });
           });
         });
@@ -373,35 +391,25 @@ describe('Utils > QueryConverter', () => {
         ['NotIn', 'NotIn', Op.notIn],
       ])('"%s"', (message, operator, sequelizeOperator) => {
         it('should handle atomic values', () => {
-          const model = {
-            getAttributes: () => ({ __field__: { field: '__field__' } }),
-          } as unknown as ModelDefined<any, any>;
-
+          const model = setupModel();
           const queryConverter = new QueryConverter(model);
 
           const sequelizeFilter = queryConverter.getWhereFromConditionTree(
-            new ConditionTreeLeaf('__field__', operator as Operator, 42),
+            new ConditionTreeLeaf('__field_1__', operator as Operator, 42),
           );
 
-          expect(sequelizeFilter).toEqual(
-            expect.objectContaining({ __field__: { [sequelizeOperator]: [42] } }),
-          );
+          expect(sequelizeFilter).toHaveProperty('__field_1__', { [sequelizeOperator]: [42] });
         });
 
         it('should handle array values', () => {
-          const model = {
-            getAttributes: () => ({ __field__: { field: '__field__' } }),
-          } as unknown as ModelDefined<any, any>;
-
+          const model = setupModel();
           const queryConverter = new QueryConverter(model);
 
           const sequelizeFilter = queryConverter.getWhereFromConditionTree(
-            new ConditionTreeLeaf('__field__', operator as Operator, [42]),
+            new ConditionTreeLeaf('__field_1__', operator as Operator, [42]),
           );
 
-          expect(sequelizeFilter).toEqual(
-            expect.objectContaining({ __field__: { [sequelizeOperator]: [42] } }),
-          );
+          expect(sequelizeFilter).toHaveProperty('__field_1__', { [sequelizeOperator]: [42] });
         });
       });
     });
@@ -409,7 +417,8 @@ describe('Utils > QueryConverter', () => {
 
   describe('getOrderFromSort', () => {
     it('should omit the "order" clause when condition list is empty', () => {
-      const queryConverter = new QueryConverter({} as ModelDefined<any, any>);
+      const model = setupModel();
+      const queryConverter = new QueryConverter(model);
 
       expect(queryConverter.getOrderFromSort(new Sort())).toEqual([]);
     });
@@ -420,7 +429,8 @@ describe('Utils > QueryConverter', () => {
         { field: '__b__', ascending: false },
       );
 
-      const queryConverter = new QueryConverter({} as ModelDefined<any, any>);
+      const model = setupModel();
+      const queryConverter = new QueryConverter(model);
 
       expect(queryConverter.getOrderFromSort(sort)).toEqual([
         ['__a__', 'ASC'],
@@ -433,7 +443,8 @@ describe('Utils > QueryConverter', () => {
     describe('when projection have relation field', () => {
       it('should add include with attributes', () => {
         const projection = new Projection('model:another_field');
-        const queryConverter = new QueryConverter({} as ModelDefined<any, any>);
+        const model = setupModel();
+        const queryConverter = new QueryConverter(model);
 
         expect(queryConverter.getIncludeWithAttributesFromProjection(projection)).toEqual([
           { association: 'model', include: [], attributes: ['another_field'] },
@@ -442,7 +453,8 @@ describe('Utils > QueryConverter', () => {
 
       it('should add include recursively with attributes', () => {
         const projection = new Projection('model:another_model:a_field');
-        const queryConverter = new QueryConverter({} as ModelDefined<any, any>);
+        const model = setupModel();
+        const queryConverter = new QueryConverter(model);
 
         expect(queryConverter.getIncludeWithAttributesFromProjection(projection)).toEqual([
           {
@@ -459,7 +471,8 @@ describe('Utils > QueryConverter', () => {
     describe('when projection have relation field', () => {
       it('should add include', () => {
         const projection = new Projection('model:another_field');
-        const queryConverter = new QueryConverter({} as ModelDefined<any, any>);
+        const model = setupModel();
+        const queryConverter = new QueryConverter(model);
 
         expect(queryConverter.getIncludeFromProjection(projection)).toEqual([
           { association: 'model', include: [], attributes: [] },
@@ -468,7 +481,8 @@ describe('Utils > QueryConverter', () => {
 
       it('should add include recursively', () => {
         const projection = new Projection('model:another_model:a_field');
-        const queryConverter = new QueryConverter({} as ModelDefined<any, any>);
+        const model = setupModel();
+        const queryConverter = new QueryConverter(model);
 
         expect(queryConverter.getIncludeFromProjection(projection)).toEqual([
           {

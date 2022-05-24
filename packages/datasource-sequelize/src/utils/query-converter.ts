@@ -8,6 +8,7 @@ import {
   Sort,
 } from '@forestadmin/datasource-toolkit';
 import {
+  Dialect,
   IncludeOptions,
   ModelDefined,
   Op,
@@ -23,9 +24,11 @@ import { Where } from 'sequelize/types/utils';
 
 export default class QueryConverter {
   private model: ModelDefined<unknown, unknown>;
+  private dialect: Dialect;
 
   constructor(model: ModelDefined<unknown, unknown>) {
     this.model = model;
+    this.dialect = this.model.sequelize.getDialect() as Dialect;
   }
 
   private asArray(value: unknown) {
@@ -35,8 +38,8 @@ export default class QueryConverter {
   }
 
   private makeWhereClause(
-    operator: Operator,
     field: string,
+    operator: Operator,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     value?: any,
   ): WhereOperators | OrOperator | Where {
@@ -45,12 +48,28 @@ export default class QueryConverter {
     switch (operator) {
       case 'Blank':
         return {
-          [Op.or]: [this.makeWhereClause('Missing', field) as OrOperator, { [Op.eq]: '' }],
+          [Op.or]: [this.makeWhereClause(field, 'Missing') as OrOperator, { [Op.eq]: '' }],
         };
+
       case 'Like':
+        if (this.dialect === 'sqlite')
+          return where(col(field), 'GLOB', value.replace(/%/g, '*').replace(/_/g, '?'));
+        if (this.dialect === 'mysql' || this.dialect === 'mariadb')
+          return where(fn('BINARY', col(field)), 'LIKE', value);
+
         return { [Op.like]: value };
+
       case 'ILike':
-        return where(fn('LOWER', col(field)), 'LIKE', value);
+        if (this.dialect === 'postgres') return { [Op.iLike]: value };
+        if (this.dialect === 'mysql' || this.dialect === 'mariadb' || this.dialect === 'sqlite')
+          return { [Op.like]: value };
+
+        return where(fn('LOWER', col(field)), 'LIKE', value.toLocaleLowerCase());
+
+      case 'NotContains':
+        return {
+          [Op.not]: this.makeWhereClause(field, 'Like', `%${value}%`) as WhereOperators,
+        };
       case 'Equal':
         return { [Op.eq]: value };
       case 'GreaterThan':
@@ -63,8 +82,6 @@ export default class QueryConverter {
         return { [Op.lt]: value };
       case 'Missing':
         return { [Op.is]: null };
-      case 'NotContains':
-        return where(fn('LOWER', col(field)), 'NOT LIKE', `%${value.toLocaleLowerCase()}%`);
       case 'NotEqual':
         return { [Op.ne]: value };
       case 'NotIn':
@@ -142,8 +159,8 @@ export default class QueryConverter {
       }
 
       sequelizeWhereClause[isRelation ? `$${safeField}$` : safeField] = this.makeWhereClause(
-        operator,
         safeField,
+        operator,
         value,
       );
     } else {
