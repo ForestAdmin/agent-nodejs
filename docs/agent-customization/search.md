@@ -36,7 +36,7 @@ For instance:
 
 In order to customize the search bar, you must define a handler which returns a [`ConditionTree`](../under-the-hood/queries/filters.md#condition-trees).
 
-### Making the search case-insensitive
+### Making the search case-sensitive by default
 
 In this example, we use the `searchExtended` condition to toggle between case-sensitive and insensitive search.
 
