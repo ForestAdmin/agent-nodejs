@@ -44,8 +44,9 @@
   - [Sort overrides](agent-customization/fields/sort.md)
 
 - [Relationships](agent-customization/relationships/README.md)
-  - [Links](agent-customization/relationships/traversable-relations.md)
-  - [Explorer & Related Data](agent-customization/relationships/related-data.md)
+  - [To single records](agent-customization/relationships/single-record.md)
+  - [To multiple records](agent-customization/relationships/multiple-records.md)
+  - [Computed foreign keys](agent-customization/relationships/computed-fks.md)
   - [Under the hood](agent-customization/relationships/under-the-hood.md)
 - [Search](agent-customization/search.md)
 - [Segments](agent-customization/segments.md)
