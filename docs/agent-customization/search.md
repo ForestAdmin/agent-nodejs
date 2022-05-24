@@ -43,7 +43,7 @@ In this example, we use the `searchExtended` condition to toggle between case-se
 ```javascript
 agent.customizeCollection('people', collection =>
   collection.replaceSearch((searchString, extendedMode) => {
-    const operator = extendedModel ? 'Contains' : 'IContains';
+    const operator = extendedMode ? 'Contains' : 'IContains';
 
     return {
       aggregator: 'Or',
