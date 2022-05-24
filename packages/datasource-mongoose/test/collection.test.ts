@@ -301,6 +301,55 @@ describe('MongooseCollection', () => {
       const updatedRecord = await review.list(factories.caller.build(), filter, new Projection());
       expect(updatedRecord).toEqual([]);
     });
+
+    describe('with a many to many collection', () => {
+      it('deletes the right id to the right record', async () => {
+        // given
+        await setupWith2ManyToManyRelations();
+        const dataSource = new MongooseDatasource(connection);
+        const store = dataSource.getCollection('store');
+        const owner = dataSource.getCollection('owner');
+        const ownerStore = dataSource.getCollection('owner_store--1');
+
+        const storeRecordA = { _id: new Types.ObjectId(), name: 'A' };
+        const storeRecordB = { _id: new Types.ObjectId(), name: 'B' };
+        await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
+
+        const ownerRecordA = { _id: new Types.ObjectId(), stores: [storeRecordA._id] };
+        const ownerRecordB = { _id: new Types.ObjectId() };
+        await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
+
+        // when
+        await ownerStore.delete(
+          factories.caller.build(),
+          new Filter({
+            conditionTree: factories.conditionTreeBranch.build({
+              aggregator: 'And',
+              conditions: [
+                factories.conditionTreeLeaf.build({
+                  value: ownerRecordA._id,
+                  operator: 'Equal',
+                  field: 'owner_id',
+                }),
+                factories.conditionTreeLeaf.build({
+                  value: storeRecordA._id,
+                  operator: 'Equal',
+                  field: 'store_id',
+                }),
+              ],
+            }),
+          }),
+        );
+
+        // then
+        const expectedOwnerStore = await ownerStore.list(
+          factories.caller.build(),
+          factories.filter.build(),
+          new Projection(),
+        );
+        expect(expectedOwnerStore).toEqual([]);
+      });
+    });
   });
 
   describe('list', () => {
@@ -1240,7 +1289,7 @@ describe('MongooseCollection', () => {
         });
       });
 
-      describe('when it a many to many collection', () => {
+      describe('with a many to many collection', () => {
         it('adds the right id to the right record', async () => {
           // given
           await setupWith2ManyToManyRelations();

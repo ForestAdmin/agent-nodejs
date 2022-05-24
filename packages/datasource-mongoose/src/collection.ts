@@ -62,7 +62,35 @@ export default class MongooseCollection extends BaseCollection {
     await this.model.updateMany({ _id: ids.map(record => record._id) }, patch);
   }
 
-  private async updateManyToMany(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+  async delete(caller: Caller, filter: Filter): Promise<void> {
+    if (this.isManyToManyCollection(this)) {
+      return this.updateManyToMany(caller, filter);
+    }
+
+    const ids = await this.list(caller, filter, new Projection('_id'));
+    // eslint-disable-next-line no-underscore-dangle
+    await this.model.deleteMany({ _id: ids.map(record => record._id) });
+  }
+
+  async aggregate(
+    caller: Caller,
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]> {
+    const model = this.getModelToRequest();
+    let pipeline = this.buildListPipeline(model, filter, aggregation.projection);
+    pipeline = PipelineGenerator.group(aggregation, pipeline);
+    if (limit) pipeline.push({ $limit: limit });
+
+    return MongooseCollection.formatRecords(await model.aggregate(pipeline));
+  }
+
+  private async updateManyToMany(
+    caller: Caller,
+    filter: Filter,
+    patch?: RecordData,
+  ): Promise<void> {
     const [originCollectionName, foreignCollectionName] = this.name.split('--')[0].split('_');
     const records = await this.list(
       caller,
@@ -81,34 +109,17 @@ export default class MongooseCollection extends BaseCollection {
           $pull: { [manyToManyFieldName]: record[`${foreignCollectionName}_id`] },
         },
       );
-      // eslint-disable-next-line no-await-in-loop
-      await origin.model.updateOne(
-        { _id: patch[`${originCollectionName}_id`] },
-        {
-          $push: { [manyToManyFieldName]: patch[`${foreignCollectionName}_id`] },
-        },
-      );
+
+      if (patch) {
+        // eslint-disable-next-line no-await-in-loop
+        await origin.model.updateOne(
+          { _id: patch[`${originCollectionName}_id`] },
+          {
+            $addToSet: { [manyToManyFieldName]: patch[`${foreignCollectionName}_id`] },
+          },
+        );
+      }
     }
-  }
-
-  async delete(caller: Caller, filter: Filter): Promise<void> {
-    const ids = await this.list(caller, filter, new Projection('_id'));
-    // eslint-disable-next-line no-underscore-dangle
-    await this.model.deleteMany({ _id: ids.map(record => record._id) });
-  }
-
-  async aggregate(
-    caller: Caller,
-    filter: Filter,
-    aggregation: Aggregation,
-    limit?: number,
-  ): Promise<AggregateResult[]> {
-    const model = this.getModelToRequest();
-    let pipeline = this.buildListPipeline(model, filter, aggregation.projection);
-    pipeline = PipelineGenerator.group(aggregation, pipeline);
-    if (limit) pipeline.push({ $limit: limit });
-
-    return MongooseCollection.formatRecords(await model.aggregate(pipeline));
   }
 
   private async createManyToMany(data: RecordData[]): Promise<RecordData[]> {
