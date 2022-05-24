@@ -77,7 +77,7 @@ module.exports = function makeMyDataSourceWithRelations() {
   const myDataSource = new MyDataSource();
   const jointures = new DataSourceDecorator(myDataSource, JointureCollectionDecorator);
 
-  jointures.getCollection('movies').addJointure('director', {
+  jointures.getCollection('movies').addRelation('director', {
     type: 'ManyToOne',
     foreignCollection: 'people',
     foreignKey: 'directorId',
