@@ -1,5 +1,4 @@
 /* eslint-disable max-classes-per-file, no-underscore-dangle */
-
 import {
   AggregateResult,
   Aggregation,

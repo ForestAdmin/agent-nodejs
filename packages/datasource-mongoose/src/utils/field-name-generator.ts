@@ -30,6 +30,6 @@ export default class FieldNameGenerator {
   }
 
   static generateKey(name: string): string {
-    return `${name}_id}`;
+    return `${name}_id`;
   }
 }
