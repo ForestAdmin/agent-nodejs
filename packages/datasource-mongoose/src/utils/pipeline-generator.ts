@@ -12,6 +12,7 @@ import {
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
+import { DateTime } from 'luxon';
 import { Model, PipelineStage, Schema, SchemaType, Types, isValidObjectId } from 'mongoose';
 
 const STRING_OPERATORS = [
@@ -211,9 +212,17 @@ export default class PipelineGenerator {
     } else if (instanceType === 'Date') {
       value = new Date(value as string);
     } else if (instanceType === 'Array') {
-      if (subType === 'Date') {
+      if (
+        subType === 'Date' &&
+        Array.isArray(value) &&
+        value.every(v => DateTime.fromISO(v).isValid)
+      ) {
         value = (value as Array<string>).map(v => new Date(v));
-      } else if (subType === 'ObjectID') {
+      } else if (
+        subType === 'ObjectID' &&
+        Array.isArray(value) &&
+        value.every(v => isValidObjectId(v))
+      ) {
         value = (value as Array<string>).map(id => new Types.ObjectId(id));
       }
     }

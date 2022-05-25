@@ -67,7 +67,7 @@ export default class MongooseCollection extends BaseCollection {
     return MongooseCollection.formatRecords(await this.model.aggregate(pipeline));
   }
 
-  public static formatRecords(records: RecordData[]): AggregateResult[] {
+  protected static formatRecords(records: RecordData[]): AggregateResult[] {
     const results: AggregateResult[] = [];
 
     records.forEach(record => {
@@ -99,12 +99,12 @@ export default class MongooseCollection extends BaseCollection {
 export class ManyToManyMongooseCollection extends MongooseCollection {
   private readonly originCollection: MongooseCollection;
   private readonly foreignCollection: MongooseCollection;
-  private readonly fieldNameOfIds: string;
+  private readonly originFieldNameOfIds: string;
 
   constructor(
     originCollection: MongooseCollection,
     foreignCollection: MongooseCollection,
-    fieldNameOfIds: string,
+    originFieldNameOfIds: string,
     manyToManyRelation: string,
   ) {
     const model = ManyToManyMongooseCollection.buildModel(
@@ -116,7 +116,7 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
     super(originCollection.dataSource, model);
     this.originCollection = originCollection;
     this.foreignCollection = foreignCollection;
-    this.fieldNameOfIds = fieldNameOfIds;
+    this.originFieldNameOfIds = originFieldNameOfIds;
   }
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
@@ -165,7 +165,7 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
         return this.originCollection.model.updateOne(
           { _id: item[`${this.originCollection.name}_id`] },
           {
-            $addToSet: { [this.fieldNameOfIds]: item[`${this.foreignCollection.name}_id`] },
+            $addToSet: { [this.originFieldNameOfIds]: item[`${this.foreignCollection.name}_id`] },
           },
         );
       }),
@@ -189,7 +189,7 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
       await this.originCollection.model.updateOne(
         { _id: record[`${this.originCollection.name}_id`] },
         {
-          $pull: { [this.fieldNameOfIds]: record[`${this.foreignCollection.name}_id`] },
+          $pull: { [this.originFieldNameOfIds]: record[`${this.foreignCollection.name}_id`] },
         },
       );
 
@@ -198,7 +198,7 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
         await this.originCollection.model.updateOne(
           { _id: patch[`${this.originCollection.name}_id`] },
           {
-            $addToSet: { [this.fieldNameOfIds]: patch[`${this.foreignCollection.name}_id`] },
+            $addToSet: { [this.originFieldNameOfIds]: patch[`${this.foreignCollection.name}_id`] },
           },
         );
       }
@@ -215,7 +215,7 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
     let pipeline = PipelineGenerator.find(this.originCollection, model, allFilter, allProjection);
     pipeline = PipelineGenerator.emulateManyToManyCollection(
       model,
-      this.fieldNameOfIds,
+      this.originFieldNameOfIds,
       this.originCollection.name,
       this.foreignCollection.name,
       pipeline,

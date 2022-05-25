@@ -16,19 +16,17 @@ import FilterOperatorBuilder from './filter-operator-builder';
 import MongooseCollection, { ManyToManyMongooseCollection } from '../collection';
 
 export default class SchemaFieldsGenerator {
-  static createInverseRelationships(collections: MongooseCollection[]): void {
+  static addInverseRelationships(collections: MongooseCollection[]): void {
     // avoid to create two times the many to many collection
     // when iterating on the many to many type field schema
-    const createdFakeManyToManyRelations: string[] = [];
+    const createdManyToMany: string[] = [];
+    const isAlreadyCreated = name => createdManyToMany.includes(name);
     collections.forEach(collection => {
       Object.entries(collection.schema.fields).forEach(([fieldName, fieldSchema]) => {
         if (fieldSchema.type === 'ManyToOne') {
-          this.createOneToManyRelation(fieldSchema, collection);
-        } else if (
-          fieldSchema.type === 'ManyToMany' &&
-          !createdFakeManyToManyRelations.includes(fieldName)
-        ) {
-          this.createManyToManyCollection(fieldSchema, collection, createdFakeManyToManyRelations);
+          this.addOneToManyRelation(fieldSchema, collection);
+        } else if (fieldSchema.type === 'ManyToMany' && !isAlreadyCreated(fieldName)) {
+          this.addManyToManyRelationAndCollection(fieldSchema, collection, createdManyToMany);
         }
       });
     });
@@ -43,14 +41,14 @@ export default class SchemaFieldsGenerator {
         return schemaFields;
       }
 
-      const isIdColumn = schemaType.options?.ref;
-      const isArrayOfIdsColumn =
-        schemaType.options?.type[0]?.schemaName === 'ObjectId' && isIdColumn;
+      const isRefField = schemaType.options?.ref;
+      const isArrayOfRefField =
+        schemaType.options?.type[0]?.schemaName === 'ObjectId' && isRefField;
 
-      if (isArrayOfIdsColumn) {
-        this.emulateManyToManyRelation(schemaType, model.modelName, fieldName, schemaFields);
-      } else if (isIdColumn) {
-        this.emulateManyToOne(schemaType, model.modelName, fieldName, schemaFields);
+      if (isArrayOfRefField) {
+        this.addManyToManyRelation(schemaType, model.modelName, fieldName, schemaFields);
+      } else if (isRefField) {
+        this.addManyToOneRelation(schemaType, model.modelName, fieldName, schemaFields);
       } else {
         schemaFields[schemaType.path.split('.').shift()] = SchemaFieldsGenerator.buildColumnSchema(
           schemaType,
@@ -62,7 +60,7 @@ export default class SchemaFieldsGenerator {
     }, {});
   }
 
-  private static emulateManyToOne(
+  private static addManyToOneRelation(
     schema: SchemaType,
     modelName: string,
     fieldName: string,
@@ -83,7 +81,7 @@ export default class SchemaFieldsGenerator {
     );
   }
 
-  private static emulateManyToManyRelation(
+  private static addManyToManyRelation(
     schema: SchemaType,
     modelName: string,
     fieldName: string,
@@ -109,10 +107,10 @@ export default class SchemaFieldsGenerator {
     schemaFields[fieldName] = SchemaFieldsGenerator.buildColumnSchema(schema, 'String');
   }
 
-  private static createManyToManyCollection(
+  private static addManyToManyRelationAndCollection(
     fieldSchema: ManyToManySchema,
     collection: MongooseCollection,
-    createdFakeManyToManyRelations: string[],
+    createdManyToMany: string[],
   ): void {
     const foreignCollection = collection.dataSource.getCollection(
       fieldSchema.foreignCollection,
@@ -126,7 +124,7 @@ export default class SchemaFieldsGenerator {
       fieldSchema.originKey,
       throughCollection,
     );
-    createdFakeManyToManyRelations.push(manyToMany);
+    createdManyToMany.push(manyToMany);
 
     foreignCollection.schema.fields[manyToMany] = {
       throughCollection,
@@ -148,7 +146,7 @@ export default class SchemaFieldsGenerator {
     );
   }
 
-  private static createOneToManyRelation(
+  private static addOneToManyRelation(
     schema: ManyToOneSchema,
     collection: MongooseCollection,
   ): void {

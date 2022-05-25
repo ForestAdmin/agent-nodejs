@@ -12,8 +12,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { Connection, Schema, Types, createConnection, model } from 'mongoose';
 
-import { MongooseDatasource } from '../src';
 import MongooseCollection from '../src/collection';
+import MongooseDatasource from '../src/datasource';
 
 describe('MongooseCollection', () => {
   let connection: Connection;
