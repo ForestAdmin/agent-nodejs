@@ -3,6 +3,10 @@ export default class FieldNameGenerator {
     return `${fieldName}__${modelName.split('_').pop()}__manyToOne`;
   }
 
+  static generateOneToOne(fieldName: string, modelName: string): string {
+    return `${fieldName}__${modelName.split('_').pop()}__oneToOne`;
+  }
+
   static generateOneToMany(foreignCollectionName: string, foreignKey: string): string {
     return `${foreignCollectionName}__${foreignKey}__oneToMany`;
   }

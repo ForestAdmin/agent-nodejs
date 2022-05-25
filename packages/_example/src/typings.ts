@@ -157,6 +157,14 @@ export type Schema = {
     nested: {};
     flat: {};
   };
+  ownerMongo: {
+    plain: {
+      name: string;
+      _id: string;
+    };
+    nested: {};
+    flat: {};
+  };
   post: {
     plain: {
       id: number;
