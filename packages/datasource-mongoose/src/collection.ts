@@ -1,4 +1,5 @@
-// eslint-disable-next-line max-classes-per-file
+/* eslint-disable max-classes-per-file, no-underscore-dangle */
+
 import {
   AggregateResult,
   Aggregation,
@@ -7,11 +8,12 @@ import {
   ConditionTreeLeaf,
   DataSource,
   Filter,
+  ManyToManySchema,
   PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { Model, PipelineStage } from 'mongoose';
+import { Model, PipelineStage, Schema, model as mongooseModel } from 'mongoose';
 
 import PipelineGenerator from './utils/pipeline-generator';
 import SchemaFieldsGenerator from './utils/schema-fields-generator';
@@ -29,7 +31,6 @@ export default class MongooseCollection extends BaseCollection {
     this.parseJSONToNestedFieldsInPlace(data);
     const records = await this.model.insertMany(data);
 
-    // eslint-disable-next-line no-underscore-dangle
     const ids = records.map(record => record._id);
     const conditionTree = new ConditionTreeLeaf('_id', 'In', ids);
 
@@ -46,13 +47,11 @@ export default class MongooseCollection extends BaseCollection {
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     const ids = await this.list(caller, filter, new Projection('_id'));
-    // eslint-disable-next-line no-underscore-dangle
     await this.model.updateMany({ _id: ids.map(record => record._id) }, patch);
   }
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
     const ids = await this.list(caller, filter, new Projection('_id'));
-    // eslint-disable-next-line no-underscore-dangle
     await this.model.deleteMany({ _id: ids.map(record => record._id) });
   }
 
@@ -73,7 +72,6 @@ export default class MongooseCollection extends BaseCollection {
     const results: AggregateResult[] = [];
 
     records.forEach(record => {
-      // eslint-disable-next-line no-underscore-dangle
       const group = Object.entries(record?._id || {}).reduce((computed, [field, value]) => {
         computed[field] = value;
 
@@ -105,21 +103,25 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
   private readonly fieldNameOfIds: string;
 
   constructor(
-    dataSource: DataSource,
-    model: Model<RecordData>,
-    originCollectionName: MongooseCollection,
-    foreignCollectionName: MongooseCollection,
+    originCollection: MongooseCollection,
+    foreignCollection: MongooseCollection,
     fieldNameOfIds: string,
+    manyToManyRelation: string,
   ) {
-    super(dataSource, model);
-    this.originCollection = originCollectionName;
-    this.foreignCollection = foreignCollectionName;
+    const model = ManyToManyMongooseCollection.buildModel(
+      originCollection,
+      foreignCollection,
+      manyToManyRelation,
+    );
+
+    super(originCollection.dataSource, model);
+    this.originCollection = originCollection;
+    this.foreignCollection = foreignCollection;
     this.fieldNameOfIds = fieldNameOfIds;
   }
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     const records = await this.createManyToMany(data);
-    // eslint-disable-next-line no-underscore-dangle
     const ids = records.map(record => record._id);
     const conditionTree = new ConditionTreeLeaf('_id', 'In', ids);
 
@@ -221,5 +223,24 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
     );
 
     return PipelineGenerator.find(this, model, filter, projection, pipeline);
+  }
+
+  private static buildModel(
+    originCollection: MongooseCollection,
+    foreignCollection: MongooseCollection,
+    manyToManyRelation: string,
+  ): Model<RecordData> {
+    const { foreignKey, originKey, throughCollection } = foreignCollection.schema.fields[
+      manyToManyRelation
+    ] as ManyToManySchema;
+    const schema = new Schema(
+      {
+        [foreignKey]: { type: Schema.Types.ObjectId, ref: originCollection.name },
+        [originKey]: { type: Schema.Types.ObjectId, ref: foreignCollection.name },
+      },
+      { _id: false },
+    );
+
+    return mongooseModel(throughCollection, schema, null, { overwriteModels: true });
   }
 }
