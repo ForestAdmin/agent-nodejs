@@ -20,7 +20,7 @@ agent.customizeCollection('towns', collection =>
     .addOneToOneRelation('myMayor', 'persons', { originKey: 'mayor_id' })
 
     // Towns have multiple inhabitants
-    .addOneToManyRelation('myMayor', 'persons', { originKey: 'town_id' })
+    .addOneToManyRelation('inhabitants', 'persons', { originKey: 'town_id' })
 
     // Towns electricity is supplied by power-plants which are shared with other towns.
     .addManyToManyRelation('myPowerPlants', 'powerPlants', 'utilityContracts', {
