@@ -32,7 +32,10 @@ export default class SchemaFieldsGenerator {
     });
   }
 
-  static buildFieldsSchema(model: Model<RecordData>): CollectionSchema['fields'] {
+  static buildFieldsSchema(
+    model: Model<RecordData>,
+    pathsToFlatten: string[] = [],
+  ): CollectionSchema['fields'] {
     return Object.entries(model.schema.paths).reduce((schemaFields, [fieldName, schemaType]) => {
       const mixedFieldPattern = '$*';
       const privateFieldPattern = '__';
@@ -49,6 +52,7 @@ export default class SchemaFieldsGenerator {
         this.addManyToManyRelation(schemaType, model.modelName, fieldName, schemaFields);
       } else if (isRefField) {
         this.addManyToOneRelation(schemaType, model.modelName, fieldName, schemaFields);
+      } else if (this.isPathMustBeFlatten(schemaType.path, pathsToFlatten)) {
       } else {
         schemaFields[schemaType.path.split('.').shift()] = SchemaFieldsGenerator.buildColumnSchema(
           schemaType,
@@ -58,6 +62,14 @@ export default class SchemaFieldsGenerator {
 
       return schemaFields;
     }, {});
+  }
+
+  private static isPathMustBeFlatten(currentPath: string, pathsToFlatten: string[]): boolean {
+    const pathWithoutModelName = pathsToFlatten.map(pathToFlatten =>
+      pathToFlatten.split(':').slice(1, pathToFlatten.length).join(':'),
+    );
+
+    return pathWithoutModelName.includes(currentPath);
   }
 
   private static addManyToOneRelation(
