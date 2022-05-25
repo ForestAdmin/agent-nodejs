@@ -9,7 +9,8 @@
   ],
   "dependencies": {
     "@forestadmin/datasource-toolkit": "1.0.0-beta.16",
-    "mongoose": "^6.3.2"
+    "mongoose": "^6.3.2",
+    "luxon": "^2.3.0"
   },
   "peerDependencies": {},
   "scripts": {
