@@ -21,6 +21,7 @@ export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected model: ModelDefined<any, any>;
   private aggregationUtils: AggregationUtils;
+  private queryConverter: QueryConverter;
 
   constructor(
     name: string,
@@ -35,6 +36,7 @@ export default class SequelizeCollection extends BaseCollection {
 
     this.model = model;
     this.aggregationUtils = new AggregationUtils(this.model);
+    this.queryConverter = new QueryConverter(this.model);
 
     const modelSchema = ModelConverter.convert(this.model, logger);
 
@@ -53,25 +55,27 @@ export default class SequelizeCollection extends BaseCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    let include = QueryConverter.getIncludeWithAttributesFromProjection(projection);
+    let include = this.queryConverter.getIncludeWithAttributesFromProjection(projection);
 
     if (filter.conditionTree) {
       include = include.concat(
-        QueryConverter.getIncludeFromProjection(filter.conditionTree.projection),
+        this.queryConverter.getIncludeFromProjection(filter.conditionTree.projection),
       );
     }
 
     if (filter.sort) {
-      include = include.concat(QueryConverter.getIncludeFromProjection(filter.sort.projection));
+      include = include.concat(
+        this.queryConverter.getIncludeFromProjection(filter.sort.projection),
+      );
     }
 
     const query: FindOptions = {
       attributes: projection.columns,
-      where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
+      where: this.queryConverter.getWhereFromConditionTree(filter.conditionTree),
       include,
       limit: filter.page?.limit,
       offset: filter.page?.skip,
-      order: QueryConverter.getOrderFromSort(filter.sort),
+      order: this.queryConverter.getOrderFromSort(filter.sort),
       subQuery: false,
     };
 
@@ -82,8 +86,7 @@ export default class SequelizeCollection extends BaseCollection {
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     await this.model.update(patch, {
-      where: await QueryConverter.getWhereFromConditionTreeToByPassInclude(
-        this.model,
+      where: await this.queryConverter.getWhereFromConditionTreeToByPassInclude(
         filter.conditionTree,
       ),
       fields: Object.keys(patch),
@@ -92,8 +95,7 @@ export default class SequelizeCollection extends BaseCollection {
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
     await this.model.destroy({
-      where: await QueryConverter.getWhereFromConditionTreeToByPassInclude(
-        this.model,
+      where: await this.queryConverter.getWhereFromConditionTreeToByPassInclude(
         filter.conditionTree,
       ),
     });
@@ -122,11 +124,11 @@ export default class SequelizeCollection extends BaseCollection {
     const { groups, attributes: groupAttributes } =
       this.aggregationUtils.getGroupAndAttributesFromAggregation(aggregation.groups);
 
-    let include = QueryConverter.getIncludeFromProjection(aggregation.projection);
+    let include = this.queryConverter.getIncludeFromProjection(aggregation.projection);
 
     if (filter.conditionTree) {
       include = include.concat(
-        QueryConverter.getIncludeFromProjection(filter.conditionTree.projection),
+        this.queryConverter.getIncludeFromProjection(filter.conditionTree.projection),
       );
     }
 
@@ -135,7 +137,7 @@ export default class SequelizeCollection extends BaseCollection {
     const query: FindOptions = {
       attributes: [...groupAttributes, aggregationAttribute],
       group: groups,
-      where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
+      where: this.queryConverter.getWhereFromConditionTree(filter.conditionTree),
       include,
       limit,
       order: [order],

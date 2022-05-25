@@ -12,7 +12,6 @@ import {
 import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from 'sequelize';
 
 import { SequelizeCollection } from '../src';
-import QueryConverter from '../src/utils/query-converter';
 
 describe('SequelizeDataSource > Collection', () => {
   const makeConstructorParams = (dialect = 'postgres') => {
@@ -197,9 +196,6 @@ describe('SequelizeDataSource > Collection', () => {
         const patch = { field: '__value__' };
         const filter = new Filter({});
         const where = {};
-        jest
-          .spyOn(QueryConverter, 'getWhereFromConditionTreeToByPassInclude')
-          .mockResolvedValue(where);
 
         await sequelizeCollection.update(factories.caller.build(), filter, patch);
 
@@ -229,11 +225,7 @@ describe('SequelizeDataSource > Collection', () => {
     it('should delegate work to `sequelize.model.delete``', async () => {
       const { destroy, sequelizeCollection } = setup();
       const filter = new Filter({});
-
       const where = {};
-      jest
-        .spyOn(QueryConverter, 'getWhereFromConditionTreeToByPassInclude')
-        .mockResolvedValue(where);
 
       await sequelizeCollection.delete(factories.caller.build(), filter);
 

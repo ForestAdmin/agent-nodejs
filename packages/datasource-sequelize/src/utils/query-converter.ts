@@ -22,13 +22,19 @@ import {
 import { Where } from 'sequelize/types/utils';
 
 export default class QueryConverter {
-  private static asArray(value: unknown) {
+  private model: ModelDefined<unknown, unknown>;
+
+  constructor(model: ModelDefined<unknown, unknown>) {
+    this.model = model;
+  }
+
+  private asArray(value: unknown) {
     if (!Array.isArray(value)) return [value];
 
     return value;
   }
 
-  private static makeWhereClause(
+  private makeWhereClause(
     operator: Operator,
     field: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,22 +82,18 @@ export default class QueryConverter {
    * Delete and update sequelize methods does not provide the include options.
    * This method is developed to by pass this problem.
    */
-  static async getWhereFromConditionTreeToByPassInclude(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    model: ModelDefined<any, any>,
+  async getWhereFromConditionTreeToByPassInclude(
     conditionTree?: ConditionTree,
   ): Promise<WhereOptions> {
-    const include = conditionTree
-      ? QueryConverter.getIncludeFromProjection(conditionTree.projection)
-      : [];
-    const whereOptions = QueryConverter.getWhereFromConditionTree(model, conditionTree);
+    const include = conditionTree ? this.getIncludeFromProjection(conditionTree.projection) : [];
+    const whereOptions = this.getWhereFromConditionTree(conditionTree);
 
     if (include.length === 0) {
       return whereOptions;
     }
 
-    const keys = [...model.primaryKeyAttributes];
-    const records = await model.findAll({ attributes: keys, where: whereOptions, include });
+    const keys = [...this.model.primaryKeyAttributes];
+    const records = await this.model.findAll({ attributes: keys, where: whereOptions, include });
     const conditions = records.map(record => {
       const equals = keys.map(pk => new ConditionTreeLeaf(pk, 'Equal', record.get(pk)));
 
@@ -100,14 +102,10 @@ export default class QueryConverter {
 
     const union = ConditionTreeFactory.union(...conditions);
 
-    return QueryConverter.getWhereFromConditionTree(model, union);
+    return this.getWhereFromConditionTree(union);
   }
 
-  static getWhereFromConditionTree(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    model: ModelDefined<any, any>,
-    conditionTree?: ConditionTree,
-  ): WhereOptions {
+  getWhereFromConditionTree(conditionTree?: ConditionTree): WhereOptions {
     if (!conditionTree) return {};
 
     const sequelizeWhereClause = {};
@@ -126,7 +124,7 @@ export default class QueryConverter {
       }
 
       sequelizeWhereClause[sequelizeOperator] = conditions.map(condition =>
-        this.getWhereFromConditionTree(model, condition),
+        this.getWhereFromConditionTree(condition),
       );
     } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
@@ -138,11 +136,11 @@ export default class QueryConverter {
         const paths = field.split(':');
         const fieldName = paths.pop();
         const safeFieldName = paths
-          .reduce((acc, path) => acc.associations[path].target, model)
+          .reduce((acc, path) => acc.associations[path].target, this.model)
           .getAttributes()[fieldName].field;
         safeField = `${paths.join('.')}.${safeFieldName}`;
       } else {
-        safeField = model.getAttributes()[field].field;
+        safeField = this.model.getAttributes()[field].field;
       }
 
       sequelizeWhereClause[isRelation ? `$${safeField}$` : safeField] = this.makeWhereClause(
@@ -157,7 +155,7 @@ export default class QueryConverter {
     return sequelizeWhereClause;
   }
 
-  private static computeIncludeFromProjection(
+  private computeIncludeFromProjection(
     projection: Projection,
     withAttributes = true,
   ): IncludeOptions[] {
@@ -170,15 +168,15 @@ export default class QueryConverter {
     });
   }
 
-  static getIncludeFromProjection(projection: Projection): IncludeOptions[] {
+  getIncludeFromProjection(projection: Projection): IncludeOptions[] {
     return this.computeIncludeFromProjection(projection, false);
   }
 
-  static getIncludeWithAttributesFromProjection(projection: Projection): IncludeOptions[] {
+  getIncludeWithAttributesFromProjection(projection: Projection): IncludeOptions[] {
     return this.computeIncludeFromProjection(projection);
   }
 
-  static getOrderFromSort(sort: Sort): OrderItem[] {
+  getOrderFromSort(sort: Sort): OrderItem[] {
     return (sort ?? []).map(({ field, ascending }): OrderItem => {
       const path = field.split(':') as [string];
 
