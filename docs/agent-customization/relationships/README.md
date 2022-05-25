@@ -17,7 +17,7 @@ agent.customizeCollection('towns', collection =>
     .addManyToOneRelation('myCountry', 'countries', { foreignKey: 'country_id' })
 
     // Towns have one mayor
-    .addOneToOneRelation('myMayor', 'persons', { originKey: 'mayor_id' })
+    .addOneToOneRelation('myMayor', 'mayors', { originKey: 'town_id' })
 
     // Towns have multiple inhabitants
     .addOneToManyRelation('inhabitants', 'persons', { originKey: 'town_id' })
