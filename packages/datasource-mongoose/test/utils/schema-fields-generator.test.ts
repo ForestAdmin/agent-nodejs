@@ -330,6 +330,29 @@ describe('SchemaFieldsGenerator', () => {
           });
         });
       });
+
+      describe('when it should be flatten', () => {
+        describe('when it is a simple nested object', () => {
+          it('should create a one to one relation', () => {
+            const mongooseSchema = new Schema({
+              author: new Schema({ firstName: String }),
+            });
+
+            const schema = SchemaFieldsGenerator.buildFieldsSchema(
+              buildModel(mongooseSchema, 'book'),
+              ['book:author'],
+            );
+
+            expect(schema.author).toEqual(undefined);
+            expect(schema.author__book__oneToOne).toEqual({
+              type: 'OneToOne',
+              foreignCollection: 'book',
+              originKey: '_id',
+              originKeyTarget: '_id',
+            });
+          });
+        });
+      });
     });
 
     describe('with an objectId and a ref', () => {
