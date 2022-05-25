@@ -6,6 +6,7 @@ import {
   ManyToManySchema,
   ManyToOneSchema,
   OneToManySchema,
+  OneToOneSchema,
   PrimitiveTypes,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -53,6 +54,7 @@ export default class SchemaFieldsGenerator {
       } else if (isRefField) {
         this.addManyToOneRelation(schemaType, model.modelName, fieldName, schemaFields);
       } else if (this.isPathMustBeFlatten(schemaType.path, pathsToFlatten)) {
+        this.addOneToOneRelation(model.modelName, fieldName, schemaFields);
       } else {
         schemaFields[schemaType.path.split('.').shift()] = SchemaFieldsGenerator.buildColumnSchema(
           schemaType,
@@ -70,6 +72,19 @@ export default class SchemaFieldsGenerator {
     );
 
     return pathWithoutModelName.includes(currentPath);
+  }
+
+  private static addOneToOneRelation(
+    modelName: string,
+    fieldName: string,
+    schemaFields: CollectionSchema['fields'],
+  ): void {
+    schemaFields[FieldNameGenerator.generateOneToOne(fieldName, modelName)] = {
+      type: 'OneToOne',
+      foreignCollection: modelName,
+      originKey: '_id',
+      originKeyTarget: '_id',
+    } as OneToOneSchema;
   }
 
   private static addManyToOneRelation(
