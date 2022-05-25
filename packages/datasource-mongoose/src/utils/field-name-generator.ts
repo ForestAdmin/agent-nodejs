@@ -15,7 +15,7 @@ export default class FieldNameGenerator {
     return `${modelName}__${foreignCollectionName}__${fieldName}`;
   }
 
-  static getFieldOfIds(name: string) {
+  static getOriginFieldNameOfIds(name: string) {
     return name.split('_').pop();
   }
 
@@ -24,6 +24,12 @@ export default class FieldNameGenerator {
     originKey: string,
     throughCollection: string,
   ): string {
-    return `${foreignCollectionName}__${originKey}__${this.getFieldOfIds(throughCollection)}`;
+    return `${foreignCollectionName}__${originKey}__${this.getOriginFieldNameOfIds(
+      throughCollection,
+    )}`;
+  }
+
+  static generateKey(name: string): string {
+    return `${name}_id}`;
   }
 }

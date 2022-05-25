@@ -21,6 +21,6 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
     Object.values(this.connection.models).forEach(model => {
       this.addCollection(new MongooseCollection(this, model));
     });
-    SchemaFieldsGenerator.addInverseRelationships(this.collections);
+    SchemaFieldsGenerator.createInverseRelationships(this.collections);
   }
 }

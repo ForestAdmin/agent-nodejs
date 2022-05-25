@@ -397,7 +397,7 @@ describe('SchemaFieldsGenerator', () => {
         dataSource.addCollection(collectionA);
         dataSource.addCollection(collectionB);
 
-        SchemaFieldsGenerator.addInverseRelationships([collectionA, collectionB]);
+        SchemaFieldsGenerator.createInverseRelationships([collectionA, collectionB]);
 
         expect(collectionB.schema.fields).toMatchObject({
           modelB__aFieldRelation__oneToMany: {
@@ -433,7 +433,7 @@ describe('SchemaFieldsGenerator', () => {
         dataSource.addCollection(collectionB);
 
         // when
-        SchemaFieldsGenerator.addInverseRelationships(dataSource.collections);
+        SchemaFieldsGenerator.createInverseRelationships(dataSource.collections);
 
         // then
         expect(collectionB.schema.fields.modelB__modelA_id__aFieldRelation).toEqual({
@@ -483,7 +483,7 @@ describe('SchemaFieldsGenerator', () => {
       const modelA = buildModel(schemaWithManyToOne, 'modelA');
       const collectionA = new MongooseCollection(dataSource, modelA);
 
-      expect(() => SchemaFieldsGenerator.addInverseRelationships([collectionA])).toThrow(
+      expect(() => SchemaFieldsGenerator.createInverseRelationships([collectionA])).toThrow(
         "Collection 'modelDoesNotExist' not found.",
       );
     });
