@@ -90,11 +90,10 @@ describe('Utils > TypeConverter', () => {
           'String',
           [
             'Blank',
-            'Contains',
-            'EndsWith',
             'Equal',
             'In',
             'Like',
+            'ILike',
             'LongerThan',
             'Missing',
             'NotContains',
@@ -102,7 +101,6 @@ describe('Utils > TypeConverter', () => {
             'NotIn',
             'Present',
             'ShorterThan',
-            'StartsWith',
           ],
         ],
         [

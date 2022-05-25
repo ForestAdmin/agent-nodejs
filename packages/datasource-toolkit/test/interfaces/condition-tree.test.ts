@@ -344,9 +344,8 @@ describe('ConditionTree', () => {
       });
       const allConditions = new ConditionTreeBranch('And', [
         new ConditionTreeLeaf('string', 'Present'),
-        new ConditionTreeLeaf('string', 'Contains', 'value'),
-        new ConditionTreeLeaf('string', 'StartsWith', 'value'),
-        new ConditionTreeLeaf('string', 'EndsWith', 'value'),
+        new ConditionTreeLeaf('string', 'Like', '%value%'),
+        new ConditionTreeLeaf('string', 'ILike', '%VaLuE%'),
         new ConditionTreeLeaf('string', 'LessThan', 'valuf'),
         new ConditionTreeLeaf('string', 'Equal', 'value'),
         new ConditionTreeLeaf('string', 'GreaterThan', 'valud'),

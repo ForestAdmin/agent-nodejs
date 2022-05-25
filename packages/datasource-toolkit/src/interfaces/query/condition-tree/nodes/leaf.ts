@@ -100,7 +100,9 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case 'GreaterThan':
         return fieldValue > this.value;
       case 'Like':
-        return this.like(fieldValue as string, this.value as string);
+        return this.like(fieldValue as string, this.value as string, true);
+      case 'ILike':
+        return this.like(fieldValue as string, this.value as string, false);
       case 'LongerThan':
         return (fieldValue as string).length > this.value;
       case 'ShorterThan':
@@ -131,7 +133,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
   }
 
   /** @see https://stackoverflow.com/a/18418386/1897495 */
-  private like(value: string, pattern: string): boolean {
+  private like(value: string, pattern: string, caseSensitive: boolean): boolean {
     if (!value) return false;
 
     let regexp = pattern;
@@ -140,6 +142,6 @@ export default class ConditionTreeLeaf extends ConditionTree {
     regexp = regexp.replace(/([\.\\\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:\-])/g, '\\$1');
     regexp = regexp.replace(/%/g, '.*').replace(/_/g, '.');
 
-    return RegExp(`^${regexp}$`, 'gi').test(value);
+    return RegExp(`^${regexp}$`, caseSensitive ? 'g' : 'gi').test(value);
   }
 }

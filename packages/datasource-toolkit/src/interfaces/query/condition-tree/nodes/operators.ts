@@ -8,6 +8,7 @@ export const uniqueOperators = [
 
   // Strings
   'Like',
+  'ILike',
   'NotContains',
   'LongerThan',
   'ShorterThan',
@@ -46,6 +47,9 @@ export const otherOperators = [
   'StartsWith',
   'EndsWith',
   'Contains',
+  'IStartsWith',
+  'IEndsWith',
+  'IContains',
 
   // Dates
   'Before',

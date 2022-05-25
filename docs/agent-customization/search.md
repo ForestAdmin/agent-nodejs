@@ -11,19 +11,19 @@ Two search modes are supported: normal and extended.
 
 ![Extended search call to action](../assets/search-bar-extended.png)
 
-When not defined otherwise by the [datasource](../datasources/README.md), the search behavior is to attempt to search within columns of the collection (in normal mode), or columns of the collection of direct relations (in extended mode).
-
 ## Default behavior
 
-By default, Forest Admin won't search only on some columns, depending on their respective types.
+When not defined otherwise by the [datasource](../datasources/README.md), the search behavior is to attempt to search within columns of the collection (in normal mode), or columns of the collection of direct relations (in extended mode).
 
-| Column Type | Default search behavior                                                                  |
-| ----------- | ---------------------------------------------------------------------------------------- |
-| Enum        | Column is equal to the search string (if the search string contains a value of the enum) |
-| Number      | Column is equal to the search string (if the search string is numeric)                   |
-| String      | Column contains the search string (case-insensitive)                                     |
-| Uuid        | Column is equal to the search string (if the search string contains an uuid)             |
-| Other types | Column is ignored by the default search handler                                          |
+By default, Forest Admin will search only on some columns, depending on their respective types.
+
+| Column Type | Default search behavior                                                |
+| ----------- | ---------------------------------------------------------------------- |
+| Enum        | Column is equal to the search string (case-insensitive)                |
+| Number      | Column is equal to the search string (if the search string is numeric) |
+| String      | Column contains the search string (case-insensitive)                   |
+| Uuid        | Column is equal to the search string                                   |
+| Other types | Column is ignored by the default search handler                        |
 
 ## Customization
 
@@ -33,6 +33,28 @@ For instance:
 
 - Search only on the columns which are relevant to your use-case.
 - Use a full-text indexes of your data (i.e Postgres `tsquery` and `tsvector`, Algolia, Elastic search, ...)
+
+In order to customize the search bar, you must define a handler which returns a [`ConditionTree`](../under-the-hood/queries/filters.md#condition-trees).
+
+### Making the search case-sensitive by default
+
+In this example, we use the `searchExtended` condition to toggle between case-sensitive and insensitive search.
+
+```javascript
+agent.customizeCollection('people', collection =>
+  collection.replaceSearch((searchString, extendedMode) => {
+    const operator = extendedMode ? 'Contains' : 'IContains';
+
+    return {
+      aggregator: 'Or',
+      conditions: [
+        { field: 'firstName', operator, value: searchString },
+        { field: 'lastName', operator, value: searchString },
+      ],
+    };
+  }),
+);
+```
 
 ### Changing searched columns
 
