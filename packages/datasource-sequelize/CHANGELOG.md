@@ -1,3 +1,18 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.23...@forestadmin/datasource-sequelize@1.0.0-beta.24) (2022-05-25)
+
+
+### Features
+
+* **search:** add support for case sensitive/insensitive search ([#315](https://github.com/ForestAdmin/agent-nodejs/issues/315)) ([b6fe544](https://github.com/ForestAdmin/agent-nodejs/commit/b6fe544cf546724f62386f4df661982e62cf714e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.19
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.22...@forestadmin/datasource-sequelize@1.0.0-beta.23) (2022-05-24)
 
 
