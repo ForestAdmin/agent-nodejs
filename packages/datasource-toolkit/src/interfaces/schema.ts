@@ -23,17 +23,22 @@ export type CollectionSchema = {
 export type RelationSchema = ManyToOneSchema | OneToManySchema | OneToOneSchema | ManyToManySchema;
 export type FieldSchema = ColumnSchema | RelationSchema;
 
-export type ColumnSchema = {
+export type ColumnStructure = {
   columnType: ColumnType;
-  filterOperators?: Set<Operator>;
   defaultValue?: unknown;
   enumValues?: string[];
   isPrimaryKey?: boolean;
   isReadOnly?: boolean;
-  isSortable?: boolean;
   type: 'Column';
   validation?: Array<{ operator: Operator; value?: unknown }>;
 };
+
+export type ColumnCapabilities = {
+  filterOperators?: Set<Operator>;
+  isSortable?: boolean;
+};
+
+export type ColumnSchema = ColumnStructure & ColumnCapabilities;
 
 export type ManyToOneSchema = {
   foreignCollection: string;

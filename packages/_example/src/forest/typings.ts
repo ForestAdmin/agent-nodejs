@@ -179,6 +179,8 @@ export type Schema = {
       'name': string;
       'email': string;
       'body': string;
+      'createdAt': string;
+      'updatedAt': string;
     };
     nested: {
       'post': Schema['post']['plain'] & Schema['post']['nested'];
@@ -188,6 +190,8 @@ export type Schema = {
       'post:userId': number;
       'post:title': string;
       'post:body': string;
+      'post:createdAt': string;
+      'post:updatedAt': string;
       'post:owner:id': number;
       'post:owner:firstName': string;
       'post:owner:lastName': string;
@@ -318,6 +322,8 @@ export type Schema = {
       'userId': number;
       'title': string;
       'body': string;
+      'createdAt': string;
+      'updatedAt': string;
     };
     nested: {
       'owner': Schema['owner']['plain'] & Schema['owner']['nested'];

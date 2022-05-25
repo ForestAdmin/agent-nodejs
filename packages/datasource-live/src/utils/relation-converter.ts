@@ -2,7 +2,7 @@ import { Sequelize } from 'sequelize';
 
 import { LiveCollectionSchema } from '../types';
 
-export default class CollectionSchemaToModelRelationsConverter {
+export default class CollectionRelationsConverter {
   public static convert(name: string, schema: LiveCollectionSchema, sequelize: Sequelize) {
     const relations = [];
 

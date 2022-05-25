@@ -4,7 +4,7 @@ import { TypeConverter } from '@forestadmin/datasource-sequelize';
 
 import { LiveCollectionSchema } from '../types';
 
-export default class CollectionSchemaToModelAttributesConverter {
+export default class CollectionAttributesConverter {
   public static convert(schema: LiveCollectionSchema): ModelAttributes {
     const attributes: ModelAttributes = {};
 
