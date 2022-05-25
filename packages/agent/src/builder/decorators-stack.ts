@@ -15,6 +15,7 @@ import {
   SearchCollectionDecorator,
   SegmentCollectionDecorator,
   SortEmulateCollectionDecorator,
+  ValidationCollectionDecorator,
   WriteCollectionDecorator,
 } from '@forestadmin/datasource-toolkit';
 
@@ -35,6 +36,7 @@ export default class DecoratorsStack {
   search: DataSourceDecorator<SearchCollectionDecorator>;
   segment: DataSourceDecorator<SegmentCollectionDecorator>;
   sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
+  validation: DataSourceDecorator<ValidationCollectionDecorator>;
   write: DataSourceDecorator<WriteCollectionDecorator>;
   hook: DataSourceDecorator<HookCollectionDecorator>;
   dataSource: DataSource;
@@ -61,10 +63,11 @@ export default class DecoratorsStack {
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
     last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
     last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
-    last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
+    last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);
 
     // Step 3: Access to all fields AND emulated capabilities
     last = this.chart = new ChartDataSourceDecorator(last);
+    last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
     last = this.hook = new DataSourceDecorator(last, HookCollectionDecorator);

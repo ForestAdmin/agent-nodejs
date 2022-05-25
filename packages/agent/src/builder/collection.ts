@@ -329,6 +329,12 @@ export default class CollectionBuilder<
     return this;
   }
 
+  addValidation(name: TColumnName<S, N>, operator: Operator, value?: unknown): this {
+    this.stack.validation.getCollection(this.name).addValidation(name, { operator, value });
+
+    return this;
+  }
+
   /**
    * Enable sorting on a specific field using emulation.
    * As for all the emulation method, the field sorting will be done in-memory.
