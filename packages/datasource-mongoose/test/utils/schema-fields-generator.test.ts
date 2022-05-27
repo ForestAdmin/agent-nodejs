@@ -407,6 +407,7 @@ describe('SchemaFieldsGenerator', () => {
   describe('addInverseRelationships', () => {
     describe('when there is a many to one relation', () => {
       it('should add a relation _oneToMany in the referenced model', () => {
+        // given
         const schemaWithManyToOne = new Schema({
           aFieldRelation: { type: Schema.Types.ObjectId, ref: 'modelB' },
         });
@@ -417,11 +418,12 @@ describe('SchemaFieldsGenerator', () => {
         const modelB = buildModel(schemaWithOneToMany, 'modelB');
         const collectionA = new MongooseCollection(dataSource, modelA);
         const collectionB = new MongooseCollection(dataSource, modelB);
-        dataSource.addCollection(collectionA);
+
+        // when
         dataSource.addCollection(collectionB);
+        dataSource.addCollection(collectionA, true);
 
-        SchemaFieldsGenerator.addInverseRelationships([collectionA, collectionB]);
-
+        // then
         expect(collectionB.schema.fields).toMatchObject({
           modelB__aFieldRelation__oneToMany: {
             foreignCollection: 'modelA',
@@ -452,11 +454,10 @@ describe('SchemaFieldsGenerator', () => {
 
         const collectionA = new MongooseCollection(dataSource, modelA);
         const collectionB = new MongooseCollection(dataSource, modelB);
-        dataSource.addCollection(collectionA);
-        dataSource.addCollection(collectionB);
 
         // when
-        SchemaFieldsGenerator.addInverseRelationships(dataSource.collections);
+        dataSource.addCollection(collectionB);
+        dataSource.addCollection(collectionA, true);
 
         // then
         expect(collectionB.schema.fields.modelB__modelA_id__aFieldRelation).toEqual({
@@ -499,6 +500,7 @@ describe('SchemaFieldsGenerator', () => {
 
     describe('when there is a one to one relation', () => {
       it('should add a one to one collection', () => {
+        // given
         const schemaWithOneToOne = new Schema({
           author: { firstName: String },
           fieldShouldNotBeAddToTheSchema: String,
@@ -507,10 +509,11 @@ describe('SchemaFieldsGenerator', () => {
         const dataSource = new MongooseDatasource({ models: {} } as Connection);
         const book = buildModel(schemaWithOneToOne, 'book');
         const bookCollection = new MongooseCollection(dataSource, book, ['book:author']);
-        dataSource.addCollection(bookCollection);
 
-        SchemaFieldsGenerator.addInverseRelationships([bookCollection]);
+        // when
+        dataSource.addCollection(bookCollection, true);
 
+        // then
         expect(dataSource.collections).toHaveLength(2);
         expect(dataSource.getCollection('book__author').schema.fields).toEqual({
           _id: expect.any(Object),
@@ -528,9 +531,9 @@ describe('SchemaFieldsGenerator', () => {
       const modelA = buildModel(schemaWithManyToOne, 'modelA');
       const collectionA = new MongooseCollection(dataSource, modelA);
 
-      expect(() => SchemaFieldsGenerator.addInverseRelationships([collectionA])).toThrow(
-        "Collection 'modelDoesNotExist' not found.",
-      );
+      expect(() =>
+        SchemaFieldsGenerator.addNewCollectionAndInverseRelationships([collectionA]),
+      ).toThrow("Collection 'modelDoesNotExist' not found.");
     });
   });
 });
