@@ -23,10 +23,6 @@ export default class NameFactory {
     return `${modelName}__${foreignCollectionName}__${this.getOriginFieldNameOfIds(fieldName)}`;
   }
 
-  static oneToOneName(fieldName: string, modelName: string): string {
-    return `${modelName}__${NameFactory.removeNestedPath(fieldName)}`;
-  }
-
   static getOriginFromOneToOne(origin: string): string {
     return origin.split('__').pop();
   }

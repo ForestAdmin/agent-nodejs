@@ -6,17 +6,13 @@ import {
   ManyToManySchema,
   ManyToOneSchema,
   OneToManySchema,
-  OneToOneSchema,
   PrimitiveTypes,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 import { Model, Schema, SchemaType } from 'mongoose';
 
 import FilterOperatorBuilder from './filter-operator-builder';
-import MongooseCollection, {
-  ManyToManyMongooseCollection,
-  OneToOneMongooseCollection,
-} from '../collection';
+import MongooseCollection, { ManyToManyMongooseCollection } from '../collection';
 import NameFactory from './name-factory';
 
 export default class SchemaFieldsGenerator {
@@ -31,20 +27,12 @@ export default class SchemaFieldsGenerator {
           this.addOneToManyRelation(fieldSchema, collection);
         } else if (fieldSchema.type === 'ManyToMany' && !isAlreadyCreated(fieldName)) {
           this.addManyToManyRelationAndCollection(fieldSchema, collection, createdManyToMany);
-        } else if (fieldSchema.type === 'OneToOne') {
-          const { foreignCollection } = fieldSchema;
-          const originFieldName = NameFactory.getOriginFromOneToOne(foreignCollection);
-          const c = new OneToOneMongooseCollection(foreignCollection, collection, originFieldName);
-          collection.dataSource.addCollection(c);
         }
       });
     });
   }
 
-  static buildFieldsSchema(
-    model: Model<RecordData>,
-    pathsToFlatten: string[] = [],
-  ): CollectionSchema['fields'] {
+  static buildFieldsSchema(model: Model<RecordData>): CollectionSchema['fields'] {
     return Object.entries(model.schema.paths).reduce((schemaFields, [fieldName, schemaType]) => {
       const mixedFieldPattern = '$*';
       const privateFieldPattern = '__';
@@ -61,8 +49,6 @@ export default class SchemaFieldsGenerator {
         this.addManyToManyRelation(schemaType, model.modelName, fieldName, schemaFields);
       } else if (isRefField) {
         this.addManyToOneRelation(schemaType, model.modelName, fieldName, schemaFields);
-      } else if (this.isPathMustBeFlatten(schemaType.path, pathsToFlatten)) {
-        this.addOneToOneRelation(model.modelName, fieldName, schemaFields);
       } else {
         schemaFields[schemaType.path.split('.').shift()] = SchemaFieldsGenerator.buildColumnSchema(
           schemaType,
@@ -80,19 +66,6 @@ export default class SchemaFieldsGenerator {
     );
 
     return pathWithoutModelName.includes(currentPath.split('.').shift());
-  }
-
-  private static addOneToOneRelation(
-    modelName: string,
-    fieldName: string,
-    schemaFields: CollectionSchema['fields'],
-  ): void {
-    schemaFields[NameFactory.oneToOneRelationName(fieldName, modelName)] = {
-      type: 'OneToOne',
-      foreignCollection: NameFactory.oneToOneName(fieldName, modelName),
-      originKey: '_id',
-      originKeyTarget: '_id',
-    } as OneToOneSchema;
   }
 
   private static addManyToOneRelation(

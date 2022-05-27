@@ -20,10 +20,10 @@ import SchemaFieldsGenerator from './utils/schema-fields-generator';
 export default class MongooseCollection extends BaseCollection {
   public readonly model: Model<RecordData>;
 
-  constructor(dataSource: DataSource, model: Model<RecordData>, pathsToFlatten: string[] = []) {
+  constructor(dataSource: DataSource, model: Model<RecordData>) {
     super(model.modelName, dataSource);
     this.model = model;
-    this.addFields(SchemaFieldsGenerator.buildFieldsSchema(model, pathsToFlatten));
+    this.addFields(SchemaFieldsGenerator.buildFieldsSchema(model));
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {

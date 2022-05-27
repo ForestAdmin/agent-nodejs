@@ -7,19 +7,19 @@ import SchemaFieldsGenerator from './utils/schema-fields-generator';
 export default class MongooseDatasource extends BaseDataSource<MongooseCollection> {
   private connection: Connection;
 
-  constructor(connection: Connection, pathsToFlatten: string[] = []) {
+  constructor(connection: Connection) {
     super();
 
     if (!connection) throw new Error('Invalid (null) Mongoose instance.');
 
     this.connection = connection;
 
-    this.createCollections(pathsToFlatten);
+    this.createCollections();
   }
 
-  private createCollections(pathsToFlatten: string[] = []) {
+  private createCollections() {
     Object.values(this.connection.models).forEach(model => {
-      this.addCollection(new MongooseCollection(this, model, pathsToFlatten));
+      this.addCollection(new MongooseCollection(this, model));
     });
     SchemaFieldsGenerator.addNewCollectionAndInverseRelationships(this.collections);
   }

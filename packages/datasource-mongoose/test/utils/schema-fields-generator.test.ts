@@ -330,29 +330,6 @@ describe('SchemaFieldsGenerator', () => {
           });
         });
       });
-
-      describe('when it should be flatten', () => {
-        describe('when it is a simple nested object', () => {
-          it('should create a one to one relation', () => {
-            const mongooseSchema = new Schema({
-              author: new Schema({ firstName: String }),
-            });
-
-            const schema = SchemaFieldsGenerator.buildFieldsSchema(
-              buildModel(mongooseSchema, 'book'),
-              ['book:author'],
-            );
-
-            expect(schema.author).toBeUndefined();
-            expect(schema.author__book__oneToOne).toEqual({
-              type: 'OneToOne',
-              foreignCollection: 'book__author',
-              originKey: '_id',
-              originKeyTarget: '_id',
-            });
-          });
-        });
-      });
     });
 
     describe('with an objectId and a ref', () => {
@@ -494,30 +471,6 @@ describe('SchemaFieldsGenerator', () => {
             foreignKeyTarget: '_id',
           },
           modelB_id: expect.any(Object),
-        });
-      });
-    });
-
-    describe('when there is a one to one relation', () => {
-      it('should add a one to one collection', () => {
-        // given
-        const schemaWithOneToOne = new Schema({
-          author: { firstName: String },
-          fieldShouldNotBeAddToTheSchema: String,
-        });
-
-        const dataSource = new MongooseDatasource({ models: {} } as Connection);
-        const book = buildModel(schemaWithOneToOne, 'book');
-        const bookCollection = new MongooseCollection(dataSource, book, ['book:author']);
-
-        // when
-        dataSource.addCollection(bookCollection, true);
-
-        // then
-        expect(dataSource.collections).toHaveLength(2);
-        expect(dataSource.getCollection('book__author').schema.fields).toEqual({
-          _id: expect.any(Object),
-          author: expect.any(Object),
         });
       });
     });
