@@ -343,10 +343,10 @@ describe('SchemaFieldsGenerator', () => {
               ['book:author'],
             );
 
-            expect(schema.author).toEqual(undefined);
+            expect(schema.author).toBeUndefined();
             expect(schema.author__book__oneToOne).toEqual({
               type: 'OneToOne',
-              foreignCollection: 'book',
+              foreignCollection: 'book__author',
               originKey: '_id',
               originKeyTarget: '_id',
             });
@@ -493,6 +493,28 @@ describe('SchemaFieldsGenerator', () => {
             foreignKeyTarget: '_id',
           },
           modelB_id: expect.any(Object),
+        });
+      });
+    });
+
+    describe('when there is a one to one relation', () => {
+      it('should add a one to one collection', () => {
+        const schemaWithOneToOne = new Schema({
+          author: { firstName: String },
+          fieldShouldNotBeAddToTheSchema: String,
+        });
+
+        const dataSource = new MongooseDatasource({ models: {} } as Connection);
+        const book = buildModel(schemaWithOneToOne, 'book');
+        const bookCollection = new MongooseCollection(dataSource, book, ['book:author']);
+        dataSource.addCollection(bookCollection);
+
+        SchemaFieldsGenerator.addInverseRelationships([bookCollection]);
+
+        expect(dataSource.collections).toHaveLength(2);
+        expect(dataSource.getCollection('book__author').schema.fields).toEqual({
+          _id: expect.any(Object),
+          author: expect.any(Object),
         });
       });
     });

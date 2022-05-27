@@ -14,7 +14,10 @@ import { Model, Schema, SchemaType } from 'mongoose';
 
 import FieldNameGenerator from './field-name-generator';
 import FilterOperatorBuilder from './filter-operator-builder';
-import MongooseCollection, { ManyToManyMongooseCollection } from '../collection';
+import MongooseCollection, {
+  ManyToManyMongooseCollection,
+  OneToOneMongooseCollection,
+} from '../collection';
 
 export default class SchemaFieldsGenerator {
   static addInverseRelationships(collections: MongooseCollection[]): void {
@@ -28,6 +31,11 @@ export default class SchemaFieldsGenerator {
           this.addOneToManyRelation(fieldSchema, collection);
         } else if (fieldSchema.type === 'ManyToMany' && !isAlreadyCreated(fieldName)) {
           this.addManyToManyRelationAndCollection(fieldSchema, collection, createdManyToMany);
+        } else if (fieldSchema.type === 'OneToOne') {
+          const { foreignCollection } = fieldSchema;
+          const originFieldName = FieldNameGenerator.getOriginFromOneToOne(foreignCollection);
+          const c = new OneToOneMongooseCollection(foreignCollection, collection, originFieldName);
+          collection.dataSource.addCollection(c);
         }
       });
     });
@@ -71,7 +79,7 @@ export default class SchemaFieldsGenerator {
       pathToFlatten.split(':').slice(1, pathToFlatten.length).join(':'),
     );
 
-    return pathWithoutModelName.includes(currentPath);
+    return pathWithoutModelName.includes(currentPath.split('.').shift());
   }
 
   private static addOneToOneRelation(
@@ -79,9 +87,9 @@ export default class SchemaFieldsGenerator {
     fieldName: string,
     schemaFields: CollectionSchema['fields'],
   ): void {
-    schemaFields[FieldNameGenerator.generateOneToOne(fieldName, modelName)] = {
+    schemaFields[FieldNameGenerator.generateOneToOneRelationName(fieldName, modelName)] = {
       type: 'OneToOne',
-      foreignCollection: modelName,
+      foreignCollection: FieldNameGenerator.generateOneToOneName(fieldName, modelName),
       originKey: '_id',
       originKeyTarget: '_id',
     } as OneToOneSchema;
@@ -93,7 +101,7 @@ export default class SchemaFieldsGenerator {
     fieldName: string,
     schemaFields: CollectionSchema['fields'],
   ): void {
-    schemaFields[FieldNameGenerator.generateManyToOne(fieldName, modelName)] = {
+    schemaFields[FieldNameGenerator.generateManyToOneRelationName(fieldName, modelName)] = {
       type: 'ManyToOne',
       foreignCollection: schema.options.ref,
       foreignKey: schema.path,
@@ -122,7 +130,7 @@ export default class SchemaFieldsGenerator {
       fieldName,
     );
 
-    schemaFields[FieldNameGenerator.generateManyToOne(fieldName, modelName)] = {
+    schemaFields[FieldNameGenerator.generateManyToOneRelationName(fieldName, modelName)] = {
       type: 'ManyToMany',
       foreignCollection: foreignCollectionName,
       throughCollection,
