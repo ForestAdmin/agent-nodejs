@@ -12,12 +12,12 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { Model, Schema, SchemaType } from 'mongoose';
 
-import FieldNameGenerator from './field-name-generator';
 import FilterOperatorBuilder from './filter-operator-builder';
 import MongooseCollection, {
   ManyToManyMongooseCollection,
   OneToOneMongooseCollection,
 } from '../collection';
+import NameFactory from './name-factory';
 
 export default class SchemaFieldsGenerator {
   static addInverseRelationships(collections: MongooseCollection[]): void {
@@ -33,7 +33,7 @@ export default class SchemaFieldsGenerator {
           this.addManyToManyRelationAndCollection(fieldSchema, collection, createdManyToMany);
         } else if (fieldSchema.type === 'OneToOne') {
           const { foreignCollection } = fieldSchema;
-          const originFieldName = FieldNameGenerator.getOriginFromOneToOne(foreignCollection);
+          const originFieldName = NameFactory.getOriginFromOneToOne(foreignCollection);
           const c = new OneToOneMongooseCollection(foreignCollection, collection, originFieldName);
           collection.dataSource.addCollection(c);
         }
@@ -87,9 +87,9 @@ export default class SchemaFieldsGenerator {
     fieldName: string,
     schemaFields: CollectionSchema['fields'],
   ): void {
-    schemaFields[FieldNameGenerator.generateOneToOneRelationName(fieldName, modelName)] = {
+    schemaFields[NameFactory.oneToOneRelationName(fieldName, modelName)] = {
       type: 'OneToOne',
-      foreignCollection: FieldNameGenerator.generateOneToOneName(fieldName, modelName),
+      foreignCollection: NameFactory.oneToOneName(fieldName, modelName),
       originKey: '_id',
       originKeyTarget: '_id',
     } as OneToOneSchema;
@@ -101,7 +101,7 @@ export default class SchemaFieldsGenerator {
     fieldName: string,
     schemaFields: CollectionSchema['fields'],
   ): void {
-    schemaFields[FieldNameGenerator.generateManyToOneRelationName(fieldName, modelName)] = {
+    schemaFields[NameFactory.manyToOneRelationName(fieldName, modelName)] = {
       type: 'ManyToOne',
       foreignCollection: schema.options.ref,
       foreignKey: schema.path,
@@ -124,18 +124,12 @@ export default class SchemaFieldsGenerator {
   ): void {
     const foreignCollectionName = schema.options?.ref;
 
-    const throughCollection = FieldNameGenerator.generateThroughFieldName(
-      modelName,
-      foreignCollectionName,
-      fieldName,
-    );
-
-    schemaFields[FieldNameGenerator.generateManyToOneRelationName(fieldName, modelName)] = {
+    schemaFields[NameFactory.manyToOneRelationName(fieldName, modelName)] = {
       type: 'ManyToMany',
       foreignCollection: foreignCollectionName,
-      throughCollection,
-      foreignKey: FieldNameGenerator.generateKey(foreignCollectionName),
-      originKey: FieldNameGenerator.generateKey(modelName),
+      throughCollection: NameFactory.manyToManyName(modelName, foreignCollectionName, fieldName),
+      foreignKey: NameFactory.generateKey(foreignCollectionName),
+      originKey: NameFactory.generateKey(modelName),
       foreignKeyTarget: '_id',
       originKeyTarget: '_id',
     } as ManyToManySchema;
@@ -150,11 +144,11 @@ export default class SchemaFieldsGenerator {
     const foreignCollection = collection.dataSource.getCollection(
       fieldSchema.foreignCollection,
     ) as MongooseCollection;
-    const foreignKey = FieldNameGenerator.generateKey(collection.name);
+    const foreignKey = NameFactory.generateKey(collection.name);
     const originKey = fieldSchema.foreignKey;
     const { throughCollection } = fieldSchema;
 
-    const manyToMany = FieldNameGenerator.generateManyToManyName(
+    const manyToMany = NameFactory.manyToManyName(
       foreignCollection.name,
       fieldSchema.originKey,
       throughCollection,
@@ -175,7 +169,7 @@ export default class SchemaFieldsGenerator {
       new ManyToManyMongooseCollection(
         collection,
         foreignCollection,
-        FieldNameGenerator.getOriginFieldNameOfIds(throughCollection),
+        NameFactory.getOriginFieldNameOfIds(throughCollection),
         manyToMany,
       ),
     );
@@ -188,7 +182,7 @@ export default class SchemaFieldsGenerator {
     const foreignCollection = collection.dataSource.getCollection(
       schema.foreignCollection,
     ) as MongooseCollection;
-    const field = FieldNameGenerator.generateOneToMany(foreignCollection.name, schema.foreignKey);
+    const field = NameFactory.oneToMany(foreignCollection.name, schema.foreignKey);
     foreignCollection.schema.fields[field] = {
       foreignCollection: collection.name,
       originKey: schema.foreignKey,
