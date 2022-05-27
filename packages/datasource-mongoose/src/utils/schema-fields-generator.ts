@@ -20,7 +20,7 @@ import MongooseCollection, {
 import NameFactory from './name-factory';
 
 export default class SchemaFieldsGenerator {
-  static addInverseRelationships(collections: MongooseCollection[]): void {
+  static addNewCollectionAndInverseRelationships(collections: MongooseCollection[]): void {
     // avoid to create two times the many to many collection
     // when iterating on the many to many type field schema
     const createdManyToMany: string[] = [];

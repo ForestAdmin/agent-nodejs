@@ -17,10 +17,28 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
     this.createCollections(pathsToFlatten);
   }
 
-  protected createCollections(pathsToFlatten: string[] = []) {
+  private createCollections(pathsToFlatten: string[] = []) {
     Object.values(this.connection.models).forEach(model => {
       this.addCollection(new MongooseCollection(this, model, pathsToFlatten));
     });
-    SchemaFieldsGenerator.addInverseRelationships(this.collections);
+    SchemaFieldsGenerator.addNewCollectionAndInverseRelationships(this.collections);
+  }
+
+  // `generateCollectionAndRelation` parameter allow to generate
+  // the collection and the relations when adding a new collection.
+  // It is not activated by default because we let to
+  // the user the right moment to generate the relations
+  public override addCollection(
+    collection: MongooseCollection,
+    generateCollectionAndRelation = false,
+  ): void {
+    if (this._collections[collection.name] !== undefined)
+      throw new Error(`Collection '${collection.name}' already defined in datasource`);
+
+    this._collections[collection.name] = collection;
+
+    if (generateCollectionAndRelation) {
+      SchemaFieldsGenerator.addNewCollectionAndInverseRelationships([collection]);
+    }
   }
 }
