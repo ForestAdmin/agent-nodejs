@@ -1,10 +1,10 @@
 export default class FieldNameGenerator {
-  static generateManyToOne(fieldName: string, modelName: string): string {
+  static generateManyToOneRelationName(fieldName: string, modelName: string): string {
     return `${fieldName}__${modelName.split('_').pop()}__manyToOne`;
   }
 
-  static generateOneToOne(fieldName: string, modelName: string): string {
-    return `${fieldName}__${modelName.split('_').pop()}__oneToOne`;
+  static generateOneToOneRelationName(fieldName: string, modelName: string): string {
+    return `${fieldName.split('.').shift()}__${modelName.split('_').pop()}__oneToOne`;
   }
 
   static generateOneToMany(foreignCollectionName: string, foreignKey: string): string {
@@ -31,6 +31,14 @@ export default class FieldNameGenerator {
     return `${foreignCollectionName}__${originKey}__${this.getOriginFieldNameOfIds(
       throughCollection,
     )}`;
+  }
+
+  static generateOneToOneName(fieldName: string, modelName: string): string {
+    return `${modelName}__${fieldName.split('.').shift()}`;
+  }
+
+  static getOriginFromOneToOne(origin: string): string {
+    return origin.split('__').pop();
   }
 
   static generateKey(name: string): string {

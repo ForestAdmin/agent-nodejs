@@ -20,10 +20,10 @@ import SchemaFieldsGenerator from './utils/schema-fields-generator';
 export default class MongooseCollection extends BaseCollection {
   public readonly model: Model<RecordData>;
 
-  constructor(dataSource: DataSource, model: Model<RecordData>) {
+  constructor(dataSource: DataSource, model: Model<RecordData>, pathsToFlatten: string[] = []) {
     super(model.modelName, dataSource);
     this.model = model;
-    this.addFields(SchemaFieldsGenerator.buildFieldsSchema(model));
+    this.addFields(SchemaFieldsGenerator.buildFieldsSchema(model, pathsToFlatten));
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
@@ -241,5 +241,20 @@ export class ManyToManyMongooseCollection extends MongooseCollection {
     );
 
     return mongooseModel(throughCollection, schema, null, { overwriteModels: true });
+  }
+}
+
+export class OneToOneMongooseCollection extends MongooseCollection {
+  constructor(
+    collectionName: string,
+    originCollection: MongooseCollection,
+    originFieldName: string,
+  ) {
+    const oneToOneSchema = originCollection.model.schema.pick([originFieldName]);
+    const model = mongooseModel(collectionName, oneToOneSchema, null, {
+      overwriteModels: true,
+    });
+
+    super(originCollection.dataSource, model);
   }
 }
