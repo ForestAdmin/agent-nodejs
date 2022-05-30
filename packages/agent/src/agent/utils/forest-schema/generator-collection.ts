@@ -29,7 +29,7 @@ export default class SchemaGeneratorCollection {
       isVirtual: false,
       name: collection.name,
       onlyForRelationships: false,
-      paginationType: 'page',
+      paginationType: 'cursor',
       segments: collection.schema.segments
         .sort()
         .map(name => SchemaGeneratorSegments.buildSchema(collection, name)),

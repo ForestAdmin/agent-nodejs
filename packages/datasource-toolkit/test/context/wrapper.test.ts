@@ -60,7 +60,7 @@ describe('RelaxedWrappers', () => {
       await relaxed.list(
         {
           conditionTree: { field: 'id', operator: 'Equal', value: 123 },
-          page: { skip: 0, limit: 10 },
+          page: { skip: 0, limit: 10, cursor: ['someValue'] },
           sort: [{ field: 'id', ascending: true }],
         },
         ['id', 'truc'],
@@ -76,7 +76,7 @@ describe('RelaxedWrappers', () => {
         caller,
         new PaginatedFilter({
           conditionTree: new ConditionTreeLeaf('id', 'Equal', 123),
-          page: new Page(0, 10),
+          page: new Page(0, 10, ['someValue']),
           sort: new Sort({ field: 'id', ascending: true }),
         }),
         new Projection('id', 'truc'),
