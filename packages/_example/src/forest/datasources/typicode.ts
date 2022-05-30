@@ -23,6 +23,7 @@ class TypicodeCollection extends BaseCollection {
     super(name, null);
 
     this.logger = logger;
+    this.enableCount();
     this.enableSearch();
   }
 

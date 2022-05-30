@@ -18,20 +18,24 @@ export default class CountRelatedRoute extends RelationRoute {
   public async handleCountRelated(context: Context): Promise<void> {
     await this.services.permissions.can(context, `browse:${this.collection.name}`);
 
-    const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-    const scope = await this.services.permissions.getScope(this.foreignCollection, context);
-    const caller = QueryStringParser.parseCaller(context);
-    const filter = ContextFilterFactory.build(this.foreignCollection, context, scope);
+    if (this.foreignCollection.schema.countable) {
+      const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
+      const scope = await this.services.permissions.getScope(this.foreignCollection, context);
+      const caller = QueryStringParser.parseCaller(context);
+      const filter = ContextFilterFactory.build(this.foreignCollection, context, scope);
 
-    const aggregationResult = await CollectionUtils.aggregateRelation(
-      this.collection,
-      parentId,
-      this.relationName,
-      caller,
-      filter,
-      new Aggregation({ operation: 'Count' }),
-    );
+      const aggregationResult = await CollectionUtils.aggregateRelation(
+        this.collection,
+        parentId,
+        this.relationName,
+        caller,
+        filter,
+        new Aggregation({ operation: 'Count' }),
+      );
 
-    context.response.body = { count: aggregationResult?.[0]?.value ?? 0 };
+      context.response.body = { count: aggregationResult?.[0]?.value ?? 0 };
+    } else {
+      context.response.body = { meta: { count: 'deactivated' } };
+    }
   }
 }

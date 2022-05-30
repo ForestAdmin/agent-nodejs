@@ -14,6 +14,7 @@ export type DataSourceSchema = {
 
 export type CollectionSchema = {
   actions: { [actionName: string]: ActionSchema };
+  countable: boolean;
   fields: { [fieldName: string]: FieldSchema };
   searchable: boolean;
   segments: string[];

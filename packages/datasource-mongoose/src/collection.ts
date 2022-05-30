@@ -14,6 +14,8 @@ export default class MongooseCollection extends BaseCollection {
   constructor(dataSource: DataSource, model: Model<RecordData>) {
     super(model.modelName, dataSource);
     this.model = model;
+
+    this.enableCount();
     this.addFields(SchemaFieldsGenerator.buildFieldsSchema(model));
   }
 

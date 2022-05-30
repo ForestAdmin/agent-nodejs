@@ -40,6 +40,7 @@ export default class SequelizeCollection extends BaseCollection {
 
     const modelSchema = ModelConverter.convert(this.model, logger);
 
+    this.enableCount();
     this.addFields(modelSchema.fields);
     this.addSegments(modelSchema.segments);
   }
