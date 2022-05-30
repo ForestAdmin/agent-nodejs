@@ -10,6 +10,7 @@ export class CollectionSchemaFactory extends Factory<CollectionSchema> {
 
 export default CollectionSchemaFactory.define(() => ({
   actions: {},
+  countable: true,
   fields: {},
   searchable: true,
   segments: [],
