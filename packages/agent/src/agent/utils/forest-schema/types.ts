@@ -13,7 +13,7 @@ export type ForestServerCollection = {
   isSearchable: boolean;
   isVirtual: false;
   onlyForRelationships: boolean;
-  paginationType: 'page';
+  paginationType: 'cursor';
   actions: Array<ForestServerAction>;
   fields: Array<ForestServerField>;
   segments: Array<ForestServerSegment>;

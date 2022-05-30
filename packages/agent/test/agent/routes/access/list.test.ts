@@ -56,7 +56,7 @@ describe('ListRoute', () => {
           search: '2',
           searchExtended: false,
           segment: null,
-          page: { limit: 15, skip: 0 },
+          page: { limit: 15, skip: 0, cursor: null },
           sort: [{ ascending: true, field: 'id' }],
         },
         new Projection('id'),

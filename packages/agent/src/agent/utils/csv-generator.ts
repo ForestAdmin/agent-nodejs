@@ -29,11 +29,12 @@ export default class CsvGenerator {
     const sort = SortFactory.byPrimaryKeys(collection);
     const filter = new PaginatedFilter({ ...baseFilter, sort });
     let skip = 0;
+    let cursor = null;
 
     yield writeToString([header.split(',')], { headers: true, includeEndRowDelimiter: true });
 
     while (true) {
-      const page = filter.override({ page: new Page(skip, CHUNK_SIZE) });
+      const page = filter.override({ page: new Page(skip, CHUNK_SIZE, cursor) });
       const records = await list(caller, page, projection); // eslint-disable-line no-await-in-loop
       yield writeToString(
         records.map(record => projection.map(field => RecordUtils.getFieldValue(record, field))),
@@ -42,8 +43,10 @@ export default class CsvGenerator {
       // If the page is not full, we are done.
       if (records.length < CHUNK_SIZE) break;
 
-      // Update skip for next request.
+      // Update cursor/skip for next request.
+      // Note that our cursors only work on the pk
       skip += CHUNK_SIZE;
+      cursor = RecordUtils.getPrimaryKey(collection.schema, records[records.length - 1]);
     }
   }
 }

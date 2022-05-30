@@ -1,14 +1,20 @@
-import { RecordData } from '../record';
+import { CompositeId, RecordData } from '../record';
 
-export type PlainPage = { skip: number; limit: number };
+export type PlainPage = {
+  skip: number;
+  limit: number;
+  cursor: CompositeId;
+};
 
 export default class Page {
   skip: number;
   limit: number;
+  cursor: CompositeId;
 
-  constructor(skip?: number, limit?: number) {
+  constructor(skip?: number, limit?: number, cursor?: CompositeId) {
     this.skip = skip ?? 0;
     this.limit = limit ?? null;
+    this.cursor = cursor ?? null;
   }
 
   apply(records: RecordData[]): RecordData[] {

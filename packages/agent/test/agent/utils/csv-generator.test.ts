@@ -149,7 +149,7 @@ describe('CsvGenerator', () => {
           1,
           caller,
           {
-            page: { skip: 0, limit: CHUNK_SIZE },
+            page: { skip: 0, limit: CHUNK_SIZE, cursor: null },
             sort: [{ field: 'id', ascending: true }],
           },
           ['name', 'id'],
@@ -158,7 +158,7 @@ describe('CsvGenerator', () => {
           2,
           caller,
           {
-            page: { skip: CHUNK_SIZE, limit: CHUNK_SIZE },
+            page: { skip: CHUNK_SIZE, limit: CHUNK_SIZE, cursor: [CHUNK_SIZE - 1] },
             sort: [{ field: 'id', ascending: true }],
           },
           ['name', 'id'],
@@ -167,7 +167,7 @@ describe('CsvGenerator', () => {
           3,
           caller,
           {
-            page: { skip: CHUNK_SIZE * 2, limit: CHUNK_SIZE },
+            page: { skip: CHUNK_SIZE * 2, limit: CHUNK_SIZE, cursor: [CHUNK_SIZE * 2 - 1] },
             sort: [{ field: 'id', ascending: true }],
           },
           ['name', 'id'],
