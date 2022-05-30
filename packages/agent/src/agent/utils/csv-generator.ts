@@ -1,10 +1,10 @@
 import {
   Caller,
   Collection,
+  Filter,
   Page,
   PaginatedFilter,
   Projection,
-  RecordData,
   RecordUtils,
   SortFactory,
 } from '@forestadmin/datasource-toolkit';
@@ -22,41 +22,28 @@ export default class CsvGenerator {
     caller: Caller,
     projection: Projection,
     header: string,
-    filter: PaginatedFilter,
+    baseFilter: Filter,
     collection: Collection,
     list: Collection['list'],
   ): AsyncGenerator<string> {
+    const sort = SortFactory.byPrimaryKeys(collection);
+    const filter = new PaginatedFilter({ ...baseFilter, sort });
+    let skip = 0;
+
     yield writeToString([header.split(',')], { headers: true, includeEndRowDelimiter: true });
 
-    const limit = filter.page?.limit;
-    let skip = filter.page?.skip || 0;
+    while (true) {
+      const page = filter.override({ page: new Page(skip, CHUNK_SIZE) });
+      const records = await list(caller, page, projection); // eslint-disable-line no-await-in-loop
+      yield writeToString(
+        records.map(record => projection.map(field => RecordUtils.getFieldValue(record, field))),
+      );
 
-    let areAllRecordsFetched = false;
-    const copiedFilter = { ...filter };
+      // If the page is not full, we are done.
+      if (records.length < CHUNK_SIZE) break;
 
-    while (!areAllRecordsFetched) {
-      let currentPageSize = CHUNK_SIZE;
-      if (limit < skip) currentPageSize = skip - limit;
-
-      copiedFilter.page = new Page(skip, currentPageSize);
-
-      if (!copiedFilter.sort || copiedFilter.sort.length === 0) {
-        copiedFilter.sort = SortFactory.byPrimaryKeys(collection);
-      }
-
-      // eslint-disable-next-line no-await-in-loop
-      const records = await list(caller, new PaginatedFilter(copiedFilter), projection);
-
-      yield CsvGenerator.convert(records, projection);
-
-      areAllRecordsFetched = records.length < CHUNK_SIZE;
-      skip += currentPageSize;
+      // Update skip for next request.
+      skip += CHUNK_SIZE;
     }
-  }
-
-  private static convert(records: RecordData[], projection: Projection): Promise<string> {
-    return writeToString(
-      records.map(record => projection.map(field => RecordUtils.getFieldValue(record, field))),
-    );
   }
 }
