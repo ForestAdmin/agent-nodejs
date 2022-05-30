@@ -1,10 +1,4 @@
-import {
-  ConditionTreeLeaf,
-  Page,
-  PaginatedFilter,
-  Projection,
-  Sort,
-} from '@forestadmin/datasource-toolkit';
+import { Filter, Page, Projection, Sort } from '@forestadmin/datasource-toolkit';
 
 import * as factories from '../__factories__';
 import CsvGenerator, { CHUNK_SIZE } from '../../../src/agent/utils/csv-generator';
@@ -19,20 +13,18 @@ describe('CsvGenerator', () => {
         { name: 'abd', id: 3 },
         { name: 'abe', id: 4 },
       ];
-      const filter = new PaginatedFilter({
+      const filter = new Filter({
         conditionTree: factories.conditionTreeLeaf.build({
           field: 'id',
           operator: 'Equal',
           value: '123e4567-e89b-12d3-a456-426614174000',
         }),
-        sort: new Sort(),
-        page: new Page(),
       });
       const collection = factories.collection.build({
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.build({ columnType: 'Number', isPrimaryKey: true }),
             name: factories.columnSchema.build({ columnType: 'String' }),
           },
         }),
@@ -62,7 +54,7 @@ describe('CsvGenerator', () => {
         caller,
         factories.filter.build({
           conditionTree: filter.conditionTree,
-          page: new Page(0, 1000),
+          page: new Page(0, CHUNK_SIZE, null),
           sort: new Sort({ ascending: true, field: 'id' }),
         }),
         projection,
@@ -114,13 +106,20 @@ describe('CsvGenerator', () => {
       const setupWith2ChunkOfRecords = () => {
         const projection = new Projection('name', 'id');
 
-        const records = Array.from({ length: CHUNK_SIZE }, (_, n: number) => [
-          { name: 'ab', id: n },
-        ]);
-        const filter = new PaginatedFilter({
-          conditionTree: factories.conditionTreeLeaf.build(),
+        const records = Array.from({ length: CHUNK_SIZE * 2.5 }, (_, n: number) => ({
+          id: n,
+          name: 'ab',
+        }));
+
+        const filter = new Filter({});
+        const collection = factories.collection.build({
+          schema: {
+            fields: {
+              id: factories.columnSchema.build({ isPrimaryKey: true, columnType: 'Number' }),
+              name: factories.columnSchema.build({ columnType: 'String' }),
+            },
+          },
         });
-        const collection = factories.collection.build();
 
         return { records, filter, collection, projection };
       };
@@ -130,9 +129,9 @@ describe('CsvGenerator', () => {
 
         collection.list = jest
           .fn()
-          .mockReturnValueOnce(records)
-          .mockReturnValueOnce(records)
-          .mockReturnValueOnce([]);
+          .mockReturnValueOnce(records.slice(0, CHUNK_SIZE))
+          .mockReturnValueOnce(records.slice(CHUNK_SIZE, CHUNK_SIZE * 2))
+          .mockReturnValueOnce(records.slice(CHUNK_SIZE * 2));
 
         const caller = factories.caller.build();
         const generator = CsvGenerator.generate(
@@ -149,110 +148,30 @@ describe('CsvGenerator', () => {
         expect(collection.list).toHaveBeenNthCalledWith(
           1,
           caller,
-          factories.filter.build({
-            page: new Page(0, CHUNK_SIZE),
-
-            conditionTree: expect.any(ConditionTreeLeaf),
-            sort: expect.any(Sort),
-          }),
-          expect.any(Projection),
+          {
+            page: { skip: 0, limit: CHUNK_SIZE },
+            sort: [{ field: 'id', ascending: true }],
+          },
+          ['name', 'id'],
         );
         expect(collection.list).toHaveBeenNthCalledWith(
           2,
           caller,
-          factories.filter.build({
-            page: new Page(CHUNK_SIZE, CHUNK_SIZE),
-
-            conditionTree: expect.any(ConditionTreeLeaf),
-            sort: expect.any(Sort),
-          }),
-          expect.any(Projection),
+          {
+            page: { skip: CHUNK_SIZE, limit: CHUNK_SIZE },
+            sort: [{ field: 'id', ascending: true }],
+          },
+          ['name', 'id'],
         );
         expect(collection.list).toHaveBeenNthCalledWith(
           3,
           caller,
-          factories.filter.build({
-            page: new Page(CHUNK_SIZE * 2, CHUNK_SIZE),
-
-            conditionTree: expect.any(ConditionTreeLeaf),
-            sort: expect.any(Sort),
-          }),
-          expect.any(Projection),
+          {
+            page: { skip: CHUNK_SIZE * 2, limit: CHUNK_SIZE },
+            sort: [{ field: 'id', ascending: true }],
+          },
+          ['name', 'id'],
         );
-      });
-
-      describe('when there is a page who ask a range of existing records', () => {
-        const setupWith2ChunkOfRecordsAndPageFilter = () => {
-          const projection = new Projection('name', 'id');
-
-          const records = Array.from({ length: CHUNK_SIZE }, (_, n: number) => [
-            { name: 'ab', id: n },
-          ]);
-          const filter = new PaginatedFilter({
-            conditionTree: factories.conditionTreeLeaf.build(),
-            page: new Page(500, CHUNK_SIZE * 2),
-          });
-          const collection = factories.collection.build();
-
-          return { records, filter, collection, projection };
-        };
-
-        test('should export all the records asked by the page condition', async () => {
-          const { records, filter, collection, projection } =
-            setupWith2ChunkOfRecordsAndPageFilter();
-
-          collection.list = jest
-            .fn()
-            .mockReturnValueOnce(records)
-            .mockReturnValueOnce(records)
-            .mockReturnValueOnce(records.slice(0, 500));
-
-          const caller = factories.caller.build();
-          const generator = CsvGenerator.generate(
-            caller,
-            projection,
-            'name',
-            filter,
-            collection,
-            collection.list,
-          );
-          await readCsv(generator);
-
-          expect(collection.list).toHaveBeenCalledTimes(3);
-
-          const startedSkipFromGivenPage = 500;
-          expect(collection.list).toHaveBeenNthCalledWith(
-            1,
-            caller,
-            factories.filter.build({
-              page: new Page(startedSkipFromGivenPage, CHUNK_SIZE),
-              conditionTree: expect.any(ConditionTreeLeaf),
-              sort: expect.any(Sort),
-            }),
-            expect.any(Projection),
-          );
-          expect(collection.list).toHaveBeenNthCalledWith(
-            2,
-            caller,
-            factories.filter.build({
-              page: new Page(startedSkipFromGivenPage + CHUNK_SIZE, CHUNK_SIZE),
-              conditionTree: expect.any(ConditionTreeLeaf),
-              sort: expect.any(Sort),
-            }),
-            expect.any(Projection),
-          );
-          expect(collection.list).toHaveBeenNthCalledWith(
-            3,
-            caller,
-            factories.filter.build({
-              page: new Page(startedSkipFromGivenPage + CHUNK_SIZE * 2, startedSkipFromGivenPage),
-
-              conditionTree: expect.any(ConditionTreeLeaf),
-              sort: expect.any(Sort),
-            }),
-            expect.any(Projection),
-          );
-        });
       });
     });
   });

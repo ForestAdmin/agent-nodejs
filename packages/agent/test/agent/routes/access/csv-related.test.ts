@@ -106,16 +106,14 @@ describe('CsvRelatedRoute', () => {
       const listRelation = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
       const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
 
-      const paginatedFilter = factories.filter.build();
-      const buildPaginated = jest
-        .spyOn(ContextFilterFactory, 'buildPaginated')
-        .mockReturnValue(paginatedFilter);
+      const filter = factories.filter.build();
+      const build = jest.spyOn(ContextFilterFactory, 'build').mockReturnValue(filter);
 
       // when
       await csvRoute.handleRelatedCsv(context);
 
       // then
-      expect(buildPaginated).toHaveBeenCalledWith(personsCollection, context, scopeCondition);
+      expect(build).toHaveBeenCalledWith(personsCollection, context, scopeCondition);
 
       expect(services.permissions.can).toHaveBeenCalledWith(context, 'browse:books');
       expect(services.permissions.can).toHaveBeenCalledWith(context, 'export:books');
@@ -125,7 +123,7 @@ describe('CsvRelatedRoute', () => {
         { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         new Projection('id', 'name'),
         'id,name',
-        paginatedFilter,
+        filter,
         personsCollection,
         expect.any(Function),
       );
