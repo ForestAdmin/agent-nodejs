@@ -54,7 +54,7 @@ describe('CsvGenerator', () => {
         caller,
         factories.filter.build({
           conditionTree: filter.conditionTree,
-          page: new Page(0, CHUNK_SIZE, null),
+          page: new Page(0, CHUNK_SIZE),
           sort: new Sort({ ascending: true, field: 'id' }),
         }),
         projection,
