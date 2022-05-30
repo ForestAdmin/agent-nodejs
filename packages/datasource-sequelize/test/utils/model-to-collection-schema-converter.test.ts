@@ -26,6 +26,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
       // "ID" column is added by Sequelize when no primary key is explicitely defined.
       const schema: CollectionSchema = {
         actions: {},
+        countable: true,
         fields: {
           id: {
             columnType: 'Number',
@@ -51,6 +52,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
       const schema: CollectionSchema = {
         actions: {},
+        countable: true,
         fields: {
           myPk: {
             columnType: 'Number',
@@ -86,6 +88,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
       const schema: CollectionSchema = {
         actions: {},
+        countable: true,
         fields: {
           myPk: {
             columnType: 'Number',
@@ -199,6 +202,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            countable: true,
             fields: {
               Model2Id: {
                 columnType: 'Number',
@@ -242,6 +246,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            countable: true,
             fields: {
               __model2__s: {
                 foreignCollection: '__model2__',
@@ -280,6 +285,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            countable: true,
             fields: {
               __model2__s: {
                 foreignCollection: '__model2__',
@@ -315,6 +321,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            countable: true,
             fields: {
               __model2__: {
                 foreignCollection: '__model2__',
