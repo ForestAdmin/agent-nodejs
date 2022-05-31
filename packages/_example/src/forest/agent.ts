@@ -39,7 +39,7 @@ export default function makeAgent() {
     .addDataSource(createSequelizeDataSource(sequelizePostgres))
     .addDataSource(createSequelizeDataSource(sequelizeMySql))
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))
-    .addDataSource(createMongooseDataSource(mongoose, ['review:rating']))
+    .addDataSource(createMongooseDataSource(mongoose))
 
     .addChart('numRentals', async (context, resultBuilder) => {
       const rentals = context.dataSource.getCollection('rental');

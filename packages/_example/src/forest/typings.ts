@@ -206,6 +206,7 @@ export type Schema = {
     plain: {
       title: string;
       message: string;
+      rating: number;
       storeId: number;
       testArrayIds: Array<number>;
       ownerIds: string;
@@ -213,12 +214,9 @@ export type Schema = {
       _id: string;
     };
     nested: {
-      rating__review__oneToOne: Schema['review__rating']['plain'] & Schema['review__rating']['nested'];
       store: Schema['store']['plain'] & Schema['store']['nested'];
     };
     flat: {
-      'rating__review__oneToOne:_id': string;
-      'rating__review__oneToOne:rating': number;
       'store:id': number;
       'store:name': string;
       'store:ownerId': number;
@@ -247,13 +245,12 @@ export type Schema = {
     flat: {
       'review_id__oldOwnerIds__manyToOne:title': string;
       'review_id__oldOwnerIds__manyToOne:message': string;
+      'review_id__oldOwnerIds__manyToOne:rating': number;
       'review_id__oldOwnerIds__manyToOne:storeId': number;
       'review_id__oldOwnerIds__manyToOne:testArrayIds': Array<number>;
       'review_id__oldOwnerIds__manyToOne:ownerIds': string;
       'review_id__oldOwnerIds__manyToOne:oldOwnerIds': string;
       'review_id__oldOwnerIds__manyToOne:_id': string;
-      'review_id__oldOwnerIds__manyToOne:rating__review__oneToOne:_id': string;
-      'review_id__oldOwnerIds__manyToOne:rating__review__oneToOne:rating': number;
       'review_id__oldOwnerIds__manyToOne:store:id': number;
       'review_id__oldOwnerIds__manyToOne:store:name': string;
       'review_id__oldOwnerIds__manyToOne:store:ownerId': number;
@@ -284,13 +281,12 @@ export type Schema = {
     flat: {
       'review_id__ownerIds__manyToOne:title': string;
       'review_id__ownerIds__manyToOne:message': string;
+      'review_id__ownerIds__manyToOne:rating': number;
       'review_id__ownerIds__manyToOne:storeId': number;
       'review_id__ownerIds__manyToOne:testArrayIds': Array<number>;
       'review_id__ownerIds__manyToOne:ownerIds': string;
       'review_id__ownerIds__manyToOne:oldOwnerIds': string;
       'review_id__ownerIds__manyToOne:_id': string;
-      'review_id__ownerIds__manyToOne:rating__review__oneToOne:_id': string;
-      'review_id__ownerIds__manyToOne:rating__review__oneToOne:rating': number;
       'review_id__ownerIds__manyToOne:store:id': number;
       'review_id__ownerIds__manyToOne:store:name': string;
       'review_id__ownerIds__manyToOne:store:ownerId': number;
@@ -308,14 +304,6 @@ export type Schema = {
       'ownerMongo_id__ownerIds__manyToOne:name': string;
       'ownerMongo_id__ownerIds__manyToOne:_id': string;
     };
-  };
-  review__rating: {
-    plain: {
-      _id: string;
-      rating: number;
-    };
-    nested: {};
-    flat: {};
   };
   store: {
     plain: {
