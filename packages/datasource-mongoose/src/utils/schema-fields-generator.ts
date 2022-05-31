@@ -42,14 +42,6 @@ export default class SchemaFieldsGenerator {
     }, {});
   }
 
-  private static isPathMustBeFlatten(currentPath: string, pathsToFlatten: string[]): boolean {
-    const pathWithoutModelName = pathsToFlatten.map(pathToFlatten =>
-      pathToFlatten.split(':').slice(1, pathToFlatten.length).join(':'),
-    );
-
-    return pathWithoutModelName.includes(currentPath.split('.').shift());
-  }
-
   private static addManyToOneRelation(
     schema: SchemaType,
     modelName: string,
