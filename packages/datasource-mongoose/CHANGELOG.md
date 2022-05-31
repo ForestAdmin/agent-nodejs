@@ -1,3 +1,18 @@
+# @forestadmin/datasource-mongoose [1.0.0-beta.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.0-beta.5...@forestadmin/datasource-mongoose@1.0.0-beta.6) (2022-05-31)
+
+
+### Features
+
+* make count an optional feature ([#327](https://github.com/ForestAdmin/agent-nodejs/issues/327)) ([b6f688c](https://github.com/ForestAdmin/agent-nodejs/commit/b6f688ca5f84aa29740761ff848c4beca5ee61d6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.20
+
 # @forestadmin/datasource-mongoose [1.0.0-beta.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.0-beta.4...@forestadmin/datasource-mongoose@1.0.0-beta.5) (2022-05-25)
 
 
