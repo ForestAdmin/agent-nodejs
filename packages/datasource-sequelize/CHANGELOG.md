@@ -1,3 +1,18 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.24...@forestadmin/datasource-sequelize@1.0.0-beta.25) (2022-05-31)
+
+
+### Features
+
+* make count an optional feature ([#327](https://github.com/ForestAdmin/agent-nodejs/issues/327)) ([b6f688c](https://github.com/ForestAdmin/agent-nodejs/commit/b6f688ca5f84aa29740761ff848c4beca5ee61d6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.20
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.23...@forestadmin/datasource-sequelize@1.0.0-beta.24) (2022-05-25)
 
 
