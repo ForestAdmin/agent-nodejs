@@ -51,15 +51,13 @@ This means that filtering for a given field is either enabled or not from the GU
 | String     | `Equal`, `NotEqual`, `Present`, `blank`,`In`,`StartsWith`,`EndsWith`, `Ccontains`, `NotContains` |
 | Uuid       | `Equal`, `NotEqual`, `Present`, `Blank`                                                          |
 
-# Capabilities
+# Collection level capabilities
 
-## Collection capabilities
-
-### Count
-
-Enabling this features allows the pagination widget to display the total number of pages in a collections while browsing records.
+## Count
 
 ![Pagination widget](../../../assets/customdatasource-count-capability.png)
+
+Enabling this features allows the pagination widget to display the total number of pages in a collections while browsing records.
 
 ```javascript
 class MyCollection extends BaseCollection {
@@ -72,7 +70,7 @@ class MyCollection extends BaseCollection {
 }
 ```
 
-### Search
+## Search
 
 {% hint style="info" %}
 If this feature is not enabled in the data source definition, users of your data source can still use the search bar in their admin panel (Forest Admin will default to building condition trees).
@@ -96,7 +94,7 @@ class MyCollection extends BaseCollection {
 }
 ```
 
-## Filtering: Segments
+## Segments
 
 {% hint style="info" %}
 If this feature is not enabled in the data source definition, users of your data source can still create segments in both their admin panels and agent customization.
@@ -122,9 +120,9 @@ class MyCollection extends BaseCollection {
 }
 ```
 
-## Field capabilities
+# Field level capabilities
 
-### Write support
+## Write support
 
 Fields may or may not be writable. To make a readonly use the `isReadOnly` flag.
 
@@ -141,7 +139,7 @@ class MyCollection extends BaseCollection {
 }
 ```
 
-### Filtering operators
+## Filtering operators
 
 When declaring a field, the `filterOperators` set allows to tell Forest Admin which operators are supported by any given field.
 
@@ -163,7 +161,7 @@ class MyCollection extends BaseCollection {
 }
 ```
 
-### Sort
+## Sort
 
 Not all fields need to be sortable. Fields which are sortable should be flagged in the following way.
 
