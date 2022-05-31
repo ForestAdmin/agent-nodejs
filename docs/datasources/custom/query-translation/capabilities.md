@@ -66,7 +66,7 @@ class MyCollection extends BaseCollection {
   constructor() {
     // [...]
 
-    // If you implemented the aggregate method
+    // If you have implemented the aggregate method
     this.enableCount();
   }
 }
