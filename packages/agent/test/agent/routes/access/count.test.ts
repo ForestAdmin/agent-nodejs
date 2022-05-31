@@ -5,30 +5,25 @@ import Count from '../../../../src/agent/routes/access/count';
 
 describe('CountRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
-  const collection = factories.collection.build({
-    name: 'books',
-    schema: factories.collectionSchema.build({
-      fields: {
-        id: factories.columnSchema.isPrimaryKey().build(),
-      },
-    }),
-  });
-  const dataSource = factories.dataSource.buildWithCollection(collection);
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
 
-  test('should register "/books/count" route', () => {
-    const list = new Count(services, options, dataSource, collection.name);
-    list.setupRoutes(router);
+  describe('for countable collections', () => {
+    const dataSource = factories.dataSource.buildWithCollection(
+      factories.collection.build({ name: 'books', schema: { countable: true } }),
+    );
 
-    expect(router.get).toHaveBeenCalledWith('/books/count', expect.any(Function));
-  });
+    test('should register "/books/count" route', () => {
+      const list = new Count(services, options, dataSource, 'books');
+      list.setupRoutes(router);
 
-  describe('handleCount', () => {
+      expect(router.get).toHaveBeenCalledWith('/books/count', expect.any(Function));
+    });
+
     test('should aggregate the data and return the result', async () => {
       const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
       dataSource.getCollection('books').aggregate = aggregateSpy;
-      const count = new Count(services, options, dataSource, collection.name);
+      const count = new Count(services, options, dataSource, 'books');
       const context = createMockContext({
         customProperties: { query: { timezone: 'Europe/Paris' } },
         state: { user: { email: 'john.doe@domain.com' } },
@@ -42,6 +37,25 @@ describe('CountRoute', () => {
         { operation: 'Count' },
       );
       expect(context.response.body).toEqual({ count: 2 });
+    });
+  });
+
+  describe('for non countable collections', () => {
+    const dataSource = factories.dataSource.buildWithCollection(
+      factories.collection.build({ name: 'books', schema: { countable: false } }),
+    );
+
+    test('should return a predefined response', async () => {
+      const count = new Count(services, options, dataSource, 'books');
+      const context = createMockContext({
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
+      });
+
+      await count.handleCount(context);
+
+      expect(dataSource.getCollection('books').aggregate).not.toHaveBeenCalled();
+      expect(context.response.body).toEqual({ meta: { count: 'deactivated' } });
     });
   });
 });

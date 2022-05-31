@@ -161,6 +161,22 @@ describe('BaseCollection', () => {
     });
   });
 
+  describe('enableCount', () => {
+    class CollectionSearchable extends ConcreteCollection {
+      constructor(name: string, dataSource: DataSource) {
+        super(name, dataSource);
+
+        this.enableCount();
+      }
+    }
+
+    it('should set countable to true', () => {
+      const collection = new CollectionSearchable('__countable__', null);
+
+      expect(collection.schema.countable).toBe(true);
+    });
+  });
+
   describe('execute', () => {
     test('it always throws', async () => {
       const collection = new ConcreteCollection('books', null);

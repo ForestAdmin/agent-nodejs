@@ -11,7 +11,7 @@ import * as factories from '../../__factories__';
 import CountRelatedRoute from '../../../../src/agent/routes/access/count-related';
 
 describe('CountRelatedRoute', () => {
-  const setupWithOneToManyRelation = () => {
+  const setupWithOneToManyRelation = (countable = true) => {
     const services = factories.forestAdminHttpDriverServices.build();
     const options = factories.forestAdminHttpDriverOptions.build();
     const router = factories.router.mockAllMethods().build();
@@ -19,6 +19,7 @@ describe('CountRelatedRoute', () => {
     const bookPersons = factories.collection.build({
       name: 'bookPersons',
       schema: factories.collectionSchema.build({
+        countable,
         fields: {
           id: factories.columnSchema.isPrimaryKey().build(),
         },
@@ -203,6 +204,25 @@ describe('CountRelatedRoute', () => {
 
         const context = setupContext();
         await expect(count.handleCountRelated(context)).rejects.toThrow('an error');
+      });
+    });
+
+    describe('when count is deactivated', () => {
+      test('should return a predefined response', async () => {
+        const { services, dataSource, options } = setupWithOneToManyRelation(false);
+
+        const count = new CountRelatedRoute(
+          services,
+          options,
+          dataSource,
+          'books',
+          'myBookPersons',
+        );
+        const context = setupContext();
+
+        await count.handleCountRelated(context);
+
+        expect(context.response.body).toEqual({ meta: { count: 'deactivated' } });
       });
     });
   });

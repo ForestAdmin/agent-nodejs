@@ -149,6 +149,7 @@ export default class ModelToCollectionSchemaConverter {
 
     return {
       actions: {},
+      countable: true,
       fields: {
         ...this.convertAttributes(model.name, model.getAttributes(), logger),
         ...this.convertAssociations(model.name, model.associations, logger),

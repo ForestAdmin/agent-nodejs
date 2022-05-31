@@ -16,6 +16,7 @@ describe('Builder > Collection', () => {
       factories.collection.build({
         name: 'authors',
         schema: factories.collectionSchema.build({
+          countable: true,
           fields: {
             authorId: factories.columnSchema.build({
               columnType: 'Number',
@@ -65,6 +66,22 @@ describe('Builder > Collection', () => {
 
     return { stack };
   };
+
+  describe('disableCount', () => {
+    it('should edit the schema', async () => {
+      const { stack } = await setup();
+      const collection = stack.schema.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
+      const spy = jest.spyOn(collection, 'overrideSchema');
+
+      const self = builder.disableCount();
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith({ countable: false });
+      expect(collection.schema.countable).toBeFalsy();
+      expect(self).toEqual(builder);
+    });
+  });
 
   describe('renameField', () => {
     it('should rename a field', async () => {

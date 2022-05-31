@@ -18,6 +18,7 @@ export default abstract class BaseCollection implements Collection {
     this.name = name;
     this.schema = {
       actions: {},
+      countable: false,
       fields: {},
       searchable: false,
       segments: [],
@@ -48,6 +49,10 @@ export default abstract class BaseCollection implements Collection {
 
   protected addSegments(segments: string[]) {
     this.schema.segments.push(...segments);
+  }
+
+  protected enableCount(): void {
+    this.schema.countable = true;
   }
 
   protected enableSearch(): void {
