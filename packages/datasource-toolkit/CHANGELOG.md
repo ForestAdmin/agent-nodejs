@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.19...@forestadmin/datasource-toolkit@1.0.0-beta.20) (2022-05-31)
+
+
+### Features
+
+* make count an optional feature ([#327](https://github.com/ForestAdmin/agent-nodejs/issues/327)) ([b6f688c](https://github.com/ForestAdmin/agent-nodejs/commit/b6f688ca5f84aa29740761ff848c4beca5ee61d6))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.18...@forestadmin/datasource-toolkit@1.0.0-beta.19) (2022-05-25)
 
 
