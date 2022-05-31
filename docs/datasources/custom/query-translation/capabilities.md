@@ -8,7 +8,7 @@ Forest Admin will then ensure that only queries using features that you have exp
 
 All data sources need to be able to
 
-- List and count records
+- List records
 - Understand `And` nodes in condition trees
 - Understand `Or` nodes in conditions trees
 - Understand the `Equal` operator on primary keys
@@ -28,6 +28,7 @@ The more complete your query translator is, the most forest admin features will 
 
 | Unlocked feature                                             | Needed capabilities                                              |
 | ------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Displaying the number of pages in pagination widget          | Count                                                            |
 | Using charts                                                 | Support all field in `Aggregation`                               |
 | Using relations                                              | `In` on primary keys and foreign keys                            |
 | Using `select all` feature for actions, delete or dissociate | `In` and `NotIn` on the primary key                              |
@@ -52,65 +53,25 @@ This means that filtering for a given field is either enabled or not from the GU
 
 # Capabilities
 
-## Write support
+## Collection capabilities
 
-Fields may or may not be writable. To make a readonly use the `isReadOnly` flag.
+### Count
 
-```javascript
-class MyCollection extends BaseCollection {
-  constructor() {
-    // [...]
+Enabling this features allows the pagination widget to display the total number of pages in a collections while browsing records.
 
-    this.addField('id', {
-      // [...]
-      isReadOnly: true,
-    });
-  }
-}
-```
-
-## Filtering: Condition trees
-
-When declaring a field, the `filterOperators` set allows to tell Forest Admin which operators are supported by any given field.
-
-Operators which are not explicitely enabled in that declaration won't be available.
+![Pagination widget](../../../assets/customdatasource-count-capability.png)
 
 ```javascript
 class MyCollection extends BaseCollection {
   constructor() {
     // [...]
 
-    this.addField('id', {
-      // [...]
-      filterOperators: new Set([
-        'Equal', // Tell forest admin that it can use the equal operator on the id field
-        // ...
-      ]),
-    });
+    this.enableCount();
   }
 }
 ```
 
-## Filtering: Paging
-
-Supporting `skip` and `limit` on filters is a required feature, so there is no declaration for that.
-
-However, not all fields need to be sortable. Fields which are sortable should be flagged in the following way.
-
-```javascript
-class MyCollection extends BaseCollection {
-  constructor() {
-    // [...]
-
-    this.addField('id', {
-      // [...]
-      isSortable: true,
-    });
-  }
-}
-```
-
-## Filtering: Search
+### Search
 
 {% hint style="info" %}
 If this feature is not enabled in the data source definition, users of your data source can still use the search bar in their admin panel (Forest Admin will default to building condition trees).
@@ -156,6 +117,64 @@ class MyCollection extends BaseCollection {
 
     // From now on, all methods which take a filter as parameter *MUST* not ignore its segment
     // field.
+  }
+}
+```
+
+## Field capabilities
+
+### Write support
+
+Fields may or may not be writable. To make a readonly use the `isReadOnly` flag.
+
+```javascript
+class MyCollection extends BaseCollection {
+  constructor() {
+    // [...]
+
+    this.addField('id', {
+      // [...]
+      isReadOnly: true,
+    });
+  }
+}
+```
+
+### Filtering operators
+
+When declaring a field, the `filterOperators` set allows to tell Forest Admin which operators are supported by any given field.
+
+Operators which are not explicitely enabled in that declaration won't be available.
+
+```javascript
+class MyCollection extends BaseCollection {
+  constructor() {
+    // [...]
+
+    this.addField('id', {
+      // [...]
+      filterOperators: new Set([
+        'Equal', // Tell forest admin that it can use the equal operator on the id field
+        // ...
+      ]),
+    });
+  }
+}
+```
+
+## Sort
+
+However, not all fields need to be sortable. Fields which are sortable should be flagged in the following way.
+
+```javascript
+class MyCollection extends BaseCollection {
+  constructor() {
+    // [...]
+
+    this.addField('id', {
+      // [...]
+      isSortable: true,
+    });
   }
 }
 ```
