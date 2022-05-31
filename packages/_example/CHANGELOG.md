@@ -1,3 +1,24 @@
+# example [1.0.0-beta.43](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.42...example@1.0.0-beta.43) (2022-05-31)
+
+
+### Features
+
+* make count an optional feature ([#327](https://github.com/ForestAdmin/agent-nodejs/issues/327)) ([b6f688c](https://github.com/ForestAdmin/agent-nodejs/commit/b6f688ca5f84aa29740761ff848c4beca5ee61d6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.34
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.21
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.26
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.25
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.30
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.20
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0-beta.6
+
 # example [1.0.0-beta.42](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.41...example@1.0.0-beta.42) (2022-05-25)
 
 
