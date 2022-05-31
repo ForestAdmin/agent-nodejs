@@ -1,5 +1,5 @@
 import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import FilterOperatorBuilder from '../../dist/utils/filter-operator-builder';
+import FilterOperatorBuilder from '../../src/utils/filter-operator-builder';
 
 describe('FilterOperatorBuilder > getSupportedOperators', () => {
   const cases: Array<[PrimitiveTypes, Partial<Operator[]>]> = [

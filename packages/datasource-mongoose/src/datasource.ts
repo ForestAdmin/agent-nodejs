@@ -1,8 +1,8 @@
 import { BaseDataSource } from '@forestadmin/datasource-toolkit';
 import { Connection } from 'mongoose';
 
-import MongooseCollection from './collection';
-import SchemaFieldsGenerator from './utils/schema-fields-generator';
+import MongooseCollection from './collections/collection';
+import NestedCollectionGenerator from './utils/nested-collection-generator';
 
 export default class MongooseDatasource extends BaseDataSource<MongooseCollection> {
   private connection: Connection;
@@ -21,7 +21,7 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
     Object.values(this.connection.models).forEach(model => {
       this.addCollection(new MongooseCollection(this, model));
     });
-    SchemaFieldsGenerator.addNewCollectionAndInverseRelationships(this.collections);
+    NestedCollectionGenerator.addNewCollectionAndInverseRelationships(this.collections);
   }
 
   // `generateCollectionAndRelation` parameter allow to generate
@@ -38,7 +38,7 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
     this._collections[collection.name] = collection;
 
     if (generateCollectionAndRelation) {
-      SchemaFieldsGenerator.addNewCollectionAndInverseRelationships([collection]);
+      NestedCollectionGenerator.addNewCollectionAndInverseRelationships([collection]);
     }
   }
 }

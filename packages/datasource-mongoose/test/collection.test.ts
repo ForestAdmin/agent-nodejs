@@ -12,7 +12,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { Connection, Schema, Types, createConnection, model } from 'mongoose';
 
-import MongooseCollection from '../src/collection';
+import MongooseCollection from '../src/collections/collection';
 import MongooseDatasource from '../src/datasource';
 
 describe('MongooseCollection', () => {

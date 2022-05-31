@@ -7,7 +7,7 @@ import {
 import { Connection, Model, Schema, deleteModel, model } from 'mongoose';
 
 import FilterOperatorBuilder from '../../src/utils/filter-operator-builder';
-import MongooseCollection from '../../src/collection';
+import MongooseCollection from '../../src/collections/collection';
 import MongooseDatasource from '../../src/datasource';
 import SchemaFieldsGenerator from '../../src/utils/schema-fields-generator';
 
@@ -473,20 +473,6 @@ describe('SchemaFieldsGenerator', () => {
           modelB_id: expect.any(Object),
         });
       });
-    });
-
-    it('should throw an error when the ref does not exist', () => {
-      const schemaWithManyToOne = new Schema({
-        aFieldTarget: { type: Schema.Types.ObjectId, ref: 'modelDoesNotExist' },
-      });
-
-      const dataSource = new MongooseDatasource({ models: {} } as Connection);
-      const modelA = buildModel(schemaWithManyToOne, 'modelA');
-      const collectionA = new MongooseCollection(dataSource, modelA);
-
-      expect(() =>
-        SchemaFieldsGenerator.addNewCollectionAndInverseRelationships([collectionA]),
-      ).toThrow("Collection 'modelDoesNotExist' not found.");
     });
   });
 });
