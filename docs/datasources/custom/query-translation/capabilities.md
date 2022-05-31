@@ -66,6 +66,7 @@ class MyCollection extends BaseCollection {
   constructor() {
     // [...]
 
+    // If you implemented the aggregate method
     this.enableCount();
   }
 }
@@ -162,9 +163,9 @@ class MyCollection extends BaseCollection {
 }
 ```
 
-## Sort
+### Sort
 
-However, not all fields need to be sortable. Fields which are sortable should be flagged in the following way.
+Not all fields need to be sortable. Fields which are sortable should be flagged in the following way.
 
 ```javascript
 class MyCollection extends BaseCollection {
