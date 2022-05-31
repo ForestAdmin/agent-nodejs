@@ -10,6 +10,7 @@ import {
   PublicationCollectionDecorator,
   RelationCollectionDecorator,
   RenameCollectionDecorator,
+  SchemaCollectionDecorator,
   SearchCollectionDecorator,
   SegmentCollectionDecorator,
   SortEmulateCollectionDecorator,
@@ -29,6 +30,7 @@ export default class DecoratorsStack {
   lateOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
   publication: DataSourceDecorator<PublicationCollectionDecorator>;
   rename: DataSourceDecorator<RenameCollectionDecorator>;
+  schema: DataSourceDecorator<SchemaCollectionDecorator>;
   search: DataSourceDecorator<SearchCollectionDecorator>;
   segment: DataSourceDecorator<SegmentCollectionDecorator>;
   sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
@@ -62,6 +64,7 @@ export default class DecoratorsStack {
 
     // Step 3: Access to all fields AND emulated capabilities
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
+    last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
     // is consistent.

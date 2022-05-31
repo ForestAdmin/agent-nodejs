@@ -32,6 +32,18 @@ export default class CollectionBuilder<
   }
 
   /**
+   * Disable count in list view pagination for improved performance.
+   *
+   * @example
+   * .disableCount()
+   */
+  disableCount(): this {
+    this.stack.schema.getCollection(this.name).overrideSchema({ countable: false });
+
+    return this;
+  }
+
+  /**
    * Import a field from a many to one or one to one relation.
    *
    * @param name the name of the field that will be created on the collection

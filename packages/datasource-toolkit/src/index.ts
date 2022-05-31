@@ -21,6 +21,7 @@ export { default as PublicationCollectionDecorator } from './decorators/publicat
 export { default as RenameCollectionDecorator } from './decorators/rename/collection';
 export { default as SearchCollectionDecorator } from './decorators/search/collection';
 export { default as WriteCollectionDecorator } from './decorators/write/collection';
+export { default as SchemaCollectionDecorator } from './decorators/schema/collection';
 export { default as SegmentCollectionDecorator } from './decorators/segment/collection';
 export { default as SortEmulateCollectionDecorator } from './decorators/sort-emulate/collection';
 
