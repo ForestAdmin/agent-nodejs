@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.20...@forestadmin/datasource-toolkit@1.0.0-beta.21) (2022-06-01)
+
+
+### Features
+
+* **builder:** add helper method to create embedded relationships ([#311](https://github.com/ForestAdmin/agent-nodejs/issues/311)) ([662cf58](https://github.com/ForestAdmin/agent-nodejs/commit/662cf5885c8b7c4fa17fed59f20f54625d4e5660))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.19...@forestadmin/datasource-toolkit@1.0.0-beta.20) (2022-05-31)
 
 
