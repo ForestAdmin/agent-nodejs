@@ -254,11 +254,9 @@ export default class CollectionBuilder<
    * .addExternalRelation('states', {
    *   schema: { code: 'Number', name: 'String' },
    *   listRecords: ({ id }) => {
-   *     return [
-   *       { code: 'AL', name: 'Alabama' },
-   *       { code: 'AK', name: 'Alaska' },
-   *       { code: 'AZ', name: 'Arizona' },
-   *     ]
+   *     return record.id == 34 ?
+   *      [{ code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }] :
+   *      [{ code: 'AZ', name: 'Arizona' }, { code: 'TX', name: 'Texas' }];
    *   }
    * })
    */
