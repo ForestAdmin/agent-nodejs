@@ -3,5 +3,5 @@ import { Schema } from '../typings';
 
 export default (collection: Collection<Schema, 'customer'>) =>
   collection
-    .addOneToMany('rentals', 'rental', { originKey: 'customerId' })
+    .addOneToManyRelation('rentals', 'rental', { originKey: 'customerId' })
     .removeField('deletedAt');

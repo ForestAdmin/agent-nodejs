@@ -3,8 +3,8 @@ import { Schema } from '../typings';
 
 export default (collection: Collection<Schema, 'owner'>) =>
   collection
-    .addOneToMany('stores', 'store', { originKey: 'ownerId' })
-    .addOneToMany('posts', 'post', { originKey: 'userId' })
+    .addOneToManyRelation('stores', 'store', { originKey: 'ownerId' })
+    .addOneToManyRelation('posts', 'post', { originKey: 'userId' })
     .addField('fullName', {
       columnType: 'String',
       dependencies: ['firstName', 'lastName'],

@@ -8,6 +8,7 @@ export type Schema = {
       storeId: number;
       createdAt: string;
       updatedAt: string;
+      nearStates: Array<{code: number; name: string}>;
     };
     nested: {
       store: Schema['store']['plain'] & Schema['store']['nested'];
@@ -103,6 +104,7 @@ export type Schema = {
       'store:address:storeId': number;
       'store:address:createdAt': string;
       'store:address:updatedAt': string;
+      'store:address:nearStates': Array<{code: number; name: string}>;
     };
   };
   dvd_rental: {
@@ -134,6 +136,7 @@ export type Schema = {
       'dvd:store:address:storeId': number;
       'dvd:store:address:createdAt': string;
       'dvd:store:address:updatedAt': string;
+      'dvd:store:address:nearStates': Array<{code: number; name: string}>;
       'rental:id': number;
       'rental:startDate': string;
       'rental:endDate': string;
@@ -219,6 +222,7 @@ export type Schema = {
       'store:address:storeId': number;
       'store:address:createdAt': string;
       'store:address:updatedAt': string;
+      'store:address:nearStates': Array<{code: number; name: string}>;
     };
   };
   store: {
@@ -243,6 +247,7 @@ export type Schema = {
       'address:storeId': number;
       'address:createdAt': string;
       'address:updatedAt': string;
+      'address:nearStates': Array<{code: number; name: string}>;
     };
   };
 };

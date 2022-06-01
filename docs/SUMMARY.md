@@ -43,7 +43,11 @@
   - [Filter overrides](agent-customization/fields/filter.md)
   - [Sort overrides](agent-customization/fields/sort.md)
 
-- [Relationships](agent-customization/relationships.md)
+- [Relationships](agent-customization/relationships/README.md)
+  - [To a single record](agent-customization/relationships/single-record.md)
+  - [To multiple records](agent-customization/relationships/multiple-records.md)
+  - [Computed foreign keys](agent-customization/relationships/computed-fks.md)
+  - [Under the hood](agent-customization/relationships/under-the-hood.md)
 - [Search](agent-customization/search.md)
 - [Segments](agent-customization/segments.md)
 

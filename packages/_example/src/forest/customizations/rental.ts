@@ -20,4 +20,4 @@ export default (collection: Collection<Schema, 'rental'>) =>
     .removeField('startDate', 'endDate')
     .emulateFieldOperator('numberOfDays', 'GreaterThan')
     .addSegment('More than 50 Days', { field: 'numberOfDays', operator: 'GreaterThan', value: 50 })
-    .addManyToOne('customer', 'customer', { foreignKey: 'customerId' });
+    .addManyToOneRelation('customer', 'customer', { foreignKey: 'customerId' });

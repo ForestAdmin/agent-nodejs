@@ -19,8 +19,9 @@ describe('Builder > Collection', () => {
           countable: true,
           fields: {
             authorId: factories.columnSchema.build({
+              isPrimaryKey: true,
               columnType: 'Number',
-              filterOperators: new Set(['In']),
+              filterOperators: new Set(['Equal', 'In']),
             }),
             firstName: factories.columnSchema.build({
               isSortable: true,
@@ -39,12 +40,12 @@ describe('Builder > Collection', () => {
             authorFk: factories.columnSchema.build({
               columnType: 'Number',
               isPrimaryKey: true,
-              filterOperators: new Set(['In']),
+              filterOperators: new Set(['Equal', 'In']),
             }),
             bookFk: factories.columnSchema.build({
               columnType: 'Number',
               isPrimaryKey: true,
-              filterOperators: new Set(['In']),
+              filterOperators: new Set(['Equal', 'In']),
             }),
           },
         }),
@@ -54,8 +55,9 @@ describe('Builder > Collection', () => {
         schema: factories.collectionSchema.build({
           fields: {
             bookId: factories.columnSchema.build({
+              isPrimaryKey: true,
               columnType: 'Number',
-              filterOperators: new Set(['In']),
+              filterOperators: new Set(['Equal', 'In']),
             }),
             title: factories.columnSchema.build({ columnType: 'String' }),
           },
@@ -180,6 +182,35 @@ describe('Builder > Collection', () => {
     });
   });
 
+  describe('addExternalRelation', () => {
+    it('should call addField', async () => {
+      const { stack } = await setup();
+      const builder = new CollectionBuilder(stack, 'authors');
+      const spy = jest.spyOn(builder, 'addField');
+      const self = builder.addExternalRelation('firstNameCopy', {
+        schema: { firstname: 'String', lastName: 'String' },
+        listRecords: () => {
+          return [{ firstname: 'John', lastName: 'Doe' }];
+        },
+      });
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstNameCopy', {
+        columnType: [{ firstname: 'String', lastName: 'String' }],
+        dependencies: ['authorId'],
+        getValues: expect.any(Function),
+      });
+      expect(self).toEqual(builder);
+
+      const { getValues } = spy.mock.calls[0][1];
+      const values = await getValues([{ authorId: 1 }, { authorId: 2 }], null);
+      expect(values).toStrictEqual([
+        [{ firstname: 'John', lastName: 'Doe' }],
+        [{ firstname: 'John', lastName: 'Doe' }],
+      ]);
+    });
+  });
+
   describe('relations', () => {
     it('should add a many to one', async () => {
       const { stack } = await setup();
@@ -187,7 +218,7 @@ describe('Builder > Collection', () => {
       const builder = new CollectionBuilder(stack, 'book_author');
       const spy = jest.spyOn(collection, 'addRelation');
 
-      const self = builder.addManyToOne('myAuthor', 'authors', {
+      const self = builder.addManyToOneRelation('myAuthor', 'authors', {
         foreignKey: 'authorFk',
         foreignKeyTarget: 'authorId',
       });
@@ -209,7 +240,7 @@ describe('Builder > Collection', () => {
       const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'addRelation');
 
-      const self = builder.addOneToOne('myBookAuthor', 'book_author', {
+      const self = builder.addOneToOneRelation('myBookAuthor', 'book_author', {
         originKey: 'authorFk',
         originKeyTarget: 'authorId',
       });
@@ -231,7 +262,7 @@ describe('Builder > Collection', () => {
       const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'addRelation');
 
-      const self = builder.addOneToMany('myBookAuthors', 'book_author', {
+      const self = builder.addOneToManyRelation('myBookAuthors', 'book_author', {
         originKey: 'authorFk',
         originKeyTarget: 'authorId',
       });
@@ -253,7 +284,7 @@ describe('Builder > Collection', () => {
       const spy = jest.spyOn(collection, 'addRelation');
       const builder = new CollectionBuilder(stack, 'authors');
 
-      const self = builder.addManyToMany('myBooks', 'books', 'book_author', {
+      const self = builder.addManyToManyRelation('myBooks', 'books', 'book_author', {
         foreignKey: 'bookFk',
         foreignKeyTarget: 'bookId',
         originKey: 'authorFk',
