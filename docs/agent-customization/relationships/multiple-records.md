@@ -52,7 +52,7 @@ agent.customizeCollection('movies', collection => {
 
 External relations allow to define collection which will only be available through the "Related Data" section or a given model.
 
-Note that external relation do not support pagination
+Note that external relations do not support pagination
 
 ```javascript
 const states = [
