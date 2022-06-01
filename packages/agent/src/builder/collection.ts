@@ -19,6 +19,7 @@ import {
 import { FieldDefinition, OneToManyEmbeddedDefinition } from './types';
 import DecoratorsStack from './decorators-stack';
 import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
+import HooksBuilder from './hooks';
 
 export default class CollectionBuilder<
   S extends TSchema = TSchema,
@@ -26,10 +27,16 @@ export default class CollectionBuilder<
 > {
   private readonly name: string;
   private readonly stack: DecoratorsStack;
+  private readonly hookBuilder: HooksBuilder<S, N>;
 
   constructor(stack: DecoratorsStack, name: string) {
     this.name = name;
     this.stack = stack;
+    this.hookBuilder = new HooksBuilder<S, N>(this, this.stack.hook.getCollection(this.name));
+  }
+
+  get hooks() {
+    return this.hookBuilder;
   }
 
   /**

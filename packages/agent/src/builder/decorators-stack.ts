@@ -5,6 +5,7 @@ import {
   DataSource,
   DataSourceDecorator,
   EmptyCollectionDecorator,
+  HookCollectionDecorator,
   OperatorsEmulateCollectionDecorator,
   OperatorsReplaceCollectionDecorator,
   PublicationCollectionDecorator,
@@ -35,6 +36,7 @@ export default class DecoratorsStack {
   segment: DataSourceDecorator<SegmentCollectionDecorator>;
   sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
   write: DataSourceDecorator<WriteCollectionDecorator>;
+  hook: DataSourceDecorator<HookCollectionDecorator>;
   dataSource: DataSource;
 
   constructor(dataSource: DataSource) {
@@ -65,6 +67,7 @@ export default class DecoratorsStack {
     // Step 3: Access to all fields AND emulated capabilities
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
+    last = this.hook = new DataSourceDecorator(last, HookCollectionDecorator);
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
     // is consistent.
