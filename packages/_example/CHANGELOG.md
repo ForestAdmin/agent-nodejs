@@ -1,3 +1,24 @@
+# example [1.0.0-beta.44](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.43...example@1.0.0-beta.44) (2022-06-01)
+
+
+### Features
+
+* **builder:** add helper method to create embedded relationships ([#311](https://github.com/ForestAdmin/agent-nodejs/issues/311)) ([662cf58](https://github.com/ForestAdmin/agent-nodejs/commit/662cf5885c8b7c4fa17fed59f20f54625d4e5660))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.35
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.22
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.27
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.26
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.31
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.21
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0-beta.7
+
 # example [1.0.0-beta.43](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.42...example@1.0.0-beta.43) (2022-05-31)
 
 
