@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.0.0-beta.35](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.34...@forestadmin/agent@1.0.0-beta.35) (2022-06-01)
+
+
+### Features
+
+* **builder:** add helper method to create embedded relationships ([#311](https://github.com/ForestAdmin/agent-nodejs/issues/311)) ([662cf58](https://github.com/ForestAdmin/agent-nodejs/commit/662cf5885c8b7c4fa17fed59f20f54625d4e5660))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.21
+
 # @forestadmin/agent [1.0.0-beta.34](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.33...@forestadmin/agent@1.0.0-beta.34) (2022-05-31)
 
 
