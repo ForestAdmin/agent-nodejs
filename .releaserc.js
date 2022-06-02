@@ -11,11 +11,11 @@ module.exports = {
     },
     {
       name: 'beta-[-a-zA-Z]+',
-      prerelease: 'beta',
+      prerelease: true,
     },
     {
       name: 'alpha-[-a-zA-Z]+',
-      prerelease: 'alpha',
+      prerelease: true,
     },
   ],
   plugins: [
