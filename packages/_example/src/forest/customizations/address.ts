@@ -28,4 +28,9 @@ export default (collection: Collection<Schema, 'address'>) =>
         { field: 'address', operator: 'Contains', value },
         { field: 'store:name', operator: 'Contains', value },
       ],
-    }));
+    }))
+    .restrictDetailViewTypeaheadWidgetTo('store', {
+      field: 'name',
+      operator: 'IContains',
+      value: 'o',
+    });

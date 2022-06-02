@@ -8,4 +8,5 @@ export type Caller = {
   role: string;
   tags: { [key: string]: string };
   timezone: string;
+  from: 'ListView' | 'Typeahead';
 };

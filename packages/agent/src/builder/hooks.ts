@@ -1,10 +1,4 @@
-import {
-  HookCollectionDecorator,
-  HookHandler,
-  HooksContext,
-  TCollectionName,
-  TSchema,
-} from '@forestadmin/datasource-toolkit';
+import { HookCollectionDecorator, TCollectionName, TSchema } from '@forestadmin/datasource-toolkit';
 
 import CollectionBuilder from './collection';
 
@@ -35,21 +29,21 @@ export default class HooksBuilder<
   //   return this.collectionBuilder;
   // }
 
-  onBeforeList(
-    handler: HookHandler<HooksContext<S, N>['before']['list'], S, N>,
-  ): CollectionBuilder<S, N> {
-    this.hookCollectionDecorator.addHook('before', 'list', handler);
+  // onBeforeList(
+  //   handler: HookHandler<HooksContext<S, N>['before']['list'], S, N>,
+  // ): CollectionBuilder<S, N> {
+  //   this.hookCollectionDecorator.addHook('before', 'list', handler);
 
-    return this.collectionBuilder;
-  }
+  //   return this.collectionBuilder;
+  // }
 
-  onAfterList(
-    handler: HookHandler<HooksContext<S, N>['after']['list'], S, N>,
-  ): CollectionBuilder<S, N> {
-    this.hookCollectionDecorator.addHook('after', 'list', handler);
+  // onAfterList(
+  //   handler: HookHandler<HooksContext<S, N>['after']['list'], S, N>,
+  // ): CollectionBuilder<S, N> {
+  //   this.hookCollectionDecorator.addHook('after', 'list', handler);
 
-    return this.collectionBuilder;
-  }
+  //   return this.collectionBuilder;
+  // }
 
   // onBeforeUpdate(handler: HookHandler<HookBeforeUpdateContext>): CollectionBuilder<S, N> {
   //   this.hookCollectionDecorator.addHook('before', 'update', handler);

@@ -2,6 +2,8 @@ import {
   ActionDefinition,
   CollectionUtils,
   ColumnSchema,
+  ManyToOneSchema,
+  OneToOneSchema,
   Operator,
   OperatorDefinition,
   PlainSortClause,
@@ -37,6 +39,22 @@ export default class CollectionBuilder<
 
   get hooks() {
     return this.hookBuilder;
+  }
+
+  restrictDetailViewTypeaheadWidgetTo(field: string, toNameAndType: any) {
+    const relation = this.stack.hook.getCollection(this.name).schema.fields[field] as
+      | ManyToOneSchema
+      | OneToOneSchema;
+    const { foreignCollection } = relation;
+    this.stack.hook.getCollection(foreignCollection).addHook('before', 'list', context => {
+      if (context.caller.from === 'Typeahead') {
+        context.addFilteringCondition({
+          field: toNameAndType.field,
+          operator: toNameAndType.operator,
+          value: toNameAndType.value,
+        });
+      }
+    });
   }
 
   /**

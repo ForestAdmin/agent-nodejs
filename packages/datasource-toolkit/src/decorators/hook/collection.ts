@@ -1,14 +1,15 @@
 import { Caller } from '../../interfaces/caller';
-import { HookAfterListContext, HookBeforeListContext } from './context/list';
+import {
+  HookAfterListContext,
+  HookBeforeListContext,
+  InternalHookBeforeListContext,
+} from './context/list';
 import { HookHandler, HookPosition, HookType, HooksContext } from './types';
 import { RecordData } from '../../interfaces/record';
 import CollectionDecorator from '../collection-decorator';
-import FilterFactory from '../../interfaces/query/filter/factory';
-import HookContext from './context/hook';
 import Hooks from './hook';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
-import ProjectionFactory from '../../interfaces/query/projection/factory';
 
 export default class CollectionHookDecorator extends CollectionDecorator {
   private hooks = {
@@ -19,11 +20,12 @@ export default class CollectionHookDecorator extends CollectionDecorator {
   //   [actionName: string]: Hooks<HookBeforeActionExecuteContext, HookAfterActionExecuteContext>;
   // } = {};
 
-  addHook(position: HookPosition, type: HookType, handler: HookHandler<HookContext>): void {
-    this.hooks[type].addHandler(
-      position,
-      handler as HookHandler<HooksContext[typeof position][typeof type]>,
-    );
+  addHook(
+    position: HookPosition,
+    type: HookType,
+    handler: HookHandler<HooksContext[typeof position][typeof type]>,
+  ): void {
+    this.hooks[type].addHandler(position, handler);
   }
 
   // addOnExecuteActionHook(
@@ -52,17 +54,18 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    const beforeContext = new HookBeforeListContext(
+    const beforeContext = new InternalHookBeforeListContext(
       this.childCollection,
       caller,
       filter,
       projection,
     );
-    const newContext = await this.hooks.list.executeBefore(beforeContext);
-
-    const newFilter = FilterFactory.buildPaginatedFilterFromPlain(newContext.filter);
-    const newProjection = ProjectionFactory.buildFromPlain(newContext.projection);
-    const records = await this.childCollection.list(newContext.caller, newFilter, newProjection);
+    await this.hooks.list.executeBefore(beforeContext);
+    const records = await this.childCollection.list(
+      beforeContext.caller,
+      beforeContext.getFilter(),
+      beforeContext.getProjection(),
+    );
 
     const afterContext = new HookAfterListContext(
       this.childCollection,

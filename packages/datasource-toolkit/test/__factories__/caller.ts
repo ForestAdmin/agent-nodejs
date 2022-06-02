@@ -12,4 +12,5 @@ export default Factory.define<Caller>(() => ({
   tags: {},
   team: 'team',
   timezone: 'Europe/Paris',
+  from: 'ListView',
 }));

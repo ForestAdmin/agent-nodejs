@@ -115,6 +115,12 @@ export default class QueryStringParser {
       throw new ValidationError('Missing timezone');
     }
 
+    let from = 'ListView';
+
+    if (context.request.query['context[relationship]'] === 'BelongsTo') {
+      from = 'Typeahead';
+    }
+
     // This is a method to validate a timezone using node only
     // @see https://stackoverflow.com/questions/44115681
     if (!Intl || !Intl.DateTimeFormat().resolvedOptions().timeZone) {
@@ -127,7 +133,7 @@ export default class QueryStringParser {
       throw new ValidationError(`Invalid timezone: "${timezone}"`);
     }
 
-    return { ...context.state.user, timezone };
+    return { ...context.state.user, timezone, from };
   }
 
   static parsePagination(context: Context): Page {
