@@ -12,7 +12,7 @@ describe('FirebaseCollection', () => {
       const datasource = {} as unknown as FirebaseDataSource;
       const collection = new FirebaseCollection('test', datasource);
 
-      await expect(collection.create()).rejects.toThrow('Method not implemented.');
+      await expect(collection.create()).rejects.toEqual(new Error('Method not implemented.'));
     });
   });
 
@@ -21,7 +21,7 @@ describe('FirebaseCollection', () => {
       const datasource = {} as unknown as FirebaseDataSource;
       const collection = new FirebaseCollection('test', datasource);
 
-      await expect(collection.list()).rejects.toThrow('Method not implemented.');
+      await expect(collection.list()).rejects.toEqual(new Error('Method not implemented.'));
     });
   });
 
@@ -30,7 +30,7 @@ describe('FirebaseCollection', () => {
       const datasource = {} as unknown as FirebaseDataSource;
       const collection = new FirebaseCollection('test', datasource);
 
-      await expect(collection.update()).rejects.toThrow('Method not implemented.');
+      await expect(collection.update()).rejects.toEqual(new Error('Method not implemented.'));
     });
   });
 
@@ -39,7 +39,7 @@ describe('FirebaseCollection', () => {
       const datasource = {} as unknown as FirebaseDataSource;
       const collection = new FirebaseCollection('test', datasource);
 
-      await expect(collection.delete()).rejects.toThrow('Method not implemented.');
+      await expect(collection.delete()).rejects.toEqual(new Error('Method not implemented.'));
     });
   });
 
@@ -48,7 +48,7 @@ describe('FirebaseCollection', () => {
       const datasource = {} as unknown as FirebaseDataSource;
       const collection = new FirebaseCollection('test', datasource);
 
-      await expect(collection.aggregate()).rejects.toThrow('Method not implemented.');
+      await expect(collection.aggregate()).rejects.toEqual(new Error('Method not implemented.'));
     });
   });
 });

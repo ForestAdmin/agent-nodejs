@@ -6,23 +6,23 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 export default class FirebaseCollection extends BaseCollection {
-  create(): Promise<RecordData[]> {
+  async create(): Promise<RecordData[]> {
     throw new Error('Method not implemented.');
   }
 
-  list(): Promise<RecordData[]> {
+  async list(): Promise<RecordData[]> {
     throw new Error('Method not implemented.');
   }
 
-  update(): Promise<void> {
+  async update(): Promise<void> {
     throw new Error('Method not implemented.');
   }
 
-  delete(): Promise<void> {
+  async delete(): Promise<void> {
     throw new Error('Method not implemented.');
   }
 
-  aggregate(): Promise<AggregateResult<TSchema, string>[]> {
+  async aggregate(): Promise<AggregateResult<TSchema, string>[]> {
     throw new Error('Method not implemented.');
   }
 }
