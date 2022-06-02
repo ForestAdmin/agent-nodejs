@@ -3,14 +3,17 @@ import { TCollectionName, TSchema } from '../../interfaces/templates';
 import HookContext from './context/hook';
 
 export type HookHandler<
-  T extends HookContext<S, N>,
+  C extends HookContext<S, N>,
+  R = void,
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
-> = (context: T) => Promise<void> | void;
+> = (context: C) => Promise<R> | R;
+
 export type HookType<P extends HookPosition = HookPosition> = Extract<
   keyof HooksContext[P],
   string
 >;
+
 export type HookPosition = Extract<keyof HooksContext, string>;
 
 export type HooksContext<
@@ -24,3 +27,10 @@ export type HooksContext<
     list: HookAfterListContext<S, N>;
   };
 };
+
+export type HookDefinition<
+  T,
+  C extends HookContext<S, N>,
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = T | HookHandler<C, T>;

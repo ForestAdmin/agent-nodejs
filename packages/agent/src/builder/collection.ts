@@ -2,10 +2,13 @@ import {
   ActionDefinition,
   CollectionUtils,
   ColumnSchema,
+  HookDefinition,
+  HooksContext,
   ManyToOneSchema,
   OneToOneSchema,
   Operator,
   OperatorDefinition,
+  PlainConditionTree,
   PlainSortClause,
   RecordUtils,
   RelationDefinition,
@@ -19,8 +22,6 @@ import {
   TSchema,
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
-import { PlainConditionTree } from '@forestadmin/datasource-toolkit/dist/src/interfaces/query/condition-tree/nodes/base';
-import CollectionCustomizationContext from '@forestadmin/datasource-toolkit/dist/src/context/collection-context';
 
 import { FieldDefinition, OneToManyEmbeddedDefinition } from './types';
 import DecoratorsStack from './decorators-stack';
@@ -474,7 +475,10 @@ export default class CollectionBuilder<
    */
   restrictDetailViewTypeaheadWidgetTo(
     field: TRelationName<S, N>,
-    definition: SegmentDefinition<S, typeof field>,
+    definition: HookDefinition<
+      PlainConditionTree<S, typeof field>,
+      HooksContext<S, typeof field>['before']['list']
+    >,
   ) {
     const relation = this.stack.hook.getCollection(this.name).schema.fields[field] as
       | ManyToOneSchema
@@ -484,8 +488,8 @@ export default class CollectionBuilder<
     collection.addHook('before', 'list', async context => {
       const result =
         typeof definition === 'function'
-          ? await definition(new CollectionCustomizationContext(collection, context.caller))
-          : await definition;
+          ? await definition(context as unknown as HooksContext<S, typeof field>['before']['list'])
+          : definition;
 
       if (context.caller.from === 'Typeahead') {
         context.addFilteringCondition(result as PlainConditionTree);

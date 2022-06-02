@@ -38,7 +38,7 @@ export { PartialRelationSchema as RelationDefinition } from './decorators/relati
 export { SearchReplacer as SearchDefinition } from './decorators/search/types';
 export { SegmentDefinition } from './decorators/segment/types';
 export { WriteDefinition } from './decorators/write/types';
-export { HookHandler, HooksContext } from './decorators/hook/types';
+export { HookHandler, HooksContext, HookDefinition } from './decorators/hook/types';
 
 // Query Interface
 export { default as Aggregation } from './interfaces/query/aggregation';
