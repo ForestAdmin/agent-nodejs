@@ -50,6 +50,5 @@
     "**/node_modules/**": true
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
-  "conventionalCommits.scopes": ["firebase"]
+  "typescript.enablePromptUseWorkspaceTsdk": true
 }
