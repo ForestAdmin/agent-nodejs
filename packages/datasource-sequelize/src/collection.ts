@@ -16,6 +16,7 @@ import {
 import AggregationUtils from './utils/aggregation';
 import ModelConverter from './utils/model-to-collection-schema-converter';
 import QueryConverter from './utils/query-converter';
+import Serializer from './utils/serializer';
 
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,7 +49,7 @@ export default class SequelizeCollection extends BaseCollection {
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     const records = await this.model.bulkCreate(data);
 
-    return records.map(record => record.get({ plain: true }));
+    return records.map(record => Serializer.serialize(record.get({ plain: true })));
   }
 
   async list(
@@ -82,7 +83,7 @@ export default class SequelizeCollection extends BaseCollection {
 
     const records = await this.model.findAll(query);
 
-    return records.map(record => record.get({ plain: true }));
+    return records.map(record => Serializer.serialize(record.get({ plain: true })));
   }
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {

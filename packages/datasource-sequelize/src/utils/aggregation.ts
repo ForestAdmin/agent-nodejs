@@ -11,6 +11,7 @@ import {
 import { Fn } from 'sequelize/types/utils';
 
 import DateAggregationConverter from './date-aggregation-converter';
+import Serializer from './serializer';
 
 export default class AggregationUtils {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,7 +126,9 @@ export default class AggregationUtils {
       };
 
       aggregationQueryGroup?.forEach(({ field }) => {
-        aggregateResult.group[field] = aggregate[this.getGroupFieldName(field)];
+        aggregateResult.group[field] = Serializer.serializeValue(
+          aggregate[this.getGroupFieldName(field)],
+        );
       });
 
       return aggregateResult;
