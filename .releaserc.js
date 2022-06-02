@@ -5,6 +5,18 @@ module.exports = {
       name: 'beta',
       prerelease: true,
     },
+    {
+      name: 'alpha',
+      prerelease: true,
+    },
+    {
+      name: 'beta-[-a-zA-Z]+',
+      prerelease: true,
+    },
+    {
+      name: 'alpha-[-a-zA-Z]+',
+      prerelease: true,
+    },
   ],
   plugins: [
     [
