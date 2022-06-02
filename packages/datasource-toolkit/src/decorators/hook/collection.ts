@@ -5,9 +5,15 @@ import {
   HookBeforeListContext,
   InternalHookBeforeListContext,
 } from './context/list';
+import {
+  HookAfterUpdateContext,
+  HookBeforeUpdateContext,
+  InternalHookBeforeUpdateContext,
+} from './context/update';
 import { HookHandler, HookPosition, HookType, HooksContext } from './types';
 import { RecordData } from '../../interfaces/record';
 import CollectionDecorator from '../collection-decorator';
+import Filter from '../../interfaces/query/filter/unpaginated';
 import HookContext from './context/hook';
 import Hooks from './hook';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
@@ -17,6 +23,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
   private hooks = {
     list: new Hooks<HookBeforeListContext, HookAfterListContext>(),
     create: new Hooks<HookBeforeCreateContext, HookAfterCreateContext>(),
+    update: new Hooks<HookBeforeUpdateContext, HookAfterUpdateContext>(),
   };
 
   // private onExecuteActionHooks: {
@@ -84,13 +91,24 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     return records;
   }
 
-  // override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
-  //   await this.onUpdateHooks.executeBefore({ caller, filter, patch });
+  override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+    const beforeContext = new InternalHookBeforeUpdateContext(
+      this.childCollection,
+      caller,
+      filter,
+      patch,
+    );
+    await this.hooks.update.executeBefore(beforeContext);
 
-  //   await this.childCollection.update(caller, filter, patch);
+    await this.childCollection.update(
+      beforeContext.caller,
+      beforeContext.getFilter(),
+      beforeContext.patch,
+    );
 
-  //   await this.onUpdateHooks.executeAfter({ caller, filter, patch });
-  // }
+    const afterContext = new HookAfterUpdateContext(this.childCollection, caller, filter, patch);
+    await this.hooks.update.executeAfter(afterContext);
+  }
 
   // override async delete(caller: Caller, filter: Filter): Promise<void> {
   //   await this.onDeleteHooks.executeBefore({ caller, filter });
