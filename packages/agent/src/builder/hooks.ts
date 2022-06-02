@@ -23,6 +23,22 @@ export default class HooksBuilder<
     this.hookCollectionDecorator = hookCollectionDecorator;
   }
 
+  onBeforeCreate(
+    handler: HookHandler<HooksContext<S, N>['before']['create']>,
+  ): CollectionBuilder<S, N> {
+    this.hookCollectionDecorator.addHook('before', 'create', handler);
+
+    return this.collectionBuilder;
+  }
+
+  onAfterCreate(
+    handler: HookHandler<HooksContext<S, N>['after']['create']>,
+  ): CollectionBuilder<S, N> {
+    this.hookCollectionDecorator.addHook('after', 'create', handler);
+
+    return this.collectionBuilder;
+  }
+
   onBeforeList(
     handler: HookHandler<HooksContext<S, N>['before']['list']>,
   ): CollectionBuilder<S, N> {
@@ -35,33 +51,15 @@ export default class HooksBuilder<
     return this.collectionBuilder;
   }
 
-  // onBeforeCreate(handler: HookHandler<HookBeforeCreateContext>): CollectionBuilder<S, N> {
-  //   this.hookCollectionDecorator.addHook('before', 'create', handler);
+  onAfterList(handler: HookHandler<HooksContext<S, N>['after']['list']>): CollectionBuilder<S, N> {
+    this.hookCollectionDecorator.addHook(
+      'after',
+      'list',
+      handler as unknown as HookHandler<HooksContext['after']['list']>,
+    );
 
-  //   return this.collectionBuilder;
-  // }
-
-  // onAfterCreate(handler: HookHandler<HookAfterCreateContext>): CollectionBuilder<S, N> {
-  //   this.hookCollectionDecorator.addHook('after', 'create', handler);
-
-  //   return this.collectionBuilder;
-  // }
-
-  // onBeforeList(
-  //   handler: HookHandler<HooksContext<S, N>['before']['list'], S, N>,
-  // ): CollectionBuilder<S, N> {
-  //   this.hookCollectionDecorator.addHook('before', 'list', handler);
-
-  //   return this.collectionBuilder;
-  // }
-
-  // onAfterList(
-  //   handler: HookHandler<HooksContext<S, N>['after']['list'], S, N>,
-  // ): CollectionBuilder<S, N> {
-  //   this.hookCollectionDecorator.addHook('after', 'list', handler);
-
-  //   return this.collectionBuilder;
-  // }
+    return this.collectionBuilder;
+  }
 
   // onBeforeUpdate(handler: HookHandler<HookBeforeUpdateContext>): CollectionBuilder<S, N> {
   //   this.hookCollectionDecorator.addHook('before', 'update', handler);

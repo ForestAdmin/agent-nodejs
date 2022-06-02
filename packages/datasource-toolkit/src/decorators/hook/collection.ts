@@ -1,4 +1,5 @@
 import { Caller } from '../../interfaces/caller';
+import { HookAfterCreateContext, HookBeforeCreateContext } from './context/create';
 import {
   HookAfterListContext,
   HookBeforeListContext,
@@ -7,6 +8,7 @@ import {
 import { HookHandler, HookPosition, HookType, HooksContext } from './types';
 import { RecordData } from '../../interfaces/record';
 import CollectionDecorator from '../collection-decorator';
+import HookContext from './context/hook';
 import Hooks from './hook';
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
@@ -14,6 +16,7 @@ import Projection from '../../interfaces/query/projection';
 export default class CollectionHookDecorator extends CollectionDecorator {
   private hooks = {
     list: new Hooks<HookBeforeListContext, HookAfterListContext>(),
+    create: new Hooks<HookBeforeCreateContext, HookAfterCreateContext>(),
   };
 
   // private onExecuteActionHooks: {
@@ -25,7 +28,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     type: T,
     handler: HookHandler<HooksContext[P][T]>,
   ): void {
-    this.hooks[type as HookType].addHandler(position, handler);
+    this.hooks[type as HookType].addHandler(position, handler as HookHandler<HookContext>);
   }
 
   // addOnExecuteActionHook(
@@ -39,15 +42,17 @@ export default class CollectionHookDecorator extends CollectionDecorator {
   //   this.onExecuteActionHooks[actionName].addHandler(position, handler);
   // }
 
-  // override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
-  //   const newContext = await this.onCreateHooks.executeBefore({ caller, data });
+  override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
+    const beforeContext = new HookBeforeCreateContext(this.childCollection, caller, data);
+    await this.hooks.create.executeBefore(beforeContext);
 
-  //   const records = await this.childCollection.create(newContext.caller, newContext.data);
+    const records = await this.childCollection.create(beforeContext.caller, beforeContext.data);
 
-  //   await this.onCreateHooks.executeAfter({ caller, data, records });
+    const afterContext = new HookAfterCreateContext(this.childCollection, caller, data, records);
+    await this.hooks.create.executeAfter(afterContext);
 
-  //   return records;
-  // }
+    return records;
+  }
 
   override async list(
     caller: Caller,
