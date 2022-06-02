@@ -108,6 +108,33 @@ export default class QueryStringParser {
     return segment;
   }
 
+  static getFromEntry(context: Context): string {
+    // console.log(context.request.method);
+    // console.log(context.request.url);
+    // console.log(context.request.query);
+    let from = 'Unknown';
+
+    // When the method is GET
+    // It can either be a list or an aggregate call
+    // When the method is POST
+    // It can either be a Smart action call, a creation
+    // When the method is PUT
+    // It's an update, so most likely in EditMode
+    // When the method is DELETE
+    // Delete is available on both on table and details view
+    if (context.request.method === 'GET') {
+      from = 'ListView';
+
+      if (context.request.query['context[relationship]'] === 'BelongsTo') {
+        from = 'Typeahead';
+      }
+    }
+
+    // console.log('detected = ', from);
+
+    return from;
+  }
+
   static parseCaller(context: Context): Caller {
     const timezone = context.request.query.timezone?.toString();
 
@@ -115,11 +142,7 @@ export default class QueryStringParser {
       throw new ValidationError('Missing timezone');
     }
 
-    let from = 'ListView';
-
-    if (context.request.query['context[relationship]'] === 'BelongsTo') {
-      from = 'Typeahead';
-    }
+    const from = QueryStringParser.getFromEntry(context);
 
     // This is a method to validate a timezone using node only
     // @see https://stackoverflow.com/questions/44115681

@@ -1,4 +1,10 @@
-import { HookCollectionDecorator, TCollectionName, TSchema } from '@forestadmin/datasource-toolkit';
+import {
+  HookCollectionDecorator,
+  HookHandler,
+  HooksContext,
+  TCollectionName,
+  TSchema,
+} from '@forestadmin/datasource-toolkit';
 
 import CollectionBuilder from './collection';
 
@@ -15,6 +21,18 @@ export default class HooksBuilder<
   ) {
     this.collectionBuilder = collectionBuilder;
     this.hookCollectionDecorator = hookCollectionDecorator;
+  }
+
+  onBeforeList(
+    handler: HookHandler<HooksContext<S, N>['before']['list']>,
+  ): CollectionBuilder<S, N> {
+    this.hookCollectionDecorator.addHook(
+      'before',
+      'list',
+      handler as unknown as HookHandler<HooksContext['before']['list']>,
+    );
+
+    return this.collectionBuilder;
   }
 
   // onBeforeCreate(handler: HookHandler<HookBeforeCreateContext>): CollectionBuilder<S, N> {

@@ -20,14 +20,13 @@ export default async () => {
   const nestFastifyV8 = await startNestFastifyV8();
 
   // Make and mount agent.
-  const agent = makeAgent()
-    .mountOnStandaloneServer(Number(process.env.HTTP_PORT_STANDALONE))
-    .mountOnExpress(expressAppV4)
-    .mountOnKoa(koaAppV2)
-    .mountOnFastify(fastifyAppV2)
-    .mountOnFastify(fastifyAppV3)
-    .mountOnNestJs(nestExpressV8)
-    .mountOnNestJs(nestFastifyV8);
+  const agent = makeAgent().mountOnStandaloneServer(Number(process.env.HTTP_PORT_STANDALONE));
+  // .mountOnExpress(expressAppV4)
+  // .mountOnKoa(koaAppV2)
+  // .mountOnFastify(fastifyAppV2)
+  // .mountOnFastify(fastifyAppV3)
+  // .mountOnNestJs(nestExpressV8)
+  // .mountOnNestJs(nestFastifyV8);
 
   // Run the servers!
   expressAppV4.listen(Number(process.env.HTTP_PORT_EXPRESS));

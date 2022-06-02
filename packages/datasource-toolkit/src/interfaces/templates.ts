@@ -61,3 +61,8 @@ export type TPartialFlatRow<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > = RecursivePartial<S[N]['plain'] & S[N]['flat']>;
+
+export type TRelationName<S extends TSchema, N extends TCollectionName<S>> = Extract<
+  keyof S[N]['nested'],
+  string
+>;

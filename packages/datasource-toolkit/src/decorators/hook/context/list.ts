@@ -5,6 +5,7 @@ import { PlainConditionTree } from '../../../interfaces/query/condition-tree/nod
 import { RecordData } from '../../../interfaces/record';
 import { TCollectionName, TFieldName, TRow, TSchema } from '../../../interfaces/templates';
 import ConditionTreeFactory from '../../../interfaces/query/condition-tree/factory';
+import ConditionTreeValidator from '../../../validation/condition-tree';
 import HookContext from './hook';
 import PaginatedFilter, { PlainPaginatedFilter } from '../../../interfaces/query/filter/paginated';
 import Projection from '../../../interfaces/query/projection';
@@ -42,6 +43,7 @@ export class HookBeforeListContext<
 
   addFilteringCondition(plainConditionTree: PlainConditionTree<S, N>) {
     const conditionTree = ConditionTreeFactory.fromPlainObject(plainConditionTree);
+    ConditionTreeValidator.validate(conditionTree, this.realCollection);
     this._filter.conditionTree = ConditionTreeFactory.intersect(
       conditionTree,
       this._filter.conditionTree,

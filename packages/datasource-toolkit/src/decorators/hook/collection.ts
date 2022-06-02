@@ -20,12 +20,12 @@ export default class CollectionHookDecorator extends CollectionDecorator {
   //   [actionName: string]: Hooks<HookBeforeActionExecuteContext, HookAfterActionExecuteContext>;
   // } = {};
 
-  addHook(
-    position: HookPosition,
-    type: HookType,
-    handler: HookHandler<HooksContext[typeof position][typeof type]>,
+  addHook<P extends HookPosition = HookPosition, T extends HookType = HookType>(
+    position: P,
+    type: T,
+    handler: HookHandler<HooksContext[P][T]>,
   ): void {
-    this.hooks[type].addHandler(position, handler);
+    this.hooks[type as HookType].addHandler(position, handler);
   }
 
   // addOnExecuteActionHook(

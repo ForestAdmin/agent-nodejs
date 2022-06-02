@@ -30,7 +30,17 @@ export default (collection: Collection<Schema, 'address'>) =>
       ],
     }))
     .restrictDetailViewTypeaheadWidgetTo('store', {
-      field: 'name',
-      operator: 'IContains',
-      value: 'o',
+      aggregator: 'And',
+      conditions: [
+        {
+          field: 'ownerFullName',
+          operator: 'Contains',
+          value: 'a',
+        },
+        {
+          field: 'isOpen',
+          operator: 'Equal',
+          value: true,
+        },
+      ],
     });

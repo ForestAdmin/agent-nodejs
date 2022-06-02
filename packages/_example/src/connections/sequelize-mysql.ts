@@ -20,6 +20,10 @@ sequelizeMySql.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    isOpen: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+    },
   },
   {
     tableName: 'store',

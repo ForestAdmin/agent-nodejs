@@ -7,8 +7,11 @@ export type HookHandler<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > = (context: T) => Promise<void> | void;
-export type HookType = 'list';
-export type HookPosition = 'after' | 'before';
+export type HookType<P extends HookPosition = HookPosition> = Extract<
+  keyof HooksContext[P],
+  string
+>;
+export type HookPosition = Extract<keyof HooksContext, string>;
 
 export type HooksContext<
   S extends TSchema = TSchema,

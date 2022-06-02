@@ -25,7 +25,11 @@ async function createStoreRecords(connection: Sequelize, ownerRecords: any[]): P
   return connection.model('store').bulkCreate(
     ownerRecords.reduce((records, ownerRecord) => {
       for (let i = 0; i < faker.datatype.number({ min: 1, max: 2 }); i += 1) {
-        records.push({ name: faker.company.companyName(), ownerId: ownerRecord.id });
+        records.push({
+          name: faker.company.companyName(),
+          ownerId: ownerRecord.id,
+          isOpen: faker.datatype.boolean(),
+        });
       }
 
       return records;
