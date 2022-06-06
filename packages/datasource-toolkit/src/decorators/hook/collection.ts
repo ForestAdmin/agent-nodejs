@@ -1,6 +1,11 @@
 import { Caller } from '../../interfaces/caller';
 import { HookAfterCreateContext, HookBeforeCreateContext } from './context/create';
 import {
+  HookAfterDeleteContext,
+  HookBeforeDeleteContext,
+  InternalHookBeforeDeleteContext,
+} from './context/delete';
+import {
   HookAfterListContext,
   HookBeforeListContext,
   InternalHookBeforeListContext,
@@ -24,6 +29,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     list: new Hooks<HookBeforeListContext, HookAfterListContext>(),
     create: new Hooks<HookBeforeCreateContext, HookAfterCreateContext>(),
     update: new Hooks<HookBeforeUpdateContext, HookAfterUpdateContext>(),
+    delete: new Hooks<HookBeforeDeleteContext, HookAfterDeleteContext>(),
   };
 
   // private onExecuteActionHooks: {
@@ -110,13 +116,15 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     await this.hooks.update.executeAfter(afterContext);
   }
 
-  // override async delete(caller: Caller, filter: Filter): Promise<void> {
-  //   await this.onDeleteHooks.executeBefore({ caller, filter });
+  override async delete(caller: Caller, filter: Filter): Promise<void> {
+    const beforeContext = new InternalHookBeforeDeleteContext(this.childCollection, caller, filter);
+    await this.hooks.delete.executeBefore(beforeContext);
 
-  //   await this.childCollection.delete(caller, filter);
+    await this.childCollection.delete(beforeContext.caller, beforeContext.getFilter());
 
-  //   await this.onDeleteHooks.executeAfter({ caller, filter });
-  // }
+    const afterContext = new HookAfterDeleteContext(this.childCollection, caller, filter);
+    await this.hooks.delete.executeAfter(afterContext);
+  }
 
   // override async aggregate(
   //   caller: Caller,

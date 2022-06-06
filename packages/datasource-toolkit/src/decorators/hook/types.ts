@@ -1,4 +1,5 @@
 import { HookAfterCreateContext, HookBeforeCreateContext } from './context/create';
+import { HookAfterDeleteContext, HookBeforeDeleteContext } from './context/delete';
 import { HookAfterListContext, HookBeforeListContext } from './context/list';
 import { HookAfterUpdateContext, HookBeforeUpdateContext } from './context/update';
 import { TCollectionName, TSchema } from '../../interfaces/templates';
@@ -26,11 +27,13 @@ export type HooksContext<
     list: HookBeforeListContext<S, N>;
     create: HookBeforeCreateContext<S, N>;
     update: HookBeforeUpdateContext<S, N>;
+    delete: HookBeforeDeleteContext<S, N>;
   };
   after: {
     list: HookAfterListContext<S, N>;
     create: HookAfterCreateContext<S, N>;
     update: HookAfterUpdateContext<S, N>;
+    delete: HookAfterDeleteContext<S, N>;
   };
 };
 

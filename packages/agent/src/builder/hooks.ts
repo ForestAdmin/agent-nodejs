@@ -85,17 +85,29 @@ export default class HooksBuilder<
     return this.collectionBuilder;
   }
 
-  // onBeforeDelete(handler: HookHandler<HookBeforeDeleteContext>): CollectionBuilder<S, N> {
-  //   this.hookCollectionDecorator.addHook('before', 'delete', handler);
+  onBeforeDelete(
+    handler: HookHandler<HooksContext<S, N>['before']['delete']>,
+  ): CollectionBuilder<S, N> {
+    this.hookCollectionDecorator.addHook(
+      'before',
+      'delete',
+      handler as unknown as HookHandler<HooksContext['before']['delete']>,
+    );
 
-  //   return this.collectionBuilder;
-  // }
+    return this.collectionBuilder;
+  }
 
-  // onAfterDelete(handler: HookHandler<HookAfterDeleteContext>): CollectionBuilder<S, N> {
-  //   this.hookCollectionDecorator.addHook('after', 'delete', handler);
+  onAfterDelete(
+    handler: HookHandler<HooksContext<S, N>['after']['delete']>,
+  ): CollectionBuilder<S, N> {
+    this.hookCollectionDecorator.addHook(
+      'after',
+      'delete',
+      handler as unknown as HookHandler<HooksContext['after']['delete']>,
+    );
 
-  //   return this.collectionBuilder;
-  // }
+    return this.collectionBuilder;
+  }
 
   // onBeforeAggregate(handler: HookHandler<HookBeforeAggregateContext>): CollectionBuilder<S, N> {
   //   this.hookCollectionDecorator.addHook('before', 'aggregate', handler);
