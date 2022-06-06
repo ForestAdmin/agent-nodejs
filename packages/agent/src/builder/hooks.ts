@@ -109,17 +109,29 @@ export default class HooksBuilder<
     return this.collectionBuilder;
   }
 
-  // onBeforeAggregate(handler: HookHandler<HookBeforeAggregateContext>): CollectionBuilder<S, N> {
-  //   this.hookCollectionDecorator.addHook('before', 'aggregate', handler);
+  onBeforeAggregate(
+    handler: HookHandler<HooksContext<S, N>['before']['aggregate']>,
+  ): CollectionBuilder<S, N> {
+    this.hookCollectionDecorator.addHook(
+      'before',
+      'aggregate',
+      handler as unknown as HookHandler<HooksContext['before']['aggregate']>,
+    );
 
-  //   return this.collectionBuilder;
-  // }
+    return this.collectionBuilder;
+  }
 
-  // onAfterAggregate(handler: HookHandler<HookAfterAggregateContext>): CollectionBuilder<S, N> {
-  //   this.hookCollectionDecorator.addHook('after', 'aggregate', handler);
+  onAfterAggregate(
+    handler: HookHandler<HooksContext<S, N>['after']['aggregate']>,
+  ): CollectionBuilder<S, N> {
+    this.hookCollectionDecorator.addHook(
+      'after',
+      'aggregate',
+      handler as unknown as HookHandler<HooksContext['after']['aggregate']>,
+    );
 
-  //   return this.collectionBuilder;
-  // }
+    return this.collectionBuilder;
+  }
 
   // onBeforeExecute(
   //   actionName: string,

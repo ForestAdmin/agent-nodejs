@@ -1,3 +1,4 @@
+import { HookAfterAggregateContext, HookBeforeAggregateContext } from './context/aggregate';
 import { HookAfterCreateContext, HookBeforeCreateContext } from './context/create';
 import { HookAfterDeleteContext, HookBeforeDeleteContext } from './context/delete';
 import { HookAfterListContext, HookBeforeListContext } from './context/list';
@@ -28,12 +29,14 @@ export type HooksContext<
     create: HookBeforeCreateContext<S, N>;
     update: HookBeforeUpdateContext<S, N>;
     delete: HookBeforeDeleteContext<S, N>;
+    aggregate: HookBeforeAggregateContext<S, N>;
   };
   after: {
     list: HookAfterListContext<S, N>;
     create: HookAfterCreateContext<S, N>;
     update: HookAfterUpdateContext<S, N>;
     delete: HookAfterDeleteContext<S, N>;
+    aggregate: HookAfterAggregateContext<S, N>;
   };
 };
 

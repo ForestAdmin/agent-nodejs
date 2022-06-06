@@ -1,4 +1,9 @@
 import { Caller } from '../../interfaces/caller';
+import {
+  HookAfterAggregateContext,
+  HookBeforeAggregateContext,
+  InternalHookBeforeAggregateContext,
+} from './context/aggregate';
 import { HookAfterCreateContext, HookBeforeCreateContext } from './context/create';
 import {
   HookAfterDeleteContext,
@@ -17,6 +22,7 @@ import {
 } from './context/update';
 import { HookHandler, HookPosition, HookType, HooksContext } from './types';
 import { RecordData } from '../../interfaces/record';
+import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionDecorator from '../collection-decorator';
 import Filter from '../../interfaces/query/filter/unpaginated';
 import HookContext from './context/hook';
@@ -30,6 +36,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     create: new Hooks<HookBeforeCreateContext, HookAfterCreateContext>(),
     update: new Hooks<HookBeforeUpdateContext, HookAfterUpdateContext>(),
     delete: new Hooks<HookBeforeDeleteContext, HookAfterDeleteContext>(),
+    aggregate: new Hooks<HookBeforeAggregateContext, HookAfterAggregateContext>(),
   };
 
   // private onExecuteActionHooks: {
@@ -126,31 +133,40 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     await this.hooks.delete.executeAfter(afterContext);
   }
 
-  // override async aggregate(
-  //   caller: Caller,
-  //   filter: Filter,
-  //   aggregation: Aggregation,
-  //   limit?: number,
-  // ): Promise<AggregateResult[]> {
-  //   await this.onAggregateHooks.executeBefore({ caller, filter, aggregation, limit });
+  override async aggregate(
+    caller: Caller,
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]> {
+    const beforeContext = new InternalHookBeforeAggregateContext(
+      this.childCollection,
+      caller,
+      filter,
+      aggregation,
+      limit,
+    );
+    await this.hooks.aggregate.executeBefore(beforeContext);
 
-  //   const aggregationResult = await this.childCollection.aggregate(
-  //     caller,
-  //     filter,
-  //     aggregation,
-  //     limit,
-  //   );
+    const aggregationResult = await this.childCollection.aggregate(
+      beforeContext.caller,
+      beforeContext.getFilter(),
+      beforeContext.getAggregation(),
+      beforeContext.limit,
+    );
 
-  //   await this.onAggregateHooks.executeAfter({
-  //     caller,
-  //     filter,
-  //     aggregation,
-  //     limit,
-  //     aggregationResult,
-  //   });
+    const afterContext = new HookAfterAggregateContext(
+      this.childCollection,
+      caller,
+      filter,
+      aggregation,
+      limit,
+      aggregationResult,
+    );
+    await this.hooks.aggregate.executeAfter(afterContext);
 
-  //   return aggregationResult;
-  // }
+    return aggregationResult;
+  }
 
   // override async execute(
   //   caller: Caller,
