@@ -5,6 +5,7 @@ describe('TypingGenerator', () => {
   test('should work with a single collection', () => {
     const datasource = factories.dataSource.buildWithCollections([
       factories.collection.build({
+        name: 'aCollectionName',
         schema: {
           fields: {
             id: factories.columnSchema.build({ columnType: 'Number' }),
@@ -26,15 +27,15 @@ describe('TypingGenerator', () => {
     const expected = `
       /* eslint-disable */
       export type Schema = {
-        a collection: {
+        'aCollectionName': {
           plain: {
-            id: number;
-            boolean: boolean;
-            string: string;
-            point: [number, number];
-            enum: 'a' | 'b' | 'c';
-            complex: { firstname: string; lastname: string };
-            array: Array<string>;
+            'id': number;
+            'boolean': boolean;
+            'string': string;
+            'point': [number, number];
+            'enum': 'a' | 'b' | 'c';
+            'complex': { firstname: string; lastname: string };
+            'array': Array<string>;
           };
           nested: {};
           flat: {};
@@ -43,6 +44,65 @@ describe('TypingGenerator', () => {
 
     expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
   });
+
+  const cases = [
+    [' white spaces ', "' white spaces '"],
+    ['-dashes', "'-dashes'"],
+  ];
+  test.each(cases)(
+    '[%p] should support field name with unconventional characters',
+    (fieldName, expectedFieldName) => {
+      const datasource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'aCollectionName',
+          schema: {
+            fields: {
+              [fieldName]: factories.columnSchema.build({ columnType: 'String' }),
+            },
+          },
+        }),
+      ]);
+
+      const generated = TypingGenerator.generateTypes(datasource, 5);
+      const expected = `
+      /* eslint-disable */
+      export type Schema = {
+        'aCollectionName': {
+          plain: { ${expectedFieldName}:string; };
+          nested: {};
+          flat: {};
+        };
+      };`;
+
+      expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+    },
+  );
+
+  const casesCollection = [
+    [' white spaces ', "' white spaces '"],
+    ['-dashes', "'-dashes'"],
+  ];
+  test.each(casesCollection)(
+    '[%p] should support collection name with unconventional characters',
+    (collectionName, expectedCollectionName) => {
+      const datasource = factories.dataSource.buildWithCollections([
+        factories.collection.build({ name: collectionName }),
+      ]);
+
+      const generated = TypingGenerator.generateTypes(datasource, 5);
+      const expected = `
+      /* eslint-disable */
+      export type Schema = {
+        ${expectedCollectionName}: {
+          plain: {};
+          nested: {};
+          flat: {};
+        };
+      };`;
+
+      expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+    },
+  );
 
   test('should work with a cycle (self-reference)', () => {
     const datasource = factories.dataSource.buildWithCollections([
@@ -61,12 +121,12 @@ describe('TypingGenerator', () => {
     const expected = `
       /* eslint-disable */
       export type Schema = {
-        col1: {
+        'col1': {
           plain: { 
-            id: number;
+            'id': number;
           };
           nested: {
-            col1: Schema['col1']['plain'] & Schema['col1']['nested'];
+            'col1': Schema['col1']['plain'] & Schema['col1']['nested'];
           };
           flat: {
             'col1:id': number;
@@ -107,23 +167,23 @@ describe('TypingGenerator', () => {
     const expected = `
       /* eslint-disable */
       export type Schema = {
-        col1: {
+        'col1': {
           plain: {
-            id: number;
+            'id': number;
           };
           nested: {
-            col2: Schema['col2']['plain'] & Schema['col2']['nested'];
+            'col2': Schema['col2']['plain'] & Schema['col2']['nested'];
           };
           flat: {
             'col2:id':number;
           };
         };
-        col2: {
+        'col2': {
           plain: {
-            id: number;
+            'id': number;
           };
           nested: {
-            col1: Schema['col1']['plain'] & Schema['col1']['nested'];
+            'col1': Schema['col1']['plain'] & Schema['col1']['nested'];
           };
           flat: {
             'col1:id':number;
@@ -169,12 +229,12 @@ describe('TypingGenerator', () => {
     const expected = `
       /* eslint-disable */
       export type Schema = {
-        col1: {
+        'col1': {
           plain: { 
-            id: number;
+            'id': number;
           };
           nested: {
-            col2: Schema['col2']['plain'] & Schema['col2']['nested'];
+            'col2': Schema['col2']['plain'] & Schema['col2']['nested'];
           };
           flat: {
             'col2:id': number;
@@ -182,12 +242,12 @@ describe('TypingGenerator', () => {
             'col2:col3:col1:id': number;
           };
         };
-        col2: {
+        'col2': {
           plain: {
-            id: number;
+            'id': number;
           };
           nested: {
-            col3: Schema['col3']['plain'] & Schema['col3']['nested'];
+            'col3': Schema['col3']['plain'] & Schema['col3']['nested'];
           };
           flat: {
             'col3:id': number;
@@ -195,12 +255,12 @@ describe('TypingGenerator', () => {
             'col3:col1:col2:id': number;
           };
         };
-        col3: {
+        'col3': {
           plain: {
-            id: number;
+            'id': number;
           };
           nested: {
-            col1: Schema['col1']['plain'] & Schema['col1']['nested'];
+            'col1': Schema['col1']['plain'] & Schema['col1']['nested'];
           };
           flat: {
             'col1:id': number;
