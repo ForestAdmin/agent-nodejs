@@ -40,7 +40,7 @@ export class HookBeforeAggregateContext<
   }
 
   get limit() {
-    return this.limit;
+    return this._limit;
   }
 }
 
