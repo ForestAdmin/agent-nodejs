@@ -39,10 +39,6 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     aggregate: new Hooks<HookBeforeAggregateContext, HookAfterAggregateContext>(),
   };
 
-  // private onExecuteActionHooks: {
-  //   [actionName: string]: Hooks<HookBeforeActionExecuteContext, HookAfterActionExecuteContext>;
-  // } = {};
-
   addHook<P extends HookPosition = HookPosition, T extends HookType = HookType>(
     position: P,
     type: T,
@@ -50,17 +46,6 @@ export default class CollectionHookDecorator extends CollectionDecorator {
   ): void {
     this.hooks[type as HookType].addHandler(position, handler as HookHandler<HookContext>);
   }
-
-  // addOnExecuteActionHook(
-  //   actionName: string,
-  //   position: HookPosition,
-  //   handler: HookHandler<HookBeforeActionExecuteContext | HookAfterActionExecuteContext>,
-  // ) {
-  //   if (!this.onExecuteActionHooks[actionName]) this.onExecuteActionHooks[actionName]
-  // = new Hooks();
-
-  //   this.onExecuteActionHooks[actionName].addHandler(position, handler);
-  // }
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     const beforeContext = new HookBeforeCreateContext(this.childCollection, caller, data);
@@ -167,27 +152,4 @@ export default class CollectionHookDecorator extends CollectionDecorator {
 
     return aggregationResult;
   }
-
-  // override async execute(
-  //   caller: Caller,
-  //   name: string,
-  //   data: RecordData,
-  //   filter?: Filter,
-  // ): Promise<ActionResult> {
-  //   if (this.onExecuteActionHooks[name])
-  //     await this.onExecuteActionHooks[name].executeBefore({ caller, name, data, filter });
-
-  //   const actionResult = await this.childCollection.execute(caller, name, data, filter);
-
-  //   if (this.onExecuteActionHooks[name])
-  //     await this.onExecuteActionHooks[name].executeAfter({
-  //       caller,
-  //       name,
-  //       data,
-  //       filter,
-  //       actionResult,
-  //     });
-
-  //   return actionResult;
-  // }
 }

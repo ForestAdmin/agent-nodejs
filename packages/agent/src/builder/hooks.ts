@@ -132,22 +132,4 @@ export default class HooksBuilder<
 
     return this.collectionBuilder;
   }
-
-  // onBeforeExecute(
-  //   actionName: string,
-  //   handler: HookHandler<HookBeforeActionExecuteContext>,
-  // ): CollectionBuilder<S, N> {
-  //   this.hookCollectionDecorator.addOnExecuteActionHook(actionName, 'before', handler);
-
-  //   return this.collectionBuilder;
-  // }
-
-  // onAfterExecute(
-  //   actionName: string,
-  //   handler: HookHandler<HookAfterActionExecuteContext>,
-  // ): CollectionBuilder<S, N> {
-  //   this.hookCollectionDecorator.addOnExecuteActionHook(actionName, 'after', handler);
-
-  //   return this.collectionBuilder;
-  // }
 }
