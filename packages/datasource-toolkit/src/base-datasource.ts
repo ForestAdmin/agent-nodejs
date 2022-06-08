@@ -4,10 +4,10 @@ import { Collection, DataSource } from './interfaces/collection';
 import { DataSourceSchema } from './interfaces/schema';
 
 export default class BaseDataSource<T extends Collection = Collection> implements DataSource {
-  protected _collections: { [collectionName: string]: T } = {};
+  protected _collections: T[] = [];
 
   get collections(): T[] {
-    return Object.values(this._collections);
+    return this._collections;
   }
 
   get schema(): DataSourceSchema {
@@ -15,18 +15,20 @@ export default class BaseDataSource<T extends Collection = Collection> implement
   }
 
   getCollection(name: string): T {
-    const collection = this._collections[name];
+    const collection = this._collections.find(c => c.name === name);
 
-    if (collection === undefined) throw new Error(`Collection '${name}' not found.`);
+    if (collection === undefined) {
+      throw new Error(`Collection '${name}' not found.`);
+    }
 
     return collection;
   }
 
   public addCollection(collection: T): void {
-    if (this._collections[collection.name] !== undefined)
+    if (this._collections.find(c => c.name === collection.name) !== undefined)
       throw new Error(`Collection '${collection.name}' already defined in datasource`);
 
-    this._collections[collection.name] = collection;
+    this._collections.push(collection);
   }
 
   renderChart(caller: Caller, name: string): Promise<Chart> {

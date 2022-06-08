@@ -89,6 +89,14 @@ export default class CollectionBuilder<
   }
 
   /**
+   */
+  renameCollection(newName: string): this {
+    this.stack.renameCollection.getCollection(this.name).rename(newName);
+
+    return this;
+  }
+
+  /**
    * Allow to rename a field of a given collection.
    * @param oldName the current name of the field in a given collection
    * @param newName the new name of the field

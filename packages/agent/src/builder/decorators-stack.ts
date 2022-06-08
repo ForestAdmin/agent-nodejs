@@ -10,6 +10,7 @@ import {
   OperatorsReplaceCollectionDecorator,
   PublicationCollectionDecorator,
   RelationCollectionDecorator,
+  RenameCollectionCollectionDecorator,
   RenameFieldCollectionDecorator,
   SchemaCollectionDecorator,
   SearchCollectionDecorator,
@@ -31,6 +32,7 @@ export default class DecoratorsStack {
   lateOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
   publication: DataSourceDecorator<PublicationCollectionDecorator>;
   renameField: DataSourceDecorator<RenameFieldCollectionDecorator>;
+  renameCollection: DataSourceDecorator<RenameCollectionCollectionDecorator>;
   schema: DataSourceDecorator<SchemaCollectionDecorator>;
   search: DataSourceDecorator<SearchCollectionDecorator>;
   segment: DataSourceDecorator<SegmentCollectionDecorator>;
@@ -73,6 +75,10 @@ export default class DecoratorsStack {
     // is consistent.
     last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
     last = this.renameField = new DataSourceDecorator(last, RenameFieldCollectionDecorator);
+    last = this.renameCollection = new DataSourceDecorator(
+      last,
+      RenameCollectionCollectionDecorator,
+    );
     /* eslint-enable no-multi-assign */
 
     this.dataSource = last;

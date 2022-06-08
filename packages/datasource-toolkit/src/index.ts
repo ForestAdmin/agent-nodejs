@@ -22,6 +22,7 @@ export { default as OperatorsEmulateCollectionDecorator } from './decorators/ope
 export { default as OperatorsReplaceCollectionDecorator } from './decorators/operators-replace/collection';
 export { default as PublicationCollectionDecorator } from './decorators/publication/collection';
 export { default as RenameFieldCollectionDecorator } from './decorators/rename-field/collection';
+export { default as RenameCollectionCollectionDecorator } from './decorators/rename-Collection/collection';
 export { default as SearchCollectionDecorator } from './decorators/search/collection';
 export { default as WriteCollectionDecorator } from './decorators/write/collection';
 export { default as SchemaCollectionDecorator } from './decorators/schema/collection';
