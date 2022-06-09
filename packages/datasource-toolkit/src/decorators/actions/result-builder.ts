@@ -5,7 +5,7 @@ import { ActionResult } from '../../interfaces/action';
 export default class ResultBuilder {
   /**
    * Returns a success response from the action
-   * @param message the message to return
+   * @param message the success message to return
    * @param options available options to return
    * @example
    * .success('<blinkee>Success!</blinkee>', { type: 'html' });
@@ -24,8 +24,7 @@ export default class ResultBuilder {
 
   /**
    * Returns an error response from the action
-   * @param message the message to return
-   * @param options available options to return
+   * @param message the error message to return
    * @example
    * .error('Failed to refund the customer!');
    */
@@ -86,9 +85,9 @@ export default class ResultBuilder {
 
   /**
    * Returns to the UI that a redirection is needed
-   * @param path the actual file to download
+   * @param path the path to redirect to
    * @example
-   * .file('This is my file content', 'download.txt', 'text/plain');
+   * .redirectTo('https://www.google.com');
    */
   redirectTo(path: string): ActionResult {
     return { type: 'Redirect', path };

@@ -95,6 +95,9 @@ export default class RelaxedCollection<
    *        operator: 'Contains',
    *        value: 'Refund',
    *      }],
+   *      page: { limit: 10, skip: 0 },
+   *      sort: [{ field: 'id', ascending: true }]
+   *   }
    * }, ['id', 'amountInEur', 'description']);
    */
   list(filter: PlainPaginatedFilter<S, N>, projection: TFieldName<S, N>[]): Promise<TRow<S, N>[]> {
@@ -116,7 +119,6 @@ export default class RelaxedCollection<
    *      operator: 'Equal',
    *      value: false
    *    },
-   *    page: { limit: 10, skip: 0 }
    * }, { isActive: true });
    */
   update(filter: PlainFilter<S, N>, patch: TPartialSimpleRow<S, N>): Promise<void> {
@@ -135,7 +137,6 @@ export default class RelaxedCollection<
    *      operator: 'Equal',
    *      value: false,
    *    },
-   *    sort: [{ field: 'id', ascending: true }]
    * });
    */
   delete(filter: PlainFilter<S, N>): Promise<void> {
@@ -160,7 +161,7 @@ export default class RelaxedCollection<
    *    operation: "Sum",
    *    field: "amountInEur",
    *    groups: [{ field: "user:company:id" }],
-   * });
+   * }, 10);
    */
   aggregate(
     filter: PlainFilter<S, N>,
