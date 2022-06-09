@@ -29,7 +29,7 @@ A convenient next step would be to display the total spending of customers of ou
 collection.addField('totalSpending', {
   type: 'Number',
   dependencies: ['id'],
-  getValues: (records, context) => {
+  getValues: async (records, context) => {
     const recordIds = records.map(r => r.id);
     const filter = { conditionTree: { field: 'customer_id', operator: 'In', value: recordIds } };
     const aggregation = { operation: 'Sum', field: 'amount', groups: [{ field: 'customer_id' }] };
@@ -40,5 +40,15 @@ collection.addField('totalSpending', {
       return row?.value ?? 0;
     });
   },
+});
+```
+## Make it writable
+
+When you add a field, it is not writable. To allow it, use the `replaceFieldWriting` method.
+
+```javascript
+collection.replaceFieldWriting('fullName', (value) => {
+  const [firstName, lastName] = value.split(' ');
+  return { firstName, lastName };
 });
 ```
