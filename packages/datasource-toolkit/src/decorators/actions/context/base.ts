@@ -46,6 +46,12 @@ export default class ActionContext<
     }
   }
 
+  /**
+   * Get all the records selected by an action
+   * @param fields An array of fields needed in the response
+   * @example
+   * .getRecords(['id', 'isActive', 'name']);
+   */
   async getRecords(fields: TFieldName<S, N>[]): Promise<TRow<S, N>[]> {
     // This function just queues the request into this.queries, so that we can merge all calls
     // to getRecords() into a single one.
@@ -73,12 +79,18 @@ export default class ActionContext<
     return deferred.promise;
   }
 
+  /**
+   * Get all the records ids selected by an action
+   */
   async getRecordIds(): Promise<Array<string | number>> {
     const compositeIds = await this.getCompositeRecordIds();
 
     return compositeIds.map(id => id[0]);
   }
 
+  /**
+   * Get all the records ids (when the collection uses composite keys)
+   */
   async getCompositeRecordIds(): Promise<CompositeId[]> {
     const projection = new Projection().withPks(this.realCollection) as string[];
     const records = await this.getRecords(projection as TFieldName<S, N>[]);
