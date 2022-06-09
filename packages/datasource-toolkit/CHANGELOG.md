@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.22](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.21...@forestadmin/datasource-toolkit@1.0.0-beta.22) (2022-06-09)
+
+
+### Bug Fixes
+
+* **decorators:** remove useless isRequired field ([#337](https://github.com/ForestAdmin/agent-nodejs/issues/337)) ([ed9dd04](https://github.com/ForestAdmin/agent-nodejs/commit/ed9dd040bea1fa9c07aaaf1bf634e45bd62827df))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.20...@forestadmin/datasource-toolkit@1.0.0-beta.21) (2022-06-01)
 
 
