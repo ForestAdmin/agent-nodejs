@@ -22,7 +22,7 @@ export class HookBeforeAggregateContext<
     caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
-    limit: number,
+    limit?: number,
   ) {
     super(collection, caller);
 
@@ -65,8 +65,8 @@ export class HookAfterAggregateContext<
     caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
-    limit: number,
     aggregateResult: AggregateResult<S, N>[],
+    limit?: number,
   ) {
     super(collection, caller, filter, aggregation, limit);
 

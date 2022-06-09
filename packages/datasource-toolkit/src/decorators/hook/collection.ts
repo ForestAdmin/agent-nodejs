@@ -31,12 +31,12 @@ import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
 
 export default class CollectionHookDecorator extends CollectionDecorator {
-  private hooks = {
-    list: new Hooks<HookBeforeListContext, HookAfterListContext>(),
-    create: new Hooks<HookBeforeCreateContext, HookAfterCreateContext>(),
-    update: new Hooks<HookBeforeUpdateContext, HookAfterUpdateContext>(),
-    delete: new Hooks<HookBeforeDeleteContext, HookAfterDeleteContext>(),
-    aggregate: new Hooks<HookBeforeAggregateContext, HookAfterAggregateContext>(),
+  private hooks: { [type in HookType<'After'>]: Hooks<HookContext, HookContext> } = {
+    List: new Hooks<HookBeforeListContext, HookAfterListContext>(),
+    Create: new Hooks<HookBeforeCreateContext, HookAfterCreateContext>(),
+    Update: new Hooks<HookBeforeUpdateContext, HookAfterUpdateContext>(),
+    Delete: new Hooks<HookBeforeDeleteContext, HookAfterDeleteContext>(),
+    Aggregate: new Hooks<HookBeforeAggregateContext, HookAfterAggregateContext>(),
   };
 
   addHook<P extends HookPosition = HookPosition, T extends HookType = HookType>(
@@ -49,12 +49,12 @@ export default class CollectionHookDecorator extends CollectionDecorator {
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     const beforeContext = new HookBeforeCreateContext(this.childCollection, caller, data);
-    await this.hooks.create.executeBefore(beforeContext);
+    await this.hooks.Create.executeBefore(beforeContext);
 
     const records = await this.childCollection.create(beforeContext.caller, beforeContext.data);
 
     const afterContext = new HookAfterCreateContext(this.childCollection, caller, data, records);
-    await this.hooks.create.executeAfter(afterContext);
+    await this.hooks.Create.executeAfter(afterContext);
 
     return records;
   }
@@ -70,7 +70,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
       filter,
       projection,
     );
-    await this.hooks.list.executeBefore(beforeContext);
+    await this.hooks.List.executeBefore(beforeContext);
     const records = await this.childCollection.list(
       beforeContext.caller,
       beforeContext.getFilter(),
@@ -84,7 +84,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
       projection,
       records,
     );
-    await this.hooks.list.executeAfter(afterContext);
+    await this.hooks.List.executeAfter(afterContext);
 
     return records;
   }
@@ -96,7 +96,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
       filter,
       patch,
     );
-    await this.hooks.update.executeBefore(beforeContext);
+    await this.hooks.Update.executeBefore(beforeContext);
 
     await this.childCollection.update(
       beforeContext.caller,
@@ -105,17 +105,17 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     );
 
     const afterContext = new HookAfterUpdateContext(this.childCollection, caller, filter, patch);
-    await this.hooks.update.executeAfter(afterContext);
+    await this.hooks.Update.executeAfter(afterContext);
   }
 
   override async delete(caller: Caller, filter: Filter): Promise<void> {
     const beforeContext = new InternalHookBeforeDeleteContext(this.childCollection, caller, filter);
-    await this.hooks.delete.executeBefore(beforeContext);
+    await this.hooks.Delete.executeBefore(beforeContext);
 
     await this.childCollection.delete(beforeContext.caller, beforeContext.getFilter());
 
     const afterContext = new HookAfterDeleteContext(this.childCollection, caller, filter);
-    await this.hooks.delete.executeAfter(afterContext);
+    await this.hooks.Delete.executeAfter(afterContext);
   }
 
   override async aggregate(
@@ -131,7 +131,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
       aggregation,
       limit,
     );
-    await this.hooks.aggregate.executeBefore(beforeContext);
+    await this.hooks.Aggregate.executeBefore(beforeContext);
 
     const aggregationResult = await this.childCollection.aggregate(
       beforeContext.caller,
@@ -145,10 +145,10 @@ export default class CollectionHookDecorator extends CollectionDecorator {
       caller,
       filter,
       aggregation,
-      limit,
       aggregationResult,
+      limit,
     );
-    await this.hooks.aggregate.executeAfter(afterContext);
+    await this.hooks.Aggregate.executeAfter(afterContext);
 
     return aggregationResult;
   }

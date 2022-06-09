@@ -29,7 +29,7 @@ export default class Hooks<B extends HookContext, A extends HookContext> {
   }
 
   addHandler(position: HookPosition, handler: HookHandler<A> | HookHandler<B>) {
-    if (position === 'after') {
+    if (position === 'After') {
       this.after.push(handler as HookHandler<A>);
     } else {
       this.before.push(handler as HookHandler<B>);

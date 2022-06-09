@@ -1,11 +1,8 @@
 /* eslint-disable max-classes-per-file */
 import { Caller } from '../../../interfaces/caller';
 import { Collection } from '../../../interfaces/collection';
-import { PlainConditionTree } from '../../../interfaces/query/condition-tree/nodes/base';
 import { RecordData } from '../../../interfaces/record';
 import { TCollectionName, TFieldName, TRow, TSchema } from '../../../interfaces/templates';
-import ConditionTreeFactory from '../../../interfaces/query/condition-tree/factory';
-import ConditionTreeValidator from '../../../validation/condition-tree';
 import HookContext from './hook';
 import PaginatedFilter, { PlainPaginatedFilter } from '../../../interfaces/query/filter/paginated';
 import Projection from '../../../interfaces/query/projection';
@@ -36,19 +33,6 @@ export class HookBeforeListContext<
   get projection() {
     return this._projection as unknown as TFieldName<S, N>[];
   }
-
-  addFieldToProjection(field: TFieldName<S, N>) {
-    this._projection.push(field);
-  }
-
-  addFilteringCondition(plainConditionTree: PlainConditionTree<S, N>) {
-    const conditionTree = ConditionTreeFactory.fromPlainObject(plainConditionTree);
-    ConditionTreeValidator.validate(conditionTree, this.realCollection);
-    this._filter.conditionTree = ConditionTreeFactory.intersect(
-      conditionTree,
-      this._filter.conditionTree,
-    );
-  }
 }
 
 export class InternalHookBeforeListContext extends HookBeforeListContext {
@@ -65,7 +49,7 @@ export class HookAfterListContext<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > extends HookBeforeListContext<S, N> {
-  readonly records: TRow<S, N>[];
+  readonly _records: TRow<S, N>[];
 
   constructor(
     collection: Collection,
@@ -76,6 +60,10 @@ export class HookAfterListContext<
   ) {
     super(collection, caller, filter, projection);
 
-    this.records = records as TRow<S, N>[];
+    this._records = records as TRow<S, N>[];
+  }
+
+  get records() {
+    return Object.freeze(this._records);
   }
 }

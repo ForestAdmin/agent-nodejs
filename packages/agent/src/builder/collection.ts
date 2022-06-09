@@ -2,13 +2,12 @@ import {
   ActionDefinition,
   CollectionUtils,
   ColumnSchema,
-  HookDefinition,
+  HookHandler,
+  HookPosition,
+  HookType,
   HooksContext,
-  ManyToOneSchema,
-  OneToOneSchema,
   Operator,
   OperatorDefinition,
-  PlainConditionTree,
   PlainSortClause,
   RecordUtils,
   RelationDefinition,
@@ -18,7 +17,6 @@ import {
   TCollectionName,
   TColumnName,
   TFieldName,
-  TRelationName,
   TSchema,
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
@@ -26,7 +24,6 @@ import {
 import { FieldDefinition, OneToManyEmbeddedDefinition } from './types';
 import DecoratorsStack from './decorators-stack';
 import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
-import HooksBuilder from './hooks';
 
 export default class CollectionBuilder<
   S extends TSchema = TSchema,
@@ -34,16 +31,10 @@ export default class CollectionBuilder<
 > {
   private readonly name: string;
   private readonly stack: DecoratorsStack;
-  private readonly hookBuilder: HooksBuilder<S, N>;
 
   constructor(stack: DecoratorsStack, name: string) {
     this.name = name;
     this.stack = stack;
-    this.hookBuilder = new HooksBuilder<S, N>(this, this.stack.hook.getCollection(this.name));
-  }
-
-  get hooks() {
-    return this.hookBuilder;
   }
 
   /**
@@ -460,41 +451,16 @@ export default class CollectionBuilder<
     return this;
   }
 
-  /**
-   * Allow to customize the visible records when searching on a typeahead widget
-   * Only compatible with ManyToOne & OneToOne relations
-   * @param field the name of the relationship
-   * @param definition a function used to generate a condition tree
-   * or a condition tree
-   * @example
-   * .restrictDetailViewTypeaheadWidgetTo('store', {
-   *   field: 'isOpen',
-   *   operator: 'Equal',
-   *   value: true,
-   * });
-   */
-  restrictDetailViewTypeaheadWidgetTo(
-    field: TRelationName<S, N>,
-    definition: HookDefinition<
-      PlainConditionTree<S, typeof field>,
-      HooksContext<S, typeof field>['before']['list']
-    >,
-  ) {
-    const relation = this.stack.hook.getCollection(this.name).schema.fields[field] as
-      | ManyToOneSchema
-      | OneToOneSchema;
-    const { foreignCollection } = relation;
-    const collection = this.stack.hook.getCollection(foreignCollection);
-    collection.addHook('before', 'list', async context => {
-      const result =
-        typeof definition === 'function'
-          ? await definition(context as unknown as HooksContext<S, typeof field>['before']['list'])
-          : definition;
+  addHook<P extends HookPosition, T extends HookType>(
+    position: P,
+    type: T,
+    handler: HookHandler<HooksContext<S, N>[P][T]>,
+  ): this {
+    this.stack.hook
+      .getCollection(this.name)
+      .addHook(position, type, handler as unknown as HookHandler<HooksContext[P][T]>);
 
-      if (context.caller.from === 'Typeahead') {
-        context.addFilteringCondition(result as PlainConditionTree);
-      }
-    });
+    return this;
   }
 
   /**

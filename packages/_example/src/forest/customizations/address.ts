@@ -28,19 +28,12 @@ export default (collection: Collection<Schema, 'address'>) =>
         { field: 'address', operator: 'Contains', value },
         { field: 'store:name', operator: 'Contains', value },
       ],
-    }))
-    .restrictDetailViewTypeaheadWidgetTo('store', {
-      aggregator: 'And',
-      conditions: [
-        {
-          field: 'ownerFullName',
-          operator: 'Contains',
-          value: 'a',
-        },
-        {
-          field: 'isOpen',
-          operator: 'Equal',
-          value: true,
-        },
-      ],
-    });
+    }));
+// .addHook('After', 'List', context => {
+//   // @ts-ignore
+//   context.records.push({
+//     id: 11,
+//     address: '69995 Walter Dam',
+//     zipCode: '75412-2961',
+//   });
+// });
