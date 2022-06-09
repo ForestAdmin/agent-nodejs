@@ -1,3 +1,18 @@
+# example [1.0.0-beta.46](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.45...example@1.0.0-beta.46) (2022-06-09)
+
+
+### Bug Fixes
+
+* **typing-generator:** add simple quote arround the collection and fiel name to be compatible with ts ([#336](https://github.com/ForestAdmin/agent-nodejs/issues/336)) ([138b593](https://github.com/ForestAdmin/agent-nodejs/commit/138b593bff7d6dadbb5779d503e30c722f7978cf))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.37
+
 # example [1.0.0-beta.45](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.44...example@1.0.0-beta.45) (2022-06-09)
 
 
