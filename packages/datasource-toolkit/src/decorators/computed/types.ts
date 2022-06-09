@@ -8,7 +8,6 @@ export interface ComputedDefinition<
 > {
   readonly columnType: ColumnType;
   readonly dependencies: TFieldName<S, N>[];
-  readonly isRequired?: boolean;
   readonly defaultValue?: unknown;
   readonly enumValues?: string[];
 
