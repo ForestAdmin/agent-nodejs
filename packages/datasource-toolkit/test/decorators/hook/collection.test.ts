@@ -173,9 +173,9 @@ describe('CollectionHookDecorator', () => {
         const currentCaller = factories.caller.build();
         const currentFilter = factories.filter.build();
         const currentProjection = factories.projection.build();
+        const currentRecords = [factories.recordData.build()];
 
-        const records = [{ id: 1 }, { id: 2 }];
-        jest.spyOn(transactions, 'list').mockResolvedValue(records);
+        jest.spyOn(transactions, 'list').mockResolvedValue(currentRecords);
         const decoratedListOfRecords = await decoratedTransactions.list(
           currentCaller,
           currentFilter,
@@ -191,14 +191,13 @@ describe('CollectionHookDecorator', () => {
 
         expect(spy).toHaveBeenCalledTimes(1);
         // The decorator is not supposed to change the list of records
-        expect(decoratedListOfRecords).toEqual(records);
+        expect(decoratedListOfRecords).toEqual(currentRecords);
 
         const spyArguments = spy.mock.calls[0][0];
         expect(spyArguments.caller).toEqual(context.caller);
         expect(spyArguments.filter).toEqual(context.filter);
         expect(spyArguments.projection).toEqual(context.projection);
         expect(spyArguments.records).toEqual(context.records);
-        expect(spyArguments.records).toEqual(records);
       });
     });
 
@@ -210,20 +209,26 @@ describe('CollectionHookDecorator', () => {
         const currentCaller = factories.caller.build();
         const currentData = [factories.recordData.build()];
         const currentRecords = [factories.recordData.build()];
+
+        jest.spyOn(transactions, 'create').mockResolvedValue(currentRecords);
+        const decoratedListOfCreatedRecords = await decoratedTransactions.create(
+          currentCaller,
+          currentData,
+        );
         const context = new HookAfterCreateContext(
           transactions,
           currentCaller,
           currentData,
-          currentRecords,
+          decoratedListOfCreatedRecords,
         );
-        await decoratedTransactions.create(currentCaller, currentData);
 
         expect(spy).toHaveBeenCalledTimes(1);
+        expect(decoratedListOfCreatedRecords).toEqual(currentRecords);
 
         const spyArguments = spy.mock.calls[0][0];
         expect(spyArguments.caller).toEqual(context.caller);
         expect(spyArguments.data).toEqual(context.data);
-        expect(spyArguments.records).toEqual(context.records);
+        expect(spyArguments.records).toEqual(currentRecords);
       });
     });
 
@@ -277,18 +282,25 @@ describe('CollectionHookDecorator', () => {
 
         const currentCaller = factories.caller.build();
         const currentFilter = factories.filter.build();
-        const currentAggregation = factories.aggregation.build();
-        const currentAggregationResults = [factories.aggregateResult.build()];
+        const currentAggregate = factories.aggregation.build();
+        const currentAggregateResults = [factories.aggregateResult.build()];
+
+        jest.spyOn(transactions, 'aggregate').mockResolvedValue(currentAggregateResults);
+        const decoratedAggregateResult = await decoratedTransactions.aggregate(
+          currentCaller,
+          currentFilter,
+          currentAggregate,
+        );
         const context = new HookAfterAggregateContext(
           transactions,
           currentCaller,
           currentFilter,
-          currentAggregation,
-          currentAggregationResults,
+          currentAggregate,
+          decoratedAggregateResult,
         );
-        await decoratedTransactions.aggregate(currentCaller, currentFilter, currentAggregation);
 
         expect(spy).toHaveBeenCalledTimes(1);
+        expect(decoratedAggregateResult).toEqual(currentAggregateResults);
 
         const spyArguments = spy.mock.calls[0][0];
         expect(spyArguments.caller).toEqual(context.caller);

@@ -29,11 +29,3 @@ export default (collection: Collection<Schema, 'address'>) =>
         { field: 'store:name', operator: 'Contains', value },
       ],
     }));
-// .addHook('After', 'List', context => {
-//   // @ts-ignore
-//   context.records.push({
-//     id: 11,
-//     address: '69995 Walter Dam',
-//     zipCode: '75412-2961',
-//   });
-// });

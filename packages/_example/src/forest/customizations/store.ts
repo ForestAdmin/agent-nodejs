@@ -11,5 +11,4 @@ export default (collection: Collection<Schema, 'store'>) =>
       if (action === 'update') {
         return { owner: { fullName } };
       }
-    })
-    .emulateFieldFiltering('ownerFullName');
+    });
