@@ -43,7 +43,7 @@ export default class ResultBuilder {
    * @param headers an object representing the list of headers to send with the webhook
    * @param body an object representing the body of the HTTP request
    * @example
-   * .webhook('http://my-company-name', 'POST', {}, { adminToken: 'my-admin-token' })
+   * .webhook('http://my-company-name', 'POST', {}, { adminToken: 'my-admin-token' });
    */
   webhook(
     url: string,
@@ -60,6 +60,14 @@ export default class ResultBuilder {
     };
   }
 
+  /**
+   * Returns a file that will be downloaded
+   * @param streamOrBufferOrString the actual file to download
+   * @param name the name of the file
+   * @param mimeType the mime type of the file
+   * @example
+   * .file('This is my file content', 'download.txt', 'text/plain');
+   */
   file(
     streamOrBufferOrString: Readable | Uint8Array | string,
     name = 'file',
@@ -76,6 +84,12 @@ export default class ResultBuilder {
     };
   }
 
+  /**
+   * Returns to the UI that a redirection is needed
+   * @param path the actual file to download
+   * @example
+   * .file('This is my file content', 'download.txt', 'text/plain');
+   */
   redirectTo(path: string): ActionResult {
     return { type: 'Redirect', path };
   }
