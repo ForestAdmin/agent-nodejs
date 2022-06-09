@@ -15,7 +15,7 @@ export default class TypingGenerator {
       'export type Schema = {',
       ...collections.map(collection =>
         [
-          `  ${collection.name}: {`,
+          `  '${collection.name}': {`,
           this.getRow(collection),
           this.getRelations(collection),
           this.getFlatRelations(collection, maxDepth),
@@ -28,7 +28,7 @@ export default class TypingGenerator {
 
   private static getRow(collection: Collection): string {
     const content = Object.entries(collection.schema.fields).reduce((memo, [name, field]) => {
-      return field.type === 'Column' ? [...memo, `      ${name}: ${this.getType(field)};`] : memo;
+      return field.type === 'Column' ? [...memo, `      '${name}': ${this.getType(field)};`] : memo;
     }, []);
 
     return `    plain: {\n${content.join('\n')}\n    };`;
@@ -41,7 +41,7 @@ export default class TypingGenerator {
 
         return [
           ...memo,
-          `      ${name}: Schema['${relation}']['plain'] & Schema['${relation}']['nested'];`,
+          `      '${name}': Schema['${relation}']['plain'] & Schema['${relation}']['nested'];`,
         ];
       }
 

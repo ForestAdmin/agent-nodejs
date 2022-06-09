@@ -1,17 +1,17 @@
 /* eslint-disable */
 export type Schema = {
-  address: {
+  'address': {
     plain: {
-      id: number;
-      zipCode: string;
-      address: string;
-      storeId: number;
-      createdAt: string;
-      updatedAt: string;
-      nearStates: Array<{code: number; name: string}>;
+      'id': number;
+      'zipCode': string;
+      'address': string;
+      'storeId': number;
+      'createdAt': string;
+      'updatedAt': string;
+      'nearStates': Array<{code: number; name: string}>;
     };
     nested: {
-      store: Schema['store']['plain'] & Schema['store']['nested'];
+      'store': Schema['store']['plain'] & Schema['store']['nested'];
     };
     flat: {
       'store:id': number;
@@ -24,16 +24,16 @@ export type Schema = {
       'store:owner:fullName': string;
     };
   };
-  card: {
+  'card': {
     plain: {
-      id: number;
-      card_number: number;
-      card_type: 'visa' | 'mastercard' | 'american express';
-      is_active: boolean;
-      customer_id: number;
+      'id': number;
+      'card_number': number;
+      'card_type': 'visa' | 'mastercard' | 'american express';
+      'is_active': boolean;
+      'customer_id': number;
     };
     nested: {
-      customer: Schema['customer']['plain'] & Schema['customer']['nested'];
+      'customer': Schema['customer']['plain'] & Schema['customer']['nested'];
     };
     flat: {
       'customer:id': number;
@@ -44,16 +44,16 @@ export type Schema = {
       'customer:deletedAt': string;
     };
   };
-  comment: {
+  'comment': {
     plain: {
-      id: number;
-      postId: number;
-      name: string;
-      email: string;
-      body: string;
+      'id': number;
+      'postId': number;
+      'name': string;
+      'email': string;
+      'body': string;
     };
     nested: {
-      post: Schema['post']['plain'] & Schema['post']['nested'];
+      'post': Schema['post']['plain'] & Schema['post']['nested'];
     };
     flat: {
       'post:id': number;
@@ -66,28 +66,28 @@ export type Schema = {
       'post:owner:fullName': string;
     };
   };
-  customer: {
+  'customer': {
     plain: {
-      id: number;
-      name: string;
-      firstName: string;
-      createdAt: string;
-      updatedAt: string;
-      deletedAt: string;
+      'id': number;
+      'name': string;
+      'firstName': string;
+      'createdAt': string;
+      'updatedAt': string;
+      'deletedAt': string;
     };
     nested: {};
     flat: {};
   };
-  dvd: {
+  'dvd': {
     plain: {
-      id: number;
-      title: string;
-      rentalPrice: number;
-      storeId: number;
-      numberOfRentals: number;
+      'id': number;
+      'title': string;
+      'rentalPrice': number;
+      'storeId': number;
+      'numberOfRentals': number;
     };
     nested: {
-      store: Schema['store']['plain'] & Schema['store']['nested'];
+      'store': Schema['store']['plain'] & Schema['store']['nested'];
     };
     flat: {
       'store:id': number;
@@ -107,14 +107,14 @@ export type Schema = {
       'store:address:nearStates': Array<{code: number; name: string}>;
     };
   };
-  dvd_rental: {
+  'dvd_rental': {
     plain: {
-      dvdId: number;
-      rentalId: number;
+      'dvdId': number;
+      'rentalId': number;
     };
     nested: {
-      dvd: Schema['dvd']['plain'] & Schema['dvd']['nested'];
-      rental: Schema['rental']['plain'] & Schema['rental']['nested'];
+      'dvd': Schema['dvd']['plain'] & Schema['dvd']['nested'];
+      'rental': Schema['rental']['plain'] & Schema['rental']['nested'];
     };
     flat: {
       'dvd:id': number;
@@ -150,25 +150,25 @@ export type Schema = {
       'rental:customer:deletedAt': string;
     };
   };
-  owner: {
+  'owner': {
     plain: {
-      id: number;
-      firstName: string;
-      lastName: string;
-      fullName: string;
+      'id': number;
+      'firstName': string;
+      'lastName': string;
+      'fullName': string;
     };
     nested: {};
     flat: {};
   };
-  post: {
+  'post': {
     plain: {
-      id: number;
-      userId: number;
-      title: string;
-      body: string;
+      'id': number;
+      'userId': number;
+      'title': string;
+      'body': string;
     };
     nested: {
-      owner: Schema['owner']['plain'] & Schema['owner']['nested'];
+      'owner': Schema['owner']['plain'] & Schema['owner']['nested'];
     };
     flat: {
       'owner:id': number;
@@ -177,16 +177,16 @@ export type Schema = {
       'owner:fullName': string;
     };
   };
-  rental: {
+  'rental': {
     plain: {
-      id: number;
-      startDate: string;
-      endDate: string;
-      customerId: number;
-      numberOfDays: number;
+      'id': number;
+      'startDate': string;
+      'endDate': string;
+      'customerId': number;
+      'numberOfDays': number;
     };
     nested: {
-      customer: Schema['customer']['plain'] & Schema['customer']['nested'];
+      'customer': Schema['customer']['plain'] & Schema['customer']['nested'];
     };
     flat: {
       'customer:id': number;
@@ -197,15 +197,15 @@ export type Schema = {
       'customer:deletedAt': string;
     };
   };
-  review: {
+  'review': {
     plain: {
-      title: string;
-      message: string;
-      storeId: number;
-      _id: string;
+      'title': string;
+      'message': string;
+      'storeId': number;
+      '_id': string;
     };
     nested: {
-      store: Schema['store']['plain'] & Schema['store']['nested'];
+      'store': Schema['store']['plain'] & Schema['store']['nested'];
     };
     flat: {
       'store:id': number;
@@ -225,16 +225,16 @@ export type Schema = {
       'store:address:nearStates': Array<{code: number; name: string}>;
     };
   };
-  store: {
+  'store': {
     plain: {
-      id: number;
-      name: string;
-      ownerId: number;
-      ownerFullName: string;
+      'id': number;
+      'name': string;
+      'ownerId': number;
+      'ownerFullName': string;
     };
     nested: {
-      owner: Schema['owner']['plain'] & Schema['owner']['nested'];
-      address: Schema['address']['plain'] & Schema['address']['nested'];
+      'owner': Schema['owner']['plain'] & Schema['owner']['nested'];
+      'address': Schema['address']['plain'] & Schema['address']['nested'];
     };
     flat: {
       'owner:id': number;
