@@ -48,6 +48,7 @@
   - [To multiple records](agent-customization/relationships/multiple-records.md)
   - [Computed foreign keys](agent-customization/relationships/computed-fks.md)
   - [Under the hood](agent-customization/relationships/under-the-hood.md)
+- [Hooks](agent-customization/hooks/README.md)
 - [Search](agent-customization/search.md)
 - [Segments](agent-customization/segments.md)
 

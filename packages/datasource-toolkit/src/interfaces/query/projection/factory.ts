@@ -2,10 +2,6 @@ import { Collection } from '../../collection';
 import Projection from '.';
 
 export default class ProjectionFactory {
-  static buildFromPlain(projection: string[]): Projection {
-    return new Projection(...projection);
-  }
-
   static all(collection: Collection): Projection {
     const schemaFields = collection.schema.fields;
     const projectionFields = Object.entries(schemaFields).reduce((memo, [columnName, column]) => {

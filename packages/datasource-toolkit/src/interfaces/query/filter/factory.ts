@@ -8,12 +8,10 @@ import CollectionUtils from '../../../utils/collection';
 import ConditionTree from '../condition-tree/nodes/base';
 import ConditionTreeFactory from '../condition-tree/factory';
 import ConditionTreeLeaf from '../condition-tree/nodes/leaf';
-import Filter, { PlainFilter } from './unpaginated';
-import Page from '../page';
-import PaginatedFilter, { PlainPaginatedFilter } from './paginated';
+import Filter from './unpaginated';
+import PaginatedFilter from './paginated';
 import Projection from '../projection';
 import SchemaUtils from '../../../utils/schema';
-import Sort from '../sort';
 
 export default class FilterFactory {
   private static getPreviousConditionTree(
@@ -205,28 +203,6 @@ export default class FilterFactory {
     // Merge with existing filter.
     return baseForeignFilter.override({
       conditionTree: ConditionTreeFactory.intersect(baseForeignFilter.conditionTree, originTree),
-    });
-  }
-
-  static buildFilterFromPlain(filter: PlainFilter): Filter {
-    return filter
-      ? new Filter({
-          ...filter,
-          conditionTree: filter.conditionTree
-            ? ConditionTreeFactory.fromPlainObject(filter.conditionTree)
-            : undefined,
-        })
-      : null;
-  }
-
-  static buildPaginatedFilterFromPlain(filter: PlainPaginatedFilter): PaginatedFilter {
-    return new PaginatedFilter({
-      ...filter,
-      conditionTree: filter?.conditionTree
-        ? ConditionTreeFactory.fromPlainObject(filter.conditionTree)
-        : undefined,
-      sort: filter.sort ? new Sort(...filter.sort) : undefined,
-      page: filter.page ? new Page(filter.page.skip, filter.page.limit) : undefined,
     });
   }
 }

@@ -27,11 +27,11 @@ export class HookBeforeListContext<
   }
 
   get filter() {
-    return this._filter as unknown as PlainPaginatedFilter<S, N>;
+    return Object.freeze(this._filter as unknown as PlainPaginatedFilter<S, N>);
   }
 
   get projection() {
-    return this._projection as unknown as TFieldName<S, N>[];
+    return Object.freeze(this._projection as unknown as TFieldName<S, N>[]);
   }
 }
 
@@ -49,7 +49,7 @@ export class HookAfterListContext<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > extends HookBeforeListContext<S, N> {
-  readonly _records: TRow<S, N>[];
+  private _records: TRow<S, N>[];
 
   constructor(
     collection: Collection,

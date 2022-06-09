@@ -17,7 +17,6 @@ export type Schema = {
       'store:id': number;
       'store:name': string;
       'store:ownerId': number;
-      'store:isOpen': boolean;
       'store:ownerFullName': string;
       'store:owner:id': number;
       'store:owner:firstName': string;
@@ -94,7 +93,6 @@ export type Schema = {
       'store:id': number;
       'store:name': string;
       'store:ownerId': number;
-      'store:isOpen': boolean;
       'store:ownerFullName': string;
       'store:owner:id': number;
       'store:owner:firstName': string;
@@ -127,7 +125,6 @@ export type Schema = {
       'dvd:store:id': number;
       'dvd:store:name': string;
       'dvd:store:ownerId': number;
-      'dvd:store:isOpen': boolean;
       'dvd:store:ownerFullName': string;
       'dvd:store:owner:id': number;
       'dvd:store:owner:firstName': string;
@@ -214,7 +211,6 @@ export type Schema = {
       'store:id': number;
       'store:name': string;
       'store:ownerId': number;
-      'store:isOpen': boolean;
       'store:ownerFullName': string;
       'store:owner:id': number;
       'store:owner:firstName': string;
@@ -234,7 +230,6 @@ export type Schema = {
       'id': number;
       'name': string;
       'ownerId': number;
-      'isOpen': boolean;
       'ownerFullName': string;
     };
     nested: {

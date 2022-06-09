@@ -4,7 +4,11 @@ import {
   HookBeforeAggregateContext,
   InternalHookBeforeAggregateContext,
 } from './context/aggregate';
-import { HookAfterCreateContext, HookBeforeCreateContext } from './context/create';
+import {
+  HookAfterCreateContext,
+  HookBeforeCreateContext,
+  InternalHookBeforeCreateContext,
+} from './context/create';
 import {
   HookAfterDeleteContext,
   HookBeforeDeleteContext,
@@ -48,10 +52,13 @@ export default class CollectionHookDecorator extends CollectionDecorator {
   }
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
-    const beforeContext = new HookBeforeCreateContext(this.childCollection, caller, data);
+    const beforeContext = new InternalHookBeforeCreateContext(this.childCollection, caller, data);
     await this.hooks.Create.executeBefore(beforeContext);
 
-    const records = await this.childCollection.create(beforeContext.caller, beforeContext.data);
+    const records = await this.childCollection.create(
+      beforeContext.caller,
+      beforeContext.getData(),
+    );
 
     const afterContext = new HookAfterCreateContext(this.childCollection, caller, data, records);
     await this.hooks.Create.executeAfter(afterContext);

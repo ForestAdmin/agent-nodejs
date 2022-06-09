@@ -32,11 +32,11 @@ export class HookBeforeAggregateContext<
   }
 
   get filter() {
-    return this._filter as unknown as PlainFilter<S, N>;
+    return Object.freeze(this._filter as unknown as PlainFilter<S, N>);
   }
 
   get aggregation() {
-    return this._aggregation as unknown as PlainAggregation<S, N>;
+    return Object.freeze(this._aggregation as unknown as PlainAggregation<S, N>);
   }
 
   get limit() {
@@ -58,7 +58,7 @@ export class HookAfterAggregateContext<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > extends HookBeforeAggregateContext<S, N> {
-  readonly aggregateResult: AggregateResult<S, N>[];
+  private _aggregateResult: AggregateResult<S, N>[];
 
   constructor(
     collection: Collection,
@@ -70,6 +70,10 @@ export class HookAfterAggregateContext<
   ) {
     super(collection, caller, filter, aggregation, limit);
 
-    this.aggregateResult = aggregateResult;
+    this._aggregateResult = aggregateResult;
+  }
+
+  get aggregateResult() {
+    return Object.freeze(this._aggregateResult);
   }
 }

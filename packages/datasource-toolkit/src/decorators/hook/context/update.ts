@@ -21,11 +21,11 @@ export class HookBeforeUpdateContext<
   }
 
   get filter() {
-    return this._filter as unknown as PlainFilter<S, N>;
+    return Object.freeze(this._filter as unknown as PlainFilter<S, N>);
   }
 
   get patch() {
-    return this._patch as unknown as TRow<S, N>;
+    return Object.freeze(this._patch as unknown as TRow<S, N>);
   }
 }
 
