@@ -1,7 +1,7 @@
 import { Collection } from '@forestadmin/agent';
 import { Schema } from '../typings';
 
-export default (collection: Collection<Schema, 'renamedAddress'>) =>
+export default (collection: Collection<Schema, 'address'>) =>
   collection
     .addManyToOneRelation('store', 'store', { foreignKey: 'storeId' })
     .addExternalRelation('nearStates', {
@@ -28,5 +28,4 @@ export default (collection: Collection<Schema, 'renamedAddress'>) =>
         { field: 'address', operator: 'Contains', value },
         { field: 'store:name', operator: 'Contains', value },
       ],
-    }))
-    .renameCollection('renamedAddress');
+    }));

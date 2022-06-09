@@ -2,7 +2,9 @@ import {
   BaseDataSource,
   ChartDefinition,
   Collection,
+  DataSourceDecorator,
   DataSourceFactory,
+  RenameCollectionCollectionDecorator,
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-toolkit';
@@ -11,7 +13,7 @@ import Koa from 'koa';
 import Router from '@koa/router';
 import http from 'http';
 
-import { AgentOptions } from '../types';
+import { AgentOptions, DataSourceOptions } from '../types';
 import { HttpCallback } from './types';
 import CollectionBuilder from './collection';
 import DecoratorsStack from './decorators-stack';
@@ -63,11 +65,28 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   /**
    * Add a datasource
    * @param factory the datasource to add
+   * @param options the options
    */
-  addDataSource(factory: DataSourceFactory): this {
+  addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
     this.customizations.push(async () => {
-      const datasource = await factory(this.options.logger);
-      datasource.collections.forEach(collection => {
+      let dataSource = await factory(this.options.logger);
+
+      const names = dataSource.collections.map(({ name }) => name);
+      const oldNames = Object.keys(options?.rename ?? {});
+      const notFoundName = oldNames.find(oldName => !names.includes(oldName));
+
+      if (notFoundName) {
+        throw new Error(`The given collection name "${notFoundName}" does not exist`);
+      }
+
+      dataSource = new DataSourceDecorator(dataSource, RenameCollectionCollectionDecorator);
+      dataSource.collections.forEach(collection => {
+        const option = options?.rename[collection.name];
+
+        if (option) {
+          (collection as RenameCollectionCollectionDecorator).rename(option.newName);
+        }
+
         this.compositeDataSource.addCollection(collection);
       });
     });

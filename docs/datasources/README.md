@@ -21,7 +21,7 @@ Forest Admin collections map to any of those concepts:
 
 In this example, we import a all tables from a PostgreSQL database into Forest Admin.
 
-Take note that data sources are defined in independant NPM packages (here `@forestadmin/datasource-sql`).
+Take note that data sources are defined in independent NPM packages (here `@forestadmin/datasource-sql`).
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
@@ -32,12 +32,34 @@ const agent = createAgent(options).addDataSource(
 );
 ```
 
+## Naming conflicts
+
+When importing collections to an admin panel, you may encounter naming collisions.
+
+You can tackle them by renaming the collection which are causing issues.
+
+Don't worry if you leave naming collisions, your development agent will warn you while starting.
+
+```javascript
+const { createAgent } = require('@forestadmin/agent');
+
+const agent = createAgent(options);
+const mySuperDataSource = new MySuperDataSource();
+
+// Rename mySuperDataSource collections by providing replacements
+agent.addDataSource(mySuperDataSource, {
+  rename: {
+    customers: 'superCustomer',
+  },
+});
+```
+
 <!--
 ## Partial imports
 
 Some data source may implement more collections, and associated actions and segments that you want.
 
-By provided options when pluging a data source, you can specify which entities should get loaded.
+By provided options when plugin a data source, you can specify which entities should get loaded.
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
@@ -60,36 +82,6 @@ agent.addDataSource(stripe, {
     // Import only segments of the 'charges' collection
     segments: ['charges.*'],
   },
-});
-```
-
-## Naming conflicts
-
-When importing collections to an admin panel, you may encounter naming collisions.
-
-You can tackle them by renaming the collection which are causing issues.
-
-Don't worry if you leave naming collisions, your development agent will warn you while starting.
-
-```javascript
-const { createAgent } = require('@forestadmin/agent');
-const StripeDataSource = require('@forestadmin/datasource-stripe');
-const IntercomDataSource = require('@forestadmin/datasource-intercom');
-
-const agent = createAgent(options);
-const stripe = new StripeDataSource({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
-const intercom = new IntercomDataSource({ accessToken: 'TmljZSB0cnkgOik=' });
-
-// Rename stripe collections by providing replacements
-agent.addDataSource(stripe, {
-  rename: {
-    customers: 'stripeCustomer',
-  },
-});
-
-// Rename intercom collections with a function
-agent.addDataSource(intercom, {
-  rename: name => `intercom${name[0].toUpperCase()}${name.substring(1)}`,
 });
 ```
 -->
