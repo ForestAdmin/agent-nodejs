@@ -16,10 +16,10 @@ Let's reduce the number of columns in the table-view by merging three columns in
 
 ```javascript
 collection.addField('displayName', {
-    type: 'String',
-    dependencies: ['firstName', 'lastName', 'address:city'],
-    getValues: (records, context) =>
-        records.map(r => `${r.firstName} ${r.lastName} (from ${r.address.city})`),
+  type: 'String',
+  dependencies: ['firstName', 'lastName', 'address:city'],
+  getValues: (records, context) =>
+    records.map(r => `${r.firstName} ${r.lastName} (from ${r.address.city})`),
 });
 ```
 

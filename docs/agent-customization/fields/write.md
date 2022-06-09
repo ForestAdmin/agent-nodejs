@@ -18,11 +18,6 @@ By default, he `replaceFieldWriting` function allow you to substitute any given 
 In the following example, editing or creating a `fullName` will update both `firstName` and `lastName` fields of the record.
 
 
-By default, he `replaceFieldWriting` function allow you to substitute any given fields by returning a patch of the current record.
-
-In the following example, editing or creating a `fullName` will update both `firstName` and `lastName` fields of the record.
-
-
 ```javascript
 collection.replaceFieldWriting('fullName', (value) => {
   const [firstName, lastName] = value.split(' ');
@@ -31,7 +26,7 @@ collection.replaceFieldWriting('fullName', (value) => {
 });
 ```
 
-### Trigger your own code
+## Trigger your own code
 
 You can also trigger any code you want without updating any field by not returning anything.
 
@@ -41,10 +36,10 @@ collection.replaceFieldWriting('fullName', async (fullName) => {
 });
 ```
 
-### Handling relationships
+## Handling relationships
 
 {% hint style="info" %}
-Handling relationships inside a `replaceFieldWriting` will only work for `Many to One` and `One to One` relationships.
+Handling relationships inside a `replaceFieldWriting` will only work for `ManyToOne` and `OneToOne` relationships.
 {% endhint %}
 
 In this simple example, we have two collections which are linked together:
@@ -81,7 +76,7 @@ collection.replaceFieldWriting('job', (job, { action }) => {
 });
 ```
 
-### Get the action type from the context
+## Get the action type from the context
 
 If you want to trigger a different code when the field is `updated` or `created`
 you can use the `action` field from the `context`.
