@@ -69,24 +69,20 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    */
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
     this.customizations.push(async () => {
-      let dataSource = await factory(this.options.logger);
+      const dataSource = await factory(this.options.logger);
 
       const names = dataSource.collections.map(({ name }) => name);
-      const oldNames = Object.keys(options?.rename ?? {});
-      const notFoundName = oldNames.find(oldName => !names.includes(oldName));
+      const toRenames = Object.keys(options?.rename ?? {});
+      const notExistName = toRenames.find(toRename => !names.includes(toRename));
 
-      if (notFoundName) {
-        throw new Error(`The given collection name "${notFoundName}" does not exist`);
+      if (notExistName) {
+        throw new Error(`The given collection name "${notExistName}" does not exist`);
       }
 
-      dataSource = new DataSourceDecorator(dataSource, RenameCollectionCollectionDecorator);
-      dataSource.collections.forEach(collection => {
-        const option = options?.rename[collection.name];
-
-        if (option) {
-          (collection as RenameCollectionCollectionDecorator).rename(option.newName);
-        }
-
+      const decorated = new DataSourceDecorator(dataSource, RenameCollectionCollectionDecorator);
+      decorated.collections.forEach(collection => {
+        const newName = options?.rename[collection.name];
+        if (newName) collection.rename(newName);
         this.compositeDataSource.addCollection(collection);
       });
     });

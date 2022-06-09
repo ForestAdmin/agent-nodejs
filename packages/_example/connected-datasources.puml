@@ -24,7 +24,7 @@ class OWNER {
   String fullName
 }
 
-class ADDRESS {
+class LOCATION {
   .. Fields ..
   String zipCode
   String address
@@ -78,7 +78,7 @@ OWNER "1" -- "*" POST : has
 POST "1" -- "*" COMMENT : has
 STORE "*" -- "1" OWNER : has
 STORE "1" -- "*" DVD : has
-STORE "1" -- "1" ADDRESS : has
+STORE "1" -- "1" LOCATION : has
 STORE "1" -- "*" REVIEW : has
 DVD "*" -- "*" RENTALS : has
 CUSTOMER "1" -- "*" CARD : has

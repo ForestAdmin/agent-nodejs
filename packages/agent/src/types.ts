@@ -18,5 +18,5 @@ export type AgentOptions = {
 };
 
 export type DataSourceOptions = {
-  rename?: { ['oldName']: string };
+  rename?: { [oldName: string]: string };
 };

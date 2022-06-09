@@ -719,35 +719,6 @@
     express "^4.17.1"
     fastify-plugin "^3.0.0"
 
-"@forestadmin/agent@file:packages/agent":
-  version "1.0.0-beta.35"
-  dependencies:
-    "@fast-csv/format" "^4.3.5"
-    "@fastify/express" "^1.1.0"
-    "@forestadmin/datasource-toolkit" "file:../../Library/Caches/Yarn/v6/npm-@forestadmin-agent-1.0.0-beta.35-fdb4fcd2-482b-4195-8158-ced6fe1f4e46-1654703215848/node_modules/@forestadmin/datasource-toolkit"
-    "@koa/cors" "^3.3.0"
-    "@koa/router" "^10.1.1"
-    forest-ip-utils "^1.0.1"
-    json-api-serializer "^2.6.6"
-    json-stringify-pretty-compact "^3.0.0"
-    jsonwebtoken "^8.5.1"
-    koa "^2.13.4"
-    koa-bodyparser "^4.3.0"
-    koa-jwt "^4.0.3"
-    lru-cache "^7.3.1"
-    luxon "^2.3.0"
-    object-hash "^3.0.0"
-    openid-client "5.1.3"
-    superagent "^7.0.1"
-    uuid "^8.3.2"
-
-"@forestadmin/datasource-toolkit@file:packages/datasource-toolkit":
-  version "1.0.0-beta.21"
-  dependencies:
-    luxon "^2.3.0"
-    object-hash "^3.0.0"
-    uuid "^8.3.2"
-
 "@gar/promisify@^1.0.1":
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.3.tgz#555193ab2e3bb3b6adc3d551c9c030d9e860daf6"

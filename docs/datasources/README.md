@@ -42,14 +42,15 @@ Don't worry if you leave naming collisions, your development agent will warn you
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
+const { createSqlDataSource } = require('@forestadmin/datasource-sql');
 
 const agent = createAgent(options);
-const mySuperDataSource = new MySuperDataSource();
+const sqlDataSource = new createSqlDataSource('postgres://user:pass@localhost:5432/mySchema');
 
-// Rename mySuperDataSource collections by providing replacements
-agent.addDataSource(mySuperDataSource, {
+// Rename sqlDataSource collections by providing replacements
+agent.addDataSource(sqlDataSource, {
   rename: {
-    customers: 'superCustomer',
+    customers: 'superCustomers',
   },
 });
 ```
