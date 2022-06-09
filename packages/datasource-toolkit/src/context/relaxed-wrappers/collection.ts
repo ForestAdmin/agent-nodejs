@@ -31,6 +31,24 @@ export default class RelaxedCollection<
     this.caller = caller;
   }
 
+  /**
+   * Execute a given action
+   * @param name the name of the action
+   * @param formValues the values of the form, if the action rely on an action form
+   * @param filter the filter used to represent the selected records to use the action on
+   * @example
+   * .execute(
+   *    'Refund',
+   *    { reason: 'Article is broken' },
+   *    {
+   *      conditionTree: {
+   *        field: 'id',
+   *        operator: 'Equal',
+   *        value: 1
+   *      }
+   *    }
+   * );
+   */
   execute(name: string, formValues: RecordData, filter?: PlainFilter<S, N>): Promise<ActionResult> {
     const filterInstance = this.buildFilter(filter);
 
@@ -47,10 +65,38 @@ export default class RelaxedCollection<
     return this.collection.getForm(this.caller, name, formValues, filterInstance);
   }
 
+  /**
+   * Create a list of records
+   * @param data An array of records to create
+   * @example
+   * .create([
+   *    { amountInEur: 150, description: 'Buy dvd' },
+   *    { amountInEur: -100, description: 'Refund' },
+   * ]);
+   */
   create(data: TSimpleRow<S, N>[]): Promise<TSimpleRow<S, N>[]> {
     return this.collection.create(this.caller, data) as Promise<TSimpleRow<S, N>[]>;
   }
 
+  /**
+   * List multiple records
+   * @param filter the filter used to select the records to list
+   * @param projection an array of fields name representing the data to select
+   * @example
+   * .list({
+   *    conditionTree: {
+   *      aggregator: 'And',
+   *      conditions: [{
+   *        field: 'amountInEur',
+   *        operator: 'GreaterThan',
+   *        value: 1000
+   *      }, {
+   *        field: 'description',
+   *        operator: 'Contains',
+   *        value: 'Refund',
+   *      }],
+   * }, ['id', 'amountInEur', 'description']);
+   */
   list(filter: PlainPaginatedFilter<S, N>, projection: TFieldName<S, N>[]): Promise<TRow<S, N>[]> {
     const filterInstance = this.buildPaginatedFilter(filter);
     const projectionInstance = this.buildProjection(projection);
@@ -59,18 +105,63 @@ export default class RelaxedCollection<
     return rows as Promise<TRow<S, N>[]>;
   }
 
+  /**
+   * Update a list of records
+   * @param filter the filter that represent the list of records to update
+   * @param patch the patch to apply on the selected records
+   * @example
+   * .update({
+   *    conditionTree: {
+   *      field: 'isActive',
+   *      operator: 'Equal',
+   *      value: false
+   *    },
+   *    page: { limit: 10, skip: 0 }
+   * }, { isActive: true });
+   */
   update(filter: PlainFilter<S, N>, patch: TPartialSimpleRow<S, N>): Promise<void> {
     const filterInstance = this.buildFilter(filter);
 
     return this.collection.update(this.caller, filterInstance, patch);
   }
 
+  /**
+   * Delete a list of records
+   * @param filter the filter that represent the list of records to update
+   * @example
+   * .delete({
+   *    conditionTree: {
+   *      field: 'isBlocked',
+   *      operator: 'Equal',
+   *      value: false,
+   *    },
+   *    sort: [{ field: 'id', ascending: true }]
+   * });
+   */
   delete(filter: PlainFilter<S, N>): Promise<void> {
     const filterInstance = this.buildFilter(filter);
 
     return this.collection.delete(this.caller, filterInstance);
   }
 
+  /**
+   * Aggregate a list of records
+   * @param filter the filter used to list the records to aggregate
+   * @param aggregation the aggregation to apply
+   * @param limit the maximum number of result to return
+   * @example
+   * .aggregate({
+   *    conditionTree: {
+   *      field: "user:company:id",
+   *      operator: "In",
+   *      value: records.map((r) => r.id),
+   *    },
+   * }, {
+   *    operation: "Sum",
+   *    field: "amountInEur",
+   *    groups: [{ field: "user:company:id" }],
+   * });
+   */
   aggregate(
     filter: PlainFilter<S, N>,
     aggregation: PlainAggregation<S, N>,

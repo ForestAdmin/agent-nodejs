@@ -100,7 +100,7 @@ export default class CollectionBuilder<
    * Remove field by setting its visibility to false.
    * @param names the fields to remove
    * @example
-   * .removeField('aFieldToRemove', 'anOtherFieldToRemove');
+   * .removeField('aFieldToRemove', 'anotherFieldToRemove');
    */
   removeField(...names: TColumnName<S, N>[]): this {
     const collection = this.stack.publication.getCollection(this.name);
@@ -158,7 +158,7 @@ export default class CollectionBuilder<
    * @param foreignCollection name of the targeted collection
    * @param options extra information about the relation
    * @example
-   * books.addManyToOneRelation('myAuthor', 'persons', { foreignKey: 'author_id' })
+   * books.addManyToOneRelation('myAuthor', 'persons', { foreignKey: 'authorId' })
    */
   addManyToOneRelation<T extends TCollectionName<S>>(
     name: string,
@@ -181,7 +181,7 @@ export default class CollectionBuilder<
    * @param foreignCollection name of the targeted collection
    * @param options extra information about the relation
    * @example
-   * persons.addOneToManyRelation('writtenBooks', 'books', { originKey: 'author_id' })
+   * persons.addOneToManyRelation('writtenBooks', 'books', { originKey: 'authorId' })
    */
   addOneToManyRelation<T extends TCollectionName<S>>(
     name: string,
@@ -204,7 +204,7 @@ export default class CollectionBuilder<
    * @param foreignCollection name of the targeted collection
    * @param options extra information about the relation
    * @example
-   * persons.addOneToOneRelation('bestFriend', 'persons', { originKey: 'best_friend_id' })
+   * persons.addOneToOneRelation('bestFriend', 'persons', { originKey: 'bestFriendId' })
    */
   addOneToOneRelation<T extends TCollectionName<S>>(
     name: string,
@@ -228,9 +228,9 @@ export default class CollectionBuilder<
    * @param throughCollection name of the intermediary collection
    * @param options extra information about the relation
    * @example
-   * dvds.addManyToManyRelation('rentalsOfThisDvd', 'rentals', 'dvd_rentals', {
-   *   originKey: 'dvd_id',
-   *   foreignKey: 'rental_id'
+   * dvds.addManyToManyRelation('rentalsOfThisDvd', 'rentals', 'dvdRentals', {
+   *   originKey: 'dvdId',
+   *   foreignKey: 'rentalId'
    * })
    */
   addManyToManyRelation<Foreign extends TCollectionName<S>, Through extends TCollectionName<S>>(
@@ -292,7 +292,7 @@ export default class CollectionBuilder<
    * @example
    * .addSegment(
    *    'Wrote more than 2 books',
-   *    {field: 'booksCount', operator: 'GreaterThan', value: 2}
+   *    { field: 'booksCount', operator: 'GreaterThan', value: 2 }
    * );
    */
   addSegment(name: string, definition: SegmentDefinition<S, N>): this {
@@ -381,9 +381,20 @@ export default class CollectionBuilder<
    * @param operator the operator to replace
    * @param replacer the proposed implementation
    * @example
-   * .replaceFieldOperator('booksCount', 'Equal', ({ value }) => new ConditionTreeNot(
-   *   new ConditionTreeLeaf('booksCount', 'Equal', value),
-   * ));
+   * .replaceFieldOperator('fullName', 'Contains', (value) => {
+   *    return {
+   *      aggregator: 'Or',
+   *      conditions: [{
+   *        field: 'firstName',
+   *        operator: 'Contains',
+   *        value
+   *      }, {
+   *        field: 'lastName',
+   *        operator: 'Contains',
+   *        value
+   *      }]
+   *    }
+   * });
    */
   replaceFieldOperator<C extends TColumnName<S, N>>(
     name: C,

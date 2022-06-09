@@ -13,6 +13,10 @@ export default class RelaxedDataSource<S extends TSchema = TSchema> {
     this.caller = caller;
   }
 
+  /**
+   * Get a collection from a datasource
+   * @param name the name of the collection
+   */
   getCollection<N extends TCollectionName<S>>(name: N): RelaxedCollection<S, N> {
     return new RelaxedCollection(this.dataSource.getCollection(name), this.caller);
   }
