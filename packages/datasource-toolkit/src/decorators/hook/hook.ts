@@ -1,4 +1,3 @@
-import { DecoratorError } from '../../errors';
 import { HookHandler, HookPosition } from './types';
 import HookContext from './context/hook';
 
@@ -7,24 +6,16 @@ export default class Hooks<B extends HookContext, A extends HookContext> {
   private after: HookHandler<A>[] = [];
 
   async executeBefore(context: B): Promise<void> {
-    try {
-      for (const hook of this.before) {
-        // eslint-disable-next-line no-await-in-loop
-        await hook(context);
-      }
-    } catch (e) {
-      throw new DecoratorError(e.message);
+    for (const hook of this.before) {
+      // eslint-disable-next-line no-await-in-loop
+      await hook(context);
     }
   }
 
   async executeAfter(context: A): Promise<void> {
-    try {
-      for (const hook of this.after) {
-        // eslint-disable-next-line no-await-in-loop
-        await hook(context);
-      }
-    } catch (e) {
-      throw new DecoratorError(e.message);
+    for (const hook of this.after) {
+      // eslint-disable-next-line no-await-in-loop
+      await hook(context);
     }
   }
 

@@ -15,11 +15,11 @@ describe('Hooks', () => {
         const firstHook = jest.fn();
         const secondHook = jest.fn();
 
-        const hookhooks = new Hooks<FakeHookContext, FakeHookContext>();
-        hookhooks.addHandler('Before', firstHook);
-        hookhooks.addHandler('Before', secondHook);
+        const hooks = new Hooks<FakeHookContext, FakeHookContext>();
+        hooks.addHandler('Before', firstHook);
+        hooks.addHandler('Before', secondHook);
 
-        await hookhooks.executeBefore(new FakeHookContext());
+        await hooks.executeBefore(new FakeHookContext());
 
         expect(firstHook).toHaveBeenCalledTimes(1);
         expect(secondHook).toHaveBeenCalledTimes(1);
@@ -31,12 +31,12 @@ describe('Hooks', () => {
         });
         const secondHook = jest.fn();
 
-        const hookhooks = new Hooks<FakeHookContext, FakeHookContext>();
-        hookhooks.addHandler('Before', firstHook);
-        hookhooks.addHandler('Before', secondHook);
+        const hooks = new Hooks<FakeHookContext, FakeHookContext>();
+        hooks.addHandler('Before', firstHook);
+        hooks.addHandler('Before', secondHook);
 
         const context = new FakeHookContext();
-        await hookhooks.executeBefore(context);
+        await hooks.executeBefore(context);
 
         expect(secondHook).toHaveBeenCalledWith(expect.objectContaining({ aProps: 1 }));
       });
@@ -48,12 +48,12 @@ describe('Hooks', () => {
           });
           const secondHook = jest.fn();
 
-          const hookhooks = new Hooks<FakeHookContext, FakeHookContext>();
-          hookhooks.addHandler('Before', firstHook);
-          hookhooks.addHandler('Before', secondHook);
+          const hooks = new Hooks<FakeHookContext, FakeHookContext>();
+          hooks.addHandler('Before', firstHook);
+          hooks.addHandler('Before', secondHook);
 
           const context = new FakeHookContext();
-          await expect(() => hookhooks.executeBefore(context)).rejects.toThrow();
+          await expect(() => hooks.executeBefore(context)).rejects.toThrow();
           expect(secondHook).not.toHaveBeenCalled();
         });
       });
@@ -63,11 +63,11 @@ describe('Hooks', () => {
       test('it should not call the hook', async () => {
         const hook = jest.fn();
 
-        const hookhooks = new Hooks<FakeHookContext, FakeHookContext>();
-        hookhooks.addHandler('After', hook);
+        const hooks = new Hooks<FakeHookContext, FakeHookContext>();
+        hooks.addHandler('After', hook);
 
         const context = new FakeHookContext();
-        await hookhooks.executeBefore(context);
+        await hooks.executeBefore(context);
 
         expect(hook).not.toHaveBeenCalled();
       });
@@ -80,11 +80,11 @@ describe('Hooks', () => {
         const firstHook = jest.fn();
         const secondHook = jest.fn();
 
-        const hookhooks = new Hooks<FakeHookContext, FakeHookContext>();
-        hookhooks.addHandler('After', firstHook);
-        hookhooks.addHandler('After', secondHook);
+        const hooks = new Hooks<FakeHookContext, FakeHookContext>();
+        hooks.addHandler('After', firstHook);
+        hooks.addHandler('After', secondHook);
 
-        await hookhooks.executeAfter(new FakeHookContext());
+        await hooks.executeAfter(new FakeHookContext());
 
         expect(firstHook).toHaveBeenCalledTimes(1);
         expect(secondHook).toHaveBeenCalledTimes(1);
@@ -96,12 +96,12 @@ describe('Hooks', () => {
         });
         const secondHook = jest.fn();
 
-        const hookhooks = new Hooks<FakeHookContext, FakeHookContext>();
-        hookhooks.addHandler('After', firstHook);
-        hookhooks.addHandler('After', secondHook);
+        const hooks = new Hooks<FakeHookContext, FakeHookContext>();
+        hooks.addHandler('After', firstHook);
+        hooks.addHandler('After', secondHook);
 
         const context = new FakeHookContext();
-        await hookhooks.executeAfter(context);
+        await hooks.executeAfter(context);
 
         expect(secondHook).toHaveBeenCalledWith(expect.objectContaining({ aProps: 1 }));
       });
@@ -113,12 +113,12 @@ describe('Hooks', () => {
           });
           const secondHook = jest.fn();
 
-          const hookhooks = new Hooks<FakeHookContext, FakeHookContext>();
-          hookhooks.addHandler('After', firstHook);
-          hookhooks.addHandler('After', secondHook);
+          const hooks = new Hooks<FakeHookContext, FakeHookContext>();
+          hooks.addHandler('After', firstHook);
+          hooks.addHandler('After', secondHook);
 
           const context = new FakeHookContext();
-          await expect(() => hookhooks.executeAfter(context)).rejects.toThrow();
+          await expect(() => hooks.executeAfter(context)).rejects.toThrow();
           expect(secondHook).not.toHaveBeenCalled();
         });
       });
@@ -128,11 +128,11 @@ describe('Hooks', () => {
       test('it should not call the hook', async () => {
         const hook = jest.fn();
 
-        const hookhooks = new Hooks<FakeHookContext, FakeHookContext>();
-        hookhooks.addHandler('Before', hook);
+        const hooks = new Hooks<FakeHookContext, FakeHookContext>();
+        hooks.addHandler('Before', hook);
 
         const context = new FakeHookContext();
-        await hookhooks.executeAfter(context);
+        await hooks.executeAfter(context);
 
         expect(hook).not.toHaveBeenCalled();
       });
