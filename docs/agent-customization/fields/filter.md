@@ -13,7 +13,7 @@ Disabling filtering can be made without any code [in the field settings](https:/
 
 Filtering operators can be disabled one by one.
 
-This is used mostly for performance reasons: on big collections, it can be intesting to let users filter only on fields that are indexed in your database to avoid [full-table-scans](https://en.wikipedia.org/wiki/Full_table_scan).
+This is used mostly for performance reasons: on big collections, it can be interesting to let users filter only on fields that are indexed in your database to avoid [full-table-scans](https://en.wikipedia.org/wiki/Full_table_scan).
 
 ```javascript
 collection.replaceFieldOperator('fullName', 'Equal', null);
