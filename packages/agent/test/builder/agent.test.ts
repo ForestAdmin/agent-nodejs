@@ -177,6 +177,20 @@ describe('Builder > Agent', () => {
 
         await expect(agent.start()).resolves.not.toThrowError();
       });
+
+      it('should not throw an error when rename option is null', async () => {
+        const options = factories.forestAdminHttpDriverOptions.build();
+        const agent = new Agent(options);
+
+        const dataSource = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection' }),
+        );
+        agent.addDataSource(async () => dataSource, {
+          rename: null,
+        });
+
+        await expect(agent.start()).resolves.not.toThrowError();
+      });
     });
   });
 });
