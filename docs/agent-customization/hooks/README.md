@@ -43,7 +43,7 @@ transaction.addHook('Before', 'Update', async context => {
   if (!isAllowed) {
     // Raising an error here will prevent the execution of the update function,
     // as well as any other hooks that may be defined afterwards.
-    throw new Error(`${context.caller.email} is not allowed!`);
+    context.throwForbiddenError(`${context.caller.email} is not allowed!`);
   }
 });
 ```
