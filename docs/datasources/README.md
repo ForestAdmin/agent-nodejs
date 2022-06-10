@@ -60,7 +60,7 @@ agent.addDataSource(sqlDataSource, {
 
 Some data source may implement more collections, and associated actions and segments that you want.
 
-By provided options when plugin a data source, you can specify which entities should get loaded.
+By provided options when plugging a data source, you can specify which entities should get loaded.
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
