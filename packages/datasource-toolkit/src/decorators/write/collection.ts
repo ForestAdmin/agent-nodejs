@@ -8,6 +8,7 @@ import {
   RelationSchema,
 } from '../../interfaces/schema';
 import { RecordData } from '../../interfaces/record';
+import { ValidationError } from '../../errors';
 import { WriteDefinition } from './types';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTreeLeaf from '../../interfaces/query/condition-tree/nodes/leaf';
@@ -16,7 +17,6 @@ import Filter from '../../interfaces/query/filter/unpaginated';
 import Projection from '../../interfaces/query/projection';
 import RecordValidator from '../../validation/record';
 import SchemaUtils from '../../utils/schema';
-import ValidationError from '../../errors';
 import WriteCustomizationContext from './context';
 
 export default class WriteDecorator extends CollectionDecorator {

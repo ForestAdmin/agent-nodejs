@@ -1,8 +1,8 @@
 import * as factories from '../../__factories__';
 import { ColumnSchema } from '../../../src/interfaces/schema';
 import { Filter, PaginatedFilter } from '../../../src';
+import { ValidationError } from '../../../src/errors';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
-import ValidationError from '../../../src/errors';
 import WriteDecorator from '../../../src/decorators/write/collection';
 
 describe('WriteDecorator', () => {

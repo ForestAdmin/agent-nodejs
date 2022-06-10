@@ -1,7 +1,7 @@
 import { Collection } from '../interfaces/collection';
 import { PlainSortClause } from '../interfaces/query/sort';
+import { ValidationError } from '../errors';
 import FieldValidator from './field';
-import ValidationError from '../errors';
 
 export default class SortValidator {
   static validate(collection: Collection, sort: PlainSortClause[]): void {
