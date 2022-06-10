@@ -1,4 +1,4 @@
-import { ForbidenError, UnprocessableError, ValidationError } from '../../../errors';
+import { ForbiddenError, UnprocessableError, ValidationError } from '../../../errors';
 import { TCollectionName, TSchema } from '../../../interfaces/templates';
 import CollectionCustomizationContext from '../../../context/collection-context';
 
@@ -19,7 +19,7 @@ export default abstract class HookContext<
    * @param message the forbidden error message
    */
   throwForbiddenError(message: string): never {
-    throw new ForbidenError(message);
+    throw new ForbiddenError(message);
   }
 
   /**

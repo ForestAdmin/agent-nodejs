@@ -1,5 +1,5 @@
 import * as factories from '../../../__factories__';
-import { ForbidenError, UnprocessableError, ValidationError } from '../../../../src';
+import { ForbiddenError, UnprocessableError, ValidationError } from '../../../../src';
 import HookContext from '../../../../src/decorators/hook/context/hook';
 
 class FakeHookContext extends HookContext {
@@ -19,7 +19,7 @@ describe('Hook > Context', () => {
   test('throwForbiddenError should throw ForbidenError', () => {
     const hookContext = new FakeHookContext();
     const errorMessage = 'forbidden error';
-    expect(() => hookContext.throwForbiddenError(errorMessage)).toThrow(ForbidenError);
+    expect(() => hookContext.throwForbiddenError(errorMessage)).toThrow(ForbiddenError);
     expect(() => hookContext.throwForbiddenError(errorMessage)).toThrow(errorMessage);
   });
 
