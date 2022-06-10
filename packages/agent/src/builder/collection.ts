@@ -91,7 +91,7 @@ export default class CollectionBuilder<
    * .renameField('theCurrentNameOfTheField', 'theNewNameOfTheField');
    */
   renameField(oldName: TColumnName<S, N>, newName: string): this {
-    this.stack.rename.getCollection(this.name).renameField(oldName, newName);
+    this.stack.renameField.getCollection(this.name).renameField(oldName, newName);
 
     return this;
   }
