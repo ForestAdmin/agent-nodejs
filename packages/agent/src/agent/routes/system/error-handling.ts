@@ -31,8 +31,6 @@ export default class ErrorHandling extends BaseRoute {
       ) {
         message = e.message;
 
-        if (e instanceof HttpError) status = e.status;
-
         switch (true) {
           case e instanceof ValidationError:
             status = HttpCode.BadRequest;
@@ -42,6 +40,9 @@ export default class ErrorHandling extends BaseRoute {
             break;
           case e instanceof UnprocessableError:
             status = HttpCode.Unprocessable;
+            break;
+          case e instanceof HttpError:
+            status = e.status;
             break;
           default:
         }

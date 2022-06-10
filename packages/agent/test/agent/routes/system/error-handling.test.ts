@@ -66,12 +66,12 @@ describe('ErrorHandling', () => {
 
     test('it should set the status and body for forbidden errors', async () => {
       const context = createMockContext();
-      const next = jest.fn().mockRejectedValue(new ForbiddenError('forbiden'));
+      const next = jest.fn().mockRejectedValue(new ForbiddenError('forbidden'));
 
       await handleError.call(route, context, next);
 
       expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
-      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'forbiden' }] });
+      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'forbidden' }] });
       expect(console.error).not.toHaveBeenCalled();
     });
 
