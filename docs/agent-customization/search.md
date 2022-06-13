@@ -6,7 +6,7 @@ In Forest Admin, pages which show lists of records have a free-text search widge
 
 Two search modes are supported: normal and extended.
 
-- All searchs start by being a "normal search".
+- All searches start by being a "normal search".
 - If the result the user is looking for is not found, it is possible to trigger an extended search from the user interface.
 
 ![Extended search call to action](../assets/search-bar-extended.png)

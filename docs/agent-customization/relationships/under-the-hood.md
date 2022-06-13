@@ -37,5 +37,5 @@ SELECT authors.id, authors.firstName, authors.lastName FROM authors WHERE id IN 
 {% hint style="warning" %}
 Automatic query splitting is a very powerful tool however not all queries are created equal.
 
-In this simple example, it is a straighforward three step process, but the feature can come at the cost of performance on more complex queries.
+In this simple example, it is a straightforward three-step process, but the feature can come at the cost of performance on more complex queries.
 {% endhint %}
