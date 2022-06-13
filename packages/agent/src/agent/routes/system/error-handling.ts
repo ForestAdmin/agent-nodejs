@@ -20,7 +20,7 @@ export default class ErrorHandling extends BaseRoute {
     try {
       await next();
     } catch (e) {
-      let status = HttpCode.InternalServerError;
+      let status = e.status || HttpCode.InternalServerError;
       let message = 'Unexpected error';
 
       if (
@@ -40,9 +40,6 @@ export default class ErrorHandling extends BaseRoute {
             break;
           case e instanceof UnprocessableError:
             status = HttpCode.Unprocessable;
-            break;
-          case e instanceof HttpError:
-            status = e.status;
             break;
           default:
         }
