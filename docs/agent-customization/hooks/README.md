@@ -1,7 +1,9 @@
 Forest Admin allows to customize at a very low-level the behavior of any given collection via the usage of Collection Hooks.
 
 {% hint style="info" %}
+
 Collection Hooks is a very powerful feature and require special care when using it.
+
 {% endhint %}
 
 ## How it works
@@ -20,16 +22,16 @@ To declare a hook on a collection, the following informations are required:
 
 - A hook position (`Before` | `After`)
 - A hook type (`List` | `Create` | `Update` | `Delete` | `Aggregate`)
-- A callback, that will receive a context matching the provided hook position and hook definition. (A complete list of everything available in the callback argument is available here (@TODO))
+- A callback, that will receive a context matching the provided hook position and hook definition.
 
 {% hint style="warning" %}
 
-Be aware that a single collection can have multiple hooks with the same position and the same type. They will be run in their declaration order.
+A single collection can have multiple hooks with the same position and the same type. They will be run in their declaration order.
 Also, other Forest Admin features may rely on hooks.
 
 {% endhint %}
 
-Collection Hooks are only called when the collection method is contacted by the UI. This means that any usage of the Forest Admin query interface will not trigger them.
+Collection Hooks are only called when the collection method is contacted by the UI. This means that any usage of the Forest Admin [query interface](../../under-the-hood/queries/README.md) will not trigger them.
 
 ## Basic use-cases
 
@@ -61,8 +63,3 @@ transaction.addHook('After', 'Create', async (context, responseBuilder) => {
   });
 });
 ```
-
-## Advanced use-cases
-
-For each hook, the provided `context` provide a lot of informations that will be used to execute the request.
-As of now, this whole context is `readonly`, and we do not provide a way to modify it.
