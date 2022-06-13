@@ -55,10 +55,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     const beforeContext = new InternalHookBeforeCreateContext(this.childCollection, caller, data);
     await this.hooks.Create.executeBefore(beforeContext);
 
-    const records = await this.childCollection.create(
-      beforeContext.caller,
-      beforeContext.getData(),
-    );
+    const records = await this.childCollection.create(caller, beforeContext.getData());
 
     const afterContext = new HookAfterCreateContext(this.childCollection, caller, data, records);
     await this.hooks.Create.executeAfter(afterContext);
@@ -79,7 +76,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     );
     await this.hooks.List.executeBefore(beforeContext);
     const records = await this.childCollection.list(
-      beforeContext.caller,
+      caller,
       beforeContext.getFilter(),
       beforeContext.getProjection(),
     );
@@ -105,11 +102,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     );
     await this.hooks.Update.executeBefore(beforeContext);
 
-    await this.childCollection.update(
-      beforeContext.caller,
-      beforeContext.getFilter(),
-      beforeContext.patch,
-    );
+    await this.childCollection.update(caller, beforeContext.getFilter(), beforeContext.patch);
 
     const afterContext = new HookAfterUpdateContext(this.childCollection, caller, filter, patch);
     await this.hooks.Update.executeAfter(afterContext);
@@ -119,7 +112,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     const beforeContext = new InternalHookBeforeDeleteContext(this.childCollection, caller, filter);
     await this.hooks.Delete.executeBefore(beforeContext);
 
-    await this.childCollection.delete(beforeContext.caller, beforeContext.getFilter());
+    await this.childCollection.delete(caller, beforeContext.getFilter());
 
     const afterContext = new HookAfterDeleteContext(this.childCollection, caller, filter);
     await this.hooks.Delete.executeAfter(afterContext);
@@ -141,7 +134,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     await this.hooks.Aggregate.executeBefore(beforeContext);
 
     const aggregationResult = await this.childCollection.aggregate(
-      beforeContext.caller,
+      caller,
       beforeContext.getFilter(),
       beforeContext.getAggregation(),
       beforeContext.limit,
