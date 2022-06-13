@@ -26,4 +26,12 @@ export default class ProjectionFactory {
 
     return new Projection(...projectionFields);
   }
+
+  static columns(collection: Collection): Projection {
+    return new Projection(
+      ...Object.keys(collection.schema.fields).filter(
+        f => collection.schema.fields[f].type === 'Column',
+      ),
+    );
+  }
 }
