@@ -1,12 +1,20 @@
-import { MongooseCollection, MongooseDatasource } from '../src';
+import mongoose from 'mongoose';
+
+import { MongooseCollection, MongooseDatasource, createMongooseDataSource } from '../src';
 
 describe('exports', () => {
-  describe.each([
+  it.each([
     ['MongooseCollection', MongooseCollection],
     ['MongooseDatasource', MongooseDatasource],
-  ])('class %s', (message, type) => {
-    it('should be defined', () => {
-      expect(type).toBeDefined();
-    });
+  ])('class %s should be defined', (message, type) => {
+    expect(type).toBeDefined();
+  });
+
+  it('createMongooseDataSource should return a datasource factory', async () => {
+    const factory = createMongooseDataSource(mongoose.connection, {});
+    const dataSource = await factory(() => {});
+
+    expect(factory).toBeInstanceOf(Function);
+    expect(dataSource).toBeInstanceOf(MongooseDatasource);
   });
 });
