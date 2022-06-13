@@ -31,7 +31,7 @@ export default class Projection extends Array<string> {
 
   union(...otherProjections: (Projection | string[])[]): Projection {
     const fields = [this, ...otherProjections].reduce(
-      (memo, projection) => [...memo, ...projection],
+      (memo, projection) => (projection ? [...memo, ...projection] : memo),
       [],
     );
 
