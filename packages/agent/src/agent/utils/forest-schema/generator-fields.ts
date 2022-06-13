@@ -107,6 +107,7 @@ export default class SchemaGeneratorFields {
     }
 
     return {
+      ...baseSchema,
       type: [keySchema.columnType as PrimitiveTypes],
       defaultValue: null,
       isFilterable: false,
@@ -115,7 +116,6 @@ export default class SchemaGeneratorFields {
       isSortable: false,
       validations: [],
       reference: `${foreignCollection.name}.${key}`,
-      ...baseSchema,
     };
   }
 
@@ -137,15 +137,16 @@ export default class SchemaGeneratorFields {
     const keySchema = collection.schema.fields[key] as ColumnSchema;
 
     return {
+      ...baseSchema,
       type: keySchema.columnType as PrimitiveTypes,
       defaultValue: null,
       isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
       isPrimaryKey: false,
       isRequired: false,
+      isReadOnly: Boolean(keySchema.isReadOnly),
       isSortable: Boolean(keySchema.isSortable),
       validations: [],
       reference: `${foreignCollection.name}.${key}`,
-      ...baseSchema,
     };
   }
 
@@ -159,15 +160,16 @@ export default class SchemaGeneratorFields {
     const keySchema = collection.schema.fields[key] as ColumnSchema;
 
     return {
+      ...baseSchema,
       type: keySchema.columnType as PrimitiveTypes,
       defaultValue: keySchema.defaultValue ?? null,
       isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
       isPrimaryKey: Boolean(keySchema.isPrimaryKey),
       isRequired: keySchema.validation?.some(v => v.operator === 'Present') ?? false,
+      isReadOnly: Boolean(keySchema.isReadOnly),
       isSortable: Boolean(keySchema.isSortable),
       validations: FrontendValidationUtils.convertValidationList(keySchema.validation),
       reference: `${foreignCollection.name}.${relation.foreignKeyTarget}`,
-      ...baseSchema,
     };
   }
 
