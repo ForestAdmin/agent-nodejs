@@ -1,4 +1,8 @@
-import { ValidationError } from '@forestadmin/datasource-toolkit';
+import {
+  ForbiddenError,
+  UnprocessableError,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import Router from '@koa/router';
 
@@ -57,6 +61,28 @@ describe('ErrorHandling', () => {
 
       expect(context.response.status).toStrictEqual(HttpCode.BadRequest);
       expect(context.response.body).toStrictEqual({ errors: [{ detail: 'hello' }] });
+      expect(console.error).not.toHaveBeenCalled();
+    });
+
+    test('it should set the status and body for forbidden errors', async () => {
+      const context = createMockContext();
+      const next = jest.fn().mockRejectedValue(new ForbiddenError('forbidden'));
+
+      await handleError.call(route, context, next);
+
+      expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
+      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'forbidden' }] });
+      expect(console.error).not.toHaveBeenCalled();
+    });
+
+    test('it should set the status and body for UnprocessableError errors', async () => {
+      const context = createMockContext();
+      const next = jest.fn().mockRejectedValue(new UnprocessableError('unprocessable'));
+
+      await handleError.call(route, context, next);
+
+      expect(context.response.status).toStrictEqual(HttpCode.Unprocessable);
+      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'unprocessable' }] });
       expect(console.error).not.toHaveBeenCalled();
     });
 

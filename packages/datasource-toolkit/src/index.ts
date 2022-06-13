@@ -1,5 +1,5 @@
 // Misc
-export { default as ValidationError } from './errors';
+export * from './errors';
 export * from './factory';
 
 // Base Collection & DataSource
@@ -57,6 +57,7 @@ export * from './interfaces/action';
 export * from './interfaces/caller';
 export * from './interfaces/collection';
 export * from './interfaces/query/aggregation';
+export * from './interfaces/query/condition-tree/nodes/base';
 export * from './interfaces/query/condition-tree/nodes/branch';
 export * from './interfaces/query/condition-tree/nodes/leaf';
 export { Operator } from './interfaces/query/condition-tree/nodes/operators';

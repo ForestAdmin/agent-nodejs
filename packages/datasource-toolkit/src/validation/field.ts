@@ -1,8 +1,8 @@
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
+import { ValidationError } from '../errors';
 import { ValidationTypes, ValidationTypesArray } from './types';
 import TypeGetter from './type-getter';
-import ValidationError from '../errors';
 
 export default class FieldValidator {
   static validate(collection: Collection, field: string, values?: unknown[]) {

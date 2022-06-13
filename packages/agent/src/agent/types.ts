@@ -9,6 +9,7 @@ export enum HttpCode {
   NoContent = 204,
   NotFound = 404,
   Ok = 200,
+  Unprocessable = 422,
 }
 
 export enum RouteType {

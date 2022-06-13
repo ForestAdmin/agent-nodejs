@@ -1,5 +1,9 @@
 import { Context, HttpError, Next } from 'koa';
-import { ValidationError } from '@forestadmin/datasource-toolkit';
+import {
+  ForbiddenError,
+  UnprocessableError,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 
 import { HttpCode, RouteType } from '../../types';
@@ -16,12 +20,29 @@ export default class ErrorHandling extends BaseRoute {
     try {
       await next();
     } catch (e) {
-      let status = HttpCode.InternalServerError;
+      let status = e.status || HttpCode.InternalServerError;
       let message = 'Unexpected error';
 
-      if (e instanceof HttpError || e instanceof ValidationError) {
-        status = e instanceof HttpError ? e.status : HttpCode.BadRequest;
+      if (
+        e instanceof HttpError ||
+        e instanceof ValidationError ||
+        e instanceof UnprocessableError ||
+        e instanceof ForbiddenError
+      ) {
         message = e.message;
+
+        switch (true) {
+          case e instanceof ValidationError:
+            status = HttpCode.BadRequest;
+            break;
+          case e instanceof ForbiddenError:
+            status = HttpCode.Forbidden;
+            break;
+          case e instanceof UnprocessableError:
+            status = HttpCode.Unprocessable;
+            break;
+          default:
+        }
       }
 
       context.response.status = status;
