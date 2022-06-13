@@ -26,8 +26,12 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     caller: Caller,
     filter?: PaginatedFilter,
   ): Promise<PaginatedFilter> {
+    if (!filter) {
+      return null;
+    }
+
     // Search string is not significant
-    if (!filter?.search || SearchCollectionDecorator.checkEmptyString(filter.search)) {
+    if (!filter.search || SearchCollectionDecorator.checkEmptyString(filter.search)) {
       return filter.override({ search: null });
     }
 

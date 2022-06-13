@@ -17,6 +17,19 @@ describe('SearchCollectionDecorator', () => {
   });
 
   describe('refineFilter', () => {
+    describe('when the filter is null', () => {
+      test('should return null', async () => {
+        const collection = factories.collection.build();
+        const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
+
+        const refinedFilter = await searchCollectionDecorator.refineFilter(
+          factories.caller.build(),
+          null,
+        );
+        expect(refinedFilter).toEqual(null);
+      });
+    });
+
     describe('when the search value is null', () => {
       test('should return the given filter to return all records', async () => {
         const collection = factories.collection.build();
