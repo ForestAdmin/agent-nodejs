@@ -88,7 +88,7 @@ describe('Builder > Collection', () => {
   describe('renameField', () => {
     it('should rename a field', async () => {
       const { stack } = await setup();
-      const collection = stack.rename.getCollection('authors');
+      const collection = stack.renameField.getCollection('authors');
       const builder = new CollectionBuilder(stack, 'authors');
       const spy = jest.spyOn(collection, 'renameField');
 

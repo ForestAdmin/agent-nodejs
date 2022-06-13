@@ -15,8 +15,8 @@ import Projection from '../../interfaces/query/projection';
  * and on the other, by rewriting records and aggregation results which are returned by the
  * subCollection.
  */
-export default class RenameCollectionDecorator extends CollectionDecorator {
-  override readonly dataSource: DataSourceDecorator<RenameCollectionDecorator>;
+export default class RenameFieldCollectionDecorator extends CollectionDecorator {
+  override readonly dataSource: DataSourceDecorator<RenameFieldCollectionDecorator>;
 
   private readonly fromChildCollection: { [subName: string]: string } = {};
   private readonly toChildCollection: { [thisName: string]: string } = {};

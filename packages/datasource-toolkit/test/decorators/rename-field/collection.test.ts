@@ -7,24 +7,24 @@ import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import Filter from '../../../src/interfaces/query/filter/unpaginated';
 import PaginatedFilter from '../../../src/interfaces/query/filter/paginated';
 import Projection from '../../../src/interfaces/query/projection';
-import RenameCollectionDecorator from '../../../src/decorators/rename/collection';
+import RenameFieldCollectionDecorator from '../../../src/decorators/rename-field/collection';
 import Sort from '../../../src/interfaces/query/sort';
 
-describe('RenameCollectionDecorator', () => {
+describe('RenameFieldCollectionDecorator', () => {
   const caller = factories.caller.build();
 
   // State
   let dataSource: DataSource;
-  let decoratedDataSource: DataSourceDecorator<RenameCollectionDecorator>;
+  let decoratedDataSource: DataSourceDecorator<RenameFieldCollectionDecorator>;
 
   // Convenience: Direct access to collections before and after decoration
   let persons: Collection;
   let bookPersons: Collection;
   let books: Collection;
 
-  let newPersons: RenameCollectionDecorator;
-  let newBookPersons: RenameCollectionDecorator;
-  let newBooks: RenameCollectionDecorator;
+  let newPersons: RenameFieldCollectionDecorator;
+  let newBookPersons: RenameFieldCollectionDecorator;
+  let newBooks: RenameFieldCollectionDecorator;
 
   // Convenience: Direct access to persons mocks
   let personsList: jest.Mock;
@@ -100,7 +100,7 @@ describe('RenameCollectionDecorator', () => {
 
   // Build decorator
   beforeEach(() => {
-    decoratedDataSource = new DataSourceDecorator(dataSource, RenameCollectionDecorator);
+    decoratedDataSource = new DataSourceDecorator(dataSource, RenameFieldCollectionDecorator);
 
     newBooks = decoratedDataSource.getCollection('books');
     newBookPersons = decoratedDataSource.getCollection('bookPersons');
