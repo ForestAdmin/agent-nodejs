@@ -22,6 +22,8 @@ import {
 } from 'sequelize';
 import { Where } from 'sequelize/types/utils';
 
+import unAmbigousField from './un-ambigous';
+
 export default class QueryConverter {
   private model: ModelDefined<unknown, unknown>;
   private dialect: Dialect;
@@ -145,18 +147,7 @@ export default class QueryConverter {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
       const isRelation = field.includes(':');
 
-      let safeField: string;
-
-      if (isRelation) {
-        const paths = field.split(':');
-        const fieldName = paths.pop();
-        const safeFieldName = paths
-          .reduce((acc, path) => acc.associations[path].target, this.model)
-          .getAttributes()[fieldName].field;
-        safeField = `${paths.join('.')}.${safeFieldName}`;
-      } else {
-        safeField = this.model.getAttributes()[field].field;
-      }
+      const safeField = unAmbigousField(this.model, field);
 
       sequelizeWhereClause[isRelation ? `$${safeField}$` : safeField] = this.makeWhereClause(
         safeField,

@@ -12,6 +12,7 @@ import { Fn } from 'sequelize/types/utils';
 
 import DateAggregationConverter from './date-aggregation-converter';
 import Serializer from './serializer';
+import unAmbigousField from './un-ambigous';
 
 export default class AggregationUtils {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,44 +27,20 @@ export default class AggregationUtils {
     this.dialect = this.model.sequelize.getDialect() as Dialect;
   }
 
-  getGroupFieldName(groupField: string) {
+  private getGroupFieldName(groupField: string) {
     return `${groupField}__grouped__`;
   }
 
-  unAmbigousField(field: string) {
-    let tableName: string;
-    let fieldName: string;
+  quoteField(field: string) {
+    try {
+      const safeField = unAmbigousField(this.model, field, true);
 
-    if (field.includes(':')) {
-      const [associationName, nestedField] = field.split(':');
-      const association = this.model.associations[associationName];
-
-      if (!association) {
-        throw new ValidationError(
-          `${this.model.name} model does not have association "${associationName}".`,
-        );
-      }
-
-      const associationField = association.target.getAttributes()[nestedField];
-
-      if (!associationField) {
-        throw new ValidationError(`${associationName} model does not have field "${nestedField}".`);
-      }
-
-      tableName = associationName;
-      fieldName = associationField.field;
-    } else {
-      const modelField = this.model.getAttributes()[field];
-
-      if (!modelField) {
-        throw new ValidationError(`${this.model.name} model does not have field "${field}".`);
-      }
-
-      tableName = this.model.name;
-      fieldName = modelField.field;
+      return this.model.sequelize.getQueryInterface().quoteIdentifiers(safeField);
+    } catch {
+      throw new ValidationError(
+        `Invalid access: "${field}" on "${this.model.name}" does not exist.`,
+      );
     }
-
-    return this.model.sequelize.getQueryInterface().quoteIdentifiers(`${tableName}.${fieldName}`);
   }
 
   getGroupAndAttributesFromAggregation(aggregationQueryGroup: Aggregation['groups']): {
@@ -74,7 +51,7 @@ export default class AggregationUtils {
     const groups = aggregationQueryGroup?.map(group => {
       const { field } = group;
       const groupFieldName = this.getGroupFieldName(field);
-      const groupField = this.unAmbigousField(field);
+      const groupField = this.quoteField(field);
 
       if (group.operation) {
         const groupFunction = DateAggregationConverter.convertToDialect(
