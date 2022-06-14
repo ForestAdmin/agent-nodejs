@@ -9,6 +9,8 @@ export default abstract class HookContext<
   /**
    * Stop hooks execution and send Validation error to the UI
    * @param message the validation error message
+   * @example
+   * .throwValidationError('My validation error message');
    */
   throwValidationError(message: string): never {
     throw new ValidationError(message);
@@ -17,6 +19,8 @@ export default abstract class HookContext<
   /**
    * Stop hooks execution and send Forbidden error to the UI
    * @param message the forbidden error message
+   * @example
+   * .throwForbiddenError('My forbidden error message');
    */
   throwForbiddenError(message: string): never {
     throw new ForbiddenError(message);
@@ -25,6 +29,8 @@ export default abstract class HookContext<
   /**
    * Stop hooks execution and send error to the UI
    * @param message the error message
+   * @example
+   * .throwError('My error message');
    */
   throwError(message: string): never {
     throw new UnprocessableError(message);

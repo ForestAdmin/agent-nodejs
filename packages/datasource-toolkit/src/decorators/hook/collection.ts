@@ -75,6 +75,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
       projection,
     );
     await this.hooks.List.executeBefore(beforeContext);
+
     const records = await this.childCollection.list(
       caller,
       beforeContext.getFilter(),
