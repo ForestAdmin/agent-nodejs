@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.23...@forestadmin/datasource-toolkit@1.0.0-beta.24) (2022-06-14)
+
+
+### Features
+
+* add a factory to generate a projection which contains colums of a collection ([#353](https://github.com/ForestAdmin/agent-nodejs/issues/353)) ([ec37b0b](https://github.com/ForestAdmin/agent-nodejs/commit/ec37b0be79a03be55616b03b535ad9067c23bd0d))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.22...@forestadmin/datasource-toolkit@1.0.0-beta.23) (2022-06-14)
 
 
