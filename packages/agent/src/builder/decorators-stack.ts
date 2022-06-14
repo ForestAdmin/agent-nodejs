@@ -56,13 +56,13 @@ export default class DecoratorsStack {
     last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
 
     // Step 2: Those need access to all fields. They can be loaded in any order.
-    last = this.chart = new ChartDataSourceDecorator(last);
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
     last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
     last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
     last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
 
     // Step 3: Access to all fields AND emulated capabilities
+    last = this.chart = new ChartDataSourceDecorator(last);
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
 
