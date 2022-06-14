@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-dummy",
-  "version": "1.0.0-beta.24",
+  "version": "1.0.0-beta.25",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -12,7 +12,7 @@
     "directory": "packages/datasource-dummy"
   },
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.0.0-beta.23"
+    "@forestadmin/datasource-toolkit": "1.0.0-beta.24"
   },
   "files": [
     "dist/**/*.js",
