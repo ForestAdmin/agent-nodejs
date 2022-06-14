@@ -95,27 +95,37 @@ export default class SchemaGeneratorFields {
     foreignCollection: Collection,
     baseSchema: ForestServerField,
   ): ForestServerField {
-    let key: string;
-    let keySchema: ColumnSchema;
+    let targetName: string;
+    let targetField: ColumnSchema;
+    let isReadOnly: boolean;
 
     if (relation.type === 'OneToMany') {
-      key = relation.originKeyTarget;
-      keySchema = collection.schema.fields[key] as ColumnSchema;
+      targetName = relation.originKeyTarget;
+      targetField = collection.schema.fields[targetName] as ColumnSchema;
+
+      const originKey = foreignCollection.schema.fields[relation.originKey] as ColumnSchema;
+      isReadOnly = originKey.isReadOnly;
     } else {
-      key = relation.foreignKeyTarget;
-      keySchema = foreignCollection.schema.fields[key] as ColumnSchema;
+      targetName = relation.foreignKeyTarget;
+      targetField = foreignCollection.schema.fields[targetName] as ColumnSchema;
+
+      const throughSchema = collection.dataSource.getCollection(relation.throughCollection).schema;
+      const foreignKey = throughSchema.fields[relation.foreignKey] as ColumnSchema;
+      const originKey = throughSchema.fields[relation.originKey] as ColumnSchema;
+      isReadOnly = originKey.isReadOnly || foreignKey.isReadOnly;
     }
 
     return {
       ...baseSchema,
-      type: [keySchema.columnType as PrimitiveTypes],
+      type: [targetField.columnType as PrimitiveTypes],
       defaultValue: null,
       isFilterable: false,
       isPrimaryKey: false,
       isRequired: false,
+      isReadOnly: Boolean(isReadOnly),
       isSortable: false,
       validations: [],
-      reference: `${foreignCollection.name}.${key}`,
+      reference: `${foreignCollection.name}.${targetName}`,
     };
   }
 
@@ -133,20 +143,20 @@ export default class SchemaGeneratorFields {
     foreignCollection: Collection,
     baseSchema: ForestServerField,
   ): ForestServerField {
-    const key = relation.originKeyTarget;
-    const keySchema = collection.schema.fields[key] as ColumnSchema;
+    const targetField = collection.schema.fields[relation.originKeyTarget] as ColumnSchema;
+    const keyField = foreignCollection.schema.fields[relation.originKey] as ColumnSchema;
 
     return {
       ...baseSchema,
-      type: keySchema.columnType as PrimitiveTypes,
+      type: keyField.columnType as PrimitiveTypes,
       defaultValue: null,
       isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
       isPrimaryKey: false,
       isRequired: false,
-      isReadOnly: Boolean(keySchema.isReadOnly),
-      isSortable: Boolean(keySchema.isSortable),
+      isReadOnly: Boolean(keyField.isReadOnly),
+      isSortable: Boolean(targetField.isSortable),
       validations: [],
-      reference: `${foreignCollection.name}.${key}`,
+      reference: `${foreignCollection.name}.${relation.originKeyTarget}`,
     };
   }
 
@@ -156,19 +166,18 @@ export default class SchemaGeneratorFields {
     foreignCollection: Collection,
     baseSchema: ForestServerField,
   ): ForestServerField {
-    const key = relation.foreignKey;
-    const keySchema = collection.schema.fields[key] as ColumnSchema;
+    const keyField = collection.schema.fields[relation.foreignKey] as ColumnSchema;
 
     return {
       ...baseSchema,
-      type: keySchema.columnType as PrimitiveTypes,
-      defaultValue: keySchema.defaultValue ?? null,
+      type: keyField.columnType as PrimitiveTypes,
+      defaultValue: keyField.defaultValue ?? null,
       isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
-      isPrimaryKey: Boolean(keySchema.isPrimaryKey),
-      isRequired: keySchema.validation?.some(v => v.operator === 'Present') ?? false,
-      isReadOnly: Boolean(keySchema.isReadOnly),
-      isSortable: Boolean(keySchema.isSortable),
-      validations: FrontendValidationUtils.convertValidationList(keySchema.validation),
+      isPrimaryKey: Boolean(keyField.isPrimaryKey),
+      isRequired: keyField.validation?.some(v => v.operator === 'Present') ?? false,
+      isReadOnly: Boolean(keyField.isReadOnly),
+      isSortable: Boolean(keyField.isSortable),
+      validations: FrontendValidationUtils.convertValidationList(keyField.validation),
       reference: `${foreignCollection.name}.${relation.foreignKeyTarget}`,
     };
   }
@@ -181,7 +190,6 @@ export default class SchemaGeneratorFields {
       field: name,
       enums: null,
       integration: null,
-      isReadOnly: false,
       isVirtual: false,
       inverseOf: CollectionUtils.getInverseRelation(collection, name),
       relationship: SchemaGeneratorFields.relationMap[relation.type],
