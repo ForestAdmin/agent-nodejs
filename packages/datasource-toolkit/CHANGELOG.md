@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.22...@forestadmin/datasource-toolkit@1.0.0-beta.23) (2022-06-14)
+
+
+### Features
+
+* allow projections to union with null (no-op) ([#351](https://github.com/ForestAdmin/agent-nodejs/issues/351)) ([969be80](https://github.com/ForestAdmin/agent-nodejs/commit/969be80ce5d3417da02d4f9a3fed3b730197c753))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.22](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.21...@forestadmin/datasource-toolkit@1.0.0-beta.22) (2022-06-09)
 
 
