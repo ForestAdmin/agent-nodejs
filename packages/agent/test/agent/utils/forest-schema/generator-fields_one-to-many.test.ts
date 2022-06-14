@@ -16,6 +16,7 @@ describe('SchemaGeneratorFields > One to Many', () => {
             }),
             authorId: factories.columnSchema.build({
               columnType: 'Uuid',
+              isReadOnly: true,
             }),
           },
         }),
@@ -47,6 +48,7 @@ describe('SchemaGeneratorFields > One to Many', () => {
       inverseOf: 'writtenBooks',
       reference: 'persons.personsPk',
       relationship: 'BelongsTo',
+      isReadOnly: true,
       type: 'Uuid',
     });
   });
