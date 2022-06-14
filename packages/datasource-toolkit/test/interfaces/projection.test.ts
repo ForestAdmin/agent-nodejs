@@ -146,4 +146,19 @@ describe('Projection', () => {
       });
     });
   });
+
+  describe('union', () => {
+    it('should work with two projections', () => {
+      const projection1 = new Projection('id', 'title');
+      const projection2 = new Projection('id', 'amount');
+
+      expect(projection1.union(projection2)).toStrictEqual(new Projection('id', 'title', 'amount'));
+    });
+
+    it('should work with a null projection', () => {
+      const projection = new Projection('id', 'title');
+
+      expect(projection.union(null)).toStrictEqual(projection);
+    });
+  });
 });
