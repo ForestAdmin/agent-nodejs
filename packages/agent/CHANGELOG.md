@@ -1,3 +1,19 @@
+# @forestadmin/agent [1.0.0-beta.39](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.38...@forestadmin/agent@1.0.0-beta.39) (2022-06-14)
+
+
+### Bug Fixes
+
+* **agent:** move chart decorator to allow use sort emulate inside handler ([#354](https://github.com/ForestAdmin/agent-nodejs/issues/354)) ([79c199b](https://github.com/ForestAdmin/agent-nodejs/commit/79c199be272b03238c8211d2a717747b9e8ea0c0))
+* **schema:** mark relations as readonly when the foreign key is readonly ([#350](https://github.com/ForestAdmin/agent-nodejs/issues/350)) ([a1a8f30](https://github.com/ForestAdmin/agent-nodejs/commit/a1a8f304857979590fe78ba69b1bfa80dffe914f))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.24
+
 # @forestadmin/agent [1.0.0-beta.38](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.37...@forestadmin/agent@1.0.0-beta.38) (2022-06-14)
 
 
