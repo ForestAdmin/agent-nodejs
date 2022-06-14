@@ -7,7 +7,6 @@ import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import { Schema } from './typings';
 import { liveDatasourceSchema, seedLiveDatasource } from './datasources/live';
 import createTypicode from './datasources/typicode';
-import customizeAccounts from './customizations/accounts';
 import customizeAddress from './customizations/address';
 import customizeComment from './customizations/comment';
 import customizeCustomer from './customizations/customer';
@@ -61,6 +60,5 @@ export default function makeAgent() {
     .customizeCollection('dvd', customizeDvd)
     .customizeCollection('customer', customizeCustomer)
     .customizeCollection('post', customizePost)
-    .customizeCollection('comment', customizeComment)
-    .customizeCollection('accounts', customizeAccounts);
+    .customizeCollection('comment', customizeComment);
 }

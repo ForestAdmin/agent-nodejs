@@ -24,6 +24,7 @@ describe('MongooseCollection', () => {
     expect(mongooseCollection.name).toEqual('aModel');
     expect(mongooseCollection.schema).toEqual({
       actions: {},
+      countable: true,
       fields: {
         aField: expect.any(Object),
         _id: expect.any(Object),
