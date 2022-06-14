@@ -1,7 +1,5 @@
 The mongoose data source allows to import collections from a mongoose instance.
 
-## Example
-
 {% tabs %} {% tab title="agent.js" %}
 
 ```javascript
@@ -49,7 +47,9 @@ By default:
 
 As models in mongoose can be deeply nested, that may not be what you want: the mongoose connector allows to map a single mongoose model to multiple forest admin collections.
 
-Supposing that accounts have the following format:
+### Example
+
+Supposing that `accounts` records have the following format:
 
 ```json
 {
