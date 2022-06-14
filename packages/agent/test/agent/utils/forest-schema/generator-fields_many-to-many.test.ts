@@ -26,7 +26,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
           fields: {
             bookId: factories.columnSchema
               .isPrimaryKey()
-              .build({ validation: [{ operator: 'Present' }] }),
+              .build({ isReadOnly: true, validation: [{ operator: 'Present' }] }),
             book: factories.manyToOneSchema.build({
               foreignCollection: 'books',
               foreignKey: 'bookId',
@@ -34,7 +34,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
             }),
             personId: factories.columnSchema
               .isPrimaryKey()
-              .build({ validation: [{ operator: 'Present' }] }),
+              .build({ isReadOnly: true, validation: [{ operator: 'Present' }] }),
             person: factories.manyToOneSchema.build({
               foreignCollection: 'person',
               foreignKey: 'personId',
@@ -80,7 +80,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       integration: null,
       isFilterable: false,
       isPrimaryKey: false,
-      isReadOnly: false,
+      isReadOnly: true,
       isRequired: false,
       isSortable: false,
       isVirtual: false,
@@ -108,7 +108,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       defaultValue: null,
       enums: null,
       integration: null,
-      isReadOnly: false,
+      isReadOnly: true,
       isSortable: false,
       isVirtual: false,
     });

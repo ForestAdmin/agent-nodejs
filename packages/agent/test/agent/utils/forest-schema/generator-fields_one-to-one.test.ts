@@ -13,6 +13,7 @@ describe('SchemaGeneratorFields > One to One', () => {
             }),
             authorId: factories.columnSchema.build({
               columnType: 'String',
+              isReadOnly: true,
               isSortable: true,
             }),
             author: factories.manyToOneSchema.build({
@@ -62,7 +63,7 @@ describe('SchemaGeneratorFields > One to One', () => {
       integration: null,
       isFilterable: false,
       isPrimaryKey: false,
-      isReadOnly: false,
+      isReadOnly: true,
       isRequired: false,
       isSortable: false,
       isVirtual: false,
@@ -89,7 +90,7 @@ describe('SchemaGeneratorFields > One to One', () => {
       integration: null,
       isFilterable: false,
       isPrimaryKey: false,
-      isReadOnly: false,
+      isReadOnly: true,
       isRequired: false,
       isVirtual: false,
       validations: [],
