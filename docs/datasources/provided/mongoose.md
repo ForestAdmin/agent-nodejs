@@ -8,7 +8,7 @@ const { createMongooseDataSource } = require('@forestadmin/datasource-mongoose')
 const connection = require('./mongoose-models');
 
 // Create agent and import collections from mongoose.connection
-const agent = createAgent(options).addDataSource(createMongooseDataSource(mongoose.connection));
+const agent = createAgent(options).addDataSource(createMongooseDataSource(connection));
 ```
 
 {% endtab %} {% tab title="mongoose-models.js" %}
