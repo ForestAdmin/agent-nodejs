@@ -35,14 +35,14 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
       delete this.toChildCollection[currentName];
       delete this.fromChildCollection[childName];
       initialName = childName;
-      this.markSchemaAsDirty();
+      this.markAllSchemaAsDirty();
     }
 
     // Do not update arrays if renaming is a no-op (ie: customer is cancelling a previous rename).
     if (initialName !== newName) {
       this.fromChildCollection[initialName] = newName;
       this.toChildCollection[newName] = initialName;
-      this.markSchemaAsDirty();
+      this.markAllSchemaAsDirty();
     }
   }
 
@@ -128,6 +128,12 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
         {},
       ),
     }));
+  }
+
+  private markAllSchemaAsDirty(): void {
+    for (const collection of this.dataSource.collections) {
+      collection.markSchemaAsDirty();
+    }
   }
 
   /** Convert field path from child collection to this collection */

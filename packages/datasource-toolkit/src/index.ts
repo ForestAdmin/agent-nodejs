@@ -12,6 +12,7 @@ export { default as CollectionCustomizationContext } from './context/collection-
 // Decorators (datasource)
 export { default as DataSourceDecorator } from './decorators/datasource-decorator';
 export { default as ChartDataSourceDecorator } from './decorators/chart/datasource';
+export { default as RenameCollectionDataSourceDecorator } from './decorators/rename-collection/datasource';
 
 // Decorators (collections)
 export { default as ActionCollectionDecorator } from './decorators/actions/collection';
@@ -22,7 +23,6 @@ export { default as OperatorsEmulateCollectionDecorator } from './decorators/ope
 export { default as OperatorsReplaceCollectionDecorator } from './decorators/operators-replace/collection';
 export { default as PublicationCollectionDecorator } from './decorators/publication/collection';
 export { default as RenameFieldCollectionDecorator } from './decorators/rename-field/collection';
-export { default as RenameCollectionCollectionDecorator } from './decorators/rename-collection/collection';
 export { default as SearchCollectionDecorator } from './decorators/search/collection';
 export { default as WriteCollectionDecorator } from './decorators/write/collection';
 export { default as SchemaCollectionDecorator } from './decorators/schema/collection';

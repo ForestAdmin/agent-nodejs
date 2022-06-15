@@ -2,9 +2,8 @@ import {
   BaseDataSource,
   ChartDefinition,
   Collection,
-  DataSourceDecorator,
   DataSourceFactory,
-  RenameCollectionCollectionDecorator,
+  RenameCollectionDataSourceDecorator,
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-toolkit';
@@ -70,22 +69,15 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
     this.customizations.push(async () => {
       const dataSource = await factory(this.options.logger);
-      const rename = options?.rename ?? {};
+      const decorated = new RenameCollectionDataSourceDecorator(dataSource);
 
-      const names = dataSource.collections.map(({ name }) => name);
-      const notExistName = Object.keys(rename).find(toRename => !names.includes(toRename));
-
-      if (notExistName) {
-        throw new Error(`The given collection name "${notExistName}" does not exist`);
+      for (const [oldName, newName] of Object.entries(options?.rename ?? {})) {
+        decorated.renameCollection(oldName, newName);
       }
 
-      const decorated = new DataSourceDecorator(dataSource, RenameCollectionCollectionDecorator);
-      decorated.collections.forEach(collection => {
-        const newName = rename[collection.name];
-        if (newName) collection.rename(newName);
-
+      for (const collection of decorated.collections) {
         this.compositeDataSource.addCollection(collection);
-      });
+      }
     });
 
     return this;

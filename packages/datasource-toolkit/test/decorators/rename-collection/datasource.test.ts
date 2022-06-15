@@ -1,6 +1,5 @@
 import * as factories from '../../__factories__';
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
-import RenameCollectionCollectionDecorator from '../../../src/decorators/rename-collection/collection';
+import RenameCollectionDataSourceDecorator from '../../../src/decorators/rename-collection/datasource';
 
 describe('RenameCollectionDecorator', () => {
   const setupWithOneToOneRelation = () => {
@@ -33,7 +32,7 @@ describe('RenameCollectionDecorator', () => {
       }),
     ]);
 
-    return new DataSourceDecorator(dataSource, RenameCollectionCollectionDecorator);
+    return new RenameCollectionDataSourceDecorator(dataSource);
   };
 
   const setupWithManyToManyRelation = () => {
@@ -91,10 +90,16 @@ describe('RenameCollectionDecorator', () => {
       }),
     });
 
-    return new DataSourceDecorator(
+    const dataSource = new RenameCollectionDataSourceDecorator(
       factories.dataSource.buildWithCollections([librariesBooks, books, libraries]),
-      RenameCollectionCollectionDecorator,
     );
+
+    // hydrate cache to ensure invalidation is working
+    void dataSource.getCollection('librariesBooks').schema;
+    void dataSource.getCollection('books').schema;
+    void dataSource.getCollection('libraries').schema;
+
+    return dataSource;
   };
 
   const setupWithManyToOneAndOneToManyRelations = () => {
@@ -126,23 +131,23 @@ describe('RenameCollectionDecorator', () => {
       }),
     });
 
-    return new DataSourceDecorator(
+    const dataSource = new RenameCollectionDataSourceDecorator(
       factories.dataSource.buildWithCollections([persons, books]),
-      RenameCollectionCollectionDecorator,
     );
+
+    // hydrate cache to ensure invalidation is working
+    void dataSource.getCollection('persons').schema;
+    void dataSource.getCollection('books').schema;
+
+    return dataSource;
   };
 
   test('should return the real name when it is not renamed', () => {
     const dataSource = factories.dataSource.buildWithCollection(
       factories.collection.build({ name: 'name 1' }),
     );
-    const decoratedDataSource = new DataSourceDecorator(
-      dataSource,
-      RenameCollectionCollectionDecorator,
-    );
-
-    const collection: RenameCollectionCollectionDecorator =
-      decoratedDataSource.getCollection('name 1');
+    const decoratedDataSource = new RenameCollectionDataSourceDecorator(dataSource);
+    const collection = decoratedDataSource.getCollection('name 1');
 
     expect(collection.name).toEqual('name 1');
   });
@@ -151,22 +156,18 @@ describe('RenameCollectionDecorator', () => {
     const dataSource = factories.dataSource.buildWithCollection(
       factories.collection.build({ name: 'name 1' }),
     );
-    const decoratedDataSource = new DataSourceDecorator(
-      dataSource,
-      RenameCollectionCollectionDecorator,
+    const decoratedDataSource = new RenameCollectionDataSourceDecorator(dataSource);
+    decoratedDataSource.renameCollection('name 1', 'name 2');
+
+    expect(decoratedDataSource.getCollection('name 2')).toMatchObject({ name: 'name 2' });
+    expect(() => decoratedDataSource.getCollection('name 1')).toThrow(
+      `Collection 'name 1' not found.`,
     );
-
-    const collection: RenameCollectionCollectionDecorator =
-      decoratedDataSource.getCollection('name 1');
-    collection.rename('name 2');
-
-    expect(collection.name).toEqual('name 2');
   });
 
   test('should change the foreign collection when it is a many to one', () => {
     const dataSource = setupWithManyToOneAndOneToManyRelations();
-
-    dataSource.getCollection('persons').rename('renamedPersons');
+    dataSource.renameCollection('persons', 'renamedPersons');
 
     const collection = dataSource.getCollection('books');
 
@@ -181,7 +182,7 @@ describe('RenameCollectionDecorator', () => {
   test('should change the foreign collection when it is a one to many', () => {
     const dataSource = setupWithManyToOneAndOneToManyRelations();
 
-    dataSource.getCollection('books').rename('renamedBooks');
+    dataSource.renameCollection('books', 'renamedBooks');
 
     const collection = dataSource.getCollection('persons');
 
@@ -196,7 +197,7 @@ describe('RenameCollectionDecorator', () => {
   test('should change the foreign collection when it is a one to one', () => {
     const dataSource = setupWithOneToOneRelation();
 
-    dataSource.getCollection('owner').rename('renamedOwner');
+    dataSource.renameCollection('owner', 'renamedOwner');
 
     const collection = dataSource.getCollection('book');
 
@@ -211,8 +212,8 @@ describe('RenameCollectionDecorator', () => {
   test('should change the foreign collection when it is a many to many', () => {
     const dataSource = setupWithManyToManyRelation();
 
-    dataSource.getCollection('librariesBooks').rename('renamedLibrariesBooks');
-    dataSource.getCollection('books').rename('renamedBooks');
+    dataSource.renameCollection('librariesBooks', 'renamedLibrariesBooks');
+    dataSource.renameCollection('books', 'renamedBooks');
 
     const collection = dataSource.getCollection('libraries');
 
