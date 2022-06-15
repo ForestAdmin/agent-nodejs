@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.0.0-beta.40](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.39...@forestadmin/agent@1.0.0-beta.40) (2022-06-15)
+
+
+### Features
+
+* add collection hooks ([#340](https://github.com/ForestAdmin/agent-nodejs/issues/340)) ([28adde9](https://github.com/ForestAdmin/agent-nodejs/commit/28adde93ca544862203777585388a43521beac4b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.25
+
 # @forestadmin/agent [1.0.0-beta.39](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.38...@forestadmin/agent@1.0.0-beta.39) (2022-06-14)
 
 
