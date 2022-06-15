@@ -27,7 +27,7 @@ describe('FilterGenerator', () => {
   });
 
   describe('Condition tree', () => {
-    it('should work with an equal condition', () => {
+    it('filter should generate a $match stage', () => {
       const filter = new PaginatedFilter({
         conditionTree: new ConditionTreeLeaf('title', 'ILike', 'Foundation'),
       });
@@ -36,7 +36,7 @@ describe('FilterGenerator', () => {
       expect(pipeline).toStrictEqual([{ $match: { title: /^Foundation$/gi } }]);
     });
 
-    it('should work with a nested equal condition', () => {
+    it('filter should generate a $addFields and $match stage', () => {
       const filter = new PaginatedFilter({
         conditionTree: new ConditionTreeLeaf('author:identifier', 'NotContains', 'something'),
       });
@@ -48,7 +48,7 @@ describe('FilterGenerator', () => {
       ]);
     });
 
-    it('should work with and/or', () => {
+    it('filter should generate a $match stage with $and and $or nodes', () => {
       const filter = new PaginatedFilter({
         conditionTree: new ConditionTreeBranch('And', [
           new ConditionTreeLeaf('author:lastname', 'Equal', 'Asimov'),
@@ -79,7 +79,7 @@ describe('FilterGenerator', () => {
   });
 
   describe('Skip & Limit', () => {
-    it('should work', () => {
+    it('should generate the relevant pipeline', () => {
       const filter = new PaginatedFilter({ page: new Page(100, 150) });
 
       const pipeline = FilterGenerator.filter(model, null, filter);
@@ -88,7 +88,7 @@ describe('FilterGenerator', () => {
   });
 
   describe('Sort', () => {
-    it('should work', () => {
+    it('should generate the relevant pipeline', () => {
       const filter = new PaginatedFilter({
         sort: new Sort({ field: 'author:firstname', ascending: true }),
       });

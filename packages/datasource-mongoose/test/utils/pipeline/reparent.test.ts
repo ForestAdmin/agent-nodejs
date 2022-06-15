@@ -20,12 +20,12 @@ describe('ReparentGenerator', () => {
     mongoose.deleteModel('books');
   });
 
-  it('should work on the root model', () => {
+  it('should generate an empty pipeline for the null prefix', () => {
     const pipeline = ReparentGenerator.reparent(model, null);
     expect(pipeline).toEqual([]);
   });
 
-  it('should work on a single child', () => {
+  it('should generate a single $replaceRoot to unnest an object', () => {
     const pipeline = ReparentGenerator.reparent(model, 'author');
     expect(pipeline).toEqual([
       {
@@ -45,7 +45,7 @@ describe('ReparentGenerator', () => {
     ]);
   });
 
-  it('should work on a list of childs', () => {
+  it('should generate an $unwind and $replaceRoot to unnest an array of objects', () => {
     const pipeline = ReparentGenerator.reparent(model, 'editions');
     expect(pipeline).toEqual([
       { $unwind: { includeArrayIndex: 'index', path: '$editions' } },
@@ -66,7 +66,7 @@ describe('ReparentGenerator', () => {
     ]);
   });
 
-  it('should work on a field', () => {
+  it('should generate a $replaceRoot to unnest a field', () => {
     const pipeline = ReparentGenerator.reparent(model, 'title');
     expect(pipeline).toEqual([
       {
@@ -86,7 +86,7 @@ describe('ReparentGenerator', () => {
     ]);
   });
 
-  it('should work on a nested field', () => {
+  it('should generate two $replaceRoot to unnest a deeply nested field', () => {
     const pipeline = ReparentGenerator.reparent(model, 'author.lastname');
     expect(pipeline).toEqual([
       {
@@ -120,7 +120,7 @@ describe('ReparentGenerator', () => {
     ]);
   });
 
-  it('should work on a list of primitives', () => {
+  it('should generate an $unwind and $replaceRoot to unnest an array of primitives', () => {
     const pipeline = ReparentGenerator.reparent(model, 'publishers');
 
     expect(pipeline).toEqual([

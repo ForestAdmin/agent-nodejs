@@ -3,7 +3,7 @@ import { Aggregation } from '@forestadmin/datasource-toolkit';
 import GroupGenerator from '../../../src/utils/pipeline/group';
 
 describe('GroupGenerator', () => {
-  it('should work with sum (w/o field nor group)', () => {
+  it('should create a pipeline for sum (w/o field nor group)', () => {
     const aggregation = new Aggregation({ operation: 'Sum', field: 'price' });
 
     expect(GroupGenerator.group(aggregation)).toStrictEqual([
@@ -12,7 +12,7 @@ describe('GroupGenerator', () => {
     ]);
   });
 
-  it('should work with count (w/o field nor group)', () => {
+  it('should create a pipeline for count (w/o field nor group)', () => {
     const aggregation = new Aggregation({ operation: 'Count' });
 
     expect(GroupGenerator.group(aggregation)).toStrictEqual([
@@ -21,7 +21,7 @@ describe('GroupGenerator', () => {
     ]);
   });
 
-  it('should work with count (w/ field)', () => {
+  it('should create a pipeline for count (w/ field)', () => {
     const aggregation = new Aggregation({ operation: 'Count', field: 'title' });
 
     expect(GroupGenerator.group(aggregation)).toStrictEqual([
@@ -30,7 +30,7 @@ describe('GroupGenerator', () => {
     ]);
   });
 
-  it('should work with count (w/ groups)', () => {
+  it('should create a pipeline for count (w/ groups)', () => {
     const aggregation = new Aggregation({ operation: 'Count', groups: [{ field: 'title' }] });
 
     expect(GroupGenerator.group(aggregation)).toStrictEqual([
@@ -39,7 +39,7 @@ describe('GroupGenerator', () => {
     ]);
   });
 
-  it('should work with count (w/ groups by month)', () => {
+  it('should create a pipeline for count (w/ groups by month)', () => {
     const aggregation = new Aggregation({
       operation: 'Count',
       groups: [{ field: 'createdAt', operation: 'Month' }],
@@ -56,7 +56,7 @@ describe('GroupGenerator', () => {
     ]);
   });
 
-  it('should work with count (w/ groups by week)', () => {
+  it('should create a pipeline for count (w/ groups by week)', () => {
     const aggregation = new Aggregation({
       operation: 'Count',
       groups: [{ field: 'createdAt', operation: 'Week' }],

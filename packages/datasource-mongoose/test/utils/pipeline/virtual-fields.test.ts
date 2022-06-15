@@ -59,7 +59,7 @@ describe('VirtualFieldsGenerator', () => {
     ]);
   });
 
-  it('should work on nested dependencies (for server-side queries only)', () => {
+  it('should add nested dependencies (for server-side queries only)', () => {
     const projection = new Projection(
       'author:country:_id',
       'author:country:_pid',
