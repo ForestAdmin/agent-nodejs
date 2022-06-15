@@ -4,10 +4,11 @@ const connectionString = 'mongodb://root:password@localhost:27027';
 const connection = mongoose.createConnection(connectionString);
 
 connection.model(
-  'accounts',
+  'account',
   new mongoose.Schema({
     firstname: String,
     lastname: String,
+    storeId: Number,
 
     address: {
       streetNumber: Number,

@@ -20,7 +20,7 @@ const connectionString = 'mongodb://root:password@localhost:27027';
 const connection = mongoose.createConnection(connectionString);
 
 connection.model(
-  'accounts',
+  'account',
   new mongoose.Schema({
     firstname: String,
     lastname: String,
@@ -49,7 +49,7 @@ As models in mongoose can be deeply nested, that may not be what you want: the m
 
 ### Example
 
-Supposing that `accounts` records have the following format:
+Supposing that `account` records have the following format:
 
 ```json
 {
@@ -76,7 +76,7 @@ You can split the mongoose model in four forest admin collections using the foll
 ```javascript
 const dataSource = createMongooseDataSource(mongoose.connection, {
   asModels: {
-    accounts: ['address', 'bills', 'bills.payedBy'],
+    account: ['address', 'bills', 'bills.payedBy'],
   },
 });
 ```

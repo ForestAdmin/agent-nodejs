@@ -7,6 +7,7 @@ import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import { Schema } from './typings';
 import { liveDatasourceSchema, seedLiveDatasource } from './datasources/live';
 import createTypicode from './datasources/typicode';
+import customizeAccount from './customizations/account';
 import customizeAddress from './customizations/address';
 import customizeComment from './customizations/comment';
 import customizeCustomer from './customizations/customer';
@@ -33,9 +34,7 @@ export default function makeAgent() {
 
   return createAgent<Schema>(envOptions)
     .addDataSource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }), {
-      rename: {
-        address: 'location',
-      },
+      rename: { address: 'location' },
     })
     .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
     .addDataSource(createTypicode())
@@ -43,7 +42,7 @@ export default function makeAgent() {
     .addDataSource(createSequelizeDataSource(sequelizeMySql))
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))
     .addDataSource(
-      createMongooseDataSource(mongoose, { asModels: { accounts: ['address', 'bills.items'] } }),
+      createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
     )
 
     .addChart('numRentals', async (context, resultBuilder) => {
@@ -53,6 +52,7 @@ export default function makeAgent() {
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
 
+    .customizeCollection('account', customizeAccount)
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('location', customizeAddress)
     .customizeCollection('store', customizeStore)

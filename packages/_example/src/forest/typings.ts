@@ -1,13 +1,15 @@
 /* eslint-disable */
 export type Schema = {
-  'accounts': {
+  'account': {
     plain: {
       'firstname': string;
       'lastname': string;
+      'storeId': number;
       '_id': string;
     };
     nested: {
-      'address': Schema['accounts_address']['plain'] & Schema['accounts_address']['nested'];
+      'address': Schema['account_address']['plain'] & Schema['account_address']['nested'];
+      'store': Schema['store']['plain'] & Schema['store']['nested'];
     };
     flat: {
       'address:streetNumber': number;
@@ -16,9 +18,24 @@ export type Schema = {
       'address:country': string;
       'address:_id': string;
       'address:_pid': string;
+      'store:id': number;
+      'store:name': string;
+      'store:ownerId': number;
+      'store:ownerFullName': string;
+      'store:owner:id': number;
+      'store:owner:firstName': string;
+      'store:owner:lastName': string;
+      'store:owner:fullName': string;
+      'store:address:id': number;
+      'store:address:zipCode': string;
+      'store:address:address': string;
+      'store:address:storeId': number;
+      'store:address:createdAt': string;
+      'store:address:updatedAt': string;
+      'store:address:nearStates': Array<{code: number; name: string}>;
     };
   };
-  'accounts_address': {
+  'account_address': {
     plain: {
       'streetNumber': number;
       'streetName': string;
@@ -28,15 +45,31 @@ export type Schema = {
       '_pid': string;
     };
     nested: {
-      'parent': Schema['accounts']['plain'] & Schema['accounts']['nested'];
+      'parent': Schema['account']['plain'] & Schema['account']['nested'];
     };
     flat: {
       'parent:firstname': string;
       'parent:lastname': string;
+      'parent:storeId': number;
       'parent:_id': string;
+      'parent:store:id': number;
+      'parent:store:name': string;
+      'parent:store:ownerId': number;
+      'parent:store:ownerFullName': string;
+      'parent:store:owner:id': number;
+      'parent:store:owner:firstName': string;
+      'parent:store:owner:lastName': string;
+      'parent:store:owner:fullName': string;
+      'parent:store:address:id': number;
+      'parent:store:address:zipCode': string;
+      'parent:store:address:address': string;
+      'parent:store:address:storeId': number;
+      'parent:store:address:createdAt': string;
+      'parent:store:address:updatedAt': string;
+      'parent:store:address:nearStates': Array<{code: number; name: string}>;
     };
   };
-  'accounts_bills': {
+  'account_bills': {
     plain: {
       'title': string;
       'amount': number;
@@ -45,11 +78,12 @@ export type Schema = {
       '_pid': string;
     };
     nested: {
-      'parent': Schema['accounts']['plain'] & Schema['accounts']['nested'];
+      'parent': Schema['account']['plain'] & Schema['account']['nested'];
     };
     flat: {
       'parent:firstname': string;
       'parent:lastname': string;
+      'parent:storeId': number;
       'parent:_id': string;
       'parent:address:streetNumber': number;
       'parent:address:streetName': string;
@@ -57,9 +91,24 @@ export type Schema = {
       'parent:address:country': string;
       'parent:address:_id': string;
       'parent:address:_pid': string;
+      'parent:store:id': number;
+      'parent:store:name': string;
+      'parent:store:ownerId': number;
+      'parent:store:ownerFullName': string;
+      'parent:store:owner:id': number;
+      'parent:store:owner:firstName': string;
+      'parent:store:owner:lastName': string;
+      'parent:store:owner:fullName': string;
+      'parent:store:address:id': number;
+      'parent:store:address:zipCode': string;
+      'parent:store:address:address': string;
+      'parent:store:address:storeId': number;
+      'parent:store:address:createdAt': string;
+      'parent:store:address:updatedAt': string;
+      'parent:store:address:nearStates': Array<{code: number; name: string}>;
     };
   };
-  'accounts_bills_items': {
+  'account_bills_items': {
     plain: {
       'importance': 'high' | 'medium' | 'low';
       'title': string;
@@ -68,7 +117,7 @@ export type Schema = {
       '_pid': string;
     };
     nested: {
-      'parent': Schema['accounts_bills']['plain'] & Schema['accounts_bills']['nested'];
+      'parent': Schema['account_bills']['plain'] & Schema['account_bills']['nested'];
     };
     flat: {
       'parent:title': string;
@@ -78,6 +127,7 @@ export type Schema = {
       'parent:_pid': string;
       'parent:parent:firstname': string;
       'parent:parent:lastname': string;
+      'parent:parent:storeId': number;
       'parent:parent:_id': string;
       'parent:parent:address:streetNumber': number;
       'parent:parent:address:streetName': string;
@@ -85,6 +135,21 @@ export type Schema = {
       'parent:parent:address:country': string;
       'parent:parent:address:_id': string;
       'parent:parent:address:_pid': string;
+      'parent:parent:store:id': number;
+      'parent:parent:store:name': string;
+      'parent:parent:store:ownerId': number;
+      'parent:parent:store:ownerFullName': string;
+      'parent:parent:store:owner:id': number;
+      'parent:parent:store:owner:firstName': string;
+      'parent:parent:store:owner:lastName': string;
+      'parent:parent:store:owner:fullName': string;
+      'parent:parent:store:address:id': number;
+      'parent:parent:store:address:zipCode': string;
+      'parent:parent:store:address:address': string;
+      'parent:parent:store:address:storeId': number;
+      'parent:parent:store:address:createdAt': string;
+      'parent:parent:store:address:updatedAt': string;
+      'parent:parent:store:address:nearStates': Array<{code: number; name: string}>;
     };
   };
   'card': {

@@ -6,6 +6,8 @@ export default (collection: Collection<Schema, 'store'>) =>
     .addManyToOneRelation('owner', 'owner', { foreignKey: 'ownerId' })
     .addOneToOneRelation('address', 'location', { originKey: 'storeId' })
     .addOneToManyRelation('dvds', 'dvd', { originKey: 'storeId' })
+    .addOneToManyRelation('accounts', 'account', { originKey: 'storeId' })
+
     .importField('ownerFullName', { path: 'owner:fullName' })
     .replaceFieldWriting('ownerFullName', (fullName, { action }) => {
       if (action === 'update') {

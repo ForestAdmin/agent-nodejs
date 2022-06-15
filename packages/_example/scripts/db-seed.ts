@@ -33,13 +33,14 @@ async function createStoreRecords(connection: Sequelize, ownerRecords: any[]): P
   );
 }
 
-async function createAccountRecords(connection: Connection): Promise<void> {
+async function createAccountRecords(connection: Connection, storeRecords: any[]): Promise<void> {
   const records = [];
 
   for (let i = 0; i < 30; i += 1) {
     records.push({
       firstname: faker.name.firstName(),
       lastname: faker.name.lastName(),
+      storeId: faker.helpers.randomize(storeRecords.map(({ id }) => id)),
       address: {
         streetNumber: faker.datatype.number(100),
         streetName: faker.address.streetName(),
@@ -65,7 +66,7 @@ async function createAccountRecords(connection: Connection): Promise<void> {
     });
   }
 
-  await connection.models.accounts.create(records);
+  await connection.models.account.create(records);
 }
 
 async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> {
@@ -169,7 +170,7 @@ async function seedData() {
     const ownerRecords = await createOwnerRecords(sequelizePostgres);
     const storeRecords = await createStoreRecords(sequelizeMySql, ownerRecords);
     const customerRecords = await createCustomerCardRecords(sequelizeMariaDb);
-    await createAccountRecords(mongoose);
+    await createAccountRecords(mongoose, storeRecords);
     await createDvdRentalsRecords(sequelizeMsSql, storeRecords, customerRecords);
   } catch (error) {
     console.error('---------------');
