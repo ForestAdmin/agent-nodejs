@@ -12,10 +12,12 @@ export default class RenameCollectionDataSourceDecorator extends DataSourceDecor
       throw new Error(`The given collection name "${oldName}" does not exist`);
     }
 
-    const collection = this._collections[oldName] as RenameCollectionCollectionDecorator;
-    collection.rename(newName);
+    if (oldName !== newName) {
+      const collection = this._collections[oldName] as RenameCollectionCollectionDecorator;
+      collection.rename(newName);
 
-    this._collections[newName] = collection;
-    delete this._collections[oldName];
+      this._collections[newName] = collection;
+      delete this._collections[oldName];
+    }
   }
 }
