@@ -1,22 +1,28 @@
 import { CollectionSchema, FieldSchema } from '../../interfaces/schema';
 import CollectionDecorator from '../collection-decorator';
-import DataSourceDecorator from '../datasource-decorator';
+import CollectionRenameDataSourceDecorator from './datasource';
 
 /**
- * This decorator renames the collection name.
+ * This decorator renames collections.
+ * It should be used with RenameCollectionDataSourceDecorator, and not the raw DataSourceDecorator
  */
 export default class RenameCollectionCollectionDecorator extends CollectionDecorator {
-  override readonly dataSource: DataSourceDecorator<RenameCollectionCollectionDecorator>;
+  override readonly dataSource: CollectionRenameDataSourceDecorator;
 
-  private substitutedName: string;
+  private substitutedName: string = null;
 
   override get name() {
-    return this.substitutedName || this.childCollection.name;
+    return this.substitutedName ?? this.childCollection.name;
   }
 
-  /** Rename the collection name  */
+  /** @internal */
   rename(name: string): void {
     this.substitutedName = name;
+
+    // Invalidate all schemas
+    for (const collection of this.dataSource.collections) {
+      collection.markSchemaAsDirty();
+    }
   }
 
   protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
@@ -26,21 +32,21 @@ export default class RenameCollectionCollectionDecorator extends CollectionDecor
       const schema = { ...oldSchema };
 
       if (schema.type === 'ManyToOne') {
-        const relation = this.dataSource.getCollection(schema.foreignCollection);
-        schema.foreignCollection = relation.name;
+        schema.foreignCollection = this.getNewName(schema.foreignCollection);
       } else if (schema.type === 'OneToMany' || schema.type === 'OneToOne') {
-        const relation = this.dataSource.getCollection(schema.foreignCollection);
-        schema.foreignCollection = relation.name;
+        schema.foreignCollection = this.getNewName(schema.foreignCollection);
       } else if (schema.type === 'ManyToMany') {
-        const through = this.dataSource.getCollection(schema.throughCollection);
-        const relation = this.dataSource.getCollection(schema.foreignCollection);
-        schema.throughCollection = through.name;
-        schema.foreignCollection = relation.name;
+        schema.throughCollection = this.getNewName(schema.throughCollection);
+        schema.foreignCollection = this.getNewName(schema.foreignCollection);
       }
 
       fields[name] = schema;
     }
 
     return { ...childSchema, fields };
+  }
+
+  private getNewName(oldName: string): string {
+    return this.dataSource.collections.find(c => c.childCollection.name === oldName).name;
   }
 }
