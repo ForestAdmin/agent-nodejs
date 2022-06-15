@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.24...@forestadmin/datasource-toolkit@1.0.0-beta.25) (2022-06-15)
+
+
+### Features
+
+* add collection hooks ([#340](https://github.com/ForestAdmin/agent-nodejs/issues/340)) ([28adde9](https://github.com/ForestAdmin/agent-nodejs/commit/28adde93ca544862203777585388a43521beac4b))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.23...@forestadmin/datasource-toolkit@1.0.0-beta.24) (2022-06-14)
 
 
