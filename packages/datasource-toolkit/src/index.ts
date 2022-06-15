@@ -27,6 +27,7 @@ export { default as WriteCollectionDecorator } from './decorators/write/collecti
 export { default as SchemaCollectionDecorator } from './decorators/schema/collection';
 export { default as SegmentCollectionDecorator } from './decorators/segment/collection';
 export { default as SortEmulateCollectionDecorator } from './decorators/sort-emulate/collection';
+export { default as HookCollectionDecorator } from './decorators/hook/collection';
 
 // Decorators (helpers)
 export { Action as ActionDefinition } from './decorators/actions/types/actions';
@@ -37,6 +38,7 @@ export { PartialRelationSchema as RelationDefinition } from './decorators/relati
 export { SearchReplacer as SearchDefinition } from './decorators/search/types';
 export { SegmentDefinition } from './decorators/segment/types';
 export { WriteDefinition } from './decorators/write/types';
+export { HookHandler, HookType, HookPosition, HooksContext } from './decorators/hook/types';
 
 // Query Interface
 export { default as Aggregation } from './interfaces/query/aggregation';

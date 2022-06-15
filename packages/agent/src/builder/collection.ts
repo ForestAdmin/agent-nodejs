@@ -2,6 +2,10 @@ import {
   ActionDefinition,
   CollectionUtils,
   ColumnSchema,
+  HookHandler,
+  HookPosition,
+  HookType,
+  HooksContext,
   Operator,
   OperatorDefinition,
   PlainSortClause,
@@ -16,6 +20,7 @@ import {
   TSchema,
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
+
 import { FieldDefinition, OneToManyEmbeddedDefinition } from './types';
 import DecoratorsStack from './decorators-stack';
 import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
@@ -442,6 +447,18 @@ export default class CollectionBuilder<
       .getCollection(this.name)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .replaceSearch(definition as SearchDefinition<any, any>);
+
+    return this;
+  }
+
+  addHook<P extends HookPosition, T extends HookType>(
+    position: P,
+    type: T,
+    handler: HookHandler<HooksContext<S, N>[P][T]>,
+  ): this {
+    this.stack.hook
+      .getCollection(this.name)
+      .addHook(position, type, handler as unknown as HookHandler<HooksContext[P][T]>);
 
     return this;
   }

@@ -433,4 +433,21 @@ describe('Builder > Collection', () => {
       expect(self).toEqual(builder);
     });
   });
+
+  describe('addHook', () => {
+    it('should call the hook decorator', async () => {
+      const { stack } = await setup();
+      const collection = stack.hook.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
+      const spy = jest.spyOn(collection, 'addHook');
+
+      const hookHandler = () => {};
+
+      const self = builder.addHook('Before', 'List', hookHandler);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('Before', 'List', hookHandler);
+      expect(self).toEqual(builder);
+    });
+  });
 });
