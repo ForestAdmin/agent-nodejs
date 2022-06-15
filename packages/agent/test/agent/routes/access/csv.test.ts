@@ -76,10 +76,8 @@ describe('CsvRoute', () => {
       booksCollection.list = jest.fn().mockReturnValue([]);
       const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
 
-      const paginatedFilter = factories.filter.build();
-      const buildPaginated = jest
-        .spyOn(ContextFilterFactory, 'buildPaginated')
-        .mockReturnValue(paginatedFilter);
+      const filter = factories.filter.build();
+      const build = jest.spyOn(ContextFilterFactory, 'build').mockReturnValue(filter);
       // when
       await csvRoute.handleCsv(context);
 
@@ -87,14 +85,14 @@ describe('CsvRoute', () => {
       expect(services.permissions.can).toHaveBeenCalledWith(context, 'browse:books');
       expect(services.permissions.can).toHaveBeenCalledWith(context, 'export:books');
 
-      expect(buildPaginated).toHaveBeenCalledWith(booksCollection, context, scopeCondition);
+      expect(build).toHaveBeenCalledWith(booksCollection, context, scopeCondition);
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
         { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         ['id', 'name'],
         'id,name',
-        paginatedFilter,
+        filter,
         booksCollection,
         expect.any(Function),
       );

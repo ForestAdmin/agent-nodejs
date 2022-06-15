@@ -17,7 +17,7 @@ export default class ContextFilterFactory {
   ): PaginatedFilter {
     return new PaginatedFilter({
       sort: QueryStringParser.parseSort(collection, context),
-      page: QueryStringParser.parsePagination(context),
+      page: QueryStringParser.parsePagination(collection, context),
       ...ContextFilterFactory.build(collection, context, scope),
       ...partialFilter,
     });

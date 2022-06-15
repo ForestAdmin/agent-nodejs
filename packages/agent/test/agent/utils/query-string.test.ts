@@ -450,13 +450,20 @@ describe('QueryStringParser', () => {
   describe('parsePagination', () => {
     test('should return the pagination parameters', () => {
       const context = createMockContext({
-        customProperties: { query: { 'page[size]': 10, 'page[number]': 3 } },
+        customProperties: {
+          query: {
+            'page[size]': 10,
+            'page[number]': 3,
+            starting_after: '123e4567-e89b-12d3-a456-426614174000',
+          },
+        },
       });
 
-      const pagination = QueryStringParser.parsePagination(context);
+      const pagination = QueryStringParser.parsePagination(collectionSimple, context);
 
       expect(pagination.limit).toEqual(10);
       expect(pagination.skip).toEqual(20);
+      expect(pagination.cursor).toEqual(['123e4567-e89b-12d3-a456-426614174000']);
     });
 
     describe('when context does not provide the pagination parameters', () => {
@@ -465,7 +472,7 @@ describe('QueryStringParser', () => {
           customProperties: { query: {} },
         });
 
-        const pagination = QueryStringParser.parsePagination(context);
+        const pagination = QueryStringParser.parsePagination(collectionSimple, context);
 
         expect(pagination.limit).toEqual(15);
         expect(pagination.skip).toEqual(0);
@@ -478,7 +485,7 @@ describe('QueryStringParser', () => {
           customProperties: { query: { 'page[size]': -5, 'page[number]': 'NaN' } },
         });
 
-        const fn = () => QueryStringParser.parsePagination(context);
+        const fn = () => QueryStringParser.parsePagination(collectionSimple, context);
 
         expect(fn).toThrow('Invalid pagination [limit: -5, skip: NaN]');
       });

@@ -14,6 +14,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import ConditionTreeParser from './condition-tree-parser';
+import IdUtils from './id';
 
 const DEFAULT_ITEMS_PER_PAGE = 15;
 const DEFAULT_PAGE_TO_SKIP = 1;
@@ -130,34 +131,30 @@ export default class QueryStringParser {
     return { ...context.state.user, timezone };
   }
 
-  static parsePagination(context: Context): Page {
-    const queryItemsPerPage = (
+  static parsePagination(collection: Collection, context: Context): Page {
+    const cursor = context.request.query.starting_after
+      ? IdUtils.unpackId(collection.schema, context.request.query.starting_after?.toString())
+      : null;
+
+    const pageSize = Number.parseInt(
       context.request.body?.data?.attributes?.all_records_subset_query?.['page[size]'] ??
-      context.request.query['page[size]'] ??
-      DEFAULT_ITEMS_PER_PAGE
-    ).toString();
-    const queryPageToSkip = (
+        context.request.query['page[size]'] ??
+        DEFAULT_ITEMS_PER_PAGE,
+      10,
+    );
+
+    const pageNumber = Number.parseInt(
       context.request.body?.data?.attributes?.all_records_subset_query?.['page[number]'] ??
-      context.request.query['page[number]'] ??
-      DEFAULT_PAGE_TO_SKIP
-    ).toString();
+        context.request.query['page[number]'] ??
+        DEFAULT_PAGE_TO_SKIP,
+      10,
+    );
 
-    const itemsPerPage = Number.parseInt(queryItemsPerPage, 10);
-    let pageToSkip = Number.parseInt(queryPageToSkip, 10);
-
-    if (
-      Number.isNaN(itemsPerPage) ||
-      Number.isNaN(pageToSkip) ||
-      itemsPerPage <= 0 ||
-      pageToSkip <= 0
-    ) {
-      throw new ValidationError(`Invalid pagination [limit: ${itemsPerPage}, skip: ${pageToSkip}]`);
+    if (Number.isNaN(pageSize) || Number.isNaN(pageNumber) || pageSize <= 0 || pageNumber <= 0) {
+      throw new ValidationError(`Invalid pagination [limit: ${pageSize}, skip: ${pageNumber}]`);
     }
 
-    pageToSkip = Math.max(pageToSkip - 1, 0);
-    pageToSkip *= itemsPerPage;
-
-    return new Page(pageToSkip, itemsPerPage);
+    return new Page(Math.max(pageNumber - 1, 0) * pageSize, pageSize, cursor);
   }
 
   static parseSort(collection: Collection, context: Context): Sort {

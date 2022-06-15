@@ -20,6 +20,10 @@ export default class PaginatedFilter extends Filter {
   sort?: Sort;
   page?: Page;
 
+  override get isNestable(): boolean {
+    return super.isNestable && !this.page?.cursor;
+  }
+
   constructor(parts: PaginatedFilterComponents) {
     super(parts);
     this.sort = parts.sort;

@@ -250,4 +250,28 @@ export type Schema = {
       'address:nearStates': Array<{code: number; name: string}>;
     };
   };
+  WithHashKey: {
+    plain: {
+      userId: string;
+      title: string;
+      content: string;
+      createdAt: string;
+      updatedAt: string;
+      sub: {field1: string; field2: string};
+    };
+    nested: {};
+    flat: {};
+  };
+  WithHashRangeKey: {
+    plain: {
+      userId: string;
+      title: string;
+      content: string;
+      createdAt: string;
+      updatedAt: string;
+      sub: {field1: string; field2: string};
+    };
+    nested: {};
+    flat: {};
+  };
 };

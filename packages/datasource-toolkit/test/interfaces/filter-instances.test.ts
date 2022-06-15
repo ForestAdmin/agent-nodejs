@@ -23,7 +23,7 @@ describe('Filter', () => {
 
       expect(newFilter).toEqual({
         conditionTree: { field: 'column', operator: 'LessThan', value: 0 },
-        page: { limit: 10, skip: 0 },
+        page: { limit: 10, skip: 0, cursor: null },
         sort: [{ ascending: true, field: 'column2' }],
       });
     });
@@ -34,13 +34,20 @@ describe('Filter', () => {
       expect(paginatedFilter.isNestable).toBeTruthy();
       expect(nestedFilter).toEqual({
         conditionTree: { field: 'prefix:column', operator: 'GreaterThan', value: 0 },
-        page: { limit: null, skip: 0 },
+        page: { limit: null, skip: 0, cursor: null },
         sort: [{ ascending: true, field: 'prefix:column' }],
       });
     });
 
     test('nest should crash with a segment', () => {
       const filter = new PaginatedFilter({ segment: 'someSegment' });
+
+      expect(filter.isNestable).toBeFalsy();
+      expect(() => filter.nest('prefix')).toThrow();
+    });
+
+    test('nest should crash with a cursor', () => {
+      const filter = new PaginatedFilter({ page: new Page(0, 10, ['id']) });
 
       expect(filter.isNestable).toBeFalsy();
       expect(() => filter.nest('prefix')).toThrow();

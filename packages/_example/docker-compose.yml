@@ -60,7 +60,20 @@ services:
     volumes:
       - mongodb-data:/var/lib/mongodb
 
+  dynamodb-local:
+    image: 'amazon/dynamodb-local:latest'
+    container_name: forest_agent_example_dynamo
+    command: '-jar DynamoDBLocal.jar -sharedDb -dbPath ./data'
+    ports:
+      - '8000:8000'
+    volumes:
+      - 'dynamodb-data:/home/dynamodblocal/data'
+    working_dir: /home/dynamodblocal
+    user: root
+
 volumes:
+  dynamodb-data:
+    driver: local
   postgres-data:
     driver: local
   mysql-data:
