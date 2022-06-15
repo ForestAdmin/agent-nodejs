@@ -12,6 +12,7 @@ export { default as CollectionCustomizationContext } from './context/collection-
 // Decorators (datasource)
 export { default as DataSourceDecorator } from './decorators/datasource-decorator';
 export { default as ChartDataSourceDecorator } from './decorators/chart/datasource';
+export { default as RenameCollectionDataSourceDecorator } from './decorators/rename-collection/datasource';
 
 // Decorators (collections)
 export { default as ActionCollectionDecorator } from './decorators/actions/collection';

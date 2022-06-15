@@ -1,29 +1,5 @@
 /* eslint-disable */
 export type Schema = {
-  'address': {
-    plain: {
-      'id': number;
-      'zipCode': string;
-      'address': string;
-      'storeId': number;
-      'createdAt': string;
-      'updatedAt': string;
-      'nearStates': Array<{code: number; name: string}>;
-    };
-    nested: {
-      'store': Schema['store']['plain'] & Schema['store']['nested'];
-    };
-    flat: {
-      'store:id': number;
-      'store:name': string;
-      'store:ownerId': number;
-      'store:ownerFullName': string;
-      'store:owner:id': number;
-      'store:owner:firstName': string;
-      'store:owner:lastName': string;
-      'store:owner:fullName': string;
-    };
-  };
   'card': {
     plain: {
       'id': number;
@@ -150,6 +126,30 @@ export type Schema = {
       'rental:customer:deletedAt': string;
     };
   };
+  'location': {
+    plain: {
+      'id': number;
+      'zipCode': string;
+      'address': string;
+      'storeId': number;
+      'createdAt': string;
+      'updatedAt': string;
+      'nearStates': Array<{code: number; name: string}>;
+    };
+    nested: {
+      'store': Schema['store']['plain'] & Schema['store']['nested'];
+    };
+    flat: {
+      'store:id': number;
+      'store:name': string;
+      'store:ownerId': number;
+      'store:ownerFullName': string;
+      'store:owner:id': number;
+      'store:owner:firstName': string;
+      'store:owner:lastName': string;
+      'store:owner:fullName': string;
+    };
+  };
   'owner': {
     plain: {
       'id': number;
@@ -234,7 +234,7 @@ export type Schema = {
     };
     nested: {
       'owner': Schema['owner']['plain'] & Schema['owner']['nested'];
-      'address': Schema['address']['plain'] & Schema['address']['nested'];
+      'address': Schema['location']['plain'] & Schema['location']['nested'];
     };
     flat: {
       'owner:id': number;

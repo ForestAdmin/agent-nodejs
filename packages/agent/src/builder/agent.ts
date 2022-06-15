@@ -3,6 +3,7 @@ import {
   ChartDefinition,
   Collection,
   DataSourceFactory,
+  RenameCollectionDataSourceDecorator,
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-toolkit';
@@ -12,7 +13,7 @@ import Router from '@koa/router';
 import http from 'http';
 
 import { AgentOptions } from '../types';
-import { HttpCallback } from './types';
+import { DataSourceOptions, HttpCallback } from './types';
 import CollectionBuilder from './collection';
 import DecoratorsStack from './decorators-stack';
 import ForestAdminHttpDriver from '../agent/forestadmin-http-driver';
@@ -63,13 +64,20 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   /**
    * Add a datasource
    * @param factory the datasource to add
+   * @param options the options
    */
-  addDataSource(factory: DataSourceFactory): this {
+  addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
     this.customizations.push(async () => {
-      const datasource = await factory(this.options.logger);
-      datasource.collections.forEach(collection => {
+      const dataSource = await factory(this.options.logger);
+      const decorated = new RenameCollectionDataSourceDecorator(dataSource);
+
+      for (const [oldName, newName] of Object.entries(options?.rename ?? {})) {
+        decorated.renameCollection(oldName, newName);
+      }
+
+      for (const collection of decorated.collections) {
         this.compositeDataSource.addCollection(collection);
-      });
+      }
     });
 
     return this;

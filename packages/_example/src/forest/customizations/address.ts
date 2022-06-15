@@ -1,7 +1,7 @@
 import { Collection } from '@forestadmin/agent';
 import { Schema } from '../typings';
 
-export default (collection: Collection<Schema, 'address'>) =>
+export default (collection: Collection<Schema, 'location'>) =>
   collection
     .addManyToOneRelation('store', 'store', { foreignKey: 'storeId' })
     .addExternalRelation('nearStates', {

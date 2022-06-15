@@ -208,6 +208,12 @@ describe('RenameFieldCollectionDecorator', () => {
 
     // Rename stuff
     beforeEach(() => {
+      // Cache the schemas to ensure they refresh property
+      void newBooks.schema;
+      void newBookPersons.schema;
+      void newPersons.schema;
+
+      // Rename stuff
       newPersons.renameField('id', 'primaryKey');
       newPersons.renameField('myBookPerson', 'myNovelAuthor');
       newBookPersons.renameField('date', 'createdAt');
@@ -316,6 +322,12 @@ describe('RenameFieldCollectionDecorator', () => {
 
   describe('when renaming foreign keys', () => {
     beforeEach(() => {
+      // Cache the schemas to ensure they refresh property
+      void newBooks.schema;
+      void newBookPersons.schema;
+      void newPersons.schema;
+
+      // Rename stuff
       newBookPersons.renameField('bookId', 'novelId');
       newBookPersons.renameField('personId', 'authorId');
     });

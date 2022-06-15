@@ -33,7 +33,11 @@ export default function makeAgent() {
   };
 
   return createAgent<Schema>(envOptions)
-    .addDataSource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }))
+    .addDataSource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }), {
+      rename: {
+        address: 'location',
+      },
+    })
     .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
     .addDataSource(createTypicode())
     .addDataSource(createSequelizeDataSource(sequelizePostgres))
@@ -49,7 +53,7 @@ export default function makeAgent() {
     })
 
     .customizeCollection('owner', customizeOwner)
-    .customizeCollection('address', customizeAddress)
+    .customizeCollection('location', customizeAddress)
     .customizeCollection('store', customizeStore)
     .customizeCollection('rental', customizeRental)
     .customizeCollection('dvd', customizeDvd)

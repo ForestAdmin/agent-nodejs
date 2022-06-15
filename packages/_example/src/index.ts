@@ -32,8 +32,8 @@ export default async () => {
   // Run the servers!
   expressAppV4.listen(Number(process.env.HTTP_PORT_EXPRESS));
   koaAppV2.listen(Number(process.env.HTTP_PORT_KOA));
-  fastifyAppV2.listen(Number(process.env.HTTP_PORT_FASTIFY_V2));
-  fastifyAppV3.listen(Number(process.env.HTTP_PORT_FASTIFY_V3));
+  await fastifyAppV2.listen(Number(process.env.HTTP_PORT_FASTIFY_V2));
+  await fastifyAppV3.listen(Number(process.env.HTTP_PORT_FASTIFY_V3));
   await nestExpressV8.listen(Number(process.env.HTTP_PORT_NEST_EXPRESS_V8));
   await nestFastifyV8.listen(Number(process.env.HTTP_PORT_NEST_FASTIFY_V8));
 

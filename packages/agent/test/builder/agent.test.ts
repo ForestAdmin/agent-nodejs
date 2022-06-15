@@ -111,4 +111,86 @@ describe('Builder > Agent', () => {
       );
     });
   });
+
+  describe('rename option', () => {
+    describe('when there is a naming conflict with two collection names', () => {
+      it('should throw an error when the given collection name does not exist', async () => {
+        const options = factories.forestAdminHttpDriverOptions.build();
+        const agent = new Agent(options);
+
+        const dataSource1 = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection' }),
+        );
+        const dataSource2 = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection' }),
+        );
+        agent.addDataSource(async () => dataSource1);
+        agent.addDataSource(async () => dataSource2, {
+          rename: {
+            collectionDoesNotExist: 'updatedName',
+          },
+        });
+
+        await expect(agent.start()).rejects.toThrowError(
+          'The given collection name "collectionDoesNotExist" does not exist',
+        );
+      });
+
+      it('should throw an error when the new name is also in conflict', async () => {
+        const options = factories.forestAdminHttpDriverOptions.build();
+        const agent = new Agent(options);
+
+        const dataSource1 = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection' }),
+        );
+        const dataSource2 = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection' }),
+        );
+        agent.addDataSource(async () => dataSource1);
+        agent.addDataSource(async () => dataSource2, {
+          rename: {
+            collection: 'collection',
+          },
+        });
+
+        await expect(agent.start()).rejects.toThrowError(
+          "Collection 'collection' already defined in datasource",
+        );
+      });
+
+      it('should rename the collection name without error', async () => {
+        const options = factories.forestAdminHttpDriverOptions.build();
+        const agent = new Agent(options);
+
+        const dataSource1 = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection' }),
+        );
+        const dataSource2 = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection' }),
+        );
+        agent.addDataSource(async () => dataSource1);
+        agent.addDataSource(async () => dataSource2, {
+          rename: {
+            collection: 'updatedName',
+          },
+        });
+
+        await expect(agent.start()).resolves.not.toThrowError();
+      });
+
+      it('should not throw an error when rename option is null', async () => {
+        const options = factories.forestAdminHttpDriverOptions.build();
+        const agent = new Agent(options);
+
+        const dataSource = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection' }),
+        );
+        agent.addDataSource(async () => dataSource, {
+          rename: null,
+        });
+
+        await expect(agent.start()).resolves.not.toThrowError();
+      });
+    });
+  });
 });
