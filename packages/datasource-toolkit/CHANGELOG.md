@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.26](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.25...@forestadmin/datasource-toolkit@1.0.0-beta.26) (2022-06-15)
+
+
+### Features
+
+* **decorator:** allow to rename a collection ([#341](https://github.com/ForestAdmin/agent-nodejs/issues/341)) ([1eb279e](https://github.com/ForestAdmin/agent-nodejs/commit/1eb279edc4fbe0511618bfdcf42e3980e57164da))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.24...@forestadmin/datasource-toolkit@1.0.0-beta.25) (2022-06-15)
 
 
