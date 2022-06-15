@@ -10,10 +10,10 @@ export default class LookupGenerator {
   static lookup(model: Model<unknown>, prefix: string, projection: Projection): PipelineStage[] {
     const childSchema = MongooseSchema.fromModel(model).getSubSchema(prefix, true).fields;
 
-    return this.lookupRec(model.db.models, null, childSchema, projection);
+    return this.lookupProjection(model.db.models, null, childSchema, projection);
   }
 
-  private static lookupRec(
+  private static lookupProjection(
     models: Record<string, Model<unknown>>,
     currentPath: string,
     schema: SchemaNode,
@@ -53,13 +53,13 @@ export default class LookupGenerator {
         { $unwind: { path: `$${as}`, preserveNullAndEmptyArrays: true } },
 
         // Recurse to get relations of relations
-        ...this.lookupRec(models, as, subSchema, subProjection),
+        ...this.lookupProjection(models, as, subSchema, subProjection),
       ];
     }
 
     // Fake relation or inverse of fake relation
     if (name === 'parent' || schema[name]) {
-      return this.lookupRec(models, as, schema[name], subProjection);
+      return this.lookupProjection(models, as, schema[name], subProjection);
     }
 
     // We should have handled all possible cases.

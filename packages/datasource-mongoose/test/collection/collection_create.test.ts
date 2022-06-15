@@ -43,6 +43,27 @@ describe('MongooseCollection', () => {
       expect(persistedRecord).toHaveLength(3);
     });
 
+    it('should throw on nested collection if parentId is missing', async () => {
+      connection = await setupReview('collection_create');
+
+      const dataSource = new MongooseDatasource(connection, { asModels: { review: ['message'] } });
+      const reviews = dataSource.getCollection('review');
+      const reviewMessages = dataSource.getCollection('review_message');
+
+      await reviews.create(null, [
+        {
+          message: 'a message',
+          title: 'a title',
+          tags: ['A'],
+          modificationDates: [],
+          editorIds: [],
+        },
+      ]);
+
+      const handler = () => reviewMessages.create(null, [{ content: 'something' }]);
+      await expect(handler).rejects.toThrow('Trying to create a subrecord with no parent');
+    });
+
     describe('when there are nested records', () => {
       it('returns the created nested records without the mongoose _id', async () => {
         connection = await setupReview('collection_create');
