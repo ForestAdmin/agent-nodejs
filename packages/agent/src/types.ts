@@ -16,7 +16,3 @@ export type AgentOptions = {
   typingsMaxDepth?: number;
   permissionsCacheDurationInSeconds?: number;
 };
-
-export type DataSourceOptions = {
-  rename?: { [oldName: string]: string };
-};

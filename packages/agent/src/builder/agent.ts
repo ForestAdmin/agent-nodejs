@@ -13,8 +13,8 @@ import Koa from 'koa';
 import Router from '@koa/router';
 import http from 'http';
 
-import { AgentOptions, DataSourceOptions } from '../types';
-import { HttpCallback } from './types';
+import { AgentOptions } from '../types';
+import { DataSourceOptions, HttpCallback } from './types';
 import CollectionBuilder from './collection';
 import DecoratorsStack from './decorators-stack';
 import ForestAdminHttpDriver from '../agent/forestadmin-http-driver';

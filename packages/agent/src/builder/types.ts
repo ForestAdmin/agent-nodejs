@@ -29,3 +29,7 @@ export type OneToManyEmbeddedDefinition<
 };
 
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
+
+export type DataSourceOptions = {
+  rename?: { [oldName: string]: string };
+};
