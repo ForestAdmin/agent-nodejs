@@ -22,6 +22,6 @@ describe('MongooseSchema', () => {
   it('should throw if accessing the leaf getter on a branch', () => {
     const schema = MongooseSchema.fromModel(model);
 
-    expect(() => schema.schemaType).toThrow('not a leaf');
+    expect(() => schema.schemaType).toThrow('Schema is not a leaf.');
   });
 });
