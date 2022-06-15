@@ -116,7 +116,9 @@ export default class MongooseCollection extends BaseCollection {
     const ids = records.map(record => record._id);
 
     if (!this.prefix) {
-      return this.model.updateMany({ _id: ids }, patch, { rawResult: true }).then(() => {});
+      await this.model.updateMany({ _id: ids }, patch, { rawResult: true });
+
+      return;
     }
 
     // Clean patch
@@ -141,7 +143,9 @@ export default class MongooseCollection extends BaseCollection {
     const ids = records.map(record => record._id);
 
     if (!this.prefix) {
-      return this.model.deleteMany({ _id: ids }, { rawResult: true }).then(() => {});
+      await this.model.deleteMany({ _id: ids }, { rawResult: true });
+
+      return;
     }
 
     const schema = MongooseSchema.fromModel(this.model).getSubSchema(this.prefix);
