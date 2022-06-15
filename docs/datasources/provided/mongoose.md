@@ -22,14 +22,14 @@ const connection = mongoose.createConnection(connectionString);
 connection.model(
   'account',
   new mongoose.Schema({
-    firstname: String,
-    lastname: String,
+    name: String,
+    age: Number,
 
     // Nested object
     address: { streetName: String, city: String, country: String },
 
     // List of nested objects
-    bills: [{ title: String, amount: Number, issueDate: Date }],
+    bills: [{ title: String, amount: Number, issueDate: Date, payedBy: [String] }],
   }),
 );
 
