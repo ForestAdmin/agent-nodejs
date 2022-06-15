@@ -1,3 +1,24 @@
+# example [1.0.0-beta.50](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.49...example@1.0.0-beta.50) (2022-06-15)
+
+
+### Features
+
+* **decorator:** allow to rename a collection ([#341](https://github.com/ForestAdmin/agent-nodejs/issues/341)) ([1eb279e](https://github.com/ForestAdmin/agent-nodejs/commit/1eb279edc4fbe0511618bfdcf42e3980e57164da))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.41
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.27
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.32
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.31
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.36
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.26
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0-beta.12
+
 # example [1.0.0-beta.49](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.48...example@1.0.0-beta.49) (2022-06-15)
 
 
