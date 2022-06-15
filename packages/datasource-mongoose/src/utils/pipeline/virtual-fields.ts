@@ -20,7 +20,7 @@ export default class VirtualFieldsGenerator {
   static addVirtual(
     model: Model<unknown>,
     prefix: string,
-    ignoreFields: string[],
+    ignoredFields: string[],
     projection: Projection,
   ): PipelineStage[] {
     const schema = MongooseSchema.fromModel(model).getSubSchema(prefix, true);
@@ -28,7 +28,7 @@ export default class VirtualFieldsGenerator {
 
     for (const [relation, subProjection] of Object.entries(projection.relations)) {
       // if it is a virtual one to one (<=> inverse of "parent")
-      if (ignoreFields.includes(relation)) {
+      if (ignoredFields.includes(relation)) {
         const virtuals = this.getVirtuals(
           relation,
           schema.getSubSchema(relation, true),

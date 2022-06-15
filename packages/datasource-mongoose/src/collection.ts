@@ -28,21 +28,21 @@ import VirtualFieldsGenerator from './utils/pipeline/virtual-fields';
 export default class MongooseCollection extends BaseCollection {
   model: Model<RecordData>;
   prefix: string;
-  ignoreFields: string[];
+  ignoredFields: string[];
 
   constructor(
     dataSource: DataSource,
     model: Model<RecordData>,
     prefix: string = null,
-    ignoreFields: string[] = [],
+    ignoredFields: string[] = [],
   ) {
     super(prefix ? escape(`${model.modelName}.${prefix}`) : model.modelName, dataSource);
     this.model = model;
     this.prefix = prefix;
-    this.ignoreFields = ignoreFields;
+    this.ignoredFields = ignoredFields;
 
     this.enableCount();
-    this.addFields(FieldsGenerator.buildFieldsSchema(model, prefix, ignoreFields));
+    this.addFields(FieldsGenerator.buildFieldsSchema(model, prefix, ignoredFields));
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
@@ -204,7 +204,7 @@ export default class MongooseCollection extends BaseCollection {
       ...VirtualFieldsGenerator.addVirtual(
         this.model,
         this.prefix,
-        this.ignoreFields,
+        this.ignoredFields,
         lookupProjection,
       ),
       ...LookupGenerator.lookup(this.model, this.prefix, lookupProjection),
