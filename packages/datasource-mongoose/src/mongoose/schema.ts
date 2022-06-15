@@ -39,7 +39,7 @@ export default class MongooseSchema {
   }
 
   getSubSchema(path: string, withParent = false): MongooseSchema {
-    // We are done :)
+    // Terminating condition
     if (path === null) return this;
 
     // General case: go down the tree
