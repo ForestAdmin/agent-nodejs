@@ -30,7 +30,7 @@ export default class DecoratorsStack {
   lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   lateOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
   publication: DataSourceDecorator<PublicationCollectionDecorator>;
-  rename: DataSourceDecorator<RenameFieldCollectionDecorator>;
+  renameField: DataSourceDecorator<RenameFieldCollectionDecorator>;
   schema: DataSourceDecorator<SchemaCollectionDecorator>;
   search: DataSourceDecorator<SearchCollectionDecorator>;
   segment: DataSourceDecorator<SegmentCollectionDecorator>;
@@ -72,7 +72,7 @@ export default class DecoratorsStack {
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
     // is consistent.
     last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
-    last = this.rename = new DataSourceDecorator(last, RenameFieldCollectionDecorator);
+    last = this.renameField = new DataSourceDecorator(last, RenameFieldCollectionDecorator);
     /* eslint-enable no-multi-assign */
 
     this.dataSource = last;
