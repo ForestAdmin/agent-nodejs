@@ -379,7 +379,7 @@ describe('datasource', () => {
       });
     });
 
-    describe('whith relations', () => {
+    describe('with relations', () => {
       const setupDatabase = async (database: string): Promise<Sequelize> => {
         let sequelize: Sequelize;
 
