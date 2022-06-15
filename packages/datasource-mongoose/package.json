@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-mongoose",
-  "version": "1.0.0-beta.11",
+  "version": "1.0.0-beta.12",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -16,7 +16,7 @@
     "dist/**/*.d.ts"
   ],
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.0.0-beta.25",
+    "@forestadmin/datasource-toolkit": "1.0.0-beta.26",
     "mongoose": "^6.3.2"
   },
   "peerDependencies": {},
