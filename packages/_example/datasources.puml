@@ -14,13 +14,13 @@ class ACCOUNT {
    String firstName
    String lastName
    String storeId
-   address: {
+   Object address: {
    .. Number streetNumber
    -- String streetName
    -- String city
    -- String country
    },
-   bills: [{
+   Object bills: [{
    -- String title
    -- Number amount
    -- Date issueDate
