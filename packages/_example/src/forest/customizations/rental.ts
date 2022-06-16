@@ -8,10 +8,8 @@ export default (collection: Collection<Schema, 'rental'>) =>
       dependencies: ['startDate', 'endDate'],
       getValues: records =>
         records.map(record => {
-          // Datasource is sending dates, typing is expecting strings
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          const timeDifference = record.endDate.getTime() - record.startDate.getTime();
+          const timeDifference =
+            new Date(record.endDate).getTime() - new Date(record.startDate).getTime();
 
           return Math.trunc(timeDifference / (1000 * 60 * 60 * 24));
         }),
