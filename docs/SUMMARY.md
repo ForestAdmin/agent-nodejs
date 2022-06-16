@@ -13,7 +13,7 @@
 - [Usage](datasources/README.md)
 - [Provided datasources](datasources/provided/README.md)
 
-  - [SQL databases (without ORM)](datasources/provided/sql.md)
+  - [SQL (without ORM)](datasources/provided/sql.md)
   - [Sequelize](datasources/provided/sequelize.md)
   - [Mongoose](datasources/provided/mongoose.md)
 
