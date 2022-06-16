@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.32](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.31...@forestadmin/datasource-sequelize@1.0.0-beta.32) (2022-06-16)
+
+
+### Bug Fixes
+
+* **datasource-sequelize:** serialize record to transform date to iso string  ([#331](https://github.com/ForestAdmin/agent-nodejs/issues/331)) ([70216bb](https://github.com/ForestAdmin/agent-nodejs/commit/70216bb7fc5307e458ee5651e9f16c90b61ff49a))
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.31](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.30...@forestadmin/datasource-sequelize@1.0.0-beta.31) (2022-06-15)
 
 
