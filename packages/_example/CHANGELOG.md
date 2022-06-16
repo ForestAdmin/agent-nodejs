@@ -1,3 +1,26 @@
+# example [1.0.0-beta.52](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.51...example@1.0.0-beta.52) (2022-06-16)
+
+
+### Bug Fixes
+
+* **datasource-sequelize:** serialize record to transform date to iso string  ([#331](https://github.com/ForestAdmin/agent-nodejs/issues/331)) ([70216bb](https://github.com/ForestAdmin/agent-nodejs/commit/70216bb7fc5307e458ee5651e9f16c90b61ff49a))
+
+
+### Features
+
+* add support for mongoose datasource ([#339](https://github.com/ForestAdmin/agent-nodejs/issues/339)) ([5515286](https://github.com/ForestAdmin/agent-nodejs/commit/55152862dceff4714bf9b36ed6c138acdf8cb9e3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.33
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.32
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.38
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0-beta.13
+
 # example [1.0.0-beta.51](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.50...example@1.0.0-beta.51) (2022-06-16)
 
 
