@@ -1,5 +1,3 @@
-![One Mongoose collection splitted into four Forest-Admin collections](../../assets/datasource-mongo.png)
-
 The mongoose data source allows to import collections from a mongoose instance.
 
 {% tabs %} {% tab title="agent.js" %}
@@ -82,3 +80,7 @@ const dataSource = createMongooseDataSource(mongoose.connection, {
   },
 });
 ```
+
+That will give the following result:
+
+![One Mongoose collection splitted into four Forest-Admin collections](../../assets/datasource-mongo.png)
