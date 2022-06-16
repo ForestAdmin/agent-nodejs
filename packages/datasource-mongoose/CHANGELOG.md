@@ -1,3 +1,10 @@
+# @forestadmin/datasource-mongoose [1.0.0-beta.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.0-beta.12...@forestadmin/datasource-mongoose@1.0.0-beta.13) (2022-06-16)
+
+
+### Features
+
+* add support for mongoose datasource ([#339](https://github.com/ForestAdmin/agent-nodejs/issues/339)) ([5515286](https://github.com/ForestAdmin/agent-nodejs/commit/55152862dceff4714bf9b36ed6c138acdf8cb9e3))
+
 # @forestadmin/datasource-mongoose [1.0.0-beta.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.0-beta.11...@forestadmin/datasource-mongoose@1.0.0-beta.12) (2022-06-15)
 
 
