@@ -1,3 +1,5 @@
+![One Mongoose collection splitted into four Forest-Admin collections](../../assets/datasource-mongo.png)
+
 The mongoose data source allows to import collections from a mongoose instance.
 
 {% tabs %} {% tab title="agent.js" %}
