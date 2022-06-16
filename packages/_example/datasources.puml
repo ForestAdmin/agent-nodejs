@@ -10,11 +10,28 @@ class STORE {
 class STORE
 note bottom: TABLE IN MYSQL
 
-class REVIEW {
-  String title
-  String message
+class ACCOUNT {
+   String firstName
+   String lastName
+   String storeId
+   Object address: {
+   -- Number streetNumber
+   -- String streetName
+   -- String city
+   -- String country
+   },
+   Object bills: [{
+   -- String title
+   -- Number amount
+   -- Date issueDate
+   -- items: [{
+   ---- Enum['high', 'medium', 'low'] importance
+   ---- String title
+   ---- Number amount
+   -- }],
+  }],
 }
-class REVIEW
+class ACCOUNT
 note bottom: TABLE IN MONGODB
 
 class OWNER {

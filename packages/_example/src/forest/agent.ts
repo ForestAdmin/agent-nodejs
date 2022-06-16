@@ -7,6 +7,7 @@ import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import { Schema } from './typings';
 import { liveDatasourceSchema, seedLiveDatasource } from './datasources/live';
 import createTypicode from './datasources/typicode';
+import customizeAccount from './customizations/account';
 import customizeAddress from './customizations/address';
 import customizeComment from './customizations/comment';
 import customizeCustomer from './customizations/customer';
@@ -14,7 +15,6 @@ import customizeDvd from './customizations/dvd';
 import customizeOwner from './customizations/owner';
 import customizePost from './customizations/post';
 import customizeRental from './customizations/rental';
-import customizeReview from './customizations/review';
 import customizeStore from './customizations/store';
 import mongoose from '../connections/mongoose';
 import sequelizeMsSql from '../connections/sequelize-mssql';
@@ -34,16 +34,16 @@ export default function makeAgent() {
 
   return createAgent<Schema>(envOptions)
     .addDataSource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }), {
-      rename: {
-        address: 'location',
-      },
+      rename: { address: 'location' },
     })
     .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
     .addDataSource(createTypicode())
     .addDataSource(createSequelizeDataSource(sequelizePostgres))
     .addDataSource(createSequelizeDataSource(sequelizeMySql))
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))
-    .addDataSource(createMongooseDataSource(mongoose))
+    .addDataSource(
+      createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
+    )
 
     .addChart('numRentals', async (context, resultBuilder) => {
       const rentals = context.dataSource.getCollection('rental');
@@ -52,6 +52,7 @@ export default function makeAgent() {
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
 
+    .customizeCollection('account', customizeAccount)
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('location', customizeAddress)
     .customizeCollection('store', customizeStore)
@@ -59,6 +60,5 @@ export default function makeAgent() {
     .customizeCollection('dvd', customizeDvd)
     .customizeCollection('customer', customizeCustomer)
     .customizeCollection('post', customizePost)
-    .customizeCollection('comment', customizeComment)
-    .customizeCollection('review', customizeReview);
+    .customizeCollection('comment', customizeComment);
 }

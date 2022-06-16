@@ -33,18 +33,40 @@ async function createStoreRecords(connection: Sequelize, ownerRecords: any[]): P
   );
 }
 
-async function createReviewRecords(connection: Connection, storeRecords: any[]): Promise<void> {
-  const reviewsRecords = [];
+async function createAccountRecords(connection: Connection, storeRecords: any[]): Promise<void> {
+  const records = [];
 
   for (let i = 0; i < 30; i += 1) {
-    reviewsRecords.push({
-      title: faker.word.adjective(),
-      message: faker.lorem.paragraphs(1),
+    records.push({
+      firstname: faker.name.firstName(),
+      lastname: faker.name.lastName(),
       storeId: faker.helpers.randomize(storeRecords.map(({ id }) => id)),
+      address: {
+        streetNumber: faker.datatype.number(100),
+        streetName: faker.address.streetName(),
+        city: faker.address.cityName(),
+        country: faker.address.country(),
+      },
+      bills: faker.helpers.uniqueArray(
+        () => ({
+          title: faker.finance.transactionDescription(),
+          amount: faker.datatype.number({ min: 1, max: 100, precision: 0.01 }),
+          issueDate: faker.datatype.datetime(),
+          items: faker.helpers.uniqueArray(
+            () => ({
+              importance: faker.helpers.randomize(['high', 'medium', 'low']),
+              title: faker.finance.transactionDescription(),
+              amount: faker.datatype.number({ min: 1, max: 100, precision: 0.01 }),
+            }),
+            3,
+          ),
+        }),
+        4,
+      ),
     });
   }
 
-  await connection.models.review.create(reviewsRecords);
+  await connection.models.account.create(records);
 }
 
 async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> {
@@ -148,7 +170,7 @@ async function seedData() {
     const ownerRecords = await createOwnerRecords(sequelizePostgres);
     const storeRecords = await createStoreRecords(sequelizeMySql, ownerRecords);
     const customerRecords = await createCustomerCardRecords(sequelizeMariaDb);
-    await createReviewRecords(mongoose, storeRecords);
+    await createAccountRecords(mongoose, storeRecords);
     await createDvdRentalsRecords(sequelizeMsSql, storeRecords, customerRecords);
   } catch (error) {
     console.error('---------------');

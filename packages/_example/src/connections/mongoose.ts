@@ -4,19 +4,33 @@ const connectionString = 'mongodb://root:password@localhost:27027';
 const connection = mongoose.createConnection(connectionString);
 
 connection.model(
-  'review',
+  'account',
   new mongoose.Schema({
-    title: {
-      type: String,
-      required: true,
+    firstname: String,
+    lastname: String,
+    storeId: Number,
+
+    address: {
+      streetNumber: Number,
+      streetName: String,
+      city: String,
+      country: String,
     },
-    message: {
-      type: String,
-    },
-    storeId: {
-      type: Number,
-      required: true,
-    },
+
+    bills: [
+      {
+        title: String,
+        amount: Number,
+        issueDate: Date,
+        items: [
+          {
+            importance: { type: String, enum: ['high', 'medium', 'low'] },
+            title: String,
+            amount: Number,
+          },
+        ],
+      },
+    ],
   }),
 );
 

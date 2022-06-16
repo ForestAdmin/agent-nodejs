@@ -1,64 +1,56 @@
-import { Connection, Model, Schema } from 'mongoose';
-import { RecordData } from '@forestadmin/datasource-toolkit';
+import mongoose, { Schema } from 'mongoose';
 
-import MongooseCollection from '../src/collection';
 import MongooseDatasource from '../src/datasource';
 
 describe('MongooseDatasource', () => {
-  const setupConnection = (): Connection => {
-    const connection = { models: { cars: {} } };
-    connection.models.cars = {
-      schema: {
-        paths: {},
-      },
-    } as Model<RecordData>;
+  it('should give one collection by default', () => {
+    mongoose.model('books', new Schema({}));
+    const datasource = new MongooseDatasource(mongoose.connection);
+    mongoose.deleteModel('books');
 
-    return connection as unknown as Connection;
-  };
-
-  describe('when connection does not have model', () => {
-    it('should not throw', () => {
-      const connection = { models: {} } as Connection;
-
-      expect(() => new MongooseDatasource(connection)).not.toThrow();
-    });
+    expect(datasource.collections).toMatchObject([{ name: 'books' }]);
   });
 
-  describe('when connection have models', () => {
-    it('should build collections from connection', () => {
-      const connection = setupConnection();
+  it('should create through collections by default', () => {
+    mongoose.model('books', new Schema({ authors: [{ type: 'ObjectId', ref: 'authors' }] }));
+    mongoose.model('authors', new Schema({}));
 
-      const mongooseDatasource = new MongooseDatasource(connection);
+    const datasource = new MongooseDatasource(mongoose.connection);
+    mongoose.deleteModel('books');
+    mongoose.deleteModel('authors');
 
-      expect(mongooseDatasource.collections).toHaveLength(1);
-      expect(mongooseDatasource.collections[0]).toBeInstanceOf(MongooseCollection);
+    expect(datasource.collections).toMatchObject([
+      { name: 'books' },
+      { name: 'books_authors' },
+      { name: 'authors' },
+    ]);
+  });
+
+  it('should not create through collection if specified', () => {
+    mongoose.model('books', new Schema({ authors: { type: 'ObjectId', ref: 'authors' } }));
+    mongoose.model('authors', new Schema({}));
+
+    const datasource = new MongooseDatasource(mongoose.connection, { asModels: { books: [] } });
+    mongoose.deleteModel('books');
+    mongoose.deleteModel('authors');
+
+    expect(datasource.collections).toMatchObject([{ name: 'books' }, { name: 'authors' }]);
+  });
+
+  it('should accept both dots and colons as separator in options', () => {
+    mongoose.model('books', new Schema({ author: { firstname: String, lastname: String } }));
+
+    const datasource = new MongooseDatasource(mongoose.connection, {
+      asModels: { books: ['author.firstname', 'author:lastname'] },
     });
 
-    describe('when models have relations', () => {
-      it('should add relation to the schema', () => {
-        const connection = { models: { cars: {}, owner: {} } };
-        connection.models.cars = {
-          modelName: 'cars',
-          schema: {
-            paths: new Schema({
-              aManyToOneRelation: { type: Schema.Types.ObjectId, ref: 'owner' },
-            }).paths,
-          },
-        } as Model<RecordData>;
+    mongoose.deleteModel('books');
 
-        connection.models.owner = {
-          modelName: 'owner',
-          schema: {
-            paths: new Schema().paths,
-          },
-        } as Model<RecordData>;
-
-        const mongooseDatasource = new MongooseDatasource(connection as unknown as Connection);
-
-        expect(mongooseDatasource.collections[1].schema.fields).toHaveProperty(
-          'owner__aManyToOneRelation__oneToMany',
-        );
-      });
-    });
+    expect(datasource.collections).toMatchObject([
+      { name: 'books' },
+      { name: 'books_author' },
+      { name: 'books_author_firstname' },
+      { name: 'books_author_lastname' },
+    ]);
   });
 });

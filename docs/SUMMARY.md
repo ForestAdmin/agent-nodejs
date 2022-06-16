@@ -13,10 +13,9 @@
 - [Usage](datasources/README.md)
 - [Provided datasources](datasources/provided/README.md)
 
-  - [Databases](datasources/provided/databases/README.md)
-    - [SQL](datasources/provided/databases/sql.md)
-  - [Object Relational Mappers](datasources/provided/orm/README.md)
-    - [Sequelize](datasources/provided/orm/sequelize.md)
+  - [SQL (without ORM)](datasources/provided/sql.md)
+  - [Sequelize](datasources/provided/sequelize.md)
+  - [Mongoose](datasources/provided/mongoose.md)
 
 - [Write your own](datasources/custom/README.md)
   - [Structure declaration](datasources/custom/structure.md)
