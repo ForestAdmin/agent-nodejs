@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.0.0-beta.37](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.36...@forestadmin/datasource-sql@1.0.0-beta.37) (2022-06-16)
+
+
+### Bug Fixes
+
+* **patch-package:** remove feature change on sequelize patch ([#356](https://github.com/ForestAdmin/agent-nodejs/issues/356)) ([ac3d7d5](https://github.com/ForestAdmin/agent-nodejs/commit/ac3d7d583c65b392fe668225ebcd9b63729f9f23))
+
 # @forestadmin/datasource-sql [1.0.0-beta.36](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.35...@forestadmin/datasource-sql@1.0.0-beta.36) (2022-06-15)
 
 
