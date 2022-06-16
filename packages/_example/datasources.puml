@@ -15,7 +15,7 @@ class ACCOUNT {
    String lastName
    String storeId
    Object address: {
-   .. Number streetNumber
+   -- Number streetNumber
    -- String streetName
    -- String city
    -- String country
