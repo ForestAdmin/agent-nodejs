@@ -23,6 +23,16 @@ describe('Tests for future versions', () => {
     it.todo('create should fail on the submodel if it is going to overwrite data');
   });
 
+  describe('When transforming nested array into models', () => {
+    /**
+     * We have accounts with the following structure:
+     *
+     * { name: 'john doe', bills: [{ items: [{ amount: Number }] }] }
+     */
+
+    it.todo('should allow to delete an item within a particular bill');
+  });
+
   describe('When transforming an array to a model', () => {
     /**
      * We have owners and stores with the following structure
