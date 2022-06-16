@@ -28,8 +28,21 @@ export default class SqlDataSource extends SequelizeDataSource {
     this.sqlTypeConverter = new SqlTypeConverter(this.sequelize);
   }
 
+  /**
+   * Fixes Sequelize behavior incorrectly implemented.
+   * Types indicate that showAllTables() should return a list of string, but it
+   * returns a list of object for both mariadb & mssql
+   * @see https://github.com/sequelize/sequelize/blob/main/src/dialects/mariadb/query.js#L295
+   */
+  async getRealTableNames(): Promise<string[]> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tableNames = (await this.queryInterface.showAllTables()) as Array<any>;
+
+    return tableNames.map(tableName => tableName?.tableName || tableName);
+  }
+
   async build() {
-    const tableNames = await this.queryInterface.showAllTables();
+    const tableNames = await this.getRealTableNames();
 
     await this.defineModels(tableNames);
     await this.defineRelations(tableNames);

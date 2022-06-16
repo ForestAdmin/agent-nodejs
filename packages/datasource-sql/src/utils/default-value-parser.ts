@@ -86,6 +86,9 @@ export default class DefaultValueParser {
     }
 
     if (this.dialect === 'mssql') {
+      // Sequelize send default values with weird char at the beginning (`(Ndefault value`)
+      sanitizedExpression = sanitizedExpression.replace(/\(N/, '');
+
       while (/^\(.*\)$/.test(sanitizedExpression)) {
         sanitizedExpression = sanitizedExpression.substring(1, sanitizedExpression.length - 1);
       }
