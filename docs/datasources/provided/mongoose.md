@@ -14,9 +14,9 @@ const agent = createAgent(options).addDataSource(createMongooseDataSource(connec
 {% endtab %} {% tab title="mongoose-models.js" %}
 
 ```javascript
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-const connectionString = 'mongodb://root:password@localhost:27027';
+const connectionString = 'mongodb://root:password@localhost:27017';
 const connection = mongoose.createConnection(connectionString);
 
 connection.model(
@@ -33,7 +33,7 @@ connection.model(
   }),
 );
 
-export default connection;
+module.exports = connection;
 ```
 
 {% endtab %} {% endtabs %}
