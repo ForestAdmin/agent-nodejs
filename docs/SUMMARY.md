@@ -50,6 +50,7 @@
 - [Hooks](agent-customization/hooks/README.md)
 - [Search](agent-customization/search.md)
 - [Segments](agent-customization/segments.md)
+- [Typings](agent-customization/typings.md)
 
 ## Frontend customization
 
