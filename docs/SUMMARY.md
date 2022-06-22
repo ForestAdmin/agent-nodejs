@@ -7,6 +7,7 @@
 - [How it works](getting-started/how-it-works.md)
 - [Quick start](getting-started/quick-start.md)
 - [Install](getting-started/install.md)
+- [Autocompletion & Typings](agent-customization/typings.md)
 
 ## Data Sources
 
@@ -50,7 +51,6 @@
 - [Hooks](agent-customization/hooks/README.md)
 - [Search](agent-customization/search.md)
 - [Segments](agent-customization/segments.md)
-- [Typings](agent-customization/typings.md)
 
 ## Frontend customization
 
