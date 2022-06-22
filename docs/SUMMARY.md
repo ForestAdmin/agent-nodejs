@@ -7,7 +7,7 @@
 - [How it works](getting-started/how-it-works.md)
 - [Quick start](getting-started/quick-start.md)
 - [Install](getting-started/install.md)
-- [Autocompletion & Typings](agent-customization/typings.md)
+- [Autocompletion & Typings](getting-started/typings.md)
 
 ## Data Sources
 
