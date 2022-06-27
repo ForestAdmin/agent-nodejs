@@ -114,7 +114,7 @@ export default class SequelizeCollection extends BaseCollection {
     if (aggregation.operation === 'Count' || !aggregationField) {
       aggregationField = '*';
     } else {
-      aggregationField = this.aggregationUtils.unAmbigousField(aggregationField);
+      aggregationField = this.aggregationUtils.quoteField(aggregationField);
     }
 
     const aggregationFunction = fn(aggregation.operation.toUpperCase(), col(aggregationField));

@@ -1,74 +1,35 @@
-import { Sequelize } from 'sequelize';
+import { DataTypes, Sequelize } from 'sequelize';
 
 import AggregationUtils from '../../src/utils/aggregation';
 
-describe('Utils > AggregationUtils', () => {
-  describe('unAmbigousField', () => {
+describe('Utils > Aggregation', () => {
+  describe('quoteField', () => {
     const setup = () => {
       const sequelize = new Sequelize({ dialect: 'postgres' });
-      const model = sequelize.define('model', {});
+      const model = sequelize.define('model', {
+        aField: {
+          field: '__a__field',
+          type: DataTypes.STRING,
+        },
+      });
 
       return { sequelize, model };
     };
 
-    describe('with a simple field', () => {
-      it('should return quoted unambigous field', () => {
-        const { model } = setup();
-        const aggregationUtils = new AggregationUtils(model);
+    it('should return quoted unambigous field', () => {
+      const { model } = setup();
+      const aggregationUtils = new AggregationUtils(model);
 
-        expect(aggregationUtils.unAmbigousField('id')).toStrictEqual('"model"."id"');
-      });
-
-      describe('when mode does not have the field', () => {
-        it('should an error', () => {
-          const { model } = setup();
-          const aggregationUtils = new AggregationUtils(model);
-
-          expect(() => aggregationUtils.unAmbigousField('unknow')).toThrowError(
-            'model model does not have field "unknow".',
-          );
-        });
-      });
+      expect(aggregationUtils.quoteField('aField')).toStrictEqual('"model"."__a__field"');
     });
 
-    describe('with a field on a relation', () => {
-      const relationSetup = () => {
-        const { sequelize, model } = setup();
+    it('should throw an error', () => {
+      const { model } = setup();
+      const aggregationUtils = new AggregationUtils(model);
 
-        const relation = sequelize.define('relation', {});
-        model.hasMany(relation);
-
-        return { sequelize, model, relation };
-      };
-
-      it('should return quoted unambigous field', () => {
-        const { model } = relationSetup();
-        const aggregationUtils = new AggregationUtils(model);
-
-        expect(aggregationUtils.unAmbigousField('relations:id')).toStrictEqual('"relations"."id"');
-      });
-
-      describe('when mode does not have the field', () => {
-        it('should an error', () => {
-          const { model } = relationSetup();
-          const aggregationUtils = new AggregationUtils(model);
-
-          expect(() => aggregationUtils.unAmbigousField('relations:unknow')).toThrowError(
-            'relations model does not have field "unknow".',
-          );
-        });
-      });
-
-      describe('when model does not have the relation', () => {
-        it('should an error', () => {
-          const { model } = relationSetup();
-          const aggregationUtils = new AggregationUtils(model);
-
-          expect(() => aggregationUtils.unAmbigousField('unknow:unknow')).toThrowError(
-            'model does not have association "unknow".',
-          );
-        });
-      });
+      expect(() => aggregationUtils.quoteField('unknown')).toThrowError(
+        'Invalid access: "unknown" on "model" does not exist.',
+      );
     });
   });
 });
