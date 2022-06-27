@@ -1,5 +1,7 @@
 The mongoose data source allows to import collections from a mongoose instance.
 
+In order to make everything work as expected, you need to install the package `@forestadmin/datasource-mongoose@beta`.
+
 {% tabs %} {% tab title="agent.js" %}
 
 ```javascript
