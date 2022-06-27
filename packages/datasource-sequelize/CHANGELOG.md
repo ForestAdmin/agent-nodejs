@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.33](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.32...@forestadmin/datasource-sequelize@1.0.0-beta.33) (2022-06-27)
+
+
+### Bug Fixes
+
+* **datasource sequelize:** aggregation get correctly nested relation ([#349](https://github.com/ForestAdmin/agent-nodejs/issues/349)) ([f9f89cd](https://github.com/ForestAdmin/agent-nodejs/commit/f9f89cd9d21d2cc8195d3aa04c33a6c2b76986e4))
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.32](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.31...@forestadmin/datasource-sequelize@1.0.0-beta.32) (2022-06-16)
 
 
