@@ -25,11 +25,3 @@ You will also need to install at least one of [our datasource](../../datasources
 If you don't use it already, you can also install [dotenv](https://github.com/motdotla/dotenv), which ease the management of environment variables. Even though it is not mandatory for Forest Admin to run, the example provided in the following documentations will use it.
 
 The following sections will provide example to ease your installation process. All of them will show how to run the agent using an SQL datasource.
-
-{% hint style="info" %}
-If you want to test Forest Admin but don't have a database on hand, here is one!
-
-`docker run -p 5432:5432 --name forest_demo_database forestadmin/meals-database`
-
-The associated connection string will be `postgres://lumber:secret@localhost:5432/meals`
-{% endhint %}
