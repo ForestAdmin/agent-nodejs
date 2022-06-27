@@ -6,7 +6,10 @@
 
 - [How it works](getting-started/how-it-works.md)
 - [Quick start](getting-started/quick-start.md)
-- [Install](getting-started/install.md)
+- [Install](getting-started/README.md)
+  - [As a standalone process](getting-started/using-standalone.md)
+  - [Attach to an existing app](getting-started/using-your-app.md)
+  - [Troubleshooting](getting-started/troubleshooting.md)
 - [Autocompletion & Typings](getting-started/autocompletion-and-typings.md)
 
 ## Data Sources
