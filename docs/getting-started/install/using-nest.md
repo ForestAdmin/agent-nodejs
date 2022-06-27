@@ -1,3 +1,5 @@
+If you already have an application running using [NestJS](https://nestjs.com/), the easiest way to attach the Forest Admin agent would use the `mountOnNestJs` function, just like in the following example:
+
 ```javascript
 import 'dotenv/config';
 
