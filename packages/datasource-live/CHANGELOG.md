@@ -1,3 +1,13 @@
+# @forestadmin/datasource-live [1.0.0-beta.34](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-live@1.0.0-beta.33...@forestadmin/datasource-live@1.0.0-beta.34) (2022-06-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.33
+
 # @forestadmin/datasource-live [1.0.0-beta.33](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-live@1.0.0-beta.32...@forestadmin/datasource-live@1.0.0-beta.33) (2022-06-16)
 
 
