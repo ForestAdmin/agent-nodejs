@@ -2,6 +2,12 @@
 description: Let's get you up and running on Forest Admin in minutes!
 ---
 
+# Introduction
+
+Forest Admin is a low-code internal tool solution that scales with your project. With 30+ out-of-the-box tools and pre-built UI components, you can ship an admin panel in a few minutes, and then easily customise it to meet your specific business logic. Thanks to the layout editor, non-technical team members can adjust the UI to their needs.
+
+Forest Admin has a unique hybrid architecture - only the frontend is managed on Forest Admin servers, which gives you the flexibility of a SaaS tool without compromising on data security.
+
 # Quick Start
 
 Forest Admin offers a lot of flexibility in terms of installation. The following guide provide a way to start using Forest Admin in minutes. If you want to dive deeper into the installation process of the product, we got you covered [here](./install/README.md).
