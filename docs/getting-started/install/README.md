@@ -1,8 +1,4 @@
-Forest Admin is a low-code internal tool solution that scales with your project. With 30+ out-of-the-box tools and pre-built UI components, you can ship an admin panel in a few minutes, and then easily customise it to meet your specific business logic. Thanks to the layout editor, non-technical team members can adjust the UI to their needs.
-
-Forest Admin has a unique hybrid architecture - only the frontend is managed on Forest Admin servers, which gives you the flexibility of a SaaS tool without compromising on data security.
-
-## Standalone and In-app installation
+## Standalone vs In-app installation
 
 The Forest Admin agent can run as a Standalone server, but can also be "attached" to an existing Node.js application server (That we usually call In-app).
 
@@ -24,4 +20,4 @@ You will also need to install at least one of [our datasource](../../datasources
 
 If you don't use it already, you can also install [dotenv](https://github.com/motdotla/dotenv), which ease the management of environment variables. Even though it is not mandatory for Forest Admin to run, the example provided in the following documentations will use it.
 
-The following sections will provide example to ease your installation process. All of them will show how to run the agent using an SQL datasource.
+The following sections will provide example to ease your installation process. All of them will show how to run the agent using an SQL datasource on our supported application servers.

@@ -7,7 +7,6 @@
 - [How it works](getting-started/how-it-works.md)
 - [Quick start](getting-started/quick-start.md)
 - [Install](getting-started/install/README.md)
-  - [As a standalone process](getting-started/install/using-standalone.md)
   - [Attach to an existing app](getting-started/install/using-your-app.md)
   - [Troubleshooting](getting-started/install/troubleshooting.md)
 - [Autocompletion & Typings](getting-started/autocompletion-and-typings.md)

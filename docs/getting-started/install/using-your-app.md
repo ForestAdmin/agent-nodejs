@@ -1,6 +1,6 @@
 As you can see in the previous paragraph, Forest Admin is able to run in a completely isolated context. However, in order to easily maintain your agent, you may want to attach the it directly.
 
-### Example with `express`
+## Example with `express`
 
 ```javascript
 require('dotenv').config();
@@ -29,7 +29,7 @@ const express = require('express');
 })();
 ```
 
-### Example with `fastify`
+## Example with `fastify`
 
 ```javascript
 require('dotenv').config();
@@ -58,7 +58,7 @@ const { fastify } = require('fastify');
 })();
 ```
 
-### Example with `koa`
+## Example with `koa`
 
 ```javascript
 require('dotenv').config();
@@ -87,7 +87,7 @@ const Koa = require('koa');
 })();
 ```
 
-### Example with `NestJs`
+## Example with `NestJs`
 
 ```javascript
 require('dotenv').config();
