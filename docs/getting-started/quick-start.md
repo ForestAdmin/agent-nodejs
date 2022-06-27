@@ -20,7 +20,7 @@ This guide will help you to setup Forest Admin as a standalone process, using an
 
 ## Create an account and follow the onboarding
 
-Go to [https://app.forestadmin.com/signup](https://app.forestadmin.com/signup), and create an account and install your project.
+Go to [https://app.forestadmin.com/signup](https://app.forestadmin.com/signup), and create an account and a new project.
 
 ## Optionnal - Make sure you have a database running, or use our example
 
@@ -47,7 +47,7 @@ yarn add @forestadmin/agent@beta dotenv
 
 Create an `index.js` and a `.env` file.
 
-{% tabs %} {% tab title="agent.js"}
+{% tabs %} {% tab title="agent.js" %}
 
 ```javascript
 require('dotenv').config();
@@ -86,7 +86,7 @@ node index.js
 
 should be enough to be redirected to the "rate-install" page. However, Forest Admin current don't have any collections to display.
 
-![](../assets/quick-no-collections.png)
+![](../assets/quickstart-no-collections.png)
 
 ## Add a datasource
 
@@ -99,6 +99,8 @@ yarn add @forestadmin/datasource-sql@beta
 ```
 
 If you run on the example database provided above, simply add the following in your `index.js` and `.env`
+
+{% tabs %} {% tab title="index.js" %}
 
 ```javascript
 const { createSqlDataSource } = require('@forestadmin/datasource-sql');
@@ -125,15 +127,15 @@ yarn add pg
 node index.js
 ```
 
-you should be able to see the following log in your terminal
+You should be able to see the following log in your terminal:
 
 ```
 info: Schema was updated, sending new version
 ```
 
-and refreshing the Forest Admin app should display the following screen
+And refreshing the Forest Admin app should display the following screen:
 
-![](../assets/quick-start-editor-mode.png)
+![](../assets/quickstart-editor-mode.png)
 
 Click on the "eyes" icons of the collections you want to display, then exit the layout editor and ...
 
