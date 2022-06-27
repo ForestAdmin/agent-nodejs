@@ -7,8 +7,13 @@
 - [How it works](getting-started/how-it-works.md)
 - [Quick start](getting-started/quick-start.md)
 - [Install](getting-started/install/README.md)
-  - [Attach to an existing app](getting-started/install/using-your-app.md)
+
+  - [On Express](getting-started/install/using-express.md)
+  - [On Koa](getting-started/install/using-koa.md)
+  - [On Fastify](getting-started/install/using-fastify.md)
+  - [On NestJS](getting-started/install/using-nest.md)
   - [Troubleshooting](getting-started/install/troubleshooting.md)
+
 - [Autocompletion & Typings](getting-started/autocompletion-and-typings.md)
 
 ## Data Sources
