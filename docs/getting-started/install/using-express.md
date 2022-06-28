@@ -3,13 +3,11 @@ If you already have an application running using [Express](https://expressjs.com
 ```javascript
 require('dotenv').config();
 
-// Import the requirements
 const { createAgent } = require('@forestadmin/agent');
 const { createSqlDataSource } = require('@forestadmin/datasource-sql');
 
 const express = require('express');
 
-// Create your Forest Admin agent
 (async () => {
   const app = express();
 
@@ -21,7 +19,6 @@ const express = require('express');
     envSecret: process.env.FOREST_ENV_SECRET,
     isProduction: process.env.NODE_ENV === 'production',
   })
-    .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
     .mountOnExpress(app)
     .start();
 })();
