@@ -3,7 +3,7 @@
 This is the most common issue you can encounter while setting up the Forest Admin Agent.
 Opening the Developer Console of your browser will help to detect this kind of issue. As Forest Admin provide a complete middleware, please make sure:
 
-- That the Forest Admin Agent is mounted before any other middleware (Especially true in a NestJS context, as the Nest App Factory allow to configure CORS on creation).
+- That the Forest Admin Agent is mounted before any other middleware (Especially in a NestJS context, as the Nest App Factory allow to configure CORS on creation, and it can interfer with the `@forestadmin/agent@beta` package).
 - That your server is up and running. This can be easily checked by using the `/forest` endpoint.
 
 ## Help us get better!

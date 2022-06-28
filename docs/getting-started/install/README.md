@@ -1,20 +1,22 @@
 ## Standalone vs In-app installation
 
-The Forest Admin agent can run as a Standalone server, but can also be "attached" to an existing Node.js application server (That we usually call In-app).
+The Forest Admin agent can run as a Standalone server (You can see it in action in the [quickstart](../quick-start.md)), but can also be "attached" to an existing Node.js application server (That we usually call In-app).
 
-Usually, we recommand to install the Forest Admin agent "In-app", as our [Development and Deployment workflow](../../deployment/) is strongly tied to you application.
+We recommand to install the Forest Admin agent "In-app" whenever it's possible, as our [Development and Deployment workflow](../../deployment/) can be tied to your application deployment process.
 
-However, if you don't already have an existing Node.js application, or if you prefer to run Forest Admin in an isolated context, you can still use our Standalone installation process.
+However, if you don't already have an existing Node.js application, or if you prefer to run Forest Admin in an isolated context, you can still use our Standalone installation.
 
 {% hint style="info" %}
 
-The installation process will ask for your application endpoint. This endpoint must be correctly filled in order to onboard successfully. It is also required for the authentication process to work as expected. If you choose to make the agent independant of your main application, fill this endpoint with then endpoint you would like (http://localhost:3000 by default).
+The installation process will ask for your application endpoint. This endpoint must be correctly filled in order to onboard and to make the authentication process to work as expected. If you choose to make the agent run as Standalone process, fill this endpoint with then endpoint you would like your agent to run on (http://localhost:3000 by default).
+
+Also make sure that the port provided to `mountAsStandaloneServer` matches this endpoint.
 
 {% endhint %}
 
 ## Requirements
 
-In order to install Forest Admin in a Javascript or Typescript environment, you'll need to install the `@forestadmin/agent@beta` package. It expose all the code required to create a Forest Admin agent.
+In order to install Forest Admin in a Javascript or Typescript environment, you'll need to install the `@forestadmin/agent@beta` package. It exposes all the code required to create a Forest Admin agent.
 
 You will also need to install at least one of [our datasource](../../datasources/README.md) package.
 
