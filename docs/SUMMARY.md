@@ -19,7 +19,7 @@
 ## Data Sources
 
 - [Usage](datasources/README.md)
-- [Provided datasources](datasources/provided/README.md)
+- [Provided data_sources](datasources/provided/README.md)
 
   - [SQL (without ORM)](datasources/provided/sql.md)
   - [Sequelize](datasources/provided/sequelize.md)
