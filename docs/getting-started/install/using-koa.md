@@ -5,13 +5,11 @@ If you already have an application running using [Koa](https://koajs.com/), the 
 ```javascript
 require('dotenv').config();
 
-// Import the requirements
 const { createAgent } = require('@forestadmin/agent');
 const { createSqlDataSource } = require('@forestadmin/datasource-sql');
 
 const Koa = require('koa');
 
-// Create your Forest Admin agent
 (async () => {
   const app = new Koa();
 
@@ -23,7 +21,6 @@ const Koa = require('koa');
     envSecret: process.env.FOREST_ENV_SECRET,
     isProduction: process.env.NODE_ENV === 'production',
   })
-    // Mount on Koa directly will be attached directly on top of your app.
     .mountOnKoa(app)
     .start();
 })();

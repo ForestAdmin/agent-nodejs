@@ -3,13 +3,11 @@ If you already have an application running using [Fastify](https://www.fastify.i
 ```javascript
 require('dotenv').config();
 
-// Import the requirements
 const { createAgent } = require('@forestadmin/agent');
 const { createSqlDataSource } = require('@forestadmin/datasource-sql');
 
 const { fastify } = require('fastify');
 
-// Create your Forest Admin agent
 (async () => {
   const app = fastify();
 
@@ -21,7 +19,6 @@ const { fastify } = require('fastify');
     envSecret: process.env.FOREST_ENV_SECRET,
     isProduction: process.env.NODE_ENV === 'production',
   })
-    .addDataSource(createSqlDataSource(process.env.DATABASE_URL))
     .mountOnFastify(app)
     .start();
 })();
