@@ -70,6 +70,18 @@ export default class CollectionBuilder<
       enumValues: schema.enumValues,
     });
 
+    this.stack.write.getCollection(this.name).replaceFieldWriting(name, value => {
+      const path = options.path.split(':');
+      const writingPath = {};
+      path.reduce((nestedPath, currentPath, index) => {
+        nestedPath[currentPath] = index === path.length - 1 ? value : {};
+
+        return nestedPath[currentPath];
+      }, writingPath);
+
+      return writingPath;
+    });
+
     for (const operator of schema.filterOperators) {
       const handler = value => ({ field: options.path, operator, value });
       this.replaceFieldOperator(

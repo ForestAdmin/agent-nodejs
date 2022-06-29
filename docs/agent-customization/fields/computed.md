@@ -7,8 +7,13 @@ In this first example, we want to display the customer's city in the table-view.
 However, as there is no "city" column on the "customer" database table, we need to retrieve it from the "address" relation.
 
 ```javascript
-collection.importField('city', { path: 'address:city', readonly: true });
+collection.importField('city', { path: 'address:city' });
 ```
+
+{% hint style="info" %}
+The `importField` method will automatically make it writable.
+To disable write, please go to this [section](write.md).
+{% endhint %}
 
 Adding our city column into the table does bring functionality, but it created complexity.
 
@@ -42,9 +47,15 @@ collection.addField('totalSpending', {
   },
 });
 ```
-## Make it writable
 
-When you add a field, it is not writable. To allow it, use the `replaceFieldWriting` method.
+## Replace the writing definition
+
+You should use the `replaceFieldWriting` method to add your writing definition.
+For example, it is useful when you want to manipulate the field value before saving it. 
+
+{% hint style="info" %}
+You can have more details and examples on this [section](write.md).
+{% endhint %}
 
 ```javascript
 collection.replaceFieldWriting('fullName', (value) => {
