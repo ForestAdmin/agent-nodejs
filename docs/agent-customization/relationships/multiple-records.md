@@ -14,8 +14,7 @@ agent.customizeCollection('countries', collection =>
   collection.addOneToManyRelation('myTowns', 'towns', {
       originKey: 'country_id',
       originKeyTarget: 'id', // Optional (uses primary key of countries by default)
-    }
-  }),
+  })
 );
 ```
 
