@@ -19,12 +19,11 @@
 ## Data Sources
 
 - [Usage](datasources/README.md)
-- [Provided data_sources](datasources/provided/README.md)
-
+- [Provided datasources](datasources/provided/README.md)
   - [SQL (without ORM)](datasources/provided/sql.md)
   - [Sequelize](datasources/provided/sequelize.md)
   - [Mongoose](datasources/provided/mongoose.md)
-
+- [Multiple datasources](datasources/multiple-datasources/README.md)
 - [Write your own](datasources/custom/README.md)
   - [Structure declaration](datasources/custom/structure.md)
   - [Using a local cache](datasources/custom/local-cache/README.md)
