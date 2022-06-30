@@ -24,6 +24,8 @@
   - [Sequelize](datasources/provided/sequelize.md)
   - [Mongoose](datasources/provided/mongoose.md)
 - [Multiple datasources](datasources/multiple-datasources/README.md)
+  - [Naming conflicts](datasources/multiple-datasources/naming-conflicts.md)
+  - [Relationships](datasources/multiple-datasources/relationships.md)
 - [Write your own](datasources/custom/README.md)
   - [Structure declaration](datasources/custom/structure.md)
   - [Using a local cache](datasources/custom/local-cache/README.md)
