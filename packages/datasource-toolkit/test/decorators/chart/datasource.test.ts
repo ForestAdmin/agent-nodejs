@@ -28,7 +28,7 @@ describe('ChartDataSourceDecorator', () => {
       });
     });
 
-    test('schema throw an error if a chart already exist', () => {
+    test('schema throw an error if a chart already exists', () => {
       expect(() => decorator.addChart('myChart', () => {})).toThrow(
         "Chart 'myChart' already exists.",
       );

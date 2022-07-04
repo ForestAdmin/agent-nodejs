@@ -17,7 +17,10 @@ describe('CompositeDataSource', () => {
 
       compositeDataSource.addDataSource(newDataSource);
 
-      expect(compositeDataSource.collections.length).toBe(2);
+      expect(compositeDataSource.collections.map(c => c.name)).toEqual([
+        'collection1',
+        'collection2',
+      ]);
     });
 
     it('should add all the charts from all the data sources', () => {
@@ -50,7 +53,10 @@ describe('CompositeDataSource', () => {
 
       compositeDataSource.addDataSource(newDataSource, { collection1: 'collection2' });
 
-      expect(compositeDataSource.collections.length).toBe(2);
+      expect(compositeDataSource.collections.map(c => c.name)).toEqual([
+        'collection1',
+        'collection2',
+      ]);
     });
 
     it('should throw an error if there are two identical collection name', () => {
