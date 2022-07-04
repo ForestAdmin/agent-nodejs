@@ -1,6 +1,6 @@
 import { CompositeId } from '@forestadmin/datasource-toolkit';
 
-import { AgentOptions } from '../types';
+import { AgentServerOptions, BuilderOptions } from '../../types';
 
 export enum HttpCode {
   BadRequest = 400,
@@ -26,4 +26,4 @@ export type SelectionIds = {
   ids: CompositeId[];
 };
 
-export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
+export type AgentOptionsWithDefaults = Readonly<Required<AgentServerOptions & BuilderOptions>>;

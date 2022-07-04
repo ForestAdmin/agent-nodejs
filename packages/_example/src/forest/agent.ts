@@ -1,64 +1,25 @@
-import { AgentOptions, createAgent } from '@forestadmin/agent';
-import { createLiveDataSource } from '@forestadmin/datasource-live';
-import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
-import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
-import { createSqlDataSource } from '@forestadmin/datasource-sql';
+import { connectRemoteDataSource } from '@forestadmin/datasource-rpc';
+import { createAgent } from '@forestadmin/agent';
 
 import { Schema } from './typings';
-import { liveDatasourceSchema, seedLiveDatasource } from './datasources/live';
-import createTypicode from './datasources/typicode';
-import customizeAccount from './customizations/account';
-import customizeAddress from './customizations/address';
-import customizeComment from './customizations/comment';
-import customizeCustomer from './customizations/customer';
-import customizeDvd from './customizations/dvd';
-import customizeOwner from './customizations/owner';
-import customizePost from './customizations/post';
-import customizeRental from './customizations/rental';
-import customizeStore from './customizations/store';
-import mongoose from '../connections/mongoose';
-import sequelizeMsSql from '../connections/sequelize-mssql';
-import sequelizeMySql from '../connections/sequelize-mysql';
-import sequelizePostgres from '../connections/sequelize-postgres';
 
-export default function makeAgent() {
-  const envOptions: AgentOptions = {
-    authSecret: process.env.FOREST_AUTH_SECRET,
-    agentUrl: process.env.FOREST_AGENT_URL,
-    envSecret: process.env.FOREST_ENV_SECRET,
-    forestServerUrl: process.env.FOREST_SERVER_URL,
+export default async () =>
+  createAgent<Schema>({
     isProduction: false,
     loggerLevel: 'Info',
     typingsPath: 'src/forest/typings.ts',
-  };
-
-  return createAgent<Schema>(envOptions)
-    .addDataSource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }), {
-      rename: { address: 'location' },
-    })
-    .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
-    .addDataSource(createTypicode())
-    .addDataSource(createSequelizeDataSource(sequelizePostgres))
-    .addDataSource(createSequelizeDataSource(sequelizeMySql))
-    .addDataSource(createSequelizeDataSource(sequelizeMsSql))
+  })
     .addDataSource(
-      createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
+      connectRemoteDataSource('http://aa88-2a01-cb0c-85c4-da00-dc2f-e8eb-1743-f32f.ngrok.io'),
     )
 
-    .addChart('numRentals', async (context, resultBuilder) => {
-      const rentals = context.dataSource.getCollection('rental');
-      const rows = await rentals.aggregate({}, { operation: 'Count' });
-
-      return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
-    })
-
-    .customizeCollection('account', customizeAccount)
-    .customizeCollection('owner', customizeOwner)
-    .customizeCollection('location', customizeAddress)
-    .customizeCollection('store', customizeStore)
-    .customizeCollection('rental', customizeRental)
-    .customizeCollection('dvd', customizeDvd)
-    .customizeCollection('customer', customizeCustomer)
-    .customizeCollection('post', customizePost)
-    .customizeCollection('comment', customizeComment);
-}
+    .startAgentServer({
+      authSecret: process.env.FOREST_AUTH_SECRET,
+      agentUrl: process.env.FOREST_AGENT_URL,
+      envSecret: process.env.FOREST_ENV_SECRET,
+      forestServerUrl: process.env.FOREST_SERVER_URL,
+      mountPoint: {
+        type: 'standalone',
+        port: Number(process.env.HTTP_PORT_STANDALONE),
+      },
+    });

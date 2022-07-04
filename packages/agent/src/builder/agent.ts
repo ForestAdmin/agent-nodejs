@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   BaseDataSource,
   ChartDefinition,
@@ -12,11 +13,12 @@ import Koa from 'koa';
 import Router from '@koa/router';
 import http from 'http';
 
-import { AgentOptions } from '../types';
+import { AgentServerOptions, BuilderOptions, MountOptions, RpcServerOptions } from '../types';
 import { DataSourceOptions, HttpCallback } from './types';
 import CollectionBuilder from './collection';
 import DecoratorsStack from './decorators-stack';
-import ForestAdminHttpDriver from '../agent/forestadmin-http-driver';
+import ForestAdminHttpDriver from '../expose/as-agent/forestadmin-http-driver';
+import ForestAdminRpcServer from '../expose/as-datasource/rpc-server';
 import OptionsValidator from './utils/options-validator';
 import TypingGenerator from './utils/typing-generator';
 
@@ -33,7 +35,7 @@ import TypingGenerator from './utils/typing-generator';
 export default class AgentBuilder<S extends TSchema = TSchema> {
   private readonly compositeDataSource: BaseDataSource<Collection>;
   private readonly stack: DecoratorsStack;
-  private readonly options: AgentOptions;
+  private readonly options: BuilderOptions;
   private customizations: (() => Promise<void>)[] = [];
   private mounts: ((router: Router) => Promise<void>)[] = [];
   private termination: (() => Promise<void>)[] = [];
@@ -55,7 +57,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    *  .addDataSource(new DataSource())
    *  .start();
    */
-  constructor(options: AgentOptions) {
+  constructor(options: BuilderOptions) {
     this.options = OptionsValidator.withDefaults(options);
     this.compositeDataSource = new BaseDataSource<Collection>();
     this.stack = new DecoratorsStack(this.compositeDataSource);
@@ -124,12 +126,59 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     return this;
   }
 
+  async startRpcServer(rpcOptions: RpcServerOptions): Promise<void> {
+    await this.preStart(rpcOptions.mountPoint);
+
+    const httpDriver = new ForestAdminRpcServer(this.stack.dataSource, rpcOptions);
+    await this.postStart(await httpDriver.getRouter());
+  }
+
+  /**
+   * Start the agent.
+   */
+  async startAgentServer(agentOptions: AgentServerOptions): Promise<void> {
+    await this.preStart(agentOptions.mountPoint);
+
+    const options = { ...this.options, ...agentOptions };
+    const httpDriver = new ForestAdminHttpDriver(this.stack.dataSource, options as any);
+    await httpDriver.sendSchema();
+
+    await this.postStart(await httpDriver.getRouter());
+  }
+
+  async stop(): Promise<void> {
+    for (const task of this.termination) await task(); // eslint-disable-line no-await-in-loop
+  }
+
+  private async preStart(options: MountOptions): Promise<void> {
+    if (options.type === 'express') this.mountOnExpress(options.application);
+    else if (options.type === 'fastify') this.mountOnFastify(options.application);
+    else if (options.type === 'koa') this.mountOnKoa(options.application);
+    else if (options.type === 'nestjs') this.mountOnNestJs(options.application);
+    else if (options.type === 'standalone')
+      this.mountOnStandaloneServer(options.port, options.host);
+    else throw new Error('Invalid mount options');
+
+    // Customize agent
+    for (const task of this.customizations) await task(); // eslint-disable-line no-await-in-loop
+
+    // Write typings file
+    if (!this.options.isProduction && this.options.typingsPath) {
+      const types = TypingGenerator.generateTypes(this.stack.action, this.options.typingsMaxDepth);
+      await writeFile(this.options.typingsPath, types, { encoding: 'utf-8' });
+    }
+  }
+
+  private async postStart(router: Router): Promise<void> {
+    for (const task of this.mounts) await task(router); // eslint-disable-line no-await-in-loop
+  }
+
   /**
    * Expose the agent on a given port and host
    * @param port port that should be used.
    * @param host host that should be used.
    */
-  mountOnStandaloneServer(port = 3351, host = 'localhost'): this {
+  private mountOnStandaloneServer(port = 3351, host = 'localhost'): void {
     const server = http.createServer(this.getConnectCallback(true));
     server.listen(port, host);
 
@@ -141,8 +190,6 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     this.termination.push(async () => {
       server.close();
     });
-
-    return this;
   }
 
   /**
@@ -150,11 +197,9 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    * @param express instance of the express app or router.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mountOnExpress(express: any): this {
+  private mountOnExpress(express: any): void {
     express.use('/forest', this.getConnectCallback(false));
     this.options.logger('Info', `Successfully mounted on Express.js`);
-
-    return this;
   }
 
   /**
@@ -162,13 +207,11 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    * @param fastify instance of the fastify app, or of a fastify context
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mountOnFastify(fastify: any): this {
+  private mountOnFastify(fastify: any): void {
     const callback = this.getConnectCallback(false);
     this.useCallbackOnFastify(fastify, callback);
 
     this.options.logger('Info', `Successfully mounted on Fastify`);
-
-    return this;
   }
 
   /**
@@ -176,7 +219,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    * @param koa instance of a koa app or a koa Router.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mountOnKoa(koa: any): this {
+  private mountOnKoa(koa: any): void {
     const parentRouter = new Router({ prefix: '/forest' });
     koa.use(parentRouter.routes());
     this.options.logger('Info', `Successfully mounted on Koa`);
@@ -184,8 +227,6 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     this.mounts.push(async router => {
       parentRouter.use(router.routes());
     });
-
-    return this;
   }
 
   /**
@@ -193,7 +234,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    * @param nestJs instance of a NestJS application
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mountOnNestJs(nestJs: any): this {
+  private mountOnNestJs(nestJs: any): void {
     const adapter = nestJs.getHttpAdapter();
     const callback = this.getConnectCallback(false);
 
@@ -204,35 +245,6 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     }
 
     this.options.logger('Info', `Successfully mounted on NestJS`);
-
-    return this;
-  }
-
-  /**
-   * Start the agent.
-   */
-  async start(): Promise<void> {
-    // Customize agent
-    for (const task of this.customizations) await task(); // eslint-disable-line no-await-in-loop
-
-    // Check that options are valid
-    const options = OptionsValidator.validate(this.options);
-
-    // Write typings file
-    if (!options.isProduction && options.typingsPath) {
-      const types = TypingGenerator.generateTypes(this.stack.action, options.typingsMaxDepth);
-      await writeFile(options.typingsPath, types, { encoding: 'utf-8' });
-    }
-
-    const httpDriver = new ForestAdminHttpDriver(this.stack.dataSource, options);
-    await httpDriver.sendSchema();
-
-    const router = await httpDriver.getRouter();
-    for (const task of this.mounts) await task(router); // eslint-disable-line no-await-in-loop
-  }
-
-  async stop(): Promise<void> {
-    for (const task of this.termination) await task(); // eslint-disable-line no-await-in-loop
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

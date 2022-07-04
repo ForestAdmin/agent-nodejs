@@ -12,6 +12,7 @@
     "@forestadmin/datasource-sql": "1.0.0-beta.39",
     "@forestadmin/datasource-toolkit": "1.0.0-beta.26",
     "@forestadmin/datasource-mongoose": "1.0.0-beta.13",
+    "@forestadmin/datasource-rpc": "0.0.0-development",
     "@koa/router": "^10.1.1",
     "@nestjs/common": "^8.4.5",
     "@nestjs/core": "^8.4.5",

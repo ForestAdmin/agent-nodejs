@@ -5,7 +5,7 @@ import { JSONAPIDocument } from 'json-api-serializer';
 import hashObject from 'object-hash';
 import superagent, { Response, ResponseError } from 'superagent';
 
-import { AgentOptions } from '../../types';
+import { AgentOptionsWithDefaults } from '../types';
 
 export type IpWhitelistConfiguration = {
   isFeatureEnabled: boolean;
@@ -40,7 +40,7 @@ export type RenderingPermissions = {
   };
 };
 
-type HttpOptions = Pick<AgentOptions, 'envSecret' | 'forestServerUrl' | 'isProduction'>;
+type HttpOptions = Pick<AgentOptionsWithDefaults, 'envSecret' | 'forestServerUrl' | 'isProduction'>;
 
 export default class ForestHttpApi {
   static async getIpWhitelistConfiguration(

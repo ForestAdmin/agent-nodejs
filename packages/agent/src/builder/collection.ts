@@ -23,7 +23,7 @@ import {
 
 import { FieldDefinition, OneToManyEmbeddedDefinition } from './types';
 import DecoratorsStack from './decorators-stack';
-import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
+import FrontendFilterableUtils from '../expose/as-agent/utils/forest-schema/filterable';
 
 export default class CollectionBuilder<
   S extends TSchema = TSchema,

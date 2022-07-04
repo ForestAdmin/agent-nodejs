@@ -4,17 +4,17 @@ import JSONAPISerializer from 'json-api-serializer';
 import crypto from 'crypto';
 import stringify from 'json-stringify-pretty-compact';
 
-import { AgentOptions } from '../../../types';
+import { AgentOptionsWithDefaults } from '../../types';
 import { ForestServerCollection } from './types';
 import SchemaGeneratorCollection from './generator-collection';
 
 type RawSchema = ForestServerCollection[];
 type SerializedSchema = { meta: { schemaFileHash: string } };
-type Options = Pick<AgentOptions, 'isProduction' | 'prefix' | 'schemaPath'>;
+type Options = Pick<AgentOptionsWithDefaults, 'isProduction' | 'prefix' | 'schemaPath'>;
 
 // Load version from package.json at startup
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { version } = require('../../../../package.json');
+const { version } = require('../../../../../package.json');
 
 /**
  * Generate and dispatch dataSource schema on agent start.
