@@ -13,12 +13,11 @@ export default class DataSourceDecorator<
 > extends BaseDataSource<CollectionDecorator> {
   protected readonly childDataSource: DataSource;
   private readonly CollectionDecoratorCtor: CollectionDecoratorConstructor<CollectionDecorator>;
-  private addCollectionToChildDataSource: (collection: Collection) => void;
+  private readonly addCollectionToChildDataSource: (collection: Collection) => void;
 
   override get schema(): DataSourceSchema {
     return this.childDataSource.schema;
   }
-
 
   constructor(
     childDataSource: DataSource,
@@ -39,12 +38,12 @@ export default class DataSourceDecorator<
     );
   }
 
+  override renderChart(caller: Caller, name: string): Promise<Chart> {
+    return this.childDataSource.renderChart(caller, name);
+  }
+
   private addCollectionObserver(collection: Collection) {
     this.addCollectionToChildDataSource(collection);
     this.addCollection(new this.CollectionDecoratorCtor(collection, this));
-  }
-
-  override renderChart(caller: Caller, name: string): Promise<Chart> {
-    return this.childDataSource.renderChart(caller, name);
   }
 }
