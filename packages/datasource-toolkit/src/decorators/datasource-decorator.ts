@@ -19,10 +19,6 @@ export default class DataSourceDecorator<
     return this.childDataSource.schema;
   }
 
-  addCollectionObserver(collection: Collection) {
-    this.addCollectionToChildDataSource(collection);
-    this.addCollection(new this.CollectionDecoratorCtor(collection, this));
-  }
 
   constructor(
     childDataSource: DataSource,
@@ -41,6 +37,11 @@ export default class DataSourceDecorator<
     this.childDataSource.collections.forEach(collection =>
       this.addCollection(new this.CollectionDecoratorCtor(collection, this)),
     );
+  }
+
+  private addCollectionObserver(collection: Collection) {
+    this.addCollectionToChildDataSource(collection);
+    this.addCollection(new this.CollectionDecoratorCtor(collection, this));
   }
 
   override renderChart(caller: Caller, name: string): Promise<Chart> {
