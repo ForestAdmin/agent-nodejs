@@ -2,7 +2,6 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 import openidClient, { Issuer } from 'openid-client';
 
 import * as factories from '../../__factories__';
-import { HttpCode } from '../../../../src/agent/types';
 import Authentication from '../../../../src/agent/routes/security/authentication';
 import ForestHttpApi from '../../../../src/agent/utils/forest-http-api';
 
@@ -121,7 +120,6 @@ describe('Authentication', () => {
 
         expect(router.post).toHaveBeenCalledWith('/authentication', expect.any(Function));
         expect(router.get).toHaveBeenCalledWith('/authentication/callback', expect.any(Function));
-        expect(router.post).toHaveBeenCalledWith('/authentication/logout', expect.any(Function));
       });
     });
   });
@@ -238,18 +236,6 @@ describe('Authentication', () => {
           await expect(authentication.handleAuthenticationCallback(context)).rejects.toThrow();
         });
       });
-    });
-  });
-
-  describe('handleAuthenticationLogout', () => {
-    test('should return a 204', async () => {
-      const authentication = new Authentication(services, options);
-
-      const context = createMockContext();
-
-      await authentication.handleAuthenticationLogout(context);
-
-      expect(context.response.status).toEqual(HttpCode.NoContent);
     });
   });
 });

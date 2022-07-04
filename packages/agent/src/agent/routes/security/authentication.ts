@@ -6,7 +6,7 @@ import jsonwebtoken from 'jsonwebtoken';
 import jwt from 'koa-jwt';
 
 import { Context } from 'koa';
-import { HttpCode, RouteType } from '../../types';
+import { RouteType } from '../../types';
 import BaseRoute from '../base-route';
 import ForestHttpApi from '../../utils/forest-http-api';
 
@@ -44,13 +44,11 @@ export default class Authentication extends BaseRoute {
     router.get('/authentication/callback', this.handleAuthenticationCallback.bind(this));
 
     router.use(jwt({ secret: this.options.authSecret, cookie: 'forest_session_token' }));
-
-    router.post('/authentication/logout', this.handleAuthenticationLogout.bind(this));
   }
 
   public async handleAuthentication(context: Context): Promise<void> {
     const renderingId = Number(context.request.body?.renderingId);
-    this.checkRenderingId(renderingId);
+    Authentication.checkRenderingId(renderingId);
 
     const authorizationUrl = this.client.authorizationUrl({
       scope: 'openid email profile',
@@ -68,7 +66,7 @@ export default class Authentication extends BaseRoute {
 
     try {
       renderingId = JSON.parse(state).renderingId;
-      this.checkRenderingId(renderingId);
+      Authentication.checkRenderingId(renderingId);
     } catch {
       throw new ValidationError('Failed to retrieve renderingId from query[state]');
     }
@@ -87,11 +85,7 @@ export default class Authentication extends BaseRoute {
     };
   }
 
-  public async handleAuthenticationLogout(context: Context) {
-    context.response.status = HttpCode.NoContent;
-  }
-
-  private checkRenderingId(renderingId: number): void {
+  private static checkRenderingId(renderingId: number): void {
     if (Number.isNaN(renderingId)) {
       throw new ValidationError('Rendering id must be a number');
     }
