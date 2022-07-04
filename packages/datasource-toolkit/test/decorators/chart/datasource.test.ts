@@ -28,6 +28,12 @@ describe('ChartDataSourceDecorator', () => {
       });
     });
 
+    test('schema throw an error if a chart already exist', () => {
+      expect(() => decorator.addChart('myChart', () => {})).toThrow(
+        "Chart 'myChart' already exists.",
+      );
+    });
+
     test('schema should not be empty', () => {
       expect(decorator.schema).toStrictEqual({ charts: ['myChart'] });
     });

@@ -23,14 +23,20 @@ export default class ChartDataSourceDecorator extends DataSourceDecorator {
   }
 
   addChart(name: string, definition: ChartDefinition) {
+    if (this.charts[name]) {
+      throw new Error(`Chart '${name}' already exists.`);
+    }
+
     this.charts[name] = definition;
   }
 
   override async renderChart(caller: Caller, name: string): Promise<Chart> {
-    if (!this.charts[name]) {
-      return super.renderChart(caller, name);
+    const chartDefinition = this.charts[name];
+
+    if (chartDefinition) {
+      return chartDefinition(new AgentCustomizationContext(this, caller), new ResultBuilder());
     }
 
-    return this.charts[name](new AgentCustomizationContext(this, caller), new ResultBuilder());
+    return super.renderChart(caller, name);
   }
 }
