@@ -36,6 +36,8 @@
   - [Responses](agent-customization/actions/responses.md)
   - [Forms](agent-customization/actions/forms.md)
 - [Charts](agent-customization/charts.md)
+- [Examples](agent-customization/examples/README.md)
+  - [Upload to AWS S3 Bucket](agent-customization/examples/upload-file-to-s3.md)
 - [Fields](agent-customization/fields/README.md)
 
   - [Computed Fields](agent-customization/fields/computed.md)
