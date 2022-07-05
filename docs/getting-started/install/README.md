@@ -2,9 +2,9 @@
 
 The Forest Admin agent can run as a Standalone server (You can see it in action in the [quickstart](../quick-start.md)), but can also be "attached" to an existing Node.js application server (That we usually call In-app).
 
-We recommand to install the Forest Admin agent "In-app" whenever it's possible, as our [Development and Deployment workflow](../../deployment/) can be tied to your application deployment process.
+We recommend to install the Forest Admin agent "In-app" whenever it's possible, as our [Development and Deployment workflow](../../deployment/) can be tied to your application deployment process.
 
-However, if you don't already have an existing Node.js application, or if you prefer to run Forest Admin in an isolated context, you can still use our Standalone installation.
+However, if you don't already have an existing Node.js application, or if you prefer to run Forest Admin in an isolated context, you can still use our [Standalone](../quick-start.md) installation.
 
 {% hint style="info" %}
 

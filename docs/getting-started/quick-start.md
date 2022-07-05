@@ -18,7 +18,7 @@ This guide will help you to setup Forest Admin as a standalone process, using an
 
 {% endhint %}
 
-## Requirements 
+## Requirements
 
 - Node.js ^14.15.0 || ^16.13.0
 - NPM > 6.14.4 or yarn > 1.22.17
@@ -53,7 +53,7 @@ yarn add @forestadmin/agent@beta dotenv
 
 Create an `index.js` and a `.env` file.
 
-{% tabs %} {% tab title="agent.js" %}
+{% tabs %} {% tab title="index.js" %}
 
 ```javascript
 require('dotenv').config();
