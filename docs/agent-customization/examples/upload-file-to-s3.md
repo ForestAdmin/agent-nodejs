@@ -123,7 +123,7 @@ collection
   .replaceFieldWriting('signedAvatar', async (newAvatarFile: string, context) => {
     if (!newAvatarFile) return {avatar: null};
 
-    // compute an unique path to avoid colision when when uploading the same file twice
+    // compute an unique path to avoid colision when uploading the same file twice for a different record.
     const uniquePath = `owner/${context.record.id}`;
     // upload to s3 and get the url
     const avatar = await s3.upload(parseDataUri(newAvatarFile), uniquePath);
@@ -155,22 +155,20 @@ and the other subsection `DISPLAY SETTINGS` select `File viewer` for the `Select
 ## All the code
 
 ```typescript
-class Helper {
-  static parseDataUri(dataUri: string): File {
-    if (!dataUri) return null;
+function parseDataUri(dataUri) {
+  if (!dataUri) return null;
 
-    const [header, data] = dataUri.substring(5).split(',');
-    const [mimeType, ...mediaTypes] = header.split(';');
-    const result = {mimeType, buffer: Buffer.from(data, 'base64')};
+  const [header, data] = dataUri.substring(5).split(',');
+  const [mimeType, ...mediaTypes] = header.split(';');
+  const result = {mimeType, buffer: Buffer.from(data, 'base64')};
 
-    for (const mediaType of mediaTypes) {
-      const index = mediaType.indexOf('=');
-      if (index !== -1)
-        result[mediaType.substring(0, index)] = decodeURIComponent(mediaType.substring(index + 1));
-    }
-
-    return result as File;
+  for (const mediaType of mediaTypes) {
+    const index = mediaType.indexOf('=');
+    if (index !== -1)
+      result[mediaType.substring(0, index)] = decodeURIComponent(mediaType.substring(index + 1));
   }
+
+  return result;
 }
 
 type AwsS3Configuration = {
@@ -242,7 +240,7 @@ collection
   if (!newAvatarFile) return {avatar: null};
 
   const uniquePath = `owner/${context.record.id}`;
-  const avatar = await s3.upload(Helper.parseDataUri(newAvatarFile), uniquePath);
+  const avatar = await s3.upload(parseDataUri(newAvatarFile), uniquePath);
 
   return {avatar: decodeURI(avatar)};
 }).removeField('avatar')
