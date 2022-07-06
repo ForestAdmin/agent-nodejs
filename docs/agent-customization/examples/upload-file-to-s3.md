@@ -13,26 +13,15 @@ npm install aws-sdk
 
 You can copy/past this custom AWS service in your agent to use it.
 
-```typescript
-type AwsS3Configuration = {
-  accessKeyId: string;
-  secretAccessKey: string;
-  bucket: string;
-};
-
-
+```javascript
 class AwsS3Service {
-  readonly accessKeyId: string;
-  readonly secretAccessKey: string;
-  readonly bucket: string;
-
-  constructor(configuration: AwsS3Configuration) {
-    this.accessKeyId = configuration.accessKeyId;
-    this.secretAccessKey = configuration.secretAccessKey;
-    this.bucket = configuration.bucket;
+  constructor({accessKeyId, secretAccessKey, bucket}) {
+    this.accessKeyId = accessKeyId;
+    this.secretAccessKey = secretAccessKey;
+    this.bucket = bucket;
   }
 
-  async upload(file: File, path: string): Promise<string> {
+  async upload(file, path) {
     const {Location} = await this.client
       .upload({
         Bucket: this.bucket,
@@ -46,7 +35,7 @@ class AwsS3Service {
     return Location;
   }
 
-  getUrlSignedUrlFromPath(path: string): string {
+  getUrlSignedUrlFromPath(path) {
     return this.client.getSignedUrl('getObject', {
       Bucket: this.bucket,
       Key: path,
@@ -54,7 +43,7 @@ class AwsS3Service {
     });
   }
 
-  private get client(): AWS.S3 {
+  private get client() {
     return new AWS.S3({
       credentials: {
         accessKeyId: this.accessKeyId,
@@ -68,7 +57,7 @@ class AwsS3Service {
 Instantiate the AWS service.
 
 ```javascript
-const config: AwsS3Configuration = {
+const config ={
   accessKeyId: '...',
   secretAccessKey: '...',
   bucket: '...',
@@ -80,8 +69,8 @@ const s3 = new AwsS3Service(config);
 
 Our data uri is not conventional because we have added the file name.
 
-```typescript
-function parseDataUri(dataUri: string): File {
+```javascript
+function parseDataUri(dataUri) {
   if (!dataUri) return null;
 
   const [header, data] = dataUri.substring(5).split(',');
@@ -94,7 +83,7 @@ function parseDataUri(dataUri: string): File {
       result[mediaType.substring(0, index)] = decodeURIComponent(mediaType.substring(index + 1));
   }
 
-  return result as File;
+  return result;
 }
 ```
 
@@ -102,7 +91,7 @@ function parseDataUri(dataUri: string): File {
 
 First, we need to create a new field which will sign the url of the avatar to send to the client.
 
-```typescript
+```javascript
 collection.addField('signedAvatar', {
     columnType: 'String',
     dependencies: ['avatar'],
@@ -118,9 +107,9 @@ collection.addField('signedAvatar', {
 
 Then, we replace the field writing to store the new s3 url.
 
-```typescript
+```javascript
 collection
-  .replaceFieldWriting('signedAvatar', async (newAvatarFile: string, context) => {
+  .replaceFieldWriting('signedAvatar', async (newAvatarFile, context) => {
     if (!newAvatarFile) return {avatar: null};
 
     // compute an unique path to avoid colision when uploading the same file twice for a different record.
@@ -135,7 +124,7 @@ collection
 
 Finally, we want to replace the avatar field by the signedAvatar field.
 
-```typescript
+```javascript
 collection
   // remove the old field
   .removeField('avatar')
@@ -154,7 +143,7 @@ and the other subsection `DISPLAY SETTINGS` select `File viewer` for the `Select
 
 ## All the code
 
-```typescript
+```javascript
 function parseDataUri(dataUri) {
   if (!dataUri) return null;
 
@@ -171,24 +160,14 @@ function parseDataUri(dataUri) {
   return result;
 }
 
-type AwsS3Configuration = {
-  accessKeyId: string;
-  secretAccessKey: string;
-  bucket: string;
-};
-
 class AwsS3Service {
-  readonly accessKeyId: string;
-  readonly secretAccessKey: string;
-  readonly bucket: string;
-
-  constructor(configuration: AwsS3Configuration) {
-    this.accessKeyId = configuration.accessKeyId;
-    this.secretAccessKey = configuration.secretAccessKey;
-    this.bucket = configuration.bucket;
+  constructor({accessKeyId, secretAccessKey, bucket}) {
+    this.accessKeyId = accessKeyId;
+    this.secretAccessKey = secretAccessKey;
+    this.bucket = bucket;
   }
 
-  async upload(file: File, path: string): Promise<string> {
+  async upload(file, path) {
     const {Location} = await this.client
       .upload({
         Bucket: this.bucket,
@@ -202,7 +181,7 @@ class AwsS3Service {
     return Location;
   }
 
-  getUrlSignedUrlFromPath(path: string): string {
+  getUrlSignedUrlFromPath(path) {
     return this.client.getSignedUrl('getObject', {
       Bucket: this.bucket,
       Key: path,
@@ -210,7 +189,7 @@ class AwsS3Service {
     });
   }
 
-  private get client(): AWS.S3 {
+  private get client() {
     return new AWS.S3({
       credentials: {
         accessKeyId: this.accessKeyId,
@@ -220,7 +199,7 @@ class AwsS3Service {
   }
 }
 
-const config: AwsS3Configuration = {
+const config = {
   accessKeyId: '...',
   secretAccessKey: '...',
   bucket: '...',
