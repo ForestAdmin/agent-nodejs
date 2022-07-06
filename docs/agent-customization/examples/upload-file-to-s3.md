@@ -43,7 +43,7 @@ class AwsS3Service {
     });
   }
 
-  private get client() {
+  get client() {
     return new AWS.S3({
       credentials: {
         accessKeyId: this.accessKeyId,
@@ -189,7 +189,7 @@ class AwsS3Service {
     });
   }
 
-  private get client() {
+  get client() {
     return new AWS.S3({
       credentials: {
         accessKeyId: this.accessKeyId,
