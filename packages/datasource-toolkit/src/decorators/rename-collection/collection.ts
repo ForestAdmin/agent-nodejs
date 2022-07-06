@@ -47,6 +47,12 @@ export default class RenameCollectionCollectionDecorator extends CollectionDecor
   }
 
   private getNewName(oldName: string): string {
-    return this.dataSource.collections.find(c => c.childCollection.name === oldName).name;
+    const collection = this.dataSource.collections.find(c => c.childCollection?.name === oldName);
+
+    if (!collection) {
+      throw new Error(`The given collection old name "${oldName}" does not exist`);
+    }
+
+    return collection.name;
   }
 }

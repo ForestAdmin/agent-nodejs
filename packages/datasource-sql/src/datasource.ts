@@ -1,15 +1,12 @@
-import {
-  Dialect,
-  ModelAttributeColumnOptions,
-  ModelAttributes,
-  QueryInterface,
-  Sequelize,
-} from 'sequelize';
+import { ColumnsDescription, Dialect, QueryInterface, Sequelize } from 'sequelize';
 
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
+import { FieldDescription } from './utils/types';
 import DefaultValueParser from './utils/default-value-parser';
+import ModelFactory from './utils/model-factory';
+import RelationFactory from './utils/relation-factory';
 import SqlTypeConverter from './utils/sql-type-converter';
 
 export default class SqlDataSource extends SequelizeDataSource {
@@ -44,172 +41,83 @@ export default class SqlDataSource extends SequelizeDataSource {
   async build() {
     const tableNames = await this.getRealTableNames();
 
-    await this.defineModels(tableNames);
-    await this.defineRelations(tableNames);
+    const excludedTables = await this.defineModels(tableNames);
+    await this.defineRelations(tableNames, excludedTables);
+    this.displayLogWarning(excludedTables);
 
     this.createCollections(this.sequelize.models, this.logger);
   }
 
-  private async defineModels(tableNames: string[]): Promise<void[]> {
-    return Promise.all(
-      tableNames.map(async tableName => {
-        const colmumnDescriptions = await this.queryInterface.describeTable(tableName);
+  private async defineModels(tableNames: string[]): Promise<string[]> {
+    const excludedModels: string[] = [];
+    const modelToBuild = tableNames.map(async tableName => {
+      const columnDescriptions = await this.queryInterface.describeTable(tableName);
+      const fieldDescriptions = await this.buildFieldDescriptions(columnDescriptions, tableName);
+      ModelFactory.build(tableName, fieldDescriptions, this.sequelize, excludedModels);
+    });
+    await Promise.all(modelToBuild);
 
-        const fieldDescriptions = await Promise.all(
-          Object.entries(colmumnDescriptions).map(async ([columnName, colmumnDescription]) => {
-            try {
-              const type = await this.sqlTypeConverter.convert(
-                tableName,
-                columnName,
-                colmumnDescription,
-              );
+    return excludedModels;
+  }
 
-              let defaultValue = this.defaultValueParser.parse(
-                colmumnDescription.defaultValue,
-                type,
-              );
+  private async buildFieldDescriptions(
+    columnDescriptions: ColumnsDescription,
+    tableName: string,
+  ): Promise<FieldDescription[]> {
+    const fields = Object.entries(columnDescriptions).map(
+      async ([columnName, columnDescription]) => {
+        try {
+          const type = await this.sqlTypeConverter.convert(
+            tableName,
+            columnName,
+            columnDescription,
+          );
 
-              if (colmumnDescription.primaryKey && defaultValue) {
-                defaultValue = null;
-                colmumnDescription.autoIncrement = true;
-              }
+          let defaultValue = this.defaultValueParser.parse(columnDescription.defaultValue, type);
 
-              return [columnName, { ...colmumnDescription, type, defaultValue }];
-            } catch (e) {
-              this.logger?.('Warn', `Skipping column ${tableName}.${columnName} (${e.message})`);
-            }
-          }),
-        );
+          if (columnDescription.primaryKey && defaultValue) {
+            defaultValue = null;
+            columnDescription.autoIncrement = true;
+          }
 
-        let modelDefinition: ModelAttributes = Object.fromEntries(
-          fieldDescriptions.filter(Boolean),
-        );
-        const columnNames = Object.keys(modelDefinition);
-
-        const hasTimestamps = this.hasTimestamps(columnNames);
-        const isParanoid = this.isParanoid(columnNames);
-
-        if (hasTimestamps) {
-          modelDefinition = this.removeTimeStampColumns(modelDefinition);
+          return [columnName, { ...columnDescription, type, defaultValue }];
+        } catch (e) {
+          this.logger?.('Warn', `Skipping column ${tableName}.${columnName} (${e.message})`);
         }
-
-        if (isParanoid) {
-          modelDefinition = this.removeParanoidColumn(modelDefinition);
-        }
-
-        this.sequelize.define(tableName, modelDefinition, {
-          tableName,
-          timestamps: hasTimestamps,
-          paranoid: isParanoid,
-        });
-      }),
+      },
     );
+
+    const fieldDescriptions = await Promise.all(fields);
+
+    return fieldDescriptions.filter(Boolean);
   }
 
-  private async defineRelations(tableNames: string[]): Promise<void[]> {
-    return Promise.all(
-      tableNames.map(async tableName => {
-        const foreignReferences = await this.queryInterface.getForeignKeyReferencesForTable(
-          tableName,
-        );
-
-        const currentModel = this.sequelize.model(tableName);
-
-        if (this.isJunctionTable(currentModel.getAttributes())) {
-          const {
-            referencedTableName: tableA,
-            columnName: columnA,
-            referencedColumnName: referencedColumnA,
-          } = foreignReferences[0];
-          const {
-            referencedTableName: tableB,
-            columnName: columnB,
-            referencedColumnName: referencedColumnB,
-          } = foreignReferences[1];
-
-          const modelA = this.sequelize.model(tableA);
-          const modelB = this.sequelize.model(tableB);
-
-          modelA.belongsToMany(modelB, {
-            through: currentModel.name,
-            foreignKey: columnA,
-            otherKey: columnB,
-          });
-          modelB.belongsToMany(modelA, {
-            through: currentModel.name,
-            foreignKey: columnB,
-            otherKey: columnA,
-          });
-          currentModel.belongsTo(modelA, { foreignKey: columnA, targetKey: referencedColumnA });
-          currentModel.belongsTo(modelB, { foreignKey: columnB, targetKey: referencedColumnB });
-        } else {
-          const uniqueFields = await this.getUniqueFields(tableName);
-
-          foreignReferences.forEach(foreignReference => {
-            const { columnName, referencedTableName, referencedColumnName } = foreignReference;
-
-            const referencedModel = this.sequelize.model(referencedTableName);
-
-            currentModel.belongsTo(referencedModel, {
-              foreignKey: columnName,
-              targetKey: referencedColumnName,
-            });
-
-            if (uniqueFields.includes(columnName)) {
-              referencedModel.hasOne(currentModel, {
-                foreignKey: columnName,
-                sourceKey: referencedColumnName,
-              });
-            } else {
-              referencedModel.hasMany(currentModel, {
-                foreignKey: columnName,
-                sourceKey: referencedColumnName,
-              });
-            }
-          });
-        }
-      }),
-    );
+  private displayLogWarning(excludedTables: string[]) {
+    excludedTables.forEach(table => {
+      this.logger?.(
+        'Warn',
+        `Skipping table "${table}" and its relations because it has no primary key.` +
+          ` You can fix this problem by adding a primary key to your table.`,
+      );
+    });
   }
 
-  private hasTimestamps(columnNames: string[]): boolean {
-    const hasCreatedAt = columnNames.includes('createdAt');
-    const hasUpdatedAt = columnNames.includes('updatedAt');
+  private async defineRelations(tableNames: string[], excludedTables: string[]): Promise<void> {
+    const relationsToBuild = tableNames.map(async tableName => {
+      const foreignReferences = await this.queryInterface.getForeignKeyReferencesForTable(
+        tableName,
+      );
+      const uniqueFields = await this.getUniqueFields(tableName);
+      RelationFactory.build(
+        tableName,
+        foreignReferences,
+        excludedTables,
+        uniqueFields,
+        this.sequelize,
+      );
+    });
 
-    return hasCreatedAt && hasUpdatedAt;
-  }
-
-  private removeTimeStampColumns(modelDefinition: ModelAttributes): ModelAttributes {
-    const copy = { ...modelDefinition };
-    delete copy.createdAt;
-    delete copy.updatedAt;
-
-    return copy;
-  }
-
-  private isParanoid(columnNames: string[]): boolean {
-    return columnNames.includes('deletedAt');
-  }
-
-  private removeParanoidColumn(modelDefinition: ModelAttributes): ModelAttributes {
-    const copy = { ...modelDefinition };
-    delete copy.deletedAt;
-
-    return copy;
-  }
-
-  private isJunctionTable(modelAttributes: {
-    [attribute: string]: ModelAttributeColumnOptions;
-  }): boolean {
-    // remove autogenerated field to keep the belongsToMany behavior
-    const modelAttributesDefinition = Object.values(modelAttributes).filter(
-      ({ _autoGenerated }) => !_autoGenerated,
-    );
-    if (modelAttributesDefinition.length !== 2) return false;
-
-    if (modelAttributesDefinition.some(({ primaryKey }) => !primaryKey)) return false;
-
-    return true;
+    await Promise.all(relationsToBuild);
   }
 
   private async getUniqueFields(tableName: string): Promise<string[]> {

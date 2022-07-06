@@ -22,7 +22,7 @@ export default class BaseDataSource<T extends Collection = Collection> implement
     return collection;
   }
 
-  public addCollection(collection: T): void {
+  addCollection(collection: T): void {
     if (this._collections[collection.name] !== undefined)
       throw new Error(`Collection '${collection.name}' already defined in datasource`);
 
