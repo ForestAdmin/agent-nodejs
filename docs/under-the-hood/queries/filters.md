@@ -32,13 +32,13 @@ A condition tree, as it names imply, is a set of conditions which apply on the r
 
 ## Examples
 
-Simple condition tree
+### Simple condition tree
 
 ```json
 { "field": "title", "operator": "starts_with", "value": "Found" }
 ```
 
-With multiple conditions
+### With multiple conditions
 
 ```json
 {
@@ -48,6 +48,22 @@ With multiple conditions
     { "field": "subTitle", "operator": "Equal", "value": "The Psychohistorians" }
   ]
 }
+```
+
+### With relations
+
+It also supports relations, the `one to one` and the `many to one` is supported.
+
+In this example, we want to apply a condition tree on a relation field value.
+
+```json
+{ "field": "book:title", "operator": "Equal", "value": "Foundation" },
+```
+
+Of course, we chain as many relations as you like.
+
+```json
+{ "field": "book:price:value", "operator": "Equal", "value": "15" }
 ```
 
 ## Structure
