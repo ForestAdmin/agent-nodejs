@@ -41,23 +41,19 @@ export default class SqlDataSource extends SequelizeDataSource {
   async build() {
     const tableNames = await this.getRealTableNames();
 
-    const excludedTables = await this.defineModels(tableNames);
-    await this.defineRelations(tableNames, excludedTables);
-    this.displayLogWarning(excludedTables);
+    await this.defineModels(tableNames);
+    await this.defineRelations(tableNames);
 
     this.createCollections(this.sequelize.models, this.logger);
   }
 
-  private async defineModels(tableNames: string[]): Promise<string[]> {
-    const excludedModels: string[] = [];
+  private async defineModels(tableNames: string[]): Promise<void> {
     const modelToBuild = tableNames.map(async tableName => {
       const columnDescriptions = await this.queryInterface.describeTable(tableName);
       const fieldDescriptions = await this.buildFieldDescriptions(columnDescriptions, tableName);
-      ModelFactory.build(tableName, fieldDescriptions, this.sequelize, excludedModels);
+      ModelFactory.build(tableName, fieldDescriptions, this.sequelize);
     });
     await Promise.all(modelToBuild);
-
-    return excludedModels;
   }
 
   private async buildFieldDescriptions(
@@ -92,29 +88,13 @@ export default class SqlDataSource extends SequelizeDataSource {
     return fieldDescriptions.filter(Boolean);
   }
 
-  private displayLogWarning(excludedTables: string[]) {
-    excludedTables.forEach(table => {
-      this.logger?.(
-        'Warn',
-        `Skipping table "${table}" and its relations because it has no primary key.` +
-          ` You can fix this problem by adding a primary key to your table.`,
-      );
-    });
-  }
-
-  private async defineRelations(tableNames: string[], excludedTables: string[]): Promise<void> {
+  private async defineRelations(tableNames: string[]): Promise<void> {
     const relationsToBuild = tableNames.map(async tableName => {
       const foreignReferences = await this.queryInterface.getForeignKeyReferencesForTable(
         tableName,
       );
       const uniqueFields = await this.getUniqueFields(tableName);
-      RelationFactory.build(
-        tableName,
-        foreignReferences,
-        excludedTables,
-        uniqueFields,
-        this.sequelize,
-      );
+      RelationFactory.build(tableName, foreignReferences, uniqueFields, this.sequelize);
     });
 
     await Promise.all(relationsToBuild);

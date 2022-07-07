@@ -1,4 +1,5 @@
 import { AbstractDataType, AbstractDataTypeConstructor, ColumnDescription } from 'sequelize';
+import { QueryInterface } from 'sequelize/types/dialects/abstract/query-interface';
 
 export type FieldDescription = (
   | string
@@ -8,16 +9,6 @@ export type FieldDescription = (
     })
 )[];
 
-export type ForeignKeyReference = {
-  constraintName: string;
-  constraintSchema: string;
-  constraintCatalog: string;
-  tableName: string;
-  tableSchema: string;
-  tableCatalog: string;
-  columnName: string;
-  referencedTableSchema: string;
-  referencedTableCatalog: string;
-  referencedTableName: string;
-  referencedColumnName: string;
-};
+export type ForeignKeyReference = Awaited<
+  ReturnType<QueryInterface['getForeignKeyReferencesForTable']>
+>[number];

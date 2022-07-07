@@ -7,46 +7,29 @@ export default class RelationFactory {
   static build(
     tableName: string,
     foreignReferences: Partial<ForeignKeyReference>[],
-    excludedTables: string[],
     uniqueFields: string[],
     sequelize: Sequelize,
   ): void {
-    if (excludedTables.includes(tableName)) {
-      return;
-    }
-
     const model = sequelize.model(tableName);
 
     if (RelationFactory.isJunctionTable(model)) {
       RelationFactory.buildForJunctionTable(
         foreignReferences as [Partial<ForeignKeyReference>, Partial<ForeignKeyReference>],
-        excludedTables,
         model,
         sequelize,
       );
     } else {
-      RelationFactory.buildOtherRelations(
-        foreignReferences,
-        excludedTables,
-        model,
-        uniqueFields,
-        sequelize,
-      );
+      RelationFactory.buildOtherRelations(foreignReferences, model, uniqueFields, sequelize);
     }
   }
 
   private static buildOtherRelations(
     foreignReferences: Partial<ForeignKeyReference>[],
-    excludedTables: string[],
     model: ModelStatic<Model>,
     uniqueFields: string[],
     sequelize: Sequelize,
   ): void {
     foreignReferences.forEach(({ columnName, referencedTableName, referencedColumnName }) => {
-      if (excludedTables.includes(referencedTableName)) {
-        return;
-      }
-
       const referencedModel = sequelize.model(referencedTableName);
 
       model.belongsTo(referencedModel, {
@@ -70,7 +53,6 @@ export default class RelationFactory {
 
   private static buildForJunctionTable(
     foreignReferences: [Partial<ForeignKeyReference>, Partial<ForeignKeyReference>],
-    excludedTables: string[],
     model: ModelStatic<Model>,
     sequelize: Sequelize,
   ): void {
@@ -78,10 +60,6 @@ export default class RelationFactory {
       { referencedTableName: tableA, columnName: columnA, referencedColumnName: referencedColumnA },
       { referencedTableName: tableB, columnName: columnB, referencedColumnName: referencedColumnB },
     ] = foreignReferences;
-
-    if (excludedTables.includes(tableA) || excludedTables.includes(tableB)) {
-      return;
-    }
 
     const modelA = sequelize.model(tableA);
     const modelB = sequelize.model(tableB);

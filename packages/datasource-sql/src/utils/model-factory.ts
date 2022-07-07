@@ -7,7 +7,6 @@ export default class ModelFactory {
     tableName: string,
     fieldDescriptions: FieldDescription[],
     sequelize: Sequelize,
-    excludedModels: string[],
   ): void {
     let model: ModelAttributes = Object.fromEntries(fieldDescriptions);
 
@@ -23,15 +22,11 @@ export default class ModelFactory {
       model = ModelFactory.removeParanoidColumn(model);
     }
 
-    try {
-      sequelize.define(tableName, model, {
-        tableName,
-        timestamps,
-        paranoid,
-      });
-    } catch {
-      excludedModels.push(tableName);
-    }
+    sequelize.define(tableName, model, {
+      tableName,
+      timestamps,
+      paranoid,
+    });
   }
 
   private static removeTimeStampColumns(modelDefinition: ModelAttributes): ModelAttributes {
