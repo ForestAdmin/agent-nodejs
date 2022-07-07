@@ -41,17 +41,19 @@ export default class SqlDataSource extends SequelizeDataSource {
   async build() {
     const tableNames = await this.getRealTableNames();
 
-    await this.defineModels(tableNames);
-    await this.defineRelations(tableNames);
+    const excludedModels = [];
+    await this.defineModels(tableNames, excludedModels);
+    await this.defineRelations(tableNames, excludedModels);
+    this.displayLogWarning(excludedModels);
 
     this.createCollections(this.sequelize.models, this.logger);
   }
 
-  private async defineModels(tableNames: string[]): Promise<void> {
+  private async defineModels(tableNames: string[], excludedModels: string[]): Promise<void> {
     const modelToBuild = tableNames.map(async tableName => {
       const columnDescriptions = await this.queryInterface.describeTable(tableName);
       const fieldDescriptions = await this.buildFieldDescriptions(columnDescriptions, tableName);
-      ModelFactory.build(tableName, fieldDescriptions, this.sequelize);
+      ModelFactory.build(tableName, fieldDescriptions, this.sequelize, excludedModels);
     });
     await Promise.all(modelToBuild);
   }
@@ -88,13 +90,19 @@ export default class SqlDataSource extends SequelizeDataSource {
     return fieldDescriptions.filter(Boolean);
   }
 
-  private async defineRelations(tableNames: string[]): Promise<void> {
+  private async defineRelations(tableNames: string[], excludedModels: string[]): Promise<void> {
     const relationsToBuild = tableNames.map(async tableName => {
       const foreignReferences = await this.queryInterface.getForeignKeyReferencesForTable(
         tableName,
       );
       const uniqueFields = await this.getUniqueFields(tableName);
-      RelationFactory.build(tableName, foreignReferences, uniqueFields, this.sequelize);
+      RelationFactory.build(
+        tableName,
+        foreignReferences,
+        uniqueFields,
+        this.sequelize,
+        excludedModels,
+      );
     });
 
     await Promise.all(relationsToBuild);
@@ -107,5 +115,15 @@ export default class SqlDataSource extends SequelizeDataSource {
       .filter(({ primary, unique, fields }) => !primary && unique && fields.length === 1)
       .map(({ fields }) => fields.map(({ attribute }) => attribute))
       .flat();
+  }
+
+  private displayLogWarning(excludedModels: string[]) {
+    excludedModels.forEach(table => {
+      this.logger?.(
+        'Warn',
+        `Skipping table "${table}" and its relations because it has no primary key.` +
+          ` You can fix this problem by adding a primary key to your table.`,
+      );
+    });
   }
 }
