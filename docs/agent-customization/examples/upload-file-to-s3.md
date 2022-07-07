@@ -1,4 +1,4 @@
-This example show how to upload a file to an S3 bucket.
+This example shows how to upload a file to an S3 bucket.
 
 To illustrate our example, imagine we have a User collection with an avatar string field. This field will store the s3
 url of the avatar.
@@ -11,7 +11,7 @@ You must install the [AWS SDK](https://docs.aws.amazon.com/sdk-for-javascript/v2
 npm install aws-sdk
 ```
 
-You can copy/past this custom AWS service in your agent to use it.
+You can copy/paste this custom AWS service in your agent to use it.
 
 ```javascript
 class AwsS3Service {
@@ -67,7 +67,7 @@ const s3 = new AwsS3Service(config);
 
 ## Add a method to decode the date uri given by the client
 
-Our data uri is not conventional because we have added the file name.
+Our data uri are not conventional because we have added the file name.
 
 ```javascript
 function parseDataUri(dataUri) {
