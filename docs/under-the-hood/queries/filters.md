@@ -57,13 +57,13 @@ It also supports relations, the `one to one` and the `many to one` is supported.
 In this example, we want to apply a condition tree on a relation field value.
 
 ```json
-{ "field": "book:title", "operator": "Equal", "value": "Foundation" },
+{ "field": "book:title", "operator": "Equal", "value": "Foundation" }
 ```
 
-Of course, we chain as many relations as you like.
+Of course, you can chain as many relations as you like.
 
 ```json
-{ "field": "book:price:value", "operator": "Equal", "value": "15" }
+{ "field": "book:price:value", "operator": "Equal", "value": 15 }
 ```
 
 ## Structure
