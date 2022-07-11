@@ -1,5 +1,5 @@
 import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
-import { Sequelize } from 'sequelize/types';
+import { Sequelize } from 'sequelize';
 
 import SequelizeDataSource from './datasource';
 

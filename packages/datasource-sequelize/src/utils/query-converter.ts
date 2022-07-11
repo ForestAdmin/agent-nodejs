@@ -12,7 +12,6 @@ import {
   IncludeOptions,
   ModelDefined,
   Op,
-  OrOperator,
   OrderItem,
   WhereOperators,
   WhereOptions,
@@ -20,7 +19,6 @@ import {
   fn,
   where,
 } from 'sequelize';
-import { Where } from 'sequelize/types/utils';
 
 import unAmbigousField from './un-ambigous';
 
@@ -44,13 +42,14 @@ export default class QueryConverter {
     operator: Operator,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     value?: any,
-  ): WhereOperators | OrOperator | Where {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): any {
     if (operator === null) throw new Error('Invalid (null) operator.');
 
     switch (operator) {
       case 'Blank':
         return {
-          [Op.or]: [this.makeWhereClause(field, 'Missing') as OrOperator, { [Op.eq]: '' }],
+          [Op.or]: [this.makeWhereClause(field, 'Missing'), { [Op.eq]: '' }],
         };
 
       case 'Like':

@@ -27,7 +27,7 @@
     "pg": "~8.2.2",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.5.5",
-    "sequelize": "6.18.0",
+    "sequelize": "6.21.3",
     "superagent": "^7.0.1",
     "mongoose": "^6.3.2",
     "tedious": "^14.3.0"

@@ -29,9 +29,9 @@
   },
   "devDependencies": {
     "lodash": "^4.17.21",
-    "sequelize": "6.18.0"
+    "sequelize": "6.21.3"
   },
   "peerDependencies": {
-    "sequelize": "6.18.0"
+    "sequelize": "6.21.3"
   }
 }
