@@ -4,13 +4,13 @@ description: Let's get you up and running on Forest Admin in minutes!
 
 # Introduction
 
-Forest Admin is a low-code internal tool solution that scales with your project. With 30+ out-of-the-box tools and pre-built UI components, you can ship an admin panel in a few minutes, and then easily customise it to meet your specific business logic. Thanks to the layout editor, non-technical team members can adjust the UI to their needs.
+Forest Admin is a low-code internal tool solution that scales with your project. With 30+ out-of-the-box tools and pre-built UI components, you can ship an admin panel in a few minutes, and then easily customize it to meet your specific business logic. Thanks to the layout editor, non-technical team members can adjust the UI to their needs.
 
 Forest Admin has a unique hybrid architecture - only the frontend is managed on Forest Admin servers, which gives you the flexibility of a SaaS tool without compromising on data security.
 
 # Quick Start
 
-Forest Admin offers a lot of flexibility in terms of installation. The following guide provide a way to start using Forest Admin in minutes. If you want to dive deeper into the installation process of the product, we got you covered [here](./install/README.md).
+Forest Admin offers a lot of flexibility in terms of installation. The following guide provides a way to start using Forest Admin in minutes. If you want to dive deeper into the installation process of the product, we got you covered [here](./install/README.md).
 
 {% hint style='notice' %}
 
@@ -96,9 +96,9 @@ should be enough to be redirected to the "rate-install" page. However, Forest Ad
 
 ## Add a datasource
 
-Now that you are fully onboarded, the only missing part is to add a datasource. Forest Admin provide a way to [create your own](../datasources/custom/README.md), however for this example we will add an [SQL Datasource](../datasources/provided/sql.md).
+Now that you are fully onboard, the only missing part is to add a data source. Forest Admin provide a way to [create your own](../datasources/custom/README.md), however for this example we will add an [SQL Datasource](../datasources/provided/sql.md).
 
-To install the SQL Datasource package, you can run the following command
+To install the SQL Data source package, you can run the following command
 
 ```bash
 yarn add @forestadmin/datasource-sql@beta

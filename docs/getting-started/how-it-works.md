@@ -5,7 +5,7 @@ Before you start writing a single line of code, it’s a good idea to get an ove
 Forest Admin provides you with:
 
 - An API hosted on your server to retrieve your data. We call it the **Agent**. It can be a **standalone project** or embedded **within your app**.
-- A user interface to access and manage your data from your browser. This **Forest Admin User Interface** is built and managed through ressources hosted on Forest Admin's servers.
+- A user interface to access and manage your data from your browser. This **Forest Admin User Interface** is built and managed through resources hosted on Forest Admin's servers.
 
 ![The agent is a Node.JS REST API hosted on your servers](../assets/how-it-work-architecture.png)
 
