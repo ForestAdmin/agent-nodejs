@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.42](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.41...@forestadmin/agent@1.0.0-beta.42) (2022-07-12)
+
+
+### Bug Fixes
+
+* **route:** remove useless logout route ([#364](https://github.com/ForestAdmin/agent-nodejs/issues/364)) ([68ff976](https://github.com/ForestAdmin/agent-nodejs/commit/68ff976a4be416992ed163bb5b9e5f43f3069463))
+
 # @forestadmin/agent [1.0.0-beta.41](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.40...@forestadmin/agent@1.0.0-beta.41) (2022-06-15)
 
 
