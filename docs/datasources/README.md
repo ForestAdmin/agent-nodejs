@@ -31,35 +31,3 @@ const agent = createAgent(options).addDataSource(
   createSqlDataSource('postgres://user:pass@localhost:5432/mySchema'),
 );
 ```
-
-<!--
-## Partial imports
-
-Some data source may implement more collections, and associated actions and segments that you want.
-
-By provided options when plugging a data source, you can specify which entities should get loaded.
-
-```javascript
-const { createAgent } = require('@forestadmin/agent');
-const StripeDataSource = require('@forestadmin/datasource-stripe');
-
-const agent = createAgent(options);
-const stripe = new StripeDataSource({ apiKey: 'sk_test_VePHdqKTYQjKNInc7u56JBrQ' });
-
-agent.addDataSource(stripe, {
-  restrict: {
-    // Skip 'visitors' collections
-    collections: ['!visitors'],
-
-    // Do not import any action
-    actions: [],
-
-    // Import all fields (this is the default)
-    fields: ['users.*', 'books.id', 'books.title'],
-
-    // Import only segments of the 'charges' collection
-    segments: ['charges.*'],
-  },
-});
-```
--->
