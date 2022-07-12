@@ -20,7 +20,7 @@ export default class DefaultValueParser {
     if (typeof expression === 'string' && expression.startsWith('NULL')) return null;
 
     // FA backend not handle correctly
-    if (type instanceof DataTypes.ARRAY) {
+    if (type.key === DataTypes.ARRAY.key) {
       return undefined;
     }
 
@@ -45,7 +45,7 @@ export default class DefaultValueParser {
       sanitizedExpression = this.sanitizeExpression(expression);
     }
 
-    if (type instanceof DataTypes.ENUM) {
+    if (type.key === DataTypes.ENUM.key) {
       return sanitizedExpression;
     }
 

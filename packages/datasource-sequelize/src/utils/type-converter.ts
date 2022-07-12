@@ -71,7 +71,7 @@ export default class TypeConverter {
   }
 
   public static fromDataType(dataType: AbstractDataType): ColumnType {
-    if (dataType instanceof DataTypes.ARRAY) {
+    if (dataType.key === DataTypes.ARRAY.key) {
       const arrayDataType = dataType as ArrayDataType<AbstractDataTypeConstructor>;
 
       return [TypeConverter.fromDataType(arrayDataType.type as unknown as AbstractDataType)];
