@@ -23,7 +23,7 @@ In a typescript context, usage of the typing file is pretty straightforward. You
 
 ```typescript
 import { createAgent } from '@forestadmin/agent';
-import Schema from './typings';
+import { Schema } from './typings';
 import transactions from './customization/transactions';
 
 createAgent<Schema>({
