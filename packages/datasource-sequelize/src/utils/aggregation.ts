@@ -61,7 +61,6 @@ export default class AggregationUtils {
 
       if (group.operation) {
         const groupFunction = this.dateAggregationConverter.convertToDialect(
-          this.dialect,
           groupField,
           group.operation,
         );

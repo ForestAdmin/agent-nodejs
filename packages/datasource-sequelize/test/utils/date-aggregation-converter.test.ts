@@ -1,4 +1,4 @@
-import { Dialect } from 'sequelize/types';
+import { Dialect, Sequelize } from 'sequelize';
 
 import { DateOperation } from '@forestadmin/datasource-toolkit';
 
@@ -8,19 +8,25 @@ describe('Utils > DateAggregationConverter', () => {
   describe('convertToDialect', () => {
     describe('when the dialect is unsupported', () => {
       it('should throw an error', () => {
-        expect(() =>
-          DateAggregationConverter.convertToDialect('unknown' as Dialect, 'a__field', 'Day'),
-        ).toThrowError('Unsupported dialect: "unknown"');
+        const sequelize = new Sequelize({ dialect: 'postgres' });
+        sequelize.getDialect = jest.fn().mockReturnValue('unknown');
+        const dateAggregationConverter = new DateAggregationConverter(sequelize);
+        expect(() => dateAggregationConverter.convertToDialect('a__field', 'Day')).toThrowError(
+          'Unsupported dialect: "unknown"',
+        );
       });
     });
 
     describe('with postgres', () => {
+      const setup = () => {
+        const sequelize = new Sequelize({ dialect: 'postgres' });
+
+        return new DateAggregationConverter(sequelize);
+      };
+
       it('should return the right aggregation function', () => {
-        const aggregationFunction = DateAggregationConverter.convertToDialect(
-          'postgres',
-          'a__field',
-          'Day',
-        );
+        const dateAggregationConverter = setup();
+        const aggregationFunction = dateAggregationConverter.convertToDialect('a__field', 'Day');
 
         expect(aggregationFunction).toEqual({
           fn: 'TO_CHAR',
@@ -36,22 +42,22 @@ describe('Utils > DateAggregationConverter', () => {
     });
 
     describe('with mssql', () => {
+      const setup = () => {
+        const sequelize = new Sequelize({ dialect: 'mssql' });
+
+        return new DateAggregationConverter(sequelize);
+      };
+
       it('should throw an error for an unknown operation', () => {
+        const dateAggregationConverter = setup();
         expect(() =>
-          DateAggregationConverter.convertToDialect(
-            'mssql',
-            'a__field',
-            'unknown' as DateOperation,
-          ),
+          dateAggregationConverter.convertToDialect('a__field', 'unknown' as DateOperation),
         ).toThrowError('Unknown Date operation: "unknown"');
       });
 
       it('should return the right aggregation function for Year operation', () => {
-        const aggregationFunction = DateAggregationConverter.convertToDialect(
-          'mssql',
-          'a__field',
-          'Year',
-        );
+        const dateAggregationConverter = setup();
+        const aggregationFunction = dateAggregationConverter.convertToDialect('a__field', 'Year');
 
         expect(aggregationFunction).toEqual({
           fn: 'CONVERT',
@@ -67,11 +73,8 @@ describe('Utils > DateAggregationConverter', () => {
       });
 
       it('should return the right aggregation function for Month operation', () => {
-        const aggregationFunction = DateAggregationConverter.convertToDialect(
-          'mssql',
-          'a__field',
-          'Month',
-        );
+        const dateAggregationConverter = setup();
+        const aggregationFunction = dateAggregationConverter.convertToDialect('a__field', 'Month');
 
         expect(aggregationFunction).toEqual({
           fn: 'CONVERT',
@@ -91,11 +94,8 @@ describe('Utils > DateAggregationConverter', () => {
       });
 
       it('should return the right aggregation function for Day operation', () => {
-        const aggregationFunction = DateAggregationConverter.convertToDialect(
-          'mssql',
-          'a__field',
-          'Day',
-        );
+        const dateAggregationConverter = setup();
+        const aggregationFunction = dateAggregationConverter.convertToDialect('a__field', 'Day');
 
         expect(aggregationFunction).toEqual({
           fn: 'CONVERT',
@@ -104,11 +104,8 @@ describe('Utils > DateAggregationConverter', () => {
       });
 
       it('should return the right aggregation function for Week operation', () => {
-        const aggregationFunction = DateAggregationConverter.convertToDialect(
-          'mssql',
-          'a__field',
-          'Week',
-        );
+        const dateAggregationConverter = setup();
+        const aggregationFunction = dateAggregationConverter.convertToDialect('a__field', 'Week');
 
         expect(aggregationFunction).toEqual({
           fn: 'CONVERT',
@@ -125,13 +122,16 @@ describe('Utils > DateAggregationConverter', () => {
     });
 
     describe.each(['mysql', 'mariadb'] as Dialect[])('with %s', dialect => {
+      const setup = () => {
+        const sequelize = new Sequelize({ dialect });
+
+        return new DateAggregationConverter(sequelize);
+      };
+
       it('should throw an error for an unknown operation', () => {
+        const dateAggregationConverter = setup();
         expect(() =>
-          DateAggregationConverter.convertToDialect(
-            dialect,
-            'a__field',
-            'unknown' as DateOperation,
-          ),
+          dateAggregationConverter.convertToDialect('a__field', 'unknown' as DateOperation),
         ).toThrowError('Unknown Date operation: "unknown"');
       });
 
@@ -142,8 +142,8 @@ describe('Utils > DateAggregationConverter', () => {
       ])(
         'should return the right aggregation function for %s operation',
         (dateOperation, format) => {
-          const aggregationFunction = DateAggregationConverter.convertToDialect(
-            dialect,
+          const dateAggregationConverter = setup();
+          const aggregationFunction = dateAggregationConverter.convertToDialect(
             'a__field',
             dateOperation as DateOperation,
           );
@@ -161,11 +161,8 @@ describe('Utils > DateAggregationConverter', () => {
       );
 
       it('should return the right aggregation function for Week operation', () => {
-        const aggregationFunction = DateAggregationConverter.convertToDialect(
-          dialect,
-          'a__field',
-          'Week',
-        );
+        const dateAggregationConverter = setup();
+        const aggregationFunction = dateAggregationConverter.convertToDialect('a__field', 'Week');
 
         expect(aggregationFunction).toEqual({
           fn: 'DATE_FORMAT',
@@ -188,13 +185,16 @@ describe('Utils > DateAggregationConverter', () => {
     });
 
     describe('with sqlite', () => {
+      const setup = () => {
+        const sequelize = new Sequelize({ dialect: 'sqlite' });
+
+        return new DateAggregationConverter(sequelize);
+      };
+
       it('should throw an error for an unknown operation', () => {
+        const dateAggregationConverter = setup();
         expect(() =>
-          DateAggregationConverter.convertToDialect(
-            'sqlite',
-            'a__field',
-            'unknown' as DateOperation,
-          ),
+          dateAggregationConverter.convertToDialect('a__field', 'unknown' as DateOperation),
         ).toThrowError('Unknown Date operation: "unknown"');
       });
 
@@ -205,8 +205,8 @@ describe('Utils > DateAggregationConverter', () => {
       ])(
         'should return the right aggregation function for %s operation',
         (dateOperation, format) => {
-          const aggregationFunction = DateAggregationConverter.convertToDialect(
-            'sqlite',
+          const dateAggregationConverter = setup();
+          const aggregationFunction = dateAggregationConverter.convertToDialect(
             'a__field',
             dateOperation as DateOperation,
           );
@@ -224,11 +224,8 @@ describe('Utils > DateAggregationConverter', () => {
       );
 
       it('should return the right aggregation function for Week operation', () => {
-        const aggregationFunction = DateAggregationConverter.convertToDialect(
-          'sqlite',
-          'a__field',
-          'Week',
-        );
+        const dateAggregationConverter = setup();
+        const aggregationFunction = dateAggregationConverter.convertToDialect('a__field', 'Week');
 
         expect(aggregationFunction).toEqual({
           fn: 'DATE',

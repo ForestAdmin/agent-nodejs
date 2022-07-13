@@ -4,11 +4,13 @@ import { Dialect, Sequelize } from 'sequelize';
 import { DateOperation } from '@forestadmin/datasource-toolkit';
 
 export default class DateAggregationConverter {
+  private dialect: Dialect;
   private fn: Sequelize['fn'];
   private col: Sequelize['col'];
   private literal: Sequelize['literal'];
 
   constructor(sequelize: Sequelize) {
+    this.dialect = sequelize.getDialect() as Dialect;
     this.fn = sequelize.fn;
     this.col = sequelize.col;
     this.literal = sequelize.literal;
@@ -111,8 +113,8 @@ export default class DateAggregationConverter {
     return this.fn('STRFTIME', format, this.col(field));
   }
 
-  convertToDialect(dialect: Dialect, field: string, operation: DateOperation): Fn {
-    switch (dialect) {
+  convertToDialect(field: string, operation: DateOperation): Fn {
+    switch (this.dialect) {
       case 'postgres':
         return this.convertPostgres(field, operation);
       case 'mssql':
@@ -126,7 +128,7 @@ export default class DateAggregationConverter {
         return this.convertSqlite(field, operation);
 
       default:
-        throw new Error(`Unsupported dialect: "${dialect}"`);
+        throw new Error(`Unsupported dialect: "${this.dialect}"`);
     }
   }
 }
