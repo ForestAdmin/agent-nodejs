@@ -1,45 +1,55 @@
 import { Col, Fn } from 'sequelize/types/utils';
-import { Dialect, col, fn, literal } from 'sequelize';
+import { Dialect, Sequelize } from 'sequelize';
 
 import { DateOperation } from '@forestadmin/datasource-toolkit';
 
 export default class DateAggregationConverter {
-  private static convertPostgres(field: string, operation: DateOperation): Fn {
-    const aggregateFunction = fn('DATE_TRUNC', operation.toLocaleLowerCase(), col(field));
+  private fn: Sequelize['fn'];
+  private col: Sequelize['col'];
+  private literal: Sequelize['literal'];
 
-    return fn('TO_CHAR', aggregateFunction, 'YYYY-MM-DD');
+  constructor(sequelize: Sequelize) {
+    this.fn = sequelize.fn;
+    this.col = sequelize.col;
+    this.literal = sequelize.literal;
   }
 
-  private static convertMssql(field: string, operation: DateOperation): Fn {
+  private convertPostgres(field: string, operation: DateOperation): Fn {
+    const aggregateFunction = this.fn('DATE_TRUNC', operation.toLocaleLowerCase(), this.col(field));
+
+    return this.fn('TO_CHAR', aggregateFunction, 'YYYY-MM-DD');
+  }
+
+  private convertMssql(field: string, operation: DateOperation): Fn {
     let dateToConvert: Col | Fn;
 
     switch (operation) {
       case 'Year':
-        dateToConvert = fn(
+        dateToConvert = this.fn(
           'DATEFROMPARTS',
-          fn('DATEPART', literal('YEAR'), col(field)),
+          this.fn('DATEPART', this.literal('YEAR'), this.col(field)),
           '01',
           '01',
         );
         break;
       case 'Month':
-        dateToConvert = fn(
+        dateToConvert = this.fn(
           'DATEFROMPARTS',
-          fn('DATEPART', literal('YEAR'), col(field)),
-          fn('DATEPART', literal('MONTH'), col(field)),
+          this.fn('DATEPART', this.literal('YEAR'), this.col(field)),
+          this.fn('DATEPART', this.literal('MONTH'), this.col(field)),
           '01',
         );
         break;
       case 'Week':
-        dateToConvert = fn(
+        dateToConvert = this.fn(
           'DATEADD',
-          literal('DAY'),
-          literal(`-DATEPART(dw, ${field})+2`),
-          col(field),
+          this.literal('DAY'),
+          this.literal(`-DATEPART(dw, ${field})+2`),
+          this.col(field),
         );
         break;
       case 'Day':
-        dateToConvert = col(field);
+        dateToConvert = this.col(field);
         break;
       default:
         throw new Error(`Unknown Date operation: "${operation}"`);
@@ -47,12 +57,12 @@ export default class DateAggregationConverter {
 
     // eslint-disable-next-line max-len
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/cast-and-convert-transact-sql?redirectedfrom=MSDN&view=sql-server-ver15
-    return fn('CONVERT', literal('varchar(10)'), dateToConvert, 23);
+    return this.fn('CONVERT', this.literal('varchar(10)'), dateToConvert, 23);
   }
 
-  private static convertMysql(field: string, operation: DateOperation): Fn {
+  private convertMysql(field: string, operation: DateOperation): Fn {
     let format = '%Y-%m-%d';
-    let dateToConvert: Col | Fn = col(field);
+    let dateToConvert: Col | Fn = this.col(field);
 
     switch (operation) {
       case 'Year':
@@ -62,7 +72,11 @@ export default class DateAggregationConverter {
         format = '%Y-%m-01';
         break;
       case 'Week':
-        dateToConvert = fn('DATE_SUB', col(field), literal(`INTERVAL(WEEKDAY(${field})) DAY`));
+        dateToConvert = this.fn(
+          'DATE_SUB',
+          this.col(field),
+          this.literal(`INTERVAL(WEEKDAY(${field})) DAY`),
+        );
         break;
       case 'Day':
         break;
@@ -70,12 +84,12 @@ export default class DateAggregationConverter {
         throw new Error(`Unknown Date operation: "${operation}"`);
     }
 
-    return fn('DATE_FORMAT', dateToConvert, format);
+    return this.fn('DATE_FORMAT', dateToConvert, format);
   }
 
-  private static convertSqlite(field: string, operation: DateOperation): Fn {
+  private convertSqlite(field: string, operation: DateOperation): Fn {
     if (operation === 'Week') {
-      return fn('DATE', col(field), 'weekday 0');
+      return this.fn('DATE', this.col(field), 'weekday 0');
     }
 
     let format: string;
@@ -94,10 +108,10 @@ export default class DateAggregationConverter {
         throw new Error(`Unknown Date operation: "${operation}"`);
     }
 
-    return fn('STRFTIME', format, col(field));
+    return this.fn('STRFTIME', format, this.col(field));
   }
 
-  static convertToDialect(dialect: Dialect, field: string, operation: DateOperation): Fn {
+  convertToDialect(dialect: Dialect, field: string, operation: DateOperation): Fn {
     switch (dialect) {
       case 'postgres':
         return this.convertPostgres(field, operation);

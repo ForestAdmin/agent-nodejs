@@ -13,11 +13,9 @@ import {
   ModelDefined,
   Op,
   OrderItem,
+  Sequelize,
   WhereOperators,
   WhereOptions,
-  col,
-  fn,
-  where,
 } from 'sequelize';
 
 import unAmbigousField from './un-ambigous';
@@ -25,10 +23,16 @@ import unAmbigousField from './un-ambigous';
 export default class QueryConverter {
   private model: ModelDefined<unknown, unknown>;
   private dialect: Dialect;
+  private col: Sequelize['col'];
+  private fn: Sequelize['fn'];
+  private where: Sequelize['where'];
 
   constructor(model: ModelDefined<unknown, unknown>) {
     this.model = model;
     this.dialect = this.model.sequelize.getDialect() as Dialect;
+    this.col = this.model.sequelize.col;
+    this.fn = this.model.sequelize.fn;
+    this.where = this.model.sequelize.where;
   }
 
   private asArray(value: unknown) {
@@ -54,9 +58,9 @@ export default class QueryConverter {
 
       case 'Like':
         if (this.dialect === 'sqlite')
-          return where(col(field), 'GLOB', value.replace(/%/g, '*').replace(/_/g, '?'));
+          return this.where(this.col(field), 'GLOB', value.replace(/%/g, '*').replace(/_/g, '?'));
         if (this.dialect === 'mysql' || this.dialect === 'mariadb')
-          return where(fn('BINARY', col(field)), 'LIKE', value);
+          return this.where(this.fn('BINARY', this.col(field)), 'LIKE', value);
 
         return { [Op.like]: value };
 
@@ -65,7 +69,7 @@ export default class QueryConverter {
         if (this.dialect === 'mysql' || this.dialect === 'mariadb' || this.dialect === 'sqlite')
           return { [Op.like]: value };
 
-        return where(fn('LOWER', col(field)), 'LIKE', value.toLocaleLowerCase());
+        return this.where(this.fn('LOWER', this.col(field)), 'LIKE', value.toLocaleLowerCase());
 
       case 'NotContains':
         return {
