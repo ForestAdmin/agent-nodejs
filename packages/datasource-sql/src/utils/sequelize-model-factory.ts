@@ -2,7 +2,7 @@ import { ModelAttributes, Sequelize } from 'sequelize';
 
 import { FieldDescription } from './types';
 
-export default class ModelFactory {
+export default class SequelizeModelFactory {
   static build(
     tableName: string,
     fieldDescriptions: FieldDescription[],
@@ -11,25 +11,21 @@ export default class ModelFactory {
     let model: ModelAttributes = Object.fromEntries(fieldDescriptions);
 
     const columnNames = Object.keys(model);
-    const timestamps = ModelFactory.hasTimestamps(columnNames);
-    const paranoid = ModelFactory.isParanoid(columnNames);
+    const timestamps = SequelizeModelFactory.hasTimestamps(columnNames);
+    const paranoid = SequelizeModelFactory.isParanoid(columnNames);
 
     if (timestamps) {
-      model = ModelFactory.removeTimeStampColumns(model);
+      model = SequelizeModelFactory.removeTimestampColumns(model);
     }
 
     if (paranoid) {
-      model = ModelFactory.removeParanoidColumn(model);
+      model = SequelizeModelFactory.removeParanoidColumn(model);
     }
 
-    sequelize.define(tableName, model, {
-      tableName,
-      timestamps,
-      paranoid,
-    });
+    sequelize.define(tableName, model, { tableName, timestamps, paranoid });
   }
 
-  private static removeTimeStampColumns(modelDefinition: ModelAttributes): ModelAttributes {
+  private static removeTimestampColumns(modelDefinition: ModelAttributes): ModelAttributes {
     const copy = { ...modelDefinition };
     delete copy.createdAt;
     delete copy.updatedAt;

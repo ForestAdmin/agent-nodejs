@@ -5,8 +5,8 @@ import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
 import { FieldDescription } from './utils/types';
 import DefaultValueParser from './utils/default-value-parser';
-import ModelFactory from './utils/model-factory';
-import RelationFactory from './utils/relation-factory';
+import SequelizeModelFactory from './utils/sequelize-model-factory';
+import SequelizeRelationFactory from './utils/sequelize-relation-factory';
 import SqlTypeConverter from './utils/sql-type-converter';
 
 export default class SqlDataSource extends SequelizeDataSource {
@@ -32,10 +32,9 @@ export default class SqlDataSource extends SequelizeDataSource {
    * @see https://github.com/sequelize/sequelize/blob/main/src/dialects/mariadb/query.js#L295
    */
   async getRealTableNames(): Promise<string[]> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tableNames = (await this.queryInterface.showAllTables()) as Array<any>;
+    const names: ({ tableName: string } | string)[] = await this.queryInterface.showAllTables();
 
-    return tableNames.map(tableName => tableName?.tableName || tableName);
+    return names.map(name => (typeof name === 'string' ? name : name?.tableName));
   }
 
   async build() {
@@ -51,7 +50,7 @@ export default class SqlDataSource extends SequelizeDataSource {
     const modelToBuild = tableNames.map(async tableName => {
       const columnDescriptions = await this.queryInterface.describeTable(tableName);
       const fieldDescriptions = await this.buildFieldDescriptions(columnDescriptions, tableName);
-      ModelFactory.build(tableName, fieldDescriptions, this.sequelize);
+      SequelizeModelFactory.build(tableName, fieldDescriptions, this.sequelize);
     });
     await Promise.all(modelToBuild);
   }
@@ -94,7 +93,7 @@ export default class SqlDataSource extends SequelizeDataSource {
         tableName,
       );
       const uniqueFields = await this.getUniqueFields(tableName);
-      RelationFactory.build(tableName, foreignReferences, uniqueFields, this.sequelize);
+      SequelizeRelationFactory.build(tableName, foreignReferences, uniqueFields, this.sequelize);
     });
 
     await Promise.all(relationsToBuild);
