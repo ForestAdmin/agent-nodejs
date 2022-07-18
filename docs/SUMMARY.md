@@ -86,7 +86,7 @@
 
 ## Examples
 
-- [Upload to AWS S3 Bucket](agent-customization/examples/upload-file-to-s3.md)
+- [Upload a file to S3](agent-customization/examples/upload-file-to-s3.md)
 
 ## Under the hood
 

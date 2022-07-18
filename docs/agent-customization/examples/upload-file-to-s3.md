@@ -1,7 +1,7 @@
 This example shows how to upload a file to an S3 bucket.
 
 To illustrate our example, imagine we have a User collection with an avatar string field. This field will store the s3
-url of the avatar.
+URL of the avatar.
 
 ## Create an AWS service
 
@@ -65,7 +65,7 @@ const config ={
 const s3 = new AwsS3Service(config);
 ```
 
-## Add a method to decode the date uri given by the client
+## Add a method to decode the data URI given by the client
 
 Our data uri are not conventional because we have added the file name.
 
@@ -97,7 +97,7 @@ collection.addField('signedAvatar', {
     dependencies: ['avatar'],
     getValues: records =>
       records.map(record => {
-        // get the path stored in s3. The `pathname` is started with `/` that's why we need to remove it.
+        // get the path stored in s3. The `pathname` starts with a `/` that's why we need to remove it.
         const path = decodeURI(new URL(record.avatar).pathname.substring(1));
         return s3.getUrlSignedUrlFromPath(path);
       })
@@ -112,7 +112,7 @@ collection
   .replaceFieldWriting('signedAvatar', async (newAvatarFile, context) => {
     if (!newAvatarFile) return {avatar: null};
 
-    // compute an unique path to avoid colision when uploading the same file twice for a different record.
+    // compute an unique path to avoid collision when uploading the same file twice for a different record.
     const uniquePath = `owner/${context.record.id}`;
     // upload to s3 and get the url
     const avatar = await s3.upload(parseDataUri(newAvatarFile), uniquePath);
