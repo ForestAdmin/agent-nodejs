@@ -7,7 +7,7 @@ In this first example, we want to display the customer's city in the table-view.
 However, as there is no "city" column on the "customer" database table, we need to retrieve it from the "address" relation.
 
 ```javascript
-collection.importField('city', { path: 'address:city' });
+collection.importField('city', { path: 'address:city', readonly: true });
 ```
 
 {% hint style="info" %}

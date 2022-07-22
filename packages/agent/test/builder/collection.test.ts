@@ -20,6 +20,10 @@ describe('Builder > Collection', () => {
             name: factories.columnSchema.build({
               columnType: 'String',
             }),
+            nameInReadOnly: factories.columnSchema.build({
+              columnType: 'String',
+              isReadOnly: true,
+            }),
             authorId: factories.columnSchema.build({
               columnType: 'Number',
             }),
@@ -177,6 +181,49 @@ describe('Builder > Collection', () => {
       const [[, definition]] = replaceFieldWritingSpy.mock.calls;
       expect(definition('newNameValue', {} as never)).toEqual({
         translator: { name: 'newNameValue' },
+      });
+    });
+
+    describe('when the field is not writable', () => {
+      it('should not call the replaceFieldWriting', async () => {
+        const { stack } = await setup();
+        const builder = new CollectionBuilder(stack, 'authors');
+        const collection = stack.write.getCollection('authors');
+        const replaceFieldWritingSpy = jest.spyOn(collection, 'replaceFieldWriting');
+
+        builder.importField('translatorName', { path: 'translator:nameInReadOnly' });
+
+        expect(replaceFieldWritingSpy).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when the "readOnly" option is true', () => {
+      it('should not call the replaceFieldWriting', async () => {
+        const { stack } = await setup();
+        const builder = new CollectionBuilder(stack, 'authors');
+        const collection = stack.write.getCollection('authors');
+        const replaceFieldWritingSpy = jest.spyOn(collection, 'replaceFieldWriting');
+
+        builder.importField('translatorName', { path: 'translator:name', readonly: true });
+
+        expect(replaceFieldWritingSpy).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when the "readOnly" option is false and the schema doest not allow to write', () => {
+      it('should throw an error', async () => {
+        const { stack } = await setup();
+        const builder = new CollectionBuilder(stack, 'authors');
+
+        expect(() =>
+          builder.importField('translatorName', {
+            path: 'translator:nameInReadOnly',
+            readonly: false,
+          }),
+        ).toThrowError(
+          'Readonly option should not be false because the field' +
+            ' "translator:nameInReadOnly" is not writable',
+        );
       });
     });
   });

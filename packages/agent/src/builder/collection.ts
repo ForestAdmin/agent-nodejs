@@ -57,7 +57,10 @@ export default class CollectionBuilder<
    * @example
    * .importField('authorName', { path: 'author:fullName' })
    */
-  importField(name: string, options: { path: TFieldName<S, N>; beforeRelations?: boolean }): this {
+  importField(
+    name: string,
+    options: { path: TFieldName<S, N>; beforeRelations?: boolean; readonly?: boolean },
+  ): this {
     const collection = this.stack.lateComputed.getCollection(this.name);
     const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
 
@@ -70,17 +73,25 @@ export default class CollectionBuilder<
       enumValues: schema.enumValues,
     });
 
-    this.stack.write.getCollection(this.name).replaceFieldWriting(name, value => {
-      const path = options.path.split(':');
-      const writingPath = {};
-      path.reduce((nestedPath, currentPath, index) => {
-        nestedPath[currentPath] = index === path.length - 1 ? value : {};
+    if (!schema.isReadOnly && !options.readonly) {
+      this.stack.write.getCollection(this.name).replaceFieldWriting(name, value => {
+        const path = options.path.split(':');
+        const writingPath = {};
+        path.reduce((nestedPath, currentPath, index) => {
+          nestedPath[currentPath] = index === path.length - 1 ? value : {};
 
-        return nestedPath[currentPath];
-      }, writingPath);
+          return nestedPath[currentPath];
+        }, writingPath);
 
-      return writingPath;
-    });
+        return writingPath;
+      });
+    }
+
+    if (schema.isReadOnly && options.readonly === false) {
+      throw new Error(
+        `Readonly option should not be false because the field "${options.path}" is not writable`,
+      );
+    }
 
     for (const operator of schema.filterOperators) {
       const handler = value => ({ field: options.path, operator, value });
