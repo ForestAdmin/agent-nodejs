@@ -1,42 +1,61 @@
 Forest Admin allows to replace the field writing by your own.
-It is useful when you want to overwrite a behavior or to make writable a read only field added by `addField` method.
 
-## Disabling writes
+This is useful when you want to change how a given field behaves, but also to make [computed fields](./computed.md) writable.
+
+## How does it works
+
+The `replaceFieldWriting` function allows to change the behavior of any change by creating a new patch that will be applied on the record.
+
+You should refrain from using handlers which have side effects (to perform error handling, validation, ...) and [use hooks instead](../hooks/README.md)
+
+## Examples
+
+### Making a field read-only
 
 {% hint style="info" %}
-Disabling writes can be made without any code [in the field settings](https://docs.forestadmin.com/user-guide/collections/customize-your-fields#basic-settings).
+The same result can be achieved without any code [in the field settings](https://docs.forestadmin.com/user-guide/collections/customize-your-fields#basic-settings).
 {% endhint %}
+
+Making a field read-only can be achieved by passing `null` as an update handler.
 
 ```javascript
 collection.replaceFieldWriting('fullName', null);
 ```
 
-## Substitution
-
-By default, he `replaceFieldWriting` function allow you to substitute any given fields by returning a patch of the current record.
+### Changing other fields in the same record
 
 In the following example, editing or creating a `fullName` will update both `firstName` and `lastName` fields of the record.
 
-
 ```javascript
-collection.replaceFieldWriting('fullName', (value) => {
+collection.replaceFieldWriting('fullName', value => {
   const [firstName, lastName] = value.split(' ');
 
   return { firstName, lastName };
 });
 ```
 
-## Trigger your own code
+### Having specific behavior only for updates
 
-You can also trigger any code you want without updating any field by not returning anything.
+You may trigger different code when the field is `created` or `updated`.
+
+In this example, each time the `firstName` field is edited, we also want to update a timestamp field.
 
 ```javascript
-collection.replaceFieldWriting('fullName', async (fullName) => {
-  await EmailSender.send(`${fullName} wants to be update`);
+collection.replaceFieldWriting('firstName', async (value, context) => {
+  switch (context.action) {
+    case 'create':
+      return { firstName, firstNameLastEdited: null };
+
+    case 'update':
+      return { firstName, firstNameLastEdited: new Date().toISOString() };
+
+    default:
+      throw new Error('Unexpected value');
+  }
 });
 ```
 
-## Handling relationships
+### Changing fields in related records
 
 {% hint style="info" %}
 Handling relationships inside a `replaceFieldWriting` will only work for `ManyToOne` and `OneToOne` relationships.
@@ -44,7 +63,7 @@ Handling relationships inside a `replaceFieldWriting` will only work for `ManyTo
 
 In this simple example, we have two collections which are linked together:
 
-- `Users` has a `job` and a `portfolioId` as foreignKey 
+- `Users` has a `job` and a `portfolioId` as foreignKey
 - `Portfolios` has a `title`
 
 When the user updates his `job` field we want also update the `title` of the portfolio by the `job` name.
@@ -73,20 +92,5 @@ with the `formats` collection, you can update it by writing the right path.
 ```javascript
 collection.replaceFieldWriting('job', (job, { action }) => {
   return { job, portfolioId: 8, portfolio: { title: job, format: { name: 'pdf' } } };
-});
-```
-
-## Get the action type from the context
-
-If you want to trigger a different code when the field is `updated` or `created`
-you can use the `action` field from the `context`.
-
-```javascript
-collection.replaceFieldWriting('immutableName', (immutableName, { action }) => {
-  if(action === 'create') {
-    return immutableName;
-  } else if (action === 'update') {
-    throw new Error('immutableName can not be updated');
-  }
 });
 ```
