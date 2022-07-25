@@ -4,6 +4,12 @@ import { Sequelize } from 'sequelize';
 import SequelizeCollection from './collection';
 
 export default class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
+  /**
+   * We can't directly use the Sequelize version we install in the package.json
+   * as the customer's version may be different.
+   * To ensure compatibility, we need to only import types from Sequelize,
+   *    and use the customer sequelize version to deal with the data manipulation.
+   */
   protected sequelize: Sequelize = null;
 
   constructor(sequelize: Sequelize, logger?: Logger) {
