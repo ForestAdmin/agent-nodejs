@@ -1,3 +1,20 @@
+# example [1.0.0-beta.55](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.54...example@1.0.0-beta.55) (2022-07-25)
+
+
+### Bug Fixes
+
+* update code and sequelize version to avoid crash ([#374](https://github.com/ForestAdmin/agent-nodejs/issues/374)) ([e003416](https://github.com/ForestAdmin/agent-nodejs/commit/e0034166b86e48781ea099086fd93aa7c68dba03))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.35
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.34
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.40
+
 # example [1.0.0-beta.54](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.53...example@1.0.0-beta.54) (2022-07-12)
 
 
