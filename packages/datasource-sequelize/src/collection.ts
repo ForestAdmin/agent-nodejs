@@ -1,4 +1,4 @@
-import { FindOptions, ModelDefined, ProjectionAlias, col, fn } from 'sequelize';
+import { FindOptions, ModelDefined, ProjectionAlias, Sequelize } from 'sequelize';
 
 import {
   AggregateResult,
@@ -21,6 +21,9 @@ import Serializer from './utils/serializer';
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected model: ModelDefined<any, any>;
+  private col: Sequelize['col'];
+  private fn: Sequelize['fn'];
+
   private aggregationUtils: AggregationUtils;
   private queryConverter: QueryConverter;
 
@@ -36,6 +39,9 @@ export default class SequelizeCollection extends BaseCollection {
     if (!model) throw new Error('Invalid (null) model instance.');
 
     this.model = model;
+    this.col = this.model.sequelize.col;
+    this.fn = this.model.sequelize.fn;
+
     this.aggregationUtils = new AggregationUtils(this.model);
     this.queryConverter = new QueryConverter(this.model);
 
@@ -117,7 +123,10 @@ export default class SequelizeCollection extends BaseCollection {
       aggregationField = this.aggregationUtils.quoteField(aggregationField);
     }
 
-    const aggregationFunction = fn(aggregation.operation.toUpperCase(), col(aggregationField));
+    const aggregationFunction = this.fn(
+      aggregation.operation.toUpperCase(),
+      this.col(aggregationField),
+    );
     const aggregationAttribute: ProjectionAlias = [
       aggregationFunction,
       this.aggregationUtils.aggregateFieldName,

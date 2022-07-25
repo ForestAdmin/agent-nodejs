@@ -6,7 +6,7 @@ import {
   ModelDefined,
   OrderItem,
   ProjectionAlias,
-  col,
+  Sequelize,
 } from 'sequelize';
 import { Fn } from 'sequelize/types/utils';
 
@@ -18,6 +18,9 @@ export default class AggregationUtils {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private model: ModelDefined<any, any>;
   private dialect: Dialect;
+  private col: Sequelize['col'];
+
+  private dateAggregationConverter: DateAggregationConverter;
 
   readonly aggregateFieldName = '__aggregate__';
 
@@ -25,6 +28,9 @@ export default class AggregationUtils {
   constructor(model: ModelDefined<any, any>) {
     this.model = model;
     this.dialect = this.model.sequelize.getDialect() as Dialect;
+    this.col = this.model.sequelize.col;
+
+    this.dateAggregationConverter = new DateAggregationConverter(this.model.sequelize);
   }
 
   private getGroupFieldName(groupField: string) {
@@ -54,8 +60,7 @@ export default class AggregationUtils {
       const groupField = this.quoteField(field);
 
       if (group.operation) {
-        const groupFunction = DateAggregationConverter.convertToDialect(
-          this.dialect,
+        const groupFunction = this.dateAggregationConverter.convertToDialect(
           groupField,
           group.operation,
         );
@@ -65,7 +70,7 @@ export default class AggregationUtils {
         return this.dialect === 'mssql' ? groupFunction : groupFieldName;
       }
 
-      attributes.push([col(groupField), groupFieldName]);
+      attributes.push([this.col(groupField), groupFieldName]);
 
       return this.dialect === 'mssql' ? groupField : groupFieldName;
     });
@@ -79,13 +84,13 @@ export default class AggregationUtils {
     // FIXME handle properly order
     switch (this.dialect) {
       case 'postgres':
-        order = [col(this.aggregateFieldName), 'DESC NULLS LAST'];
+        order = [this.col(this.aggregateFieldName), 'DESC NULLS LAST'];
         break;
       case 'mssql':
         order = [aggregationFunction, 'DESC'];
         break;
       default:
-        order = [col(this.aggregateFieldName), 'DESC'];
+        order = [this.col(this.aggregateFieldName), 'DESC'];
     }
 
     return order;

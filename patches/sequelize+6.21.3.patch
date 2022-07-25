@@ -23,7 +23,7 @@ index 2eb6262..e3ad609 100644
  
  export interface ArrayDataTypeOptions<T extends AbstractDataTypeConstructor | AbstractDataType> {
 diff --git a/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts b/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts
-index 782ee82..f71dd1f 100644
+index 704fcbb..698c580 100644
 --- a/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts
 +++ b/node_modules/sequelize/types/dialects/abstract/query-interface.d.ts
 @@ -274,6 +274,7 @@ export interface ColumnDescription {
@@ -34,7 +34,7 @@ index 782ee82..f71dd1f 100644
  }
  
  export interface ColumnsDescription {
-@@ -461,7 +462,14 @@ export class QueryInterface {
+@@ -469,7 +470,14 @@ export class QueryInterface {
    /**
     * Shows the index of a table
     */
@@ -50,7 +50,7 @@ index 782ee82..f71dd1f 100644
  
    /**
     * Put a name to an index
-@@ -476,7 +484,19 @@ export class QueryInterface {
+@@ -484,7 +492,19 @@ export class QueryInterface {
    /**
     * Get foreign key references details for the table
     */
@@ -72,10 +72,10 @@ index 782ee82..f71dd1f 100644
    /**
     * Inserts a new record
 diff --git a/node_modules/sequelize/types/model.d.ts b/node_modules/sequelize/types/model.d.ts
-index f42f970..de9e144 100644
+index 7155761..810fb2f 100644
 --- a/node_modules/sequelize/types/model.d.ts
 +++ b/node_modules/sequelize/types/model.d.ts
-@@ -1408,6 +1408,8 @@ export interface ModelAttributeColumnOptions<M extends Model = Model> extends Co
+@@ -1634,6 +1634,8 @@ export interface ModelAttributeColumnOptions<M extends Model = Model> extends Co
     */
    values?: readonly string[];
  

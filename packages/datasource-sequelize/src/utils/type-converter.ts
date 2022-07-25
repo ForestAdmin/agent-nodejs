@@ -1,4 +1,4 @@
-import { AbstractDataTypeConstructor, ArrayDataType, DataType, DataTypes } from 'sequelize';
+import { AbstractDataType, AbstractDataTypeConstructor, ArrayDataType, DataTypes } from 'sequelize';
 
 import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
@@ -29,52 +29,52 @@ export default class TypeConverter {
     return dataType;
   }
 
-  private static getColumnTypeFromDataType(dataType: DataType): PrimitiveTypes {
-    switch (true) {
-      case dataType instanceof DataTypes.BOOLEAN:
+  private static getColumnTypeFromDataType(dataType: AbstractDataType): PrimitiveTypes {
+    switch (dataType.key) {
+      case DataTypes.BOOLEAN.key:
         return 'Boolean';
-      case dataType instanceof DataTypes.DATE:
-      case dataType instanceof DataTypes.NOW:
+      case DataTypes.DATE.key:
+      case DataTypes.NOW.key:
         return 'Date';
-      case dataType instanceof DataTypes.DATEONLY:
+      case DataTypes.DATEONLY.key:
         return 'Dateonly';
-      case dataType instanceof DataTypes.ENUM:
+      case DataTypes.ENUM.key:
         return 'Enum';
-      case dataType instanceof DataTypes.JSON:
-      case dataType instanceof DataTypes.JSONB:
+      case DataTypes.JSON.key:
+      case DataTypes.JSONB.key:
         return 'Json';
-      case dataType instanceof DataTypes.BIGINT:
-      case dataType instanceof DataTypes.DECIMAL:
-      case dataType instanceof DataTypes.DOUBLE:
-      case dataType instanceof DataTypes.FLOAT:
-      case dataType instanceof DataTypes.INTEGER:
-      case dataType instanceof DataTypes.MEDIUMINT:
-      case dataType instanceof DataTypes.NUMBER:
-      case dataType instanceof DataTypes.REAL:
-      case dataType instanceof DataTypes.SMALLINT:
-      case dataType instanceof DataTypes.TINYINT:
+      case DataTypes.BIGINT.key:
+      case DataTypes.DECIMAL.key:
+      case DataTypes.DOUBLE.key:
+      case DataTypes.FLOAT.key:
+      case DataTypes.INTEGER.key:
+      case DataTypes.MEDIUMINT.key:
+      case DataTypes.NUMBER.key:
+      case DataTypes.REAL.key:
+      case DataTypes.SMALLINT.key:
+      case DataTypes.TINYINT.key:
         return 'Number';
-      case dataType instanceof DataTypes.CHAR:
-      case dataType instanceof DataTypes.CITEXT:
-      case dataType instanceof DataTypes.STRING:
-      case dataType instanceof DataTypes.TEXT:
+      case DataTypes.CHAR.key:
+      case DataTypes.CITEXT.key:
+      case DataTypes.STRING.key:
+      case DataTypes.TEXT.key:
         return 'String';
-      case dataType instanceof DataTypes.TIME:
+      case DataTypes.TIME.key:
         return 'Timeonly';
-      case dataType instanceof DataTypes.UUID:
-      case dataType instanceof DataTypes.UUIDV1:
-      case dataType instanceof DataTypes.UUIDV4:
+      case DataTypes.UUID.key:
+      case DataTypes.UUIDV1.key:
+      case DataTypes.UUIDV4.key:
         return 'Uuid';
       default:
         throw new Error(`Unsupported data type: "${dataType}"`);
     }
   }
 
-  public static fromDataType(dataType: DataType): ColumnType {
-    if (dataType instanceof DataTypes.ARRAY) {
+  public static fromDataType(dataType: AbstractDataType): ColumnType {
+    if (dataType.key === DataTypes.ARRAY.key) {
       const arrayDataType = dataType as ArrayDataType<AbstractDataTypeConstructor>;
 
-      return [TypeConverter.fromDataType(arrayDataType.type)];
+      return [TypeConverter.fromDataType(arrayDataType.type as unknown as AbstractDataType)];
     }
 
     return TypeConverter.getColumnTypeFromDataType(dataType);
