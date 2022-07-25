@@ -1,4 +1,4 @@
-import { ModelAttributes, ModelDefined } from 'sequelize/types';
+import { Model, ModelAttributeColumnOptions, ModelDefined } from 'sequelize/types';
 
 export default class SequelizeModelAttributes {
   /**
@@ -6,7 +6,9 @@ export default class SequelizeModelAttributes {
    * a getter on rawAttributes. As we want to support >=6.2 versions, this
    * code is mandatory to check the existence of getAttributes.
    */
-  static getAttributes(model: ModelDefined<unknown, unknown>): ModelAttributes {
+  static getAttributes(model: ModelDefined<any, any>): {
+    [attribute: string]: ModelAttributeColumnOptions<Model<any, any>>;
+  } {
     return model.getAttributes ? model.getAttributes() : model.rawAttributes;
   }
 }
