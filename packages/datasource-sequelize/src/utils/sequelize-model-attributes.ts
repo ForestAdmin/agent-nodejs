@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Model, ModelAttributeColumnOptions, ModelDefined } from 'sequelize/types';
 
 export default class SequelizeModelAttributes {
