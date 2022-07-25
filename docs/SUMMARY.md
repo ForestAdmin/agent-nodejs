@@ -92,6 +92,10 @@
   - [environments:reset](deployment/forest-cli-commands/environments-reset.md)
   - [deploy](deployment/forest-cli-commands/deploy.md)
 
+## Examples
+
+- [Upload a file to S3](agent-customization/examples/upload-file-to-s3.md)
+
 ## Under the hood
 
 - [Data Model](under-the-hood/data-model/README.md)
