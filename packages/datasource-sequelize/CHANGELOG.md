@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.34](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.33...@forestadmin/datasource-sequelize@1.0.0-beta.34) (2022-07-25)
+
+
+### Bug Fixes
+
+* update code and sequelize version to avoid crash ([#374](https://github.com/ForestAdmin/agent-nodejs/issues/374)) ([e003416](https://github.com/ForestAdmin/agent-nodejs/commit/e0034166b86e48781ea099086fd93aa7c68dba03))
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.33](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.32...@forestadmin/datasource-sequelize@1.0.0-beta.33) (2022-06-27)
 
 
