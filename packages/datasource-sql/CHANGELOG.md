@@ -1,3 +1,18 @@
+# @forestadmin/datasource-sql [1.0.0-beta.40](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.39...@forestadmin/datasource-sql@1.0.0-beta.40) (2022-07-25)
+
+
+### Bug Fixes
+
+* update code and sequelize version to avoid crash ([#374](https://github.com/ForestAdmin/agent-nodejs/issues/374)) ([e003416](https://github.com/ForestAdmin/agent-nodejs/commit/e0034166b86e48781ea099086fd93aa7c68dba03))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.34
+
 # @forestadmin/datasource-sql [1.0.0-beta.39](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.38...@forestadmin/datasource-sql@1.0.0-beta.39) (2022-06-27)
 
 
