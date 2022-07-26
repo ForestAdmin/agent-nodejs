@@ -1,3 +1,18 @@
+# example [1.0.0-beta.56](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.55...example@1.0.0-beta.56) (2022-07-26)
+
+
+### Features
+
+* **importField:** make it writable by default ([#362](https://github.com/ForestAdmin/agent-nodejs/issues/362)) ([aa4646e](https://github.com/ForestAdmin/agent-nodejs/commit/aa4646e6da49e06e0603a815dbae61fd8a4bfe30))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.43
+
 # example [1.0.0-beta.55](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.54...example@1.0.0-beta.55) (2022-07-25)
 
 
