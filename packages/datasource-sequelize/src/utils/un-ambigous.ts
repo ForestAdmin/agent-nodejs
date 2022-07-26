@@ -14,9 +14,9 @@ export default function unAmbigousField(
   if (isRelation) {
     const paths = field.split(':');
     const relationFieldName = paths.pop();
-    const fieldName = paths
-      .reduce((acc, path) => acc.associations[path].target, model)
-      .getAttributes()[relationFieldName].field;
+    const fieldName = SequelizeModelAttributes.getAttributes(
+      paths.reduce((acc, path) => acc.associations[path].target, model),
+    )[relationFieldName].field;
     safeField = `${paths.join('.')}.${fieldName}`;
   } else {
     safeField = SequelizeModelAttributes.getAttributes(model)[field].field;
