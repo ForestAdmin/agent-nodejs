@@ -14,13 +14,32 @@ describe('Builder > Collection', () => {
   const setup = async () => {
     const dataSource = factories.dataSource.buildWithCollections([
       factories.collection.build({
+        name: 'translators',
+        schema: factories.collectionSchema.build({
+          fields: {
+            name: factories.columnSchema.build({
+              columnType: 'String',
+            }),
+            nameInReadOnly: factories.columnSchema.build({
+              columnType: 'String',
+              isReadOnly: true,
+            }),
+            authorId: factories.columnSchema.build({
+              columnType: 'Number',
+            }),
+          },
+        }),
+      }),
+      factories.collection.build({
         name: 'authors',
         schema: factories.collectionSchema.build({
           countable: true,
           fields: {
-            authorId: factories.columnSchema.build({
-              isPrimaryKey: true,
-              columnType: 'Number',
+            translator: factories.oneToOneSchema.build({
+              foreignCollection: 'translators',
+              originKey: 'authorId',
+            }),
+            authorId: factories.columnSchema.isPrimaryKey().build({
               filterOperators: new Set(['Equal', 'In']),
             }),
             firstName: factories.columnSchema.build({
@@ -37,14 +56,10 @@ describe('Builder > Collection', () => {
         name: 'book_author',
         schema: factories.collectionSchema.build({
           fields: {
-            authorFk: factories.columnSchema.build({
-              columnType: 'Number',
-              isPrimaryKey: true,
+            authorFk: factories.columnSchema.isPrimaryKey().build({
               filterOperators: new Set(['Equal', 'In']),
             }),
-            bookFk: factories.columnSchema.build({
-              columnType: 'Number',
-              isPrimaryKey: true,
+            bookFk: factories.columnSchema.isPrimaryKey().build({
               filterOperators: new Set(['Equal', 'In']),
             }),
           },
@@ -54,9 +69,7 @@ describe('Builder > Collection', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            bookId: factories.columnSchema.build({
-              isPrimaryKey: true,
-              columnType: 'Number',
+            bookId: factories.columnSchema.isPrimaryKey().build({
               filterOperators: new Set(['Equal', 'In']),
             }),
             title: factories.columnSchema.build({ columnType: 'String' }),
@@ -154,6 +167,64 @@ describe('Builder > Collection', () => {
 
       const { getValues } = spy.mock.calls[0][1];
       expect(getValues([{ firstName: 'John' }], null)).toStrictEqual(['John']);
+    });
+
+    it('should call the replaceFieldWriting with the correct path', async () => {
+      const { stack } = await setup();
+      const builder = new CollectionBuilder(stack, 'authors');
+      const collection = stack.write.getCollection('authors');
+      const replaceFieldWritingSpy = jest.spyOn(collection, 'replaceFieldWriting');
+
+      builder.importField('translatorName', { path: 'translator:name' });
+
+      expect(replaceFieldWritingSpy).toHaveBeenCalledWith('translatorName', expect.any(Function));
+      const [[, definition]] = replaceFieldWritingSpy.mock.calls;
+      expect(definition('newNameValue', {} as never)).toEqual({
+        translator: { name: 'newNameValue' },
+      });
+    });
+
+    describe('when the field is not writable', () => {
+      it('should not call the replaceFieldWriting', async () => {
+        const { stack } = await setup();
+        const builder = new CollectionBuilder(stack, 'authors');
+        const collection = stack.write.getCollection('authors');
+        const replaceFieldWritingSpy = jest.spyOn(collection, 'replaceFieldWriting');
+
+        builder.importField('translatorName', { path: 'translator:nameInReadOnly' });
+
+        expect(replaceFieldWritingSpy).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when the "readOnly" option is true', () => {
+      it('should not call the replaceFieldWriting', async () => {
+        const { stack } = await setup();
+        const builder = new CollectionBuilder(stack, 'authors');
+        const collection = stack.write.getCollection('authors');
+        const replaceFieldWritingSpy = jest.spyOn(collection, 'replaceFieldWriting');
+
+        builder.importField('translatorName', { path: 'translator:name', readonly: true });
+
+        expect(replaceFieldWritingSpy).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when the "readOnly" option is false and the schema doest not allow to write', () => {
+      it('should throw an error', async () => {
+        const { stack } = await setup();
+        const builder = new CollectionBuilder(stack, 'authors');
+
+        expect(() =>
+          builder.importField('translatorName', {
+            path: 'translator:nameInReadOnly',
+            readonly: false,
+          }),
+        ).toThrowError(
+          'Readonly option should not be false because the field' +
+            ' "translator:nameInReadOnly" is not writable',
+        );
+      });
     });
   });
 

@@ -10,6 +10,11 @@ However, as there is no "city" column on the "customer" database table, we need 
 collection.importField('city', { path: 'address:city', readonly: true });
 ```
 
+{% hint style="info" %}
+The `importField` method will automatically make it writable.
+To disable write, please go to this [section](write.md).
+{% endhint %}
+
 Adding our city column into the table does bring functionality, but it created complexity.
 
 Let's reduce the number of columns in the table-view by merging three columns into one and hiding the extra columns in the admin panel
@@ -42,9 +47,15 @@ collection.addField('totalSpending', {
   },
 });
 ```
-## Make it writable
 
-When you add a field, it is not writable. To allow it, use the `replaceFieldWriting` method.
+## Replace the writing definition
+
+You should use the `replaceFieldWriting` method to add your writing definition.
+For example, it is useful when you want to manipulate the field value before saving it. 
+
+{% hint style="info" %}
+You can have more details and examples on this [section](write.md).
+{% endhint %}
 
 ```javascript
 collection.replaceFieldWriting('fullName', (value) => {
