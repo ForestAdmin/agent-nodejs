@@ -46,11 +46,11 @@
 - [Charts](agent-customization/charts.md)
 - [Fields](agent-customization/fields/README.md)
 
-  - [Adding Fields](agent-customization/fields/computed.md)
-  - [Moving and renaming fields](agent-customization/fields/import-rename.md)
-  - [Overriding writes](agent-customization/fields/write.md)
-  - [Overriding filters](agent-customization/fields/filter.md)
-  - [Overriding sort](agent-customization/fields/sort.md)
+  - [Add fields](agent-customization/fields/computed.md)
+  - [Move, rename and delete fields](agent-customization/fields/import-rename-delete.md)
+  - [Override writing behavior](agent-customization/fields/write.md)
+  - [Override filtering behavior](agent-customization/fields/filter.md)
+  - [Override sorting behavior](agent-customization/fields/sort.md)
 
 - [Hooks](agent-customization/hooks/README.md)
 - [Relationships](agent-customization/relationships/README.md)
