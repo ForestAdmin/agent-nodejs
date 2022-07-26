@@ -6,7 +6,7 @@ import BaseDataSource from '../src/base-datasource';
 class ConcreteDataSource extends BaseDataSource<Collection> {}
 
 describe('BaseDataSource', () => {
-  it('should instanciate properly when extended', () => {
+  it('should instantiate properly when extended', () => {
     expect(new ConcreteDataSource()).toBeDefined();
   });
 
@@ -63,7 +63,7 @@ describe('BaseDataSource', () => {
       }
     }
 
-    it('should prevent instanciation when adding collection with duplicated name', () => {
+    it('should prevent instantiation when adding collection with duplicated name', () => {
       expect(() => new DuplicatedCollectionErrorDataSource()).toThrow(
         "Collection '__duplicated__' already defined in datasource",
       );

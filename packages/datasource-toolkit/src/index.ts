@@ -5,6 +5,7 @@ export * from './factory';
 // Base Collection & DataSource
 export { default as BaseCollection } from './base-collection';
 export { default as BaseDataSource } from './base-datasource';
+export { default as CompositeDatasource } from './composite-datasource';
 
 // Context
 export { default as CollectionCustomizationContext } from './context/collection-context';
