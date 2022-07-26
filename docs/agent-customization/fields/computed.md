@@ -24,7 +24,7 @@ This examples add a `user.displayName` field, which is computed by concatenating
 agent.customizeCollection('user', collection => {
   collection.addField('displayName', {
     // Type of the new field
-    type: 'String',
+    columnType: 'String',
 
     // Dependencies which are needed to compute the new field (must not be empty)
     dependencies: ['firstName', 'lastName'],
@@ -48,7 +48,7 @@ We can improve the previous example by adding the city of the user in the displa
 
 agent.customizeCollection('user', collection => {
   collection.addField('displayName', {
-    type: 'String',
+    columnType: 'String',
 
     // We added 'address:city' in the list of dependencies,
     // which tells forest to fetch the related record
@@ -72,7 +72,7 @@ Let's now add a `user.totalSpending` field by summing the amount of all `orders`
 
 agent.customizeCollection('user', collection => {
   collection.addField('totalSpending', {
-    type: 'Number',
+    columnType: 'Number',
     dependencies: ['id'],
     getValues: async (records, context) => {
       const recordIds = records.map(r => r.id);
@@ -104,7 +104,7 @@ client.setApiKey(process.env.SENDCHIMPLIO_API_KEY);
 // User collection has the following structure: { id, email }
 agent.customizeCollection('user', collection => {
   collection.addField('emailDeliverable', {
-    type: 'Boolean',
+    columnType: 'Boolean',
     dependencies: ['email'],
     getValues: async (records, context) => {
       // Structure of the response is
@@ -129,9 +129,9 @@ agent.customizeCollection('user', collection => {
 
 When adding many fields, keep in mind that:
 
-- You should refrain from making queries to external services for each record
-  - Use relationships in the dependency array when that is possible
-  - Otherwise, try to use batch APIs instead of performing queries inside of the `records.map()` handler.
+- You should refrain from making queries to external services
+  - Use relationships in the `dependencies` array when that is possible
+  - Use batch APIs instead of performing queries inside of the `records.map()` handler.
 - Only add fields you need in the `dependencies` list
   - This will reduce the pressure on your datasources (less columns to fetch)
   - And increase the probability of reducing the number of records that will be passed to your handler (records are deduplicated).
