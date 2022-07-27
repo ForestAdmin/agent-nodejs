@@ -1,4 +1,5 @@
 import { ModelDefined } from 'sequelize/types';
+import SequelizeModelAttributes from './sequelize-model-attributes';
 
 export default function unAmbigousField(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -13,12 +14,12 @@ export default function unAmbigousField(
   if (isRelation) {
     const paths = field.split(':');
     const relationFieldName = paths.pop();
-    const fieldName = paths
-      .reduce((acc, path) => acc.associations[path].target, model)
-      .getAttributes()[relationFieldName].field;
+    const fieldName = SequelizeModelAttributes.getAttributes(
+      paths.reduce((acc, path) => acc.associations[path].target, model),
+    )[relationFieldName].field;
     safeField = `${paths.join('.')}.${fieldName}`;
   } else {
-    safeField = model.getAttributes()[field].field;
+    safeField = SequelizeModelAttributes.getAttributes(model)[field].field;
     if (unAmbigous) safeField = `${model.name}.${safeField}`;
   }
 

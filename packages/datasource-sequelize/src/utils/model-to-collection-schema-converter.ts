@@ -19,6 +19,7 @@ import {
   RelationSchema,
 } from '@forestadmin/datasource-toolkit';
 
+import SequelizeModelAttributes from './sequelize-model-attributes';
 import TypeConverter from './type-converter';
 
 export default class ModelToCollectionSchemaConverter {
@@ -152,7 +153,11 @@ export default class ModelToCollectionSchemaConverter {
       actions: {},
       countable: true,
       fields: {
-        ...this.convertAttributes(model.name, model.getAttributes(), logger),
+        ...this.convertAttributes(
+          model.name,
+          SequelizeModelAttributes.getAttributes(model),
+          logger,
+        ),
         ...this.convertAssociations(model.name, model.associations, logger),
       },
       searchable: false,
