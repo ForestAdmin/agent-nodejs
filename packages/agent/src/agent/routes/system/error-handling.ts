@@ -21,7 +21,7 @@ export default class ErrorHandling extends BaseRoute {
       await next();
     } catch (e) {
       let status = e.status || HttpCode.InternalServerError;
-      let message = 'Unexpected error';
+      const message = e?.message ?? 'Unexpected error';
 
       if (
         e instanceof HttpError ||
@@ -29,8 +29,6 @@ export default class ErrorHandling extends BaseRoute {
         e instanceof UnprocessableError ||
         e instanceof ForbiddenError
       ) {
-        message = e.message;
-
         switch (true) {
           case e instanceof ValidationError:
             status = HttpCode.BadRequest;
