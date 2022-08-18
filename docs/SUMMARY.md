@@ -107,3 +107,8 @@
   - [Filters](under-the-hood/queries/filters.md)
   - [Aggregations](under-the-hood/queries/aggregations.md)
 - [Security & Privacy](under-the-hood/security-privacy.md)
+
+## Extra helps
+
+- [How to ?](how-tos/README.md)
+  - [Running Forest Admin on multiple instances](how-tos/running-forest-admin-on-multiple-instances.md)
