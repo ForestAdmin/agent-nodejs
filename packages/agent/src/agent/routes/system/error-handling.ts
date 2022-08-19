@@ -21,7 +21,7 @@ export default class ErrorHandling extends BaseRoute {
       await next();
     } catch (e) {
       let status = e.status || HttpCode.InternalServerError;
-      let message = 'Unexpected error';
+      let message = e.message || 'Unexpected error';
 
       if (
         e instanceof HttpError ||
