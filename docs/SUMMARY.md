@@ -110,5 +110,4 @@
 
 ## Extra helps
 
-- [How to ?](how-tos/README.md)
-  - [Running Forest Admin on multiple instances](how-tos/running-forest-admin-on-multiple-instances.md)
+- [Running Forest Admin on multiple instances](how-tos/running-forest-admin-on-multiple-instances.md)

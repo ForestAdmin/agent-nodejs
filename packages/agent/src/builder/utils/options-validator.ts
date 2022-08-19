@@ -4,6 +4,9 @@ import { join as joinPath, parse as parsePath } from 'path';
 import { AgentOptions } from '../../types';
 import { AgentOptionsWithDefaults } from '../../agent/types';
 
+const DOCUMENTATION_URL = 'https://docs.forestadmin.com/beta-developer-guide-agents-v2/';
+const RUNNING_ON_MULTIPLE_INSTANCES_PATH = 'extra-helps/running-forest-admin-on-multiple-instances';
+
 export default class OptionsValidator {
   private static loggerPrefix = {
     Debug: '\x1b[34mdebug:\x1b[0m',
@@ -98,7 +101,8 @@ export default class OptionsValidator {
       options.logger?.(
         'Warn',
         'options.clientId was not provided. Using Node.js cluster mode, ' +
-          'or multiple instances of the agent will break authentication',
+          'or multiple instances of the agent will break authentication ' +
+          `(For more information: ${DOCUMENTATION_URL}${RUNNING_ON_MULTIPLE_INSTANCES_PATH})`,
       );
     } else if (typeof options.clientId !== 'string') {
       throw new Error('options.clientId is invalid.');
