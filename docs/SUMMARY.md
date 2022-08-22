@@ -8,13 +8,15 @@
 - [Quick start](getting-started/quick-start.md)
 - [Install](getting-started/install/README.md)
 
-  - [On Express](getting-started/install/using-express.md)
-  - [On Koa](getting-started/install/using-koa.md)
-  - [On Fastify](getting-started/install/using-fastify.md)
-  - [On NestJS](getting-started/install/using-nest.md)
-  - [Troubleshooting](getting-started/install/troubleshooting.md)
-
-- [Autocompletion & Typings](getting-started/autocompletion-and-typings.md)
+  - [Create your agent](getting-started/install/create-your-agent.md)
+  - Expose an HTTP endpoint
+    - [For standalone agents](getting-started/install/expose/using-standalone.md)
+    - [On Express](getting-started/install/expose/using-express.md)
+    - [On Koa](getting-started/install/expose/using-koa.md)
+    - [On Fastify](getting-started/install/expose/using-fastify.md)
+    - [On NestJS](getting-started/install/expose/using-nest.md)
+  - [Autocompletion & Typings](getting-started/install/autocompletion-and-typings.md)
+  - [Troubleshooting](getting-started/install/expose/troubleshooting.md)
 
 ## Data Sources
 

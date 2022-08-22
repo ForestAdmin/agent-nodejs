@@ -28,7 +28,7 @@ This guide will help you to setup Forest Admin as a standalone process, using an
 
 Go to [https://app.forestadmin.com/signup](https://app.forestadmin.com/signup), and create an account and a new project.
 
-## Optionnal - Make sure you have a database running, or use our example
+## Optional - Make sure you have a database running, or use our example
 
 If you want to test Forest Admin but don't have a database on hand, here is one!
 
