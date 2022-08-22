@@ -3,7 +3,6 @@ import { ValidationError } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import jsonwebtoken from 'jsonwebtoken';
 import jwt from 'koa-jwt';
-import path from 'path';
 
 import { Context } from 'koa';
 import { RouteType } from '../../types';
@@ -15,25 +14,15 @@ export default class Authentication extends BaseRoute {
 
   private client: Client;
 
-  private get redirectUrl(): string {
-    const externalUrl = new URL(this.options.agentUrl);
-
-    return (
-      externalUrl.origin +
-      path.posix.join('/', externalUrl.pathname, '/forest/authentication/callback')
-    );
-  }
-
   override async bootstrap(): Promise<void> {
     // Retrieve OpenId Issuer from forestadmin-server
     // We can't use 'Issuer.discover' because the oidc config is behind an auth-wall.
     const issuer = new Issuer(await ForestHttpApi.getOpenIdIssuerMetadata(this.options));
 
-    // Either instanciate or create a new oidc client.
+    // Either instantiate or create a new oidc client.
     const registration = {
       client_id: this.options.clientId,
       token_endpoint_auth_method: 'none' as ClientAuthMethod,
-      redirect_uris: [this.redirectUrl],
     };
 
     this.client = registration.client_id
@@ -74,7 +63,7 @@ export default class Authentication extends BaseRoute {
     }
 
     // Retrieve user
-    const tokenSet = await this.client.callback(this.redirectUrl, query, { state });
+    const tokenSet = await this.client.callback(undefined, query, { state });
     const accessToken = tokenSet.access_token;
     const user = await ForestHttpApi.getUserInformation(this.options, renderingId, accessToken);
 
