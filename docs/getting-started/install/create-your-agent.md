@@ -8,6 +8,7 @@ const agent = createAgent({
   isProduction: process.env.NODE_ENV === 'production',
 
   // Optional variables
+  customizeErrorMessage: ...,
   forestServerUrl: ...,
   logger: ...,
   loggerLevel: ...,
@@ -51,6 +52,30 @@ In development mode the agent has a few extra behaviors (when using `isProductio
 - When exceptions are thrown, a report will be printed to stdout.
 
 ## Optional variables
+
+### `customizeErrorMessage` (function, defaults to null)
+
+When unexpected errors are raised in the agent code during a request, the error will be logged (using `options.logger`), but in the admin-panel, the final user will get a default message 'Unexpected error'.
+
+This is done as to:
+
+- Prevent error message from leaking internal information about the agent (credentials, ...).
+- Prevent technical/cryptic error messages to show in the frontend.
+
+This behavior can be customized.
+
+```javascript
+createAgent({
+  // ...
+  customizeErrorMessage: error => {
+    if (error instanceof SequelizeConectionRefusedError) {
+      return 'Failed to connect to the database, contact John at 06 12 34 56 78 and tell him to reboot the server';
+    }
+
+    return 'Unexpected error, contact Jane at 06 87 65 43 21 and tell her to get it fixed.';
+  },
+});
+```
 
 ### `forestServerUrl` (string, defaults to 'https://api.forestadmin.com')
 
