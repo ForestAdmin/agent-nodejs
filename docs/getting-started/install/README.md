@@ -8,9 +8,7 @@ However, if you don't already have an existing Node.js application, or if you pr
 
 {% hint style="info" %}
 
-The installation process will ask for your application endpoint. This endpoint must be correctly filled in order to onboard and to make the authentication process to work as expected. If you choose to make the agent run as Standalone process, fill this endpoint with then endpoint you would like your agent to run on (http://localhost:3000 by default).
-
-Also make sure that the port provided to `mountAsStandaloneServer` matches this endpoint.
+The installation process will ask for your application endpoint. This endpoint must be correctly filled in order to onboard and to make the authentication process to work as expected. If you choose to make the agent run as Standalone process, fill it with the endpoint you would like your agent to run on (http://localhost:3000 by default) and make sure that the port provided to `mountAsStandaloneServer` matches (3000).
 
 {% endhint %}
 
