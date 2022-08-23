@@ -96,16 +96,33 @@ The final step requires that you add environment variables to your server. Follo
 
 Once your node server is successfully detected and running with the indicated environment variables, a **Finish** button will appear. Click on it to finalize the creation of your new remote environment.
 
+### Change environment origin
+
+You can change an origin of an environment to create complexe architecture like dev => staging => preprod => production.
+All layout will be generated based on its parent.
+
+To do so, click on the environment you wish to change the origin and from its details page, select the origin form _Set Origin_ section.
+
+![](../assets/environment-set-origin.png)
+
+{% hint style="warning" %}
+All child environment will be refreshed based on the new architectures.
+{% endhint %}
+
 ### Set an environment as production
 
-A standard project usually has a production and at least a staging environment, but you may be using other remote enviroments. At some point you may feel the need to set another environment as your main environment (a.k.a production).
+A standard project usually has a production and at least a staging environment, but you may be using other remote enviroments. At some point you may feel the need to set another environment as your production environment (a.k.a reference).
 
-To do so, click on the enviroment you wish to set as production and from its details page, click"Set as production".
+{% hint style="info" %}
+To set as production an environment it should have as origin the actual reference.
+{% endhint %}
+
+To do so, click on the enviroment you wish to set as production and from its details page, click "Set as production".
 
 ![](../assets/environment-set-as-production.png)
 
 {% hint style="warning" %}
-All your branches will be rebased on your new production. Any layout change that is not applicable will be ignored.
+The actual reference will take the new production as origin. All children layout will be refreshed. Any layout change that is not applicable will be ignored.
 {% endhint %}
 
 ### Delete an environment

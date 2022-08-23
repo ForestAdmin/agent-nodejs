@@ -16,10 +16,10 @@ To manipulate your layouts, you will be using [Forest CLI](forest-cli-commands/)
 
 ### What is a branch?
 
-A branch is a fork (i.e copy) of the layout of your _origin_ environment. It is attached to your development environment.
+A branch is a fork (i.e copy) of the layout of the wanted _origin_ environment. It is attached to your development environment.
 
 {% hint style="info" %}
-Your **origin** environment is generally your **production environment**, unless you don't have one in which case it will be one of your remote environments.
+Your **origin** environment is the environment you want based on to do some layout changes.
 {% endhint %}
 
 Once you've created a branch, your layout will look exactly like the layout of your origin environment.
@@ -32,7 +32,7 @@ Imagine the following situation where you have 3 environments:
 
 ![](../assets/branch-how-it-works.png)
 
-The branch `my-branch` is based on the production layout. Any changes made on it are saved in your branch's layout and can later be [moved ](forest-cli-commands/push.md)or [applied ](forest-cli-commands/deploy.md)to other layouts.
+The branch `my-branch` is based on the production layout. Any changes made on it are saved in your branch's layout and can later be [applied](forest-cli-commands/deploy.md) on it.
 
 ![](../assets/branch-example.png)
 
@@ -44,14 +44,14 @@ For those familiar with git's _rebase_, this means you will **never have to** **
 
 ### How do you create a branch?
 
-To create a branch, you'll need to use [Forest CLI](forest-cli-commands/). Make sure you've created your local development environment using the [init](forest-cli-commands/init.md) command. Then, to create a branch named `my-branch`, simply run:
+To create a branch, you'll need to use [Forest CLI](forest-cli-commands/). Make sure you've created your local development environment using the [init](forest-cli-commands/init.md) command. Then, to create a branch named `my-branch` based on your `production` environment, simply run:
 
 ```
-forest branch my-branch
+forest branch my-branch --origin production
 ```
 
 {% hint style="info" %}
-Using kebab-case is recommended; however, should you want to use spaces in your branch name, don't forget to surround it with quotes, like so `forest branch "my branch"`.
+Using kebab-case is recommended; however, should you want to use spaces in your branch name, don't forget to surround it with quotes, like so `forest branch "my branch" --origin ...`.
 {% endhint %}
 
 To learn more about the `branch` command, please visit [this page](forest-cli-commands/branch.md).
@@ -60,6 +60,8 @@ To learn more about the `branch` command, please visit [this page](forest-cli-co
 
 On your interface, click on the environment dropdown at the top-left side of your screen. Select a developement environment (if you don't have one, see the [init](forest-cli-commands/init.md) command).
 
+Your **current** branch will be displayed at the top and you can see the **number of changes** made on the current branch.
+
 ![](../assets/branch-current-branch-display.png)
 
 Your **current** branch will be displayed at the top.
@@ -67,9 +69,5 @@ Your **current** branch will be displayed at the top.
 {% hint style="info" %}
 To switch your _current_ branch to another existing branch, check out the [switch](forest-cli-commands/switch.md) command.
 {% endhint %}
-
-In the Environments dropdown, you can see the **number of changes** made on the branch/environment.
-
-![](../assets/branch-layout-changes.png)
 
 Now that you've mastered branch creation and management, let's dive into the next step of the development workflow: deployment
