@@ -20,38 +20,40 @@ export default class ErrorHandling extends BaseRoute {
     try {
       await next();
     } catch (e) {
-      let status = e.status || HttpCode.InternalServerError;
-      let message = 'Unexpected error';
-
-      if (
-        e instanceof HttpError ||
-        e instanceof ValidationError ||
-        e instanceof UnprocessableError ||
-        e instanceof ForbiddenError
-      ) {
-        message = e.message;
-
-        switch (true) {
-          case e instanceof ValidationError:
-            status = HttpCode.BadRequest;
-            break;
-          case e instanceof ForbiddenError:
-            status = HttpCode.Forbidden;
-            break;
-          case e instanceof UnprocessableError:
-            status = HttpCode.Unprocessable;
-            break;
-          default:
-        }
-      }
-
-      context.response.status = status;
-      context.response.body = { errors: [{ detail: message }] };
+      context.response.status = this.getErrorStatus(e);
+      context.response.body = { errors: [{ detail: this.getErrorMessage(e) }] };
 
       if (!this.options.isProduction) {
         process.nextTick(() => this.debugLogError(context, e));
       }
     }
+  }
+
+  private getErrorStatus(error: Error): number {
+    if (error instanceof ValidationError) return HttpCode.BadRequest;
+    if (error instanceof ForbiddenError) return HttpCode.Forbidden;
+    if (error instanceof UnprocessableError) return HttpCode.Unprocessable;
+    if (error instanceof HttpError) return error.status;
+
+    return HttpCode.InternalServerError;
+  }
+
+  private getErrorMessage(error: Error): string {
+    if (
+      error instanceof HttpError ||
+      error instanceof ValidationError ||
+      error instanceof UnprocessableError ||
+      error instanceof ForbiddenError
+    ) {
+      return error.message;
+    }
+
+    if (this.options.customizeErrorMessage) {
+      const message = this.options.customizeErrorMessage(error);
+      if (message) return message;
+    }
+
+    return 'Unexpected error';
   }
 
   private debugLogError(context: Context, error: Error): void {

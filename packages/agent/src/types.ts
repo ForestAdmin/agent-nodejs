@@ -4,15 +4,16 @@ import { Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 export type AgentOptions = {
   agentUrl: string;
   authSecret: string;
-  clientId?: string;
+  clientId?: string | null;
   envSecret: string;
+  customizeErrorMessage?: ((error: Error) => string | null) | null;
   forestServerUrl?: string;
   logger?: Logger;
   loggerLevel?: LoggerLevel;
   prefix?: string;
   isProduction: boolean;
   schemaPath?: string;
-  typingsPath?: string;
+  typingsPath?: string | null;
   typingsMaxDepth?: number;
   permissionsCacheDurationInSeconds?: number;
 };

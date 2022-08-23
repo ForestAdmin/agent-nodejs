@@ -27,8 +27,12 @@ describe('ErrorHandling', () => {
     expect(router.use).toHaveBeenCalledWith(expect.any(Function));
   });
 
-  describe('with the route mounted in production mode', () => {
-    const options = factories.forestAdminHttpDriverOptions.build({ isProduction: true });
+  describe('with the route mounted in production mode, and no custom message', () => {
+    const options = factories.forestAdminHttpDriverOptions.build({
+      isProduction: true,
+      customizeErrorMessage: error => (error.message === 'My Error' ? 'My Custom Error' : null),
+    });
+
     let route: ErrorHandling;
     let handleError: Router.Middleware;
 
@@ -75,7 +79,7 @@ describe('ErrorHandling', () => {
       expect(console.error).not.toHaveBeenCalled();
     });
 
-    test('it should set the status and body for UnprocessableError errors', async () => {
+    test('it should set the status and body for unprocessable errors', async () => {
       const context = createMockContext();
       const next = jest.fn().mockRejectedValue(new UnprocessableError('unprocessable'));
 
@@ -95,6 +99,16 @@ describe('ErrorHandling', () => {
       expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
       expect(context.response.body).toStrictEqual({ errors: [{ detail: 'Unexpected error' }] });
       expect(console.error).not.toHaveBeenCalled();
+    });
+
+    test('it should send the customized error message to the frontend', async () => {
+      const context = createMockContext();
+      const next = jest.fn().mockRejectedValue(new Error('My Error'));
+
+      await handleError.call(route, context, next);
+
+      expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
+      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'My Custom Error' }] });
     });
   });
 
@@ -122,6 +136,8 @@ describe('ErrorHandling', () => {
       await new Promise(setImmediate);
 
       expect(console.error).toHaveBeenCalled();
+      expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
+      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'Unexpected error' }] });
     });
   });
 });
