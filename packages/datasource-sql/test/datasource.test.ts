@@ -1,6 +1,7 @@
 import { DataTypes, Dialect, Sequelize, literal } from 'sequelize';
 import { Literal } from 'sequelize/types/utils';
 
+import SequelizeOrm from '../src/sequelize-orm';
 import SqlDataSource from '../src/datasource';
 
 function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {
@@ -353,14 +354,11 @@ describe('datasource', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const sqlDataSource = new SqlDataSource(connectionUri);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dataSourceSequelize = (sqlDataSource as any).sequelize as Sequelize;
-
+          const orm = new SequelizeOrm(connectionUri, () => {});
+          const sqlDataSource = new SqlDataSource(orm);
           await sqlDataSource.build();
 
-          const dataSourceModels = dataSourceSequelize.models;
-
+          const dataSourceModels = orm.models;
           Object.values(setupModels).forEach(setupModel => {
             const model = dataSourceModels[setupModel.name];
 
@@ -450,13 +448,11 @@ describe('datasource', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const sqlDataSource = new SqlDataSource(connectionUri);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dataSourceSequelize = (sqlDataSource as any).sequelize as Sequelize;
-
+          const orm = new SequelizeOrm(connectionUri, () => {});
+          const sqlDataSource = new SqlDataSource(orm);
           await sqlDataSource.build();
 
-          const dataSourceModels = dataSourceSequelize.models;
+          const dataSourceModels = orm.models;
 
           Object.values(setupModels).forEach(setupModel => {
             const model = dataSourceModels[setupModel.name];
