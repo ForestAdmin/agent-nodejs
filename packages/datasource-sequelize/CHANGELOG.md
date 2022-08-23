@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.35](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.34...@forestadmin/datasource-sequelize@1.0.0-beta.35) (2022-08-23)
+
+
+### Features
+
+* **sequelize:** improve constraints error handling ([#390](https://github.com/ForestAdmin/agent-nodejs/issues/390)) ([c03e342](https://github.com/ForestAdmin/agent-nodejs/commit/c03e342adb07eb502d5b061db48ef0d783d64cba))
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.34](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.33...@forestadmin/datasource-sequelize@1.0.0-beta.34) (2022-07-25)
 
 
