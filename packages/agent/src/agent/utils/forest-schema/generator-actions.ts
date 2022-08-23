@@ -50,7 +50,14 @@ export default class SchemaGeneratorActions {
       name,
       type: schema.scope.toLowerCase() as 'single' | 'bulk' | 'global',
       baseUrl: null,
-      endpoint: path.join('/', prefix, '_actions', collection.name, String(actionIndex), slug),
+      endpoint: path.posix.join(
+        '/',
+        prefix,
+        '_actions',
+        collection.name,
+        String(actionIndex),
+        slug,
+      ),
       httpMethod: 'POST',
       redirect: null, // frontend ignores this attribute
       download: Boolean(schema.generateFile),
