@@ -17,6 +17,7 @@ import AggregationUtils from './utils/aggregation';
 import ModelConverter from './utils/model-to-collection-schema-converter';
 import QueryConverter from './utils/query-converter';
 import Serializer from './utils/serializer';
+import handleErrors from './utils/error-handler';
 
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,7 +54,7 @@ export default class SequelizeCollection extends BaseCollection {
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
-    const records = await this.model.bulkCreate(data);
+    const records = await handleErrors('create', () => this.model.bulkCreate(data));
 
     return records.map(record => Serializer.serialize(record.get({ plain: true })));
   }
@@ -93,20 +94,24 @@ export default class SequelizeCollection extends BaseCollection {
   }
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
-    await this.model.update(patch, {
+    const options = {
       where: await this.queryConverter.getWhereFromConditionTreeToByPassInclude(
         filter.conditionTree,
       ),
       fields: Object.keys(patch),
-    });
+    };
+
+    await handleErrors('update', () => this.model.update(patch, options));
   }
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
-    await this.model.destroy({
+    const options = {
       where: await this.queryConverter.getWhereFromConditionTreeToByPassInclude(
         filter.conditionTree,
       ),
-    });
+    };
+
+    await handleErrors('delete', () => this.model.destroy(options));
   }
 
   async aggregate(
