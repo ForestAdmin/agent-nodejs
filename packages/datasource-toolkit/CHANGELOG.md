@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.26...@forestadmin/datasource-toolkit@1.0.0-beta.27) (2022-08-23)
+
+
+### Bug Fixes
+
+* **builder:** data-source charts are lost when mounted on the agent builder ([#367](https://github.com/ForestAdmin/agent-nodejs/issues/367)) ([35617d5](https://github.com/ForestAdmin/agent-nodejs/commit/35617d54e3a23c09fc49f99354b4d7f07e31df42))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.26](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.25...@forestadmin/datasource-toolkit@1.0.0-beta.26) (2022-06-15)
 
 
