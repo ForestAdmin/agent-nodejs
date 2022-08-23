@@ -12,10 +12,13 @@ export default class ChartDataSourceDecorator extends DataSourceDecorator {
   private charts: Record<string, ChartDefinition> = {};
 
   override get schema(): DataSourceSchema {
-    return {
-      ...this.childDataSource.schema,
-      charts: [...this.childDataSource.schema.charts, ...Object.keys(this.charts)],
-    };
+    const myCharts = Object.keys(this.charts);
+    const otherCharts = this.childDataSource.schema.charts;
+
+    const duplicate = myCharts.find(name => otherCharts.includes(name));
+    if (duplicate) throw new Error(`Chart '${duplicate}' is defined twice.`);
+
+    return { ...this.childDataSource.schema, charts: [...myCharts, ...otherCharts] };
   }
 
   constructor(childDataSource: DataSource) {
@@ -23,7 +26,7 @@ export default class ChartDataSourceDecorator extends DataSourceDecorator {
   }
 
   addChart(name: string, definition: ChartDefinition) {
-    if (this.charts[name]) {
+    if (this.schema.charts.includes(name)) {
       throw new Error(`Chart '${name}' already exists.`);
     }
 
