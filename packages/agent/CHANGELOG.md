@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.44](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.43...@forestadmin/agent@1.0.0-beta.44) (2022-08-23)
+
+
+### Bug Fixes
+
+* **actions:** fix path generation for actions on windows ([#381](https://github.com/ForestAdmin/agent-nodejs/issues/381)) ([7f0e863](https://github.com/ForestAdmin/agent-nodejs/commit/7f0e8633b3415ab286bac794b0d93b5ba3d043f0))
+
 # @forestadmin/agent [1.0.0-beta.43](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.42...@forestadmin/agent@1.0.0-beta.43) (2022-07-26)
 
 
