@@ -3,6 +3,7 @@ import {
   Collection,
   CompositeDatasource,
   DataSourceFactory,
+  RenameCollectionDataSourceDecorator,
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-toolkit';
@@ -67,7 +68,11 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    */
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
     this.customizations.push(async () => {
-      this.compositeDataSource.addDataSource(await factory(this.options.logger), options?.rename);
+      const dataSource = await factory(this.options.logger);
+      const renamedDecorator = new RenameCollectionDataSourceDecorator(dataSource);
+      renamedDecorator.renameCollections(options?.rename);
+
+      this.compositeDataSource.addDataSource(renamedDecorator);
     });
 
     return this;

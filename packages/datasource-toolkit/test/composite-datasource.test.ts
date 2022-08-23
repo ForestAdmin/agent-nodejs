@@ -43,33 +43,6 @@ describe('CompositeDataSource', () => {
         "Chart 'chart1' is already defined in datasource.",
       );
     });
-
-    it('should rename a collection when the rename option is given', () => {
-      const compositeDataSource = new CompositeDataSource<Collection>();
-      compositeDataSource.addCollection(factories.collection.build({ name: 'collection1' }));
-      const newDataSource = factories.dataSource.buildWithCollection(
-        factories.collection.build({ name: 'collection1' }),
-      );
-
-      compositeDataSource.addDataSource(newDataSource, { collection1: 'collection2' });
-
-      expect(compositeDataSource.collections.map(c => c.name)).toEqual([
-        'collection1',
-        'collection2',
-      ]);
-    });
-
-    it('should throw an error if there are two identical collection name', () => {
-      const compositeDataSource = new CompositeDataSource<Collection>();
-      compositeDataSource.addCollection(factories.collection.build({ name: 'collection1' }));
-      const newDataSource = factories.dataSource.buildWithCollection(
-        factories.collection.build({ name: 'collection1' }),
-      );
-
-      expect(() => compositeDataSource.addDataSource(newDataSource)).toThrow(
-        "Collection 'collection1' already defined in datasource",
-      );
-    });
   });
 
   describe('renderChart', () => {
@@ -92,7 +65,7 @@ describe('CompositeDataSource', () => {
 
       await expect(() =>
         compositeDataSource.renderChart(factories.caller.build(), 'chart1'),
-      ).toThrow("Chart 'chart1' is not defined in datasource.");
+      ).toThrow("Chart 'chart1' is not defined in the dataSource.");
     });
   });
 });

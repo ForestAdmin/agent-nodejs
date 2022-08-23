@@ -3,7 +3,6 @@ import { Chart } from './interfaces/chart';
 import { Collection, DataSource } from './interfaces/collection';
 import { DataSourceSchema } from './interfaces/schema';
 import BaseDataSource from './base-datasource';
-import RenameCollectionDataSourceDecorator from './decorators/rename-collection/datasource';
 
 export default class CompositeDatasource<
   T extends Collection = Collection,
@@ -15,13 +14,9 @@ export default class CompositeDatasource<
     this.datasourceChartMapping = {};
   }
 
-  addDataSource(
-    dataSource: DataSource,
-    rename?: { [newName: string]: string },
-  ): CompositeDatasource {
-    const decoratedDataSource = CompositeDatasource.renameCollections(dataSource, rename);
-    this.addCollections(decoratedDataSource);
-    this.addCharts(decoratedDataSource);
+  addDataSource(dataSource: DataSource): CompositeDatasource {
+    this.addCollections(dataSource);
+    this.addCharts(dataSource);
 
     return this;
   }
@@ -32,7 +27,7 @@ export default class CompositeDatasource<
 
   override renderChart(caller: Caller, name: string): Promise<Chart> {
     if (!this.datasourceChartMapping[name]) {
-      throw new Error(`Chart '${name}' is not defined in datasource.`);
+      throw new Error(`Chart '${name}' is not defined in the dataSource.`);
     }
 
     return this.datasourceChartMapping[name].renderChart(caller, name);
@@ -52,18 +47,5 @@ export default class CompositeDatasource<
 
       this.datasourceChartMapping[chartName] = dataSource;
     }
-  }
-
-  private static renameCollections(
-    dataSource: DataSource,
-    rename?: { [newName: string]: string },
-  ): DataSource {
-    const decorated = new RenameCollectionDataSourceDecorator(dataSource);
-
-    for (const [oldName, newName] of Object.entries(rename ?? {})) {
-      decorated.renameCollection(oldName, newName);
-    }
-
-    return decorated;
   }
 }
