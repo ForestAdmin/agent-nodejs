@@ -1,7 +1,7 @@
 import {
-  BaseDataSource,
   ChartDefinition,
   Collection,
+  CompositeDatasource,
   DataSourceFactory,
   RenameCollectionDataSourceDecorator,
   TCollectionName,
@@ -31,7 +31,7 @@ import TypingGenerator from './utils/typing-generator';
  *  .start();
  */
 export default class AgentBuilder<S extends TSchema = TSchema> {
-  private readonly compositeDataSource: BaseDataSource<Collection>;
+  private readonly compositeDataSource: CompositeDatasource<Collection>;
   private readonly stack: DecoratorsStack;
   private readonly options: AgentOptions;
   private customizations: (() => Promise<void>)[] = [];
@@ -57,7 +57,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    */
   constructor(options: AgentOptions) {
     this.options = OptionsValidator.withDefaults(options);
-    this.compositeDataSource = new BaseDataSource<Collection>();
+    this.compositeDataSource = new CompositeDatasource<Collection>();
     this.stack = new DecoratorsStack(this.compositeDataSource);
   }
 
@@ -69,15 +69,10 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
     this.customizations.push(async () => {
       const dataSource = await factory(this.options.logger);
-      const decorated = new RenameCollectionDataSourceDecorator(dataSource);
+      const renamedDecorator = new RenameCollectionDataSourceDecorator(dataSource);
+      renamedDecorator.renameCollections(options?.rename);
 
-      for (const [oldName, newName] of Object.entries(options?.rename ?? {})) {
-        decorated.renameCollection(oldName, newName);
-      }
-
-      for (const collection of decorated.collections) {
-        this.compositeDataSource.addCollection(collection);
-      }
+      this.compositeDataSource.addDataSource(renamedDecorator);
     });
 
     return this;

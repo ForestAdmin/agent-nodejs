@@ -152,79 +152,109 @@ describe('RenameCollectionDecorator', () => {
     expect(collection.name).toEqual('name 1');
   });
 
-  test('should return the new name when it is renamed', () => {
-    const dataSource = factories.dataSource.buildWithCollection(
-      factories.collection.build({ name: 'name 1' }),
-    );
-    const decoratedDataSource = new RenameCollectionDataSourceDecorator(dataSource);
-    decoratedDataSource.renameCollection('name 1', 'name 2');
+  describe('renameCollection', () => {
+    it('should throw an error if the given new name is already used', () => {
+      const dataSource = setupWithManyToManyRelation();
 
-    expect(decoratedDataSource.getCollection('name 2')).toMatchObject({ name: 'name 2' });
-    expect(() => decoratedDataSource.getCollection('name 1')).toThrow(
-      `Collection 'name 1' not found.`,
-    );
-  });
+      expect(() => dataSource.renameCollection('librariesBooks', 'books')).toThrow(
+        'The given new collection name "books" is already defined in the dataSource',
+      );
+    });
 
-  test('should change the foreign collection when it is a many to one', () => {
-    const dataSource = setupWithManyToOneAndOneToManyRelations();
-    dataSource.renameCollection('persons', 'renamedPersons');
+    it('should throw an error if the given old name does not exist', () => {
+      const dataSource = setupWithManyToManyRelation();
 
-    const collection = dataSource.getCollection('books');
+      expect(() => dataSource.renameCollection('doesNotExist', 'books')).toThrow(
+        'The given collection name "doesNotExist" does not exist',
+      );
+    });
 
-    expect(collection.schema.fields.myPersons).toEqual({
-      foreignCollection: 'renamedPersons',
-      foreignKey: 'personId',
-      foreignKeyTarget: 'id',
-      type: 'ManyToOne',
+    test('should return the new name when it is renamed', () => {
+      const dataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'name 1' }),
+      );
+      const decoratedDataSource = new RenameCollectionDataSourceDecorator(dataSource);
+      decoratedDataSource.renameCollection('name 1', 'name 2');
+
+      expect(decoratedDataSource.getCollection('name 2')).toMatchObject({ name: 'name 2' });
+      expect(() => decoratedDataSource.getCollection('name 1')).toThrow(
+        `Collection 'name 1' not found.`,
+      );
+    });
+
+    test('should change the foreign collection when it is a many to one', () => {
+      const dataSource = setupWithManyToOneAndOneToManyRelations();
+      dataSource.renameCollection('persons', 'renamedPersons');
+
+      const collection = dataSource.getCollection('books');
+
+      expect(collection.schema.fields.myPersons).toEqual({
+        foreignCollection: 'renamedPersons',
+        foreignKey: 'personId',
+        foreignKeyTarget: 'id',
+        type: 'ManyToOne',
+      });
+    });
+
+    test('should change the foreign collection when it is a one to many', () => {
+      const dataSource = setupWithManyToOneAndOneToManyRelations();
+
+      dataSource.renameCollection('books', 'renamedBooks');
+
+      const collection = dataSource.getCollection('persons');
+
+      expect(collection.schema.fields.myBooks).toEqual({
+        foreignCollection: 'renamedBooks',
+        foreignKey: 'id',
+        foreignKeyTarget: 'id',
+        type: 'ManyToOne',
+      });
+    });
+
+    test('should change the foreign collection when it is a one to one', () => {
+      const dataSource = setupWithOneToOneRelation();
+
+      dataSource.renameCollection('owner', 'renamedOwner');
+
+      const collection = dataSource.getCollection('book');
+
+      expect(collection.schema.fields.owner).toEqual({
+        foreignCollection: 'renamedOwner',
+        originKey: 'bookId',
+        originKeyTarget: 'id',
+        type: 'OneToOne',
+      });
+    });
+
+    test('should change the foreign collection when it is a many to many', () => {
+      const dataSource = setupWithManyToManyRelation();
+
+      dataSource.renameCollection('librariesBooks', 'renamedLibrariesBooks');
+      dataSource.renameCollection('books', 'renamedBooks');
+
+      const collection = dataSource.getCollection('libraries');
+
+      expect(collection.schema.fields.manyToManyRelationField).toEqual({
+        foreignCollection: 'renamedBooks',
+        foreignKey: 'bookId',
+        foreignKeyTarget: 'id',
+        originKey: 'libraryId',
+        originKeyTarget: 'id',
+        throughCollection: 'renamedLibrariesBooks',
+        type: 'ManyToMany',
+      });
     });
   });
 
-  test('should change the foreign collection when it is a one to many', () => {
-    const dataSource = setupWithManyToOneAndOneToManyRelations();
+  describe('renameCollections', () => {
+    it('should rename a collection when the rename option is given', () => {
+      const dataSource = setupWithManyToManyRelation();
 
-    dataSource.renameCollection('books', 'renamedBooks');
+      dataSource.renameCollections({ librariesBooks: 'lib' });
 
-    const collection = dataSource.getCollection('persons');
-
-    expect(collection.schema.fields.myBooks).toEqual({
-      foreignCollection: 'renamedBooks',
-      foreignKey: 'id',
-      foreignKeyTarget: 'id',
-      type: 'ManyToOne',
-    });
-  });
-
-  test('should change the foreign collection when it is a one to one', () => {
-    const dataSource = setupWithOneToOneRelation();
-
-    dataSource.renameCollection('owner', 'renamedOwner');
-
-    const collection = dataSource.getCollection('book');
-
-    expect(collection.schema.fields.owner).toEqual({
-      foreignCollection: 'renamedOwner',
-      originKey: 'bookId',
-      originKeyTarget: 'id',
-      type: 'OneToOne',
-    });
-  });
-
-  test('should change the foreign collection when it is a many to many', () => {
-    const dataSource = setupWithManyToManyRelation();
-
-    dataSource.renameCollection('librariesBooks', 'renamedLibrariesBooks');
-    dataSource.renameCollection('books', 'renamedBooks');
-
-    const collection = dataSource.getCollection('libraries');
-
-    expect(collection.schema.fields.manyToManyRelationField).toEqual({
-      foreignCollection: 'renamedBooks',
-      foreignKey: 'bookId',
-      foreignKeyTarget: 'id',
-      originKey: 'libraryId',
-      originKeyTarget: 'id',
-      throughCollection: 'renamedLibrariesBooks',
-      type: 'ManyToMany',
+      const collectionNames = dataSource.collections.map(c => c.name);
+      expect(collectionNames).toContain('lib');
+      expect(collectionNames).not.toContain('librariesBooks');
     });
   });
 });

@@ -4,6 +4,14 @@ import { Collection, DataSource } from '../../src/interfaces/collection';
 import factoryCollection from './collection';
 
 export class DataSourceFactory extends Factory<DataSource> {
+  buildWithCharts(charts: Array<string>): DataSource {
+    const factory = this.afterBuild(dataSource => {
+      dataSource.schema.charts = charts;
+    });
+
+    return factory.build();
+  }
+
   buildWithCollection(partialCollection: Partial<Collection>): DataSource {
     return this.buildWithCollections([partialCollection]);
   }

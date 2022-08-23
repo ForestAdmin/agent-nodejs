@@ -154,7 +154,7 @@ describe('Builder > Agent', () => {
         });
 
         await expect(agent.start()).rejects.toThrowError(
-          "Collection 'collection' already defined in datasource",
+          'The given new collection name "collection" is already defined in the dataSource',
         );
       });
 
