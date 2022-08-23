@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.45](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.44...@forestadmin/agent@1.0.0-beta.45) (2022-08-23)
+
+
+### Features
+
+* allow error message customization ([#386](https://github.com/ForestAdmin/agent-nodejs/issues/386)) ([34b04f4](https://github.com/ForestAdmin/agent-nodejs/commit/34b04f475c84e3637f677207970bce1cab85d08a))
+
 # @forestadmin/agent [1.0.0-beta.44](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.43...@forestadmin/agent@1.0.0-beta.44) (2022-08-23)
 
 
