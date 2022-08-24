@@ -1,5 +1,5 @@
 import { AbstractDataType, AbstractDataTypeConstructor, ColumnDescription } from 'sequelize';
-import { DataSource } from '@forestadmin/datasource-toolkit';
+import { DataSource, Logger } from '@forestadmin/datasource-toolkit';
 import { QueryInterface } from 'sequelize/types/dialects/abstract/query-interface';
 
 export type FieldDescription = (
@@ -21,9 +21,11 @@ export type Model = {
 };
 
 export interface Orm {
-  defineModels(): Promise<void>;
-  defineRelations(): Promise<void>;
-  definedCollections(): void;
+  defineModel(tableName: string): Promise<void>;
+  defineRelation(tableName: string): Promise<void>;
+  getRelatedTables(tableName: string): Promise<string[]>;
+  buildDataSource(): DataSource;
+  getTableNames(): Promise<string[]>;
+  logger?: Logger;
   models: { [modelName: string]: Model };
-  getDataSource: () => DataSource;
 }

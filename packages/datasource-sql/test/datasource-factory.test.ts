@@ -1,8 +1,10 @@
 import { DataTypes, Dialect, Sequelize, literal } from 'sequelize';
 import { Literal } from 'sequelize/types/utils';
 
+import { DataSource, Logger } from '@forestadmin/datasource-toolkit';
+import { Model, Orm } from '../src/utils/types';
 import SequelizeOrm from '../src/sequelize-orm';
-import SqlDataSource from '../src/datasource';
+import SqlDataSourceFactory from '../src/datasource-factory';
 
 function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {
   switch (dialect) {
@@ -197,7 +199,107 @@ const RELATION_MAPPING = {
   },
 };
 
-describe('datasource', () => {
+class MyOrm implements Orm {
+  models: { [p: string]: Model };
+  logger?: Logger;
+
+  buildDataSource(): DataSource {
+    return undefined;
+  }
+
+  defineModel(): Promise<void> {
+    throw new Error();
+  }
+
+  defineRelation(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  getRelatedTables(): Promise<string[]> {
+    return Promise.resolve([]);
+  }
+
+  getTableNames(): Promise<string[]> {
+    return Promise.resolve([]);
+  }
+}
+
+describe('SqlDataSourceFactory', () => {
+  describe('when defining a model throw an error', () => {
+    it('should display a log message and does not create its relation', async () => {
+      const myOrm = new MyOrm();
+      myOrm.defineModel = jest.fn().mockImplementation(() => {
+        throw new Error('Error Message');
+      });
+      myOrm.logger = jest.fn();
+      myOrm.getTableNames = jest.fn().mockReturnValue(['MyTable']);
+      myOrm.defineRelation = jest.fn();
+      myOrm.getRelatedTables = jest.fn().mockReturnValue(['MyTable']);
+
+      await SqlDataSourceFactory.build(myOrm);
+
+      expect(myOrm.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Skipping table "MyTable" and its relations because of error: Error Message',
+      );
+      expect(myOrm.defineRelation).not.toHaveBeenCalled();
+    });
+
+    describe('when there are many tables and a model with an error', () => {
+      it('creates all the models and the relations when there is no error', async () => {
+        const myOrm = new MyOrm();
+        myOrm.logger = jest.fn();
+        myOrm.defineRelation = jest.fn();
+        myOrm.getTableNames = jest.fn().mockReturnValue(['TableWithError', 'TableWithNoError']);
+        myOrm.defineModel = jest.fn().mockImplementation((tableName: string) => {
+          if (tableName === 'TableWithError') {
+            throw new Error('Error Message');
+          }
+        });
+        myOrm.getRelatedTables = jest.fn().mockImplementation((tableName: string) => {
+          if (tableName === 'TableWithError') {
+            return ['TableWithError'];
+          }
+
+          return ['TableWithNoError', 'AndOtherTable'];
+        });
+
+        await SqlDataSourceFactory.build(myOrm);
+
+        expect(myOrm.logger).toHaveBeenCalledTimes(1);
+
+        expect(myOrm.defineRelation).toHaveBeenCalledWith('TableWithNoError');
+        expect(myOrm.defineRelation).toHaveBeenCalledTimes(1);
+      });
+
+      describe('when a related table has an error', () => {
+        it('should does not create the relation', async () => {
+          const myOrm = new MyOrm();
+          myOrm.logger = jest.fn();
+          myOrm.defineRelation = jest.fn();
+          myOrm.getTableNames = jest.fn().mockReturnValue(['TableWithError', 'TableWithNoError']);
+          myOrm.defineModel = jest.fn().mockImplementation((tableName: string) => {
+            if (tableName === 'TableWithError') {
+              throw new Error('Error Message');
+            }
+          });
+          myOrm.getRelatedTables = jest.fn().mockImplementation((tableName: string) => {
+            if (tableName === 'TableWithError') {
+              return ['TableWithError'];
+            }
+
+            return ['TableWithNoError', 'TableWithError'];
+          });
+
+          await SqlDataSourceFactory.build(myOrm);
+
+          expect(myOrm.logger).toHaveBeenCalledTimes(1);
+          expect(myOrm.defineRelation).toHaveBeenCalledTimes(0);
+        });
+      });
+    });
+  });
+
   describe.each([
     ['postgres', 'test:password@localhost:5443'],
     ['mysql', 'root:password@localhost:3307'],
@@ -354,9 +456,8 @@ describe('datasource', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const orm = new SequelizeOrm(connectionUri, () => {});
-          const sqlDataSource = new SqlDataSource(orm);
-          await sqlDataSource.build();
+          const orm = new SequelizeOrm(connectionUri);
+          await SqlDataSourceFactory.build(orm);
 
           const dataSourceModels = orm.models;
           Object.values(setupModels).forEach(setupModel => {
@@ -448,9 +549,8 @@ describe('datasource', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const orm = new SequelizeOrm(connectionUri, () => {});
-          const sqlDataSource = new SqlDataSource(orm);
-          await sqlDataSource.build();
+          const orm = new SequelizeOrm(connectionUri);
+          await SqlDataSourceFactory.build(orm);
 
           const dataSourceModels = orm.models;
 

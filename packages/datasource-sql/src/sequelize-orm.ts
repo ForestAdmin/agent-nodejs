@@ -7,14 +7,17 @@ import DefaultValueParser from './utils/default-value-parser';
 import SqlTypeConverter from './utils/sql-type-converter';
 
 export default class SequelizeOrm extends SequelizeDataSource implements Orm {
-  private readonly logger?: Logger;
+  logger?: Logger;
 
-  constructor(connectionUri: string, logging: (sql: string) => void, logger?: Logger) {
+  constructor(connectionUri: string, logger?: Logger) {
+    const logging = (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
     super(new Sequelize(connectionUri, { logging }));
     this.logger = logger;
   }
 
-  getDataSource(): SequelizeOrm {
+  buildDataSource(): SequelizeOrm {
+    super.createCollections(this.sequelize.models, this.logger);
+
     return this;
   }
 
@@ -32,39 +35,54 @@ export default class SequelizeOrm extends SequelizeDataSource implements Orm {
     }, {});
   }
 
-  async defineModels(): Promise<void> {
-    const tableNames = await this.showAllTables();
-    const modelToBuild = tableNames.map(async tableName => {
-      const columnDescriptions = await this.sequelize.getQueryInterface().describeTable(tableName);
-      const fieldDescriptions = await this.buildFieldDescriptions(columnDescriptions, tableName);
-      this.buildModel(tableName, fieldDescriptions);
-    });
-    await Promise.all(modelToBuild);
+  async defineModel(tableName): Promise<void> {
+    const columnDescriptions = await this.sequelize.getQueryInterface().describeTable(tableName);
+    const fieldDescriptions = await this.buildFieldDescriptions(columnDescriptions, tableName);
+    this.buildModel(tableName, fieldDescriptions);
   }
 
-  async defineRelations(): Promise<void> {
-    const tableNames = await this.showAllTables();
-    const relationsToBuild = tableNames.map(async tableName => {
-      const foreignReferences = await this.sequelize
-        .getQueryInterface()
-        .getForeignKeyReferencesForTable(tableName);
+  async defineRelation(tableName: string): Promise<void> {
+    const foreignReferences = await this.getForeignReferences(tableName);
+
+    if (this.isJunctionTable(tableName)) {
+      this.buildForJunctionTable(
+        tableName,
+        foreignReferences as [Partial<ForeignKeyReference>, Partial<ForeignKeyReference>],
+      );
+    } else {
       const uniqueFields = await this.getUniqueFields(tableName);
-
-      if (this.isJunctionTable(tableName)) {
-        this.buildForJunctionTable(
-          tableName,
-          foreignReferences as [Partial<ForeignKeyReference>, Partial<ForeignKeyReference>],
-        );
-      } else {
-        this.buildOtherRelations(foreignReferences, tableName, uniqueFields);
-      }
-    });
-
-    await Promise.all(relationsToBuild);
+      this.buildOtherRelations(foreignReferences, tableName, uniqueFields);
+    }
   }
 
-  definedCollections() {
-    super.createCollections(this.sequelize.models, this.logger);
+  async getRelatedTables(tableName: string): Promise<string[]> {
+    const foreignReferences = await this.getForeignReferences(tableName);
+
+    if (this.isJunctionTable(tableName)) {
+      const [{ referencedTableName: tableA }, { referencedTableName: tableB }] = foreignReferences;
+
+      return [tableA, tableB];
+    }
+
+    return foreignReferences.map(({ referencedTableName }) => referencedTableName);
+  }
+
+  /**
+   * Fixes Sequelize behavior incorrectly implemented.
+   * Types indicate that showAllTables() should return a list of string, but it
+   * returns a list of object for both mariadb & mssql
+   * @see https://github.com/sequelize/sequelize/blob/main/src/dialects/mariadb/query.js#L295
+   */
+  async getTableNames(): Promise<string[]> {
+    const names: ({ tableName: string } | string)[] = await this.sequelize
+      .getQueryInterface()
+      .showAllTables();
+
+    return names.map(name => (typeof name === 'string' ? name : name?.tableName));
+  }
+
+  private async getForeignReferences(tableName: string): Promise<ForeignKeyReference[]> {
+    return this.sequelize.getQueryInterface().getForeignKeyReferencesForTable(tableName);
   }
 
   private async getUniqueFields(tableName: string): Promise<string[]> {
@@ -205,19 +223,5 @@ export default class SequelizeOrm extends SequelizeDataSource implements Orm {
     const hasUpdatedAt = columnNames.includes('updatedAt');
 
     return hasCreatedAt && hasUpdatedAt;
-  }
-
-  /**
-   * Fixes Sequelize behavior incorrectly implemented.
-   * Types indicate that showAllTables() should return a list of string, but it
-   * returns a list of object for both mariadb & mssql
-   * @see https://github.com/sequelize/sequelize/blob/main/src/dialects/mariadb/query.js#L295
-   */
-  private async showAllTables(): Promise<string[]> {
-    const names: ({ tableName: string } | string)[] = await this.sequelize
-      .getQueryInterface()
-      .showAllTables();
-
-    return names.map(name => (typeof name === 'string' ? name : name?.tableName));
   }
 }
