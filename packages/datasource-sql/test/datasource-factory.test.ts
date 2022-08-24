@@ -1,9 +1,9 @@
+import { DataSource, Logger } from '@forestadmin/datasource-toolkit';
 import { DataTypes, Dialect, Sequelize, literal } from 'sequelize';
 import { Literal } from 'sequelize/types/utils';
 
-import { DataSource, Logger } from '@forestadmin/datasource-toolkit';
-import { Model, Orm } from '../src/utils/types';
-import SequelizeOrm from '../src/sequelize-orm';
+import { Builder, Model } from '../src/utils/types';
+import SequelizeDataSourceBuilder from '../src/sequelize-builder';
 import SqlDataSourceFactory from '../src/datasource-factory';
 
 function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {
@@ -199,7 +199,7 @@ const RELATION_MAPPING = {
   },
 };
 
-class MyOrm implements Orm {
+class MyBuilder implements Builder {
   models: { [p: string]: Model };
   logger?: Logger;
 
@@ -227,7 +227,7 @@ class MyOrm implements Orm {
 describe('SqlDataSourceFactory', () => {
   describe('when defining a model throw an error', () => {
     it('should display a log message and does not create its relation', async () => {
-      const myOrm = new MyOrm();
+      const myOrm = new MyBuilder();
       myOrm.defineModel = jest.fn().mockImplementation(() => {
         throw new Error('Error Message');
       });
@@ -247,7 +247,7 @@ describe('SqlDataSourceFactory', () => {
 
     describe('when there are many tables and a model with an error', () => {
       it('creates all the models and the relations when there is no error', async () => {
-        const myOrm = new MyOrm();
+        const myOrm = new MyBuilder();
         myOrm.logger = jest.fn();
         myOrm.defineRelation = jest.fn();
         myOrm.getTableNames = jest.fn().mockReturnValue(['TableWithError', 'TableWithNoError']);
@@ -274,7 +274,7 @@ describe('SqlDataSourceFactory', () => {
 
       describe('when a related table has an error', () => {
         it('should does not create the relation', async () => {
-          const myOrm = new MyOrm();
+          const myOrm = new MyBuilder();
           myOrm.logger = jest.fn();
           myOrm.defineRelation = jest.fn();
           myOrm.getTableNames = jest.fn().mockReturnValue(['TableWithError', 'TableWithNoError']);
@@ -456,10 +456,10 @@ describe('SqlDataSourceFactory', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const orm = new SequelizeOrm(connectionUri);
-          await SqlDataSourceFactory.build(orm);
+          const builder = new SequelizeDataSourceBuilder(connectionUri);
+          await SqlDataSourceFactory.build(builder);
 
-          const dataSourceModels = orm.models;
+          const dataSourceModels = builder.models;
           Object.values(setupModels).forEach(setupModel => {
             const model = dataSourceModels[setupModel.name];
 
@@ -549,10 +549,10 @@ describe('SqlDataSourceFactory', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const orm = new SequelizeOrm(connectionUri);
-          await SqlDataSourceFactory.build(orm);
+          const builder = new SequelizeDataSourceBuilder(connectionUri);
+          await SqlDataSourceFactory.build(builder);
 
-          const dataSourceModels = orm.models;
+          const dataSourceModels = builder.models;
 
           Object.values(setupModels).forEach(setupModel => {
             const model = dataSourceModels[setupModel.name];

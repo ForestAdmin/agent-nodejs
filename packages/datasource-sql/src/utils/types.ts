@@ -20,7 +20,7 @@ export type Model = {
   getAttributes: () => unknown;
 };
 
-export interface Orm {
+export interface Builder {
   defineModel(tableName: string): Promise<void>;
   defineRelation(tableName: string): Promise<void>;
   getRelatedTables(tableName: string): Promise<string[]>;

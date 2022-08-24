@@ -1,12 +1,12 @@
 import { ColumnsDescription, Dialect, ModelAttributes, Sequelize } from 'sequelize';
-import { Logger } from '@forestadmin/datasource-toolkit';
+import { DataSource, Logger } from '@forestadmin/datasource-toolkit';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
-import { FieldDescription, ForeignKeyReference, Model, Orm } from './utils/types';
+import { Builder, FieldDescription, ForeignKeyReference, Model } from './utils/types';
 import DefaultValueParser from './utils/default-value-parser';
 import SqlTypeConverter from './utils/sql-type-converter';
 
-export default class SequelizeOrm extends SequelizeDataSource implements Orm {
+export default class SequelizeDataSourceBuilder extends SequelizeDataSource implements Builder {
   logger?: Logger;
 
   constructor(connectionUri: string, logger?: Logger) {
@@ -15,7 +15,7 @@ export default class SequelizeOrm extends SequelizeDataSource implements Orm {
     this.logger = logger;
   }
 
-  buildDataSource(): SequelizeOrm {
+  buildDataSource(): DataSource {
     super.createCollections(this.sequelize.models, this.logger);
 
     return this;
@@ -185,15 +185,15 @@ export default class SequelizeOrm extends SequelizeDataSource implements Orm {
     let model: ModelAttributes = Object.fromEntries(fieldDescriptions);
 
     const columnNames = Object.keys(model);
-    const timestamps = SequelizeOrm.hasTimestamps(columnNames);
-    const paranoid = SequelizeOrm.isParanoid(columnNames);
+    const timestamps = SequelizeDataSourceBuilder.hasTimestamps(columnNames);
+    const paranoid = SequelizeDataSourceBuilder.isParanoid(columnNames);
 
     if (timestamps) {
-      model = SequelizeOrm.removeTimestampColumns(model);
+      model = SequelizeDataSourceBuilder.removeTimestampColumns(model);
     }
 
     if (paranoid) {
-      model = SequelizeOrm.removeParanoidColumn(model);
+      model = SequelizeDataSourceBuilder.removeParanoidColumn(model);
     }
 
     this.sequelize.define(tableName, model, { tableName, timestamps, paranoid });

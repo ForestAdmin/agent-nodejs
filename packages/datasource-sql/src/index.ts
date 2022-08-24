@@ -1,7 +1,7 @@
 import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
-import SequelizeOrm from './sequelize-orm';
-import SqlDataSource from './datasource-factory';
+import SequelizeDataSourceBuilder from './sequelize-builder';
+import SqlDataSourceFactory from './datasource-factory';
 
 // eslint-disable-next-line import/prefer-default-export
 export function createSqlDataSource(connectionUri: string): DataSourceFactory {
@@ -12,6 +12,6 @@ export function createSqlDataSource(connectionUri: string): DataSourceFactory {
     );
 
   return async (logger: Logger) => {
-    return SqlDataSource.build(new SequelizeOrm(connectionUri, logger));
+    return SqlDataSourceFactory.build(new SequelizeDataSourceBuilder(connectionUri, logger));
   };
 }
