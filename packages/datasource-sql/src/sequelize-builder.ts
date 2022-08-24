@@ -22,16 +22,16 @@ export default class SequelizeDataSourceBuilder extends SequelizeDataSource impl
   }
 
   get models(): { [modelName: string]: Model } {
-    return Object.keys(this.sequelize.models).reduce((acc, modelName) => {
+    return Object.keys(this.sequelize.models).reduce((models, modelName) => {
       const model = this.sequelize.model(modelName);
 
-      acc[modelName] = {
+      models[modelName] = {
         getAttributes: () => model.getAttributes(),
         name: modelName,
         associations: model.associations,
       };
 
-      return acc;
+      return models;
     }, {});
   }
 

@@ -31,6 +31,10 @@ export default class SqlDataSourceFactory {
   }
 
   private static async canDefineRelation(tableName: string, builder: Builder, excludedTables) {
+    if (excludedTables.has(tableName)) {
+      return false;
+    }
+
     const relatedTables = await builder.getRelatedTables(tableName);
 
     return !relatedTables.some(table => excludedTables.has(table));

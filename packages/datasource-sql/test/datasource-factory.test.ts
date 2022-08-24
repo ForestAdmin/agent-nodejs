@@ -300,6 +300,62 @@ describe('SqlDataSourceFactory', () => {
     });
   });
 
+  describe('when the the table has an "id" without primary key constraint', () => {
+    const setupDatabase = async (database: string): Promise<Sequelize> => {
+      let sequelize: Sequelize;
+      const dialect = 'postgres';
+      const connectionUrl = 'test:password@localhost:5443';
+
+      try {
+        let connectionUri = `${dialect}://${connectionUrl}`;
+        sequelize = new Sequelize(connectionUri, { logging: false });
+
+        await sequelize.getQueryInterface().dropDatabase(database);
+        await sequelize.getQueryInterface().createDatabase(database);
+        await sequelize.close();
+
+        connectionUri = `${dialect}://${connectionUrl}/${database}`;
+        sequelize = new Sequelize(connectionUri, { logging: false });
+
+        sequelize.define(
+          'person',
+          {
+            anid: {
+              type: DataTypes.STRING,
+              defaultValue: 'default string',
+              primaryKey: true,
+            },
+          },
+          {
+            timestamps: false,
+            tableName: 'person',
+          },
+        );
+
+        await sequelize.sync({ force: true });
+        await sequelize.query('ALTER TABLE person ADD COLUMN id INTEGER');
+        await sequelize.query('ALTER TABLE person DROP COLUMN anid CASCADE');
+
+        return sequelize;
+      } catch (error) {
+        throw new Error(`Test initialization fail: ${error.message}`);
+      } finally {
+        await sequelize?.close();
+      }
+    };
+
+    it('the model should be skipped and not throw error', async () => {
+      const databaseName = 'datasource-sql-id-field-test';
+      await setupDatabase(databaseName);
+      const dialect = 'postgres';
+      const connectionUrl = 'test:password@localhost:5443';
+
+      const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
+      const builder = new SequelizeDataSourceBuilder(connectionUri);
+      await expect(SqlDataSourceFactory.build(builder)).resolves.not.toThrow();
+    });
+  });
+
   describe.each([
     ['postgres', 'test:password@localhost:5443'],
     ['mysql', 'root:password@localhost:3307'],
@@ -489,6 +545,7 @@ describe('SqlDataSourceFactory', () => {
           sequelize = new Sequelize(connectionUri, { logging: false });
           await sequelize.getQueryInterface().dropDatabase(database);
           await sequelize.getQueryInterface().createDatabase(database);
+
           await sequelize.close();
 
           connectionUri = `${dialect}://${connectionUrl}/${database}`;
