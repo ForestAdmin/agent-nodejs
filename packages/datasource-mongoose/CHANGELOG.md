@@ -1,3 +1,10 @@
+# @forestadmin/datasource-mongoose [1.0.0-beta.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.0-beta.14...@forestadmin/datasource-mongoose@1.0.0-beta.15) (2022-08-24)
+
+
+### Bug Fixes
+
+* **mongoose:** options are not required when creating the connector ([#391](https://github.com/ForestAdmin/agent-nodejs/issues/391)) ([0cdd295](https://github.com/ForestAdmin/agent-nodejs/commit/0cdd295d8fce2f851622fd9537893c3b1b12a31e))
+
 # @forestadmin/datasource-mongoose [1.0.0-beta.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.0-beta.13...@forestadmin/datasource-mongoose@1.0.0-beta.14) (2022-08-23)
 
 
