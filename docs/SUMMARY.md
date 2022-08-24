@@ -95,6 +95,7 @@
   - [login](deployment/forest-cli-commands/login.md)
   - [branch](deployment/forest-cli-commands/branch.md)
   - [switch](deployment/forest-cli-commands/switch.md)
+  - [set-origin](deployment/forest-cli-commands/set-origin.md)
   - [push](deployment/forest-cli-commands/push.md)
   - [environments:reset](deployment/forest-cli-commands/environments-reset.md)
   - [deploy](deployment/forest-cli-commands/deploy.md)
