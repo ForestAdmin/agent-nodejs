@@ -26,6 +26,7 @@ import ListRelated from '../../../src/agent/routes/access/list-related';
 import Logger from '../../../src/agent/routes/system/logger';
 import ScopeInvalidation from '../../../src/agent/routes/security/scope-invalidation';
 import Update from '../../../src/agent/routes/modification/update';
+import UpdateField from '../../../src/agent/routes/modification/update-field';
 import UpdateRelation from '../../../src/agent/routes/modification/update-relation';
 
 describe('Route index', () => {
@@ -38,7 +39,17 @@ describe('Route index', () => {
       Logger,
       ScopeInvalidation,
     ]);
-    expect(COLLECTION_ROUTES_CTOR).toEqual([Chart, Count, Create, Csv, Delete, Get, List, Update]);
+    expect(COLLECTION_ROUTES_CTOR).toEqual([
+      Chart,
+      Count,
+      Create,
+      Csv,
+      Delete,
+      Get,
+      List,
+      Update,
+      UpdateField,
+    ]);
     expect(RELATED_ROUTES_CTOR).toEqual([
       AssociateRelated,
       CountRelated,
