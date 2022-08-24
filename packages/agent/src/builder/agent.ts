@@ -146,7 +146,8 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mountOnExpress(express: any): this {
-    express.use('/forest', this.getConnectCallback(false));
+    const { prefix } = this.options;
+    express.use(prefix, this.getConnectCallback(false));
     this.options.logger('Info', `Successfully mounted on Express.js`);
 
     return this;
@@ -172,7 +173,8 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mountOnKoa(koa: any): this {
-    const parentRouter = new Router({ prefix: '/forest' });
+    const { prefix } = this.options;
+    const parentRouter = new Router({ prefix });
     koa.use(parentRouter.routes());
     this.options.logger('Info', `Successfully mounted on Koa`);
 
@@ -189,11 +191,12 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mountOnNestJs(nestJs: any): this {
+    const { prefix } = this.options;
     const adapter = nestJs.getHttpAdapter();
     const callback = this.getConnectCallback(false);
 
     if (adapter.constructor.name === 'ExpressAdapter') {
-      nestJs.use('/forest', callback);
+      nestJs.use(prefix, callback);
     } else {
       this.useCallbackOnFastify(nestJs, callback);
     }
@@ -232,16 +235,17 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private useCallbackOnFastify(fastify: any, callback: HttpCallback): void {
+    const { prefix } = this.options;
     try {
       // 'fastify 2' or 'middie' or 'fastify-express'
-      fastify.use('/forest', callback);
+      fastify.use(prefix, callback);
     } catch (e) {
       // 'fastify 3'
       if (e.code === 'FST_ERR_MISSING_MIDDLEWARE') {
         fastify
           .register(import('@fastify/express'))
           .then(() => {
-            fastify.use('/forest', callback);
+            fastify.use(prefix, callback);
           })
           .catch(err => {
             this.options.logger('Error', err.message);
@@ -259,7 +263,8 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
       let router = driverRouter;
 
       if (nested) {
-        router = new Router({ prefix: '/forest' }).use(router.routes());
+        const { prefix } = this.options;
+        router = new Router({ prefix }).use(router.routes());
       }
 
       handler = new Koa().use(router.routes()).callback();
