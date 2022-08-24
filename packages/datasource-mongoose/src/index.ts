@@ -9,7 +9,7 @@ export { default as MongooseDatasource } from './datasource';
 
 export function createMongooseDataSource(
   connection: Connection,
-  options: MongooseOptions,
+  options: MongooseOptions = {},
 ): DataSourceFactory {
   return async () => new MongooseDatasource(connection, options);
 }
