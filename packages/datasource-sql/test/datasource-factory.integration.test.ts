@@ -1,8 +1,6 @@
-import { DataSource, Logger } from '@forestadmin/datasource-toolkit';
 import { DataTypes, Dialect, Sequelize, literal } from 'sequelize';
 import { Literal } from 'sequelize/types/utils';
 
-import { Builder, Model } from '../src/utils/types';
 import SequelizeDataSourceBuilder from '../src/sequelize-builder';
 import SqlDataSourceFactory from '../src/datasource-factory';
 
