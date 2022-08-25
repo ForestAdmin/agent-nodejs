@@ -15,7 +15,7 @@ describe('OptionsValidator', () => {
       expect(options).toHaveProperty('clientId', null);
       expect(options).toHaveProperty('forestServerUrl', 'https://api.forestadmin.com');
       expect(options).toHaveProperty('logger', expect.any(Function));
-      expect(options).toHaveProperty('mountPrefix', '');
+      expect(options).toHaveProperty('prefix', '');
       expect(options).toHaveProperty('schemaPath', '.forestadmin-schema.json');
     });
 
@@ -81,7 +81,7 @@ describe('OptionsValidator', () => {
       forestServerUrl: 'https://api.development.forestadmin.com',
       logger: () => {},
       loggerLevel: 'Debug',
-      mountPrefix: '/myPrefix',
+      prefix: '/myPrefix',
       schemaPath: '.forestadmin-schema.json',
       permissionsCacheDurationInSeconds: 12,
       typingsPath: null,
@@ -108,7 +108,7 @@ describe('OptionsValidator', () => {
       'authSecret',
       'envSecret',
       'forestServerUrl',
-      'mountPrefix',
+      'prefix',
       'schemaPath',
     ])('%s', key => {
       test('should fail with null', () => {
@@ -124,7 +124,7 @@ describe('OptionsValidator', () => {
       'clientId',
       'envSecret',
       'forestServerUrl',
-      'mountPrefix',
+      'prefix',
       'schemaPath',
     ])('%s', key => {
       test('should fail with number', () => {

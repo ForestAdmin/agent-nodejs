@@ -35,7 +35,7 @@ export default class ApiChartRoute extends BaseRoute {
 
     // Log the route to help the customer fill the url in the frontend
     if (!this.options.isProduction) {
-      const url = path.posix.join('/', this.options.mountPrefix, 'forest', suffix);
+      const url = path.posix.join('/', this.options.prefix, 'forest', suffix);
       this.options.logger('Info', `Chart '${this.chartName}' was mounted at '${url}'`);
     }
   }

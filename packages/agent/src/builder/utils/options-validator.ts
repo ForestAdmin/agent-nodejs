@@ -31,7 +31,7 @@ export default class OptionsValidator {
     copyOptions.schemaPath = copyOptions.schemaPath || '.forestadmin-schema.json';
     copyOptions.forestServerUrl = copyOptions.forestServerUrl || 'https://api.forestadmin.com';
     copyOptions.typingsMaxDepth = copyOptions.typingsMaxDepth ?? 5;
-    copyOptions.mountPrefix = copyOptions.mountPrefix || '';
+    copyOptions.prefix = copyOptions.prefix || '';
 
     return {
       clientId: null,
@@ -107,9 +107,9 @@ export default class OptionsValidator {
   }
 
   private static checkOtherOptions(options: AgentOptions): void {
-    if (typeof options.mountPrefix !== 'string' || !/^[-/a-z]*$/i.test(options.mountPrefix)) {
+    if (typeof options.prefix !== 'string' || !/^[-/a-z]*$/i.test(options.prefix)) {
       throw new Error(
-        'options.mountPrefix is invalid. It should contain the prefix on which ' +
+        'options.prefix is invalid. It should contain the prefix on which ' +
           'forest admin routes should be mounted (i.e. "/api/v1")',
       );
     }

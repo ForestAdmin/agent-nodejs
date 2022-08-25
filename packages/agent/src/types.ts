@@ -10,7 +10,7 @@ export type AgentOptions = {
   forestServerUrl?: string;
   logger?: Logger;
   loggerLevel?: LoggerLevel;
-  mountPrefix?: string;
+  prefix?: string;
   isProduction: boolean;
   schemaPath?: string;
   typingsPath?: string | null;

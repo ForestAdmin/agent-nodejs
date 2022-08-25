@@ -30,7 +30,7 @@ describe('Builder > Agent', () => {
   it('should return an error when not started', async () => {
     expect.assertions(1);
 
-    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
+    const options = factories.forestAdminHttpDriverOptions.build({ prefix: 'my-api' });
     const agent = new Agent(options).mountOnStandaloneServer(9997, 'localhost');
 
     try {
@@ -44,7 +44,7 @@ describe('Builder > Agent', () => {
   it('should work in standalone mode', async () => {
     expect.assertions(1);
 
-    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
+    const options = factories.forestAdminHttpDriverOptions.build({ prefix: 'my-api' });
     const agent = new Agent(options).mountOnStandaloneServer(9997, 'localhost');
 
     try {
@@ -60,7 +60,7 @@ describe('Builder > Agent', () => {
   it('should work in an express app', async () => {
     const app = express();
 
-    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
+    const options = factories.forestAdminHttpDriverOptions.build({ prefix: 'my-api' });
 
     const agent = new Agent(options).mountOnExpress(app);
     await agent.start();
@@ -78,7 +78,7 @@ describe('Builder > Agent', () => {
   it('should work in an koa app', async () => {
     const app = new Koa();
 
-    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
+    const options = factories.forestAdminHttpDriverOptions.build({ prefix: 'my-api' });
     const agent = new Agent(options).mountOnKoa(app);
     await agent.start();
 
@@ -98,7 +98,7 @@ describe('Builder > Agent', () => {
   ])('should work in a fastify %s app', async (_, Fastify) => {
     const app = (Fastify as Function)(); // eslint-disable-line @typescript-eslint/ban-types
 
-    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
+    const options = factories.forestAdminHttpDriverOptions.build({ prefix: 'my-api' });
     const agent = new Agent(options).mountOnFastify(app);
     await agent.start();
 
@@ -117,7 +117,7 @@ describe('Builder > Agent', () => {
     class AppModule {}
     const app = await NestFactory.create(AppModule, { logger: false });
 
-    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
+    const options = factories.forestAdminHttpDriverOptions.build({ prefix: 'my-api' });
     const agent = new Agent(options).mountOnNestJs(app);
     await agent.start();
 
@@ -138,7 +138,7 @@ describe('Builder > Agent', () => {
       logger: false,
     });
 
-    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
+    const options = factories.forestAdminHttpDriverOptions.build({ prefix: 'my-api' });
     const agent = new Agent(options).mountOnNestJs(app);
     await agent.start();
 

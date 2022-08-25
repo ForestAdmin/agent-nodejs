@@ -46,7 +46,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    *  clientId: null,
    *  forestServerUrl: 'https://api.forestadmin.com',
    *  logger: (level, data) => console.error(level, data),
-   *  mountPrefix: 'api/v1',
+   *  prefix: 'api/v1',
    *  schemaPath: '.forestadmin-schema.json',
    *  permissionsCacheDurationInSeconds: 15 * 60,
    * ```
@@ -234,7 +234,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
 
   /** Compute the prefix that the main router should be mounted at in the client's application */
   private get completeMountPrefix(): string {
-    return path.posix.join('/', this.options.mountPrefix, 'forest');
+    return path.posix.join('/', this.options.prefix, 'forest');
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
