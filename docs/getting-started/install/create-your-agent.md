@@ -125,12 +125,12 @@ Note that this variable has **no influence** on the base URL that will be used b
 
 This is done so that customers using reverse proxies can implement their routing table as they see fit.
 
-| Desired Local URLs                        | Desired Public URLs                          | How to configure your agent                                                          |
-| ----------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------ |
-| http://localhost:3000/forest              | https://api.company.com/forest               | mountPrefix == ''<br>agentUrl == 'https://api.company.com'                           |
-| http://localhost:3000/forest              | https://www.company.com/api/forest           | mountPrefix == ''<br>agentUrl == 'https://www.company.com/api'                       |
-| http://localhost:3000/prefix/forest       | https://api.company.com/prefix/forest        | mountPrefix == 'prefix'<br>agentUrl == 'https://api.company.com/prefix'              |
-| http://localhost:3000/local-prefix/forest | https://api.company.com/public-prefix/forest | mountPrefix == 'local-prefix'<br>agentUrl == 'https://api.company.com/public-prefix' |
+| Desired Local URLs                        | Desired Public URLs                          | How to configure your agent                                                        |
+| ----------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------- |
+| http://localhost:3000/forest              | https://api.company.com/forest               | mountPrefix = ''<br>agentUrl = 'https://api.company.com'                           |
+| http://localhost:3000/forest              | https://www.company.com/api/forest           | mountPrefix = ''<br>agentUrl = 'https://www.company.com/api'                       |
+| http://localhost:3000/prefix/forest       | https://api.company.com/prefix/forest        | mountPrefix = 'prefix'<br>agentUrl = 'https://api.company.com/prefix'              |
+| http://localhost:3000/local-prefix/forest | https://api.company.com/public-prefix/forest | mountPrefix = 'local-prefix'<br>agentUrl = 'https://api.company.com/public-prefix' |
 
 ```javascript
 createAgent({
