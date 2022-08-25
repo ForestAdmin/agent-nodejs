@@ -6,15 +6,12 @@ import SchemaGeneratorSegments from './generator-segments';
 
 export default class SchemaGeneratorCollection {
   /** Build forest-server schema for a collection */
-  static async buildSchema(
-    prefix: string,
-    collection: Collection,
-  ): Promise<ForestServerCollection> {
+  static async buildSchema(collection: Collection): Promise<ForestServerCollection> {
     return {
       actions: await Promise.all(
         Object.keys(collection.schema.actions)
           .sort()
-          .map(name => SchemaGeneratorActions.buildSchema(prefix, collection, name)),
+          .map(name => SchemaGeneratorActions.buildSchema(collection, name)),
       ),
       fields: Object.keys(collection.schema.fields)
         .filter(name => !SchemaUtils.isForeignKey(collection.schema, name))

@@ -1,9 +1,9 @@
 import { Client, ClientAuthMethod, Issuer } from 'openid-client';
 import { ValidationError } from '@forestadmin/datasource-toolkit';
-import { join } from 'path';
 import Router from '@koa/router';
 import jsonwebtoken from 'jsonwebtoken';
 import jwt from 'koa-jwt';
+import path from 'path';
 
 import { Context } from 'koa';
 import { RouteType } from '../../types';
@@ -16,10 +16,12 @@ export default class Authentication extends BaseRoute {
   private client: Client;
 
   private get redirectUrl(): string {
-    const base = this.options.agentUrl;
-    const path = join(this.options.prefix, '/authentication/callback');
+    const externalUrl = new URL(this.options.agentUrl);
 
-    return new URL(path, base).toString();
+    return (
+      externalUrl.origin +
+      path.posix.join('/', externalUrl.pathname, '/forest/authentication/callback')
+    );
   }
 
   override async bootstrap(): Promise<void> {

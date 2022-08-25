@@ -30,11 +30,11 @@ describe('Builder > Agent', () => {
   it('should return an error when not started', async () => {
     expect.assertions(1);
 
-    const options = factories.forestAdminHttpDriverOptions.build();
+    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
     const agent = new Agent(options).mountOnStandaloneServer(9997, 'localhost');
 
     try {
-      const response = await superagent.get('http://localhost:9997/forest');
+      const response = await superagent.get('http://localhost:9997/my-api/forest');
       expect(response.body).toStrictEqual({ error: 'Agent is not started' });
     } finally {
       await agent.stop();
@@ -44,13 +44,13 @@ describe('Builder > Agent', () => {
   it('should work in standalone mode', async () => {
     expect.assertions(1);
 
-    const options = factories.forestAdminHttpDriverOptions.build();
+    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
     const agent = new Agent(options).mountOnStandaloneServer(9997, 'localhost');
 
     try {
       await agent.start();
 
-      const response = await superagent.get('http://localhost:9997/forest');
+      const response = await superagent.get('http://localhost:9997/my-api/forest');
       expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
     } finally {
       await agent.stop();
@@ -60,7 +60,7 @@ describe('Builder > Agent', () => {
   it('should work in an express app', async () => {
     const app = express();
 
-    const options = factories.forestAdminHttpDriverOptions.build();
+    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
 
     const agent = new Agent(options).mountOnExpress(app);
     await agent.start();
@@ -68,7 +68,7 @@ describe('Builder > Agent', () => {
     const server = app.listen(9998);
 
     try {
-      const response = await superagent.get('http://localhost:9998/forest');
+      const response = await superagent.get('http://localhost:9998/my-api/forest');
       expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
     } finally {
       server.close();
@@ -78,14 +78,14 @@ describe('Builder > Agent', () => {
   it('should work in an koa app', async () => {
     const app = new Koa();
 
-    const options = factories.forestAdminHttpDriverOptions.build();
+    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
     const agent = new Agent(options).mountOnKoa(app);
     await agent.start();
 
     const server = app.listen(9998);
 
     try {
-      const response = await superagent.get('http://localhost:9998/forest');
+      const response = await superagent.get('http://localhost:9998/my-api/forest');
       expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
     } finally {
       server.close();
@@ -98,14 +98,14 @@ describe('Builder > Agent', () => {
   ])('should work in a fastify %s app', async (_, Fastify) => {
     const app = (Fastify as Function)(); // eslint-disable-line @typescript-eslint/ban-types
 
-    const options = factories.forestAdminHttpDriverOptions.build();
+    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
     const agent = new Agent(options).mountOnFastify(app);
     await agent.start();
 
     await app.listen(9999);
 
     try {
-      const response = await superagent.get('http://localhost:9999/forest');
+      const response = await superagent.get('http://localhost:9999/my-api/forest');
       expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
     } finally {
       app.close();
@@ -117,14 +117,14 @@ describe('Builder > Agent', () => {
     class AppModule {}
     const app = await NestFactory.create(AppModule, { logger: false });
 
-    const options = factories.forestAdminHttpDriverOptions.build();
+    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
     const agent = new Agent(options).mountOnNestJs(app);
     await agent.start();
 
     await app.listen(9996);
 
     try {
-      const response = await superagent.get('http://localhost:9996/forest');
+      const response = await superagent.get('http://localhost:9996/my-api/forest');
       expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
     } finally {
       await app.close();
@@ -138,14 +138,14 @@ describe('Builder > Agent', () => {
       logger: false,
     });
 
-    const options = factories.forestAdminHttpDriverOptions.build();
+    const options = factories.forestAdminHttpDriverOptions.build({ mountPrefix: 'my-api' });
     const agent = new Agent(options).mountOnNestJs(app);
     await agent.start();
 
     await app.listen(9995);
 
     try {
-      const response = await superagent.get('http://localhost:9995/forest');
+      const response = await superagent.get('http://localhost:9995/my-api/forest');
       expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
     } finally {
       await app.close();

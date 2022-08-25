@@ -5,21 +5,15 @@ import {
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import JsonApiSerializer from 'json-api-serializer';
+import path from 'path';
 
-import { AgentOptionsWithDefaults } from '../types';
 import IdUtils from '../utils/id';
 
 type SerializedRecord = { forestId: string };
-type SerializerOptions = Pick<AgentOptionsWithDefaults, 'prefix'>;
 
 export default class Serializer {
   // No need to keep references to serializers for outdated schemas => weakmap.
   private readonly serializers: WeakMap<CollectionSchema, JsonApiSerializer> = new WeakMap();
-  private readonly prefix: string;
-
-  constructor(options: SerializerOptions) {
-    this.prefix = options.prefix;
-  }
 
   serialize(collection: Collection, data: RecordData | RecordData[]): unknown {
     const result = this.getSerializer(collection).serialize(collection.name, data);
@@ -112,7 +106,7 @@ export default class Serializer {
     collection: Collection,
   ): Record<string, JsonApiSerializer.RelationshipOptions> {
     const relationships: Record<string, JsonApiSerializer.RelationshipOptions> = {};
-    const urlPrefix = `${this.prefix}/${collection.name}`;
+    const urlPrefix = path.posix.join('/forest', collection.name);
 
     for (const [name, field] of Object.entries(collection.schema.fields)) {
       if (field.type === 'ManyToOne' || field.type === 'OneToOne') {

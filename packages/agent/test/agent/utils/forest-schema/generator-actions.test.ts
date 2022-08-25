@@ -12,7 +12,7 @@ describe('SchemaGeneratorActions', () => {
     });
 
     test('should generate schema correctly', async () => {
-      const schema = await SchemaGeneratorActions.buildSchema('/forest', collection, 'Send email');
+      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send email');
 
       expect(schema).toStrictEqual({
         id: 'books-0-send-email',
@@ -56,11 +56,7 @@ describe('SchemaGeneratorActions', () => {
     );
 
     test('should generate schema correctly', async () => {
-      const schema = await SchemaGeneratorActions.buildSchema(
-        '/forest',
-        collection,
-        'Send {} email',
-      );
+      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send {} email');
 
       // Invariants should be correctly set
       expect(schema).toMatchObject({
@@ -104,7 +100,7 @@ describe('SchemaGeneratorActions', () => {
     );
 
     test('should include a reference to the change hook', async () => {
-      const schema = await SchemaGeneratorActions.buildSchema('/forest', collection, 'Send email');
+      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send email');
       expect(schema.fields[0].hook).toEqual('changeHook');
     });
   });
@@ -164,7 +160,7 @@ describe('SchemaGeneratorActions', () => {
 
     test('special fields should work', async () => {
       const collection = dataSource.getCollection('books');
-      const schema = await SchemaGeneratorActions.buildSchema('/forest', collection, 'Send email');
+      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send email');
 
       // Relation to other collection
       expect(schema.fields[0]).toMatchObject({

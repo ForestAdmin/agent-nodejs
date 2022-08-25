@@ -33,11 +33,7 @@ export default class SchemaGeneratorActions {
     },
   ];
 
-  static async buildSchema(
-    prefix: string,
-    collection: Collection,
-    name: string,
-  ): Promise<ForestServerAction> {
+  static async buildSchema(collection: Collection, name: string): Promise<ForestServerAction> {
     const schema = collection.schema.actions[name];
     const actionIndex = Object.keys(collection.schema.actions).indexOf(name);
 
@@ -50,14 +46,7 @@ export default class SchemaGeneratorActions {
       name,
       type: schema.scope.toLowerCase() as 'single' | 'bulk' | 'global',
       baseUrl: null,
-      endpoint: path.posix.join(
-        '/',
-        prefix,
-        '_actions',
-        collection.name,
-        String(actionIndex),
-        slug,
-      ),
+      endpoint: path.posix.join('/forest/_actions', collection.name, String(actionIndex), slug),
       httpMethod: 'POST',
       redirect: null, // frontend ignores this attribute
       download: Boolean(schema.generateFile),

@@ -3,7 +3,7 @@ import Serializer from '../../../src/agent/services/serializer';
 
 describe('Serializer', () => {
   const setupSerializer = (): Serializer => {
-    return new Serializer({ prefix: '/forest' });
+    return new Serializer();
   };
 
   describe('With composite pk', () => {

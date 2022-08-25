@@ -2,6 +2,7 @@ import { Context } from 'koa';
 import { DataSource } from '@forestadmin/datasource-toolkit';
 import { v1 as uuidv1 } from 'uuid';
 import Router from '@koa/router';
+import path from 'path';
 
 import { AgentOptionsWithDefaults, RouteType } from '../../types';
 import { ForestAdminHttpDriverServices } from '../../services';
@@ -28,16 +29,14 @@ export default class ApiChartRoute extends BaseRoute {
 
   setupRoutes(router: Router): void {
     // Mount both GET and POST, respectively for smart and api charts.
-    const path = `/_charts/${this.chartName}`;
-    router.get(path, this.handleSmartChart.bind(this));
-    router.post(path, this.handleApiChart.bind(this));
+    const suffix = `/_charts/${this.chartName}`;
+    router.get(suffix, this.handleSmartChart.bind(this));
+    router.post(suffix, this.handleApiChart.bind(this));
 
     // Log the route to help the customer fill the url in the frontend
     if (!this.options.isProduction) {
-      this.options.logger(
-        'Info',
-        `Chart '${this.chartName}' was mounted at '${this.options.prefix}${path}'`,
-      );
+      const url = path.posix.join('/', this.options.mountPrefix, 'forest', suffix);
+      this.options.logger('Info', `Chart '${this.chartName}' was mounted at '${url}'`);
     }
   }
 
