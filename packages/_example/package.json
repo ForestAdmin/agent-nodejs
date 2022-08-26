@@ -1,11 +1,11 @@
 {
   "name": "example",
-  "version": "1.0.0-beta.61",
+  "version": "1.0.0-beta.62",
   "license": "GPL-V3",
   "private": true,
   "dependencies": {
     "@faker-js/faker": "6.0.0-alpha.7",
-    "@forestadmin/agent": "1.0.0-beta.46",
+    "@forestadmin/agent": "1.0.0-beta.47",
     "@forestadmin/datasource-dummy": "1.0.0-beta.28",
     "@forestadmin/datasource-live": "1.0.0-beta.37",
     "@forestadmin/datasource-sequelize": "1.0.0-beta.36",
