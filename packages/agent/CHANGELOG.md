@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.47](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.46...@forestadmin/agent@1.0.0-beta.47) (2022-08-26)
+
+
+### Bug Fixes
+
+* **configuration:** make 'prefix' option work as intended ([#395](https://github.com/ForestAdmin/agent-nodejs/issues/395)) ([36b0783](https://github.com/ForestAdmin/agent-nodejs/commit/36b07836497dc5902194b857194bd23b45abd522))
+
 # @forestadmin/agent [1.0.0-beta.46](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.45...@forestadmin/agent@1.0.0-beta.46) (2022-08-23)
 
 
