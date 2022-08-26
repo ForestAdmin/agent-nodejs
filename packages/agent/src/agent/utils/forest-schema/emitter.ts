@@ -10,7 +10,7 @@ import SchemaGeneratorCollection from './generator-collection';
 
 type RawSchema = ForestServerCollection[];
 type SerializedSchema = { meta: { schemaFileHash: string } };
-type Options = Pick<AgentOptions, 'isProduction' | 'prefix' | 'schemaPath'>;
+type Options = Pick<AgentOptions, 'isProduction' | 'schemaPath'>;
 
 // Load version from package.json at startup
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -35,7 +35,7 @@ export default class SchemaEmitter {
   ): Promise<SerializedSchema> {
     const schema: RawSchema = options.isProduction
       ? await SchemaEmitter.loadFromDisk(options.schemaPath)
-      : await SchemaEmitter.generate(options.prefix, dataSource);
+      : await SchemaEmitter.generate(dataSource);
 
     if (!options.isProduction) {
       const pretty = stringify(schema, { maxLength: 80 });
@@ -59,11 +59,11 @@ export default class SchemaEmitter {
     }
   }
 
-  private static async generate(prefix: string, dataSource: DataSource): Promise<RawSchema> {
+  private static async generate(dataSource: DataSource): Promise<RawSchema> {
     const allCollectionSchemas = [];
 
     const dataSourceCollectionSchemas = dataSource.collections.map(collection =>
-      SchemaGeneratorCollection.buildSchema(prefix, collection),
+      SchemaGeneratorCollection.buildSchema(collection),
     );
     allCollectionSchemas.push(...dataSourceCollectionSchemas);
 

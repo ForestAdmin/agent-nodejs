@@ -11,6 +11,7 @@ import { writeFile } from 'fs/promises';
 import Koa from 'koa';
 import Router from '@koa/router';
 import http from 'http';
+import path from 'path';
 
 import { AgentOptions } from '../types';
 import { DataSourceOptions, HttpCallback } from './types';
@@ -45,7 +46,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    *  clientId: null,
    *  forestServerUrl: 'https://api.forestadmin.com',
    *  logger: (level, data) => console.error(level, data),
-   *  prefix: '/forest',
+   *  prefix: 'api/v1',
    *  schemaPath: '.forestadmin-schema.json',
    *  permissionsCacheDurationInSeconds: 15 * 60,
    * ```
@@ -146,7 +147,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mountOnExpress(express: any): this {
-    express.use('/forest', this.getConnectCallback(false));
+    express.use(this.completeMountPrefix, this.getConnectCallback(false));
     this.options.logger('Info', `Successfully mounted on Express.js`);
 
     return this;
@@ -172,7 +173,8 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mountOnKoa(koa: any): this {
-    const parentRouter = new Router({ prefix: '/forest' });
+    const parentRouter = new Router({ prefix: this.completeMountPrefix });
+
     koa.use(parentRouter.routes());
     this.options.logger('Info', `Successfully mounted on Koa`);
 
@@ -193,7 +195,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     const callback = this.getConnectCallback(false);
 
     if (adapter.constructor.name === 'ExpressAdapter') {
-      nestJs.use('/forest', callback);
+      nestJs.use(this.completeMountPrefix, callback);
     } else {
       this.useCallbackOnFastify(nestJs, callback);
     }
@@ -230,18 +232,23 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
     for (const task of this.termination) await task(); // eslint-disable-line no-await-in-loop
   }
 
+  /** Compute the prefix that the main router should be mounted at in the client's application */
+  private get completeMountPrefix(): string {
+    return path.posix.join('/', this.options.prefix, 'forest');
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private useCallbackOnFastify(fastify: any, callback: HttpCallback): void {
     try {
       // 'fastify 2' or 'middie' or 'fastify-express'
-      fastify.use('/forest', callback);
+      fastify.use(this.completeMountPrefix, callback);
     } catch (e) {
       // 'fastify 3'
       if (e.code === 'FST_ERR_MISSING_MIDDLEWARE') {
         fastify
           .register(import('@fastify/express'))
           .then(() => {
-            fastify.use('/forest', callback);
+            fastify.use(this.completeMountPrefix, callback);
           })
           .catch(err => {
             this.options.logger('Error', err.message);
@@ -259,7 +266,7 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
       let router = driverRouter;
 
       if (nested) {
-        router = new Router({ prefix: '/forest' }).use(router.routes());
+        router = new Router({ prefix: this.completeMountPrefix }).use(router.routes());
       }
 
       handler = new Koa().use(router.routes()).callback();

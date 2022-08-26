@@ -15,7 +15,7 @@ describe('OptionsValidator', () => {
       expect(options).toHaveProperty('clientId', null);
       expect(options).toHaveProperty('forestServerUrl', 'https://api.forestadmin.com');
       expect(options).toHaveProperty('logger', expect.any(Function));
-      expect(options).toHaveProperty('prefix', '/forest');
+      expect(options).toHaveProperty('prefix', '');
       expect(options).toHaveProperty('schemaPath', '.forestadmin-schema.json');
     });
 
@@ -81,7 +81,7 @@ describe('OptionsValidator', () => {
       forestServerUrl: 'https://api.development.forestadmin.com',
       logger: () => {},
       loggerLevel: 'Debug',
-      prefix: '/forest',
+      prefix: '/myPrefix',
       schemaPath: '.forestadmin-schema.json',
       permissionsCacheDurationInSeconds: 12,
       typingsPath: null,

@@ -36,10 +36,7 @@ describe('SchemaGeneratorCollection', () => {
 
   test('books should not be readonly and skip foreign keys', async () => {
     // because not all fields are readonly
-    const schema = await SchemaGeneratorCollection.buildSchema(
-      '/forest',
-      dataSource.getCollection('books'),
-    );
+    const schema = await SchemaGeneratorCollection.buildSchema(dataSource.getCollection('books'));
 
     // readonly
     expect(schema).toHaveProperty('isReadOnly', false);
@@ -52,10 +49,7 @@ describe('SchemaGeneratorCollection', () => {
 
   test('persons should be readonly and have actions and segments', async () => {
     // because all fields are readonly
-    const schema = await SchemaGeneratorCollection.buildSchema(
-      '/forest',
-      dataSource.getCollection('persons'),
-    );
+    const schema = await SchemaGeneratorCollection.buildSchema(dataSource.getCollection('persons'));
 
     expect(schema).toHaveProperty('isReadOnly', true);
     expect(schema.actions).toHaveLength(2);

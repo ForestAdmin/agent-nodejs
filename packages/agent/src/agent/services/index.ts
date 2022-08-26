@@ -9,5 +9,5 @@ export type ForestAdminHttpDriverServices = {
 
 export default (options: AgentOptionsWithDefaults): ForestAdminHttpDriverServices => ({
   permissions: new PermissionService(options),
-  serializer: new Serializer(options),
+  serializer: new Serializer(),
 });

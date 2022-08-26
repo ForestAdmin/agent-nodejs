@@ -1,5 +1,5 @@
 import { existsSync } from 'fs';
-import { join as joinPath, parse as parsePath } from 'path';
+import path from 'path';
 
 import { AgentOptions } from '../../types';
 import { AgentOptionsWithDefaults } from '../../agent/types';
@@ -15,7 +15,7 @@ export default class OptionsValidator {
     Error: '\x1b[31merror:\x1b[0m',
   };
 
-  static withDefaults(options: AgentOptions): AgentOptions {
+  static withDefaults(options: AgentOptions): AgentOptionsWithDefaults {
     const copyOptions = { ...options };
 
     const defaultLogger = (level, data) => {
@@ -31,17 +31,14 @@ export default class OptionsValidator {
     copyOptions.schemaPath = copyOptions.schemaPath || '.forestadmin-schema.json';
     copyOptions.forestServerUrl = copyOptions.forestServerUrl || 'https://api.forestadmin.com';
     copyOptions.typingsMaxDepth = copyOptions.typingsMaxDepth ?? 5;
-
-    const parsed = new URL(options.agentUrl);
-    copyOptions.prefix ??= joinPath('/', parsed.pathname, 'forest');
+    copyOptions.prefix = copyOptions.prefix || '';
 
     return {
       clientId: null,
       loggerLevel: 'Info',
-      prefix: '/forest',
       permissionsCacheDurationInSeconds: 15 * 60,
       ...copyOptions,
-    };
+    } as AgentOptionsWithDefaults;
   }
 
   static validate(options: AgentOptions): AgentOptionsWithDefaults {
@@ -110,10 +107,10 @@ export default class OptionsValidator {
   }
 
   private static checkOtherOptions(options: AgentOptions): void {
-    if (typeof options.prefix !== 'string' || !/[-/a-z+]/.test(options.prefix)) {
+    if (typeof options.prefix !== 'string' || !/^[-/a-z]*$/i.test(options.prefix)) {
       throw new Error(
         'options.prefix is invalid. It should contain the prefix on which ' +
-          'forest admin routes should be mounted (i.e. "/forest")',
+          'forest admin routes should be mounted (i.e. "/api/v1")',
       );
     }
   }
@@ -123,7 +120,7 @@ export default class OptionsValidator {
       return false;
     }
 
-    const parsed = parsePath(string);
+    const parsed = path.parse(string);
 
     return parsed.dir.length ? existsSync(parsed.dir) : true;
   }
