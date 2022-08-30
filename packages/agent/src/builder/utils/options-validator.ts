@@ -107,7 +107,7 @@ export default class OptionsValidator {
   }
 
   private static checkOtherOptions(options: AgentOptions): void {
-    if (typeof options.prefix !== 'string' || !/^[-/a-z]*$/i.test(options.prefix)) {
+    if (typeof options.prefix !== 'string' || !/^[-~/\w]*$/i.test(options.prefix)) {
       throw new Error(
         'options.prefix is invalid. It should contain the prefix on which ' +
           'forest admin routes should be mounted (i.e. "/api/v1")',
