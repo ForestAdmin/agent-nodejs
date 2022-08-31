@@ -84,12 +84,16 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     }
 
     if (columnType === 'String') {
-      let operator: Operator;
+      const isCaseSensitive = searchString.toLocaleLowerCase() !== searchString.toLocaleUpperCase();
+      const supportsIContains = filterOperators?.has('IContains');
+      const supportsContains = filterOperators?.has('Contains');
+      const supportsEqual = filterOperators?.has('Equal');
 
-      // Perf: don't use case-insensitive operator for numbers
-      if (!isNumber && filterOperators?.has('IContains')) operator = 'IContains';
-      else if (filterOperators?.has('Contains')) operator = 'Contains';
-      else if (filterOperators?.has('Equal')) operator = 'Equal';
+      // Perf: don't use case-insensitive operator when the search string indiferent to case
+      let operator: Operator;
+      if (supportsIContains && (isCaseSensitive || !supportsContains)) operator = 'IContains';
+      else if (supportsContains) operator = 'Contains';
+      else if (supportsEqual) operator = 'Equal';
 
       if (operator) return new ConditionTreeLeaf(field, operator, searchString);
     }
