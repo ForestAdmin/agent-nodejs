@@ -89,7 +89,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       const supportsContains = filterOperators?.has('Contains');
       const supportsEqual = filterOperators?.has('Equal');
 
-      // Perf: don't use case-insensitive operator when the search string indiferent to case
+      // Perf: don't use case-insensitive operator when the search string is indifferent to case
       let operator: Operator;
       if (supportsIContains && (isCaseSensitive || !supportsContains)) operator = 'IContains';
       else if (supportsContains) operator = 'Contains';
