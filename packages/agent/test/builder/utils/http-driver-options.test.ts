@@ -141,5 +141,32 @@ describe('OptionsValidator', () => {
         );
       });
     });
+
+    test('should fail when prefix contains not allowed characters', () => {
+      expect(() =>
+        OptionsValidator.validate({
+          ...allOptions,
+          prefix: 'this-should#fail&as-a-prefix!',
+        }),
+      ).toThrow(
+        'options.prefix is invalid. It should contain the prefix on which ' +
+          'forest admin routes should be mounted (i.e. "/api/v1")',
+      );
+    });
+
+    test('should work when prefix is valid', () => {
+      const testPrefix = prefix =>
+        expect(() =>
+          OptionsValidator.validate({
+            ...allOptions,
+            prefix,
+          }),
+        ).not.toThrow();
+
+      testPrefix('api/~v1');
+      testPrefix('api/version-1');
+      testPrefix('foo/bar/baz');
+      testPrefix('foo_bar');
+    });
   });
 });
