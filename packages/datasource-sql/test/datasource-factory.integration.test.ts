@@ -1,7 +1,8 @@
 import { DataTypes, Dialect, Sequelize, literal } from 'sequelize';
 import { Literal } from 'sequelize/types/utils';
 
-import SqlDataSource from '../src/datasource';
+import SequelizeDataSourceBuilder from '../src/sequelize-builder';
+import SqlDataSourceFactory from '../src/datasource-factory';
 
 function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {
   switch (dialect) {
@@ -196,7 +197,7 @@ const RELATION_MAPPING = {
   },
 };
 
-describe('datasource', () => {
+describe('SqlDataSourceFactory > Integration', () => {
   describe.each([
     ['postgres', 'test:password@localhost:5443'],
     ['mysql', 'root:password@localhost:3307'],
@@ -353,14 +354,10 @@ describe('datasource', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const sqlDataSource = new SqlDataSource(connectionUri);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dataSourceSequelize = (sqlDataSource as any).sequelize as Sequelize;
+          const builder = new SequelizeDataSourceBuilder(connectionUri);
+          await SqlDataSourceFactory.build(builder);
 
-          await sqlDataSource.build();
-
-          const dataSourceModels = dataSourceSequelize.models;
-
+          const dataSourceModels = builder.models;
           Object.values(setupModels).forEach(setupModel => {
             const model = dataSourceModels[setupModel.name];
 
@@ -390,6 +387,7 @@ describe('datasource', () => {
           sequelize = new Sequelize(connectionUri, { logging: false });
           await sequelize.getQueryInterface().dropDatabase(database);
           await sequelize.getQueryInterface().createDatabase(database);
+
           await sequelize.close();
 
           connectionUri = `${dialect}://${connectionUrl}/${database}`;
@@ -450,13 +448,10 @@ describe('datasource', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const sqlDataSource = new SqlDataSource(connectionUri);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dataSourceSequelize = (sqlDataSource as any).sequelize as Sequelize;
+          const builder = new SequelizeDataSourceBuilder(connectionUri);
+          await SqlDataSourceFactory.build(builder);
 
-          await sqlDataSource.build();
-
-          const dataSourceModels = dataSourceSequelize.models;
+          const dataSourceModels = builder.models;
 
           Object.values(setupModels).forEach(setupModel => {
             const model = dataSourceModels[setupModel.name];
