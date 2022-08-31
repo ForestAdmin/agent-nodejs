@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.48](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.47...@forestadmin/agent@1.0.0-beta.48) (2022-08-31)
+
+
+### Bug Fixes
+
+* **prefix:** allow all possible prefixes as defined in the RFC ([12e4cbd](https://github.com/ForestAdmin/agent-nodejs/commit/12e4cbd9c841e818c2b37b1da320a676e833c2b9))
+
 # @forestadmin/agent [1.0.0-beta.47](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.46...@forestadmin/agent@1.0.0-beta.47) (2022-08-26)
 
 
