@@ -25,13 +25,15 @@ export default class ResultBuilder {
   /**
    * Returns an error response from the action
    * @param message the error message to return
+   * @param html the html content to display
    * @example
    * .error('Failed to refund the customer!');
    */
-  error(message?: string): ActionResult {
+  error(message?: string, html?: string): ActionResult {
     return {
       type: 'Error',
       message: message ?? 'Error',
+      html,
     };
   }
 

@@ -28,7 +28,7 @@ return resultBuilder.error('The company was already live!');
 
 You can also return a HTML page as a response to give more feedback to the user who triggered your Action.
 
-For instance:
+For instance in case of success:
 
 ```javascript
 const record = await context.getRecord();
@@ -43,6 +43,21 @@ return resultBuilder.success(
 ```
 
 ![](../../assets/actions-html-response.png)
+
+For instance in case of error:
+
+```javascript
+const record = await context.getRecord();
+return resultBuilder.error(
+  'You can perform this action for the following reasons:',
+  `
+    <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD exceeds threshold.</p>
+    <strong class="c-form__label--read c-clr-1-2">You can use the following card instead</strong>
+    <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
+  `,
+  { type: 'html' },
+);
+```
 
 ### File generation
 

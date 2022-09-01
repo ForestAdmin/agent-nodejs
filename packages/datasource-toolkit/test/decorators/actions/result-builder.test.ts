@@ -17,6 +17,12 @@ describe('ResultBuilder', () => {
       type: 'Error',
       message: 'booo',
     });
+
+    expect(builder.error('booo', '<div>html content</div>')).toEqual({
+      type: 'Error',
+      message: 'booo',
+      html: '<div>html content</div>',
+    });
   });
 
   test('file', () => {
