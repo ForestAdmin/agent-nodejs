@@ -8,6 +8,7 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { HttpCode } from '../../types';
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -15,7 +16,7 @@ import QueryStringParser from '../../utils/query-string';
 export default class UpdateField extends CollectionRoute {
   setupRoutes(router: Router): void {
     router.put(
-      `/${this.collection.name}/:id/relationships/:field/:index`,
+      `/${this.collection.name}/:id/relationships/:field/:index(\\d+)`,
       this.handleUpdate.bind(this),
     );
   }
@@ -52,6 +53,6 @@ export default class UpdateField extends CollectionRoute {
     // Update record
     await this.collection.update(caller, filter, { [field]: record[field] });
 
-    context.response.status = 204;
+    context.response.status = HttpCode.NoContent;
   }
 }
