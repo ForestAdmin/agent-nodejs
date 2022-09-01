@@ -17,7 +17,7 @@ describe('UpdateField', () => {
     updateRoute.setupRoutes(router);
 
     expect(router.put).toHaveBeenCalledWith(
-      '/books/:id/relationships/:field/:index',
+      '/books/:id/relationships/:field/:index(\\d+)',
       expect.any(Function),
     );
   });
