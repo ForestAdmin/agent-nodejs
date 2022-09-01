@@ -46,6 +46,7 @@ export type SuccessResult = {
 export type ErrorResult = {
   type: 'Error';
   message: string;
+  html: string;
 };
 
 export type WebHookResult = {

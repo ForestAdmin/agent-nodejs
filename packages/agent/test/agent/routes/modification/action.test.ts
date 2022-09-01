@@ -176,6 +176,11 @@ describe('ActionRoute', () => {
         { error: 'it went very badly!' },
       ],
       [
+        'Error (html)',
+        { type: 'Error', message: 'it went very badly!', html: '<div>Because of PEBCAK</div>'},
+        { error: 'it went very badly!', html: '<div>Because of PEBCAK</div>'},
+      ],
+      [
         'Webhook',
         {
           type: 'Webhook',
