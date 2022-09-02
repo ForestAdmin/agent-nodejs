@@ -85,7 +85,6 @@ describe('ActionDecorator', () => {
         type: 'Success',
         invalidated: new Set(),
         message: 'Success',
-        format: 'text',
       });
     });
 

@@ -183,9 +183,7 @@ describe('ActionRoute', () => {
         {
           type: 'Error',
           message: 'it went very badly!',
-          options: {
-            html: '<div>Because of PEBCAK</div>',
-          },
+          html: '<div>Because of PEBCAK</div>',
         },
         {
           error: 'it went very badly!',
