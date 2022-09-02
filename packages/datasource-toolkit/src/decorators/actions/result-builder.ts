@@ -10,10 +10,7 @@ export default class ResultBuilder {
    * @example
    * .success('Success', { html: '<blinkee>Success!</blinkee>' });
    */
-  success(
-    message?: string,
-    options?: { html?: string; invalidated?: string[] },
-  ): ActionResult {
+  success(message?: string, options?: { html?: string; invalidated?: string[] }): ActionResult {
     return {
       type: 'Success',
       message: message ?? 'Success',
@@ -29,7 +26,7 @@ export default class ResultBuilder {
    * @example
    * .error('Failed to refund the customer!', { html: '<strong>Error!</strong>' });
    */
-  error(message?: string, options?: { html: string; }): ActionResult {
+  error(message?: string, options?: { html: string }): ActionResult {
     return {
       type: 'Error',
       message: message ?? 'Error',
