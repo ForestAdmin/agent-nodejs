@@ -164,7 +164,7 @@ describe('ActionRoute', () => {
         {
           type: 'Success',
           message: 'it went great!',
-          options: { html: '<div>Successful</div>' },
+          html: '<div>Successful</div>',
           invalidated: new Set(),
         },
         {
