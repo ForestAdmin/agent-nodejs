@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.49](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.48...@forestadmin/agent@1.0.0-beta.49) (2022-09-02)
+
+
+### Bug Fixes
+
+* **mongoose:** implement route to submit related data edition ([#392](https://github.com/ForestAdmin/agent-nodejs/issues/392)) ([367ed0f](https://github.com/ForestAdmin/agent-nodejs/commit/367ed0fe351c1de5b01c8f4ac8798c89ad9324c2))
+
 # @forestadmin/agent [1.0.0-beta.48](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.47...@forestadmin/agent@1.0.0-beta.48) (2022-08-31)
 
 
