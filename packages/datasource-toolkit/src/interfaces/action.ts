@@ -39,14 +39,14 @@ export type ActionFieldType =
 export type SuccessResult = {
   type: 'Success';
   message: string;
-  html: string;
   invalidated: Set<string>;
+  html?: string;
 };
 
 export type ErrorResult = {
   type: 'Error';
   message: string;
-  html: string;
+  html?: string;
 };
 
 export type WebHookResult = {

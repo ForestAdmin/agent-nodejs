@@ -12,7 +12,7 @@ export default class ResultBuilder {
    */
   success(
     message?: string,
-    options?: { html: string; invalidated?: string[] },
+    options?: { html?: string; invalidated?: string[] },
   ): ActionResult {
     return {
       type: 'Success',
