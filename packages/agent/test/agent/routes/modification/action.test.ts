@@ -155,7 +155,6 @@ describe('ActionRoute', () => {
         {
           type: 'Success',
           message: 'it went great!',
-          format: 'text',
           invalidated: new Set(),
         },
         { success: 'it went great!', refresh: { relationships: [] } },
@@ -165,10 +164,14 @@ describe('ActionRoute', () => {
         {
           type: 'Success',
           message: 'it went great!',
-          format: 'html',
+          options: { html: '<div>Successful</div>' },
           invalidated: new Set(),
         },
-        { html: 'it went great!', refresh: { relationships: [] } },
+        {
+          success: 'it went great!',
+          html: '<div>Successful</div>',
+          refresh: { relationships: [] },
+        },
       ],
       [
         'Error',
@@ -180,7 +183,9 @@ describe('ActionRoute', () => {
         {
           type: 'Error',
           message: 'it went very badly!',
-          html: '<div>Because of PEBCAK</div>',
+          options: {
+            html: '<div>Because of PEBCAK</div>',
+          },
         },
         {
           error: 'it went very badly!',

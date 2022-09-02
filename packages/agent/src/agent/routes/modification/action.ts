@@ -62,7 +62,8 @@ export default class ActionRoute extends CollectionRoute {
       context.response.body = { error: result.message, html: result.html };
     } else if (result?.type === 'Success') {
       context.response.body = {
-        [result.format === 'text' ? 'success' : 'html']: result.message,
+        success: result.message,
+        html: result.html,
         refresh: { relationships: [...result.invalidated] },
       };
     } else if (result?.type === 'Webhook') {

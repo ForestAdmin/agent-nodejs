@@ -7,7 +7,12 @@ describe('ResultBuilder', () => {
     expect(builder.success('Great!')).toEqual({
       type: 'Success',
       message: 'Great!',
-      format: 'text',
+      invalidated: new Set(),
+    });
+    expect(builder.success('Great!', { html: '<div>That worked!</div>' })).toEqual({
+      type: 'Success',
+      message: 'Great!',
+      html: '<div>That worked !</div>',
       invalidated: new Set(),
     });
   });
@@ -18,7 +23,7 @@ describe('ResultBuilder', () => {
       message: 'booo',
     });
 
-    expect(builder.error('booo', '<div>html content</div>')).toEqual({
+    expect(builder.error('booo', { html: '<div>html content</div>' })).toEqual({
       type: 'Error',
       message: 'booo',
       html: '<div>html content</div>',
