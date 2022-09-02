@@ -39,7 +39,7 @@ export type ActionFieldType =
 export type SuccessResult = {
   type: 'Success';
   message: string;
-  format: 'html' | 'text';
+  html: string;
   invalidated: Set<string>;
 };
 
