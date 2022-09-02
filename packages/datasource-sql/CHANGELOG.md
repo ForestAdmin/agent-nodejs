@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.0.0-beta.43](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.42...@forestadmin/datasource-sql@1.0.0-beta.43) (2022-09-02)
+
+
+### Bug Fixes
+
+* **datasource-sql:** skip models which do not have primary keys ([#393](https://github.com/ForestAdmin/agent-nodejs/issues/393)) ([820fbe9](https://github.com/ForestAdmin/agent-nodejs/commit/820fbe9087ec9977fc998363016ce1728438c8f2))
+
 # @forestadmin/datasource-sql [1.0.0-beta.42](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.41...@forestadmin/datasource-sql@1.0.0-beta.42) (2022-08-23)
 
 
