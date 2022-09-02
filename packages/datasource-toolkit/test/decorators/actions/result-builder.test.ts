@@ -12,7 +12,7 @@ describe('ResultBuilder', () => {
     expect(builder.success('Great!', { html: '<div>That worked!</div>' })).toEqual({
       type: 'Success',
       message: 'Great!',
-      html: '<div>That worked !</div>',
+      html: '<div>That worked!</div>',
       invalidated: new Set(),
     });
   });
