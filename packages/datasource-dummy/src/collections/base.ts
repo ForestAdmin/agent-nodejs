@@ -107,7 +107,6 @@ export default class BaseDummyCollection extends BaseCollection {
     return {
       type: 'Success',
       message: 'Record set as active',
-      format: 'text',
       invalidated: new Set(),
     };
   }
