@@ -80,13 +80,6 @@ export default class OptionsValidator {
   }
 
   private static checkAuthOptions(options: AgentOptions): void {
-    if (!OptionsValidator.isUrl(options.agentUrl)) {
-      throw new Error(
-        'options.agentUrl is invalid. It should contain an url where your agent is reachable ' +
-          '(i.e. "https://api-forestadmin.mycompany.com")',
-      );
-    }
-
     if (typeof options.authSecret !== 'string') {
       throw new Error(
         'options.authSecret is invalid. Any long random string should work ' +
