@@ -18,7 +18,7 @@ export default class ResultBuilder {
       type: 'Success',
       message: message ?? 'Success',
       invalidated: new Set(options?.invalidated ?? []),
-      html: options.html,
+      html: options?.html,
     };
   }
 
@@ -27,13 +27,13 @@ export default class ResultBuilder {
    * @param message the error message to return
    * @param options available options to return
    * @example
-   * .error('Failed to refund the customer!', { html: '<strong>Error!</strong>'});
+   * .error('Failed to refund the customer!', { html: '<strong>Error!</strong>' });
    */
   error(message?: string, options?: { html: string; }): ActionResult {
     return {
       type: 'Error',
       message: message ?? 'Error',
-      html: options.html,
+      html: options?.html,
     };
   }
 
