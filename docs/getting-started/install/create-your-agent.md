@@ -133,10 +133,10 @@ This is done so that customers using reverse proxies can implement their routing
 
 | Desired Local URLs                        | Desired Public URLs                          | How to configure your agent                                                   |
 | ----------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------- |
-| http://localhost:3000/forest              | https://api.company.com/forest               | prefix = ''<br>agentUrl = 'https://api.company.com'                           |
-| http://localhost:3000/forest              | https://www.company.com/api/forest           | prefix = ''<br>agentUrl = 'https://www.company.com/api'                       |
-| http://localhost:3000/prefix/forest       | https://api.company.com/prefix/forest        | prefix = 'prefix'<br>agentUrl = 'https://api.company.com/prefix'              |
-| http://localhost:3000/local-prefix/forest | https://api.company.com/public-prefix/forest | prefix = 'local-prefix'<br>agentUrl = 'https://api.company.com/public-prefix' |
+| http://localhost:3000/forest              | https://api.company.com/forest               | prefix = ''<br>endpoint = 'https://api.company.com'                           |
+| http://localhost:3000/forest              | https://www.company.com/api/forest           | prefix = ''<br>endpoint = 'https://www.company.com/api'                       |
+| http://localhost:3000/prefix/forest       | https://api.company.com/prefix/forest        | prefix = 'prefix'<br>endpoint = 'https://api.company.com/prefix'              |
+| http://localhost:3000/local-prefix/forest | https://api.company.com/public-prefix/forest | prefix = 'local-prefix'<br>endpoint = 'https://api.company.com/public-prefix' |
 
 ```javascript
 createAgent({
