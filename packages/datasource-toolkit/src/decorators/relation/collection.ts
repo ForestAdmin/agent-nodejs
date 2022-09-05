@@ -213,7 +213,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
       const records = await relation.list(
         caller,
         new Filter({ conditionTree: leaf.unnest() }),
-        new Projection().withPks(this),
+        new Projection(schema.foreignKeyTarget),
       );
 
       result = new ConditionTreeLeaf(schema.foreignKey, 'In', [
