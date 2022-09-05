@@ -127,21 +127,22 @@ createAgent({
 This variable adds a prefix to the url at which **routes are locally mounted** on your application.
 It is mostly used for customers which wish to mount multiple agent instances on the same Node.js process (for setups using multiple forest admin projects).
 
-Note that this variable has **no influence** on the base URL that will be used by your users to reach the agent.
+Note that this variable has **no influence** on the base URL that will be used by your users to reach the agent: it is determined only by the **application URL** provided during onboarding and deployment.
+
+![Application URL during onboarding](../../assets/onboarding-application-url.png)
 
 This is done so that customers using reverse proxies can implement their routing table as they see fit.
 
-| Desired Local URLs                        | Desired Public URLs                          | How to configure your agent                                                   |
-| ----------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------- |
-| http://localhost:3000/forest              | https://api.company.com/forest               | prefix = ''<br>endpoint = 'https://api.company.com'                           |
-| http://localhost:3000/forest              | https://www.company.com/api/forest           | prefix = ''<br>endpoint = 'https://www.company.com/api'                       |
-| http://localhost:3000/prefix/forest       | https://api.company.com/prefix/forest        | prefix = 'prefix'<br>endpoint = 'https://api.company.com/prefix'              |
-| http://localhost:3000/local-prefix/forest | https://api.company.com/public-prefix/forest | prefix = 'local-prefix'<br>endpoint = 'https://api.company.com/public-prefix' |
+| Desired Local URLs                        | Desired Public URLs                          | How to configure your agent                                                                  |
+| ----------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| http://localhost:3000/forest              | https://api.company.com/forest               | options.prefix = ''<br>application URL = 'https://api.company.com'                           |
+| http://localhost:3000/forest              | https://www.company.com/api/forest           | options.prefix = ''<br>application URL = 'https://www.company.com/api'                       |
+| http://localhost:3000/prefix/forest       | https://api.company.com/prefix/forest        | options.prefix = 'prefix'<br>application URL = 'https://api.company.com/prefix'              |
+| http://localhost:3000/local-prefix/forest | https://api.company.com/public-prefix/forest | options.prefix = 'local-prefix'<br>application URL = 'https://api.company.com/public-prefix' |
 
 ```javascript
 createAgent({
   // ...
-  agentUrl: 'https://www.company.com/api',
   prefix: 'api',
 });
 ```
