@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.28...@forestadmin/datasource-toolkit@1.0.0-beta.29) (2022-09-05)
+
+
+### Bug Fixes
+
+* **relation:** use correct column when emulating filter on emulated many to one ([#405](https://github.com/ForestAdmin/agent-nodejs/issues/405)) ([7c9b8e3](https://github.com/ForestAdmin/agent-nodejs/commit/7c9b8e3bd0427db690c539047ee14b2685a085ac))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.27...@forestadmin/datasource-toolkit@1.0.0-beta.28) (2022-09-05)
 
 
