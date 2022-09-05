@@ -3,7 +3,6 @@ const { createAgent } = require('@forestadmin/agent');
 
 const agent = createAgent({
   // Mandatory options (those will be provided during onboarding)
-  agentUrl: process.env.FOREST_AGENT_URL,
   authSecret: process.env.FOREST_AUTH_SECRET,
   envSecret: process.env.FOREST_ENV_SECRET,
   isProduction: process.env.NODE_ENV === 'production',
@@ -26,14 +25,6 @@ const agent = createAgent({
 All mandatory variables are provided as environment variables during onboarding.
 
 Your agent cannot be started without them, and no default values are provided.
-
-### `agentUrl` (string, no default)
-
-This variable contains the url at which your agent is reachable by your users.
-
-You will need to provide it to us during onboarding, and it will be passed-on to your agent as an environment variable. Both values must match.
-
-To better understand how it is used, check the [prefix variable](#mountprefix-string-default-to-empty-string)
 
 ### `authSecret` (string, no default)
 
