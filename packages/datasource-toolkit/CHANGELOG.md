@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.27...@forestadmin/datasource-toolkit@1.0.0-beta.28) (2022-09-05)
+
+
+### Features
+
+* allow using case sensitive contains on search ([#402](https://github.com/ForestAdmin/agent-nodejs/issues/402)) ([9806c0e](https://github.com/ForestAdmin/agent-nodejs/commit/9806c0ecc1d91e291e24c2ac5517ed8dbba83d77))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.26...@forestadmin/datasource-toolkit@1.0.0-beta.27) (2022-08-23)
 
 
