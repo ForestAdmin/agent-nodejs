@@ -22,7 +22,15 @@ export default class FrontendValidationUtils {
       .map(p => {
         const type = FrontendValidationUtils.operatorValidationTypeMap[p.operator];
 
-        return type ? { type, value: p.value, message: null } : null;
+        return type
+          ? {
+              type,
+              value: p.value,
+              message: `Failed validation rule: ${
+                p.value !== undefined ? `${p.operator}(${p.value})` : `'${p.operator}'`
+              }`,
+            }
+          : null;
       })
       .filter(Boolean);
   }

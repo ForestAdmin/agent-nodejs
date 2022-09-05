@@ -329,7 +329,7 @@ export default class CollectionBuilder<
     return this;
   }
 
-  addValidation(name: TColumnName<S, N>, operator: Operator, value?: unknown): this {
+  addFieldValidation(name: TColumnName<S, N>, operator: Operator, value?: unknown): this {
     this.stack.validation.getCollection(this.name).addValidation(name, { operator, value });
 
     return this;
