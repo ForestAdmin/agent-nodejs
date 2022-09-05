@@ -185,6 +185,34 @@ describe('SearchCollectionDecorator', () => {
         });
       });
 
+      describe('when searching on a string that only supports Equal', () => {
+        test('should return filter with "equal" condition', async () => {
+          const collection = factories.collection.build({
+            schema: factories.collectionSchema.unsearchable().build({
+              fields: {
+                fieldName: factories.columnSchema.build({
+                  columnType: 'String',
+                  filterOperators: new Set(['Equal']),
+                }),
+              },
+            }),
+          });
+
+          const filter = factories.filter.build({ search: 'a text' });
+
+          const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
+
+          const refinedFilter = await searchCollectionDecorator.refineFilter(
+            factories.caller.build(),
+            filter,
+          );
+          expect(refinedFilter).toEqual({
+            search: null,
+            conditionTree: { field: 'fieldName', operator: 'Equal', value: 'a text' },
+          });
+        });
+      });
+
       describe('search is a case insensitive string and both operators are supported', () => {
         test('should return filter with "contains" condition and "or" aggregator', async () => {
           const collection = factories.collection.build({
