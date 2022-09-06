@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { ModelStatic, Sequelize } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
 import { Relation } from './types';
 import { Table } from '../introspection/types';
@@ -27,22 +27,17 @@ export default class RelationBuilder {
       const as = relationNames[index];
 
       try {
-        const sourceModel = sequelize.model(relation.from);
-        const targetModel = sequelize.model(relation.to);
-
-        this.defineRelation(sourceModel, targetModel, relation, as);
+        this.defineRelation(sequelize, relation, as);
       } catch (e) {
         logger?.('Warn', `Skipping relation "${table.name}.${as}" because of error: ${e.message}`);
       }
     }
   }
 
-  private static defineRelation(
-    sourceModel: ModelStatic<any>,
-    targetModel: ModelStatic<any>,
-    relation: Relation,
-    as: string,
-  ): void {
+  private static defineRelation(sequelize: Sequelize, relation: Relation, as: string): void {
+    const sourceModel = sequelize.model(relation.from);
+    const targetModel = sequelize.model(relation.to);
+
     if (relation.type === 'BelongsTo') {
       sourceModel.belongsTo(targetModel, {
         as,

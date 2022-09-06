@@ -77,7 +77,7 @@ export default class Introspector {
 
       // Workaround autoincrement flag not being properly set when using postgres
       const autoIncrement = Boolean(
-        description.autoIncrement || description.defaultValue?.match(/^nextval\(.+\)$/),
+        description.autoIncrement || description.defaultValue?.match?.(/^nextval\(.+\)$/),
       );
 
       return {

@@ -19,7 +19,8 @@ export default class ModelBuilder {
         !(hasTimestamps && (column.name === 'updatedAt' || column.name === 'createdAt')) &&
         !(isParanoid && column.name === 'deletedAt');
 
-      if (isExplicit) model[column.name] = column;
+      // Clone object, because sequelize modifies it.
+      if (isExplicit) model[column.name] = { ...column };
     }
 
     try {
