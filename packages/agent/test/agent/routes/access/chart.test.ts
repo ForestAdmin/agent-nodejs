@@ -80,8 +80,8 @@ describe('ChartRoute', () => {
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
         requestBody: { type: 'ChartTypeThatDoNotExist' },
+        state: { user: { permission_level: 'admin' } },
       });
-
       await expect(chart.handleChart(context)).rejects.toThrow(
         new ValidationError('Invalid Chart type "ChartTypeThatDoNotExist"'),
       );
@@ -132,6 +132,7 @@ describe('ChartRoute', () => {
               filters: JSON.stringify({ field: 'publishedAt', operator: 'Today', value: null }),
             },
             customProperties: { query: { timezone: 'Europe/Paris' } },
+            state: { user: { permission_level: 'user' } },
           });
 
           await chart.handleChart(context);
@@ -165,6 +166,7 @@ describe('ChartRoute', () => {
                 }),
               },
               customProperties: { query: { timezone: 'Europe/Paris' } },
+              state: { user: { permission_level: 'user' } },
             });
 
             await chart.handleChart(context);
@@ -232,6 +234,7 @@ describe('ChartRoute', () => {
         const context = createMockContext({
           requestBody: { type: 'Value', aggregate: 'Count', collection: 'books' },
           customProperties: { query: { timezone: 'Europe/Paris' } },
+          state: { user: { permission_level: 'user' } },
         });
 
         await chart.handleChart(context);
@@ -519,6 +522,7 @@ describe('ChartRoute', () => {
               limit: 2,
             },
             customProperties: { query: { timezone: 'Europe/Paris' } },
+            state: { user: { permission_level: 'user' } },
           });
 
           await expect(chart.handleChart(context)).rejects.toThrowError(

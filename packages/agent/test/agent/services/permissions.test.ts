@@ -130,6 +130,37 @@ describe('Permissions', () => {
       expect(context.throw).toHaveBeenCalled();
       expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(2);
     });
+
+    test('should throw on forbidden chart using permissionLevel (for user)', async () => {
+      const context = createMockContext({
+        state: { user: { renderingId: 1, id: 1, permissionLevel: 'user' } },
+        requestBody: {
+          type: 'Pie',
+          aggregate: 'Count',
+          collection: 'books',
+          group_by_field: 'title',
+        },
+      });
+
+      await service.canChart(context);
+      expect(context.throw).toHaveBeenCalled();
+      expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(2);
+    });
+    test('should allow chart using permissionLevel (for admin)', async () => {
+      const context = createMockContext({
+        state: { user: { renderingId: 1, id: 1, permissionLevel: 'admin' } },
+        requestBody: {
+          type: 'Pie',
+          aggregate: 'Count',
+          collection: 'books',
+          group_by_field: 'title',
+        },
+      });
+
+      await expect(service.canChart(context)).resolves.not.toThrow();
+
+      expect(ForestHttpApi.getPermissions).toHaveBeenCalledTimes(0);
+    });
   });
 
   describe('with scopes activated', () => {

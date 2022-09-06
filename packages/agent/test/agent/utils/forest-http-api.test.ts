@@ -126,6 +126,7 @@ describe('ForestHttpApi', () => {
       teams: ['Operations'],
       role: 'developer',
       tags: [{ key: 'tag1', value: 'value1' }],
+      permission_level: 'developer',
     };
     const body = { body: { data: { id: '1', attributes: user } } };
 
@@ -159,6 +160,7 @@ describe('ForestHttpApi', () => {
         role: user.role,
         tags: { tag1: 'value1' },
         renderingId: 1,
+        permissionLevel: 'developer',
       });
     });
   });
