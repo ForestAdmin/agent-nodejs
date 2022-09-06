@@ -1,7 +1,7 @@
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 import { ValidationError } from '../errors';
-import { ValidationTypes, ValidationTypesArray } from './types';
+import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 import TypeGetter from './type-getter';
 
 export default class FieldValidator {
@@ -64,12 +64,13 @@ export default class FieldValidator {
     }
 
     if (allowedTypes) {
-      if (!allowedTypes.includes(type)) {
+      if (allowedTypes && !allowedTypes.includes(type)) {
         throw new ValidationError(`Wrong type for "${field}": ${value}. Expects [${allowedTypes}]`);
       }
-    } else if (type !== schema.columnType) {
+    } else if (type !== schema.columnType && type !== ValidationPrimaryTypes.Null) {
       throw new ValidationError(
-        `Wrong type for "${field}": ${value}. Expects ${schema.columnType}`,
+        `Wrong type for "${field}": ${value}.` +
+          ` Expects ${schema.columnType} or ${ValidationPrimaryTypes.Null}`,
       );
     }
   }
