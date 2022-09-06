@@ -20,6 +20,16 @@ describe('FieldValidator', () => {
       expect(() => FieldValidator.validate(carsCollection, 'id')).not.toThrow();
     });
 
+    test('should not throw if the given value is null', () => {
+      expect(() => FieldValidator.validate(carsCollection, 'id', [null])).not.toThrow();
+    });
+
+    test('should not throw if the given value is allowed', () => {
+      expect(() =>
+        FieldValidator.validate(carsCollection, 'id', ['11111111-772d-48a8-871e-114a64251189']),
+      ).not.toThrow();
+    });
+
     test('should throw if the field does not exists', () => {
       expect(() => FieldValidator.validate(carsCollection, '__not_defined')).toThrow(
         "Column not found: 'cars.__not_defined'",
@@ -90,23 +100,11 @@ describe('FieldValidator', () => {
             }),
             'not a boolean',
           ),
-        ).toThrow('Wrong type for "boolean": not a boolean. Expects Boolean or Null');
+        ).toThrow('Wrong type for "boolean": not a boolean. Expects Boolean');
       });
     });
 
     describe('on field of type string', () => {
-      test('null value type should not throw error', () => {
-        expect(() =>
-          FieldValidator.validateValue(
-            'string',
-            factories.columnSchema.build({
-              columnType: 'String',
-            }),
-            null,
-          ),
-        ).not.toThrow();
-      });
-
       test('valid value type should not throw error', () => {
         expect(() =>
           FieldValidator.validateValue(
@@ -128,7 +126,7 @@ describe('FieldValidator', () => {
             }),
             1,
           ),
-        ).toThrow('Wrong type for "string": 1. Expects String or Null');
+        ).toThrow('Wrong type for "string": 1. Expects String');
       });
     });
 
@@ -154,7 +152,7 @@ describe('FieldValidator', () => {
             }),
             '1',
           ),
-        ).toThrow('Wrong type for "number": 1. Expects Number or Null');
+        ).toThrow('Wrong type for "number": 1. Expects Number');
       });
     });
 
@@ -192,7 +190,7 @@ describe('FieldValidator', () => {
             }),
             'definitely-not-a-date',
           ),
-        ).toThrow('Wrong type for "date": definitely-not-a-date. Expects Date or Null');
+        ).toThrow('Wrong type for "date": definitely-not-a-date. Expects Date');
       });
     });
 
@@ -258,7 +256,7 @@ describe('FieldValidator', () => {
             }),
             '{not:"a:" valid json',
           ),
-        ).toThrow('Wrong type for "json": {not:"a:" valid json. Expects Json or Null');
+        ).toThrow('Wrong type for "json": {not:"a:" valid json. Expects Json');
       });
     });
 
@@ -296,7 +294,7 @@ describe('FieldValidator', () => {
             }),
             'not-a-valid-uuid',
           ),
-        ).toThrow('Wrong type for "uuid": not-a-valid-uuid. Expects Uuid or Null');
+        ).toThrow('Wrong type for "uuid": not-a-valid-uuid. Expects Uuid');
       });
     });
 
@@ -322,7 +320,7 @@ describe('FieldValidator', () => {
             }),
             'd,a',
           ),
-        ).toThrow('Wrong type for "point": d,a. Expects Point or Null');
+        ).toThrow('Wrong type for "point": d,a. Expects Point');
       });
     });
   });

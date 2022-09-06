@@ -269,7 +269,7 @@ describe('ConditionTreeValidation', () => {
         });
 
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-          'Wrong type for "target": 1,2,3. Expects [String,ArrayOfString,Null]',
+          'Wrong type for "target": 1,2,3. Expects String,ArrayOfString,Null',
         );
       });
     });
@@ -427,7 +427,7 @@ describe('ConditionTreeValidation', () => {
           });
 
           expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-            'Wrong type for "pointField": -80, 20, 90. Expects [Point,Null]',
+            'Wrong type for "pointField": -80, 20, 90. Expects Point,Null',
           );
         });
       });
