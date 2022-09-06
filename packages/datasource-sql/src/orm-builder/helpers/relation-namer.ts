@@ -34,8 +34,12 @@ export default class RelationNamer {
   private static getSimpleName(relation: Relation): string {
     const { foreignKey } = relation;
     let name = relation.to;
-    if (foreignKey?.endsWith('_id')) name = foreignKey.substring(0, foreignKey.length - 3);
-    if (foreignKey?.endsWith('Id')) name = foreignKey.substring(0, foreignKey.length - 2);
+
+    if (foreignKey?.length > 3 && foreignKey?.endsWith('_id'))
+      name = foreignKey.substring(0, foreignKey.length - 3);
+
+    if (foreignKey?.length > 2 && foreignKey?.endsWith('Id'))
+      name = foreignKey.substring(0, foreignKey.length - 2);
 
     return relation.type === 'HasMany' || relation.type === 'BelongsToMany'
       ? plural(name)
