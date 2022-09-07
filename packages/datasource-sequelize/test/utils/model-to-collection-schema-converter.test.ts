@@ -239,8 +239,16 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         it('should build correct schema', () => {
           const { sequelize } = setup();
 
-          const model = sequelize.define('__model__', {}, { timestamps: false });
-          const model2 = sequelize.define('__model2__', {}, { timestamps: false });
+          const model = sequelize.define(
+            '__model__',
+            { modelId: { primaryKey: true, type: DataTypes.INTEGER, autoIncrement: true } },
+            { timestamps: false },
+          );
+          const model2 = sequelize.define(
+            '__model2__',
+            { modelId2: { primaryKey: true, type: DataTypes.INTEGER, autoIncrement: true } },
+            { timestamps: false },
+          );
           model.belongsToMany(model2, { through: 'ss' });
           model2.belongsToMany(model, { through: 'ss' });
 
@@ -250,14 +258,14 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             fields: {
               __model2__s: {
                 foreignCollection: '__model2__',
-                foreignKey: 'Model2Id',
-                originKey: 'ModelId',
+                foreignKey: 'Model2ModelId2',
+                foreignKeyTarget: 'modelId2',
+                originKey: 'ModelModelId',
+                originKeyTarget: 'modelId',
                 throughCollection: 'ss',
-                originKeyTarget: 'id',
-                foreignKeyTarget: 'id',
                 type: 'ManyToMany',
               },
-              id: {
+              modelId: {
                 columnType: 'Number',
                 filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,
