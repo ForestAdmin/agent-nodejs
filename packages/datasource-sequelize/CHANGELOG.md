@@ -1,3 +1,13 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.40](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.39...@forestadmin/datasource-sequelize@1.0.0-beta.40) (2022-09-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.30
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.39](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.38...@forestadmin/datasource-sequelize@1.0.0-beta.39) (2022-09-07)
 
 
