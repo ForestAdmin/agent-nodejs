@@ -1,3 +1,19 @@
+# example [1.0.0-beta.69](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.68...example@1.0.0-beta.69) (2022-09-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.52
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.31
+* **@forestadmin/datasource-live:** upgraded to 1.0.0-beta.41
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.40
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.47
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.30
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0-beta.18
+
 # example [1.0.0-beta.68](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.67...example@1.0.0-beta.68) (2022-09-07)
 
 
