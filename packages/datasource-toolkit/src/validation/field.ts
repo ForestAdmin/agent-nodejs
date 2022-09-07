@@ -1,7 +1,7 @@
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 import { ValidationError } from '../errors';
-import { ValidationTypes, ValidationTypesArray } from './types';
+import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 import TypeGetter from './type-getter';
 
 export default class FieldValidator {
@@ -23,7 +23,12 @@ export default class FieldValidator {
       }
 
       if (values !== undefined) {
-        values.forEach(value => FieldValidator.validateValue(field, schema, value));
+        values.forEach(value =>
+          FieldValidator.validateValue(field, schema, value, [
+            schema.columnType as PrimitiveTypes,
+            ValidationPrimaryTypes.Null,
+          ]),
+        );
       }
     } else {
       const prefix = field.substring(0, dotIndex);
@@ -50,7 +55,9 @@ export default class FieldValidator {
     field: string,
     schema: ColumnSchema,
     value: unknown,
-    allowedTypes?: readonly (PrimitiveTypes | ValidationTypes)[],
+    allowedTypes: readonly (PrimitiveTypes | ValidationTypes)[] = [
+      schema.columnType as PrimitiveTypes,
+    ],
   ): void {
     // FIXME: handle complex type from ColumnType
     if (typeof schema.columnType !== 'string') {
@@ -63,18 +70,12 @@ export default class FieldValidator {
       FieldValidator.checkEnumValue(type, schema, value);
     }
 
-    if (allowedTypes) {
-      if (!allowedTypes.includes(type)) {
-        throw new ValidationError(`Wrong type for "${field}": ${value}. Expects [${allowedTypes}]`);
-      }
-    } else if (type !== schema.columnType) {
-      throw new ValidationError(
-        `Wrong type for "${field}": ${value}. Expects ${schema.columnType}`,
-      );
+    if (allowedTypes && !allowedTypes.includes(type)) {
+      throw new ValidationError(`Wrong type for "${field}": ${value}. Expects ${allowedTypes}`);
     }
   }
 
-  public static checkEnumValue(
+  private static checkEnumValue(
     type: PrimitiveTypes | ValidationTypes,
     columnSchema: ColumnSchema,
     enumValue: unknown,
