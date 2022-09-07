@@ -39,9 +39,9 @@ export default class ModelToCollectionSchemaConverter {
           foreignCollection: association.target.name,
           throughCollection: (association as BelongsToMany).through.model.name,
           originKey: (association as BelongsToMany).foreignKey,
-          originKeyTarget: (association as BelongsToMany).targetKey,
+          originKeyTarget: (association as BelongsToMany).sourceKey,
           foreignKey: (association as BelongsToMany).otherKey,
-          foreignKeyTarget: (association as BelongsToMany).sourceKey,
+          foreignKeyTarget: (association as BelongsToMany).targetKey,
           type: 'ManyToMany',
         };
       case HasMany.name:
