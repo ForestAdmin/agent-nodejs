@@ -5,6 +5,7 @@ import Agent from '../../src/builder/agent';
 import CollectionBuilder from '../../src/builder/collection';
 import DecoratorsStack from '../../src/builder/decorators-stack';
 
+const mockReadFile = jest.fn().mockResolvedValue(null);
 const mockWriteFile = jest.fn().mockResolvedValue(null);
 const mockSendSchema = jest.fn();
 const mockGetRouter = jest.fn(() =>
@@ -14,6 +15,7 @@ const mockGetRouter = jest.fn(() =>
 );
 
 jest.mock('fs/promises', () => ({
+  readFile: (...args: unknown[]) => mockReadFile(...args),
   writeFile: (...args: unknown[]) => mockWriteFile(...args),
 }));
 
@@ -26,6 +28,12 @@ jest.mock('../../src/agent/forestadmin-http-driver', () => ({
     options,
   })),
 }));
+
+beforeEach(() => {
+  // we should actually reset all mocks, but only those are used multiple times
+  mockReadFile.mockReset();
+  mockWriteFile.mockReset();
+});
 
 describe('Builder > Agent', () => {
   describe('start', () => {
@@ -40,7 +48,7 @@ describe('Builder > Agent', () => {
       expect(mockWriteFile).not.toHaveBeenCalled();
     });
 
-    it('should generate types on start', async () => {
+    it('should generate types on start when the typing file has changes', async () => {
       const options = factories.forestAdminHttpDriverOptions.build({
         isProduction: false,
         typingsPath: 'typings.d.ts',
@@ -53,7 +61,26 @@ describe('Builder > Agent', () => {
       expect(result).toBe(undefined);
       expect(mockGetRouter).toHaveBeenCalled();
       expect(mockSendSchema).toHaveBeenCalled();
+      expect(mockReadFile).toHaveBeenCalled();
       expect(mockWriteFile).toHaveBeenCalled();
+    });
+
+    it('should not generate types on start when the typing file has no changes', async () => {
+      mockReadFile.mockReturnValue('/* eslint-disable */\nexport type Schema = {\n};\n');
+
+      const options = factories.forestAdminHttpDriverOptions.build({
+        isProduction: false,
+        typingsPath: 'typings.d.ts',
+        typingsMaxDepth: 5,
+      });
+
+      const agent = new Agent(options);
+      const result = await agent.start();
+
+      expect(result).toBe(undefined);
+      expect(mockGetRouter).toHaveBeenCalled();
+      expect(mockSendSchema).toHaveBeenCalled();
+      expect(mockWriteFile).not.toHaveBeenCalled();
     });
   });
 
