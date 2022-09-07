@@ -17,11 +17,21 @@ export default class RelationNamer {
 
     // When a duplicate is found, use long names for all of them
     for (const [name, indexes] of Object.entries(indexesByName)) {
-      const conflictsWithTable = name === table.name;
+      // Legit conflicts we need to handle
       const conflictsWithColumn = !!table.columns.find(c => c.name === name);
       const conflictsWithOtherRelation = indexes.length > 1;
 
-      if (conflictsWithColumn || conflictsWithTable || conflictsWithOtherRelation) {
+      // Workaround sequelize bugs
+      // @see https://github.com/sequelize/sequelize/issues/8263
+      const conflictsWithTable = name === table.name;
+      const conflictsWithThroughTable = relations.find(r => r.through === name);
+
+      if (
+        conflictsWithColumn ||
+        conflictsWithTable ||
+        conflictsWithOtherRelation ||
+        conflictsWithThroughTable
+      ) {
         for (const index of indexes) {
           names[index] = this.getUniqueName(relations[index]);
         }
