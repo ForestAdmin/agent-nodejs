@@ -53,8 +53,10 @@ export default class RelationExtracter {
         from: column1.constraints[0].table,
         to: column2.constraints[0].table,
         through: table.name,
-        originKey: column1.constraints[0].column,
-        foreignKey: column2.constraints[0].column,
+        originKey: column1.name,
+        foreignKey: column2.name,
+        originKeyTarget: column1.constraints[0].column,
+        foreignKeyTarget: column2.constraints[0].column,
       });
 
       relations.push({
@@ -62,8 +64,10 @@ export default class RelationExtracter {
         from: column2.constraints[0].table,
         to: column1.constraints[0].table,
         through: table.name,
-        originKey: column2.constraints[0].column,
-        foreignKey: column1.constraints[0].column,
+        originKey: column2.name,
+        foreignKey: column1.name,
+        originKeyTarget: column2.constraints[0].column,
+        foreignKeyTarget: column1.constraints[0].column,
       });
     }
 

@@ -54,10 +54,10 @@ export default class RelationBuilder {
       sourceModel.belongsToMany(targetModel, {
         as,
         through: relation.through,
-        foreignKey: relation.foreignKey,
-        targetKey: relation.foreignKeyTarget,
-        otherKey: relation.originKey,
-        sourceKey: relation.originKeyTarget,
+        otherKey: relation.foreignKey,
+        foreignKey: relation.originKey,
+        targetKey: relation.originKeyTarget,
+        sourceKey: relation.foreignKeyTarget,
       });
     } else if (relation.type === 'HasOne') {
       sourceModel.hasOne(targetModel, {
