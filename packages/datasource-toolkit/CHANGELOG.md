@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.30](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.29...@forestadmin/datasource-toolkit@1.0.0-beta.30) (2022-09-07)
+
+
+### Bug Fixes
+
+* **validator:** allow null value for the field value and use strict value for the ids.  ([#407](https://github.com/ForestAdmin/agent-nodejs/issues/407)) ([9fb6194](https://github.com/ForestAdmin/agent-nodejs/commit/9fb6194d635abc5cca02fef587e96e096af1e529))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.28...@forestadmin/datasource-toolkit@1.0.0-beta.29) (2022-09-05)
 
 
