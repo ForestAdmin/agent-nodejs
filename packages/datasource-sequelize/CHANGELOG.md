@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.0.0-beta.39](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.38...@forestadmin/datasource-sequelize@1.0.0-beta.39) (2022-09-07)
+
+
+### Bug Fixes
+
+* inverted keys in sequelize belongs to many ([#409](https://github.com/ForestAdmin/agent-nodejs/issues/409)) ([4adb3a2](https://github.com/ForestAdmin/agent-nodejs/commit/4adb3a244efb0842c475fcbdf4a5f38552a6b7df))
+
 # @forestadmin/datasource-sequelize [1.0.0-beta.38](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0-beta.37...@forestadmin/datasource-sequelize@1.0.0-beta.38) (2022-09-05)
 
 
