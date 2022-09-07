@@ -33,7 +33,7 @@ export default class ModelBuilder {
       // @see https://sequelize.org/docs/v6/other-topics/legacy/#primary-keys
       // Tell sequelize NOT to invent primary keys when we don't provide them.
       // (Note that this does not seem to work)
-      if (!modelAttrs.id) {
+      if (!modelAttrs.id && model.getAttributes().id) {
         model.removeAttribute('id');
       }
     } catch (e) {
