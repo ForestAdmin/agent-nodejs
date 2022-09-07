@@ -11,7 +11,6 @@ describe('OptionsValidator', () => {
     test('should add default values when they are missing', () => {
       const options = OptionsValidator.withDefaults(mandatoryOptions);
 
-      expect(options).toHaveProperty('clientId', null);
       expect(options).toHaveProperty('forestServerUrl', 'https://api.forestadmin.com');
       expect(options).toHaveProperty('logger', expect.any(Function));
       expect(options).toHaveProperty('prefix', '');
@@ -76,7 +75,6 @@ describe('OptionsValidator', () => {
   describe('OptionsValidator.validate', () => {
     const allOptions = {
       ...mandatoryOptions,
-      clientId: null as string,
       forestServerUrl: 'https://api.development.forestadmin.com',
       logger: () => {},
       loggerLevel: 'Debug',
@@ -113,20 +111,16 @@ describe('OptionsValidator', () => {
       },
     );
 
-    describe.each([
-      'authSecret',
-      'clientId',
-      'envSecret',
-      'forestServerUrl',
-      'prefix',
-      'schemaPath',
-    ])('%s', key => {
-      test('should fail with number', () => {
-        expect(() =>
-          OptionsValidator.validate({ ...allOptions, [key]: 123 as unknown as string }),
-        ).toThrow(`options.${key} is invalid.`);
-      });
-    });
+    describe.each(['authSecret', 'envSecret', 'forestServerUrl', 'prefix', 'schemaPath'])(
+      '%s',
+      key => {
+        test('should fail with number', () => {
+          expect(() =>
+            OptionsValidator.validate({ ...allOptions, [key]: 123 as unknown as string }),
+          ).toThrow(`options.${key} is invalid.`);
+        });
+      },
+    );
 
     describe.each(['envSecret', 'forestServerUrl'])('%s', key => {
       test('should fail with bad format', () => {

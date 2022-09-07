@@ -4,9 +4,6 @@ import path from 'path';
 import { AgentOptions } from '../../types';
 import { AgentOptionsWithDefaults } from '../../agent/types';
 
-const DOCUMENTATION_URL = 'https://docs.forestadmin.com/beta-developer-guide-agents-v2/';
-const RUNNING_ON_MULTIPLE_INSTANCES_PATH = 'extra-helps/running-forest-admin-on-multiple-instances';
-
 export default class OptionsValidator {
   private static loggerPrefix = {
     Debug: '\x1b[34mdebug:\x1b[0m',
@@ -34,7 +31,6 @@ export default class OptionsValidator {
     copyOptions.prefix = copyOptions.prefix || '';
 
     return {
-      clientId: null,
       loggerLevel: 'Info',
       permissionsCacheDurationInSeconds: 15 * 60,
       ...copyOptions,
@@ -85,17 +81,6 @@ export default class OptionsValidator {
         'options.authSecret is invalid. Any long random string should work ' +
           '(i.e. "OfpssLrbgF3P4vHJTTpb"',
       );
-    }
-
-    if (options.clientId === null) {
-      options.logger?.(
-        'Warn',
-        'options.clientId was not provided. Using Node.js cluster mode, ' +
-          'or multiple instances of the agent will break authentication ' +
-          `(For more information: ${DOCUMENTATION_URL}${RUNNING_ON_MULTIPLE_INSTANCES_PATH})`,
-      );
-    } else if (typeof options.clientId !== 'string') {
-      throw new Error('options.clientId is invalid.');
     }
   }
 

@@ -10,7 +10,6 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   forestServerUrl: 'https://api.development.forestadmin.com',
   isProduction: false,
   schemaPath: '/tmp/.testschema.json',
-  clientId: null,
   permissionsCacheDurationInSeconds: 15 * 60,
   logger: () => {},
   loggerLevel: 'Error',

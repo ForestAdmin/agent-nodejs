@@ -19,15 +19,14 @@ export default class Authentication extends BaseRoute {
     // We can't use 'Issuer.discover' because the oidc config is behind an auth-wall.
     const issuer = new Issuer(await ForestHttpApi.getOpenIdIssuerMetadata(this.options));
 
-    // Either instantiate or create a new oidc client.
     const registration = {
-      client_id: this.options.clientId,
       token_endpoint_auth_method: 'none' as ClientAuthMethod,
     };
 
-    this.client = registration.client_id
-      ? new issuer.Client(registration)
-      : await issuer.Client.register(registration, { initialAccessToken: this.options.envSecret });
+    // Register a new oidc client
+    this.client = await issuer.Client.register(registration, {
+      initialAccessToken: this.options.envSecret,
+    });
   }
 
   setupRoutes(router: Router): void {
