@@ -27,8 +27,7 @@
   },
   "devDependencies": {
     "fishery": "^2.1.0",
-    "sequelize": "6.21.3",
-    "sqlite3": "^5.0.2"
+    "sequelize": "6.21.3"
   },
   "peerDependencies": {
     "sequelize": ">= 6.12.0 < 7"
