@@ -7,7 +7,7 @@ import TypeConverter from '../../src/utils/type-converter';
 describe('Utils > ModelToCollectionSchemaConverter', () => {
   describe('convert', () => {
     const setup = () => {
-      const sequelize = new Sequelize('postgres://', { logging: false });
+      const sequelize = new Sequelize('sqlite::memory:', { logging: false });
 
       return {
         sequelize,

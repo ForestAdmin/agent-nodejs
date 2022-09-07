@@ -183,5 +183,60 @@ describe('Utils > DateAggregationConverter', () => {
         });
       });
     });
+
+    describe('with sqlite', () => {
+      const setup = () => {
+        const sequelize = new Sequelize({ dialect: 'sqlite' });
+
+        return new DateAggregationConverter(sequelize);
+      };
+
+      it('should throw an error for an unknown operation', () => {
+        const dateAggregationConverter = setup();
+        expect(() =>
+          dateAggregationConverter.convertToDialect('a__field', 'unknown' as DateOperation),
+        ).toThrowError('Unknown Date operation: "unknown"');
+      });
+
+      it.each([
+        ['Year', '%Y-01-01'],
+        ['Month', '%Y-%m-01'],
+        ['Day', '%Y-%m-%d'],
+      ])(
+        'should return the right aggregation function for %s operation',
+        (dateOperation, format) => {
+          const dateAggregationConverter = setup();
+          const aggregationFunction = dateAggregationConverter.convertToDialect(
+            'a__field',
+            dateOperation as DateOperation,
+          );
+
+          expect(aggregationFunction).toEqual({
+            fn: 'STRFTIME',
+            args: [
+              format,
+              {
+                col: 'a__field',
+              },
+            ],
+          });
+        },
+      );
+
+      it('should return the right aggregation function for Week operation', () => {
+        const dateAggregationConverter = setup();
+        const aggregationFunction = dateAggregationConverter.convertToDialect('a__field', 'Week');
+
+        expect(aggregationFunction).toEqual({
+          fn: 'DATE',
+          args: [
+            {
+              col: 'a__field',
+            },
+            'weekday 0',
+          ],
+        });
+      });
+    });
   });
 });

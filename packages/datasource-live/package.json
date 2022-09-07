@@ -1,6 +1,6 @@
 {
-  "name": "@forestadmin/datasource-sequelize",
-  "version": "1.0.0-beta.44",
+  "name": "@forestadmin/datasource-live",
+  "version": "1.0.0-beta.41",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -9,10 +9,13 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
-    "directory": "packages/datasource-sequelize"
+    "directory": "packages/datasource-live"
   },
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.0.0-beta.34"
+    "@forestadmin/datasource-sequelize": "1.0.0-beta.40",
+    "@forestadmin/datasource-toolkit": "1.0.0-beta.30",
+    "sqlite3": "^5.0.2",
+    "sequelize": "6.21.3"
   },
   "files": [
     "dist/**/*.js",
@@ -26,11 +29,6 @@
     "test": "jest"
   },
   "devDependencies": {
-    "fishery": "^2.1.0",
-    "sequelize": "6.21.3",
-    "sqlite3": "^5.0.2"
-  },
-  "peerDependencies": {
-    "sequelize": ">= 6.12.0 < 7"
+    "lodash": "^4.17.21"
   }
 }
