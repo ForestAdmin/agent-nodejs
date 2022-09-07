@@ -1,14 +1,11 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
-import { createLiveDataSource } from '@forestadmin/datasource-live';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 
 import { Schema } from './typings';
-import { liveDatasourceSchema, seedLiveDatasource } from './datasources/live';
 import createTypicode from './datasources/typicode';
 import customizeAccount from './customizations/account';
-import customizeAddress from './customizations/address';
 import customizeComment from './customizations/comment';
 import customizeCustomer from './customizations/customer';
 import customizeDvd from './customizations/dvd';
@@ -33,9 +30,6 @@ export default function makeAgent() {
   };
 
   return createAgent<Schema>(envOptions)
-    .addDataSource(createLiveDataSource(liveDatasourceSchema, { seeder: seedLiveDatasource }), {
-      rename: { address: 'location' },
-    })
     .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
     .addDataSource(createTypicode())
     .addDataSource(createSequelizeDataSource(sequelizePostgres))
@@ -54,7 +48,6 @@ export default function makeAgent() {
 
     .customizeCollection('account', customizeAccount)
     .customizeCollection('owner', customizeOwner)
-    .customizeCollection('location', customizeAddress)
     .customizeCollection('store', customizeStore)
     .customizeCollection('rental', customizeRental)
     .customizeCollection('dvd', customizeDvd)
