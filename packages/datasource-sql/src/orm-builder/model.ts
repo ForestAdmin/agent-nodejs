@@ -10,7 +10,7 @@ export default class ModelBuilder {
   }
 
   private static defineModel(sequelize: Sequelize, logger: Logger, table: Table): void {
-    const model: ModelAttributes = {};
+    const modelAttrs: ModelAttributes = {};
     const hasTimestamps = this.hasTimestamps(table);
     const isParanoid = this.isParanoid(table);
 
@@ -20,15 +20,22 @@ export default class ModelBuilder {
         !(isParanoid && column.name === 'deletedAt');
 
       // Clone object, because sequelize modifies it.
-      if (isExplicit) model[column.name] = { ...column };
+      if (isExplicit) modelAttrs[column.name] = { ...column };
     }
 
     try {
-      sequelize.define(table.name, model, {
+      const model = sequelize.define(table.name, modelAttrs, {
         tableName: table.name,
         timestamps: hasTimestamps,
         paranoid: isParanoid,
       });
+
+      // @see https://sequelize.org/docs/v6/other-topics/legacy/#primary-keys
+      // Tell sequelize NOT to invent primary keys when we don't provide them.
+      // (Note that this does not seem to work)
+      if (!modelAttrs.id) {
+        model.removeAttribute('id');
+      }
     } catch (e) {
       logger?.('Warn', `Skipping table "${table.name}" because of error: ${e.message}`);
     }

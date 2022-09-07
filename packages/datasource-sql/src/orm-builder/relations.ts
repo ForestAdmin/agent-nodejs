@@ -56,8 +56,8 @@ export default class RelationBuilder {
         through: relation.through,
         otherKey: relation.foreignKey,
         foreignKey: relation.originKey,
-        targetKey: relation.originKeyTarget,
-        sourceKey: relation.foreignKeyTarget,
+        targetKey: relation.foreignKeyTarget,
+        sourceKey: relation.originKeyTarget,
       });
     } else if (relation.type === 'HasOne') {
       sourceModel.hasOne(targetModel, {
