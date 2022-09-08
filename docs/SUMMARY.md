@@ -50,6 +50,7 @@
 
   - [Add fields](agent-customization/fields/computed.md)
   - [Move, rename and delete fields](agent-customization/fields/import-rename-delete.md)
+  - [Configure validation](agent-customization/fields/validation.md)
   - [Override writing behavior](agent-customization/fields/write.md)
   - [Override filtering behavior](agent-customization/fields/filter.md)
   - [Override sorting behavior](agent-customization/fields/sort.md)
