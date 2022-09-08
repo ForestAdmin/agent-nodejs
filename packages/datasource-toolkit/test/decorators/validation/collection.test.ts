@@ -19,8 +19,9 @@ describe('SortEmulationDecoratorCollection', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
-          title: factories.columnSchema.build({ isSortable: false }),
+          id: factories.columnSchema.isPrimaryKey().build({ isReadOnly: true }),
+          title: factories.columnSchema.build(),
+          subtitle: factories.columnSchema.build(),
           author: factories.manyToOneSchema.build({ foreignCollection: 'author' }),
         },
       }),
@@ -49,6 +50,12 @@ describe('SortEmulationDecoratorCollection', () => {
     );
   });
 
+  test('addValidation() should throw if the field is readonly', () => {
+    expect(() => newBooks.addValidation('id', { operator: 'Present' })).toThrow(
+      'Cannot add validators on a readonly field',
+    );
+  });
+
   test('addValidation() should throw if the field is a relation', () => {
     expect(() => newBooks.addValidation('author', { operator: 'Present' })).toThrow(
       "Unexpected field type: 'books.author' (found 'ManyToOne' expected 'Column')",
@@ -57,7 +64,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
   test('addValidation() should throw if the field is in a relation', () => {
     expect(() => newBooks.addValidation('author:firstName', { operator: 'Present' })).toThrow(
-      'Cannot addValidation on relation, use the foreign key instead',
+      'Cannot add validators on a relation, use the foreign key instead',
     );
   });
 
@@ -93,10 +100,10 @@ describe('SortEmulationDecoratorCollection', () => {
     });
 
     test('should not merge rules on different fields', () => {
-      newBooks.addValidation('id', { operator: 'GreaterThan', value: 5 });
+      newBooks.addValidation('subtitle', { operator: 'GreaterThan', value: 5 });
       newBooks.addValidation('title', { operator: 'GreaterThan', value: 3 });
 
-      expect((newBooks.schema.fields.id as ColumnSchema).validation).toStrictEqual([
+      expect((newBooks.schema.fields.subtitle as ColumnSchema).validation).toStrictEqual([
         { operator: 'GreaterThan', value: 5 },
       ]);
 
@@ -108,14 +115,14 @@ describe('SortEmulationDecoratorCollection', () => {
 
   describe('Field selection when validating', () => {
     beforeEach(() => {
-      newBooks.addValidation('id', { operator: 'GreaterThan', value: 5 });
+      newBooks.addValidation('subtitle', { operator: 'LongerThan', value: 5 });
       newBooks.addValidation('title', { operator: 'LongerThan', value: 5 });
     });
 
     test('should validate all fields when creating a record', async () => {
       const fn = () => newBooks.create(factories.caller.build(), [{ title: 'longtitle' }]);
 
-      await expect(fn).rejects.toThrow(`'id' failed validation rule: 'GreaterThan(5)'`);
+      await expect(fn).rejects.toThrow(`'subtitle' failed validation rule: 'LongerThan(5)'`);
       expect(books.create).not.toHaveBeenCalled();
     });
 
