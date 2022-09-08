@@ -104,9 +104,9 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case 'ILike':
         return this.like(fieldValue as string, this.value as string, false);
       case 'LongerThan':
-        return (fieldValue as string).length > this.value;
+        return typeof fieldValue === 'string' ? fieldValue.length > this.value : false;
       case 'ShorterThan':
-        return (fieldValue as string).length < this.value;
+        return typeof fieldValue === 'string' ? fieldValue.length < this.value : false;
       case 'IncludesAll':
         return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
 

@@ -6,6 +6,7 @@ import { ValidationError } from '../../errors';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf from '../../interfaces/query/condition-tree/nodes/leaf';
+import FieldValidator from '../../validation/field';
 import Filter from '../../interfaces/query/filter/unpaginated';
 
 type ValidationRule = ColumnSchema['validation'][number];
@@ -13,19 +14,25 @@ type ValidationRule = ColumnSchema['validation'][number];
 export default class ValidationDecorator extends CollectionDecorator {
   private validation: Record<string, ColumnSchema['validation']> = {};
 
-  addValidation(field: string, validation: ValidationRule): void {
-    this.validation[field] ??= [];
-    this.validation[field].push(validation);
+  addValidation(name: string, validation: ValidationRule): void {
+    FieldValidator.validate(this, name);
+
+    if (!this.childCollection.schema.fields[name]) {
+      throw new Error('Cannot addValidation on relation, use the foreign key instead');
+    }
+
+    this.validation[name] ??= [];
+    this.validation[name].push(validation);
     this.markSchemaAsDirty();
   }
 
-  override create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
+  override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     for (const record of data) this.validate(record, caller.timezone, true);
 
     return super.create(caller, data);
   }
 
-  override update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+  override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     this.validate(patch, caller.timezone, true);
 
     return super.update(caller, filter, patch);
