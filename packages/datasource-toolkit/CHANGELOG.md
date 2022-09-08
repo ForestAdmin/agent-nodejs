@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.31](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.30...@forestadmin/datasource-toolkit@1.0.0-beta.31) (2022-09-08)
+
+
+### Features
+
+* allow configuring field validators during agent customization ([#365](https://github.com/ForestAdmin/agent-nodejs/issues/365)) ([8bc6fb3](https://github.com/ForestAdmin/agent-nodejs/commit/8bc6fb379891eb81cbfaddf6bffd89bb02f478ed))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.30](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.29...@forestadmin/datasource-toolkit@1.0.0-beta.30) (2022-09-07)
 
 
