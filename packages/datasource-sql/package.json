@@ -14,6 +14,7 @@
   "dependencies": {
     "@forestadmin/datasource-sequelize": "1.0.0-beta.40",
     "@forestadmin/datasource-toolkit": "1.0.0-beta.30",
+    "pluralize": "^8.0.0",
     "sequelize": "6.21.3"
   },
   "files": [
