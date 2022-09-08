@@ -4,8 +4,8 @@ import { Sequelize } from 'sequelize';
 
 import { Relation } from './types';
 import { Table } from '../introspection/types';
-import RelationExtracter from './helpers/relation-extractor';
-import RelationNamer from './helpers/relation-namer';
+import RelationExtractor from './helpers/relation-extractor';
+import RelationNameGenerator from './helpers/relation-name-generator';
 
 export default class RelationBuilder {
   static defineRelations(sequelize: Sequelize, logger: Logger, tables: Table[]): void {
@@ -20,8 +20,8 @@ export default class RelationBuilder {
     table: Table,
     tables: Table[],
   ): void {
-    const relations = RelationExtracter.listRelations(table.name, tables);
-    const relationNames = RelationNamer.getUniqueRelationNames(table, relations);
+    const relations = RelationExtractor.listRelations(table.name, tables);
+    const relationNames = RelationNameGenerator.getUniqueRelationNames(table, relations);
 
     for (const [index, relation] of relations.entries()) {
       const as = relationNames[index];

@@ -3,7 +3,7 @@ import { plural, singular } from 'pluralize';
 import { Relation } from '../types';
 import { Table } from '../../introspection/types';
 
-export default class RelationNamer {
+export default class RelationNameGenerator {
   static getUniqueRelationNames(table: Table, relations: Relation[]): string[] {
     const names = relations.map(this.getSimpleName);
 

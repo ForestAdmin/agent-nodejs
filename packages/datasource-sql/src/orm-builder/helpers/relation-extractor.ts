@@ -1,7 +1,7 @@
 import { Relation } from '../types';
 import { Table } from '../../introspection/types';
 
-export default class RelationExtracter {
+export default class RelationExtractor {
   static listRelations(tableName: string, tables: Table[]): Relation[] {
     const relations: Relation[] = [];
 
@@ -45,7 +45,7 @@ export default class RelationExtracter {
     const relations: Relation[] = [];
     const columns = table.columns.filter(c => c.primaryKey && c.constraints.length === 1);
 
-    if (columns.length === 2) {
+    if (this.isJunctionTable(table)) {
       const [column1, column2] = columns;
 
       relations.push({
