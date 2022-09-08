@@ -43,7 +43,7 @@ export default class ValidationDecorator extends CollectionDecorator {
 
     for (const [name, rules] of Object.entries(this.validation)) {
       const field = { ...schema.fields[name] } as ColumnSchema;
-      field.validation = this.deduplicate([...(field.validation ?? []), ...rules]);
+      field.validation = ValidationDecorator.deduplicate([...(field.validation ?? []), ...rules]);
       schema.fields[name] = field;
     }
 
@@ -79,7 +79,7 @@ export default class ValidationDecorator extends CollectionDecorator {
    * Deduplicate rules which the frontend understand
    * We ignore other rules as duplications are not an issue within the agent
    */
-  private deduplicate(rules: ValidationRule[]): ValidationRule[] {
+  private static deduplicate(rules: ValidationRule[]): ValidationRule[] {
     const values: Partial<Record<Operator, ValidationRule[]>> = {};
 
     for (const rule of rules) {
@@ -97,7 +97,7 @@ export default class ValidationDecorator extends CollectionDecorator {
 
         values[operator][0] = {
           operator,
-          value: this.max(last.value, values[operator][0].value),
+          value: ValidationDecorator.max(last.value, values[operator][0].value),
         };
       }
     }
@@ -109,7 +109,7 @@ export default class ValidationDecorator extends CollectionDecorator {
 
         values[operator][0] = {
           operator,
-          value: this.min(last.value, values[operator][0].value),
+          value: ValidationDecorator.min(last.value, values[operator][0].value),
         };
       }
     }
@@ -117,11 +117,11 @@ export default class ValidationDecorator extends CollectionDecorator {
     return Object.values(values).reduce((memo, r) => [...memo, ...r], []);
   }
 
-  private min(valueA: unknown, valueB: unknown): unknown {
+  private static min(valueA: unknown, valueB: unknown): unknown {
     return valueA < valueB ? valueA : valueB;
   }
 
-  private max(valueA: unknown, valueB: unknown): unknown {
+  private static max(valueA: unknown, valueB: unknown): unknown {
     return valueA < valueB ? valueB : valueA;
   }
 }
