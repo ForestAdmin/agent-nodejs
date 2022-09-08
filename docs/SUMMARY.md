@@ -16,12 +16,12 @@
     - [On Fastify](getting-started/install/expose/using-fastify.md)
     - [On NestJS](getting-started/install/expose/using-nest.md)
   - [Autocompletion & Typings](getting-started/install/autocompletion-and-typings.md)
-  - [Troubleshooting](getting-started/install/expose/troubleshooting.md)
+  - [Troubleshooting](getting-started/install/troubleshooting.md)
 
 ## Data Sources
 
 - [Usage](datasources/README.md)
-- [Provided datasources](datasources/provided/README.md)
+- Provided datasources
   - [SQL (without ORM)](datasources/provided/sql.md)
   - [Sequelize](datasources/provided/sequelize.md)
   - [Mongoose](datasources/provided/mongoose.md)

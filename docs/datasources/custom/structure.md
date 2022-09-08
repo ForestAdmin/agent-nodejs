@@ -52,7 +52,7 @@ You can read all about it in ["Under the hood > Data Model > Typing"](../../unde
 
 When using primitive type fields, Forest Admin supports declaring a validation clause, which will be imported into the UI of the admin panel to validate records before creating / updating them.
 
-The API for validation is the same than with [condition trees](../custom/query-translation/filters.md#condition-trees), besides the fact than their is no `"field"` entry.
+The API for validation is the same than with [condition trees](../../under-the-hood/queries/filters.md#condition-trees), besides the fact than their is no `"field"` entry.
 
 ```json
 {
@@ -70,7 +70,7 @@ The API for validation is the same than with [condition trees](../custom/query-t
 {% hint style='warning' %}
 Only **intra**-datasource relationships should be declared at the collection level.
 
-For **inter**-datasource relationships, you should use [jointures at the customization step](../../agent-customization/relationships.md)
+For **inter**-datasource relationships, you should use [jointures at the customization step](../../agent-customization/relationships/README.md)
 {% endhint %}
 
 You can declare relationships at the collection level, but that means that the datasource you are making is responsible from handling them.
