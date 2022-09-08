@@ -33,7 +33,7 @@ export default class PermissionService {
     if (['admin', 'editor', 'developer'].includes(context.state.user.permissionLevel)) {
       return;
     }
-    
+
     const chart = { ...context.request.body };
 
     // When the server sends the data of the allowed charts, the target column is not specified
