@@ -218,7 +218,8 @@ describe('ConditionTreeValidation', () => {
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
           "The given operator 'Contains' is not allowed with the columnType schema: 'Number'.\n" +
             'The allowed types are: ' +
-            '[Blank,Equal,Missing,NotEqual,Present,In,NotIn,IncludesAll,GreaterThan,LessThan]',
+            '[Blank,Equal,Missing,NotEqual,Present,In' +
+            ',NotIn,IncludesAll,GreaterThan,LessThan,ShorterThan,LongerThan]',
         );
       });
     });
@@ -271,6 +272,48 @@ describe('ConditionTreeValidation', () => {
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
           'Wrong type for "target": 1,2,3. Expects String,ArrayOfString,Null',
         );
+      });
+    });
+
+    describe('when the field is a string', () => {
+      it('should not throw an error when it using the shorter than operator', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: 'ShorterThan',
+          value: 10,
+          field: 'aStringField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              aStringField: factories.columnSchema.build({
+                columnType: 'String',
+                filterOperators: new Set(['ShorterThan']),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+      });
+
+      it('should not throw an error when it using the longer than operator', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: 'LongerThan',
+          value: 10,
+          field: 'aStringField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              aStringField: factories.columnSchema.build({
+                columnType: 'String',
+                filterOperators: new Set(['LongerThan']),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
       });
     });
 
