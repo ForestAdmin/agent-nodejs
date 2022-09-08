@@ -24,6 +24,11 @@ collection
     return { firstName, lastName };
   })
 
+  // Add validators
+  .addFieldValidation('fullName', 'Present')
+  .addFieldValidation('fullName', 'ShorterThan', 30)
+  .addFieldValidation('fullName', 'LongerThan', 2)
+
   // Make it filterable and sortable
   .emulateFieldFiltering('fullName')
   .emulateFieldSorting('fullName')

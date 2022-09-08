@@ -17,7 +17,7 @@ The list of operators (`Present`, `LongerThan`, ...) which can be used when addi
 
 ```javascript
 collection
-  .addValidation('firstName', 'Present')
-  .addValidation('firstName', 'LongerThan', 2)
-  .addValidation('firstName', 'ShorterThan', 13);
+  .addFieldValidation('firstName', 'Present')
+  .addFieldValidation('firstName', 'LongerThan', 2)
+  .addFieldValidation('firstName', 'ShorterThan', 13);
 ```
