@@ -21,4 +21,4 @@ collection
 
 ## Custom validators
 
-If you need to implement custom validator, or validation over multiple fields you may use [change hooks](../hooks/README.md).
+If you need to implement custom validators, or validation over multiple fields you may use [change hooks](../hooks/README.md).
