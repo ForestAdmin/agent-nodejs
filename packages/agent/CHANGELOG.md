@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.54](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.53...@forestadmin/agent@1.0.0-beta.54) (2022-09-08)
+
+
+### Bug Fixes
+
+* allow dev admin editors to see the chart they just created ([#413](https://github.com/ForestAdmin/agent-nodejs/issues/413)) ([5e1cd85](https://github.com/ForestAdmin/agent-nodejs/commit/5e1cd850387e6eb9846b0bbc393f4c0ffc8deb82))
+
 # @forestadmin/agent [1.0.0-beta.53](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.52...@forestadmin/agent@1.0.0-beta.53) (2022-09-08)
 
 
