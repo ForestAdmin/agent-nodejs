@@ -275,48 +275,6 @@ describe('ConditionTreeValidation', () => {
       });
     });
 
-    describe('when the field is a string', () => {
-      it('should not throw an error when it using the shorter than operator', () => {
-        const conditionTree = factories.conditionTreeLeaf.build({
-          operator: 'ShorterThan',
-          value: 10,
-          field: 'aStringField',
-        });
-        const collection = factories.collection.build({
-          schema: factories.collectionSchema.build({
-            fields: {
-              aStringField: factories.columnSchema.build({
-                columnType: 'String',
-                filterOperators: new Set(['ShorterThan']),
-              }),
-            },
-          }),
-        });
-
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
-      });
-
-      it('should not throw an error when it using the longer than operator', () => {
-        const conditionTree = factories.conditionTreeLeaf.build({
-          operator: 'LongerThan',
-          value: 10,
-          field: 'aStringField',
-        });
-        const collection = factories.collection.build({
-          schema: factories.collectionSchema.build({
-            fields: {
-              aStringField: factories.columnSchema.build({
-                columnType: 'String',
-                filterOperators: new Set(['LongerThan']),
-              }),
-            },
-          }),
-        });
-
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
-      });
-    });
-
     describe('when the field is an UUID', () => {
       it('should not throw an error when a list of uuid is given', () => {
         const conditionTree = factories.conditionTreeLeaf.build({
@@ -473,6 +431,130 @@ describe('ConditionTreeValidation', () => {
             'Wrong type for "pointField": -80, 20, 90. Expects Point,Null',
           );
         });
+      });
+    });
+
+    describe('when the field is a date', () => {
+      it('should not throw an error when it using the BeforeXHoursAgo operator', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: 'BeforeXHoursAgo',
+          value: 10,
+          field: 'aDateField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              aDateField: factories.columnSchema.build({
+                columnType: 'Date',
+                filterOperators: new Set(['BeforeXHoursAgo']),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+      });
+
+      it('should not throw an error when it using the AfterXHoursAgo operator', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: 'AfterXHoursAgo',
+          value: 10,
+          field: 'aDateField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              aDateField: factories.columnSchema.build({
+                columnType: 'Date',
+                filterOperators: new Set(['AfterXHoursAgo']),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+      });
+
+      it('should not throw an error when it using than PreviousXDaysToDate operator', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: 'PreviousXDaysToDate',
+          value: 10,
+          field: 'aDateField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              aDateField: factories.columnSchema.build({
+                columnType: 'Date',
+                filterOperators: new Set(['PreviousXDaysToDate']),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+      });
+
+      it('should not throw an error when it using than PreviousXDays operator', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: 'PreviousXDays',
+          value: 10,
+          field: 'aDateField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              aDateField: factories.columnSchema.build({
+                columnType: 'Date',
+                filterOperators: new Set(['PreviousXDays']),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+      });
+    });
+
+    describe('when the field is a string', () => {
+      it('should not throw an error when it using the ShorterThan operator', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: 'ShorterThan',
+          value: 10,
+          field: 'aStringField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              aStringField: factories.columnSchema.build({
+                columnType: 'String',
+                filterOperators: new Set(['ShorterThan']),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+      });
+
+      it('should not throw an error when it using the LongerThan operator', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: 'LongerThan',
+          value: 10,
+          field: 'aStringField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              aStringField: factories.columnSchema.build({
+                columnType: 'String',
+                filterOperators: new Set(['LongerThan']),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
       });
     });
 
