@@ -53,6 +53,7 @@
   - [Override writing behavior](agent-customization/fields/write.md)
   - [Override filtering behavior](agent-customization/fields/filter.md)
   - [Override sorting behavior](agent-customization/fields/sort.md)
+  - [Validation](agent-customization/fields/validation.md)
 
 - [Hooks](agent-customization/hooks/README.md)
 - [Relationships](agent-customization/relationships/README.md)

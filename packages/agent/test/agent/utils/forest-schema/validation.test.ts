@@ -21,8 +21,16 @@ describe('FrontendValidationUtils', () => {
     ]);
 
     expect(validationList).toStrictEqual([
-      { message: null, type: ValidationType.LessThan, value: 34 },
-      { message: null, type: ValidationType.GreaterThan, value: 60 },
+      {
+        message: "Failed validation rule: 'LessThan(34)'",
+        type: ValidationType.LessThan,
+        value: 34,
+      },
+      {
+        message: "Failed validation rule: 'GreaterThan(60)'",
+        type: ValidationType.GreaterThan,
+        value: 60,
+      },
     ]);
   });
 

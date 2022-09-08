@@ -64,7 +64,7 @@ export type ForestServerField = Partial<{
   reference: null | string;
   inverseOf: null | string;
   relationship: 'BelongsTo' | 'BelongsToMany' | 'HasMany' | 'HasOne';
-  validations: Array<{ message: null; type: ValidationType; value: unknown }>;
+  validations: Array<{ message: string | null; type: ValidationType; value: unknown }>;
 }>;
 
 export type ForestServerSegment = {
