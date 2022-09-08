@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.53](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.52...@forestadmin/agent@1.0.0-beta.53) (2022-09-08)
+
+
+### Bug Fixes
+
+* restart loop when using NestJS file watcher ([#412](https://github.com/ForestAdmin/agent-nodejs/issues/412)) ([1c00029](https://github.com/ForestAdmin/agent-nodejs/commit/1c0002982f3045be2e529b47a4cad44d086d1575))
+
 # @forestadmin/agent [1.0.0-beta.52](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.51...@forestadmin/agent@1.0.0-beta.52) (2022-09-07)
 
 
