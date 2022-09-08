@@ -1,5 +1,6 @@
 import {
   ActionDefinition,
+  ColumnSchema,
   ConditionTreeLeaf,
   Sort,
   WriteDefinition,
@@ -146,6 +147,24 @@ describe('Builder > Collection', () => {
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('action name', actionDefinition);
       expect(collection.schema.actions['action name']).toBeDefined();
+      expect(self).toEqual(builder);
+    });
+  });
+
+  describe('addValidation', () => {
+    it('should add a validation rule', async () => {
+      const { stack } = await setup();
+      const collection = stack.validation.getCollection('authors');
+      const builder = new CollectionBuilder(stack, 'authors');
+
+      const spy = jest.spyOn(collection, 'addValidation');
+      const self = builder.addFieldValidation('firstName', 'LongerThan', 5);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstName', { operator: 'LongerThan', value: 5 });
+      expect((collection.schema.fields.firstName as ColumnSchema).validation).toStrictEqual([
+        { operator: 'LongerThan', value: 5 },
+      ]);
       expect(self).toEqual(builder);
     });
   });
