@@ -33,7 +33,7 @@ export default class ValidationDecorator extends CollectionDecorator {
   }
 
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
-    this.validate(patch, caller.timezone, true);
+    this.validate(patch, caller.timezone, false);
 
     return super.update(caller, filter, patch);
   }
@@ -53,7 +53,11 @@ export default class ValidationDecorator extends CollectionDecorator {
   private validate(record: RecordData, timezone: string, allFields: boolean): void {
     for (const [name, field] of Object.entries(this.schema.fields)) {
       if (field.type === 'Column' && (allFields || record[name] !== undefined)) {
-        for (const validator of field.validation ?? []) {
+        // When setting a field to null, we skip all validators but "Present"
+        let rules = field.validation ?? [];
+        if (record[name] === null) rules = rules.filter(r => r.operator === 'Present');
+
+        for (const validator of rules) {
           const rawLeaf = { field: name, ...validator };
           const tree = ConditionTreeFactory.fromPlainObject(rawLeaf) as ConditionTreeLeaf;
 
@@ -62,7 +66,7 @@ export default class ValidationDecorator extends CollectionDecorator {
             const rule =
               validator.value !== undefined
                 ? `${validator.operator}(${validator.value})`
-                : `'${validator.operator}'`;
+                : `${validator.operator}`;
 
             throw new ValidationError(`${message} '${rule}'`);
           }

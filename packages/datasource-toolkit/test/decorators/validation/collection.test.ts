@@ -1,5 +1,6 @@
 import * as factories from '../../__factories__';
 import { Collection, DataSource } from '../../../src/interfaces/collection';
+import { ColumnSchema } from '../../../src/interfaces/schema';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import ValidationDecorator from '../../../src/decorators/validation/collection';
 
@@ -60,7 +61,117 @@ describe('SortEmulationDecoratorCollection', () => {
     );
   });
 
-  describe('with a longerthan 5 rule', () => {
+  describe('Rule Deduplication', () => {
+    test('should merge multiple GreaterThan rules', () => {
+      newBooks.addValidation('title', { operator: 'GreaterThan', value: 3 });
+      newBooks.addValidation('title', { operator: 'GreaterThan', value: 5 });
+      newBooks.addValidation('title', { operator: 'GreaterThan', value: 2 });
+
+      expect((newBooks.schema.fields.title as ColumnSchema).validation).toStrictEqual([
+        { operator: 'GreaterThan', value: 5 },
+      ]);
+    });
+
+    test('should merge multiple LessThan rules', () => {
+      newBooks.addValidation('title', { operator: 'LessThan', value: 3 });
+      newBooks.addValidation('title', { operator: 'LessThan', value: 5 });
+      newBooks.addValidation('title', { operator: 'LessThan', value: 2 });
+
+      expect((newBooks.schema.fields.title as ColumnSchema).validation).toStrictEqual([
+        { operator: 'LessThan', value: 2 },
+      ]);
+    });
+
+    test('should not merge rules using different operators', () => {
+      newBooks.addValidation('title', { operator: 'GreaterThan', value: 3 });
+      newBooks.addValidation('title', { operator: 'LongerThan', value: 5 });
+
+      expect((newBooks.schema.fields.title as ColumnSchema).validation).toStrictEqual([
+        { operator: 'GreaterThan', value: 3 },
+        { operator: 'LongerThan', value: 5 },
+      ]);
+    });
+
+    test('should not merge rules on different fields', () => {
+      newBooks.addValidation('id', { operator: 'GreaterThan', value: 5 });
+      newBooks.addValidation('title', { operator: 'GreaterThan', value: 3 });
+
+      expect((newBooks.schema.fields.id as ColumnSchema).validation).toStrictEqual([
+        { operator: 'GreaterThan', value: 5 },
+      ]);
+
+      expect((newBooks.schema.fields.title as ColumnSchema).validation).toStrictEqual([
+        { operator: 'GreaterThan', value: 3 },
+      ]);
+    });
+  });
+
+  describe('Field selection when validating', () => {
+    beforeEach(() => {
+      newBooks.addValidation('id', { operator: 'GreaterThan', value: 5 });
+      newBooks.addValidation('title', { operator: 'LongerThan', value: 5 });
+    });
+
+    test('should validate all fields when creating a record', async () => {
+      const fn = () => newBooks.create(factories.caller.build(), [{ title: 'longtitle' }]);
+
+      await expect(fn).rejects.toThrow(`'id' failed validation rule: 'GreaterThan(5)'`);
+      expect(books.create).not.toHaveBeenCalled();
+    });
+
+    test('should validate only changed fields when updating', async () => {
+      await newBooks.update(factories.caller.build(), factories.filter.build(), {
+        title: 'longtitle',
+      });
+
+      expect(books.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('Validation when setting to null (null allowed)', () => {
+    beforeEach(() => {
+      newBooks.addValidation('title', { operator: 'LongerThan', value: 5 });
+    });
+
+    test('should forward create that respect the rule', async () => {
+      await newBooks.create(factories.caller.build(), [{ title: null }]);
+      expect(books.create).toHaveBeenCalled();
+    });
+
+    test('should forward updates that respect the rule', async () => {
+      await newBooks.update(factories.caller.build(), factories.filter.build(), {
+        title: null,
+      });
+
+      expect(books.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('Validation when setting to null (null forbidden)', () => {
+    beforeEach(() => {
+      newBooks.addValidation('title', { operator: 'LongerThan', value: 5 });
+      newBooks.addValidation('title', { operator: 'Present' });
+    });
+
+    test('should not forward create that respect the rule', async () => {
+      const fn = () => newBooks.create(factories.caller.build(), [{ title: null }]);
+
+      await expect(fn).rejects.toThrow(`'title' failed validation rule: 'Present'`);
+      expect(books.create).not.toHaveBeenCalled();
+    });
+
+    test('should not forward updates that respect the rule', async () => {
+      const fn = () =>
+        newBooks.update(factories.caller.build(), factories.filter.build(), {
+          title: null,
+        });
+
+      await expect(fn).rejects.toThrow(`'title' failed validation rule: 'Present'`);
+      expect(books.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Validation on a defined value', () => {
     beforeEach(() => {
       newBooks.addValidation('title', { operator: 'LongerThan', value: 5 });
     });
