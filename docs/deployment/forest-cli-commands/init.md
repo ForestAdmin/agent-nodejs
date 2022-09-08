@@ -17,7 +17,7 @@ OPTIONS
 ```
 
 {% hint style="danger" %}
-`forest init` is not meant to help you create a new project. If you don't have an existing project yet, please refer to [this guide](../../../../getting-started/setup-guide.md).
+`forest init` is not meant to help you create a new project. If you don't have an existing project yet, please refer to [this guide](../../getting-started/quick-start.md).
 {% endhint %}
 
 {% hint style="info" %}
@@ -46,7 +46,7 @@ $ forest init
 > This project does not support branches yet. Please migrate your environments from your Project settings first.
 ```
 
-If you're seeing the above message, please refer to this [migration guide](../../../../how-tos/maintain/migrate-to-the-new-development-workflow.md).
+If you're seeing the above message, please refer to this [migration guide](https://docs.forestadmin.com/documentation/how-tos/maintain/migrate-to-the-new-development-workflow).
 {% endhint %}
 
 #### Endpoint selection
@@ -72,4 +72,4 @@ Note that your new development environnment is identified by the `FOREST_ENV_SEC
 
 To work properly in your local environment, your Forest Admin project needs to be connected to the corresponding database (which could be local or remote, it's your choice.)
 
-As a result, we've added an extra step to the `forest init` command to help you set up your database. If you accept the help, you'll be taken through a few prompts and your `DATABASE_URL` (and potentially [other environment variables](../../../../getting-started/setup-guide.md#available-installation-options-for-the-above-step)) will be generated and added to your `.env` file.
+As a result, we've added an extra step to the `forest init` command to help you set up your database. If you accept the help, you'll be taken through a few prompts and your `DATABASE_URL` (and potentially [other environment variables](../../getting-started/install/create-your-agent.md)) will be generated and added to your `.env` file.

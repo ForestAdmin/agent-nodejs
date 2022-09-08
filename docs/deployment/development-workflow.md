@@ -22,7 +22,7 @@ Your **Forest Admin UI** is **not** part of your codebase: it is managed on Fore
 
 ### Development workflow
 
-For a simple and hands-on **example** of how to develop on Forest Admin according to our recommended development workflow, see [this page](../../../getting-started/development-workflow.md).
+For a simple and hands-on **example** of how to develop on Forest Admin according to our recommended development workflow, see [this page](./development-workflow.md).
 
 For a more complete view showcasing each possible scenario of the recommended development workflow, we've drawn the following state **diagram**:
 

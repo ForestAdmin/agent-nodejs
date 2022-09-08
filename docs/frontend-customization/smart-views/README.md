@@ -160,13 +160,13 @@ The `deleteRecords` action lets you delete one or multiple records. A pop-up wil
 
 {% endcode %}
 
-### Triggering a Smart Action
+### Triggering an Action
 
 {% hint style="warning" %}
 Please note that the smart action triggering in the context of the smart view editor can be broken as you might not have access to all the required information. We advise you to test the smart action execution from the smart view applied to the collection view.
 {% endhint %}
 
-Here’s how to trigger your [Smart Actions](../actions/create-and-manage-smart-actions/#what-is-a-smart-action) directly from your Smart Views.&#x20;
+Here’s how to trigger your [Actions](../../agent-customization/actions/README.md) directly from your Smart Views.
 
 {% tabs %}
 {% tab title="template.hbs" %}
@@ -221,7 +221,7 @@ function triggerSmartAction(
 | callback      | A function executed after the smart action that takes as the single parameter the result of the smart action execution. |
 | values        | An object containing the values to be passed for the smart action fields                                                |
 
-Here is an example of how to trigger the smart action with the values passed from the code, you only need to do it if you **don't** want to use the built-in [smart action form](../actions/create-and-manage-smart-actions/use-a-smart-action-form.md)
+Here is an example of how to trigger the smart action with the values passed from the code, you only need to do it if you **don't** want to use the built-in [smart action form](../../agent-customization/actions/forms.md)
 
 {% tabs %}
 {% tab title="template.hbs" %}
