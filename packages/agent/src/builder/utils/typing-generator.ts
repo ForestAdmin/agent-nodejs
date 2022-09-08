@@ -5,8 +5,39 @@ import {
   ColumnType,
   DataSource,
 } from '@forestadmin/datasource-toolkit';
+import { readFile, writeFile } from 'fs/promises';
 
 export default class TypingGenerator {
+  /**
+   * Write types to disk at a given path.
+   * This method read the file which is already there before overwriting so that customers
+   * using equivalents to nodemon to not enter restart loops.
+   */
+  static async updateTypesOnFileSystem(
+    dataSource: DataSource,
+    typingsPath: string,
+    maxDepth: number,
+  ): Promise<void> {
+    const newTypes = this.generateTypes(dataSource, maxDepth);
+    let olderTypes: string | null = null;
+
+    try {
+      olderTypes = await readFile(typingsPath, { encoding: 'utf-8' });
+    } catch (e) {
+      if (e.code === 'ENOENT') olderTypes = null;
+      else throw e;
+    }
+
+    if (newTypes !== olderTypes) {
+      await writeFile(typingsPath, newTypes, { encoding: 'utf-8' });
+    }
+  }
+
+  /**
+   * Generates types on a string.
+   * This method is kept public to make things easier for tests.
+   * @internal
+   */
   static generateTypes(dataSource: DataSource, maxDepth: number): string {
     const collections = [...dataSource.collections].sort((a, b) => a.name.localeCompare(b.name));
 
