@@ -17,7 +17,7 @@ Click "Deploy to production" on the top banner or in the _Environments_ tab of y
 On the first step, you need to input your agent's URL. This is the URL of the server onto which you have deployed (or will soon deploy) your agent's code base:
 
 {% hint style="info" %}
-If you need help deploying your agent's codebase, here are 2 step-by-step guides showing how it can be done [on Heroku](../../how-tos/setup/deploy-to-production-on-heroku.md) or [on a standard ubuntu server](../../how-tos/setup/deploy-to-production-to-ubuntu-server.md).
+If you need help deploying your agent's codebase, here are step-by-step guides showing how it can be done [on Heroku](cloud/deploy-on-heroku.md), [on Google Cloud Platform](cloud/deploy-on-gcp.md) or [on a standard ubuntu server](cloud/deploy-on-ubuntu.md).
 {% endhint %}
 
 ![](../assets/environment-deploy-step-1.png)

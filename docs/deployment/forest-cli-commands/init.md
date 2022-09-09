@@ -51,7 +51,7 @@ If you're seeing the above message, please refer to this [migration guide](https
 
 #### Endpoint selection
 
-If you're using `forest init`, it means your agent should already be running **locally**. If you used the default values used during installation, your endpoint should be _http://localhost:3310_&#x20;
+If you're using `forest init`, it means your agent should already be running **locally**. If you used the default values used during installation, your endpoint should be _http://localhost:3310_. <!-- markdown-link-check-disable-line -->
 
 Since we need to know your project's local endpoint in order to create your development environment, we've left the same default values. You can just hit "Enter" to use those; otherwise simply fill the _host_ and _port_ to fit your situation.
 
