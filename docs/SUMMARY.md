@@ -83,6 +83,9 @@
 ## Deploying to production
 
 - [Environments](deployment/environments.md)
+  - [Deploy on Heroku](deployment/cloud/deploy-on-heroku.md)
+  - [Deploy on GCP](deployment/cloud/deploy-on-gcp.md)
+  - [Deploy on Ubuntu](deployment/cloud/deploy-on-ubuntu.md)
 - [Development workflow](deployment/development-workflow.md)
 - [Using branches](deployment/using-branches.md)
 - [Deploying your changes](deployment/deploying-your-changes.md)
