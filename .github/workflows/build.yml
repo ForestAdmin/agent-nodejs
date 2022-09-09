@@ -96,7 +96,7 @@ jobs:
             ${{github.workspace}}/coverage/lcov.info:lcov
           coverageCommand: yarn test:coverage
   doc-link-validation:
-    name: Doc
+    name: Validate Links in doc
     runs-on: ubuntu-latest
     needs: [build]
     steps:
@@ -110,9 +110,9 @@ jobs:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/_example/package.json', 'patches/*.patch') }}
       - name: Check links in doc
-        run: yarn doc:check-links
+        run: yarn docs:check-links
   doc-build:
-    name: Doc
+    name: Build doc
     runs-on: ubuntu-latest
     needs: [build]
     steps:
