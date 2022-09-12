@@ -16,12 +16,12 @@
     - [On Fastify](getting-started/install/expose/using-fastify.md)
     - [On NestJS](getting-started/install/expose/using-nest.md)
   - [Autocompletion & Typings](getting-started/install/autocompletion-and-typings.md)
-  - [Troubleshooting](getting-started/install/expose/troubleshooting.md)
+  - [Troubleshooting](getting-started/install/troubleshooting.md)
 
 ## Data Sources
 
 - [Usage](datasources/README.md)
-- [Provided datasources](datasources/provided/README.md)
+- Provided datasources
   - [SQL (without ORM)](datasources/provided/sql.md)
   - [Sequelize](datasources/provided/sequelize.md)
   - [Mongoose](datasources/provided/mongoose.md)
@@ -53,6 +53,7 @@
   - [Override writing behavior](agent-customization/fields/write.md)
   - [Override filtering behavior](agent-customization/fields/filter.md)
   - [Override sorting behavior](agent-customization/fields/sort.md)
+  - [Validation](agent-customization/fields/validation.md)
 
 - [Hooks](agent-customization/hooks/README.md)
 - [Relationships](agent-customization/relationships/README.md)
@@ -83,6 +84,9 @@
 ## Deploying to production
 
 - [Environments](deployment/environments.md)
+  - [Deploy on Heroku](deployment/cloud/deploy-on-heroku.md)
+  - [Deploy on GCP](deployment/cloud/deploy-on-gcp.md)
+  - [Deploy on Ubuntu](deployment/cloud/deploy-on-ubuntu.md)
 - [Development workflow](deployment/development-workflow.md)
 - [Using branches](deployment/using-branches.md)
 - [Deploying your changes](deployment/deploying-your-changes.md)

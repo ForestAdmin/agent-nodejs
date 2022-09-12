@@ -7,7 +7,6 @@ import {
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-toolkit';
-import { writeFile } from 'fs/promises';
 import Koa from 'koa';
 import Router from '@koa/router';
 import http from 'http';
@@ -217,8 +216,11 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
 
     // Write typings file
     if (!options.isProduction && options.typingsPath) {
-      const types = TypingGenerator.generateTypes(this.stack.action, options.typingsMaxDepth);
-      await writeFile(options.typingsPath, types, { encoding: 'utf-8' });
+      await TypingGenerator.updateTypesOnFileSystem(
+        this.stack.action,
+        options.typingsPath,
+        options.typingsMaxDepth,
+      );
     }
 
     const httpDriver = new ForestAdminHttpDriver(this.stack.dataSource, options);

@@ -8,7 +8,7 @@ With **Smart Charts**, you can code exactly which data you want and how you want
 You need a **Starter plan** or above to create Smart charts
 {% endhint %}
 
-### Creating a Smart Chart <a href="#creating-a-smart-chart" id="creating-a-smart-chart"></a>
+### Creating a Smart Chart
 
 To create a chart and access the _Smart Chart Editor_, click on the **Edit Smart Chart** button:
 

@@ -1,10 +1,10 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
-import ArrayTypeGetter from '../../src/utils/array-type-getter';
+import ArrayTypeGetter from '../../../src/introspection/helpers/array-type-getter';
 
 describe('ArrayTypeGetter', () => {
   it('should return arrayType', async () => {
-    let sequelize: Sequelize;
+    let sequelize: Sequelize | null = null;
 
     try {
       const database = 'datasource-sql-array-type-getter-test';

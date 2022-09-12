@@ -114,10 +114,20 @@ export default class ConditionTreeValidator {
     conditionTree: ConditionTreeLeaf,
     columnSchema: ColumnSchema,
   ): void {
-    const { value, field } = conditionTree;
+    const { value, field, operator } = conditionTree;
     const { columnType } = columnSchema;
     const allowedTypes = MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE[columnType as PrimitiveTypes];
 
-    FieldValidator.validateValue(field, columnSchema, value, allowedTypes);
+    // exclude some cases where the value is not related to the columnType of the field
+    if (
+      operator !== 'ShorterThan' &&
+      operator !== 'LongerThan' &&
+      operator !== 'AfterXHoursAgo' &&
+      operator !== 'BeforeXHoursAgo' &&
+      operator !== 'PreviousXDays' &&
+      operator !== 'PreviousXDaysToDate'
+    ) {
+      FieldValidator.validateValue(field, columnSchema, value, allowedTypes);
+    }
   }
 }

@@ -1,3 +1,32 @@
+# @forestadmin/datasource-sql [1.0.0-beta.50](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.49...@forestadmin/datasource-sql@1.0.0-beta.50) (2022-09-12)
+
+
+### Performance Improvements
+
+* **datasource-sql:** query structure, indexes and references in parallel ([#419](https://github.com/ForestAdmin/agent-nodejs/issues/419)) ([f08e48a](https://github.com/ForestAdmin/agent-nodejs/commit/f08e48a948c5f85b37ba85e165299ea44fda9fb6))
+
+# @forestadmin/datasource-sql [1.0.0-beta.49](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.48...@forestadmin/datasource-sql@1.0.0-beta.49) (2022-09-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.42
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.32
+
+# @forestadmin/datasource-sql [1.0.0-beta.48](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.47...@forestadmin/datasource-sql@1.0.0-beta.48) (2022-09-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.41
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.31
+
 # @forestadmin/datasource-sql [1.0.0-beta.47](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.46...@forestadmin/datasource-sql@1.0.0-beta.47) (2022-09-07)
 
 

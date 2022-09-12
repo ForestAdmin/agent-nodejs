@@ -15,14 +15,16 @@ export default class FrontendValidationUtils {
     Like: ValidationType.Like,
   };
 
-  static convertValidationList(predicates?: Validation[]): FrontendValidation[] {
-    if (!predicates) return [];
+  static convertValidationList(rules?: Validation[]): FrontendValidation[] {
+    if (!rules) return [];
 
-    return predicates
-      .map(p => {
-        const type = FrontendValidationUtils.operatorValidationTypeMap[p.operator];
+    return rules
+      .map(rule => {
+        const type = FrontendValidationUtils.operatorValidationTypeMap[rule.operator];
+        const error = `${rule.operator}${rule.value !== undefined ? `(${rule.value})` : ``}`;
+        const message = `Failed validation rule: '${error}'`;
 
-        return type ? { type, value: p.value, message: null } : null;
+        return type ? { type, value: rule.value, message } : null;
       })
       .filter(Boolean);
   }

@@ -28,6 +28,7 @@ export type UserInfo = {
   renderingId: number;
   role: string;
   tags: { [key: string]: string };
+  permissionLevel: string;
 };
 
 export type RenderingPermissions = {
@@ -99,6 +100,7 @@ export default class ForestHttpApi {
         role: attributes.role,
         tags: attributes.tags?.reduce((memo, { key, value }) => ({ ...memo, [key]: value }), {}),
         renderingId,
+        permissionLevel: attributes.permission_level,
       };
     } catch (e) {
       this.handleResponseError(e);

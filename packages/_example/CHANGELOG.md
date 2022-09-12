@@ -1,3 +1,68 @@
+# example [1.0.0-beta.74](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.73...example@1.0.0-beta.74) (2022-09-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.50
+
+# example [1.0.0-beta.73](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.72...example@1.0.0-beta.73) (2022-09-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.56
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.33
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.42
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.49
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.32
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0-beta.20
+
+# example [1.0.0-beta.72](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.71...example@1.0.0-beta.72) (2022-09-08)
+
+
+### Features
+
+* allow configuring field validators during agent customization ([#365](https://github.com/ForestAdmin/agent-nodejs/issues/365)) ([8bc6fb3](https://github.com/ForestAdmin/agent-nodejs/commit/8bc6fb379891eb81cbfaddf6bffd89bb02f478ed))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.55
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.32
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.41
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.48
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.31
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0-beta.19
+
+# example [1.0.0-beta.71](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.70...example@1.0.0-beta.71) (2022-09-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.54
+
+# example [1.0.0-beta.70](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.69...example@1.0.0-beta.70) (2022-09-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.53
+
 # example [1.0.0-beta.69](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.68...example@1.0.0-beta.69) (2022-09-07)
 
 

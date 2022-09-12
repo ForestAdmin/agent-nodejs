@@ -1,3 +1,42 @@
+# @forestadmin/agent [1.0.0-beta.56](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.55...@forestadmin/agent@1.0.0-beta.56) (2022-09-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.32
+
+# @forestadmin/agent [1.0.0-beta.55](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.54...@forestadmin/agent@1.0.0-beta.55) (2022-09-08)
+
+
+### Features
+
+* allow configuring field validators during agent customization ([#365](https://github.com/ForestAdmin/agent-nodejs/issues/365)) ([8bc6fb3](https://github.com/ForestAdmin/agent-nodejs/commit/8bc6fb379891eb81cbfaddf6bffd89bb02f478ed))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.31
+
+# @forestadmin/agent [1.0.0-beta.54](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.53...@forestadmin/agent@1.0.0-beta.54) (2022-09-08)
+
+
+### Bug Fixes
+
+* allow dev admin editors to see the chart they just created ([#413](https://github.com/ForestAdmin/agent-nodejs/issues/413)) ([5e1cd85](https://github.com/ForestAdmin/agent-nodejs/commit/5e1cd850387e6eb9846b0bbc393f4c0ffc8deb82))
+
+# @forestadmin/agent [1.0.0-beta.53](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.52...@forestadmin/agent@1.0.0-beta.53) (2022-09-08)
+
+
+### Bug Fixes
+
+* restart loop when using NestJS file watcher ([#412](https://github.com/ForestAdmin/agent-nodejs/issues/412)) ([1c00029](https://github.com/ForestAdmin/agent-nodejs/commit/1c0002982f3045be2e529b47a4cad44d086d1575))
+
 # @forestadmin/agent [1.0.0-beta.52](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.51...@forestadmin/agent@1.0.0-beta.52) (2022-09-07)
 
 

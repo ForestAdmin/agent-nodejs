@@ -94,14 +94,14 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       'book',
     );
 
-    expect(schema).toStrictEqual({
+    expect(schema).toEqual({
       field: 'book',
       inverseOf: null,
       reference: 'books.booksPk',
       relationship: 'BelongsTo',
       type: 'Uuid',
       isRequired: true,
-      validations: [{ message: null, type: 'is present', value: undefined }],
+      validations: [{ type: 'is present', message: "Failed validation rule: 'Present'" }],
       isFilterable: true,
       isPrimaryKey: true,
 
