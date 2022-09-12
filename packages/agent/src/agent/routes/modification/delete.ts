@@ -2,6 +2,7 @@ import { ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import { HttpCode, SelectionIds } from '../../types';
 import BodyParser from '../../utils/body-parser';
 import CollectionRoute from '../collection-route';
@@ -16,7 +17,11 @@ export default class DeleteRoute extends CollectionRoute {
   }
 
   public async handleDelete(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `delete:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Delete,
+      this.collection.name,
+    );
 
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
     await this.deleteRecords(context, { ids: [id], areExcluded: false });

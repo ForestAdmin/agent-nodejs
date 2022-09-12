@@ -2,6 +2,7 @@ import { Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { CollectionActionEvent } from '../../../../src/agent/utils/types';
 import UpdateRoute from '../../../../src/agent/routes/modification/update';
 
 describe('UpdateRoute', () => {
@@ -74,7 +75,7 @@ describe('UpdateRoute', () => {
       );
     });
 
-    it('should remove relation ship before update', async () => {
+    it('should remove relationship before update', async () => {
       const bookCollection = factories.collection.build({
         name: 'books',
         schema: factories.collectionSchema.build({
@@ -107,6 +108,42 @@ describe('UpdateRoute', () => {
       expect(spy).toHaveBeenCalledWith(dataSource.getCollection('books'), {
         data: { attributes: { id: 1 } },
       });
+    });
+
+    it('should check that the user is authorized', async () => {
+      const bookCollection = factories.collection.build({
+        name: 'books',
+        update: jest.fn(),
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.isPrimaryKey().build({
+              columnType: 'Number',
+            }),
+            name: factories.columnSchema.build({
+              columnType: 'String',
+            }),
+          },
+        }),
+      });
+      bookCollection.list = jest.fn().mockResolvedValue([{ id: '1523', name: 'foo name' }]);
+      const dataSource = factories.dataSource.buildWithCollection(bookCollection);
+      const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
+
+      const customProperties = { query: { timezone: 'Europe/Paris' }, params: { id: '1523' } };
+      const requestBody = { data: { attributes: { name: 'foo name' } } };
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties,
+        requestBody,
+      });
+
+      await updateRoute.handleUpdate(context);
+
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Edit,
+        'books',
+      );
     });
   });
 });

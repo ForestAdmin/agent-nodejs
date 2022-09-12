@@ -1,4 +1,5 @@
 import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
+import { SuperAgentStatic } from 'superagent';
 
 import * as factories from '../__factories__';
 import ForestHttpApi from '../../../src/agent/utils/forest-http-api';
@@ -451,6 +452,66 @@ describe('ForestHttpApi', () => {
 
       await expect(ForestHttpApi.getPermissions(options, 1)).rejects.toThrow(
         /Please contact support@forestadmin.com/,
+      );
+    });
+  });
+
+  describe('getEnvironmentPermissions', () => {
+    it('should return the result of a call to the API to get permissions', async () => {
+      const body = { foo: 'bar' };
+      superagentMock.set.mockResolvedValue({ body });
+
+      const permissions = await ForestHttpApi.getEnvironmentPermissions(options);
+
+      expect(permissions).toStrictEqual(body);
+      expect(superagentMock.get).toHaveBeenCalledWith(
+        'https://api.url/liana/v4/permissions/environment',
+      );
+      expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
+    });
+
+    it('should rethrow errors received from the backend', () => {
+      const error = new Error('Unexpected error');
+
+      superagentMock.set.mockRejectedValue(error);
+
+      return expect(ForestHttpApi.getEnvironmentPermissions(options)).rejects.toThrow(error);
+    });
+
+    it('should handle special errors', () => {
+      superagentMock.set.mockRejectedValue({ response: { status: 404 } });
+
+      return expect(ForestHttpApi.getEnvironmentPermissions(options)).rejects.toThrow(
+        /failed to find the project related to the envSecret you configured/,
+      );
+    });
+  });
+
+  describe('getRoles', () => {
+    it('should return the result of a call to the API to get roles', async () => {
+      const body = { foo: 'bar' };
+      superagentMock.set.mockResolvedValue({ body });
+
+      const roles = await ForestHttpApi.getRoles(options);
+
+      expect(roles).toStrictEqual(body);
+      expect(superagentMock.get).toHaveBeenCalledWith('https://api.url/liana/v4/permissions/roles');
+      expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
+    });
+
+    it('should rethrow errors received from the backend', () => {
+      const error = new Error('Unexpected error');
+
+      superagentMock.set.mockRejectedValue(error);
+
+      return expect(ForestHttpApi.getRoles(options)).rejects.toThrow(error);
+    });
+
+    it('should handle special errors', () => {
+      superagentMock.set.mockRejectedValue({ response: { status: 404 } });
+
+      return expect(ForestHttpApi.getRoles(options)).rejects.toThrow(
+        /failed to find the project related to the envSecret you configured/,
       );
     });
   });

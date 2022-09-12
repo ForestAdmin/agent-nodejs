@@ -2,6 +2,7 @@ import { Aggregation, CollectionUtils } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -16,7 +17,11 @@ export default class CountRelatedRoute extends RelationRoute {
   }
 
   public async handleCountRelated(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `browse:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Browse,
+      this.collection.name,
+    );
 
     if (this.foreignCollection.schema.countable) {
       const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);

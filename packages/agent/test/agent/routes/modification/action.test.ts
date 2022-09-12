@@ -109,7 +109,11 @@ describe('ActionRoute', () => {
 
       await handleExecute.call(route, context);
 
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'custom:My_Action:books');
+      expect(services.authorization.assertCanExecuteCustomAction).toHaveBeenCalledWith(
+        context,
+        'My_Action',
+        'books',
+      );
     });
 
     test('handleExecute should delegate to collection with good params', async () => {

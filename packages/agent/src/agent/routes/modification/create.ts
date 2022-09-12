@@ -13,6 +13,7 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import CollectionRoute from '../collection-route';
 import QueryStringParser from '../../utils/query-string';
 
@@ -22,7 +23,11 @@ export default class CreateRoute extends CollectionRoute {
   }
 
   public async handleCreate(context: Context) {
-    await this.services.permissions.can(context, `add:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Add,
+      this.collection.name,
+    );
 
     const { serializer } = this.services;
     const rawRecord = serializer.deserialize(this.collection, context.request.body);
@@ -93,7 +98,11 @@ export default class CreateRoute extends CollectionRoute {
       // Permissions
       const foreignCollection = this.dataSource.getCollection(relation.foreignCollection);
       const scope = await this.services.permissions.getScope(foreignCollection, context);
-      await this.services.permissions.can(context, `edit:${this.collection.name}`);
+      await this.services.authorization.assertCanOnCollection(
+        context,
+        CollectionActionEvent.Edit,
+        this.collection.name,
+      );
 
       // Load the value that will be used as originKey (=== parentId[0] most of the time)
       const originValue = record[relation.originKeyTarget];

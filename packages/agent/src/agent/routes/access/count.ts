@@ -2,6 +2,7 @@ import { Aggregation } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import QueryStringParser from '../../utils/query-string';
@@ -12,7 +13,11 @@ export default class CountRoute extends CollectionRoute {
   }
 
   public async handleCount(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `browse:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Browse,
+      this.collection.name,
+    );
 
     if (this.collection.schema.countable) {
       const scope = await this.services.permissions.getScope(this.collection, context);

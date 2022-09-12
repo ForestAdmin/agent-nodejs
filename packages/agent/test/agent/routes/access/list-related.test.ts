@@ -8,6 +8,7 @@ import {
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { CollectionActionEvent } from '../../../../src/agent/utils/types';
 import ListRelatedRoute from '../../../../src/agent/routes/access/list-related';
 
 describe('ListRelatedRoute', () => {
@@ -130,6 +131,36 @@ describe('ListRelatedRoute', () => {
             },
           },
         });
+      });
+
+      test('should check that the user has permission to list related elements', async () => {
+        const { services, dataSource, options } = setupWithOneToManyRelation();
+        dataSource.getCollection('persons').schema.segments = ['a-valid-segment'];
+
+        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
+
+        jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([
+          { id: 1, name: 'aName' },
+          { id: 2, name: 'aName2' },
+        ]);
+
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+            query: {
+              'fields[persons]': 'id,name',
+              timezone: 'Europe/Paris',
+            },
+          },
+        });
+        await count.handleListRelated(context);
+
+        expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+          context,
+          CollectionActionEvent.Browse,
+          'books',
+        );
       });
     });
   });

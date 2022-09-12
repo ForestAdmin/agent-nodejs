@@ -1,6 +1,6 @@
 import { ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 import { Factory } from 'fishery';
-import PermissionService from '../../../src/agent/services/permissions';
+import PermissionService from '../../../../src/agent/services/permissions/permissions';
 
 export class PermissionsFactory extends Factory<PermissionService> {
   mockAllMethods() {

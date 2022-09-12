@@ -2,6 +2,7 @@ import { DataSource, Projection, ValidationError } from '@forestadmin/datasource
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { CollectionActionEvent } from '../../../../src/agent/utils/types';
 import UpdateField from '../../../../src/agent/routes/modification/update-field';
 
 describe('UpdateField', () => {
@@ -118,6 +119,26 @@ describe('UpdateField', () => {
         },
       );
       expect(context.response.status).toEqual(204);
+    });
+
+    it('should check that the user is authorized', async () => {
+      const updateRoute = new UpdateField(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: { attributes: { key: 'newKey', value: 'newValue' } } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { id: '1523', field: 'itemList', index: '1' },
+        },
+      });
+
+      await updateRoute.handleUpdate(context);
+
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Edit,
+        'books',
+      );
     });
   });
 });

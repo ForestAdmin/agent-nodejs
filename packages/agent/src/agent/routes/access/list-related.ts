@@ -2,6 +2,7 @@ import { CollectionUtils } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -16,7 +17,11 @@ export default class ListRelatedRoute extends RelationRoute {
   }
 
   public async handleListRelated(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `browse:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Browse,
+      this.collection.name,
+    );
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const scope = await this.services.permissions.getScope(this.foreignCollection, context);

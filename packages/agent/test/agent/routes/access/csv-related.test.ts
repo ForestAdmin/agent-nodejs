@@ -2,6 +2,7 @@ import { CollectionUtils, PaginatedFilter, Projection } from '@forestadmin/datas
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { CollectionActionEvent } from '../../../../src/agent/utils/types';
 import ContextFilterFactory from '../../../../src/agent/utils/context-filter-factory';
 import CsvGenerator from '../../../../src/agent/utils/csv-generator';
 import CsvRoute from '../../../../src/agent/routes/access/csv-related';
@@ -117,8 +118,16 @@ describe('CsvRelatedRoute', () => {
       // then
       expect(buildPaginated).toHaveBeenCalledWith(personsCollection, context, scopeCondition);
 
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'browse:books');
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'export:books');
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Browse,
+        'books',
+      );
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Export,
+        'books',
+      );
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(

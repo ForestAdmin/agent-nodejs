@@ -7,6 +7,7 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import { Readable } from 'stream';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import CsvGenerator from '../../utils/csv-generator';
@@ -24,8 +25,16 @@ export default class CsvRelatedRoute extends RelationRoute {
   }
 
   async handleRelatedCsv(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `browse:${this.collection.name}`);
-    await this.services.permissions.can(context, `export:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Browse,
+      this.collection.name,
+    );
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Export,
+      this.collection.name,
+    );
 
     const { header } = context.request.query as Record<string, string>;
     CsvRouteContext.buildResponse(context);

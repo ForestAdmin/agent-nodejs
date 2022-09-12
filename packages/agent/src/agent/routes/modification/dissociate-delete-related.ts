@@ -12,6 +12,7 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import { HttpCode } from '../../types';
 import BodyParser from '../../utils/body-parser';
 import ContextFilterFactory from '../../utils/context-filter-factory';
@@ -28,7 +29,11 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
   }
 
   public async handleDissociateDeleteRelatedRoute(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `delete:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Delete,
+      this.collection.name,
+    );
 
     // Parse route params
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);

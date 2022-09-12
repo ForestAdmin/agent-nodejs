@@ -7,6 +7,7 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -17,7 +18,11 @@ export default class UpdateRoute extends CollectionRoute {
   }
 
   public async handleUpdate(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `edit:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Edit,
+      this.collection.name,
+    );
 
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
 

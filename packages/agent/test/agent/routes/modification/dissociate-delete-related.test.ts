@@ -2,6 +2,7 @@ import { Filter, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { CollectionActionEvent } from '../../../../src/agent/utils/types';
 import { HttpCode } from '../../../../src/agent/types';
 import DissociateDeleteRoute from '../../../../src/agent/routes/modification/dissociate-delete-related';
 
@@ -222,6 +223,51 @@ describe('DissociateDeleteRelatedRoute', () => {
         expect.any(Object),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
+    });
+
+    test('should check that the user is authorized', async () => {
+      const { services, dataSource, options } = setupWithOneToManyRelation();
+      dataSource.getCollection('bookPersons').schema.segments = ['a-valid-segment'];
+
+      const count = new DissociateDeleteRoute(
+        services,
+        options,
+        dataSource,
+        'books',
+        'myBookPersons',
+      );
+
+      const conditionTreeParams = {
+        filters: JSON.stringify({
+          aggregator: 'And',
+          conditions: [
+            { field: 'id', operator: 'Equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+          ],
+        }),
+      };
+      const customProperties = {
+        query: { ...conditionTreeParams, segment: 'a-valid-segment', timezone: 'Europe/Paris' },
+        params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
+      };
+      const requestBody = {
+        data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }],
+      };
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties,
+        requestBody,
+      });
+
+      const scopeCondition = factories.conditionTreeLeaf.build();
+      services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
+
+      await count.handleDissociateDeleteRelatedRoute(context);
+
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Delete,
+        'books',
+      );
     });
   });
 });

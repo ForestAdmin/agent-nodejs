@@ -1,6 +1,7 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { CollectionActionEvent } from '../../../../src/agent/utils/types';
 import Count from '../../../../src/agent/routes/access/count';
 
 describe('CountRoute', () => {
@@ -36,6 +37,26 @@ describe('CountRoute', () => {
         { conditionTree: null, search: null, searchExtended: false, segment: null },
         { operation: 'Count' },
       );
+      expect(context.response.body).toEqual({ count: 2 });
+    });
+
+    test('should check that the user has permission to count', async () => {
+      const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
+      dataSource.getCollection('books').aggregate = aggregateSpy;
+      const count = new Count(services, options, dataSource, 'books');
+      const context = createMockContext({
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
+      });
+
+      await count.handleCount(context);
+
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Browse,
+        'books',
+      );
+
       expect(context.response.body).toEqual({ count: 2 });
     });
   });

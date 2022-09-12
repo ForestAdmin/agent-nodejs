@@ -6,6 +6,7 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import { HttpCode } from '../../types';
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
@@ -17,7 +18,11 @@ export default class GetRoute extends CollectionRoute {
   }
 
   public async handleGet(context: Context) {
-    await this.services.permissions.can(context, `read:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Read,
+      this.collection.name,
+    );
 
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
     const filter = new PaginatedFilter({

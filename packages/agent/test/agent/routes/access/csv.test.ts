@@ -1,6 +1,7 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { CollectionActionEvent } from '../../../../src/agent/utils/types';
 import ContextFilterFactory from '../../../../src/agent/utils/context-filter-factory';
 import CsvGenerator from '../../../../src/agent/utils/csv-generator';
 import CsvRoute from '../../../../src/agent/routes/access/csv';
@@ -84,8 +85,16 @@ describe('CsvRoute', () => {
       await csvRoute.handleCsv(context);
 
       // then
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'browse:books');
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'export:books');
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Browse,
+        'books',
+      );
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Export,
+        'books',
+      );
 
       expect(buildPaginated).toHaveBeenCalledWith(booksCollection, context, scopeCondition);
 

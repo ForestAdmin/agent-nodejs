@@ -2,6 +2,7 @@ import { Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { CollectionActionEvent } from '../../../../src/agent/utils/types';
 import { HttpCode } from '../../../../src/agent/types';
 import UpdateRelationRoute from '../../../../src/agent/routes/modification/update-relation';
 
@@ -90,7 +91,11 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:books');
+        expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+          context,
+          CollectionActionEvent.Edit,
+          'books',
+        );
       });
 
       test('should change the many-to-one association', async () => {
@@ -132,7 +137,11 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:books');
+        expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+          context,
+          CollectionActionEvent.Edit,
+          'books',
+        );
       });
     });
 
@@ -202,7 +211,11 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:owner');
+        expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+          context,
+          CollectionActionEvent.Edit,
+          'owner',
+        );
       });
 
       test('should change the one-to-one association', async () => {
@@ -249,7 +262,11 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:owner');
+        expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+          context,
+          CollectionActionEvent.Edit,
+          'owner',
+        );
       });
     });
   });

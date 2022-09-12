@@ -8,6 +8,7 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import { HttpCode } from '../../types';
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
@@ -22,7 +23,11 @@ export default class UpdateField extends CollectionRoute {
   }
 
   public async handleUpdate(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `edit:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Edit,
+      this.collection.name,
+    );
 
     const { field, index, id } = context.params;
     const subRecord = context.request.body?.data?.attributes;

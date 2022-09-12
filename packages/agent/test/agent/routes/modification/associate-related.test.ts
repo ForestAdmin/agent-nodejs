@@ -2,6 +2,7 @@ import { Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { CollectionActionEvent } from '../../../../src/agent/utils/types';
 import { HttpCode } from '../../../../src/agent/types';
 import AssociateRelatedRoute from '../../../../src/agent/routes/modification/associate-related';
 
@@ -106,7 +107,11 @@ describe('AssociateRelatedRoute', () => {
         }),
         { bookId: '123e4567-e89b-12d3-a456-111111111111' },
       );
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:books');
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Edit,
+        'books',
+      );
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });
   });
@@ -215,7 +220,11 @@ describe('AssociateRelatedRoute', () => {
           },
         ],
       );
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:books');
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Edit,
+        'books',
+      );
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });
   });

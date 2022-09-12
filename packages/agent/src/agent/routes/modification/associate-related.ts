@@ -12,6 +12,7 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import { HttpCode } from '../../types';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';
@@ -27,7 +28,11 @@ export default class AssociateRelatedRoute extends RelationRoute {
   }
 
   public async handleAssociateRelatedRoute(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `edit:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Edit,
+      this.collection.name,
+    );
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const targetedRelationId = IdUtils.unpackId(
       this.foreignCollection.schema,

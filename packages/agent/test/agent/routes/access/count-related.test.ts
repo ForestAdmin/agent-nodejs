@@ -8,6 +8,7 @@ import {
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { CollectionActionEvent } from '../../../../src/agent/utils/types';
 import CountRelatedRoute from '../../../../src/agent/routes/access/count-related';
 
 describe('CountRelatedRoute', () => {
@@ -135,6 +136,33 @@ describe('CountRelatedRoute', () => {
             ),
           }),
           new Aggregation({ operation: 'Count' }),
+        );
+
+        expect(context.response.body).toEqual({ count: 1568 });
+      });
+
+      test("should check the user's permission", async () => {
+        const { services, dataSource, options } = setupWithOneToManyRelation();
+
+        const oneToManyRelationName = 'myBookPersons';
+        const count = new CountRelatedRoute(
+          services,
+          options,
+          dataSource,
+          'books',
+          oneToManyRelationName,
+        );
+
+        jest
+          .spyOn(CollectionUtils, 'aggregateRelation')
+          .mockResolvedValue([{ value: 1568, group: {} }]);
+
+        const context = setupContext();
+        await count.handleCountRelated(context);
+        expect(services.authorization.assertCanOnCollection as jest.Mock).toHaveBeenCalledWith(
+          context,
+          CollectionActionEvent.Browse,
+          'books',
         );
 
         expect(context.response.body).toEqual({ count: 1568 });

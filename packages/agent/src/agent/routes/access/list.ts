@@ -1,6 +1,7 @@
 import { Context } from 'koa';
 import Router from '@koa/router';
 
+import { CollectionActionEvent } from '../../utils/types';
 import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import QueryStringParser from '../../utils/query-string';
@@ -11,7 +12,11 @@ export default class ListRoute extends CollectionRoute {
   }
 
   public async handleList(context: Context) {
-    await this.services.permissions.can(context, `browse:${this.collection.name}`);
+    await this.services.authorization.assertCanOnCollection(
+      context,
+      CollectionActionEvent.Browse,
+      this.collection.name,
+    );
 
     const scope = await this.services.permissions.getScope(this.collection, context);
     const paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
