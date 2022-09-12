@@ -32,11 +32,11 @@ export default class Introspector {
     tableName: string,
   ): Promise<Table> {
     // Load columns descriptions, indexes and references of the current table.
-    const columnDescriptions = await sequelize.getQueryInterface().describeTable(tableName);
-    const tableIndexes = await sequelize.getQueryInterface().showIndex(tableName);
-    const tableReferences = await sequelize
-      .getQueryInterface()
-      .getForeignKeyReferencesForTable(tableName);
+    const [columnDescriptions, tableIndexes, tableReferences] = await Promise.all([
+      sequelize.getQueryInterface().describeTable(tableName),
+      sequelize.getQueryInterface().showIndex(tableName),
+      sequelize.getQueryInterface().getForeignKeyReferencesForTable(tableName),
+    ]);
 
     // Create columns
     const columns = Object.entries(columnDescriptions).map(([name, description]) => {
