@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.32](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.31...@forestadmin/datasource-toolkit@1.0.0-beta.32) (2022-09-12)
+
+
+### Bug Fixes
+
+* **condition-tree:** longer than and shorter than operators are supported ([#415](https://github.com/ForestAdmin/agent-nodejs/issues/415)) ([48b7271](https://github.com/ForestAdmin/agent-nodejs/commit/48b7271edd817f2614abfbc5dd26a1160615cd53))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.31](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.30...@forestadmin/datasource-toolkit@1.0.0-beta.31) (2022-09-08)
 
 
