@@ -6,11 +6,11 @@ type FormData = Record<string, unknown>;
 
 /**
  * This utility class converts form values from our internal format to the format that is
- * used in the frontend for smart action forms.
+ * used in the frontend for action forms.
  */
 export default class ForestValueConverter {
   /**
-   * Proper form data parser which converts data from a smart action form result to the format
+   * Proper form data parser which converts data from an action form result to the format
    * that is internally used in datasources.
    */
   static makeFormData(dataSource: DataSource, rawData: FormData, fields: ActionField[]): FormData {

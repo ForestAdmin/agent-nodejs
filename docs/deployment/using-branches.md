@@ -22,7 +22,7 @@ A branch is a fork (i.e copy) of the layout of your _origin_ environment. It is 
 Your **origin** environment is generally your **production environment**, unless you don't have one in which case it will be one of your remote environments.
 {% endhint %}
 
-Once you've created a branch, your layout will look exactly like the layout of your origin environment. However,&#x20;
+Once you've created a branch, your layout will look exactly like the layout of your origin environment.
 
 ### How do branches work?
 

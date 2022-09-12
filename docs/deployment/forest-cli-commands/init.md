@@ -17,7 +17,7 @@ OPTIONS
 ```
 
 {% hint style="danger" %}
-`forest init` is not meant to help you create a new project. If you don't have an existing project yet, please refer to [this guide](../../../../getting-started/setup-guide.md).
+`forest init` is not meant to help you create a new project. If you don't have an existing project yet, please refer to [this guide](../../getting-started/quick-start.md).
 {% endhint %}
 
 {% hint style="info" %}
@@ -46,12 +46,12 @@ $ forest init
 > This project does not support branches yet. Please migrate your environments from your Project settings first.
 ```
 
-If you're seeing the above message, please refer to this [migration guide](../../../../how-tos/maintain/migrate-to-the-new-development-workflow.md).
+If you're seeing the above message, please refer to this [migration guide](https://docs.forestadmin.com/documentation/how-tos/maintain/migrate-to-the-new-development-workflow).
 {% endhint %}
 
 #### Endpoint selection
 
-If you're using `forest init`, it means your agent should already be running **locally**. If you used the default values used during installation, your endpoint should be _http://localhost:3310_&#x20;
+If you're using `forest init`, it means your agent should already be running **locally**. If you used the default values used during installation, your endpoint should be _http://localhost:3310_. <!-- markdown-link-check-disable-line -->
 
 Since we need to know your project's local endpoint in order to create your development environment, we've left the same default values. You can just hit "Enter" to use those; otherwise simply fill the _host_ and _port_ to fit your situation.
 
@@ -72,4 +72,4 @@ Note that your new development environnment is identified by the `FOREST_ENV_SEC
 
 To work properly in your local environment, your Forest Admin project needs to be connected to the corresponding database (which could be local or remote, it's your choice.)
 
-As a result, we've added an extra step to the `forest init` command to help you set up your database. If you accept the help, you'll be taken through a few prompts and your `DATABASE_URL` (and potentially [other environment variables](../../../../getting-started/setup-guide.md#available-installation-options-for-the-above-step)) will be generated and added to your `.env` file.
+As a result, we've added an extra step to the `forest init` command to help you set up your database. If you accept the help, you'll be taken through a few prompts and your `DATABASE_URL` (and potentially [other environment variables](../../getting-started/install/create-your-agent.md)) will be generated and added to your `.env` file.
