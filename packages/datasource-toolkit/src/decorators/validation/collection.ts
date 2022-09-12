@@ -6,6 +6,7 @@ import { ValidationError } from '../../errors';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf from '../../interfaces/query/condition-tree/nodes/leaf';
+import ConditionTreeValidator from '../../validation/condition-tree';
 import FieldValidator from '../../validation/field';
 import Filter from '../../interfaces/query/filter/unpaginated';
 
@@ -60,6 +61,7 @@ export default class ValidationDecorator extends CollectionDecorator {
         for (const validator of rules) {
           const rawLeaf = { field: name, ...validator };
           const tree = ConditionTreeFactory.fromPlainObject(rawLeaf) as ConditionTreeLeaf;
+          ConditionTreeValidator.validate(tree, this);
 
           if (!tree.match(record, this, timezone)) {
             const message = `'${name}' failed validation rule:`;

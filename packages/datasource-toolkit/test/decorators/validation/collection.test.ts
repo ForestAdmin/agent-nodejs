@@ -20,8 +20,12 @@ describe('SortEmulationDecoratorCollection', () => {
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.isPrimaryKey().build({ isReadOnly: true }),
-          title: factories.columnSchema.build(),
-          subtitle: factories.columnSchema.build(),
+          title: factories.columnSchema.build({
+            filterOperators: new Set(['LongerThan', 'Present']),
+          }),
+          subtitle: factories.columnSchema.build({
+            filterOperators: new Set(['LongerThan']),
+          }),
           author: factories.manyToOneSchema.build({ foreignCollection: 'author' }),
         },
       }),
