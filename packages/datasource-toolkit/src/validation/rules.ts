@@ -43,14 +43,7 @@ export const MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE: Readonly<
     'IEndsWith',
     'IStartsWith',
   ],
-  Number: [
-    ...BASE_OPERATORS,
-    ...ARRAY_OPERATORS,
-    'GreaterThan',
-    'LessThan',
-    'ShorterThan',
-    'LongerThan',
-  ],
+  Number: [...BASE_OPERATORS, ...ARRAY_OPERATORS, 'GreaterThan', 'LessThan'],
   Dateonly: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS],
   Date: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS, 'BeforeXHoursAgo', 'AfterXHoursAgo'],
   Timeonly: [...BASE_OPERATORS, 'LessThan', 'GreaterThan'],
@@ -120,4 +113,6 @@ export const MAP_ALLOWED_TYPES_FOR_OPERATOR: Readonly<
   PreviousXDays: ['Number'],
   BeforeXHoursAgo: ['Number'],
   AfterXHoursAgo: ['Number'],
+  LongerThan: ['Number'],
+  ShorterThan: ['Number'],
 });
