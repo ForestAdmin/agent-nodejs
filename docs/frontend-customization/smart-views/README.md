@@ -165,7 +165,7 @@ The `deleteRecords` action lets you delete one or multiple records. A pop-up wil
 ### Triggering an Action
 
 {% hint style="warning" %}
-Please note that the smart action triggering in the context of the smart view editor can be broken as you might not have access to all the required information. We advise you to test the smart action execution from the smart view applied to the collection view.
+Please note that the action triggering in the context of the smart view editor can be broken as you might not have access to all the required information. We advise you to test the action execution from the smart view applied to the collection view.
 {% endhint %}
 
 Here’s how to trigger your [Actions](../../agent-customization/actions/README.md) directly from your Smart Views.
@@ -214,16 +214,16 @@ function triggerSmartAction(
 )
 ```
 
-| Argument name | Description                                                                                                             |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| context       | Context is the reference to the component, in the smart view it is accessible through the keyword `this`                |
-| collection    | The `collection` that has the Smart Action                                                                              |
-| actionName    | The Smart Action name                                                                                                   |
-| records       | An array of records or a single one                                                                                     |
-| callback      | A function executed after the smart action that takes as the single parameter the result of the smart action execution. |
-| values        | An object containing the values to be passed for the smart action fields                                                |
+| Argument name | Description                                                                                                 |
+| ------------- | ----------------------------------------------------------------------------------------------------------- |
+| context       | Context is the reference to the component, in the smart view it is accessible through the keyword `this`    |
+| collection    | The `collection` that has the Action                                                                        |
+| actionName    | The Action name                                                                                             |
+| records       | An array of records or a single one                                                                         |
+| callback      | A function executed after the action that takes as the single parameter the result of the action execution. |
+| values        | An object containing the values to be passed for the action fields                                          |
 
-Here is an example of how to trigger the smart action with the values passed from the code, you only need to do it if you **don't** want to use the built-in [smart action form](../../agent-customization/actions/forms.md)
+Here is an example of how to trigger the action with the values passed from the code, you only need to do it if you **don't** want to use the built-in [action form](../../agent-customization/actions/forms.md)
 
 {% tabs %}
 {% tab title="template.hbs" %}
@@ -286,10 +286,10 @@ Forest Admin automatically injects into your Smart View some properties to help 
 
 Forest Admin automatically injects into your Smart View some actions to trigger the logic you want.
 
-| Action                                               | Description                                                             |
-| ---------------------------------------------------- | ----------------------------------------------------------------------- |
-| `deleteRecords(records)`                             | Delete one or multiple records.                                         |
-| `triggerSmartAction(collection, actionName, record)` | Trigger a Smart Action defined on the specified collection on a record. |
+| Action                                               | Description                                                          |
+| ---------------------------------------------------- | -------------------------------------------------------------------- |
+| `deleteRecords(records)`                             | Delete one or multiple records.                                      |
+| `triggerSmartAction(collection, actionName, record)` | Trigger an `action` defined on the specified collection on a record. |
 
 ## Applying a Smart View
 

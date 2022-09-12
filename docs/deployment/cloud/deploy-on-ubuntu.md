@@ -418,7 +418,7 @@ location / {
 
 {% endcode %}
 
-&#x20;Then, restart nginx:
+Then, restart nginx:
 
 ```bash
 sudo systemctl restart nginx

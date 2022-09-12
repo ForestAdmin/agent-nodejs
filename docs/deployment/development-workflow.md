@@ -10,7 +10,7 @@ If you created your project before May 10th, 2021 and want to benefit from this 
 
 Your Forest Admin panel is composed of 2 parts - [the frontend (UI) and the backend](../) - and for each one you need the right tools:
 
-The **Admin** **backend** is part of your codebase. As a result, you'll be using your own favorite tools to customize it:&#x20;
+The **Admin** **backend** is part of your codebase. As a result, you'll be using your own favorite tools to customize it:
 
 - Editing: your favorite IDE
 - Versioning: your favorite versioning tool (git, svn, mercurial, etc)

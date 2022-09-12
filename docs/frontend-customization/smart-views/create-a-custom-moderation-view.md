@@ -1,6 +1,6 @@
 # Create a custom moderation view
 
-This example shows you how you can implement a moderations view with a custom Approve/Reject workflow.&#x20;
+This example shows you how you can implement a moderations view with a custom Approve/Reject workflow.
 
 ![](../../assets/smart-view-moderation.png)
 

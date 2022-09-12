@@ -12,7 +12,7 @@ After creating your application, simply follow the Heroku guide “Deploy using 
 
 ![](../../assets/deploy-on-heroku-03.png)
 
-Push your code using the following command:&#x20;
+Push your code using the following command:
 
 {% tabs %}
 {% tab title="Command line" %}

@@ -1,6 +1,6 @@
 # Environments
 
-After you install for the first time, a local **development** environment is created for you, with a temporary `pre-deploy-to-production` branch (more on _branches_ later).&#x20;
+After you install for the first time, a local **development** environment is created for you, with a temporary `pre-deploy-to-production` branch (more on _branches_ later).
 
 Your first objective should be to deploy to **production**.
 

@@ -1,6 +1,6 @@
 # Deploy your admin backend to Google Cloud Platform
 
-This tutorial is designed to assist you with a step-by-step guide to deploy the Lumber-generated admin backend to Google Cloud Platform, using Google's App Engine.&#x20;
+This tutorial is designed to assist you with a step-by-step guide to deploy the Lumber-generated admin backend to Google Cloud Platform, using Google's App Engine.
 
 If you don’t have a Google Cloud Platform account yet, [sign up here](https://cloud.google.com/free). Then, [create a billing account](https://cloud.google.com/billing/docs/how-to/manage-billing-account#create_a_new_billing_account) if you haven't already. You will need it to be able to use App Engine.
 
@@ -36,7 +36,7 @@ Choose carefully your application's region when prompted, you will not be able t
 gcloud app create --project=[YOUR_PROJECT_ID]
 ```
 
-Your App Engine application in your project has been created 🎊.&#x20;
+Your App Engine application in your project has been created 🎊.
 
 The last steps needed before you can deploy your Forest Admin backend are to:
 

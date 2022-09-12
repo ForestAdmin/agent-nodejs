@@ -78,7 +78,7 @@ To make action form dynamic, you can use a `ContextHandler` instead of static va
 When using action, you'll probably need te get the values or ids of the selected records. See below how this can be achieved.
 Obviously this feature is only available for `Single` or `Bulk` action.
 
-To do that, you just need to use the `context` provided object to `ContextHandler` you can defined on each compatible properties of the smart action.
+To do that, you just need to use the `context` provided object to `ContextHandler` you can defined on each compatible properties of the action.
 
 {% tabs %} {% tab title="Using a single action" %}
 
