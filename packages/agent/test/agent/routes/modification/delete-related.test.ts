@@ -2,6 +2,7 @@ import { Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
+import { CollectionActionEvent } from '../../../../src/agent/utils/types';
 import { HttpCode } from '../../../../src/agent/types';
 import DissociateDeleteRoute from '../../../../src/agent/routes/modification/dissociate-delete-related';
 
@@ -99,7 +100,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Delete,
+        'books',
+      );
     });
 
     describe('when all records mode is activated', () => {
@@ -363,7 +368,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         }),
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
+      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
+        context,
+        CollectionActionEvent.Delete,
+        'books',
+      );
     });
 
     describe('when the given ids should be excluded', () => {
