@@ -1,5 +1,4 @@
 import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
-import { SuperAgentStatic } from 'superagent';
 
 import * as factories from '../__factories__';
 import ForestHttpApi from '../../../src/agent/utils/forest-http-api';
