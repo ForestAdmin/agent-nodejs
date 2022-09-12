@@ -17,7 +17,7 @@ describe('SqlDataSourceFactory > Integration', () => {
 
       const sequelize = await buildSequelizeInstance(
         `${dialect}://${host}/${databaseName}`,
-        () => {},
+        logger,
       );
 
       // We should have zero collections and a warning on the console
