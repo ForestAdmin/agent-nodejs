@@ -10,6 +10,15 @@ on:
       - 'beta-*'
   pull_request:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build
@@ -130,7 +139,6 @@ jobs:
       - name: Archive documentation artifacts
         uses: actions/upload-pages-artifact@v1
         with:
-          name: api-reference
           path: api-reference
 
   doc-publish:
