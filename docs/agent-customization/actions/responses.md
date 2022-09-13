@@ -33,12 +33,14 @@ For instance in case of success:
 ```javascript
 const record = await context.getRecord();
 return resultBuilder.success(
-  `
-    <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has been successfuly charged.</p>
-    <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
-    <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
-  `,
-  { type: 'html' },
+  'Success',
+  { 
+    html: `
+      <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has been successfuly charged.</p>
+      <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
+      <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
+    `,
+  },
 );
 ```
 
@@ -49,15 +51,16 @@ For instance in case of error:
 ```javascript
 const record = await context.getRecord();
 return resultBuilder.error(
-  'You can perform this action for the following reasons:',
-  `
-    <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has not been charged.</p>
-    <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
-    <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
-    <strong class="c-form__label--read c-clr-1-2">Reason</strong>
-    <p class="c-clr-1-4 l-mb">You can not charge this credit card. The card is marked as blocked</p>
-  `,
-  { type: 'html' },
+  'An error occured',
+  {
+    html: `
+      <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has not been charged.</p>
+      <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
+      <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
+      <strong class="c-form__label--read c-clr-1-2">Reason</strong>
+      <p class="c-clr-1-4 l-mb">You can not charge this credit card. The card is marked as blocked</p>
+    `,
+  },
 );
 ```
 
