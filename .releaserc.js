@@ -83,6 +83,7 @@ module.exports = {
             },
           ],
         },
+        packageName: 'agent-nodejs',
       },
     ],
   ],
