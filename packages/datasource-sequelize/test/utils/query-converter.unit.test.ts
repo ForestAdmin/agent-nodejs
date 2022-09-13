@@ -256,14 +256,6 @@ describe('Utils > QueryConverter', () => {
               },
             ],
             ['postgres', { [Op.like]: 'VaLuE' }],
-            [
-              'sqlite',
-              {
-                attribute: { col: '__field_1__' },
-                comparator: 'GLOB',
-                logic: 'VaLuE',
-              },
-            ],
           ])('should generate a "where" Sequelize filter for "%s"', (dialect, where) => {
             const tree = new ConditionTreeLeaf('__field_1__', 'Like', 'VaLuE');
             const model = setupModel(dialect as Dialect);
@@ -287,7 +279,6 @@ describe('Utils > QueryConverter', () => {
             ],
             ['mysql', { [Op.like]: 'VaLuE' }],
             ['postgres', { [Op.iLike]: 'VaLuE' }],
-            ['sqlite', { [Op.like]: 'VaLuE' }],
           ])('should generate a "where" Sequelize filter for "%s"', (dialect, where) => {
             const tree = new ConditionTreeLeaf('__field_1__', 'ILike', 'VaLuE');
             const model = setupModel(dialect as Dialect);

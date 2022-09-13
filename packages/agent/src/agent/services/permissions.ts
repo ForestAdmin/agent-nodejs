@@ -29,6 +29,11 @@ export default class PermissionService {
 
   /** Checks that a charting query is in the list of allowed queries */
   async canChart(context: Context): Promise<void> {
+    // If the permissions level already allow the chart, no need to check further
+    if (['admin', 'editor', 'developer'].includes(context.state.user.permissionLevel)) {
+      return;
+    }
+
     const chart = { ...context.request.body };
 
     // When the server sends the data of the allowed charts, the target column is not specified

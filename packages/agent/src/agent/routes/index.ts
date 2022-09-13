@@ -24,6 +24,7 @@ import ListRelated from './access/list-related';
 import Logger from './system/logger';
 import ScopeInvalidation from './security/scope-invalidation';
 import Update from './modification/update';
+import UpdateField from './modification/update-field';
 import UpdateRelation from './modification/update-relation';
 
 export const ROOT_ROUTES_CTOR = [
@@ -34,7 +35,17 @@ export const ROOT_ROUTES_CTOR = [
   Logger,
   ScopeInvalidation,
 ];
-export const COLLECTION_ROUTES_CTOR = [Chart, Count, Create, Csv, Delete, Get, List, Update];
+export const COLLECTION_ROUTES_CTOR = [
+  Chart,
+  Count,
+  Create,
+  Csv,
+  Delete,
+  Get,
+  List,
+  Update,
+  UpdateField,
+];
 export const RELATED_ROUTES_CTOR = [
   AssociateRelated,
   CountRelated,

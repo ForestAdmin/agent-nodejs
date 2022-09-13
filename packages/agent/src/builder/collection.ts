@@ -181,6 +181,20 @@ export default class CollectionBuilder<
   }
 
   /**
+   * Add a new validator to the edition form of a given field
+   * @param name The name of the field
+   * @param operator The validator that you wish to add
+   * @param value A configuration value that the validator may need
+   * @example
+   * .addFieldValidation('firstName', 'LongerThan', 2);
+   */
+  addFieldValidation(name: TColumnName<S, N>, operator: Operator, value?: unknown): this {
+    this.stack.validation.getCollection(this.name).addValidation(name, { operator, value });
+
+    return this;
+  }
+
+  /**
    * Add a many to one relation to the collection
    * @param name name of the new relation
    * @param foreignCollection name of the targeted collection

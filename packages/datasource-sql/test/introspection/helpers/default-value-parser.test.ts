@@ -1,6 +1,6 @@
 import { DataTypes, literal } from 'sequelize';
 
-import DefaultValueParser from '../../src/utils/default-value-parser';
+import DefaultValueParser from '../../../src/introspection/helpers/default-value-parser';
 
 describe('DefaultValueParser', () => {
   describe('when there is no expression', () => {

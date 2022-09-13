@@ -61,8 +61,8 @@ export const MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE: Readonly<
   Number: ['Number', ValidationTypesArray.Number, ValidationPrimaryTypes.Null],
   Boolean: ['Boolean', ValidationTypesArray.Boolean, ValidationPrimaryTypes.Null],
   Enum: ['Enum', ValidationTypesArray.Enum, ValidationPrimaryTypes.Null],
-  Date: ['Date', 'Number', ValidationPrimaryTypes.Null],
-  Dateonly: ['Dateonly', 'Number', ValidationPrimaryTypes.Null],
+  Date: ['Date', ValidationPrimaryTypes.Null],
+  Dateonly: ['Dateonly', ValidationPrimaryTypes.Null],
   Json: ['Json', ValidationPrimaryTypes.Null],
   Point: ['Point', ValidationPrimaryTypes.Null],
   Timeonly: ['Timeonly', ValidationPrimaryTypes.Null],
@@ -113,4 +113,6 @@ export const MAP_ALLOWED_TYPES_FOR_OPERATOR: Readonly<
   PreviousXDays: ['Number'],
   BeforeXHoursAgo: ['Number'],
   AfterXHoursAgo: ['Number'],
+  LongerThan: ['Number'],
+  ShorterThan: ['Number'],
 });

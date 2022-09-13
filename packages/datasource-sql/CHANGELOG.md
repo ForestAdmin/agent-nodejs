@@ -1,3 +1,75 @@
+# @forestadmin/datasource-sql [1.0.0-beta.49](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.48...@forestadmin/datasource-sql@1.0.0-beta.49) (2022-09-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.42
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.32
+
+# @forestadmin/datasource-sql [1.0.0-beta.48](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.47...@forestadmin/datasource-sql@1.0.0-beta.48) (2022-09-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.41
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.31
+
+# @forestadmin/datasource-sql [1.0.0-beta.47](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.46...@forestadmin/datasource-sql@1.0.0-beta.47) (2022-09-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.40
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.30
+
+# @forestadmin/datasource-sql [1.0.0-beta.46](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.45...@forestadmin/datasource-sql@1.0.0-beta.46) (2022-09-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.39
+
+# @forestadmin/datasource-sql [1.0.0-beta.45](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.44...@forestadmin/datasource-sql@1.0.0-beta.45) (2022-09-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.38
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.29
+
+# @forestadmin/datasource-sql [1.0.0-beta.44](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.43...@forestadmin/datasource-sql@1.0.0-beta.44) (2022-09-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.37
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.28
+
+# @forestadmin/datasource-sql [1.0.0-beta.43](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.42...@forestadmin/datasource-sql@1.0.0-beta.43) (2022-09-02)
+
+
+### Bug Fixes
+
+* **datasource-sql:** skip models which do not have primary keys ([#393](https://github.com/ForestAdmin/agent-nodejs/issues/393)) ([820fbe9](https://github.com/ForestAdmin/agent-nodejs/commit/820fbe9087ec9977fc998363016ce1728438c8f2))
+
 # @forestadmin/datasource-sql [1.0.0-beta.42](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.41...@forestadmin/datasource-sql@1.0.0-beta.42) (2022-08-23)
 
 

@@ -25,33 +25,33 @@ describe('RelationCollectionDecorator', () => {
     // Build passports
     const passportRecords = [
       {
-        id: 101,
+        passportId: 101,
         issueDate: '2010-01-01',
         ownerId: 202,
         pictureId: 301,
-        picture: { id: 301, filename: 'pic1.jpg' },
+        picture: { pictureId: 301, filename: 'pic1.jpg' },
       },
       {
-        id: 102,
+        passportId: 102,
         issueDate: '2017-01-01',
         ownerId: 201,
         pictureId: 302,
-        picture: { id: 302, filename: 'pic2.jpg' },
+        picture: { pictureId: 302, filename: 'pic2.jpg' },
       },
       {
-        id: 103,
+        passportId: 103,
         issueDate: '2017-02-05',
         ownerId: null,
         pictureId: 303,
-        picture: { id: 303, filename: 'pic3.jpg' },
+        picture: { pictureId: 303, filename: 'pic3.jpg' },
       },
     ];
 
     // Build persons
     const personsRecords = [
-      { id: 201, otherId: 201, name: 'Sharon J. Whalen' },
-      { id: 202, otherId: 202, name: 'Mae S. Waldron' },
-      { id: 203, otherId: 203, name: 'Joseph P. Rodriguez' },
+      { personId: 201, otherId: 201, name: 'Sharon J. Whalen' },
+      { personId: 202, otherId: 202, name: 'Mae S. Waldron' },
+      { personId: 203, otherId: 203, name: 'Joseph P. Rodriguez' },
     ];
 
     dataSource = factories.dataSource.buildWithCollections([
@@ -62,7 +62,7 @@ describe('RelationCollectionDecorator', () => {
         name: 'pictures',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
+            pictureId: factories.columnSchema.build({
               isPrimaryKey: true,
               columnType: 'Number',
             }),
@@ -80,7 +80,7 @@ describe('RelationCollectionDecorator', () => {
         name: 'passports',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
+            passportId: factories.columnSchema.build({
               isPrimaryKey: true,
               columnType: 'Number',
               filterOperators: new Set(['In']),
@@ -114,7 +114,7 @@ describe('RelationCollectionDecorator', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.build({
+            personId: factories.columnSchema.build({
               isPrimaryKey: true,
               columnType: 'Number',
               filterOperators: new Set(['In']),
@@ -204,7 +204,7 @@ describe('RelationCollectionDecorator', () => {
             type: 'OneToOne',
             foreignCollection: 'passports',
             originKey: 'ownerId',
-            originKeyTarget: 'id',
+            originKeyTarget: 'personId',
           }),
         ).not.toThrow();
       });
@@ -244,7 +244,7 @@ describe('RelationCollectionDecorator', () => {
             type: 'OneToMany',
             foreignCollection: 'passports',
             originKey: 'ownerId',
-            originKeyTarget: 'id',
+            originKeyTarget: 'personId',
           }),
         ).not.toThrow();
       });
@@ -288,8 +288,8 @@ describe('RelationCollectionDecorator', () => {
 
     describe('missing operators', () => {
       test('should throw when In is not supported by the pk in the target', () => {
-        const schema = persons.schema.fields.id as ColumnSchema;
-        schema.filterOperators.clear();
+        const schema = persons.schema.fields.personId as ColumnSchema;
+        schema.filterOperators?.clear();
 
         expect(() =>
           newPassports.addRelation('owner', {
@@ -297,7 +297,7 @@ describe('RelationCollectionDecorator', () => {
             foreignCollection: 'persons',
             foreignKey: 'ownerId',
           }),
-        ).toThrow("Column does not support the In operator: 'persons.id'");
+        ).toThrow("Column does not support the In operator: 'persons.personId'");
       });
     });
 
@@ -308,7 +308,7 @@ describe('RelationCollectionDecorator', () => {
             type: 'ManyToOne',
             foreignCollection: 'persons',
             foreignKey: 'ownerId',
-            foreignKeyTarget: 'id',
+            foreignKeyTarget: 'personId',
           }),
         ).not.toThrow();
       });
@@ -376,7 +376,7 @@ describe('RelationCollectionDecorator', () => {
             originKey: 'ownerId',
             throughCollection: 'passports',
             originKeyTarget: 'name',
-            foreignKeyTarget: 'id',
+            foreignKeyTarget: 'passportId',
           } as ManyToManySchema),
         ).toThrow("Types from 'passports.ownerId' and 'persons.name' do not match.");
       });
@@ -391,8 +391,8 @@ describe('RelationCollectionDecorator', () => {
             foreignKey: 'ownerId',
             originKey: 'ownerId',
             throughCollection: 'passports',
-            originKeyTarget: 'id',
-            foreignKeyTarget: 'id',
+            originKeyTarget: 'personId',
+            foreignKeyTarget: 'passportId',
           } as ManyToManySchema),
         ).not.toThrow();
       });
@@ -424,20 +424,20 @@ describe('RelationCollectionDecorator', () => {
       const records = await newPassports.list(
         factories.caller.build(),
         new Filter({}),
-        new Projection('id', 'owner:name'),
+        new Projection('passportId', 'owner:name'),
       );
 
       expect(records).toStrictEqual([
-        { id: 101, owner: { name: 'Mae S. Waldron' } },
-        { id: 102, owner: { name: 'Sharon J. Whalen' } },
-        { id: 103, owner: null },
+        { passportId: 101, owner: { name: 'Mae S. Waldron' } },
+        { passportId: 102, owner: { name: 'Sharon J. Whalen' } },
+        { passportId: 103, owner: null },
       ]);
 
       // Check that condition tree does NOT contains nulls
       expect(persons.list).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          conditionTree: { field: 'id', operator: 'In', value: [202, 201] },
+          conditionTree: { field: 'personId', operator: 'In', value: [202, 201] },
         }),
         expect.anything(),
       );
@@ -454,13 +454,13 @@ describe('RelationCollectionDecorator', () => {
       const records = await newPersons.list(
         factories.caller.build(),
         new Filter({}),
-        new Projection('id', 'name', 'passport:issueDate'),
+        new Projection('personId', 'name', 'passport:issueDate'),
       );
 
       expect(records).toStrictEqual([
-        { id: 201, name: 'Sharon J. Whalen', passport: { issueDate: '2017-01-01' } },
-        { id: 202, name: 'Mae S. Waldron', passport: { issueDate: '2010-01-01' } },
-        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+        { personId: 201, name: 'Sharon J. Whalen', passport: { issueDate: '2017-01-01' } },
+        { personId: 202, name: 'Mae S. Waldron', passport: { issueDate: '2010-01-01' } },
+        { personId: 203, name: 'Joseph P. Rodriguez', passport: null },
       ]);
     });
 
@@ -475,13 +475,13 @@ describe('RelationCollectionDecorator', () => {
       const records = await newPersons.list(
         factories.caller.build(),
         new Filter({}),
-        new Projection('id', 'name', 'passport:issueDate'),
+        new Projection('personId', 'name', 'passport:issueDate'),
       );
 
       expect(records).toStrictEqual([
-        { id: 201, name: 'Sharon J. Whalen', passport: { issueDate: '2017-01-01' } },
-        { id: 202, name: 'Mae S. Waldron', passport: { issueDate: '2010-01-01' } },
-        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+        { personId: 201, name: 'Sharon J. Whalen', passport: { issueDate: '2017-01-01' } },
+        { personId: 202, name: 'Mae S. Waldron', passport: { issueDate: '2010-01-01' } },
+        { personId: 203, name: 'Joseph P. Rodriguez', passport: null },
       ]);
     });
 
@@ -493,19 +493,19 @@ describe('RelationCollectionDecorator', () => {
         originKey: 'ownerId',
         throughCollection: 'passports',
         originKeyTarget: 'otherId',
-        foreignKeyTarget: 'id',
+        foreignKeyTarget: 'personId',
       } as ManyToManySchema);
 
       const records = await newPersons.list(
         factories.caller.build(),
         new Filter({}),
-        new Projection('id', 'name', 'persons:name'),
+        new Projection('personId', 'name', 'persons:name'),
       );
 
       expect(records).toStrictEqual([
-        { id: 201, name: 'Sharon J. Whalen', persons: null },
-        { id: 202, name: 'Mae S. Waldron', persons: null },
-        { id: 203, name: 'Joseph P. Rodriguez', persons: null },
+        { personId: 201, name: 'Sharon J. Whalen', persons: null },
+        { personId: 202, name: 'Mae S. Waldron', persons: null },
+        { personId: 203, name: 'Joseph P. Rodriguez', persons: null },
       ]);
     });
 
@@ -523,13 +523,17 @@ describe('RelationCollectionDecorator', () => {
       const records = await newPersons.list(
         factories.caller.build(),
         new Filter({}),
-        new Projection('id', 'name', 'passport:picture:filename'),
+        new Projection('personId', 'name', 'passport:picture:filename'),
       );
 
       expect(records).toStrictEqual([
-        { id: 201, name: 'Sharon J. Whalen', passport: { picture: { filename: 'pic2.jpg' } } },
-        { id: 202, name: 'Mae S. Waldron', passport: { picture: { filename: 'pic1.jpg' } } },
-        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+        {
+          personId: 201,
+          name: 'Sharon J. Whalen',
+          passport: { picture: { filename: 'pic2.jpg' } },
+        },
+        { personId: 202, name: 'Mae S. Waldron', passport: { picture: { filename: 'pic1.jpg' } } },
+        { personId: 203, name: 'Joseph P. Rodriguez', passport: null },
       ]);
 
       // make sure that the emulator did not trigger on native relation
@@ -550,21 +554,21 @@ describe('RelationCollectionDecorator', () => {
       const records = await newPersons.list(
         factories.caller.build(),
         new Filter({}),
-        new Projection('id', 'name', 'passport:owner:passport:issueDate'),
+        new Projection('personId', 'name', 'passport:owner:passport:issueDate'),
       );
 
       expect(records).toStrictEqual([
         {
-          id: 201,
+          personId: 201,
           name: 'Sharon J. Whalen',
           passport: { owner: { passport: { issueDate: '2017-01-01' } } },
         },
         {
-          id: 202,
+          personId: 202,
           name: 'Mae S. Waldron',
           passport: { owner: { passport: { issueDate: '2010-01-01' } } },
         },
-        { id: 203, name: 'Joseph P. Rodriguez', passport: null },
+        { personId: 203, name: 'Joseph P. Rodriguez', passport: null },
       ]);
     });
   });
@@ -591,10 +595,10 @@ describe('RelationCollectionDecorator', () => {
           new Filter({
             conditionTree: new ConditionTreeLeaf('owner:name', 'Equal', 'Mae S. Waldron'),
           }),
-          new Projection('id', 'issueDate'),
+          new Projection('passportId', 'issueDate'),
         );
 
-        expect(records).toStrictEqual([{ id: 101, issueDate: '2010-01-01' }]);
+        expect(records).toStrictEqual([{ passportId: 101, issueDate: '2010-01-01' }]);
       });
 
       test('should filter by a one to one relation', async () => {
@@ -603,10 +607,10 @@ describe('RelationCollectionDecorator', () => {
           new Filter({
             conditionTree: new ConditionTreeLeaf('passport:issueDate', 'Equal', '2017-01-01'),
           }),
-          new Projection('id', 'name'),
+          new Projection('personId', 'name'),
         );
 
-        expect(records).toStrictEqual([{ id: 201, name: 'Sharon J. Whalen' }]);
+        expect(records).toStrictEqual([{ personId: 201, name: 'Sharon J. Whalen' }]);
       });
 
       test('should filter by native relation behind an emulated one', async () => {
@@ -615,10 +619,10 @@ describe('RelationCollectionDecorator', () => {
           new Filter({
             conditionTree: new ConditionTreeLeaf('passport:picture:filename', 'Equal', 'pic1.jpg'),
           }),
-          new Projection('id', 'name'),
+          new Projection('personId', 'name'),
         );
 
-        expect(records).toStrictEqual([{ id: 202, name: 'Mae S. Waldron' }]);
+        expect(records).toStrictEqual([{ personId: 202, name: 'Mae S. Waldron' }]);
 
         // make sure that the emulator did not trigger on native relation
         expect(pictures.list).not.toHaveBeenCalled();
@@ -634,10 +638,10 @@ describe('RelationCollectionDecorator', () => {
               '2017-01-01',
             ),
           }),
-          new Projection('id', 'name'),
+          new Projection('personId', 'name'),
         );
 
-        expect(records).toStrictEqual([{ id: 201, name: 'Sharon J. Whalen' }]);
+        expect(records).toStrictEqual([{ personId: 201, name: 'Sharon J. Whalen' }]);
       });
     });
 
@@ -647,25 +651,25 @@ describe('RelationCollectionDecorator', () => {
         const ascending = await newPassports.list(
           factories.caller.build(),
           new PaginatedFilter({ sort: new Sort({ field: 'owner:name', ascending: true }) }),
-          new Projection('id', 'ownerId', 'owner:name'),
+          new Projection('passportId', 'ownerId', 'owner:name'),
         );
 
         const descending = await newPassports.list(
           factories.caller.build(),
           new PaginatedFilter({ sort: new Sort({ field: 'owner:name', ascending: false }) }),
-          new Projection('id', 'ownerId', 'owner:name'),
+          new Projection('passportId', 'ownerId', 'owner:name'),
         );
 
         expect(ascending).toStrictEqual([
-          { id: 103, ownerId: null, owner: null },
-          { id: 102, ownerId: 201, owner: { name: 'Sharon J. Whalen' } },
-          { id: 101, ownerId: 202, owner: { name: 'Mae S. Waldron' } },
+          { passportId: 103, ownerId: null, owner: null },
+          { passportId: 102, ownerId: 201, owner: { name: 'Sharon J. Whalen' } },
+          { passportId: 101, ownerId: 202, owner: { name: 'Mae S. Waldron' } },
         ]);
 
         expect(descending).toStrictEqual([
-          { id: 101, ownerId: 202, owner: { name: 'Mae S. Waldron' } },
-          { id: 102, ownerId: 201, owner: { name: 'Sharon J. Whalen' } },
-          { id: 103, ownerId: null, owner: null },
+          { passportId: 101, ownerId: 202, owner: { name: 'Mae S. Waldron' } },
+          { passportId: 102, ownerId: 201, owner: { name: 'Sharon J. Whalen' } },
+          { passportId: 103, ownerId: null, owner: null },
         ]);
       });
     });
@@ -675,9 +679,9 @@ describe('RelationCollectionDecorator', () => {
         const caller = factories.caller.build();
         const filter = new Filter({});
         const aggregation = new Aggregation({ operation: 'Count', groups: [{ field: 'name' }] });
-        const groups = await newPersons.aggregate(caller, filter, aggregation, null);
+        const groups = await newPersons.aggregate(caller, filter, aggregation);
 
-        expect(persons.aggregate).toHaveBeenCalledWith(caller, filter, aggregation, null);
+        expect(persons.aggregate).toHaveBeenCalledWith(caller, filter, aggregation, undefined);
         expect(groups).toStrictEqual([
           { value: 1, group: { name: 'Sharon J. Whalen' } },
           { value: 1, group: { name: 'Mae S. Waldron' } },

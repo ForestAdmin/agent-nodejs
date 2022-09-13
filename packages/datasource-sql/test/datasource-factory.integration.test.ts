@@ -1,8 +1,7 @@
 import { DataTypes, Dialect, Sequelize, literal } from 'sequelize';
 import { Literal } from 'sequelize/types/utils';
 
-import SequelizeDataSourceBuilder from '../src/sequelize-builder';
-import SqlDataSourceFactory from '../src/datasource-factory';
+import { buildSequelizeInstance } from '../src';
 
 function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {
   switch (dialect) {
@@ -15,7 +14,7 @@ function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {
     case 'postgres':
       return literal('now()');
     default:
-      return null;
+      throw new Error('invalid dialect');
   }
 }
 
@@ -249,8 +248,9 @@ describe('SqlDataSourceFactory > Integration', () => {
       const connectionUrl = 'test:password@localhost:5443';
 
       const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-      const builder = new SequelizeDataSourceBuilder(connectionUri);
-      await expect(SqlDataSourceFactory.build(builder)).resolves.not.toThrow();
+      const sequelize = await buildSequelizeInstance(connectionUri, () => {});
+
+      expect(sequelize).toBeInstanceOf(Sequelize);
     });
   });
 
@@ -410,10 +410,9 @@ describe('SqlDataSourceFactory > Integration', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const builder = new SequelizeDataSourceBuilder(connectionUri);
-          await SqlDataSourceFactory.build(builder);
+          dataSourceSequelize = await buildSequelizeInstance(connectionUri, () => {});
 
-          const dataSourceModels = builder.models;
+          const dataSourceModels = dataSourceSequelize.models;
           Object.values(setupModels).forEach(setupModel => {
             const model = dataSourceModels[setupModel.name];
 
@@ -504,10 +503,9 @@ describe('SqlDataSourceFactory > Integration', () => {
 
         try {
           const connectionUri = `${dialect}://${connectionUrl}/${databaseName}`;
-          const builder = new SequelizeDataSourceBuilder(connectionUri);
-          await SqlDataSourceFactory.build(builder);
+          dataSourceSequelize = await buildSequelizeInstance(connectionUri, () => {});
 
-          const dataSourceModels = builder.models;
+          const dataSourceModels = dataSourceSequelize.models;
 
           Object.values(setupModels).forEach(setupModel => {
             const model = dataSourceModels[setupModel.name];

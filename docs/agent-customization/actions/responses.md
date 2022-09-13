@@ -66,6 +66,21 @@ return resultBuilder.error(
 
 ![](../../assets/actions-html-response-error.png)
 
+For instance in case of error:
+
+```javascript
+const record = await context.getRecord();
+return resultBuilder.error(
+  'You can perform this action for the following reasons:',
+  `
+    <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD exceeds threshold.</p>
+    <strong class="c-form__label--read c-clr-1-2">You can use the following card instead</strong>
+    <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
+  `,
+  { type: 'html' },
+);
+```
+
 ### File generation
 
 On our Live Demo, the collection customers has an action Generate invoice. In this use case, we want to download the generated PDF invoice after clicking on the action. To indicate an action returns something to download, you have to enable the option `generateFile`.

@@ -1,3 +1,38 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.32](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.31...@forestadmin/datasource-toolkit@1.0.0-beta.32) (2022-09-12)
+
+
+### Bug Fixes
+
+* **condition-tree:** longer than and shorter than operators are supported ([#415](https://github.com/ForestAdmin/agent-nodejs/issues/415)) ([48b7271](https://github.com/ForestAdmin/agent-nodejs/commit/48b7271edd817f2614abfbc5dd26a1160615cd53))
+
+# @forestadmin/datasource-toolkit [1.0.0-beta.31](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.30...@forestadmin/datasource-toolkit@1.0.0-beta.31) (2022-09-08)
+
+
+### Features
+
+* allow configuring field validators during agent customization ([#365](https://github.com/ForestAdmin/agent-nodejs/issues/365)) ([8bc6fb3](https://github.com/ForestAdmin/agent-nodejs/commit/8bc6fb379891eb81cbfaddf6bffd89bb02f478ed))
+
+# @forestadmin/datasource-toolkit [1.0.0-beta.30](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.29...@forestadmin/datasource-toolkit@1.0.0-beta.30) (2022-09-07)
+
+
+### Bug Fixes
+
+* **validator:** allow null value for the field value and use strict value for the ids.  ([#407](https://github.com/ForestAdmin/agent-nodejs/issues/407)) ([9fb6194](https://github.com/ForestAdmin/agent-nodejs/commit/9fb6194d635abc5cca02fef587e96e096af1e529))
+
+# @forestadmin/datasource-toolkit [1.0.0-beta.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.28...@forestadmin/datasource-toolkit@1.0.0-beta.29) (2022-09-05)
+
+
+### Bug Fixes
+
+* **relation:** use correct column when emulating filter on emulated many to one ([#405](https://github.com/ForestAdmin/agent-nodejs/issues/405)) ([7c9b8e3](https://github.com/ForestAdmin/agent-nodejs/commit/7c9b8e3bd0427db690c539047ee14b2685a085ac))
+
+# @forestadmin/datasource-toolkit [1.0.0-beta.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.27...@forestadmin/datasource-toolkit@1.0.0-beta.28) (2022-09-05)
+
+
+### Features
+
+* allow using case sensitive contains on search ([#402](https://github.com/ForestAdmin/agent-nodejs/issues/402)) ([9806c0e](https://github.com/ForestAdmin/agent-nodejs/commit/9806c0ecc1d91e291e24c2ac5517ed8dbba83d77))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.26...@forestadmin/datasource-toolkit@1.0.0-beta.27) (2022-08-23)
 
 
