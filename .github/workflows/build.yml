@@ -128,7 +128,7 @@ jobs:
       - name: Build doc
         run: yarn docs
       - name: Archive documentation artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-pages-artifact@v1
         with:
           name: api-reference
           path: api-reference
@@ -136,22 +136,16 @@ jobs:
   doc-publish:
     name: Publish documentation
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     needs: [doc-build, doc-link-validation, test, lint]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/beta'
     steps:
-      - uses: actions/checkout@v2
-        with:
-          repository: ${{ github.repository }}.wiki
-      - name: Download a single artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: api-reference
-      - name: Commit api reference
-        run: |
-          git config --local user.email ${{ secrets.GIT_COMMITTER_EMAIL }}
-          git config --local user.name ${{ secrets.GIT_COMMITTER_NAME }}
-          git commit -am "docs: update api-reference on github wiki"
-          git push
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
 
   release:
     name: Release packages
