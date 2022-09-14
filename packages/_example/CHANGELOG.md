@@ -1,3 +1,18 @@
+# example [1.0.0-beta.75](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.74...example@1.0.0-beta.75) (2022-09-14)
+
+
+### Features
+
+* **oidc:** users don't need to provide agentUrl anymore ([#387](https://github.com/ForestAdmin/agent-nodejs/issues/387)) ([39d6ac7](https://github.com/ForestAdmin/agent-nodejs/commit/39d6ac72409081a1fe5748a67f5c1f4e146d7b01))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.57
+
 # example [1.0.0-beta.74](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.73...example@1.0.0-beta.74) (2022-09-12)
 
 
