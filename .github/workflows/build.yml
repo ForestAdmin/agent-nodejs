@@ -28,9 +28,9 @@ jobs:
       - name: Cancel previous running workflows
         uses: fkirc/skip-duplicate-actions@master
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14.17.6
+          node-version: 16.14.0
       - uses: actions/cache@v3
         with:
           path: '**/node_modules'
@@ -54,9 +54,9 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14.17.6
+          node-version: 16.14.0
       - name: Cache node_modules
         uses: actions/cache@v3
         with:
@@ -79,9 +79,9 @@ jobs:
     needs: [build]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14.17.6
+          node-version: 16.14.0
       - name: Cache node_modules
         uses: actions/cache@v3
         with:
@@ -110,9 +110,9 @@ jobs:
     needs: [build]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14.17.6
+          node-version: 16.14.0
       - name: Cache node_modules
         uses: actions/cache@v3
         with:
@@ -126,9 +126,9 @@ jobs:
     needs: [build]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14.17.6
+          node-version: 16.14.0
       - name: Cache node_modules
         uses: actions/cache@v3
         with:
@@ -173,9 +173,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false # GITHUB_TOKEN must not be set for the semantic release
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14.17.6
+          node-version: 16.14.0
       - name: Cache node_modules
         uses: actions/cache@v3
         with:
