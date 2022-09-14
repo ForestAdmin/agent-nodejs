@@ -30,7 +30,8 @@
     "prettier-eslint": "^13.0.0",
     "semantic-release-slack-bot": "3.5.2",
     "ts-jest": "^27.1.2",
-    "typedoc": "^0.22.10",
+    "typedoc": "^0.23.14",
+    "typedoc-plugin-resolve-crossmodule-references": "^0.3.0",
     "typescript": "^4.5.4"
   },
   "scripts": {
