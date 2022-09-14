@@ -62,7 +62,7 @@ collection.addAction('Download a file', {
 
 ### Redirections
 
-To streamline your operation workflow, it could make sense to redirect to another page after a Smart action was successfully executed.
+To streamline your operation workflow, it could make sense to redirect to another page after an action was successfully executed.
 
 It is possible using the `redirectTo` function.
 

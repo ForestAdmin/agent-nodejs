@@ -10,7 +10,7 @@ If you created your project before May 10th, 2021 and want to benefit from this 
 
 Your Forest Admin panel is composed of 2 parts - [the frontend (UI) and the backend](../) - and for each one you need the right tools:
 
-The **Admin** **backend** is part of your codebase. As a result, you'll be using your own favorite tools to customize it:&#x20;
+The **Admin** **backend** is part of your codebase. As a result, you'll be using your own favorite tools to customize it:
 
 - Editing: your favorite IDE
 - Versioning: your favorite versioning tool (git, svn, mercurial, etc)
@@ -22,7 +22,7 @@ Your **Forest Admin UI** is **not** part of your codebase: it is managed on Fore
 
 ### Development workflow
 
-For a simple and hands-on **example** of how to develop on Forest Admin according to our recommended development workflow, see [this page](../../../getting-started/development-workflow.md).
+For a simple and hands-on **example** of how to develop on Forest Admin according to our recommended development workflow, see [this page](./development-workflow.md).
 
 For a more complete view showcasing each possible scenario of the recommended development workflow, we've drawn the following state **diagram**:
 

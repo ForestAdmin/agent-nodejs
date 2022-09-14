@@ -44,7 +44,7 @@ Note that you'll be pushing your **current** branch. To select another branch, u
 
 #### Deploying from your remote's interface
 
-Once you have tested your new feature on "Remote 1", you can't deploy your branch's layout to "Production", since your branch will have been deleted by pushing it to "Remote 1".&#x20;
+Once you have tested your new feature on "Remote 1", you can't deploy your branch's layout to "Production", since your branch will have been deleted by pushing it to "Remote 1".
 
 To deploy it from there, simply **click on "Deploy to production" in the top banner**!
 

@@ -47,7 +47,7 @@ Never share it publicly, as it would allow attackers to impersonate your agent w
 In development mode the agent has a few extra behaviors (when using `isProduction: false`)
 
 - At startup, the agent will print the URL of all mounted charts
-- At startup, the agent will update the `.forestadmin-schema.json` and [typings](../autocompletion-and-typings.md) files.
+- At startup, the agent will update the `.forestadmin-schema.json` and [typings](./autocompletion-and-typings.md) files.
 - When exceptions are thrown, a report will be printed to stdout.
 
 ## Optional variables
@@ -76,7 +76,7 @@ createAgent({
 });
 ```
 
-### `forestServerUrl` (string, defaults to 'https://api.forestadmin.com')
+### `forestServerUrl` (string, defaults to 'https://api.forestadmin.com') <!-- markdown-link-check-disable-line -->
 
 This variable should be used only for customers using [the self-hosted version of Forest Admin](https://www.forestadmin.com/self-hosted).
 
@@ -133,12 +133,16 @@ Note that this variable has **no influence** on the base URL that will be used b
 
 This is done so that customers using reverse proxies can implement their routing table as they see fit.
 
-| Desired Local URLs                        | Desired Public URLs                          | How to configure your agent                                                                  |
-| ----------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| http://localhost:3000/forest              | https://api.company.com/forest               | options.prefix = ''<br>application URL = 'https://api.company.com'                           |
-| http://localhost:3000/forest              | https://www.company.com/api/forest           | options.prefix = ''<br>application URL = 'https://www.company.com/api'                       |
-| http://localhost:3000/prefix/forest       | https://api.company.com/prefix/forest        | options.prefix = 'prefix'<br>application URL = 'https://api.company.com/prefix'              |
-| http://localhost:3000/local-prefix/forest | https://api.company.com/public-prefix/forest | options.prefix = 'local-prefix'<br>application URL = 'https://api.company.com/public-prefix' |
+<!-- markdown-link-check-disable -->
+
+| Desired Local URLs                        | Desired Public URLs                          | How to configure your agent                                                   |
+| ----------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------- |
+| http://localhost:3000/forest              | https://api.company.com/forest               | prefix = ''<br>agentUrl = 'https://api.company.com'                           |
+| http://localhost:3000/forest              | https://www.company.com/api/forest           | prefix = ''<br>agentUrl = 'https://www.company.com/api'                       |
+| http://localhost:3000/prefix/forest       | https://api.company.com/prefix/forest        | prefix = 'prefix'<br>agentUrl = 'https://api.company.com/prefix'              |
+| http://localhost:3000/local-prefix/forest | https://api.company.com/public-prefix/forest | prefix = 'local-prefix'<br>agentUrl = 'https://api.company.com/public-prefix' |
+
+<!-- markdown-link-check-enable -->
 
 ```javascript
 createAgent({

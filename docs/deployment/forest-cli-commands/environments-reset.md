@@ -17,7 +17,7 @@ OPTIONS
 
 As you've learnt in [previous pages](push.md), the `forest push` command lets you push changes made in the layout to a remote environments and later `deploy` them to your production.
 
-Sometimes though, there comes a time when you've stacked too many layout changes on a remote environment and just want to get rid of them.&#x20;
+Sometimes though, there comes a time when you've stacked too many layout changes on a remote environment and just want to get rid of them.
 
 Unlike a branch which you can just dispose of, for a remote environment you need a way to clean it easily, this is where the `forest environments:reset` command comes in.
 
