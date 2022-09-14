@@ -104,6 +104,7 @@ jobs:
           coverageLocations: |
             ${{github.workspace}}/coverage/lcov.info:lcov
           coverageCommand: yarn test:coverage
+
   doc-link-validation:
     name: Validate Links in doc
     runs-on: ubuntu-latest
@@ -120,6 +121,7 @@ jobs:
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/_example/package.json', 'patches/*.patch') }}
       - name: Check links in doc
         run: yarn docs:check-links
+
   doc-build:
     name: Build doc
     runs-on: ubuntu-latest
@@ -140,20 +142,6 @@ jobs:
         uses: actions/upload-pages-artifact@v1
         with:
           path: api-reference
-
-  doc-publish:
-    name: Publish documentation
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    needs: [doc-build, doc-link-validation, test, lint]
-    steps:
-      - name: Setup Pages
-        uses: actions/configure-pages@v2
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v1
 
   release:
     name: Release packages
@@ -202,3 +190,17 @@ jobs:
           GIT_COMMITTER_NAME: ${{ secrets.GIT_COMMITTER_NAME }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+  doc-publish:
+    name: Publish documentation
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: [release]
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
