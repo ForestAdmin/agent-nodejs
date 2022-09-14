@@ -2,9 +2,7 @@ import { Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
-  agentUrl: string;
   authSecret: string;
-  clientId?: string | null;
   envSecret: string;
   customizeErrorMessage?: ((error: Error) => string | null) | null;
   forestServerUrl?: string;

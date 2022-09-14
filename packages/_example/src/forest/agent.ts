@@ -21,7 +21,6 @@ import sequelizePostgres from '../connections/sequelize-postgres';
 export default function makeAgent() {
   const envOptions: AgentOptions = {
     authSecret: process.env.FOREST_AUTH_SECRET,
-    agentUrl: process.env.FOREST_AGENT_URL,
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: false,
