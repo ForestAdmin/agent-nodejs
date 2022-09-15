@@ -10,5 +10,6 @@
     "packages/datasource-sql",
     "packages/datasource-mongoose"
   ],
-  "out": "api-reference"
+  "out": "api-reference",
+  "name": "Forest Admin - API reference"
 }
