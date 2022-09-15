@@ -136,7 +136,6 @@ describe('DummyDataSource > Collections > Books', () => {
     await expect(bookCollection.execute()).resolves.toMatchObject({
       type: 'Success',
       message: 'Record set as active',
-      format: 'text',
     });
   });
 });

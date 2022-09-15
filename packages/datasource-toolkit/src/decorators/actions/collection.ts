@@ -39,7 +39,6 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       result || {
         type: 'Success' as const,
         invalidated: new Set<string>(),
-        format: 'text' as const,
         message: 'Success',
       }
     );

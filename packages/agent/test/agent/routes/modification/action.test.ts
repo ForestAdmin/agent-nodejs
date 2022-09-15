@@ -155,7 +155,6 @@ describe('ActionRoute', () => {
         {
           type: 'Success',
           message: 'it went great!',
-          format: 'text',
           invalidated: new Set(),
         },
         { success: 'it went great!', refresh: { relationships: [] } },
@@ -165,15 +164,31 @@ describe('ActionRoute', () => {
         {
           type: 'Success',
           message: 'it went great!',
-          format: 'html',
+          html: '<div>Successful</div>',
           invalidated: new Set(),
         },
-        { html: 'it went great!', refresh: { relationships: [] } },
+        {
+          success: 'it went great!',
+          html: '<div>Successful</div>',
+          refresh: { relationships: [] },
+        },
       ],
       [
         'Error',
         { type: 'Error', message: 'it went very badly!' },
         { error: 'it went very badly!' },
+      ],
+      [
+        'Error (html)',
+        {
+          type: 'Error',
+          message: 'it went very badly!',
+          html: '<div>Because of PEBCAK</div>',
+        },
+        {
+          error: 'it went very badly!',
+          html: '<div>Because of PEBCAK</div>',
+        },
       ],
       [
         'Webhook',
