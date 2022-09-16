@@ -6,7 +6,7 @@ import hashObject from 'object-hash';
 import superagent, { Response, ResponseError } from 'superagent';
 
 import { AgentOptions } from '../../types';
-import { EnvironmentPermissionsV4, UserPermissionV4 } from './types';
+import { EnvironmentPermissionsV4, UserPermissionV4 } from '../services/authorization';
 
 export type IpWhitelistConfiguration = {
   isFeatureEnabled: boolean;

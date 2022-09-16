@@ -2,7 +2,7 @@ import { ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { CollectionActionEvent } from '../../utils/types';
+import { CollectionActionEvent } from '../../services/authorization';
 import { HttpCode, SelectionIds } from '../../types';
 import BodyParser from '../../utils/body-parser';
 import CollectionRoute from '../collection-route';

@@ -8,7 +8,7 @@ import { Context } from 'koa';
 import { Readable } from 'stream';
 import Router from '@koa/router';
 
-import { CollectionActionEvent } from '../../utils/types';
+import { CollectionActionEvent } from '../../services/authorization';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import CsvGenerator from '../../utils/csv-generator';
 import CsvRouteContext from '../../utils/csv-route-context';

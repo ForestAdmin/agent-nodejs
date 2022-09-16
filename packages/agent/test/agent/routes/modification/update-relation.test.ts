@@ -2,7 +2,7 @@ import { Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { CollectionActionEvent } from '../../../../src/agent/utils/types';
+import { CollectionActionEvent } from '../../../../src/agent/services/authorization'';
 import { HttpCode } from '../../../../src/agent/types';
 import UpdateRelationRoute from '../../../../src/agent/routes/modification/update-relation';
 

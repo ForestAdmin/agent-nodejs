@@ -1,7 +1,7 @@
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { CollectionActionEvent } from '../../utils/types';
+import { CollectionActionEvent } from '../../services/authorization';
 import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import QueryStringParser from '../../utils/query-string';

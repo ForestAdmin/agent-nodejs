@@ -2,7 +2,7 @@ import { Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { CollectionActionEvent } from '../../../../src/agent/utils/types';
+import { CollectionActionEvent } from '../../../../src/agent/services/authorization'';
 import List from '../../../../src/agent/routes/access/list';
 
 describe('ListRoute', () => {

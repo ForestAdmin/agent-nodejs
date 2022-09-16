@@ -8,7 +8,7 @@ import {
   RightDescriptionV4,
   RightDescriptionWithRolesV4,
   UserPermissionV4,
-} from '../../../utils/types';
+} from './types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,

@@ -12,7 +12,7 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { CollectionActionEvent } from '../../utils/types';
+import { CollectionActionEvent } from '../../services/authorization';
 import { HttpCode } from '../../types';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';

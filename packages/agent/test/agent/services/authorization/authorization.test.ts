@@ -2,7 +2,7 @@ import { Context } from 'koa';
 
 import * as factories from '../../__factories__';
 
-import { CollectionActionEvent, CustomActionEvent } from '../../../../src/agent/utils/types';
+import { CollectionActionEvent, CustomActionEvent } from '../../../../src/agent/services/authorization'';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,

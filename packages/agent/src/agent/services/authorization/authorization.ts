@@ -1,6 +1,6 @@
 import { Context } from 'koa';
 
-import { CollectionActionEvent, CustomActionEvent } from '../../utils/types';
+import { CollectionActionEvent, CustomActionEvent } from './internal/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,

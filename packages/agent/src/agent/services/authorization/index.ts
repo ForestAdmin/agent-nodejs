@@ -9,3 +9,10 @@ export default function authorizationServiceFactory(
 
   return new AuthorizationService(actionPermissionService);
 }
+
+export {
+  CustomActionEvent,
+  CollectionActionEvent,
+  EnvironmentPermissionsV4,
+  UserPermissionV4,
+} from './internal/types';
