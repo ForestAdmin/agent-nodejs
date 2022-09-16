@@ -1,8 +1,8 @@
-import { CollectionActionEvent, CustomActionEvent } from '../../../src/agent/utils/types';
+import { CollectionActionEvent, CustomActionEvent } from '../../../../../src/agent/utils/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
-} from '../../../src/agent/utils/generate-action-identifier';
+} from '../../../../../src/agent/services/authorization/internal/generate-action-identifier';
 
 describe('generateActionIdentifier', () => {
   describe('generateCustomActionIdentifier', () => {

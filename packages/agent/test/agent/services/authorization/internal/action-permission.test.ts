@@ -1,8 +1,8 @@
-import ActionPermissionService from '../../../../src/agent/services/authorization/internal/action-permission';
-import ForestHttpApi from '../../../../src/agent/utils/forest-http-api';
+import ActionPermissionService from '../../../../../src/agent/services/authorization/internal/action-permission';
+import ForestHttpApi from '../../../../../src/agent/utils/forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
-} from '../../../../src/agent/services/authorization/internal/generate-actions-from-permissions';
+} from '../../../../../src/agent/services/authorization/internal/generate-actions-from-permissions';
 
 jest.mock('../../../../src/agent/utils/forest-http-api', () => ({
   getUsers: jest.fn(),

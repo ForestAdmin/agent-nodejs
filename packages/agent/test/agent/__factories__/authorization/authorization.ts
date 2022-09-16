@@ -1,7 +1,7 @@
 import { Factory } from 'fishery';
 
-import AuthorizationService from '../../../src/agent/services/authorization';
-import actionPermissionsFactory from './permissions/action-permission';
+import AuthorizationService from '../../../../src/agent/services/authorization/authorization';
+import actionPermissionsFactory from './internal/action-permission';
 
 export class AuthorizationsFactory extends Factory<AuthorizationService> {
   mockAllMethods() {

@@ -4,5 +4,5 @@ export { default as forestAdminHttpDriverServices } from './forest-admin-http-dr
 export { default as router } from './router';
 export { default as serializer } from './serializer';
 export { default as superagent } from './superagent';
-export { default as authorization } from './authorization';
-export { default as actionPermission } from './permissions/action-permission';
+export { default as authorization } from './authorization/authorization';
+export { default as actionPermission } from './authorization/internal/action-permission';

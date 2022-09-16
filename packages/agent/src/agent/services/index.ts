@@ -1,8 +1,8 @@
 import { AgentOptionsWithDefaults } from '../types';
-import ActionPermissionService from './permissions/action-permission';
-import AuthorizationService from './authorization';
-import PermissionService from './permissions/permissions';
+import AuthorizationService from './authorization/authorization';
+import PermissionService from './permissions';
 import Serializer from './serializer';
+import authorizationServiceFactory from './authorization';
 
 export type ForestAdminHttpDriverServices = {
   permissions: PermissionService;
@@ -11,11 +11,9 @@ export type ForestAdminHttpDriverServices = {
 };
 
 export default (options: AgentOptionsWithDefaults): ForestAdminHttpDriverServices => {
-  const actionPermissionService = new ActionPermissionService(options);
-
   return {
     permissions: new PermissionService(options),
-    authorization: new AuthorizationService(actionPermissionService),
+    authorization: authorizationServiceFactory(options),
     serializer: new Serializer(),
   };
 };

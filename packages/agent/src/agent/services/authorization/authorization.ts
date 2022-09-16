@@ -1,11 +1,11 @@
 import { Context } from 'koa';
 
-import { CollectionActionEvent, CustomActionEvent } from '../utils/types';
+import { CollectionActionEvent, CustomActionEvent } from '../../utils/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
-} from '../utils/generate-action-identifier';
-import ActionPermissionService from './permissions/action-permission';
+} from './internal/generate-action-identifier';
+import ActionPermissionService from './internal/action-permission';
 
 export default class AuthorizationService {
   constructor(private readonly actionPermissionService: ActionPermissionService) {}

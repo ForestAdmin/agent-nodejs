@@ -1,10 +1,10 @@
 import LruCache from 'lru-cache';
 
-import { AgentOptionsWithDefaults } from '../../types';
-import ForestHttpApi from '../../utils/forest-http-api';
+import { AgentOptionsWithDefaults } from '../../../types';
+import ForestHttpApi from '../../../utils/forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
-} from '../../utils/generate-actions-from-permissions';
+} from './generate-actions-from-permissions';
 
 export type ActionPermissionOptions = Pick<
   AgentOptionsWithDefaults,

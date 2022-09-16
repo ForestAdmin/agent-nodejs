@@ -1,13 +1,13 @@
 import { Context } from 'koa';
 
-import * as factories from '../__factories__';
+import * as factories from '../../__factories__';
 
-import { CollectionActionEvent, CustomActionEvent } from '../../../src/agent/utils/types';
+import { CollectionActionEvent, CustomActionEvent } from '../../../../src/agent/utils/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
-} from '../../../src/agent/utils/generate-action-identifier';
-import AuthorizationService from '../../../src/agent/services/authorization';
+} from '../../../../src/agent/services/authorization/internal/generate-action-identifier';
+import AuthorizationService from '../../../../src/agent/services/authorization/authorization';
 
 jest.mock('../../../src/agent/utils/generate-action-identifier', () => ({
   generateCollectionActionIdentifier: jest.fn(),

@@ -3,8 +3,8 @@ import { Context } from 'koa';
 import LruCache from 'lru-cache';
 import hashObject from 'object-hash';
 
-import { AgentOptionsWithDefaults, HttpCode } from '../../types';
-import ForestHttpApi, { RenderingPermissions } from '../../utils/forest-http-api';
+import { AgentOptionsWithDefaults, HttpCode } from '../types';
+import ForestHttpApi, { RenderingPermissions } from '../utils/forest-http-api';
 
 type RolesOptions = Pick<
   AgentOptionsWithDefaults,
