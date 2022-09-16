@@ -42,7 +42,6 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    * Create a new Agent Builder.
    * If any options are missing, the default will be applied:
    * ```
-   *  clientId: null,
    *  forestServerUrl: 'https://api.forestadmin.com',
    *  logger: (level, data) => console.error(level, data),
    *  prefix: 'api/v1',

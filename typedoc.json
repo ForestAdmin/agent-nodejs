@@ -7,8 +7,9 @@
     "packages/agent",
     "packages/datasource-toolkit",
     "packages/datasource-sequelize",
-    "packages/datasource-sql"
+    "packages/datasource-sql",
+    "packages/datasource-mongoose"
   ],
   "out": "api-reference",
-  "theme": "github-wiki"
+  "name": "Forest Admin - API reference"
 }

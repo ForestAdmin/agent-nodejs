@@ -8,30 +8,29 @@ export default class ResultBuilder {
    * @param message the success message to return
    * @param options available options to return
    * @example
-   * .success('<blinkee>Success!</blinkee>', { type: 'html' });
+   * .success('Success', { html: '<blinkee>Success!</blinkee>' });
    */
-  success(
-    message?: string,
-    options?: { type?: 'html' | 'text'; invalidated?: string[] },
-  ): ActionResult {
+  success(message?: string, options?: { html?: string; invalidated?: string[] }): ActionResult {
     return {
       type: 'Success',
       message: message ?? 'Success',
-      format: options?.type ?? 'text',
       invalidated: new Set(options?.invalidated ?? []),
+      html: options?.html,
     };
   }
 
   /**
    * Returns an error response from the action
    * @param message the error message to return
+   * @param options available options to return
    * @example
-   * .error('Failed to refund the customer!');
+   * .error('Failed to refund the customer!', { html: '<strong>Error!</strong>' });
    */
-  error(message?: string): ActionResult {
+  error(message?: string, options?: { html: string }): ActionResult {
     return {
       type: 'Error',
       message: message ?? 'Error',
+      html: options?.html,
     };
   }
 

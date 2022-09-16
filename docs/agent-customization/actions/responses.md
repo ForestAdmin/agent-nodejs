@@ -28,21 +28,43 @@ return resultBuilder.error('The company was already live!');
 
 You can also return a HTML page as a response to give more feedback to the user who triggered your Action.
 
-For instance:
+For instance in case of success:
 
 ```javascript
 const record = await context.getRecord();
 return resultBuilder.success(
-  `
-    <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has been successfuly charged.</p>
-    <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
-    <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
-  `,
-  { type: 'html' },
+  'Success',
+  { 
+    html: `
+      <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has been successfuly charged.</p>
+      <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
+      <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
+    `,
+  },
 );
 ```
 
-![](../../assets/actions-html-response.png)
+![](../../assets/actions-html-response-success.png)
+
+For instance in case of error:
+
+```javascript
+const record = await context.getRecord();
+return resultBuilder.error(
+  'An error occured',
+  {
+    html: `
+      <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has not been charged.</p>
+      <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
+      <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
+      <strong class="c-form__label--read c-clr-1-2">Reason</strong>
+      <p class="c-clr-1-4 l-mb">You can not charge this credit card. The card is marked as blocked</p>
+    `,
+  },
+);
+```
+
+![](../../assets/actions-html-response-error.png)
 
 ### File generation
 

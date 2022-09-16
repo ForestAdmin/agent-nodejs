@@ -49,7 +49,7 @@ describe('Authentication', () => {
       });
     });
 
-    describe('without a client id', () => {
+    describe('register openid client', () => {
       beforeEach(() => {
         (ForestHttpApi.getOpenIdIssuerMetadata as jest.Mock).mockResolvedValue({
           registration_endpoint: 'http://fake-registration-endpoint',
@@ -87,28 +87,6 @@ describe('Authentication', () => {
 
           await expect(authentication.bootstrap()).resolves.not.toThrow();
           expect(clientRegisterSpy).toHaveBeenCalledTimes(1);
-        });
-      });
-    });
-
-    describe('with a client id', () => {
-      beforeEach(() => {
-        (ForestHttpApi.getOpenIdIssuerMetadata as jest.Mock).mockResolvedValue({
-          registration_endpoint: 'http://fake-registration-endpoint',
-        });
-      });
-
-      describe('when the openid client can be created', () => {
-        test('should resolve', async () => {
-          const clientConstructorSpy = jest.fn().mockReturnValue({});
-          openidClient.Issuer = jest.fn().mockImplementation(() => ({
-            Client: clientConstructorSpy,
-          })) as unknown as typeof Issuer;
-          const optionsOverride = { ...options, clientId: 'xx' };
-          const authentication = new Authentication(services, optionsOverride);
-
-          await expect(authentication.bootstrap()).resolves.not.toThrow();
-          expect(clientConstructorSpy).toHaveBeenCalledTimes(1);
         });
       });
     });

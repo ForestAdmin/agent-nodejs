@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.33](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.32...@forestadmin/datasource-toolkit@1.0.0-beta.33) (2022-09-15)
+
+
+### Features
+
+* **smart-action:** users can now respond html errors when building smart action responses ([#403](https://github.com/ForestAdmin/agent-nodejs/issues/403)) ([c5b2340](https://github.com/ForestAdmin/agent-nodejs/commit/c5b2340afdf47a15c157803b279455602e681256))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.32](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.31...@forestadmin/datasource-toolkit@1.0.0-beta.32) (2022-09-12)
 
 

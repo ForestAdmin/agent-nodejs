@@ -1,3 +1,33 @@
+# example [1.0.0-beta.76](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.75...example@1.0.0-beta.76) (2022-09-15)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.58
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0-beta.34
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.43
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0-beta.51
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.33
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0-beta.21
+
+# example [1.0.0-beta.75](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.74...example@1.0.0-beta.75) (2022-09-14)
+
+
+### Features
+
+* **oidc:** users don't need to provide agentUrl anymore ([#387](https://github.com/ForestAdmin/agent-nodejs/issues/387)) ([39d6ac7](https://github.com/ForestAdmin/agent-nodejs/commit/39d6ac72409081a1fe5748a67f5c1f4e146d7b01))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0-beta.57
+
 # example [1.0.0-beta.74](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.73...example@1.0.0-beta.74) (2022-09-12)
 
 

@@ -1,3 +1,25 @@
+# @forestadmin/agent [1.0.0-beta.58](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.57...@forestadmin/agent@1.0.0-beta.58) (2022-09-15)
+
+
+### Features
+
+* **smart-action:** users can now respond html errors when building smart action responses ([#403](https://github.com/ForestAdmin/agent-nodejs/issues/403)) ([c5b2340](https://github.com/ForestAdmin/agent-nodejs/commit/c5b2340afdf47a15c157803b279455602e681256))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.33
+
+# @forestadmin/agent [1.0.0-beta.57](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.56...@forestadmin/agent@1.0.0-beta.57) (2022-09-14)
+
+
+### Features
+
+* **oidc:** users don't need to provide agentUrl anymore ([#387](https://github.com/ForestAdmin/agent-nodejs/issues/387)) ([39d6ac7](https://github.com/ForestAdmin/agent-nodejs/commit/39d6ac72409081a1fe5748a67f5c1f4e146d7b01))
+
 # @forestadmin/agent [1.0.0-beta.56](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.55...@forestadmin/agent@1.0.0-beta.56) (2022-09-12)
 
 

@@ -2,7 +2,6 @@ import OptionsValidator from '../../../src/builder/utils/options-validator';
 
 describe('OptionsValidator', () => {
   const mandatoryOptions = {
-    agentUrl: 'http://localhost:3351',
     authSecret: '2536a2f786fc98a1ee62f9e9f405ff2521181cd01e15adcc',
     envSecret: '61a31971206f285c3e8eb8f3ee420175eb004bfa9fa24846dde6d5dd438e3991',
     isProduction: false,
@@ -12,7 +11,6 @@ describe('OptionsValidator', () => {
     test('should add default values when they are missing', () => {
       const options = OptionsValidator.withDefaults(mandatoryOptions);
 
-      expect(options).toHaveProperty('clientId', null);
       expect(options).toHaveProperty('forestServerUrl', 'https://api.forestadmin.com');
       expect(options).toHaveProperty('logger', expect.any(Function));
       expect(options).toHaveProperty('prefix', '');
@@ -77,7 +75,6 @@ describe('OptionsValidator', () => {
   describe('OptionsValidator.validate', () => {
     const allOptions = {
       ...mandatoryOptions,
-      clientId: null as string,
       forestServerUrl: 'https://api.development.forestadmin.com',
       logger: () => {},
       loggerLevel: 'Debug',
@@ -103,38 +100,29 @@ describe('OptionsValidator', () => {
       });
     });
 
-    describe.each([
-      'agentUrl',
-      'authSecret',
-      'envSecret',
-      'forestServerUrl',
-      'prefix',
-      'schemaPath',
-    ])('%s', key => {
-      test('should fail with null', () => {
-        expect(() => OptionsValidator.validate({ ...allOptions, [key]: null })).toThrow(
-          `options.${key} is invalid.`,
-        );
-      });
-    });
+    describe.each(['authSecret', 'envSecret', 'forestServerUrl', 'prefix', 'schemaPath'])(
+      '%s',
+      key => {
+        test('should fail with null', () => {
+          expect(() => OptionsValidator.validate({ ...allOptions, [key]: null })).toThrow(
+            `options.${key} is invalid.`,
+          );
+        });
+      },
+    );
 
-    describe.each([
-      'agentUrl',
-      'authSecret',
-      'clientId',
-      'envSecret',
-      'forestServerUrl',
-      'prefix',
-      'schemaPath',
-    ])('%s', key => {
-      test('should fail with number', () => {
-        expect(() =>
-          OptionsValidator.validate({ ...allOptions, [key]: 123 as unknown as string }),
-        ).toThrow(`options.${key} is invalid.`);
-      });
-    });
+    describe.each(['authSecret', 'envSecret', 'forestServerUrl', 'prefix', 'schemaPath'])(
+      '%s',
+      key => {
+        test('should fail with number', () => {
+          expect(() =>
+            OptionsValidator.validate({ ...allOptions, [key]: 123 as unknown as string }),
+          ).toThrow(`options.${key} is invalid.`);
+        });
+      },
+    );
 
-    describe.each(['agentUrl', 'envSecret', 'forestServerUrl'])('%s', key => {
+    describe.each(['envSecret', 'forestServerUrl'])('%s', key => {
       test('should fail with bad format', () => {
         expect(() => OptionsValidator.validate({ ...allOptions, [key]: '123' })).toThrow(
           `options.${key} is invalid.`,
