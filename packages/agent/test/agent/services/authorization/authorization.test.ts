@@ -9,10 +9,13 @@ import {
 } from '../../../../src/agent/services/authorization/internal/generate-action-identifier';
 import AuthorizationService from '../../../../src/agent/services/authorization/authorization';
 
-jest.mock('../../../src/agent/utils/generate-action-identifier', () => ({
-  generateCollectionActionIdentifier: jest.fn(),
-  generateCustomActionIdentifier: jest.fn(),
-}));
+jest.mock(
+  '../../../../src/agent/services/authorization/internal/generate-action-identifier',
+  () => ({
+    generateCollectionActionIdentifier: jest.fn(),
+    generateCustomActionIdentifier: jest.fn(),
+  }),
+);
 
 describe('AuthorizationService', () => {
   describe('assertCanOnCollection', () => {

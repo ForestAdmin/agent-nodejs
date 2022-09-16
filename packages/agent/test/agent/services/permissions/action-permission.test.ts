@@ -9,10 +9,13 @@ jest.mock('../../../../src/agent/utils/forest-http-api', () => ({
   getEnvironmentPermissions: jest.fn(),
 }));
 
-jest.mock('../../../../src/agent/utils/generate-actions-from-permissions', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}));
+jest.mock(
+  '../../../../src/agent/services/authorization/internal/generate-actions-from-permissions',
+  () => ({
+    __esModule: true,
+    default: jest.fn(),
+  }),
+);
 
 const generateActionsFromPermissionsMock = generateActionsFromPermissions as jest.Mock;
 const getUsersMock = ForestHttpApi.getUsers as jest.Mock;

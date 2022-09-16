@@ -6,7 +6,7 @@ import * as factories from '../__factories__';
 import ForestHttpApi from '../../../src/agent/utils/forest-http-api';
 import PermissionService from '../../../src/agent/services/permissions';
 
-jest.mock('../../../../src/agent/utils/forest-http-api', () => ({
+jest.mock('../../../src/agent/utils/forest-http-api', () => ({
   getPermissions: jest.fn(),
 }));
 
