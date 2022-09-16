@@ -9,18 +9,21 @@ import {
 } from '../../../../../src/agent/services/authorization/internal/generate-action-identifier';
 import generateActionsFromPermissions from '../../../../../src/agent/services/authorization/internal/generate-actions-from-permissions';
 
-jest.mock('../../../src/agent/utils/generate-action-identifier', () => ({
-  __esModule: true,
-  generateCustomActionIdentifier: jest
-    .fn()
-    .mockImplementation(
-      (actionEventName, customActionName, collectionName) =>
-        `custom:${collectionName}:${customActionName}:${actionEventName}`,
-    ),
-  generateCollectionActionIdentifier: jest
-    .fn()
-    .mockImplementation((action, collectionName) => `collection:${collectionName}:${action}`),
-}));
+jest.mock(
+  '../../../../../src/agent/services/authorization/internal/generate-action-identifier',
+  () => ({
+    __esModule: true,
+    generateCustomActionIdentifier: jest
+      .fn()
+      .mockImplementation(
+        (actionEventName, customActionName, collectionName) =>
+          `custom:${collectionName}:${customActionName}:${actionEventName}`,
+      ),
+    generateCollectionActionIdentifier: jest
+      .fn()
+      .mockImplementation((action, collectionName) => `collection:${collectionName}:${action}`),
+  }),
+);
 
 describe('generateActionsFromPermissions', () => {
   describe('when everything is allowed', () => {
