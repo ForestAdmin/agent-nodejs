@@ -7,7 +7,7 @@ import {
   EnvironmentPermissionsV4Remote,
   RightDescriptionV4,
   RightDescriptionWithRolesV4,
-  RolePermissionV4,
+  UserPermissionV4,
 } from './types';
 import {
   generateCollectionActionIdentifier,
@@ -109,9 +109,13 @@ function getUsersForRoles(roles: number[], userIdsByRole: Map<number, number[]>)
 
 function generateActionsAllowedByUser(
   permissions: IntermediateRightsList,
-  roles: RolePermissionV4[],
+  users: UserPermissionV4[],
 ): Map<string, Set<string>> {
-  const userIdsByRole = new Map(roles.map(role => [role.id, role.users]));
+  const userIdsByRole = users.reduce((acc, user) => {
+    acc.set(user.roleId, [...(acc.get(user.roleId) || []), user.id]);
+
+    return acc;
+  }, new Map<number, number[]>());
 
   return new Map(
     Object.entries(permissions)
@@ -125,7 +129,7 @@ function generateActionsAllowedByUser(
 
 export default function generateActionsFromPermissions(
   environmentPermissions: EnvironmentPermissionsV4,
-  roles: RolePermissionV4[],
+  users: UserPermissionV4[],
 ): ActionPermissions {
   if (environmentPermissions === true) {
     return {
@@ -145,6 +149,6 @@ export default function generateActionsFromPermissions(
   return {
     everythingAllowed: false,
     actionsGloballyAllowed: generateActionsGloballyAllowed(allPermissions),
-    actionsAllowedByUser: generateActionsAllowedByUser(allPermissions, roles),
+    actionsAllowedByUser: generateActionsAllowedByUser(allPermissions, users),
   };
 }

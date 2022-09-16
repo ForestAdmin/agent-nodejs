@@ -36,10 +36,20 @@ export interface EnvironmentPermissionsV4Remote {
   collections: EnvironmentCollectionsPermissionsV4;
 }
 
-export type RolePermissionV4 = {
+export enum PermissionLevel {
+  Admin = 'admin',
+  User = 'user',
+  Developer = 'developer',
+}
+
+export type UserPermissionV4 = {
   id: number;
-  name: string;
-  users: number[];
+  firstName: string;
+  lastName: string;
+  email: string;
+  roleId: number;
+  permissionLevel: PermissionLevel;
+  tags: Record<string, string>;
 };
 
 export enum CollectionActionEvent {

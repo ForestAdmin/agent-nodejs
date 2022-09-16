@@ -1,4 +1,8 @@
-import { CollectionActionEvent, CustomActionEvent } from '../../../src/agent/utils/types';
+import {
+  CollectionActionEvent,
+  CustomActionEvent,
+  UserPermissionV4,
+} from '../../../src/agent/utils/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
@@ -123,23 +127,23 @@ describe('generateActionsFromPermissions', () => {
               },
             },
             [
-              { id: 1, name: 'role-1', users: [10, 20] },
-              { id: 2, name: 'role-2', users: [20, 30] },
-              { id: 3, name: 'role-3', users: [30, 40] },
-              { id: 4, name: 'role-4', users: [40, 50] },
-            ],
+              { id: 10, roleId: 1 },
+              { id: 20, roleId: 2 },
+              { id: 30, roleId: 3 },
+              { id: 40, roleId: 4 },
+            ] as UserPermissionV4[],
           );
 
           expect(result).toEqual({
             everythingAllowed: false,
             actionsGloballyAllowed: new Set(),
             actionsAllowedByUser: new Map([
-              ['collection:collection-id:add', new Set(['10', '20'])],
-              ['collection:collection-id:browse', new Set(['20', '30'])],
-              ['collection:collection-id:delete', new Set(['10', '20', '30'])],
-              ['collection:collection-id:edit', new Set(['30', '40'])],
-              ['collection:collection-id:export', new Set(['40', '50'])],
-              ['collection:collection-id:read', new Set(['30', '40', '50'])],
+              ['collection:collection-id:browse', new Set(['20'])],
+              ['collection:collection-id:read', new Set(['30', '40'])],
+              ['collection:collection-id:edit', new Set(['30'])],
+              ['collection:collection-id:add', new Set(['10'])],
+              ['collection:collection-id:delete', new Set(['10', '20'])],
+              ['collection:collection-id:export', new Set(['40'])],
             ]),
           });
 
@@ -171,7 +175,7 @@ describe('generateActionsFromPermissions', () => {
                 },
               },
             },
-            [{ id: 1, name: 'role-1', users: [10] }],
+            [{ id: 10, roleId: 1 }] as UserPermissionV4[],
           );
 
           expect(result).toEqual({
@@ -302,23 +306,24 @@ describe('generateActionsFromPermissions', () => {
               },
             },
             [
-              { id: 1, name: 'role-1', users: [10, 20] },
-              { id: 2, name: 'role-2', users: [20, 30] },
-              { id: 3, name: 'role-3', users: [30, 40] },
-            ],
+              { id: 10, roleId: 1 },
+              { id: 20, roleId: 1 },
+              { id: 30, roleId: 2 },
+              { id: 40, roleId: 3 },
+            ] as UserPermissionV4[],
           );
 
           expect(result).toEqual({
             everythingAllowed: false,
             actionsGloballyAllowed: new Set(),
             actionsAllowedByUser: new Map([
+              ['custom:collection-id:custom-action-id:approve', new Set(['40'])],
+              ['custom:collection-id:custom-action-id:self-approve', new Set(['30'])],
               ['custom:collection-id:custom-action-id:trigger', new Set(['10', '20'])],
-              ['custom:collection-id:custom-action-id:self-approve', new Set(['20', '30'])],
               [
                 'custom:collection-id:custom-action-id:require-approval',
                 new Set(['10', '20', '30']),
               ],
-              ['custom:collection-id:custom-action-id:approve', new Set(['30', '40'])],
             ]),
           });
 

@@ -488,15 +488,15 @@ describe('ForestHttpApi', () => {
     });
   });
 
-  describe('getRoles', () => {
+  describe('getUsers', () => {
     it('should return the result of a call to the API to get roles', async () => {
       const body = { foo: 'bar' };
       superagentMock.set.mockResolvedValue({ body });
 
-      const roles = await ForestHttpApi.getRoles(options);
+      const roles = await ForestHttpApi.getUsers(options);
 
       expect(roles).toStrictEqual(body);
-      expect(superagentMock.get).toHaveBeenCalledWith('https://api.url/liana/v4/permissions/roles');
+      expect(superagentMock.get).toHaveBeenCalledWith('https://api.url/liana/v4/permissions/users');
       expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
     });
 
@@ -505,13 +505,13 @@ describe('ForestHttpApi', () => {
 
       superagentMock.set.mockRejectedValue(error);
 
-      return expect(ForestHttpApi.getRoles(options)).rejects.toThrow(error);
+      return expect(ForestHttpApi.getUsers(options)).rejects.toThrow(error);
     });
 
     it('should handle special errors', () => {
       superagentMock.set.mockRejectedValue({ response: { status: 404 } });
 
-      return expect(ForestHttpApi.getRoles(options)).rejects.toThrow(
+      return expect(ForestHttpApi.getUsers(options)).rejects.toThrow(
         /failed to find the project related to the envSecret you configured/,
       );
     });

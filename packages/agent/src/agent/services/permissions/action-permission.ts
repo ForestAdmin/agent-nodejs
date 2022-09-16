@@ -118,11 +118,11 @@ export default class ActionPermissionService {
   }
 
   private async fetchEnvironmentPermissions(): Promise<ActionPermissions> {
-    const [rawPermissions, roles] = await Promise.all([
+    const [rawPermissions, users] = await Promise.all([
       ForestHttpApi.getEnvironmentPermissions(this.options),
-      ForestHttpApi.getRoles(this.options),
+      ForestHttpApi.getUsers(this.options),
     ]);
 
-    return generateActionsFromPermissions(rawPermissions, roles);
+    return generateActionsFromPermissions(rawPermissions, users);
   }
 }

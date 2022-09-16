@@ -6,7 +6,7 @@ import hashObject from 'object-hash';
 import superagent, { Response, ResponseError } from 'superagent';
 
 import { AgentOptions } from '../../types';
-import { EnvironmentPermissionsV4, RolePermissionV4 } from './types';
+import { EnvironmentPermissionsV4, UserPermissionV4 } from './types';
 
 export type IpWhitelistConfiguration = {
   isFeatureEnabled: boolean;
@@ -173,10 +173,10 @@ export default class ForestHttpApi {
     }
   }
 
-  static async getRoles(options: HttpOptions): Promise<RolePermissionV4[]> {
+  static async getUsers(options: HttpOptions): Promise<UserPermissionV4[]> {
     try {
       const { body } = await superagent
-        .get(`${options.forestServerUrl}/liana/v4/permissions/roles`)
+        .get(`${options.forestServerUrl}/liana/v4/permissions/users`)
         .set('forest-secret-key', options.envSecret);
 
       return body;
