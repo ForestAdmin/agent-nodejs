@@ -1,21 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  ChartDefinition,
-  CollectionCustomizer,
-  DataSourceCustomizer,
-  DataSourceOptions,
-  Plugin,
-  TCollectionName,
-  TSchema,
-} from '@forestadmin/datasource-customizer';
-import { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
+import { DataSource } from '@forestadmin/datasource-toolkit';
+import { TSchema } from '@forestadmin/datasource-customizer';
 import Router from '@koa/router';
 import bodyParser from 'koa-bodyparser';
 import cors from '@koa/cors';
 
 import { AgentOptions, AgentOptionsWithDefaults } from './types';
 import ForestHttpApi from './utils/forest-http-api';
-import FrameworkMounter from './framework-mounter';
+import MountableCustomizer from './mountable-customizer';
 import OptionsValidator from './utils/options-validator';
 import SchemaEmitter from './utils/forest-schema/emitter';
 import makeRoutes from './routes';
@@ -31,9 +22,8 @@ import makeServices from './services';
  *  .addDataSource(new SomeDataSource())
  *  .start();
  */
-export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter {
+export default class Agent<S extends TSchema = TSchema> extends MountableCustomizer<S> {
   private options: AgentOptionsWithDefaults;
-  private customizer: DataSourceCustomizer<S>;
 
   /**
    * Create a new Agent Builder.
@@ -52,11 +42,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *  .start();
    */
   constructor(options: AgentOptions) {
-    const allOptions = OptionsValidator.validate(OptionsValidator.withDefaults(options));
-    super(allOptions.prefix, allOptions.logger);
+    const optionsWithDefaults = OptionsValidator.validate(OptionsValidator.withDefaults(options));
+    super(options.prefix, options.logger);
 
-    this.options = allOptions;
-    this.customizer = new DataSourceCustomizer<S>();
+    this.options = optionsWithDefaults;
   }
 
   /**
@@ -65,77 +54,16 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   override async start(): Promise<void> {
     const { logger, typingsPath, typingsMaxDepth } = this.options;
 
-    const dataSource = await this.customizer.getDataSource(logger);
+    const dataSource = await this.getDataSource(logger);
     const [router] = await Promise.all([
       this.getRouter(dataSource),
       this.sendSchema(dataSource),
       !this.options.isProduction && typingsPath
-        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
+        ? this.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
         : Promise.resolve(),
     ]);
 
     return super.start(router);
-  }
-
-  /**
-   * Add a datasource
-   * @param factory the datasource to add
-   * @param options the options
-   */
-  addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
-    this.customizer.addDataSource(factory, options);
-
-    return this;
-  }
-
-  /**
-   * Create a new API chart
-   * @param name name of the chart
-   * @param definition definition of the chart
-   * @example
-   * .addChart('numCustomers', {
-   *   type: 'Value',
-   *   render: (context, resultBuilder) => {
-   *     return resultBuilder.value(123);
-   *   }
-   * })
-   */
-  addChart(name: string, definition: ChartDefinition<S>): this {
-    this.customizer.addChart(name, definition);
-
-    return this;
-  }
-
-  /**
-   * Allow to interact with a decorated collection
-   * @param name the name of the collection to manipulate
-   * @param handle a function that provide a
-   *   collection builder on the given collection name
-   * @example
-   * .customizeCollection('books', books => books.renameField('xx', 'yy'))
-   */
-  customizeCollection<N extends TCollectionName<S>>(
-    name: N,
-    handle: (collection: CollectionCustomizer<S, N>) => unknown,
-  ): this {
-    this.customizer.customizeCollection(name, handle);
-
-    return this;
-  }
-
-  /**
-   * Load a plugin across all collections
-   * @param plugin instance of the plugin
-   * @param options options which need to be passed to the plugin
-   * @example
-   * import advancedExportPlugin from '@forestadmin/plugin-advanced-export';
-   *
-   * agent.use(advancedExportPlugin, { format: 'xlsx' });
-   */
-  use<Options>(plugin: Plugin<Options>, options?: Options): this {
-    this.customizer.use(plugin, options);
-
-    return this;
   }
 
   /**

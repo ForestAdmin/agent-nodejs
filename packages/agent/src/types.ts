@@ -1,21 +1,25 @@
 import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import { IncomingMessage, ServerResponse } from 'http';
 
+export type RemoteDataSourceOptions = {
+  logger?: Logger;
+  loggerLevel?: LoggerLevel;
+  prefix?: string;
+  typingsPath?: string | null;
+  typingsMaxDepth?: number;
+};
+
 /** Options to configure behavior of an agent's forestadmin driver */
-export type AgentOptions = {
+export type AgentOptions = RemoteDataSourceOptions & {
   authSecret: string;
   envSecret: string;
   customizeErrorMessage?: ((error: Error) => string | null) | null;
   forestServerUrl?: string;
-  logger?: Logger;
-  loggerLevel?: LoggerLevel;
-  prefix?: string;
   isProduction: boolean;
   schemaPath?: string;
-  typingsPath?: string | null;
-  typingsMaxDepth?: number;
   permissionsCacheDurationInSeconds?: number;
 };
+
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
