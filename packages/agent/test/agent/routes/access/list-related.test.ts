@@ -8,7 +8,7 @@ import {
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { CollectionActionEvent } from '../../../../src/agent/services/authorization'';
+import { CollectionActionEvent } from '../../../../src/agent/services/authorization';
 import ListRelatedRoute from '../../../../src/agent/routes/access/list-related';
 
 describe('ListRelatedRoute', () => {

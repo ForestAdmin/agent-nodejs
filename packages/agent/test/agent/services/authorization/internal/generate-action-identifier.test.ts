@@ -1,4 +1,7 @@
-import { CollectionActionEvent, CustomActionEvent } from '../../../../../src/agent/services/authorization'';
+import {
+  CollectionActionEvent,
+  CustomActionEvent,
+} from '../../../../../src/agent/services/authorization';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,

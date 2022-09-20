@@ -2,7 +2,7 @@ import {
   CollectionActionEvent,
   CustomActionEvent,
   UserPermissionV4,
-} from '../../../../../src/agent/services/authorization'';
+} from '../../../../../src/agent/services/authorization';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
