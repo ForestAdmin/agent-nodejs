@@ -38,21 +38,34 @@ export default class Chart extends CollectionRoute {
   }
 
   async handleChart(context: Context) {
-    const { body } = context.request;
-
     await this.services.permissions.canChart(context);
-
-    if (!Object.values(ChartType).includes(body.type)) {
-      throw new ValidationError(`Invalid Chart type "${body.type}"`);
-    }
 
     context.response.body = {
       data: {
         id: uuidv1(),
         type: 'stats',
-        attributes: { value: await this[`make${body.type}Chart`](context) },
+        attributes: { value: await this.makeChart(context) },
       },
     };
+  }
+
+  private async makeChart(context: Context) {
+    const { body } = context.request;
+
+    switch (body.type) {
+      case ChartType.Value:
+        return this.makeValueChart(context);
+      case ChartType.Leaderboard:
+        return this.makeLeaderboardChart(context);
+      case ChartType.Objective:
+        return this.makeObjectiveChart(context);
+      case ChartType.Pie:
+        return this.makePieChart(context);
+      case ChartType.Line:
+        return this.makeLineChart(context);
+      default:
+        throw new ValidationError(`Invalid Chart type "${body.type}"`);
+    }
   }
 
   private async makeValueChart(
