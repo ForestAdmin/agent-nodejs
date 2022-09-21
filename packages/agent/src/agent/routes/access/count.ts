@@ -20,7 +20,7 @@ export default class CountRoute extends CollectionRoute {
     );
 
     if (this.collection.schema.countable) {
-      const scope = await this.services.permissions.getScope(this.collection, context);
+      const scope = await this.services.authorization.getScope(this.collection, context);
       const caller = QueryStringParser.parseCaller(context);
       const filter = ContextFilterFactory.build(this.collection, context, scope);
 

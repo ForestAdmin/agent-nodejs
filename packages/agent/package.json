@@ -43,6 +43,10 @@
     "test": "jest"
   },
   "devDependencies": {
+    "@nestjs/common": "^8.4.5",
+    "@nestjs/core": "^8.4.5",
+    "@nestjs/platform-express": "^8.4.5",
+    "@nestjs/platform-fastify": "^8.4.5",
     "@shopify/jest-koa-mocks": "^3.1.0",
     "@types/json-api-serializer": "2.6.3",
     "@types/jsonwebtoken": "^8.5.8",
@@ -50,15 +54,12 @@
     "@types/koa-bodyparser": "^4.3.5",
     "@types/koa__cors": "^3.1.1",
     "@types/koa__router": "^8.0.11",
+    "@types/lru-cache": "^7.6.1",
     "@types/superagent": "^4.1.15",
-    "fishery": "^2.1.0",
-    "@nestjs/common": "^8.4.5",
-    "@nestjs/core": "^8.4.5",
-    "@nestjs/platform-express": "^8.4.5",
-    "@nestjs/platform-fastify": "^8.4.5",
     "express": "^4.18.1",
     "fastify": "^3.29.0",
     "fastify2": "npm:fastify@^2.15.3",
+    "fishery": "^2.1.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.5.5"
   }

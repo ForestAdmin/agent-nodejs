@@ -51,7 +51,7 @@ export default class UpdateRelation extends RelationRoute {
     caller: Caller,
   ): Promise<void> {
     // Perms
-    const scope = await this.services.permissions.getScope(this.collection, context);
+    const scope = await this.services.authorization.getScope(this.collection, context);
     await this.services.authorization.assertCanOnCollection(
       context,
       CollectionActionEvent.Edit,
@@ -86,7 +86,7 @@ export default class UpdateRelation extends RelationRoute {
     caller: Caller,
   ): Promise<void> {
     // Permissions
-    const scope = await this.services.permissions.getScope(this.foreignCollection, context);
+    const scope = await this.services.authorization.getScope(this.foreignCollection, context);
     await this.services.authorization.assertCanOnCollection(
       context,
       CollectionActionEvent.Edit,

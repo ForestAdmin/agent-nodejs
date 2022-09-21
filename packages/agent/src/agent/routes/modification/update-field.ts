@@ -40,7 +40,7 @@ export default class UpdateField extends CollectionRoute {
     const unpackedId = IdUtils.unpackId(this.collection.schema, id);
     const conditionTree = ConditionTreeFactory.intersect(
       ConditionTreeFactory.matchIds(this.collection.schema, [unpackedId]),
-      await this.services.permissions.getScope(this.collection, context),
+      await this.services.authorization.getScope(this.collection, context),
     );
 
     const caller = QueryStringParser.parseCaller(context);

@@ -1,14 +1,19 @@
 import { Context } from 'koa';
 
+import { Collection, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 import { CollectionActionEvent, CustomActionEvent } from './internal/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
 } from './internal/generate-action-identifier';
 import ActionPermissionService from './internal/action-permission';
+import RenderingPermissionService from './internal/rendering-permission';
 
 export default class AuthorizationService {
-  constructor(private readonly actionPermissionService: ActionPermissionService) {}
+  constructor(
+    private readonly actionPermissionService: ActionPermissionService,
+    private readonly renderingPermissionService: RenderingPermissionService,
+  ) {}
 
   public async assertCanOnCollection(
     context: Context,
@@ -60,5 +65,19 @@ export default class AuthorizationService {
     ) {
       context.throw(403, 'Forbidden');
     }
+  }
+
+  async getScope(collection: Collection, context: Context): Promise<ConditionTree> {
+    const { user } = context.state;
+
+    const scope = await this.renderingPermissionService.getScope({
+      renderingId: user.renderingId,
+      collectionName: collection.name,
+      user,
+    });
+
+    if (!scope) return null;
+
+    return ConditionTreeFactory.fromPlainObject(scope);
   }
 }

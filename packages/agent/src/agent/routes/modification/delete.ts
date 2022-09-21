@@ -44,7 +44,7 @@ export default class DeleteRoute extends CollectionRoute {
     const filter = ContextFilterFactory.build(this.collection, context, null, {
       conditionTree: ConditionTreeFactory.intersect(
         QueryStringParser.parseConditionTree(this.collection, context),
-        await this.services.permissions.getScope(this.collection, context),
+        await this.services.authorization.getScope(this.collection, context),
         selectedIds,
       ),
     });

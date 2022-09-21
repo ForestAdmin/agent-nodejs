@@ -38,7 +38,7 @@ export default class AssociateRelatedRoute extends RelationRoute {
       this.foreignCollection.schema,
       context.request.body?.data[0].id,
     );
-    const scope = await this.services.permissions.getScope(this.foreignCollection, context);
+    const scope = await this.services.authorization.getScope(this.foreignCollection, context);
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
     const caller = QueryStringParser.parseCaller(context);
 

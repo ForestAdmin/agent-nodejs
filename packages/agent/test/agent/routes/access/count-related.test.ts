@@ -1,6 +1,7 @@
 import {
   Aggregation,
   CollectionUtils,
+  ConditionTreeFactory,
   ConditionTreeLeaf,
   Filter,
   ValidationError,
@@ -166,6 +167,94 @@ describe('CountRelatedRoute', () => {
         );
 
         expect(context.response.body).toEqual({ count: 1568 });
+      });
+
+      test('it should apply the scope', async () => {
+        const { services, dataSource, options } = setupWithOneToManyRelation();
+        dataSource.getCollection('bookPersons').schema.segments = ['a-valid-segment'];
+
+        const oneToManyRelationName = 'myBookPersons';
+        const count = new CountRelatedRoute(
+          services,
+          options,
+          dataSource,
+          'books',
+          oneToManyRelationName,
+        );
+
+        jest
+          .spyOn(CollectionUtils, 'aggregateRelation')
+          .mockResolvedValue([{ value: 1568, group: {} }]);
+
+        const searchParams = { search: 'searched argument' };
+        const conditionTreeParams = {
+          filters: JSON.stringify({
+            aggregator: 'And',
+            conditions: [
+              { field: 'id', operator: 'Equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+            ],
+          }),
+        };
+        const segmentParams = { segment: 'a-valid-segment' };
+
+        const context = createMockContext({
+          customProperties: {
+            query: {
+              ...searchParams,
+              ...conditionTreeParams,
+              ...segmentParams,
+              timezone: 'Europe/Paris',
+            },
+            params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+          },
+          state: { user: { email: 'john.doe@domain.com' } },
+        });
+
+        const getScopeMock = services.authorization.getScope as jest.Mock;
+        getScopeMock.mockResolvedValueOnce(
+          ConditionTreeFactory.fromPlainObject({
+            field: 'name',
+            operator: 'NotContains',
+            value: '[test]',
+          }),
+        );
+
+        await count.handleCountRelated(context);
+
+        expect(CollectionUtils.aggregateRelation).toHaveBeenCalledWith(
+          dataSource.getCollection('books'),
+          ['2d162303-78bf-599e-b197-93590ac3d315'],
+          'myBookPersons',
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          new Filter({
+            search: 'searched argument',
+            searchExtended: false,
+            segment: 'a-valid-segment',
+            conditionTree: ConditionTreeFactory.fromPlainObject({
+              aggregator: 'And',
+              conditions: [
+                {
+                  field: 'id',
+                  operator: 'Equal',
+                  value: '123e4567-e89b-12d3-a456-426614174000',
+                },
+                {
+                  field: 'name',
+                  operator: 'NotContains',
+                  value: '[test]',
+                },
+              ],
+            }),
+          }),
+          new Aggregation({ operation: 'Count' }),
+        );
+
+        expect(context.response.body).toEqual({ count: 1568 });
+
+        expect(services.authorization.getScope).toHaveBeenCalledWith(
+          dataSource.getCollection('bookPersons'),
+          context,
+        );
       });
 
       describe('when there is empty aggregate result', () => {

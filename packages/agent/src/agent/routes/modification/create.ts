@@ -97,7 +97,7 @@ export default class CreateRoute extends CollectionRoute {
 
       // Permissions
       const foreignCollection = this.dataSource.getCollection(relation.foreignCollection);
-      const scope = await this.services.permissions.getScope(foreignCollection, context);
+      const scope = await this.services.authorization.getScope(foreignCollection, context);
       await this.services.authorization.assertCanOnCollection(
         context,
         CollectionActionEvent.Edit,

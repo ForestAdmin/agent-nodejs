@@ -76,6 +76,73 @@ describe('DeleteRoute', () => {
           }),
         );
       });
+
+      test('it should apply the scope', async () => {
+        const bookCollection = factories.collection.build({
+          name: 'books',
+          schema: factories.collectionSchema.build({
+            fields: {
+              idField1: factories.columnSchema.isPrimaryKey().build({
+                columnType: 'Number',
+              }),
+              idField2: factories.columnSchema.isPrimaryKey().build({
+                columnType: 'Number',
+              }),
+              notIdField: factories.columnSchema.build({
+                columnType: 'Number',
+              }),
+            },
+          }),
+        });
+        const dataSource = factories.dataSource.buildWithCollection(bookCollection);
+        const deleteRoute = new DeleteRoute(services, options, dataSource, 'books');
+
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            params: { id: '1523|1524' },
+            query: { timezone: 'Europe/Paris' },
+          },
+        });
+
+        const getScopeMock = services.authorization.getScope as jest.Mock;
+        getScopeMock.mockResolvedValueOnce({
+          field: 'title',
+          operator: 'NotContains',
+          value: '[test]',
+        });
+
+        await deleteRoute.handleDelete(context);
+
+        expect(bookCollection.delete).toHaveBeenCalledWith(
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          factories.filter.build({
+            conditionTree: factories.conditionTreeBranch.build({
+              aggregator: 'And',
+              conditions: [
+                factories.conditionTreeLeaf.build({
+                  operator: 'NotContains',
+                  value: '[test]',
+                  field: 'title',
+                }),
+                factories.conditionTreeLeaf.build({
+                  operator: 'Equal',
+                  value: 1523,
+                  field: 'idField1',
+                }),
+                factories.conditionTreeLeaf.build({
+                  operator: 'Equal',
+                  value: 1524,
+                  field: 'idField2',
+                }),
+              ],
+            }),
+            search: null,
+            searchExtended: false,
+            segment: null,
+          }),
+        );
+      });
     });
 
     describe('when the given id is a simple id', () => {

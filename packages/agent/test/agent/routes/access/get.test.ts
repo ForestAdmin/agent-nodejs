@@ -1,9 +1,15 @@
+import {
+  ConditionTreeFactory,
+  PaginatedFilter,
+  ProjectionFactory,
+} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
 import { CollectionActionEvent } from '../../../../src/agent/services/authorization';
 import { HttpCode } from '../../../../src/agent/types';
 import Get from '../../../../src/agent/routes/access/get';
+import QueryStringParser from '../../../../src/agent/utils/query-string';
 
 describe('GetRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
@@ -95,6 +101,57 @@ describe('GetRoute', () => {
         context,
         CollectionActionEvent.Read,
         'books',
+      );
+
+      expect(context.response.body).toEqual('test');
+    });
+
+    test('it should apply the scope', async () => {
+      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([{ title: 'test ' }]);
+      services.serializer.serialize = jest.fn().mockReturnValue('test');
+      const get = new Get(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+        },
+      });
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      getScopeMock.mockResolvedValueOnce({
+        field: 'title',
+        operator: 'NotContains',
+        value: '[test]',
+      });
+
+      await get.handleGet(context);
+
+      expect(services.authorization.getScope).toHaveBeenCalledWith(
+        dataSource.getCollection('books'),
+        context,
+      );
+
+      expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
+        QueryStringParser.parseCaller(context),
+        new PaginatedFilter({
+          conditionTree: ConditionTreeFactory.fromPlainObject({
+            aggregator: 'And',
+            conditions: [
+              {
+                field: 'id',
+                operator: 'Equal',
+                value: '2d162303-78bf-599e-b197-93590ac3d315',
+              },
+              {
+                field: 'title',
+                operator: 'NotContains',
+                value: '[test]',
+              },
+            ],
+          }),
+        }),
+        ProjectionFactory.all(dataSource.getCollection('books')),
       );
 
       expect(context.response.body).toEqual('test');

@@ -117,7 +117,7 @@ export default class ActionRoute extends CollectionRoute {
     const conditionTree = ConditionTreeFactory.intersect(
       selectedIds,
       QueryStringParser.parseConditionTree(this.collection, context),
-      await this.services.permissions.getScope(this.collection, context),
+      await this.services.authorization.getScope(this.collection, context),
     );
 
     const caller = QueryStringParser.parseCaller(context);

@@ -1,4 +1,3 @@
-import { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 import LruCache from 'lru-cache';
 import hashObject from 'object-hash';
@@ -64,34 +63,6 @@ export default class PermissionService {
     if (!isAllowed) {
       context.throw(HttpCode.Forbidden, 'Forbidden');
     }
-  }
-
-  async getScope(collection: Collection, context: Context): Promise<ConditionTree> {
-    const { user } = context.state;
-    const perms = await this.getRenderingPermissions(user.renderingId);
-    const scopes = perms.scopes[collection.name];
-
-    if (!scopes) return null;
-
-    return scopes.conditionTree.replaceLeafs(leaf => {
-      const dynamicValues = scopes.dynamicScopeValues?.[user.id];
-
-      if (typeof leaf.value === 'string' && leaf.value.startsWith('$currentUser')) {
-        // Search replacement hash from forestadmin server
-        if (dynamicValues) {
-          return leaf.override({ value: dynamicValues[leaf.value] });
-        }
-
-        // Search JWT token (new user)
-        return leaf.override({
-          value: leaf.value.startsWith('$currentUser.tags.')
-            ? user.tags[leaf.value.substring(18)]
-            : user[leaf.value.substring(13)],
-        });
-      }
-
-      return leaf;
-    });
   }
 
   /** Get cached version of "rendering permissions" */

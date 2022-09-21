@@ -68,7 +68,7 @@ describe('UpdateRelationRoute', () => {
         });
 
         const scopeCondition = factories.conditionTreeLeaf.build();
-        services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
+        services.authorization.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
         await update.handleUpdateRelationRoute(context);
 
@@ -114,7 +114,7 @@ describe('UpdateRelationRoute', () => {
         });
 
         const scopeCondition = factories.conditionTreeLeaf.build();
-        services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
+        services.authorization.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
         await update.handleUpdateRelationRoute(context);
 

@@ -24,7 +24,7 @@ export default class ListRelatedRoute extends RelationRoute {
     );
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-    const scope = await this.services.permissions.getScope(this.foreignCollection, context);
+    const scope = await this.services.authorization.getScope(this.foreignCollection, context);
     const paginatedFilter = ContextFilterFactory.buildPaginated(
       this.foreignCollection,
       context,

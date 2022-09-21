@@ -7,9 +7,9 @@ import ConditionTreeLeaf from './nodes/leaf';
 import RecordUtils from '../../../utils/record';
 import SchemaUtils from '../../../utils/schema';
 
-type GenericTree =
-  | { aggregator: Aggregator; conditions: Array<GenericTree> }
-  | { field: string; operator: Operator; value?: unknown };
+export type GenericTreeBranch = { aggregator: Aggregator; conditions: Array<GenericTree> };
+export type GenericTreeLeaf = { field: string; operator: Operator; value?: unknown };
+export type GenericTree = GenericTreeBranch | GenericTreeLeaf;
 
 export default class ConditionTreeFactory {
   static MatchNone: ConditionTree = new ConditionTreeBranch('Or', []);

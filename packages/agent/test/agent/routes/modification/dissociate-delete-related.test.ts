@@ -198,7 +198,7 @@ describe('DissociateDeleteRelatedRoute', () => {
       });
 
       const scopeCondition = factories.conditionTreeLeaf.build();
-      services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
+      services.authorization.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
       await count.handleDissociateDeleteRelatedRoute(context);
 
@@ -259,7 +259,7 @@ describe('DissociateDeleteRelatedRoute', () => {
       });
 
       const scopeCondition = factories.conditionTreeLeaf.build();
-      services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
+      services.authorization.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
       await count.handleDissociateDeleteRelatedRoute(context);
 

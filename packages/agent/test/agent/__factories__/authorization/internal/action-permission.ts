@@ -10,7 +10,7 @@ export class ActionPermissionsFactory extends Factory<ActionPermissionService> {
   }
 }
 
-export default ActionPermissionsFactory.define(
+const actionPermissionsFactory = ActionPermissionsFactory.define(
   () =>
     new ActionPermissionService({
       isProduction: true,
@@ -19,3 +19,5 @@ export default ActionPermissionsFactory.define(
       permissionsCacheDurationInSeconds: 15 * 60,
     }),
 );
+
+export default actionPermissionsFactory;

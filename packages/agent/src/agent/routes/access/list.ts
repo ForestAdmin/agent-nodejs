@@ -18,7 +18,7 @@ export default class ListRoute extends CollectionRoute {
       this.collection.name,
     );
 
-    const scope = await this.services.permissions.getScope(this.collection, context);
+    const scope = await this.services.authorization.getScope(this.collection, context);
     const paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
 
     const records = await this.collection.list(
