@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 import { IssuerMetadata } from 'openid-client';
 import { JSONAPIDocument } from 'json-api-serializer';
+import { PlainConditionTree } from '@forestadmin/datasource-toolkit';
 import hashObject from 'object-hash';
 import superagent, { Response, ResponseError } from 'superagent';
 
@@ -35,7 +35,7 @@ export type RenderingPermissions = {
   actionsByUser: { [actionName: string]: Set<number> };
   scopes: {
     [collectionName: string]: {
-      conditionTree: ConditionTree;
+      conditionTree: PlainConditionTree;
       dynamicScopeValues: { [userId: number]: { [replacementKey: string]: unknown } };
     };
   };
@@ -218,7 +218,7 @@ export default class ForestHttpApi {
 
     for (const [name, { scope }] of Object.entries<any>(rendering)) {
       scopes[name] = scope && {
-        conditionTree: ConditionTreeFactory.fromPlainObject(scope.filter),
+        conditionTree: scope.filter,
         dynamicScopeValues: scope.dynamicScopesValues?.users ?? {},
       };
     }
