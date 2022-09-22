@@ -7,15 +7,7 @@ import Introspector from './introspection/introspector';
 import ModelBuilder from './orm-builder/model';
 import RelationBuilder from './orm-builder/relations';
 
-export async function introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
-  return Introspector.introspect(sequelize, logger);
-}
-
-export async function buildSequelizeInstance(
-  connectionUri: string,
-  logger: Logger,
-  introspection?: Table[],
-): Promise<Sequelize> {
+function createEmptySequelize(connectionUri: string, logger: Logger): Sequelize {
   if (!/.*:\/\//g.test(connectionUri))
     throw new Error(
       `Connection Uri "${connectionUri}" provided to SQL data source is not valid.` +
@@ -23,9 +15,26 @@ export async function buildSequelizeInstance(
     );
 
   const logging = (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
-  const sequelize = new Sequelize(connectionUri, { logging });
 
+  return new Sequelize(connectionUri, { logging });
+}
+
+export async function introspect(connectionUri: string, logger?: Logger): Promise<Table[]> {
+  const sequelize = createEmptySequelize(connectionUri, logger);
+  const tables = await Introspector.introspect(sequelize, logger);
+  sequelize.close();
+
+  return tables;
+}
+
+export async function buildSequelizeInstance(
+  connectionUri: string,
+  logger: Logger,
+  introspection?: Table[],
+): Promise<Sequelize> {
+  const sequelize = createEmptySequelize(connectionUri, logger);
   const tables = introspection ?? (await Introspector.introspect(sequelize, logger));
+
   ModelBuilder.defineModels(sequelize, logger, tables);
   RelationBuilder.defineRelations(sequelize, logger, tables);
 
