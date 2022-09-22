@@ -385,6 +385,26 @@ describe('ConditionTreeValidation', () => {
 
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
       });
+
+      it('should not throw an error when enum must be present', () => {
+        const conditionTree = factories.conditionTreeLeaf.build({
+          operator: 'Present',
+          field: 'enumField',
+        });
+        const collection = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              enumField: factories.columnSchema.build({
+                columnType: 'Enum',
+                enumValues: ['allowedValue', 'otherAllowedValue'],
+                filterOperators: new Set(['Present']),
+              }),
+            },
+          }),
+        });
+
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+      });
     });
 
     describe('when the field is a Point', () => {
