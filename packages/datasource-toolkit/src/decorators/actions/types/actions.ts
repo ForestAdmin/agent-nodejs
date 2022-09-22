@@ -36,7 +36,7 @@ export type ActionSingle<
   N extends TCollectionName<S> = TCollectionName<S>,
 > = BaseAction<S, N, 'Single', ActionContextSingle<S, N>>;
 
-export type Action<
+export type ActionDefinition<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > = ActionSingle<S, N> | ActionBulk<S, N> | ActionGlobal<S, N>;

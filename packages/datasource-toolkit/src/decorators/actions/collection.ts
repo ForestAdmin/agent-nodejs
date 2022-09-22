@@ -1,4 +1,4 @@
-import { Action, ActionBulk, ActionGlobal, ActionSingle } from './types/actions';
+import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
 import { ActionField, ActionResult } from '../../interfaces/action';
 import { Caller } from '../../interfaces/caller';
 import { CollectionSchema } from '../../interfaces/schema';
@@ -14,9 +14,9 @@ import ResultBuilder from './result-builder';
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
 
-  private actions: Record<string, Action> = {};
+  private actions: Record<string, ActionDefinition> = {};
 
-  addAction(name: string, action: Action): void {
+  addAction(name: string, action: ActionDefinition): void {
     this.actions[name] = action;
     this.markSchemaAsDirty();
   }

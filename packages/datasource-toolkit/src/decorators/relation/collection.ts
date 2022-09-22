@@ -1,8 +1,8 @@
 import { Caller } from '../../interfaces/caller';
 import { Collection } from '../../interfaces/collection';
 import { CollectionSchema, ColumnSchema, RelationSchema } from '../../interfaces/schema';
-import { PartialRelationSchema } from './types';
 import { RecordData } from '../../interfaces/record';
+import { RelationDefinition } from './types';
 import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
@@ -18,7 +18,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<RelationCollectionDecorator>;
   protected relations: Record<string, RelationSchema> = {};
 
-  addRelation(name: string, partialJoint: PartialRelationSchema): void {
+  addRelation(name: string, partialJoint: RelationDefinition): void {
     const relation = this.relationWithOptionalFields(partialJoint);
     this.checkForeignKeys(relation);
     this.checkOriginKeys(relation);
@@ -96,7 +96,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     });
   }
 
-  private relationWithOptionalFields(partialJoint: PartialRelationSchema): RelationSchema {
+  private relationWithOptionalFields(partialJoint: RelationDefinition): RelationSchema {
     const relation = { ...partialJoint };
     const target = this.dataSource.getCollection(relation.foreignCollection);
 

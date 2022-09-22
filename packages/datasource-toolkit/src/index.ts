@@ -33,12 +33,12 @@ export { default as ValidationCollectionDecorator } from './decorators/validatio
 export { default as WriteCollectionDecorator } from './decorators/write/collection';
 
 // Decorators (helpers)
-export { Action as ActionDefinition } from './decorators/actions/types/actions';
+export { ActionDefinition } from './decorators/actions/types/actions';
 export { ChartDefinition } from './decorators/chart/types';
 export { ComputedDefinition } from './decorators/computed/types';
-export { OperatorReplacer as OperatorDefinition } from './decorators/operators-emulate/types';
-export { PartialRelationSchema as RelationDefinition } from './decorators/relation/types';
-export { SearchReplacer as SearchDefinition } from './decorators/search/types';
+export { OperatorDefinition } from './decorators/operators-emulate/types';
+export { RelationDefinition } from './decorators/relation/types';
+export { SearchDefinition } from './decorators/search/types';
 export { SegmentDefinition } from './decorators/segment/types';
 export { WriteDefinition } from './decorators/write/types';
 export { HookHandler, HookType, HookPosition, HooksContext } from './decorators/hook/types';

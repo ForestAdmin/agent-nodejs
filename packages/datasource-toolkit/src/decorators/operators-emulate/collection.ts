@@ -6,7 +6,7 @@ import {
   RelationSchema,
 } from '../../interfaces/schema';
 import { Operator } from '../../interfaces/query/condition-tree/nodes/operators';
-import { OperatorReplacer } from './types';
+import { OperatorDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
@@ -20,13 +20,13 @@ import SchemaUtils from '../../utils/schema';
 
 export default class OperatorsEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<OperatorsEmulate>;
-  private readonly fields: Map<string, Map<Operator, OperatorReplacer>> = new Map();
+  private readonly fields: Map<string, Map<Operator, OperatorDefinition>> = new Map();
 
   emulateFieldOperator(name: string, operator: Operator): void {
     this.replaceFieldOperator(name, operator, null);
   }
 
-  replaceFieldOperator(name: string, operator: Operator, replaceBy: OperatorReplacer): void {
+  replaceFieldOperator(name: string, operator: Operator, replaceBy: OperatorDefinition): void {
     // Check that the collection can actually support our rewriting
     const pks = SchemaUtils.getPrimaryKeys(this.childCollection.schema);
     pks.forEach(pk => {
