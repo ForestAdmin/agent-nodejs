@@ -47,6 +47,7 @@ export { HookHandler, HookType, HookPosition, HooksContext } from './decorators/
 export { default as Aggregation } from './interfaces/query/aggregation';
 export { default as ConditionTree } from './interfaces/query/condition-tree/nodes/base';
 export { default as ConditionTreeBranch } from './interfaces/query/condition-tree/nodes/branch';
+export { default as ConditionTreeBase } from './interfaces/query/condition-tree/base';
 export { default as ConditionTreeFactory } from './interfaces/query/condition-tree/factory';
 export { default as ConditionTreeLeaf } from './interfaces/query/condition-tree/nodes/leaf';
 export { default as Filter } from './interfaces/query/filter/unpaginated';

@@ -4,12 +4,12 @@ import {
   CollectionUtils,
   ColumnSchema,
   ConditionTree,
+  ConditionTreeBase,
   ConditionTreeBranch,
   ConditionTreeLeaf,
-  Operator,
 } from '@forestadmin/datasource-toolkit';
 
-export default class ConditionTreeParser {
+export default class ConditionTreeParser extends ConditionTreeBase {
   static fromPlainObject(collection: Collection, json: unknown): ConditionTree {
     if (ConditionTreeParser.isLeaf(json)) {
       const operator = ConditionTreeParser.toPascalCase(json.operator);
@@ -57,22 +57,5 @@ export default class ConditionTreeParser {
     }
 
     return leaf.value;
-  }
-
-  /** Convert snake_case to PascalCase */
-  private static toPascalCase(value: string): Operator {
-    const pascalCased =
-      value.slice(0, 1).toUpperCase() +
-      value.slice(1).replace(/_[a-z]/g, match => match.slice(1).toUpperCase());
-
-    return pascalCased as Operator;
-  }
-
-  private static isLeaf(raw: unknown): raw is { field: string; operator: string; value: unknown } {
-    return typeof raw === 'object' && 'field' in raw && 'operator' in raw;
-  }
-
-  private static isBranch(raw: unknown): raw is { aggregator: string; conditions: unknown[] } {
-    return typeof raw === 'object' && 'aggregator' in raw && 'conditions' in raw;
   }
 }

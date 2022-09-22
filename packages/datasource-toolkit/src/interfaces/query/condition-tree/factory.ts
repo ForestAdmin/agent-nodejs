@@ -2,6 +2,7 @@ import { CollectionSchema, ColumnSchema } from '../../schema';
 import { CompositeId, RecordData } from '../../record';
 import { Operator } from './nodes/operators';
 import ConditionTree from './nodes/base';
+import ConditionTreeBase from './base';
 import ConditionTreeBranch, { Aggregator } from './nodes/branch';
 import ConditionTreeLeaf from './nodes/leaf';
 import RecordUtils from '../../../utils/record';
@@ -11,7 +12,7 @@ type GenericTree =
   | { aggregator: Aggregator; conditions: Array<GenericTree> }
   | { field: string; operator: Operator; value?: unknown };
 
-export default class ConditionTreeFactory {
+export default class ConditionTreeFactory extends ConditionTreeBase {
   static MatchNone: ConditionTree = new ConditionTreeBranch('Or', []);
   static MatchAll: ConditionTree = null;
 
@@ -57,7 +58,9 @@ export default class ConditionTreeFactory {
     if (json === null) return null;
 
     if (ConditionTreeFactory.isLeaf(json)) {
-      return new ConditionTreeLeaf(json.field, json.operator as Operator, json.value);
+      const operator = ConditionTreeFactory.toPascalCase(json.operator);
+
+      return new ConditionTreeLeaf(json.field, operator, json.value);
     }
 
     if (ConditionTreeFactory.isBranch(json)) {
@@ -117,17 +120,5 @@ export default class ConditionTreeFactory {
     }
 
     return new ConditionTreeBranch(aggregator, conditions);
-  }
-
-  private static isLeaf(
-    raw: unknown,
-  ): raw is { field: string; operator: Operator; value?: unknown } {
-    return typeof raw === 'object' && 'field' in raw && 'operator' in raw;
-  }
-
-  private static isBranch(
-    raw: unknown,
-  ): raw is { aggregator: Aggregator; conditions: Array<GenericTree> } {
-    return typeof raw === 'object' && 'aggregator' in raw && 'conditions' in raw;
   }
 }
