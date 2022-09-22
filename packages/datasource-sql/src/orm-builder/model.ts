@@ -1,6 +1,7 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { ModelAttributes, Sequelize } from 'sequelize';
 import { Table } from '../introspection/types';
+import SequelizeTypeFactory from './helpers/sequelize-type';
 
 export default class ModelBuilder {
   static defineModels(sequelize: Sequelize, logger: Logger, tables: Table[]): void {
@@ -20,7 +21,11 @@ export default class ModelBuilder {
         !(isParanoid && column.name === 'deletedAt');
 
       // Clone object, because sequelize modifies it.
-      if (isExplicit) modelAttrs[column.name] = { ...column };
+      if (isExplicit)
+        modelAttrs[column.name] = {
+          ...column,
+          type: SequelizeTypeFactory.makeSequelizeType(column.type),
+        };
     }
 
     try {
