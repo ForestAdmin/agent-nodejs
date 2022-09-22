@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.34](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.33...@forestadmin/datasource-toolkit@1.0.0-beta.34) (2022-09-22)
+
+
+### Bug Fixes
+
+* required enum now are validated correctly ([#438](https://github.com/ForestAdmin/agent-nodejs/issues/438)) ([46136aa](https://github.com/ForestAdmin/agent-nodejs/commit/46136aaeae0e9c57a9e98067446fa4f19d7e1c22))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.33](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.32...@forestadmin/datasource-toolkit@1.0.0-beta.33) (2022-09-15)
 
 
