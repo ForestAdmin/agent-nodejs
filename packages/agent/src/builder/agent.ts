@@ -14,7 +14,7 @@ import path from 'path';
 
 import { AgentOptions } from '../types';
 import { DataSourceOptions, HttpCallback } from './types';
-import CollectionBuilder from './collection';
+import CollectionCustomizer from './collection';
 import DecoratorsStack from './decorators-stack';
 import ForestAdminHttpDriver from '../agent/forestadmin-http-driver';
 import OptionsValidator from './utils/options-validator';
@@ -107,11 +107,11 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    */
   customizeCollection<N extends TCollectionName<S>>(
     name: N,
-    handle: (collection: CollectionBuilder<S, N>) => unknown,
+    handle: (collection: CollectionCustomizer<S, N>) => unknown,
   ): this {
     this.customizations.push(async () => {
       if (this.stack.dataSource.getCollection(name)) {
-        handle(new CollectionBuilder<S, N>(this.stack, name));
+        handle(new CollectionCustomizer<S, N>(this.stack, name));
       }
     });
 

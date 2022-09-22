@@ -1,7 +1,7 @@
-import { Collection } from '@forestadmin/agent';
+import { CollectionCustomizer } from '@forestadmin/agent';
 import { Schema } from '../typings';
 
-export default (collection: Collection<Schema, 'rental'>) =>
+export default (collection: CollectionCustomizer<Schema, 'rental'>) =>
   collection
     .addField('numberOfDays', {
       columnType: 'Number',

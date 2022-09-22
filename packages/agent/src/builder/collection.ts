@@ -25,7 +25,7 @@ import { FieldDefinition, OneToManyEmbeddedDefinition } from './types';
 import DecoratorsStack from './decorators-stack';
 import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
 
-export default class CollectionBuilder<
+export default class CollectionCustomizer<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > {

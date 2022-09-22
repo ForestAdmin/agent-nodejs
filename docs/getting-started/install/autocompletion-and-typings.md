@@ -39,10 +39,10 @@ createAgent<Schema>({
 {% endtab %} {% tab title="customization/transactions.ts" %}
 
 ```typescript
-import { Collection } from '@forestadmin/agent';
+import { CollectionCustomizer } from '@forestadmin/agent';
 import { Schema } from '../typings';
 
-export default (transactions: Collection<Schema, 'transactions'>) =>
+export default (transactions: CollectionCustomizer<Schema, 'transactions'>) =>
   transactions.removeField('amountInEur');
 ```
 
@@ -77,7 +77,7 @@ agent.customizeCollection('transactions', transactions).mountOnStandaloneServer(
 
 ```javascript
 /**
- * @param {import('@forestadmin/agent').Collection<import('../typings').Schema, 'transactions'>} transactions
+ * @param {import('@forestadmin/agent').CollectionCustomizer<import('../typings').Schema, 'transactions'>} transactions
  */
 module.exports = transactions => {
   transactions.removeField('amountInEur'); // Autocompletion should be available fully on this line

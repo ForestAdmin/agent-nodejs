@@ -1,7 +1,7 @@
-import { Collection } from '@forestadmin/agent';
+import { CollectionCustomizer } from '@forestadmin/agent';
 import { Schema } from '../typings';
 
-export default (collection: Collection<Schema, 'customer'>) =>
+export default (collection: CollectionCustomizer<Schema, 'customer'>) =>
   collection
     .addFieldValidation('firstName', 'Present')
     .addFieldValidation('firstName', 'LongerThan', 2)
