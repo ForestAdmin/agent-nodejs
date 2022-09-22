@@ -4,13 +4,13 @@ import generateActionsFromPermissions, {
   ActionPermissions,
 } from '../../../../../src/agent/services/authorization/internal/generate-actions-from-permissions';
 
-jest.mock('../../../../src/agent/utils/forest-http-api', () => ({
+jest.mock('../../../../../src/agent/utils/forest-http-api', () => ({
   getUsers: jest.fn(),
   getEnvironmentPermissions: jest.fn(),
 }));
 
 jest.mock(
-  '../../../../src/agent/services/authorization/internal/generate-actions-from-permissions',
+  '../../../../../src/agent/services/authorization/internal/generate-actions-from-permissions',
   () => ({
     __esModule: true,
     default: jest.fn(),
