@@ -9,6 +9,8 @@ export class AuthorizationsFactory extends Factory<AuthorizationService> {
       Authorizations.assertCanExecuteCustomAction = jest.fn();
       Authorizations.assertCanOnCollection = jest.fn();
       Authorizations.getScope = jest.fn();
+      Authorizations.assertCanRetrieveChart = jest.fn();
+      Authorizations.invalidateScopeCache = jest.fn();
     });
   }
 }

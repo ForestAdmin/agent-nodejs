@@ -54,7 +54,7 @@ describe('ScopeInvalidation', () => {
 
       await invalidateCache.call(route, context);
 
-      expect(services.permissions.invalidateCache).toHaveBeenCalledWith(1);
+      expect(services.authorization.invalidateScopeCache).toHaveBeenCalledWith(1);
     });
   });
 });

@@ -80,4 +80,23 @@ export default class AuthorizationService {
 
     return ConditionTreeFactory.fromPlainObject(scope);
   }
+
+  async assertCanRetrieveChart(context: Context): Promise<void> {
+    const { renderingId, id: userId } = context.state.user;
+    const { body: chartRequest } = context.request;
+
+    if (
+      !(await this.renderingPermissionService.canRetrieveChart({
+        renderingId,
+        userId,
+        chartRequest,
+      }))
+    ) {
+      context.throw(403, 'Forbidden');
+    }
+  }
+
+  public invalidateScopeCache(renderingId: number) {
+    this.renderingPermissionService.invalidateCache(renderingId);
+  }
 }

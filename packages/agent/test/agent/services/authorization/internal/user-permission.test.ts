@@ -13,21 +13,21 @@ describe('UserPermission', () => {
     jest.resetAllMocks();
   });
 
+  function setup() {
+    const options = {
+      isProduction: true,
+      envSecret: '123',
+      forestServerUrl: 'http://api',
+      permissionsCacheDurationInSeconds: 15 * 60,
+    };
+    const userPermissions = new UserPermissionService(options);
+
+    const getUsersMock = ForestHttpApi.getUsers as jest.Mock;
+
+    return { userPermissions, options, getUsersMock };
+  }
+
   describe('getUserInfo', () => {
-    function setup() {
-      const options = {
-        isProduction: true,
-        envSecret: '123',
-        forestServerUrl: 'http://api',
-        permissionsCacheDurationInSeconds: 15 * 60,
-      };
-      const userPermissions = new UserPermissionService(options);
-
-      const getUsersMock = ForestHttpApi.getUsers as jest.Mock;
-
-      return { userPermissions, options, getUsersMock };
-    }
-
     it('should load users from the API the first time', async () => {
       const { userPermissions, options, getUsersMock } = setup();
 
@@ -128,6 +128,28 @@ describe('UserPermission', () => {
 
       expect(getUsersMock).toHaveBeenCalledTimes(2);
       expect(userInfo).toEqual({ id: 43, email: 'bob2@world.com' });
+    });
+  });
+
+  describe('clearCache', () => {
+    it('should retrieve the cache a second time after cache clearance', async () => {
+      const { userPermissions, getUsersMock } = setup();
+
+      getUsersMock.mockResolvedValue([
+        { id: 42, email: 'alice@world.com' },
+        { id: 43, email: 'bob@world.com' },
+      ]);
+
+      jest.useFakeTimers().setSystemTime(new Date('2020-01-01T00:00:00.000Z'));
+      await userPermissions.getUserInfo(43);
+
+      userPermissions.clearCache();
+
+      jest.useFakeTimers().setSystemTime(new Date('2020-01-01T00:15:00.000Z'));
+      const userInfo = await userPermissions.getUserInfo(43);
+
+      expect(userInfo).toStrictEqual({ id: 43, email: 'bob@world.com' });
+      expect(getUsersMock).toHaveBeenCalledTimes(2);
     });
   });
 });

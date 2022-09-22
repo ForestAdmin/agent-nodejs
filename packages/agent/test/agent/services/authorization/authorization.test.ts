@@ -256,4 +256,82 @@ describe('AuthorizationService', () => {
       expect(ConditionTreeFactory.fromPlainObject).not.toHaveBeenCalled();
     });
   });
+
+  describe('assertCanRetrieveChart', () => {
+    it('should check if the user can retrieve the chart and do nothing if OK', async () => {
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const authorizationService = new AuthorizationService(
+        actionPermissionService,
+        renderingPermissionService,
+      );
+
+      const context = {
+        state: {
+          user: {
+            id: 35,
+            renderingId: 42,
+          },
+        },
+        request: {
+          body: { foo: 'bar' },
+        },
+        throw: jest.fn(),
+      } as unknown as Context;
+
+      (renderingPermissionService.canRetrieveChart as jest.Mock).mockResolvedValue(true);
+
+      await authorizationService.assertCanRetrieveChart(context);
+
+      expect(renderingPermissionService.canRetrieveChart).toHaveBeenCalledWith({
+        userId: 35,
+        renderingId: 42,
+        chartRequest: context.request.body,
+      });
+      expect(context.throw).not.toHaveBeenCalled();
+    });
+
+    it('should throw an error if the user cannot retrieve the chart', async () => {
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const authorizationService = new AuthorizationService(
+        actionPermissionService,
+        renderingPermissionService,
+      );
+
+      const context = {
+        state: {
+          user: {
+            id: 35,
+            renderingId: 42,
+          },
+        },
+        request: {
+          body: { foo: 'bar' },
+        },
+        throw: jest.fn(),
+      } as unknown as Context;
+
+      (renderingPermissionService.canRetrieveChart as jest.Mock).mockResolvedValue(false);
+
+      await authorizationService.assertCanRetrieveChart(context);
+
+      expect(context.throw).toHaveBeenCalledWith(403, 'Forbidden');
+    });
+  });
+
+  describe('invalidateScopeCache', () => {
+    it('should invalidate the scope cache', () => {
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const authorizationService = new AuthorizationService(
+        actionPermissionService,
+        renderingPermissionService,
+      );
+
+      authorizationService.invalidateScopeCache(42);
+
+      expect(renderingPermissionService.invalidateCache).toHaveBeenCalledWith(42);
+    });
+  });
 });

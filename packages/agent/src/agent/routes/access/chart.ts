@@ -40,7 +40,7 @@ export default class Chart extends CollectionRoute {
   async handleChart(context: Context) {
     const { body } = context.request;
 
-    await this.services.permissions.canChart(context);
+    await this.services.authorization.assertCanRetrieveChart(context);
 
     if (!Object.values(ChartType).includes(body.type)) {
       throw new ValidationError(`Invalid Chart type "${body.type}"`);

@@ -88,10 +88,7 @@ export interface DisplaySettings {
 }
 
 export interface BaseChart {
-  name: string;
-  description: string;
   type: ChartType;
-  displaySettings: DisplaySettings;
 }
 
 export interface SmartRouteChart extends BaseChart {
@@ -120,26 +117,78 @@ export interface SmartChart extends BaseChart {
   id: string;
 }
 
-export type CollectionChart = SmartChart | ApiRouteChart | QueryChart | SmartRouteChart;
+export interface LeaderboardChart extends BaseChart {
+  type: ChartType.Leaderboard;
+  sourceCollectionId: string | number;
+  labelFieldName: string;
+  relationshipFieldName: string;
+  aggregateFieldName: string | null;
+  aggregator: 'Sum' | 'Count';
+  limit;
+}
 
-export type DashboardChart = CollectionChart & {
-  id: string;
-};
+export interface LineChart extends BaseChart {
+  type: ChartType.Line;
+  sourceCollectionId: string | number;
+  groupByFieldName: string;
+  aggregateFieldName: string | null;
+  aggregator: 'Sum' | 'Count';
+  timeRange: 'Day' | 'Week' | 'Month' | 'Year';
+  filter: Filter | null;
+}
 
-export type WorkspaceChart = CollectionChart & {
-  name: string;
-  description: string | null;
-  sourceCollectionId: string;
-};
+export interface ObjectiveChart extends BaseChart {
+  type: ChartType.Objective;
+  sourceCollectionId: string | number;
+  aggregateFieldName: string;
+  aggregator: 'Sum' | 'Count';
+  objective: number;
+  filter: Filter | null;
+}
+
+export interface PercentageChart extends BaseChart {
+  type: ChartType.Percentage;
+  numeratorChartId: string;
+  denominatorChartId: string;
+}
+
+export interface PieChart extends BaseChart {
+  type: ChartType.Pie;
+  sourceCollectionId: string | number;
+  aggregateFieldName: string;
+  groupByFieldName: string;
+  aggregator: 'Sum' | 'Count';
+  filter: Filter | null;
+}
+
+export interface ValueChart extends BaseChart {
+  type: ChartType.Value;
+  sourceCollectionId: string | number;
+  aggregateFieldName: string;
+  aggregator: 'Sum' | 'Count';
+  filter: Filter | null;
+}
+
+export type Chart =
+  | SmartChart
+  | ApiRouteChart
+  | QueryChart
+  | SmartRouteChart
+  | LeaderboardChart
+  | LineChart
+  | ObjectiveChart
+  | PercentageChart
+  | PieChart
+  | ValueChart;
 
 export interface RenderingChartDefinitions {
   queries: string[];
-  leaderboards: Array<CollectionChart | DashboardChart | WorkspaceChart>;
-  lines: Array<CollectionChart | DashboardChart | WorkspaceChart>;
-  objectives: Array<CollectionChart | DashboardChart | WorkspaceChart>;
-  percentages: Array<CollectionChart | DashboardChart | WorkspaceChart>;
-  pies: Array<CollectionChart | DashboardChart | WorkspaceChart>;
-  values: Array<CollectionChart | DashboardChart | WorkspaceChart>;
+  leaderboards: LeaderboardChart[];
+  lines: LineChart[];
+  objectives: ObjectiveChart[];
+  percentages: PercentageChart[];
+  pies: PieChart[];
+  values: ValueChart[];
 }
 
 export interface CollectionColumn {

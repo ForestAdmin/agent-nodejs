@@ -8,7 +8,7 @@ export type UserPermissionOptions = Pick<
 >;
 
 export default class UserPermissionService {
-  private lastRetrieval: Date;
+  private lastRetrieval: number = Number.NEGATIVE_INFINITY;
 
   private userInfoById: Promise<Map<number, UserPermissionV4>> = null;
 
@@ -16,12 +16,10 @@ export default class UserPermissionService {
 
   public async getUserInfo(userId: number): Promise<UserPermissionV4 | undefined> {
     if (
-      !this.lastRetrieval ||
-      this.lastRetrieval.getTime() <
-        Date.now() - this.options.permissionsCacheDurationInSeconds * 1000 ||
+      this.lastRetrieval < Date.now() - this.options.permissionsCacheDurationInSeconds * 1000 ||
       !(await this.userInfoById).has(userId)
     ) {
-      this.lastRetrieval = new Date();
+      this.lastRetrieval = Date.now();
 
       this.userInfoById = ForestHttpApi.getUsers(this.options).then(
         users => new Map(users.map(user => [user.id, user])),
@@ -29,5 +27,10 @@ export default class UserPermissionService {
     }
 
     return (await this.userInfoById).get(userId);
+  }
+
+  public clearCache() {
+    this.userInfoById = null;
+    this.lastRetrieval = Number.NEGATIVE_INFINITY;
   }
 }
