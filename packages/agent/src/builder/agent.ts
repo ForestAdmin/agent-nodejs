@@ -7,16 +7,14 @@ import {
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-toolkit';
-import Koa from 'koa';
-import Router from '@koa/router';
-import http from 'http';
-import path from 'path';
 
 import { AgentOptions } from '../types';
-import { DataSourceOptions, HttpCallback } from './types';
+import { AgentOptionsWithDefaults } from '../agent/types';
+import { DataSourceOptions } from './types';
 import CollectionCustomizer from './collection';
 import DecoratorsStack from './decorators-stack';
 import ForestAdminHttpDriver from '../agent/forestadmin-http-driver';
+import FrameworkMounter from './framework-mounter';
 import OptionsValidator from './utils/options-validator';
 import TypingGenerator from './utils/typing-generator';
 
@@ -30,13 +28,11 @@ import TypingGenerator from './utils/typing-generator';
  *  .addDataSource(new SomeDataSource())
  *  .start();
  */
-export default class AgentBuilder<S extends TSchema = TSchema> {
+export default class AgentBuilder<S extends TSchema = TSchema> extends FrameworkMounter {
   private readonly compositeDataSource: CompositeDatasource<Collection>;
   private readonly stack: DecoratorsStack;
-  private readonly options: AgentOptions;
+  private readonly options: AgentOptionsWithDefaults;
   private customizations: (() => Promise<void>)[] = [];
-  private mounts: ((router: Router) => Promise<void>)[] = [];
-  private termination: (() => Promise<void>)[] = [];
 
   /**
    * Create a new Agent Builder.
@@ -55,7 +51,10 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
    *  .start();
    */
   constructor(options: AgentOptions) {
-    this.options = OptionsValidator.withDefaults(options);
+    const allOptions = OptionsValidator.validate(OptionsValidator.withDefaults(options));
+    super(allOptions.prefix, allOptions.logger);
+
+    this.options = allOptions;
     this.compositeDataSource = new CompositeDatasource<Collection>();
     this.stack = new DecoratorsStack(this.compositeDataSource);
   }
@@ -119,167 +118,25 @@ export default class AgentBuilder<S extends TSchema = TSchema> {
   }
 
   /**
-   * Expose the agent on a given port and host
-   * @param port port that should be used.
-   * @param host host that should be used.
-   */
-  mountOnStandaloneServer(port = 3351, host = 'localhost'): this {
-    const server = http.createServer(this.getConnectCallback(true));
-    server.listen(port, host);
-
-    this.options.logger(
-      'Info',
-      `Successfully mounted on Standalone server (http://${host}:${port})`,
-    );
-
-    this.termination.push(async () => {
-      server.close();
-    });
-
-    return this;
-  }
-
-  /**
-   * Mount the agent on an express app.
-   * @param express instance of the express app or router.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mountOnExpress(express: any): this {
-    express.use(this.completeMountPrefix, this.getConnectCallback(false));
-    this.options.logger('Info', `Successfully mounted on Express.js`);
-
-    return this;
-  }
-
-  /**
-   * Mount the agent on a fastify app
-   * @param fastify instance of the fastify app, or of a fastify context
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mountOnFastify(fastify: any): this {
-    const callback = this.getConnectCallback(false);
-    this.useCallbackOnFastify(fastify, callback);
-
-    this.options.logger('Info', `Successfully mounted on Fastify`);
-
-    return this;
-  }
-
-  /**
-   * Mount the agent on a koa app
-   * @param koa instance of a koa app or a koa Router.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mountOnKoa(koa: any): this {
-    const parentRouter = new Router({ prefix: this.completeMountPrefix });
-
-    koa.use(parentRouter.routes());
-    this.options.logger('Info', `Successfully mounted on Koa`);
-
-    this.mounts.push(async router => {
-      parentRouter.use(router.routes());
-    });
-
-    return this;
-  }
-
-  /**
-   * Mount the agent on a NestJS app
-   * @param nestJs instance of a NestJS application
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mountOnNestJs(nestJs: any): this {
-    const adapter = nestJs.getHttpAdapter();
-    const callback = this.getConnectCallback(false);
-
-    if (adapter.constructor.name === 'ExpressAdapter') {
-      nestJs.use(this.completeMountPrefix, callback);
-    } else {
-      this.useCallbackOnFastify(nestJs, callback);
-    }
-
-    this.options.logger('Info', `Successfully mounted on NestJS`);
-
-    return this;
-  }
-
-  /**
    * Start the agent.
    */
-  async start(): Promise<void> {
+  override async start(): Promise<void> {
     // Customize agent
     for (const task of this.customizations) await task(); // eslint-disable-line no-await-in-loop
 
-    // Check that options are valid
-    const options = OptionsValidator.validate(this.options);
-
     // Write typings file
-    if (!options.isProduction && options.typingsPath) {
+    if (!this.options.isProduction && this.options.typingsPath) {
       await TypingGenerator.updateTypesOnFileSystem(
         this.stack.action,
-        options.typingsPath,
-        options.typingsMaxDepth,
+        this.options.typingsPath,
+        this.options.typingsMaxDepth,
       );
     }
 
-    const httpDriver = new ForestAdminHttpDriver(this.stack.dataSource, options);
+    const httpDriver = new ForestAdminHttpDriver(this.stack.dataSource, this.options);
     await httpDriver.sendSchema();
 
     const router = await httpDriver.getRouter();
-    for (const task of this.mounts) await task(router); // eslint-disable-line no-await-in-loop
-  }
-
-  async stop(): Promise<void> {
-    for (const task of this.termination) await task(); // eslint-disable-line no-await-in-loop
-  }
-
-  /** Compute the prefix that the main router should be mounted at in the client's application */
-  private get completeMountPrefix(): string {
-    return path.posix.join('/', this.options.prefix, 'forest');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private useCallbackOnFastify(fastify: any, callback: HttpCallback): void {
-    try {
-      // 'fastify 2' or 'middie' or 'fastify-express'
-      fastify.use(this.completeMountPrefix, callback);
-    } catch (e) {
-      // 'fastify 3'
-      if (e.code === 'FST_ERR_MISSING_MIDDLEWARE') {
-        fastify
-          .register(import('@fastify/express'))
-          .then(() => {
-            fastify.use(this.completeMountPrefix, callback);
-          })
-          .catch(err => {
-            this.options.logger('Error', err.message);
-          });
-      } else {
-        throw e;
-      }
-    }
-  }
-
-  private getConnectCallback(nested: boolean): HttpCallback {
-    let handler = null;
-
-    this.mounts.push(async driverRouter => {
-      let router = driverRouter;
-
-      if (nested) {
-        router = new Router({ prefix: this.completeMountPrefix }).use(router.routes());
-      }
-
-      handler = new Koa().use(router.routes()).callback();
-    });
-
-    return (req, res) => {
-      if (handler) {
-        handler(req, res);
-      } else {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Agent is not started' }));
-      }
-    };
+    super.start(router);
   }
 }
