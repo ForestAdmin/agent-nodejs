@@ -2,7 +2,7 @@ import { PlainConditionTree } from '../../interfaces/query/condition-tree/nodes/
 import { TCollectionName, TSchema } from '../../interfaces/templates';
 import CollectionCustomizationContext from '../../context/collection-context';
 
-export type SearchReplacer<
+export type SearchDefinition<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > = (

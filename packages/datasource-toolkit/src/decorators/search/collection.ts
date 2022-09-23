@@ -4,7 +4,7 @@ import { Caller } from '../../interfaces/caller';
 import { Collection } from '../../interfaces/collection';
 import { CollectionSchema, ColumnSchema } from '../../interfaces/schema';
 import { Operator } from '../../interfaces/query/condition-tree/nodes/operators';
-import { SearchReplacer } from './types';
+import { SearchDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
 import CollectionDecorator from '../collection-decorator';
 import ConditionTree from '../../interfaces/query/condition-tree/nodes/base';
@@ -13,9 +13,9 @@ import ConditionTreeLeaf from '../../interfaces/query/condition-tree/nodes/leaf'
 import PaginatedFilter from '../../interfaces/query/filter/paginated';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
-  replacer: SearchReplacer = null;
+  replacer: SearchDefinition = null;
 
-  replaceSearch(replacer: SearchReplacer): void {
+  replaceSearch(replacer: SearchDefinition): void {
     this.replacer = replacer;
   }
 
