@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-beta.60](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.59...@forestadmin/agent@1.0.0-beta.60) (2022-09-23)
+
+
+### Bug Fixes
+
+* **scope:** properly translate scope condition ([#441](https://github.com/ForestAdmin/agent-nodejs/issues/441)) ([7f8358c](https://github.com/ForestAdmin/agent-nodejs/commit/7f8358c1296ad6a23a18191c6d826c4c25766952))
+
 # @forestadmin/agent [1.0.0-beta.59](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.58...@forestadmin/agent@1.0.0-beta.59) (2022-09-22)
 
 
