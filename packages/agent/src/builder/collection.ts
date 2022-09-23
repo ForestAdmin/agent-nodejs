@@ -19,6 +19,7 @@ import {
   TFieldName,
   TSchema,
   WriteDefinition,
+  allowedOperatorsForColumnType,
 } from '@forestadmin/datasource-toolkit';
 
 import { FieldDefinition, OneToManyEmbeddedDefinition } from './types';
