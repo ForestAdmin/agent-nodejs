@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IncomingMessage, ServerResponse, createServer } from 'http';
 import { Logger } from '@forestadmin/datasource-toolkit';
+import { createServer } from 'http';
 import Koa from 'koa';
 import Router from '@koa/router';
 import path from 'path';
@@ -10,7 +10,6 @@ import { HttpCallback } from './types';
 export default class FrameworkMounter {
   private onStart: ((router: Router) => Promise<void>)[] = [];
   private onStop: (() => Promise<void>)[] = [];
-  private applicationHandler: HttpCallback | null = null;
   private prefix: string;
   private logger: Logger;
 
@@ -22,7 +21,6 @@ export default class FrameworkMounter {
   constructor(prefix: string, logger: Logger) {
     this.prefix = prefix;
     this.logger = logger;
-    this.handler = this.handler.bind(this);
   }
 
   async start(router: Router): Promise<void> {
@@ -39,14 +37,10 @@ export default class FrameworkMounter {
    * @param host host that should be used.
    */
   mountOnStandaloneServer(port = 3351, host = 'localhost'): this {
-    const server = createServer(this.handler);
+    const server = createServer(this.getConnectCallback(true));
     server.listen(port, host);
-    this.logger('Info', `Successfully mounted on Standalone server (http://${host}:${port})`);
 
-    this.onStart.push(async router => {
-      const parent = new Router({ prefix: this.completeMountPrefix }).use(router.routes());
-      this.applicationHandler = new Koa().use(parent.routes()).callback();
-    });
+    this.logger('Info', `Successfully mounted on Standalone server (http://${host}:${port})`);
 
     this.onStop.push(async () => {
       server.close();
@@ -60,12 +54,8 @@ export default class FrameworkMounter {
    * @param express instance of the express app or router.
    */
   mountOnExpress(express: any): this {
-    express.use(this.completeMountPrefix, this.handler);
+    express.use(this.completeMountPrefix, this.getConnectCallback(false));
     this.logger('Info', `Successfully mounted on Express.js`);
-
-    this.onStart.push(async router => {
-      this.applicationHandler = new Koa().use(router.routes()).callback();
-    });
 
     return this;
   }
@@ -75,12 +65,10 @@ export default class FrameworkMounter {
    * @param fastify instance of the fastify app, or of a fastify context
    */
   mountOnFastify(fastify: any): this {
-    this.useCallbackOnFastify(fastify, this.handler);
-    this.logger('Info', `Successfully mounted on Fastify`);
+    const callback = this.getConnectCallback(false);
+    this.useCallbackOnFastify(fastify, callback);
 
-    this.onStart.push(async router => {
-      this.applicationHandler = new Koa().use(router.routes()).callback();
-    });
+    this.logger('Info', `Successfully mounted on Fastify`);
 
     return this;
   }
@@ -91,6 +79,7 @@ export default class FrameworkMounter {
    */
   mountOnKoa(koa: any): this {
     const parentRouter = new Router({ prefix: this.completeMountPrefix });
+
     koa.use(parentRouter.routes());
     this.logger('Info', `Successfully mounted on Koa`);
 
@@ -107,18 +96,15 @@ export default class FrameworkMounter {
    */
   mountOnNestJs(nestJs: any): this {
     const adapter = nestJs.getHttpAdapter();
+    const callback = this.getConnectCallback(false);
 
     if (adapter.constructor.name === 'ExpressAdapter') {
-      nestJs.use(this.completeMountPrefix, this.handler);
+      nestJs.use(this.completeMountPrefix, callback);
     } else {
-      this.useCallbackOnFastify(nestJs, this.handler);
+      this.useCallbackOnFastify(nestJs, callback);
     }
 
     this.logger('Info', `Successfully mounted on NestJS`);
-
-    this.onStart.push(async router => {
-      this.applicationHandler = new Koa().use(router.routes()).callback();
-    });
 
     return this;
   }
@@ -144,12 +130,26 @@ export default class FrameworkMounter {
     }
   }
 
-  private handler(req: IncomingMessage, res: ServerResponse): void {
-    if (this.applicationHandler) {
-      this.applicationHandler(req, res);
-    } else {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Agent is not started' }));
-    }
+  private getConnectCallback(nested: boolean): HttpCallback {
+    let handler = null;
+
+    this.onStart.push(async driverRouter => {
+      let router = driverRouter;
+
+      if (nested) {
+        router = new Router({ prefix: this.completeMountPrefix }).use(router.routes());
+      }
+
+      handler = new Koa().use(router.routes()).callback();
+    });
+
+    return (req, res) => {
+      if (handler) {
+        handler(req, res);
+      } else {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Agent is not started' }));
+      }
+    };
   }
 }
