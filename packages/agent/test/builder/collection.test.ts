@@ -469,7 +469,7 @@ describe('Builder > Collection', () => {
 
       const self = builder.emulateFieldFiltering('lastName');
 
-      expect(spy).toBeCalledTimes(9);
+      expect(spy).toBeCalledTimes(19);
       expect(self).toEqual(builder);
     });
   });
