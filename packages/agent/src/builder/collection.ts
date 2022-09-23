@@ -18,6 +18,7 @@ import {
   TColumnName,
   TFieldName,
   TSchema,
+  TSortClause,
   WriteDefinition,
 } from '@forestadmin/datasource-toolkit';
 
@@ -370,7 +371,7 @@ export default class CollectionCustomizer<
    *   ]
    * )
    */
-  replaceFieldSorting(name: TColumnName<S, N>, equivalentSort: PlainSortClause<S, N>[]): this {
+  replaceFieldSorting(name: TColumnName<S, N>, equivalentSort: TSortClause<S, N>[]): this {
     this.stack.sortEmulate
       .getCollection(this.name)
       .replaceFieldSorting(name, equivalentSort as PlainSortClause[]);

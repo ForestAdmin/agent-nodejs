@@ -2,9 +2,15 @@
 import { Caller } from '../../../interfaces/caller';
 import { Collection } from '../../../interfaces/collection';
 import { RecordData } from '../../../interfaces/record';
-import { TCollectionName, TFieldName, TRow, TSchema } from '../../../interfaces/templates';
+import {
+  TCollectionName,
+  TFieldName,
+  TPaginatedFilter,
+  TRow,
+  TSchema,
+} from '../../../interfaces/templates';
 import HookContext from './hook';
-import PaginatedFilter, { PlainPaginatedFilter } from '../../../interfaces/query/filter/paginated';
+import PaginatedFilter from '../../../interfaces/query/filter/paginated';
 import Projection from '../../../interfaces/query/projection';
 
 export class HookBeforeListContext<
@@ -27,7 +33,7 @@ export class HookBeforeListContext<
   }
 
   get filter() {
-    return Object.freeze(this._filter as unknown as PlainPaginatedFilter<S, N>);
+    return Object.freeze(this._filter as unknown as TPaginatedFilter<S, N>);
   }
 
   get projection() {

@@ -1,5 +1,10 @@
-import { PlainConditionTree } from '../../interfaces/query/condition-tree/nodes/base';
-import { TCollectionName, TColumnName, TFieldType, TSchema } from '../../interfaces/templates';
+import {
+  TCollectionName,
+  TColumnName,
+  TConditionTree,
+  TFieldType,
+  TSchema,
+} from '../../interfaces/templates';
 import CollectionCustomizationContext from '../../context/collection-context';
 
 export type OperatorDefinition<
@@ -9,4 +14,4 @@ export type OperatorDefinition<
 > = (
   value: TFieldType<S, N, C>,
   context: CollectionCustomizationContext<S, N>,
-) => Promise<PlainConditionTree<S, N>> | PlainConditionTree<S, N>;
+) => Promise<TConditionTree<S, N>> | TConditionTree<S, N>;

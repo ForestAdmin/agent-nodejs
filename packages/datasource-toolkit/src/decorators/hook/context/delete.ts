@@ -1,8 +1,8 @@
 /* eslint-disable max-classes-per-file */
 import { Caller } from '../../../interfaces/caller';
 import { Collection } from '../../../interfaces/collection';
-import { TCollectionName, TSchema } from '../../../interfaces/templates';
-import Filter, { PlainFilter } from '../../../interfaces/query/filter/unpaginated';
+import { TCollectionName, TFilter, TSchema } from '../../../interfaces/templates';
+import Filter from '../../../interfaces/query/filter/unpaginated';
 import HookContext from './hook';
 
 export class HookBeforeDeleteContext<
@@ -18,7 +18,7 @@ export class HookBeforeDeleteContext<
   }
 
   get filter() {
-    return Object.freeze(this._filter as unknown as PlainFilter<S, N>);
+    return Object.freeze(this._filter as unknown as TFilter<S, N>);
   }
 }
 

@@ -1,12 +1,15 @@
 /* eslint-disable max-classes-per-file */
 import { Caller } from '../../../interfaces/caller';
 import { Collection } from '../../../interfaces/collection';
-import { TCollectionName, TSchema } from '../../../interfaces/templates';
-import Aggregation, {
-  AggregateResult,
-  PlainAggregation,
-} from '../../../interfaces/query/aggregation';
-import Filter, { PlainFilter } from '../../../interfaces/query/filter/unpaginated';
+import {
+  TAggregateResult,
+  TAggregation,
+  TCollectionName,
+  TFilter,
+  TSchema,
+} from '../../../interfaces/templates';
+import Aggregation from '../../../interfaces/query/aggregation';
+import Filter from '../../../interfaces/query/filter/unpaginated';
 import HookContext from './hook';
 
 export class HookBeforeAggregateContext<
@@ -32,11 +35,11 @@ export class HookBeforeAggregateContext<
   }
 
   get filter() {
-    return Object.freeze(this._filter as unknown as PlainFilter<S, N>);
+    return Object.freeze(this._filter as unknown as TFilter<S, N>);
   }
 
   get aggregation() {
-    return Object.freeze(this._aggregation as unknown as PlainAggregation<S, N>);
+    return Object.freeze(this._aggregation as unknown as TAggregation<S, N>);
   }
 
   get limit() {
@@ -58,14 +61,14 @@ export class HookAfterAggregateContext<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > extends HookBeforeAggregateContext<S, N> {
-  private _aggregateResult: AggregateResult<S, N>[];
+  private _aggregateResult: TAggregateResult<S, N>[];
 
   constructor(
     collection: Collection,
     caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
-    aggregateResult: AggregateResult<S, N>[],
+    aggregateResult: TAggregateResult<S, N>[],
     limit?: number,
   ) {
     super(collection, caller, filter, aggregation, limit);
