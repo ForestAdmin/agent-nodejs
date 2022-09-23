@@ -23,7 +23,6 @@ import {
 
 import { FieldDefinition, OneToManyEmbeddedDefinition } from './types';
 import DecoratorsStack from './decorators-stack';
-import FrontendFilterableUtils from '../agent/utils/forest-schema/filterable';
 
 export default class CollectionCustomizer<
   S extends TSchema = TSchema,
@@ -389,9 +388,13 @@ export default class CollectionCustomizer<
     const collection = this.stack.lateOpEmulate.getCollection(this.name);
     const field = collection.schema.fields[name] as ColumnSchema;
 
-    for (const operator of FrontendFilterableUtils.getRequiredOperators(field.columnType)) {
-      if (!field.filterOperators?.has(operator)) {
-        this.emulateFieldOperator(name, operator);
+    if (typeof field.columnType === 'string') {
+      const operators = allowedOperatorsForColumnType[field.columnType];
+
+      for (const operator of operators) {
+        if (!field.filterOperators?.has(operator)) {
+          this.emulateFieldOperator(name, operator);
+        }
       }
     }
 

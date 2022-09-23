@@ -1,6 +1,7 @@
 // Misc
 export * from './errors';
 export * from './factory';
+export { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE as allowedOperatorsForColumnType } from './validation/rules';
 
 // Base Collection & DataSource
 export { default as BaseCollection } from './base-collection';
