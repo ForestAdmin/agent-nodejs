@@ -1,3 +1,7 @@
+import { AggregationOperation, DateOperation } from './query/aggregation';
+import { Aggregator } from './query/condition-tree/nodes/branch';
+import { Operator } from './query/condition-tree/nodes/operators';
+import { PlainPage } from './query/page';
 import { RecordData } from './record';
 
 type RecursivePartial<T> = {
@@ -61,3 +65,65 @@ export type TPartialFlatRow<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > = RecursivePartial<S[N]['plain'] & S[N]['flat']>;
+
+export type TConditionTreeLeaf<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = {
+  field: TFieldName<S, N>;
+  operator: Operator;
+  value?: unknown;
+};
+
+export type TConditionTreeBranch<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = {
+  aggregator: Aggregator;
+  conditions: Array<TConditionTreeBranch<S, N> | TConditionTreeLeaf<S, N>>;
+};
+
+export type TConditionTree<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = TConditionTreeBranch<S, N> | TConditionTreeLeaf<S, N>;
+
+export type TPaginatedFilter<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = TFilter<S, N> & {
+  sort?: Array<TSortClause<S, N>>;
+  page?: PlainPage;
+};
+
+export type TSortClause<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = { field: TFieldName<S, N>; ascending: boolean };
+
+export type TAggregateResult<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = {
+  value: unknown;
+  group: TPartialFlatRow<S, N>;
+};
+
+export interface TAggregation<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> {
+  field?: TFieldName<S, N>;
+  operation: AggregationOperation;
+  groups?: Array<{ field: TFieldName<S, N>; operation?: DateOperation }>;
+}
+
+export type TFilter<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = {
+  conditionTree?: TConditionTree<S, N>;
+  search?: string;
+  searchExtended?: boolean;
+  segment?: string;
+};

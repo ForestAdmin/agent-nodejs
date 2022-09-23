@@ -1,8 +1,7 @@
 import { Caller } from '../../../interfaces/caller';
 import { Collection } from '../../../interfaces/collection';
 import { CompositeId, RecordData } from '../../../interfaces/record';
-import { PlainFilter } from '../../../interfaces/query/filter/unpaginated';
-import { TCollectionName, TFieldName, TRow, TSchema } from '../../../interfaces/templates';
+import { TCollectionName, TFieldName, TFilter, TRow, TSchema } from '../../../interfaces/templates';
 import CollectionCustomizationContext from '../../../context/collection-context';
 import Deferred from '../../../utils/async';
 import Projection from '../../../interfaces/query/projection';
@@ -14,7 +13,7 @@ export default class ActionContext<
   N extends TCollectionName<S> = TCollectionName<S>,
 > extends CollectionCustomizationContext<S, N> {
   readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  readonly filter: PlainFilter<S, N>;
+  readonly filter: TFilter<S, N>;
 
   private queries: Array<{ projection: Projection; deferred: Deferred<RecordData[]> }>;
   private projection: Projection;
@@ -23,7 +22,7 @@ export default class ActionContext<
     collection: Collection,
     caller: Caller,
     formValue: RecordData,
-    filter: PlainFilter<S, N>,
+    filter: TFilter<S, N>,
     used?: Set<string>,
   ) {
     super(collection, caller);

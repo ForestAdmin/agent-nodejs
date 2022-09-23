@@ -1,5 +1,4 @@
-import { PlainConditionTree } from '../../interfaces/query/condition-tree/nodes/base';
-import { TCollectionName, TSchema } from '../../interfaces/templates';
+import { TCollectionName, TConditionTree, TSchema } from '../../interfaces/templates';
 import CollectionCustomizationContext from '../../context/collection-context';
 
 export type SearchDefinition<
@@ -9,4 +8,4 @@ export type SearchDefinition<
   value: string,
   extended: boolean,
   context: CollectionCustomizationContext<S, N>,
-) => Promise<PlainConditionTree<S, N>> | PlainConditionTree<S, N>;
+) => Promise<TConditionTree<S, N>> | TConditionTree<S, N>;

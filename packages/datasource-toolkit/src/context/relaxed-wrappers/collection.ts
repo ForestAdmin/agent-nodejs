@@ -3,18 +3,22 @@ import { Caller } from '../../interfaces/caller';
 import { Collection } from '../../interfaces/collection';
 import { RecordData } from '../../interfaces/record';
 import {
+  TAggregateResult,
+  TAggregation,
   TCollectionName,
   TFieldName,
+  TFilter,
+  TPaginatedFilter,
   TPartialSimpleRow,
   TRow,
   TSchema,
   TSimpleRow,
 } from '../../interfaces/templates';
-import Aggregation, { AggregateResult, PlainAggregation } from '../../interfaces/query/aggregation';
+import Aggregation from '../../interfaces/query/aggregation';
 import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
-import Filter, { PlainFilter } from '../../interfaces/query/filter/unpaginated';
+import Filter from '../../interfaces/query/filter/unpaginated';
 import Page from '../../interfaces/query/page';
-import PaginatedFilter, { PlainPaginatedFilter } from '../../interfaces/query/filter/paginated';
+import PaginatedFilter from '../../interfaces/query/filter/paginated';
 import Projection from '../../interfaces/query/projection';
 import Sort from '../../interfaces/query/sort';
 
@@ -49,17 +53,13 @@ export default class RelaxedCollection<
    *    }
    * );
    */
-  execute(name: string, formValues: RecordData, filter?: PlainFilter<S, N>): Promise<ActionResult> {
+  execute(name: string, formValues: RecordData, filter?: TFilter<S, N>): Promise<ActionResult> {
     const filterInstance = this.buildFilter(filter);
 
     return this.collection.execute(this.caller, name, formValues, filterInstance);
   }
 
-  getForm(
-    name: string,
-    formValues?: RecordData,
-    filter?: PlainFilter<S, N>,
-  ): Promise<ActionField[]> {
+  getForm(name: string, formValues?: RecordData, filter?: TFilter<S, N>): Promise<ActionField[]> {
     const filterInstance = this.buildFilter(filter);
 
     return this.collection.getForm(this.caller, name, formValues, filterInstance);
@@ -100,7 +100,7 @@ export default class RelaxedCollection<
    *   }
    * }, ['id', 'amountInEur', 'description']);
    */
-  list(filter: PlainPaginatedFilter<S, N>, projection: TFieldName<S, N>[]): Promise<TRow<S, N>[]> {
+  list(filter: TPaginatedFilter<S, N>, projection: TFieldName<S, N>[]): Promise<TRow<S, N>[]> {
     const filterInstance = this.buildPaginatedFilter(filter);
     const projectionInstance = this.buildProjection(projection);
     const rows = this.collection.list(this.caller, filterInstance, projectionInstance);
@@ -121,7 +121,7 @@ export default class RelaxedCollection<
    *    },
    * }, { isActive: true });
    */
-  update(filter: PlainFilter<S, N>, patch: TPartialSimpleRow<S, N>): Promise<void> {
+  update(filter: TFilter<S, N>, patch: TPartialSimpleRow<S, N>): Promise<void> {
     const filterInstance = this.buildFilter(filter);
 
     return this.collection.update(this.caller, filterInstance, patch);
@@ -139,7 +139,7 @@ export default class RelaxedCollection<
    *    },
    * });
    */
-  delete(filter: PlainFilter<S, N>): Promise<void> {
+  delete(filter: TFilter<S, N>): Promise<void> {
     const filterInstance = this.buildFilter(filter);
 
     return this.collection.delete(this.caller, filterInstance);
@@ -163,18 +163,24 @@ export default class RelaxedCollection<
    *    groups: [{ field: "user:company:id" }],
    * }, 10);
    */
-  aggregate(
-    filter: PlainFilter<S, N>,
-    aggregation: PlainAggregation<S, N>,
+  async aggregate(
+    filter: TFilter<S, N>,
+    aggregation: TAggregation<S, N>,
     limit?: number,
-  ): Promise<AggregateResult<S, N>[]> {
+  ): Promise<TAggregateResult<S, N>[]> {
     const filterInstance = this.buildFilter(filter);
     const aggregationInstance = this.buildAggregation(aggregation);
+    const result = await this.collection.aggregate(
+      this.caller,
+      filterInstance,
+      aggregationInstance,
+      limit,
+    );
 
-    return this.collection.aggregate(this.caller, filterInstance, aggregationInstance, limit);
+    return result as TAggregateResult<S, N>[];
   }
 
-  private buildFilter(filter: PlainFilter<S, N>): Filter {
+  private buildFilter(filter: TFilter<S, N>): Filter {
     return filter
       ? new Filter({
           ...filter,
@@ -185,7 +191,7 @@ export default class RelaxedCollection<
       : null;
   }
 
-  private buildPaginatedFilter(filter: PlainPaginatedFilter<S, N>): PaginatedFilter {
+  private buildPaginatedFilter(filter: TPaginatedFilter<S, N>): PaginatedFilter {
     return new PaginatedFilter({
       ...filter,
       conditionTree: filter?.conditionTree
@@ -200,7 +206,7 @@ export default class RelaxedCollection<
     return new Projection(...projection);
   }
 
-  private buildAggregation(aggregation: PlainAggregation<S, N>): Aggregation {
+  private buildAggregation(aggregation: TAggregation<S, N>): Aggregation {
     return new Aggregation(aggregation);
   }
 }

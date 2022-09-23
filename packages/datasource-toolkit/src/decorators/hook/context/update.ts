@@ -2,8 +2,8 @@
 import { Caller } from '../../../interfaces/caller';
 import { Collection } from '../../../interfaces/collection';
 import { RecordData } from '../../../interfaces/record';
-import { TCollectionName, TRow, TSchema } from '../../../interfaces/templates';
-import Filter, { PlainFilter } from '../../../interfaces/query/filter/unpaginated';
+import { TCollectionName, TFilter, TRow, TSchema } from '../../../interfaces/templates';
+import Filter from '../../../interfaces/query/filter/unpaginated';
 import HookContext from './hook';
 
 export class HookBeforeUpdateContext<
@@ -21,7 +21,7 @@ export class HookBeforeUpdateContext<
   }
 
   get filter() {
-    return Object.freeze(this._filter as unknown as PlainFilter<S, N>);
+    return Object.freeze(this._filter as unknown as TFilter<S, N>);
   }
 
   get patch() {
