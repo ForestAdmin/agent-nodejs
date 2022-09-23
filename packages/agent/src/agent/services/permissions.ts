@@ -4,6 +4,7 @@ import LruCache from 'lru-cache';
 import hashObject from 'object-hash';
 
 import { AgentOptionsWithDefaults, HttpCode } from '../types';
+import ConditionTreeParser from '../utils/condition-tree-parser';
 import ForestHttpApi, { RenderingPermissions } from '../utils/forest-http-api';
 
 type RolesOptions = Pick<
@@ -73,7 +74,9 @@ export default class PermissionService {
 
     if (!scopes) return null;
 
-    return scopes.conditionTree.replaceLeafs(leaf => {
+    const conditionTree = ConditionTreeParser.fromPlainObject(collection, scopes.conditionTree);
+
+    return conditionTree.replaceLeafs(leaf => {
       const dynamicValues = scopes.dynamicScopeValues?.[user.id];
 
       if (typeof leaf.value === 'string' && leaf.value.startsWith('$currentUser')) {

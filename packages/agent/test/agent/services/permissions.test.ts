@@ -169,7 +169,7 @@ describe('Permissions', () => {
         actions: new Set(),
         actionsByUser: {},
         scopes: {
-          books: { conditionTree: new ConditionTreeLeaf('id', 'Equal', 43) },
+          books: { conditionTree: { field: 'id', operator: 'equal', value: 43 } },
         },
       });
 
@@ -185,7 +185,7 @@ describe('Permissions', () => {
         actionsByUser: {},
         scopes: {
           books: {
-            conditionTree: new ConditionTreeLeaf('id', 'Equal', '$currentUser.tags.something'),
+            conditionTree: { field: 'id', operator: 'equal', value: '$currentUser.tags.something' },
             dynamicScopeValues: { 34: { '$currentUser.tags.something': 'value' } },
           },
         },
@@ -195,6 +195,23 @@ describe('Permissions', () => {
       const conditionTree = await service.getScope(collection, context);
 
       expect(conditionTree).toEqual({ field: 'id', operator: 'Equal', value: 'value' });
+    });
+
+    test('should translate operator comming from server', async () => {
+      getPermissions.mockResolvedValue({
+        actions: new Set(),
+        actionsByUser: {},
+        scopes: {
+          books: {
+            conditionTree: { field: 'id', operator: 'not_equal', value: 42 },
+          },
+        },
+      });
+
+      const context = createMockContext({ state: { user: { renderingId: 1, id: 34 } } });
+      const conditionTree = await service.getScope(collection, context);
+
+      expect(conditionTree).toEqual({ field: 'id', operator: 'NotEqual', value: 42 });
     });
 
     test('should fallback to jwt when the cache is broken', async () => {
