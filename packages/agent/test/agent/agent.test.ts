@@ -26,15 +26,11 @@ jest.mock('../../src/agent/utils/forest-http-api', () => ({
 }));
 
 // Mock customizer
-const mockUpdateTypesOnFileSystem = jest.fn();
 const mockAddDataSource = jest.fn();
 const mockAddChart = jest.fn();
 const mockGetDataSource = jest.fn().mockResolvedValue(factories.dataSource.build());
 const mockCustomizeCollection = jest.fn();
-
-jest.mock('../../src/builder/utils/typing-generator', () => ({
-  updateTypesOnFileSystem: (...a) => mockUpdateTypesOnFileSystem(...a),
-}));
+const mockUpdateTypesOnFileSystem = jest.fn();
 
 jest.mock(
   '../../src/builder/datasource',
@@ -44,6 +40,7 @@ jest.mock(
       addChart = mockAddChart;
       getDataSource = mockGetDataSource;
       customizeCollection = mockCustomizeCollection;
+      updateTypesOnFileSystem = mockUpdateTypesOnFileSystem;
     },
 );
 
