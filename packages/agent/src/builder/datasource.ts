@@ -13,6 +13,7 @@ import {
 import { DataSourceOptions } from './types';
 import CollectionCustomizer from './collection';
 import DecoratorsStack from './decorators-stack';
+import TypingGenerator from './utils/typing-generator';
 
 /**
  * Allow to create a new Forest Admin agent from scratch.
@@ -102,5 +103,12 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
 
   getFactory(): DataSourceFactory {
     return async (logger: Logger) => this.getDataSource(logger);
+  }
+
+  async updateTypesOnFileSystem(
+    typingsPath: string | null,
+    typingsMaxDepth: number,
+  ): Promise<void> {
+    return TypingGenerator.updateTypesOnFileSystem(this.stack.hook, typingsPath, typingsMaxDepth);
   }
 }

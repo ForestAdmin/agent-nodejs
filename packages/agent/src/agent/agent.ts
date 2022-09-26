@@ -19,7 +19,6 @@ import ForestHttpApi from './utils/forest-http-api';
 import FrameworkMounter from '../builder/framework-mounter';
 import OptionsValidator from '../builder/utils/options-validator';
 import SchemaEmitter from './utils/forest-schema/emitter';
-import TypingGenerator from '../builder/utils/typing-generator';
 import makeRoutes from './routes';
 import makeServices from './services';
 
@@ -71,7 +70,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     const [router] = await Promise.all([
       this.getRouter(dataSource),
       this.sendSchema(dataSource),
-      TypingGenerator.updateTypesOnFileSystem(dataSource, typingsPath, typingsMaxDepth),
+      this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth),
     ]);
 
     return super.start(router);
