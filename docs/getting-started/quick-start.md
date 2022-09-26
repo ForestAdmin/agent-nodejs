@@ -88,15 +88,15 @@ Running
 node index.js
 ```
 
-should be enough to be redirected to the "rate-install" page. However, Forest Admin current don't have any collections to display.
+should be enough to be redirected to the "rate-install" page. However, Forest Admin currently don't have any collections to display.
 
 ![](../assets/quickstart-no-collections.png)
 
 ## Add a datasource
 
-Now that you are fully onboard, the only missing part is to add a data source. Forest Admin provide a way to [create your own](../datasources/custom/README.md), however for this example we will add an [SQL Datasource](../datasources/provided/sql.md).
+Now that you are fully onboarded, the only missing part is to add a data source. Forest Admin provide a way to [create your own](../datasources/custom/README.md), but for this example we will add a [SQL Datasource](../datasources/provided/sql.md).
 
-To install the SQL Data source package, you can run the following command
+To install the SQL Datasource package, you can run the following command
 
 ```bash
 yarn add @forestadmin/datasource-sql@beta
@@ -141,7 +141,7 @@ And refreshing the Forest Admin app should display the following screen:
 
 ![](../assets/quickstart-editor-mode.png)
 
-Click on the "eyes" icons of the collections you want to display, then exit the layout editor and ...
+Click on the "eye" icons of the collections you want to display, then exit the layout editor and ...
 
 ![](../assets/quickstart-make-collection-visible.png)
 
