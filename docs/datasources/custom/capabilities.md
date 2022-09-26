@@ -47,7 +47,7 @@ This means that filtering for a given field is either enabled or not from the UI
 | Boolean    | `Equal`, `NotEqual`, `Present`, `blank`                                                         |
 | Date       | All dates operators                                                                             |
 | Enum       | `Equal`, `NotEqual`, `Present`, `blank`,`In`                                                    |
-| Number     | `Equal`, `NotEqual`, `Present`, `blank`,`In`, `GreaterThan`, LessThan`                          |
+| Number     | `Equal`, `NotEqual`, `Present`, `blank`,`In`, `GreaterThan`, `LessThan`                         |
 | String     | `Equal`, `NotEqual`, `Present`, `blank`,`In`,`StartsWith`,`EndsWith`, `Contains`, `NotContains` |
 | Uuid       | `Equal`, `NotEqual`, `Present`, `Blank`                                                         |
 

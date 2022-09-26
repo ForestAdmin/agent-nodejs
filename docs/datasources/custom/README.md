@@ -10,7 +10,7 @@ That interface is only there to abstract away differences between backends so th
 
 # Getting started
 
-When creating a custom data source two strategies can be used:
+When creating a custom data source, you can use the "Query Translation" strategy:
 
 | -                | Implement query translation                                                         |
 | ---------------- | ----------------------------------------------------------------------------------- |
