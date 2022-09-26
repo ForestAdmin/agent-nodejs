@@ -43,10 +43,10 @@ export async function buildSequelizeInstance(
 
 export function createSqlDataSource(
   connectionUri: string,
-  options?: { instrospection: Table[] },
+  options?: { introspection: Table[] },
 ): DataSourceFactory {
   return async (logger: Logger) => {
-    const sequelize = await buildSequelizeInstance(connectionUri, logger, options?.instrospection);
+    const sequelize = await buildSequelizeInstance(connectionUri, logger, options?.introspection);
 
     return new SequelizeDataSource(sequelize, logger);
   };
