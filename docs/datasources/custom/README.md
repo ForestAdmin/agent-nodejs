@@ -1,89 +1,32 @@
 Custom data sources are the answer to the need to import collections from either
 
 - Your own in-house APIs.
-- Unsupported databases
-- Unsupported SaaS providers
+- Unsupported databases.
+- Unsupported SaaS providers.
 
-Forest Admin is built so that it does not know need the nature of the datasource it is speaking to, at long as it exposes a given interface.
+Forest Admin is built so that it does not need know to the nature of the datasource it is speaking to, as long as it exposes a given interface.
 
-That interface is only there to abstract away differences between backends so that they can be used as forest admin collections, it was built to allow for the minimal feature set which allow forest admin to work.
+That interface is only there to abstract away differences between backends so that they can be used as forest admin collections. It was built to allow for the minimal feature set which allow forest admin to work.
 
 # Getting started
 
 When creating a custom data source two strategies can be used:
 
-| -                | Using a local cache                                                                          | Implement query translation                                                         |
-| ---------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Recommended for  | SaaS and APIs                                                                                | Databases or APIs with advanced query capabilities                                  |
-| How does it work | All data is cached locally for read operations, write operations are forwarded to the target | The data source translates all forest admin queries to the target API in real time. |
-| Preconditions    | Low: Target API can either sort or filter by last modification                               | High: Target API is capable of expressing filters, aggregating data, ...            |
-| Pros             | Easy to implement and fast                                                                   | No disk usage and no limits on quantity of data                                     |
-| Cons             | Slower agent start, Disk Usage, Quantity of data may be too large                            | More difficult to implement, and can be slow depending on target                    |
+| -                | Implement query translation                                                         |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| Recommended for  | Databases or APIs with advanced query capabilities                                  |
+| How does it work | The data source translates all forest admin queries to the target API in real time. |
+| Preconditions    | Target API is capable of expressing filters, aggregating data, ...                  |
 
 ## Steps
 
-Depending on your choice between "Local Cache" or "Query Translation", creating a data source is a very different task.
+Creating a custom datasource will require you to work on these 3 following steps:
 
-Local Cache:
-
-1. Declaring the structure of the data
-2. Implement a method which loads all records which changed since a provided date
-3. When relevant, implement methods for record creation, update and delete
-
-Query Translation:
-
-1. Declaring the structure of the data
-2. Declaring the API capabilities
-3. Coding a translation layer
+1. Declare the structure of the data
+2. Declare the API capabilities
+3. Code a translation layer
 
 ## Minimal example
-
-{% tabs %} {% tab title="DataSource: Using a local cache" %}
-
-```javascript
-const { CachedCollection } = require('@forestadmin/datasource-toolkit');
-const axios = require('my-api-client'); // client for the target API
-
-class MyCollection extends CachedCollection {
-  constructor(dataSource) {
-    // Set name of the collection once imported
-    super('myCollection', dataSource);
-
-    // Add fields
-    this.addField('id', { columnType: 'Number', isPrimaryKey: true, isReadOnly: true });
-    this.addField('title', { columnType: 'String' });
-  }
-
-  async listChangedRecords() {
-    // When was this method last called?
-    const lastRecords = await this.list(
-      { sort: { field: 'updatedAt', ascending: true }, page: { limit: 1 } },
-      ['updatedAt'],
-    );
-    const lastUpdate = lastRecords.length ? lastRecords[0].updatedAt : null;
-
-    // Fetch everything which changed.
-    const response = await axios.get(`https://my-api/my-collection`, {
-      params: { filter: `updatedAt > '${lastUpdate}'` },
-    });
-
-    return response.body.items;
-  }
-}
-
-class MyDataSource extends CachedDataSource {
-  constructor() {
-    super(
-      'sqlite::memory:', // Cache data in memory (avoid in production)
-      [new MyCollection(this)], // List of your collections
-    );
-  }
-}
-
-module.exports = MyDataSource;
-```
-
-{% endtab %} {% tab title="DataSource: Using query translation" %}
 
 ```javascript
 const { BaseCollection } = require('@forestadmin/datasource-toolkit');
@@ -144,14 +87,26 @@ class MyDataSource extends BaseDataSource {
 module.exports = MyDataSource;
 ```
 
-{% endtab %} {% tab title="Agent: Using the data source" %}
-
 ```javascript
-const MyDataSource = require('./data source');
+const MyDataSource = require('./datasource');
 
 const myDataSourceFactory = async () => new MyDataSource();
 
 const agent = createAgent(options).addDataSource(myDataSourceFactory);
 ```
 
-{% endtab %} {% endtabs %}
+## Read more
+
+Implementing a data source using the "query translation" strategy is an advanced concept: you will need to have a deep understanding of forest admin internals.
+
+This strategy is a good match when writing data sources to full featured databases.
+
+Before starting, it is highly advised to read and understand the following section:
+
+- [Data Model](../../../under-the-hood/data-model/README.md)
+  - [Typing](../../../under-the-hood/data-model/typing.md)
+  - [Relationships](../../../under-the-hood/data-model/relationships.md)
+- [Query interface](../../../under-the-hood/queries/README.md)
+  - [Fields and projections](../../../under-the-hood/queries/fields-projections.md)
+  - [Filters](../../../under-the-hood/queries/filters.md)
+  - [Aggregations](../../../under-the-hood/queries/aggregations.md)
