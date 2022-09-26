@@ -55,11 +55,11 @@ This means that filtering for a given field is either enabled or not from the UI
 
 ## Count
 
-![Pagination widget](../../../assets/customdatasource-count-capability.png)
+![Pagination widget](../../assets/customdatasource-count-capability.png)
 
 Enabling this features allows the pagination widget to display the total number of pages in a collections while browsing records.
 
-Once enabled, your collections must implement the [`aggregate method`](../../../under-the-hood/queries/README.md#interface).
+Once enabled, your collections must implement the [`aggregate method`](../../under-the-hood/queries/README.md#interface).
 
 ```javascript
 class MyCollection extends BaseCollection {

@@ -1,6 +1,6 @@
-We've seen that when building datasources using the "query translation" strategy, collections must fulfill the contract they defined [when declaring their capabilities](./capabilities.md).
+We've seen that when building datasources, collections must fulfill the contract they defined [when declaring their capabilities](./capabilities.md).
 
-The same is also true for [Intra-datasource relationships](../structure.md#relationships) which are declared on the structure of a collection: declared relations must be handled when processing `filters`, `projection` and `aggregations`.
+The same is also true for [Intra-datasource relationships](./structure.md#relationships) which are declared on the structure of a collection: declared relations must be handled when processing `filters`, `projection` and `aggregations`.
 
 # In practice
 
