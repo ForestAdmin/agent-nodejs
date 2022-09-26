@@ -2,20 +2,17 @@ import {
   ChartDefinition,
   Collection,
   CompositeDatasource,
+  DataSource,
   DataSourceFactory,
+  Logger,
   RenameCollectionDataSourceDecorator,
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-toolkit';
 
-import { AgentOptions } from '../types';
-import { AgentOptionsWithDefaults } from '../agent/types';
 import { DataSourceOptions } from './types';
 import CollectionCustomizer from './collection';
 import DecoratorsStack from './decorators-stack';
-import ForestAdminHttpDriver from '../agent/forestadmin-http-driver';
-import FrameworkMounter from './framework-mounter';
-import OptionsValidator from './utils/options-validator';
 import TypingGenerator from './utils/typing-generator';
 
 /**
@@ -28,33 +25,12 @@ import TypingGenerator from './utils/typing-generator';
  *  .addDataSource(new SomeDataSource())
  *  .start();
  */
-export default class AgentBuilder<S extends TSchema = TSchema> extends FrameworkMounter {
+export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   private readonly compositeDataSource: CompositeDatasource<Collection>;
   private readonly stack: DecoratorsStack;
-  private readonly options: AgentOptionsWithDefaults;
-  private customizations: (() => Promise<void>)[] = [];
+  private customizations: ((logger: Logger) => Promise<void>)[] = [];
 
-  /**
-   * Create a new Agent Builder.
-   * If any options are missing, the default will be applied:
-   * ```
-   *  forestServerUrl: 'https://api.forestadmin.com',
-   *  logger: (level, data) => console.error(level, data),
-   *  prefix: 'api/v1',
-   *  schemaPath: '.forestadmin-schema.json',
-   *  permissionsCacheDurationInSeconds: 15 * 60,
-   * ```
-   * @param options options
-   * @example
-   * new AgentBuilder(options)
-   *  .addDataSource(new DataSource())
-   *  .start();
-   */
-  constructor(options: AgentOptions) {
-    const allOptions = OptionsValidator.validate(OptionsValidator.withDefaults(options));
-    super(allOptions.prefix, allOptions.logger);
-
-    this.options = allOptions;
+  constructor() {
     this.compositeDataSource = new CompositeDatasource<Collection>();
     this.stack = new DecoratorsStack(this.compositeDataSource);
   }
@@ -65,8 +41,8 @@ export default class AgentBuilder<S extends TSchema = TSchema> extends Framework
    * @param options the options
    */
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
-    this.customizations.push(async () => {
-      const dataSource = await factory(this.options.logger);
+    this.customizations.push(async logger => {
+      const dataSource = await factory(logger);
       const renamedDecorator = new RenameCollectionDataSourceDecorator(dataSource);
       renamedDecorator.renameCollections(options?.rename);
 
@@ -117,26 +93,19 @@ export default class AgentBuilder<S extends TSchema = TSchema> extends Framework
     return this;
   }
 
-  /**
-   * Start the agent.
-   */
-  override async start(): Promise<void> {
-    // Customize agent
-    for (const task of this.customizations) await task(); // eslint-disable-line no-await-in-loop
-
-    // Write typings file
-    if (!this.options.isProduction && this.options.typingsPath) {
-      await TypingGenerator.updateTypesOnFileSystem(
-        this.stack.action,
-        this.options.typingsPath,
-        this.options.typingsMaxDepth,
-      );
+  async getDataSource(logger: Logger): Promise<DataSource> {
+    while (this.customizations.length) {
+      await this.customizations.shift()(logger); // eslint-disable-line no-await-in-loop
     }
 
-    const httpDriver = new ForestAdminHttpDriver(this.stack.dataSource, this.options);
-    await httpDriver.sendSchema();
+    return this.stack.dataSource;
+  }
 
-    const router = await httpDriver.getRouter();
-    super.start(router);
+  getFactory(): DataSourceFactory {
+    return async (logger: Logger) => this.getDataSource(logger);
+  }
+
+  async updateTypesOnFileSystem(typingsPath: string, typingsMaxDepth: number): Promise<void> {
+    return TypingGenerator.updateTypesOnFileSystem(this.stack.hook, typingsPath, typingsMaxDepth);
   }
 }

@@ -16,9 +16,9 @@ export default class TypingGenerator {
   static async updateTypesOnFileSystem(
     dataSource: DataSource,
     typingsPath: string,
-    maxDepth: number,
+    typingsMaxDepth: number,
   ): Promise<void> {
-    const newTypes = this.generateTypes(dataSource, maxDepth);
+    const newTypes = TypingGenerator.generateTypes(dataSource, typingsMaxDepth);
     let olderTypes: string | null = null;
 
     try {
@@ -35,8 +35,6 @@ export default class TypingGenerator {
 
   /**
    * Generates types on a string.
-   * This method is kept public to make things easier for tests.
-   * @internal
    */
   static generateTypes(dataSource: DataSource, maxDepth: number): string {
     const collections = [...dataSource.collections].sort((a, b) => a.name.localeCompare(b.name));
