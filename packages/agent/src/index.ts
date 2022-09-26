@@ -1,7 +1,7 @@
 import { TSchema } from '@forestadmin/datasource-toolkit';
 
 import { AgentOptions } from './types';
-import Agent from './builder/agent';
+import Agent from './agent/agent';
 
 export { default as CollectionCustomizer } from './builder/collection';
 export { Agent };

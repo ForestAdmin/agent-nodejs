@@ -8,7 +8,7 @@ import {
 
 import * as factories from '../agent/__factories__';
 import { FieldDefinition } from '../../src/builder/types';
-import CollectionBuilder from '../../src/builder/collection';
+import CollectionCustomizer from '../../src/builder/collection';
 import DecoratorsStack from '../../dist/builder/decorators-stack';
 
 describe('Builder > Collection', () => {
@@ -87,7 +87,7 @@ describe('Builder > Collection', () => {
     it('should edit the schema', async () => {
       const { stack } = await setup();
       const collection = stack.schema.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'overrideSchema');
 
       const self = builder.disableCount();
@@ -103,7 +103,7 @@ describe('Builder > Collection', () => {
     it('should rename a field', async () => {
       const { stack } = await setup();
       const collection = stack.renameField.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'renameField');
 
       const self = builder.renameField('firstName', 'renamed');
@@ -119,7 +119,7 @@ describe('Builder > Collection', () => {
     it('should remove the field given fields', async () => {
       const { stack } = await setup();
       const collection = stack.publication.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'changeFieldVisibility');
 
       const self = builder.removeField('firstName', 'lastName');
@@ -137,7 +137,7 @@ describe('Builder > Collection', () => {
     it('should add an action', async () => {
       const { stack } = await setup();
       const collection = stack.action.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
 
       const spy = jest.spyOn(collection, 'addAction');
 
@@ -155,7 +155,7 @@ describe('Builder > Collection', () => {
     it('should add a validation rule', async () => {
       const { stack } = await setup();
       const collection = stack.validation.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
 
       const spy = jest.spyOn(collection, 'addValidation');
       const self = builder.addFieldValidation('firstName', 'LongerThan', 5);
@@ -172,7 +172,7 @@ describe('Builder > Collection', () => {
   describe('importField', () => {
     it('should call addField', async () => {
       const { stack } = await setup();
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(builder, 'addField');
       const self = builder.importField('firstNameCopy', { path: 'firstName' });
 
@@ -190,7 +190,7 @@ describe('Builder > Collection', () => {
 
     it('should call the replaceFieldWriting with the correct path', async () => {
       const { stack } = await setup();
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const collection = stack.write.getCollection('authors');
       const replaceFieldWritingSpy = jest.spyOn(collection, 'replaceFieldWriting');
 
@@ -206,7 +206,7 @@ describe('Builder > Collection', () => {
     describe('when the field is not writable', () => {
       it('should not call the replaceFieldWriting', async () => {
         const { stack } = await setup();
-        const builder = new CollectionBuilder(stack, 'authors');
+        const builder = new CollectionCustomizer(stack, 'authors');
         const collection = stack.write.getCollection('authors');
         const replaceFieldWritingSpy = jest.spyOn(collection, 'replaceFieldWriting');
 
@@ -219,7 +219,7 @@ describe('Builder > Collection', () => {
     describe('when the "readOnly" option is true', () => {
       it('should not call the replaceFieldWriting', async () => {
         const { stack } = await setup();
-        const builder = new CollectionBuilder(stack, 'authors');
+        const builder = new CollectionCustomizer(stack, 'authors');
         const collection = stack.write.getCollection('authors');
         const replaceFieldWritingSpy = jest.spyOn(collection, 'replaceFieldWriting');
 
@@ -232,7 +232,7 @@ describe('Builder > Collection', () => {
     describe('when the "readOnly" option is false and the schema doest not allow to write', () => {
       it('should throw an error', async () => {
         const { stack } = await setup();
-        const builder = new CollectionBuilder(stack, 'authors');
+        const builder = new CollectionCustomizer(stack, 'authors');
 
         expect(() =>
           builder.importField('translatorName', {
@@ -251,7 +251,7 @@ describe('Builder > Collection', () => {
     it('should add a field', async () => {
       const { stack } = await setup();
       const collection = stack.lateComputed.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'registerComputed');
 
       const fieldDefinition: FieldDefinition = {
@@ -275,7 +275,7 @@ describe('Builder > Collection', () => {
   describe('addExternalRelation', () => {
     it('should call addField', async () => {
       const { stack } = await setup();
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(builder, 'addField');
       const self = builder.addExternalRelation('firstNameCopy', {
         schema: { firstname: 'String', lastName: 'String' },
@@ -305,7 +305,7 @@ describe('Builder > Collection', () => {
     it('should add a many to one', async () => {
       const { stack } = await setup();
       const collection = stack.relation.getCollection('book_author');
-      const builder = new CollectionBuilder(stack, 'book_author');
+      const builder = new CollectionCustomizer(stack, 'book_author');
       const spy = jest.spyOn(collection, 'addRelation');
 
       const self = builder.addManyToOneRelation('myAuthor', 'authors', {
@@ -327,7 +327,7 @@ describe('Builder > Collection', () => {
     it('should add a one to one', async () => {
       const { stack } = await setup();
       const collection = stack.relation.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'addRelation');
 
       const self = builder.addOneToOneRelation('myBookAuthor', 'book_author', {
@@ -349,7 +349,7 @@ describe('Builder > Collection', () => {
     it('should add a one to many', async () => {
       const { stack } = await setup();
       const collection = stack.relation.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'addRelation');
 
       const self = builder.addOneToManyRelation('myBookAuthors', 'book_author', {
@@ -372,7 +372,7 @@ describe('Builder > Collection', () => {
       const { stack } = await setup();
       const collection = stack.relation.getCollection('authors');
       const spy = jest.spyOn(collection, 'addRelation');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
 
       const self = builder.addManyToManyRelation('myBooks', 'books', 'book_author', {
         foreignKey: 'bookFk',
@@ -400,7 +400,7 @@ describe('Builder > Collection', () => {
     it('should add a segment', async () => {
       const { stack } = await setup();
       const collection = stack.segment.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'addSegment');
 
       const generator = async () => new ConditionTreeLeaf('fieldName', 'Present');
@@ -418,7 +418,7 @@ describe('Builder > Collection', () => {
     it('should emulate sort on field', async () => {
       const { stack } = await setup();
       const collection = stack.sortEmulate.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'emulateFieldSorting');
 
       const self = builder.emulateFieldSorting('firstName');
@@ -433,7 +433,7 @@ describe('Builder > Collection', () => {
     it('should replace sort on field', async () => {
       const { stack } = await setup();
       const collection = stack.sortEmulate.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'replaceFieldSorting');
 
       const sortClauses = [{ field: 'firstName', ascending: true }];
@@ -449,7 +449,7 @@ describe('Builder > Collection', () => {
     it('should replace write on field', async () => {
       const { stack } = await setup();
       const collection = stack.write.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'replaceFieldWriting');
 
       const definition: WriteDefinition = jest.fn();
@@ -464,7 +464,7 @@ describe('Builder > Collection', () => {
     it('should emulate operator on field', async () => {
       const { stack } = await setup();
       const collection = stack.earlyOpEmulate.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
       const self = builder.emulateFieldFiltering('lastName');
@@ -479,7 +479,7 @@ describe('Builder > Collection', () => {
       const { stack } = await setup();
       const collection = stack.earlyOpEmulate.getCollection('authors');
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
 
       const self = builder.emulateFieldOperator('firstName', 'Present');
 
@@ -493,7 +493,7 @@ describe('Builder > Collection', () => {
     it('should replace operator on field', async () => {
       const { stack } = await setup();
       const collection = stack.earlyOpEmulate.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'replaceFieldOperator');
 
       const replacer = async () => new ConditionTreeLeaf('fieldName', 'NotEqual', null);
@@ -510,7 +510,7 @@ describe('Builder > Collection', () => {
     it('should call the search decorator', async () => {
       const { stack } = await setup();
       const collection = stack.search.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'replaceSearch');
 
       const replacer = async search =>
@@ -528,7 +528,7 @@ describe('Builder > Collection', () => {
     it('should call the hook decorator', async () => {
       const { stack } = await setup();
       const collection = stack.hook.getCollection('authors');
-      const builder = new CollectionBuilder(stack, 'authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'addHook');
 
       const hookHandler = () => {};
