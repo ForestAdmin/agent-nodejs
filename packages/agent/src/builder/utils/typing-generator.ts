@@ -15,23 +15,21 @@ export default class TypingGenerator {
    */
   static async updateTypesOnFileSystem(
     dataSource: DataSource,
-    typingsPath: string | null,
+    typingsPath: string,
     typingsMaxDepth: number,
   ): Promise<void> {
-    if (typingsPath) {
-      const newTypes = TypingGenerator.generateTypes(dataSource, typingsMaxDepth);
-      let olderTypes: string | null = null;
+    const newTypes = TypingGenerator.generateTypes(dataSource, typingsMaxDepth);
+    let olderTypes: string | null = null;
 
-      try {
-        olderTypes = await readFile(typingsPath, { encoding: 'utf-8' });
-      } catch (e) {
-        if (e.code === 'ENOENT') olderTypes = null;
-        else throw e;
-      }
+    try {
+      olderTypes = await readFile(typingsPath, { encoding: 'utf-8' });
+    } catch (e) {
+      if (e.code === 'ENOENT') olderTypes = null;
+      else throw e;
+    }
 
-      if (newTypes !== olderTypes) {
-        await writeFile(typingsPath, newTypes, { encoding: 'utf-8' });
-      }
+    if (newTypes !== olderTypes) {
+      await writeFile(typingsPath, newTypes, { encoding: 'utf-8' });
     }
   }
 

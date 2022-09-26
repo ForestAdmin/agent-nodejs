@@ -70,9 +70,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     const [router] = await Promise.all([
       this.getRouter(dataSource),
       this.sendSchema(dataSource),
-      this.options.isProduction
-        ? Promise.resolve()
-        : this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth),
+      !this.options.isProduction && typingsPath
+        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
+        : Promise.resolve(),
     ]);
 
     return super.start(router);
