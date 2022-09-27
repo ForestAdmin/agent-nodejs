@@ -8,7 +8,7 @@ export type UserPermissionOptions = Pick<
 >;
 
 export default class UserPermissionService {
-  private lastRetrieval: number = Number.NEGATIVE_INFINITY;
+  private cacheExpirationTimestamp = 0;
 
   // The trick here is to keep the cache as a Promise and not a Map
   // in order to avoid doing the same HTTP request twice when
@@ -19,10 +19,12 @@ export default class UserPermissionService {
 
   public async getUserInfo(userId: number): Promise<UserPermissionV4 | undefined> {
     if (
-      this.lastRetrieval < Date.now() - this.options.permissionsCacheDurationInSeconds * 1000 ||
+      !this.cacheExpirationTimestamp ||
+      this.cacheExpirationTimestamp < Date.now() ||
       !(await this.userInfoById).has(userId)
     ) {
-      this.lastRetrieval = Date.now();
+      this.cacheExpirationTimestamp =
+        Date.now() + this.options.permissionsCacheDurationInSeconds * 1000;
 
       // The response here is not awaited in order to be set in the cache
       // allowing subsequent calls to getUserInfo to use the cache even if
@@ -37,6 +39,6 @@ export default class UserPermissionService {
 
   public clearCache() {
     this.userInfoById = null;
-    this.lastRetrieval = Number.NEGATIVE_INFINITY;
+    this.cacheExpirationTimestamp = Number.NEGATIVE_INFINITY;
   }
 }
