@@ -6,7 +6,9 @@ import ActionContext from '../context/base';
 import ActionContextSingle from '../context/single';
 import ResultBuilder from '../result-builder';
 
-interface BaseAction<
+export { ActionContext, ActionContextSingle };
+
+export interface BaseAction<
   S extends TSchema,
   N extends TCollectionName<S>,
   Scope extends ActionScope,

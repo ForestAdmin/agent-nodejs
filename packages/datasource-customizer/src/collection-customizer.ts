@@ -138,7 +138,7 @@ export default class CollectionCustomizer<
    * .addAction('is live', {
    *    scope: 'Single',
    *    execute: async (context, resultBuilder) => {
-   *      return resultBuilder.success(`Is live!`);
+   *      return resultBuilder.success('Is live!');
    *    },
    *  })
    */
@@ -159,7 +159,7 @@ export default class CollectionCustomizer<
    * .addField('fullName', {
    *    columnType: 'String',
    *    dependencies: ['firstName', 'lastName'],
-   *    getValues: (records) => records.map(record => `${record.lastName} ${record.firstName}`),
+   *    getValues: (records) => records.map(record => \`${record.lastName} ${record.firstName}\`),
    * });
    */
   addField(name: string, definition: FieldDefinition<S, N>): this {
