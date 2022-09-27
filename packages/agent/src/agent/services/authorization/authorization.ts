@@ -39,14 +39,13 @@ export default class AuthorizationService {
     event: CollectionActionEvent,
     collectionName: string,
   ) {
-    const { id: userId, renderingId } = context.state.user;
+    const { id: userId } = context.state.user;
 
     if (
-      !(await this.actionPermissionService.can({
-        userId: `${userId}`,
-        renderingId: `${renderingId}`,
-        actionName: generateCollectionActionIdentifier(event, collectionName),
-      }))
+      !(await this.actionPermissionService.can(
+        `${userId}`,
+        generateCollectionActionIdentifier(event, collectionName),
+      ))
     ) {
       context.throw(403, 'Forbidden');
     }
@@ -57,30 +56,18 @@ export default class AuthorizationService {
     customActionName: string,
     collectionName: string,
   ) {
-    const { id: userId, renderingId } = context.state.user;
+    const { id: userId } = context.state.user;
 
     if (
-      !(await this.actionPermissionService.canOneOf({
-        userId: `${userId}`,
-        renderingId: `${renderingId}`,
-        actionNames: [
-          generateCustomActionIdentifier(
-            CustomActionEvent.Trigger,
-            customActionName,
-            collectionName,
-          ),
-          generateCustomActionIdentifier(
-            CustomActionEvent.Approve,
-            customActionName,
-            collectionName,
-          ),
-          generateCustomActionIdentifier(
-            CustomActionEvent.SelfApprove,
-            customActionName,
-            collectionName,
-          ),
-        ],
-      }))
+      !(await this.actionPermissionService.canOneOf(`${userId}`, [
+        generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
+        generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
+        generateCustomActionIdentifier(
+          CustomActionEvent.SelfApprove,
+          customActionName,
+          collectionName,
+        ),
+      ]))
     ) {
       context.throw(403, 'Forbidden');
     }

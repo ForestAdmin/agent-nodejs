@@ -1,5 +1,3 @@
-import LruCache from 'lru-cache';
-
 import { AgentOptionsWithDefaults } from '../../../types';
 import ForestHttpApi from '../../../utils/forest-http-api';
 import generateActionsFromPermissions, {
@@ -12,61 +10,45 @@ export type ActionPermissionOptions = Pick<
 >;
 
 export default class ActionPermissionService {
-  private readonly permissionsByRendering: LruCache<string, Promise<ActionPermissions>>;
+  private permissionsPromise: Promise<ActionPermissions> | undefined;
+  private permissionExpirationTimestamp: number | undefined;
 
-  constructor(private readonly options: ActionPermissionOptions) {
-    this.permissionsByRendering = new LruCache({
-      max: 256,
-      ttl: this.options.permissionsCacheDurationInSeconds * 1000,
-    });
-  }
+  constructor(private readonly options: ActionPermissionOptions) {}
 
-  public canOneOf(params: {
-    userId: string;
-    renderingId: string;
-    actionNames: string[];
-  }): Promise<boolean> {
+  public canOneOf(userId: string, actionNames: string[]): Promise<boolean> {
     return this.hasPermissionOrRefetch({
-      userId: params.userId,
-      renderingId: params.renderingId,
-      actionNames: params.actionNames,
+      userId,
+      actionNames,
       allowRefetch: true,
     });
   }
 
-  public can(params: {
-    userId: string;
-    renderingId: string;
-    actionName: string;
-  }): Promise<boolean> {
+  public can(userId: string, actionName: string): Promise<boolean> {
     return this.hasPermissionOrRefetch({
-      userId: params.userId,
-      renderingId: params.renderingId,
-      actionNames: [params.actionName],
+      userId,
+      actionNames: [actionName],
       allowRefetch: true,
     });
   }
 
   private async hasPermissionOrRefetch({
     userId,
-    renderingId,
     actionNames,
     allowRefetch,
   }: {
     userId: string;
-    renderingId: string;
     actionNames: string[];
     allowRefetch: boolean;
   }): Promise<boolean> {
-    const permissions = await this.getRenderingPermissions(renderingId);
+    const permissions = await this.getPermissions();
     const isAllowed = this.isAllowedOneOf({ permissions, actionNames, userId });
 
     if (!isAllowed && allowRefetch) {
-      this.permissionsByRendering.del(renderingId);
+      this.permissionsPromise = undefined;
+      this.permissionExpirationTimestamp = undefined;
 
       return this.hasPermissionOrRefetch({
         userId,
-        renderingId,
         actionNames,
         allowRefetch: false,
       });
@@ -103,18 +85,20 @@ export default class ActionPermissionService {
     );
   }
 
-  private async getRenderingPermissions(renderingId: string): Promise<ActionPermissions> {
-    const cachedPermissions = this.permissionsByRendering.get(renderingId);
-
-    if (cachedPermissions) {
-      return cachedPermissions;
+  private async getPermissions(): Promise<ActionPermissions> {
+    if (
+      this.permissionsPromise &&
+      this.permissionExpirationTimestamp &&
+      this.permissionExpirationTimestamp < Date.now()
+    ) {
+      return this.permissionsPromise;
     }
 
-    const permissionsPromise = this.fetchEnvironmentPermissions();
+    this.permissionsPromise = this.fetchEnvironmentPermissions();
+    this.permissionExpirationTimestamp =
+      Date.now() + this.options.permissionsCacheDurationInSeconds * 1000;
 
-    this.permissionsByRendering.set(renderingId, permissionsPromise);
-
-    return permissionsPromise;
+    return this.permissionsPromise;
   }
 
   private async fetchEnvironmentPermissions(): Promise<ActionPermissions> {

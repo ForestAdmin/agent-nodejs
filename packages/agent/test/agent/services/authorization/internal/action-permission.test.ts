@@ -58,7 +58,7 @@ describe('ActionPermissionService', () => {
         actionsGloballyAllowed: new Set(),
       });
 
-      const can = await service.can({ userId: '1', renderingId: '1', actionName: 'action' });
+      const can = await service.can('1', 'action');
       expect(can).toBe(true);
 
       expect(getUsersMock).toHaveBeenCalledTimes(1);
@@ -78,7 +78,7 @@ describe('ActionPermissionService', () => {
         actionsGloballyAllowed: new Set(['action']),
       });
 
-      const can = await service.can({ userId: '1', renderingId: '1', actionName: 'action' });
+      const can = await service.can('1', 'action');
       expect(can).toBe(true);
     });
 
@@ -89,7 +89,7 @@ describe('ActionPermissionService', () => {
         actionsGloballyAllowed: new Set(),
       });
 
-      const can = await service.can({ userId: '10', renderingId: '1', actionName: 'action' });
+      const can = await service.can('10', 'action');
       expect(can).toBe(true);
     });
 
@@ -108,7 +108,7 @@ describe('ActionPermissionService', () => {
           },
         );
 
-        const can = await service.can({ userId: '10', renderingId: '1', actionName: 'action' });
+        const can = await service.can('10', 'action');
         expect(can).toBe(true);
 
         expect(getUsersMock).toHaveBeenCalledTimes(2);
@@ -130,7 +130,7 @@ describe('ActionPermissionService', () => {
           },
         );
 
-        const can = await service.can({ userId: '10', renderingId: '1', actionName: 'action' });
+        const can = await service.can('10', 'action');
         expect(can).toBe(false);
 
         expect(getUsersMock).toHaveBeenCalledTimes(2);
@@ -148,11 +148,7 @@ describe('ActionPermissionService', () => {
         actionsGloballyAllowed: new Set(),
       });
 
-      const can = await service.canOneOf({
-        userId: '1',
-        renderingId: '1',
-        actionNames: ['action1', 'action2'],
-      });
+      const can = await service.canOneOf('1', ['action1', 'action2']);
       expect(can).toBe(true);
 
       expect(getUsersMock).toHaveBeenCalledTimes(1);
@@ -172,11 +168,7 @@ describe('ActionPermissionService', () => {
         actionsGloballyAllowed: new Set(['action2']),
       });
 
-      const can = await service.canOneOf({
-        userId: '1',
-        renderingId: '1',
-        actionNames: ['action1', 'action2'],
-      });
+      const can = await service.canOneOf('1', ['action1', 'action2']);
 
       expect(can).toBe(true);
 
@@ -192,11 +184,7 @@ describe('ActionPermissionService', () => {
         actionsGloballyAllowed: new Set(),
       });
 
-      const can = await service.canOneOf({
-        userId: '10',
-        renderingId: '1',
-        actionNames: ['action1', 'action2'],
-      });
+      const can = await service.canOneOf('10', ['action1', 'action2']);
 
       expect(can).toBe(true);
 
@@ -220,11 +208,7 @@ describe('ActionPermissionService', () => {
           },
         );
 
-        const can = await service.canOneOf({
-          userId: '10',
-          renderingId: '1',
-          actionNames: ['action1', 'action2'],
-        });
+        const can = await service.canOneOf('10', ['action1', 'action2']);
         expect(can).toBe(true);
 
         expect(getUsersMock).toHaveBeenCalledTimes(2);
@@ -246,11 +230,7 @@ describe('ActionPermissionService', () => {
           },
         );
 
-        const can = await service.canOneOf({
-          userId: '10',
-          renderingId: '1',
-          actionNames: ['action1', 'action2'],
-        });
+        const can = await service.canOneOf('10', ['action1', 'action2']);
 
         expect(can).toBe(false);
 
