@@ -1,4 +1,4 @@
-When using a standalone agent, you only need to choose the port that you app should be exposed to.
+When using a standalone agent, you only need to choose the port that your app should be exposed to.
 
 ```javascript
 require('dotenv').config();

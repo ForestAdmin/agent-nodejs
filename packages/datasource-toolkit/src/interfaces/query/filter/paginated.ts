@@ -1,4 +1,3 @@
-import { TCollectionName, TSchema } from '../../templates';
 import Filter, { FilterComponents, PlainFilter } from './unpaginated';
 import Page, { PlainPage } from '../page';
 import Sort, { PlainSortClause } from '../sort';
@@ -8,11 +7,8 @@ export type PaginatedFilterComponents = FilterComponents & {
   page?: Page;
 };
 
-export type PlainPaginatedFilter<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
-> = PlainFilter<S, N> & {
-  sort?: Array<PlainSortClause<S, N>>;
+export type PlainPaginatedFilter = PlainFilter & {
+  sort?: Array<PlainSortClause>;
   page?: PlainPage;
 };
 

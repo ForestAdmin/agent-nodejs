@@ -1,3 +1,21 @@
+# @forestadmin/datasource-sql [1.0.0-beta.53](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.52...@forestadmin/datasource-sql@1.0.0-beta.53) (2022-09-27)
+
+
+### Features
+
+* **datasource-sql:** allow skipping database introspection ([#434](https://github.com/ForestAdmin/agent-nodejs/issues/434)) ([a5c70d1](https://github.com/ForestAdmin/agent-nodejs/commit/a5c70d113b6c2d28b56ce803be7c1851b99a2db9))
+
+# @forestadmin/datasource-sql [1.0.0-beta.52](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.51...@forestadmin/datasource-sql@1.0.0-beta.52) (2022-09-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.44
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.34
+
 # @forestadmin/datasource-sql [1.0.0-beta.51](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.50...@forestadmin/datasource-sql@1.0.0-beta.51) (2022-09-15)
 
 

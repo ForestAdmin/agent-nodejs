@@ -1,4 +1,3 @@
-import { TCollectionName, TSchema } from '../../templates';
 import ConditionTree, { PlainConditionTree } from '../condition-tree/nodes/base';
 
 export type FilterComponents = {
@@ -8,11 +7,8 @@ export type FilterComponents = {
   segment?: string;
 };
 
-export type PlainFilter<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
-> = {
-  conditionTree?: PlainConditionTree<S, N>;
+export type PlainFilter = {
+  conditionTree?: PlainConditionTree;
   search?: string;
   searchExtended?: boolean;
   segment?: string;

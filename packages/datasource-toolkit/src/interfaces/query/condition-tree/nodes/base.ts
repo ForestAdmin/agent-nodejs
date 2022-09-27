@@ -8,13 +8,9 @@ import {
 import { Collection } from '../../../collection';
 import { PlainConditionTreeBranch } from './branch';
 import { RecordData } from '../../../record';
-import { TCollectionName, TSchema } from '../../../templates';
 import Projection from '../../projection';
 
-export type PlainConditionTree<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
-> = PlainConditionTreeBranch<S, N> | PlainConditionTreeLeaf<S, N>;
+export type PlainConditionTree = PlainConditionTreeBranch | PlainConditionTreeLeaf;
 
 export default abstract class ConditionTree {
   abstract inverse(): ConditionTree;
