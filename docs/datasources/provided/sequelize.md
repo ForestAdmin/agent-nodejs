@@ -1,6 +1,6 @@
 The sequelize data source allows to import collections from a sequelize instance.
 
-In order to make everything work as expected, you need to install the package `@forestadmin/datasource-sequelize@beta`.
+In order to make everything work as expected, you need to install the package `@forestadmin/datasource-sequelize`.
 
 Note that:
 

@@ -14,7 +14,7 @@ The installation process will ask for your application endpoint. This endpoint m
 
 ## Requirements
 
-In order to install Forest Admin in a Javascript or Typescript environment, you'll need to install the `@forestadmin/agent@beta` package. It exposes all the code required to create a Forest Admin agent.
+In order to install Forest Admin in a Javascript or Typescript environment, you'll need to install the `@forestadmin/agent` package. It exposes all the code required to create a Forest Admin agent.
 
 You will also need to install at least one of [our datasource](../../datasources/connection/README.md) package.
 
