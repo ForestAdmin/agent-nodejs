@@ -2,20 +2,11 @@ import { DateTime } from 'luxon';
 import hashRecord from 'object-hash';
 
 import { RecordData } from '../record';
-import { TCollectionName, TFieldName, TPartialFlatRow, TSchema } from '../templates';
 import Projection from './projection';
 import RecordUtils from '../../utils/record';
 
 export type AggregationOperation = 'Count' | 'Sum' | 'Avg' | 'Max' | 'Min';
 export type DateOperation = 'Year' | 'Month' | 'Week' | 'Day';
-
-export type AggregateResult<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
-> = {
-  value: unknown;
-  group: TPartialFlatRow<S, N>;
-};
 
 type Summary = {
   group: Record<string, unknown>;
@@ -26,13 +17,10 @@ type Summary = {
   Min: unknown;
 };
 
-export interface PlainAggregation<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
-> {
-  field?: TFieldName<S, N>;
+export interface PlainAggregation {
+  field?: string;
   operation: AggregationOperation;
-  groups?: Array<{ field: TFieldName<S, N>; operation?: DateOperation }>;
+  groups?: Array<{ field: string; operation?: DateOperation }>;
 }
 
 type GenericAggregation = {
@@ -40,6 +28,8 @@ type GenericAggregation = {
   operation: AggregationOperation;
   groups?: Array<{ field: string; operation?: DateOperation }>;
 };
+
+export type AggregateResult = { value: unknown; group: RecordData };
 
 export default class Aggregation {
   field?: GenericAggregation['field'];

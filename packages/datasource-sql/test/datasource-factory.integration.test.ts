@@ -1,6 +1,7 @@
 import { Dialect, Sequelize } from 'sequelize';
 
-import { buildSequelizeInstance } from '../src';
+import { buildSequelizeInstance, introspect } from '../src';
+import Introspector from '../src/introspection/introspector';
 import setupDatabaseWithIdNotPrimary from './_helpers/setup-id-is-not-a-pk';
 import setupDatabaseWithRelations, { RELATION_MAPPING } from './_helpers/setup-using-relations';
 import setupDatabaseWithTypes, { getAttributeMapping } from './_helpers/setup-using-all-types';
@@ -103,6 +104,39 @@ describe('SqlDataSourceFactory > Integration', () => {
 
         sequelize.close();
       });
+    });
+  });
+
+  describe('introspect database before injected the tables to the builder', () => {
+    it('should build the sequelize instance without introspected the db again', async () => {
+      const databaseName = 'datasource-sql-primitive-field-test';
+      const dialect = 'postgres';
+      const host = 'test:password@localhost:5443';
+      const uri = `${dialect}://${host}/${databaseName}`;
+      const logger = jest.fn();
+
+      const setupSequelize = await setupDatabaseWithTypes(dialect, host, databaseName);
+      const setupModels = setupSequelize.models;
+      const attributesMapping = getAttributeMapping(dialect as Dialect);
+
+      const tables = await introspect(uri, logger);
+      Introspector.introspect = jest.fn();
+      const sequelize = await buildSequelizeInstance(uri, logger, tables);
+
+      expect(Introspector.introspect).not.toHaveBeenCalled();
+
+      const dataSourceModels = sequelize.models;
+      Object.values(setupModels).forEach(setupModel => {
+        const model = dataSourceModels[setupModel.name];
+        expect(model).toBeDefined();
+        Object.entries(model.getAttributes()).forEach(([fieldName, attributeDefinition]) => {
+          expect({ [fieldName]: attributeDefinition }).toStrictEqual({
+            [fieldName]: expect.objectContaining(attributesMapping[model.name][fieldName]),
+          });
+        });
+      });
+
+      sequelize.close();
     });
   });
 });

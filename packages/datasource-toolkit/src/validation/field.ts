@@ -66,12 +66,12 @@ export default class FieldValidator {
 
     const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes);
 
-    if (schema.columnType === 'Enum') {
-      FieldValidator.checkEnumValue(type, schema, value);
-    }
-
     if (allowedTypes && !allowedTypes.includes(type)) {
       throw new ValidationError(`Wrong type for "${field}": ${value}. Expects ${allowedTypes}`);
+    }
+
+    if (value && schema.columnType === 'Enum') {
+      FieldValidator.checkEnumValue(type, schema, value);
     }
   }
 

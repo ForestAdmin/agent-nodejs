@@ -25,42 +25,42 @@ const makeColumnDescriptionForEnum = (enumValues: Array<string>): ColumnDescript
 describe('SqlTypeConverter', () => {
   describe('convert', () => {
     describe.each([
-      ['JSON', DataTypes.JSON],
-      ['TINYINT(1)', DataTypes.BOOLEAN],
-      ['BIT', DataTypes.BOOLEAN],
-      ['BOOLEAN', DataTypes.BOOLEAN],
-      ['CHARACTER VARYING', DataTypes.STRING],
-      ['TEXT', DataTypes.STRING],
-      ['NTEXT', DataTypes.STRING],
-      ['SOMETHING TEXT', DataTypes.STRING],
-      ['VARCHAR(255)', DataTypes.STRING],
-      ['CHAR(255)', DataTypes.STRING],
-      ['NVARCHAR', DataTypes.STRING],
-      ['UNIQUEIDENTIFIER', DataTypes.UUID],
-      ['UUID', DataTypes.UUID],
-      ['JSONB', DataTypes.JSONB],
-      ['INTEGER', DataTypes.NUMBER],
-      ['SERIAL', DataTypes.NUMBER],
-      ['INT8', DataTypes.NUMBER],
-      ['SMALLINT4', DataTypes.NUMBER],
-      ['TINYINT2', DataTypes.NUMBER],
-      ['MEDIUMINT4', DataTypes.NUMBER],
-      ['BIGINT4', DataTypes.BIGINT],
-      ['FLOAT8', DataTypes.FLOAT],
-      ['NUMERIC', DataTypes.DOUBLE],
-      ['DECIMAL', DataTypes.DOUBLE],
-      ['REAL', DataTypes.DOUBLE],
-      ['DOUBLE', DataTypes.DOUBLE],
-      ['DOUBLE PRECISION', DataTypes.DOUBLE],
-      ['DECIMAL8', DataTypes.DOUBLE],
-      ['DATE', DataTypes.DATEONLY],
-      ['DATETIME', DataTypes.DATE],
-      ['TIMESTAMP', DataTypes.DATE],
-      ['TIME', DataTypes.TIME],
-      ['TIME WITHOUT TIME ZONE', DataTypes.TIME],
-      ['INET', DataTypes.INET],
-    ])('from simple type %s', (columnType, expectedDataType) => {
-      it(`should return DataTypes.${expectedDataType.key}`, async () => {
+      ['JSON', DataTypes.JSON, 'JSON'],
+      ['TINYINT(1)', DataTypes.BOOLEAN, 'BOOLEAN'],
+      ['BIT', DataTypes.BOOLEAN, 'BOOLEAN'],
+      ['BOOLEAN', DataTypes.BOOLEAN, 'BOOLEAN'],
+      ['CHARACTER VARYING', DataTypes.STRING, 'STRING'],
+      ['TEXT', DataTypes.STRING, 'STRING'],
+      ['NTEXT', DataTypes.STRING, 'STRING'],
+      ['SOMETHING TEXT', DataTypes.STRING, 'STRING'],
+      ['VARCHAR(255)', DataTypes.STRING, 'STRING'],
+      ['CHAR(255)', DataTypes.STRING, 'STRING'],
+      ['NVARCHAR', DataTypes.STRING, 'STRING'],
+      ['UNIQUEIDENTIFIER', DataTypes.UUID, 'UUID'],
+      ['UUID', DataTypes.UUID, 'UUID'],
+      ['JSONB', DataTypes.JSONB, 'JSONB'],
+      ['INTEGER', DataTypes.NUMBER, 'NUMBER'],
+      ['SERIAL', DataTypes.NUMBER, 'NUMBER'],
+      ['INT8', DataTypes.NUMBER, 'NUMBER'],
+      ['SMALLINT4', DataTypes.NUMBER, 'NUMBER'],
+      ['TINYINT2', DataTypes.NUMBER, 'NUMBER'],
+      ['MEDIUMINT4', DataTypes.NUMBER, 'NUMBER'],
+      ['BIGINT4', DataTypes.BIGINT, 'BIGINT'],
+      ['FLOAT8', DataTypes.FLOAT, 'FLOAT'],
+      ['NUMERIC', DataTypes.DOUBLE, 'DOUBLE'],
+      ['DECIMAL', DataTypes.DOUBLE, 'DOUBLE'],
+      ['REAL', DataTypes.DOUBLE, 'DOUBLE'],
+      ['DOUBLE', DataTypes.DOUBLE, 'DOUBLE'],
+      ['DOUBLE PRECISION', DataTypes.DOUBLE, 'DOUBLE'],
+      ['DECIMAL8', DataTypes.DOUBLE, 'DOUBLE'],
+      ['DATE', DataTypes.DATEONLY, 'DATEONLY'],
+      ['DATETIME', DataTypes.DATE, 'DATE'],
+      ['TIMESTAMP', DataTypes.DATE, 'DATE'],
+      ['TIME', DataTypes.TIME, 'TIME'],
+      ['TIME WITHOUT TIME ZONE', DataTypes.TIME, 'TIME'],
+      ['INET', DataTypes.INET, 'INET'],
+    ])('from simple type %s', (columnType, dataType, expectedSubType) => {
+      it(`should return DataTypes.${dataType.key}`, async () => {
         const sequelize = new Sequelize('postgres://');
         const sqlTypeConverter = new SqlTypeConverter(sequelize);
         expect(
@@ -69,7 +69,7 @@ describe('SqlTypeConverter', () => {
             `column-${columnType}`,
             makeColumnDescriptionForType(columnType),
           ),
-        ).toEqual(expectedDataType);
+        ).toEqual({ type: 'scalar', subType: expectedSubType });
       });
     });
 
@@ -84,7 +84,7 @@ describe('SqlTypeConverter', () => {
             'column-ENUM-a-b',
             makeColumnDescriptionForType("ENUM('a','b')"),
           ),
-        ).toEqual(DataTypes.ENUM('a', 'b'));
+        ).toEqual({ type: 'enum', values: ['a', 'b'] });
       });
     });
 
@@ -100,7 +100,7 @@ describe('SqlTypeConverter', () => {
               'column-USER-DEFINED-ENUM',
               makeColumnDescriptionForEnum(['valueA', 'valueB']),
             ),
-          ).toEqual(DataTypes.ENUM('valueA', 'valueB'));
+          ).toEqual({ type: 'enum', values: ['valueA', 'valueB'] });
         });
       });
 
@@ -115,7 +115,7 @@ describe('SqlTypeConverter', () => {
               'column-USER-DEFINED-ENUM-WITH-NO-VALUES',
               makeColumnDescriptionForEnum([]),
             ),
-          ).toEqual(DataTypes.STRING);
+          ).toEqual({ type: 'scalar', subType: 'STRING' });
         });
       });
     });
@@ -138,7 +138,7 @@ describe('SqlTypeConverter', () => {
         );
         expect(arrayTypeGetter.getType).toHaveBeenCalledWith('test', 'column-ARRAY');
         expect(sqlTypeConverter.convert).toHaveBeenCalledTimes(2);
-        expect(result).toEqual(DataTypes.ARRAY(DataTypes.STRING));
+        expect(result).toEqual({ type: 'array', subType: { type: 'scalar', subType: 'STRING' } });
       });
     });
 

@@ -1,12 +1,5 @@
-import {
-  AbstractDataType,
-  AbstractDataTypeConstructor,
-  ColumnDescription,
-  DataTypes,
-  EnumDataType,
-  Sequelize,
-} from 'sequelize';
-
+import { ColumnDescription, Sequelize } from 'sequelize';
+import { ColumnType } from '../types';
 import ArrayTypeGetter from './array-type-getter';
 
 export default class SqlTypeConverter {
@@ -29,50 +22,45 @@ export default class SqlTypeConverter {
     return this.typeMatch(type, new RegExp(`${value}.*`, 'i'));
   }
 
-  private convertToEnum(type: string): EnumDataType<string> {
+  private convertToEnum(type: string): ColumnType {
     const enumOptions = this.enumRegex.exec(type)?.[1];
 
-    return DataTypes.ENUM(...enumOptions.replace(/'/g, '').split(','));
+    return { type: 'enum', values: enumOptions.replace(/'/g, '').split(',') };
   }
 
-  private getTypeForUserDefined(
-    columnInfo: ColumnDescription,
-  ): AbstractDataType | AbstractDataTypeConstructor {
+  private getTypeForUserDefined(columnInfo: ColumnDescription): ColumnType {
     const { special } = columnInfo;
 
     if (special && special.length > 0) {
-      return DataTypes.ENUM(...special);
+      return { type: 'enum', values: special };
     }
 
     // User-defined enum with no values will default to string
-    return DataTypes.STRING;
+    return { type: 'scalar', subType: 'STRING' };
   }
 
-  private async getTypeForArray(tableName: string, columnName: string): Promise<AbstractDataType> {
+  private async getTypeForArray(tableName: string, columnName: string): Promise<ColumnType> {
     const { type, special } = await this.arrayTypeGetter.getType(tableName, columnName);
+    const columnInfo = { type, special } as ColumnDescription;
+    const arrayType = await this.convert(tableName, columnName, columnInfo);
 
-    const arrayType = await this.convert(tableName, columnName, {
-      type,
-      special,
-    } as ColumnDescription);
-
-    return DataTypes.ARRAY(arrayType);
+    return { type: 'array', subType: arrayType };
   }
 
   async convert(
     tableName: string,
     columnName: string,
     columnInfo: ColumnDescription,
-  ): Promise<AbstractDataType | AbstractDataTypeConstructor> {
+  ): Promise<ColumnType> {
     const { type } = columnInfo;
 
     switch (type) {
       case 'JSON':
-        return DataTypes.JSON;
+        return { type: 'scalar', subType: 'JSON' };
       case 'TINYINT(1)': // MYSQL bool
       case 'BIT': // NOTICE: MSSQL type.
       case 'BOOLEAN':
-        return DataTypes.BOOLEAN;
+        return { type: 'scalar', subType: 'BOOLEAN' };
       case 'CHARACTER VARYING':
       case 'TEXT':
       case 'NTEXT': // MSSQL type
@@ -80,16 +68,16 @@ export default class SqlTypeConverter {
       case this.typeContains(type, 'VARCHAR'):
       case this.typeContains(type, 'CHAR'):
       case 'NVARCHAR': // NOTICE: MSSQL type.
-        return DataTypes.STRING;
+        return { type: 'scalar', subType: 'STRING' };
       case 'USER-DEFINED':
         return this.getTypeForUserDefined(columnInfo);
       case this.typeMatch(type, this.enumRegex):
         return this.convertToEnum(type);
       case 'UNIQUEIDENTIFIER':
       case 'UUID':
-        return DataTypes.UUID;
+        return { type: 'scalar', subType: 'UUID' };
       case 'JSONB':
-        return DataTypes.JSONB;
+        return { type: 'scalar', subType: 'JSONB' };
       case 'INTEGER':
       case 'SERIAL':
       case 'BIGSERIAL':
@@ -97,29 +85,29 @@ export default class SqlTypeConverter {
       case this.typeStartsWith(type, 'SMALLINT'):
       case this.typeStartsWith(type, 'TINYINT'):
       case this.typeStartsWith(type, 'MEDIUMINT'):
-        return DataTypes.NUMBER;
+        return { type: 'scalar', subType: 'NUMBER' };
       case this.typeStartsWith(type, 'BIGINT'):
-        return DataTypes.BIGINT;
+        return { type: 'scalar', subType: 'BIGINT' };
       case this.typeContains(type, 'FLOAT'):
-        return DataTypes.FLOAT;
+        return { type: 'scalar', subType: 'FLOAT' };
       case 'NUMERIC':
       case 'REAL':
       case 'DOUBLE':
       case 'DOUBLE PRECISION':
       case this.typeContains(type, 'DECIMAL'):
-        return DataTypes.DOUBLE;
+        return { type: 'scalar', subType: 'DOUBLE' };
       case 'DATE':
-        return DataTypes.DATEONLY;
+        return { type: 'scalar', subType: 'DATEONLY' };
       case this.typeStartsWith(type, 'DATETIME'):
       case this.typeStartsWith(type, 'TIMESTAMP'):
-        return DataTypes.DATE;
+        return { type: 'scalar', subType: 'DATE' };
       case 'TIME':
       case 'TIME WITHOUT TIME ZONE':
-        return DataTypes.TIME;
+        return { type: 'scalar', subType: 'TIME' };
       case 'ARRAY':
         return this.getTypeForArray(tableName, columnName);
       case 'INET':
-        return DataTypes.INET;
+        return { type: 'scalar', subType: 'INET' };
       default:
         throw new Error(`Unsupported type: ${type}`);
     }

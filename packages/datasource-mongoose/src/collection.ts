@@ -10,7 +10,6 @@ import {
   PaginatedFilter,
   Projection,
   RecordData,
-  TSchema,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Model, PipelineStage } from 'mongoose';
@@ -187,7 +186,7 @@ export default class MongooseCollection extends BaseCollection {
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,
-  ): Promise<AggregateResult<TSchema, string>[]> {
+  ): Promise<AggregateResult[]> {
     const lookupProjection = aggregation.projection.union(filter.conditionTree?.projection);
     const rows = await this.model.aggregate([
       ...this.buildBasePipeline(filter, lookupProjection),
