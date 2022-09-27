@@ -1,7 +1,12 @@
-import index from '../src/index';
+import { CollectionCustomizer, DataSourceCustomizer } from '../src/index';
 
-describe('index', () => {
-  it('should export a string', () => {
-    expect(index).toStrictEqual('New Package');
+describe('exports', () => {
+  describe.each([
+    ['CollectionCustomizer', CollectionCustomizer],
+    ['DataSourceCustomizer', DataSourceCustomizer],
+  ])('class %s', (message, type) => {
+    it('should be defined', () => {
+      expect(type).toBeDefined();
+    });
   });
 });

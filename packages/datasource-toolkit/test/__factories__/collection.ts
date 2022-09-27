@@ -2,27 +2,9 @@
 import { Factory } from 'fishery';
 
 import { ActionField } from '../../src/interfaces/action';
-import { ActionSchema, CollectionSchema } from '../../src/interfaces/schema';
-import { Caller } from '../../src/interfaces/caller';
-import { Collection, DataSource } from '../../src/interfaces/collection';
-import CollectionDecorator from '../../src/decorators/collection-decorator';
-import PaginatedFilter from '../../src/interfaces/query/filter/paginated';
+import { ActionSchema } from '../../src/interfaces/schema';
+import { Collection } from '../../src/interfaces/collection';
 import collectionSchemaFactory from './schema/collection-schema';
-
-export class DecoratedCollection extends CollectionDecorator {
-  public override childCollection: Collection;
-
-  public override async refineFilter(
-    caller: Caller,
-    filter: PaginatedFilter,
-  ): Promise<PaginatedFilter> {
-    return super.refineFilter(caller, filter);
-  }
-
-  public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    return subSchema;
-  }
-}
 
 export class CollectionFactory extends Factory<Collection> {
   buildWithAction(name: string, schema: ActionSchema, fields: ActionField[] = null): Collection {
@@ -34,13 +16,6 @@ export class CollectionFactory extends Factory<Collection> {
       execute: jest.fn(),
       getForm: jest.fn().mockReturnValue(Promise.resolve(fields)),
     });
-  }
-
-  buildDecoratedCollection(
-    partialCollection?: Partial<Collection>,
-    dataSource: DataSource = null,
-  ): DecoratedCollection {
-    return new DecoratedCollection(this.build(partialCollection), dataSource);
   }
 }
 
