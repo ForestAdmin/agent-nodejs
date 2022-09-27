@@ -6,7 +6,7 @@ import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
 
 export default class Introspector {
-  static async instrospect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
+  static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
     const tableNames = await this.getTableNames(sequelize);
 
     return Promise.all(tableNames.map(name => this.getTable(sequelize, logger, name)));

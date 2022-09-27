@@ -1,0 +1,37 @@
+{
+  "name": "@forestadmin/datasource-customizer",
+  "version": "1.0.0-beta.1",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/datasource-customizer"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/luxon": "^2.0.9",
+    "@types/object-hash": "^2.2.1",
+    "@types/uuid": "^8.3.4",
+    "fishery": "^2.1.0"
+  },
+  "dependencies": {
+    "@forestadmin/datasource-toolkit": "1.0.0-beta.34",
+    "luxon": "^2.3.0",
+    "object-hash": "^3.0.0",
+    "uuid": "^8.3.2"
+  }
+}

@@ -1,12 +1,8 @@
 import { RecordData } from '../../record';
-import { TCollectionName, TFieldName, TSchema } from '../../templates';
 import Projection from '../projection';
 import RecordUtils from '../../../utils/record';
 
-export type PlainSortClause<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
-> = { field: TFieldName<S, N>; ascending: boolean };
+export type PlainSortClause = { field: string; ascending: boolean };
 
 export default class Sort extends Array<{ field: string; ascending: boolean }> {
   get projection(): Projection {

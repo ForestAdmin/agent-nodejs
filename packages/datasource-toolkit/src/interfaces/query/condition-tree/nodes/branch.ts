@@ -7,18 +7,14 @@ import {
 } from './leaf';
 import { Collection } from '../../../collection';
 import { RecordData } from '../../../record';
-import { TCollectionName, TSchema } from '../../../templates';
 import ConditionTree from './base';
 import Projection from '../../projection';
 
 export type Aggregator = 'And' | 'Or';
 
-export type PlainConditionTreeBranch<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
-> = {
+export type PlainConditionTreeBranch = {
   aggregator: Aggregator;
-  conditions: Array<PlainConditionTreeBranch<S, N> | PlainConditionTreeLeaf<S, N>>;
+  conditions: Array<PlainConditionTreeBranch | PlainConditionTreeLeaf>;
 };
 
 export default class ConditionTreeBranch extends ConditionTree {
