@@ -1,5 +1,5 @@
+import { CollectionActionEvent } from '../../../../../src/agent/services/authorization/internal/types';
 import {
-  CollectionActionEvent,
   CustomActionEvent,
   UserPermissionV4,
 } from '../../../../../src/agent/services/authorization';

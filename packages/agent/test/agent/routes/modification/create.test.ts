@@ -2,7 +2,6 @@ import { ConditionTreeLeaf, Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { CollectionActionEvent } from '../../../../src/agent/services/authorization';
 import CreateRoute from '../../../../src/agent/routes/modification/create';
 
 describe('CreateRoute', () => {

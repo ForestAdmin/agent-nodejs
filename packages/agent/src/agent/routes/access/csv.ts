@@ -3,7 +3,6 @@ import Router from '@koa/router';
 
 import { Readable } from 'stream';
 
-import { CollectionActionEvent } from '../../services/authorization';
 import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import CsvGenerator from '../../utils/csv-generator';

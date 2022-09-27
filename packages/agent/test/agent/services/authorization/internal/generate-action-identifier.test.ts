@@ -1,7 +1,5 @@
-import {
-  CollectionActionEvent,
-  CustomActionEvent,
-} from '../../../../../src/agent/services/authorization';
+import { CollectionActionEvent } from '../../../../../src/agent/services/authorization/internal/types';
+import { CustomActionEvent } from '../../../../../src/agent/services/authorization';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,

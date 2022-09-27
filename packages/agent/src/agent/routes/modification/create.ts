@@ -13,7 +13,6 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { CollectionActionEvent } from '../../services/authorization';
 import CollectionRoute from '../collection-route';
 import QueryStringParser from '../../utils/query-string';
 

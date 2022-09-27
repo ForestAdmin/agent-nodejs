@@ -2,7 +2,6 @@ import { Filter, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { CollectionActionEvent } from '../../../../src/agent/services/authorization';
 import { HttpCode } from '../../../../src/agent/types';
 import DissociateDeleteRoute from '../../../../src/agent/routes/modification/dissociate-delete-related';
 

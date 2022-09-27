@@ -2,7 +2,6 @@ import { DataSource, Projection, ValidationError } from '@forestadmin/datasource
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
-import { CollectionActionEvent } from '../../../../src/agent/services/authorization';
 import UpdateField from '../../../../src/agent/routes/modification/update-field';
 
 describe('UpdateField', () => {

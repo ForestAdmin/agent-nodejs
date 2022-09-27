@@ -8,7 +8,6 @@ import {
 import { Context } from 'koa';
 import Router from '@koa/router';
 
-import { CollectionActionEvent } from '../../services/authorization';
 import { HttpCode } from '../../types';
 import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
