@@ -1,10 +1,6 @@
-import {
-  AbstractDataType,
-  AbstractDataTypeConstructor,
-  DataTypes,
-  Dialect,
-  literal,
-} from 'sequelize';
+import { Dialect, literal } from 'sequelize';
+
+import { ColumnType } from '../types';
 
 export default class DefaultValueParser {
   private readonly dialect: Dialect;
@@ -14,18 +10,16 @@ export default class DefaultValueParser {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parse(expression: any, type: AbstractDataType | AbstractDataTypeConstructor): unknown {
+  parse(expression: any, columnType: ColumnType): unknown {
     if (expression === null || expression === undefined) return undefined;
 
     if (typeof expression === 'string' && expression.startsWith('NULL')) return null;
 
     // FA backend not handle correctly
-    if (type.key === DataTypes.ARRAY.key) {
-      return undefined;
-    }
+    if (columnType.type === 'array') return undefined;
 
     try {
-      const result = this.parseGeneric(expression, type);
+      const result = this.parseGeneric(expression, columnType);
 
       return result !== undefined ? result : literal(expression);
     } catch (e) {
@@ -33,11 +27,8 @@ export default class DefaultValueParser {
     }
   }
 
-  private parseGeneric(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expression: any,
-    type: AbstractDataType | AbstractDataTypeConstructor,
-  ): unknown {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private parseGeneric(expression: any, columnType: ColumnType): unknown {
     let sanitizedExpression = expression;
 
     // sanitize string
@@ -45,32 +36,32 @@ export default class DefaultValueParser {
       sanitizedExpression = this.sanitizeExpression(expression);
     }
 
-    if (type.key === DataTypes.ENUM.key) {
+    if (columnType.type === 'enum') {
       return sanitizedExpression;
     }
 
-    switch (type) {
-      case DataTypes.BOOLEAN:
+    switch (columnType.subType) {
+      case 'BOOLEAN':
         return [true, 'true', 'TRUE', "b'1'", '1'].includes(sanitizedExpression);
 
-      case DataTypes.NUMBER:
-      case DataTypes.BIGINT:
-      case DataTypes.FLOAT:
-      case DataTypes.DOUBLE:
+      case 'NUMBER':
+      case 'BIGINT':
+      case 'FLOAT':
+      case 'DOUBLE':
         return this.parseNumber(sanitizedExpression);
 
-      case DataTypes.DATE:
-      case DataTypes.DATEONLY:
+      case 'DATE':
+      case 'DATEONLY':
         return this.literalUnlessMatch(
           /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|(\d{4}-\d{2}-\d{2})|(\d{2}:\d{2}:\d{2})$/,
           sanitizedExpression,
         );
 
-      case DataTypes.STRING:
+      case 'STRING':
         return sanitizedExpression;
 
-      case DataTypes.JSON:
-      case DataTypes.JSONB:
+      case 'JSON':
+      case 'JSONB':
         return JSON.parse(sanitizedExpression);
 
       default:
