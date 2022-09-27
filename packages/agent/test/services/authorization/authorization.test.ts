@@ -63,11 +63,10 @@ describe('AuthorizationService', () => {
 
       expect(context.throw).not.toHaveBeenCalled();
 
-      expect(actionPermissionService.can).toHaveBeenCalledWith({
-        userId: '35',
-        renderingId: '42',
-        actionName: 'collection:books:tested-right',
-      });
+      expect(actionPermissionService.can).toHaveBeenCalledWith(
+        '35',
+        'collection:books:tested-right',
+      );
       expect(generateCollectionActionIdentifier).toHaveBeenCalledWith(right, 'books');
     });
 
@@ -98,11 +97,10 @@ describe('AuthorizationService', () => {
 
       expect(context.throw).toHaveBeenCalledWith(403, 'Forbidden');
 
-      expect(actionPermissionService.can).toHaveBeenCalledWith({
-        userId: '35',
-        renderingId: '42',
-        actionName: 'collection:books:tested-right',
-      });
+      expect(actionPermissionService.can).toHaveBeenCalledWith(
+        '35',
+        'collection:books:tested-right',
+      );
       expect(generateCollectionActionIdentifier).toHaveBeenCalledWith(right, 'books');
     });
   });
@@ -133,11 +131,11 @@ describe('AuthorizationService', () => {
 
       expect(context.throw).not.toHaveBeenCalled();
 
-      expect(actionPermissionService.canOneOf).toHaveBeenCalledWith({
-        userId: '35',
-        renderingId: '42',
-        actionNames: ['custom:books:approve', 'custom:books:approve', 'custom:books:approve'],
-      });
+      expect(actionPermissionService.canOneOf).toHaveBeenCalledWith('35', [
+        'custom:books:approve',
+        'custom:books:approve',
+        'custom:books:approve',
+      ]);
 
       expect(generateCustomActionIdentifier).toHaveBeenCalledTimes(3);
       expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
