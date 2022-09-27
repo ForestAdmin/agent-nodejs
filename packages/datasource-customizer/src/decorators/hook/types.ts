@@ -6,6 +6,20 @@ import { HookAfterUpdateContext, HookBeforeUpdateContext } from './context/updat
 import { TCollectionName, TSchema } from '../../templates';
 import HookContext from './context/hook';
 
+export {
+  HookContext,
+  HookAfterAggregateContext,
+  HookBeforeAggregateContext,
+  HookAfterCreateContext,
+  HookBeforeCreateContext,
+  HookAfterDeleteContext,
+  HookBeforeDeleteContext,
+  HookAfterListContext,
+  HookBeforeListContext,
+  HookAfterUpdateContext,
+  HookBeforeUpdateContext,
+};
+
 export type HookHandler<
   C extends HookContext<S, N>,
   R = void,
