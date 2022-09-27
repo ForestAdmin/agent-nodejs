@@ -23,11 +23,7 @@ export default class CreateRoute extends CollectionRoute {
   }
 
   public async handleCreate(context: Context) {
-    await this.services.authorization.assertCanOnCollection(
-      context,
-      CollectionActionEvent.Add,
-      this.collection.name,
-    );
+    await this.services.authorization.assertCanAdd(context, this.collection.name);
 
     const { serializer } = this.services;
     const rawRecord = serializer.deserialize(this.collection, context.request.body);
@@ -98,11 +94,7 @@ export default class CreateRoute extends CollectionRoute {
       // Permissions
       const foreignCollection = this.dataSource.getCollection(relation.foreignCollection);
       const scope = await this.services.permissions.getScope(foreignCollection, context);
-      await this.services.authorization.assertCanOnCollection(
-        context,
-        CollectionActionEvent.Edit,
-        this.collection.name,
-      );
+      await this.services.authorization.assertCanEdit(context, this.collection.name);
 
       // Load the value that will be used as originKey (=== parentId[0] most of the time)
       const originValue = record[relation.originKeyTarget];

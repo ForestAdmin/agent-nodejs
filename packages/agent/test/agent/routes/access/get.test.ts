@@ -91,11 +91,7 @@ describe('GetRoute', () => {
 
       await get.handleGet(context);
 
-      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-        context,
-        CollectionActionEvent.Read,
-        'books',
-      );
+      expect(services.authorization.assertCanRead).toHaveBeenCalledWith(context, 'books');
 
       expect(context.response.body).toEqual('test');
     });

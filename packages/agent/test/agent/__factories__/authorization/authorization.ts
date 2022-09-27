@@ -7,7 +7,12 @@ export class AuthorizationsFactory extends Factory<AuthorizationService> {
   mockAllMethods() {
     return this.afterBuild(Authorizations => {
       Authorizations.assertCanExecuteCustomAction = jest.fn();
-      Authorizations.assertCanOnCollection = jest.fn();
+      Authorizations.assertCanBrowse = jest.fn();
+      Authorizations.assertCanRead = jest.fn();
+      Authorizations.assertCanAdd = jest.fn();
+      Authorizations.assertCanEdit = jest.fn();
+      Authorizations.assertCanDelete = jest.fn();
+      Authorizations.assertCanExport = jest.fn();
     });
   }
 }

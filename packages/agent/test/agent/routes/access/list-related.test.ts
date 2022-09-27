@@ -156,11 +156,7 @@ describe('ListRelatedRoute', () => {
         });
         await count.handleListRelated(context);
 
-        expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-          context,
-          CollectionActionEvent.Browse,
-          'books',
-        );
+        expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
       });
     });
   });

@@ -51,11 +51,7 @@ describe('CountRoute', () => {
 
       await count.handleCount(context);
 
-      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-        context,
-        CollectionActionEvent.Browse,
-        'books',
-      );
+      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
 
       expect(context.response.body).toEqual({ count: 2 });
     });

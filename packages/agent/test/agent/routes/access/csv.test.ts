@@ -85,16 +85,8 @@ describe('CsvRoute', () => {
       await csvRoute.handleCsv(context);
 
       // then
-      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-        context,
-        CollectionActionEvent.Browse,
-        'books',
-      );
-      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-        context,
-        CollectionActionEvent.Export,
-        'books',
-      );
+      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
+      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'books');
 
       expect(buildPaginated).toHaveBeenCalledWith(booksCollection, context, scopeCondition);
 

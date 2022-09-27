@@ -10,7 +10,31 @@ import ActionPermissionService from './internal/action-permission';
 export default class AuthorizationService {
   constructor(private readonly actionPermissionService: ActionPermissionService) {}
 
-  public async assertCanOnCollection(
+  public async assertCanBrowse(context: Context, collectionName: string) {
+    await this.assertCanOnCollection(context, CollectionActionEvent.Browse, collectionName);
+  }
+
+  public async assertCanRead(context: Context, collectionName: string) {
+    await this.assertCanOnCollection(context, CollectionActionEvent.Read, collectionName);
+  }
+
+  public async assertCanAdd(context: Context, collectionName: string) {
+    await this.assertCanOnCollection(context, CollectionActionEvent.Add, collectionName);
+  }
+
+  public async assertCanEdit(context: Context, collectionName: string) {
+    await this.assertCanOnCollection(context, CollectionActionEvent.Edit, collectionName);
+  }
+
+  public async assertCanDelete(context: Context, collectionName: string) {
+    await this.assertCanOnCollection(context, CollectionActionEvent.Delete, collectionName);
+  }
+
+  public async assertCanExport(context: Context, collectionName: string) {
+    await this.assertCanOnCollection(context, CollectionActionEvent.Export, collectionName);
+  }
+
+  private async assertCanOnCollection(
     context: Context,
     event: CollectionActionEvent,
     collectionName: string,

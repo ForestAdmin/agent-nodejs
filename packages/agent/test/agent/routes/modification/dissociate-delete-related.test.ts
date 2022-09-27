@@ -263,11 +263,7 @@ describe('DissociateDeleteRelatedRoute', () => {
 
       await count.handleDissociateDeleteRelatedRoute(context);
 
-      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-        context,
-        CollectionActionEvent.Delete,
-        'books',
-      );
+      expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
     });
   });
 });

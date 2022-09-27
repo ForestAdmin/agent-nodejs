@@ -29,11 +29,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
   }
 
   public async handleDissociateDeleteRelatedRoute(context: Context): Promise<void> {
-    await this.services.authorization.assertCanOnCollection(
-      context,
-      CollectionActionEvent.Delete,
-      this.collection.name,
-    );
+    await this.services.authorization.assertCanDelete(context, this.collection.name);
 
     // Parse route params
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);

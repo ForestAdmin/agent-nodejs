@@ -18,11 +18,7 @@ export default class GetRoute extends CollectionRoute {
   }
 
   public async handleGet(context: Context) {
-    await this.services.authorization.assertCanOnCollection(
-      context,
-      CollectionActionEvent.Read,
-      this.collection.name,
-    );
+    await this.services.authorization.assertCanRead(context, this.collection.name);
 
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
     const filter = new PaginatedFilter({

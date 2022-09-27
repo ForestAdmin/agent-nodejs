@@ -91,11 +91,7 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-          context,
-          CollectionActionEvent.Edit,
-          'books',
-        );
+        expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
       });
 
       test('should change the many-to-one association', async () => {
@@ -137,11 +133,7 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-          context,
-          CollectionActionEvent.Edit,
-          'books',
-        );
+        expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
       });
     });
 
@@ -211,11 +203,7 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-          context,
-          CollectionActionEvent.Edit,
-          'owner',
-        );
+        expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'owner');
       });
 
       test('should change the one-to-one association', async () => {
@@ -262,11 +250,7 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-          context,
-          CollectionActionEvent.Edit,
-          'owner',
-        );
+        expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'owner');
       });
     });
   });

@@ -91,11 +91,7 @@ describe('CreateRoute', () => {
 
       await create.handleCreate(context);
 
-      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-        context,
-        CollectionActionEvent.Add,
-        'books',
-      );
+      expect(services.authorization.assertCanAdd).toHaveBeenCalledWith(context, 'books');
     });
   });
 

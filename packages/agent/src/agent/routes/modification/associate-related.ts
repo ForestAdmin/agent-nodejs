@@ -28,11 +28,7 @@ export default class AssociateRelatedRoute extends RelationRoute {
   }
 
   public async handleAssociateRelatedRoute(context: Context): Promise<void> {
-    await this.services.authorization.assertCanOnCollection(
-      context,
-      CollectionActionEvent.Edit,
-      this.collection.name,
-    );
+    await this.services.authorization.assertCanEdit(context, this.collection.name);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const targetedRelationId = IdUtils.unpackId(
       this.foreignCollection.schema,

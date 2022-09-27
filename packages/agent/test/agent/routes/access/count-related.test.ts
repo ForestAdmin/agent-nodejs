@@ -159,9 +159,8 @@ describe('CountRelatedRoute', () => {
 
         const context = setupContext();
         await count.handleCountRelated(context);
-        expect(services.authorization.assertCanOnCollection as jest.Mock).toHaveBeenCalledWith(
+        expect(services.authorization.assertCanBrowse as jest.Mock).toHaveBeenCalledWith(
           context,
-          CollectionActionEvent.Browse,
           'books',
         );
 

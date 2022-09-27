@@ -134,11 +134,7 @@ describe('UpdateField', () => {
 
       await updateRoute.handleUpdate(context);
 
-      expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-        context,
-        CollectionActionEvent.Edit,
-        'books',
-      );
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
     });
   });
 });

@@ -86,11 +86,7 @@ describe('ListRoute', () => {
 
       await list.handleList(context);
 
-      expect(services.authorization.assertCanOnCollection).toHaveBeenLastCalledWith(
-        context,
-        CollectionActionEvent.Browse,
-        'books',
-      );
+      expect(services.authorization.assertCanBrowse).toHaveBeenLastCalledWith(context, 'books');
     });
   });
 });

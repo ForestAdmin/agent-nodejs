@@ -21,7 +21,14 @@ jest.mock(
 );
 
 describe('AuthorizationService', () => {
-  describe('assertCanOnCollection', () => {
+  describe.each([
+    { assertion: 'assertCanAdd', right: CollectionActionEvent.Add },
+    { assertion: 'assertCanBrowse', right: CollectionActionEvent.Browse },
+    { assertion: 'assertCanDelete', right: CollectionActionEvent.Delete },
+    { assertion: 'assertCanEdit', right: CollectionActionEvent.Edit },
+    { assertion: 'assertCanExport', right: CollectionActionEvent.Export },
+    { assertion: 'assertCanRead', right: CollectionActionEvent.Read },
+  ])('%s', ({ assertion, right }) => {
     it('should not do anything for authorized users', async () => {
       const actionPermissionService = factories.actionPermission.mockAllMethods().build();
       const authorizationService = new AuthorizationService(actionPermissionService);
@@ -36,22 +43,21 @@ describe('AuthorizationService', () => {
         throw: jest.fn(),
       } as unknown as Context;
 
-      (generateCollectionActionIdentifier as jest.Mock).mockReturnValue('collection:books:add');
+      (generateCollectionActionIdentifier as jest.Mock).mockReturnValue(
+        'collection:books:tested-right',
+      );
       (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
 
-      await authorizationService.assertCanOnCollection(context, CollectionActionEvent.Add, 'books');
+      await authorizationService[assertion](context, 'books');
 
       expect(context.throw).not.toHaveBeenCalled();
 
       expect(actionPermissionService.can).toHaveBeenCalledWith({
         userId: '35',
         renderingId: '42',
-        actionName: 'collection:books:add',
+        actionName: 'collection:books:tested-right',
       });
-      expect(generateCollectionActionIdentifier).toHaveBeenCalledWith(
-        CollectionActionEvent.Add,
-        'books',
-      );
+      expect(generateCollectionActionIdentifier).toHaveBeenCalledWith(right, 'books');
     });
 
     it('should throw an error when the user is not authorized', async () => {
@@ -68,22 +74,21 @@ describe('AuthorizationService', () => {
         throw: jest.fn(),
       } as unknown as Context;
 
-      (generateCollectionActionIdentifier as jest.Mock).mockReturnValue('collection:books:add');
+      (generateCollectionActionIdentifier as jest.Mock).mockReturnValue(
+        'collection:books:tested-right',
+      );
       (actionPermissionService.can as jest.Mock).mockResolvedValue(false);
 
-      await authorizationService.assertCanOnCollection(context, CollectionActionEvent.Add, 'books');
+      await authorizationService[assertion](context, 'books');
 
       expect(context.throw).toHaveBeenCalledWith(403, 'Forbidden');
 
       expect(actionPermissionService.can).toHaveBeenCalledWith({
         userId: '35',
         renderingId: '42',
-        actionName: 'collection:books:add',
+        actionName: 'collection:books:tested-right',
       });
-      expect(generateCollectionActionIdentifier).toHaveBeenCalledWith(
-        CollectionActionEvent.Add,
-        'books',
-      );
+      expect(generateCollectionActionIdentifier).toHaveBeenCalledWith(right, 'books');
     });
   });
 

@@ -130,11 +130,7 @@ describe('DeleteRoute', () => {
 
         await deleteRoute.handleDelete(context);
 
-        expect(services.authorization.assertCanOnCollection).toHaveBeenCalledWith(
-          context,
-          CollectionActionEvent.Delete,
-          'books',
-        );
+        expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
       });
     });
   });
