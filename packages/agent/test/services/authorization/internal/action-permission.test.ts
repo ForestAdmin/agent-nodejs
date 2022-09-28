@@ -138,6 +138,57 @@ describe('ActionPermissionService', () => {
         expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(2);
       });
     });
+
+    it('should reuse the cache if 2 calls are made in a short time', async () => {
+      const { service, options } = setup({
+        everythingAllowed: false,
+        actionsAllowedByUser: new Map([['action', new Set(['10'])]]),
+        actionsGloballyAllowed: new Set(),
+      });
+
+      jest.useFakeTimers();
+      jest.setSystemTime(0);
+
+      const can1 = await service.can('10', 'action');
+      jest.setSystemTime(options.permissionsCacheDurationInSeconds * 1000 - 1);
+      const can2 = await service.can('10', 'action');
+
+      expect(can1).toBe(true);
+      expect(can2).toBe(true);
+
+      expect(getUsersMock).toHaveBeenCalledTimes(1);
+      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should update the cache if 2 calls are made in a long time', async () => {
+      const { service, options } = setup(
+        {
+          everythingAllowed: false,
+          actionsAllowedByUser: new Map([['action', new Set(['10'])]]),
+          actionsGloballyAllowed: new Set(),
+        },
+        {
+          everythingAllowed: false,
+          actionsAllowedByUser: new Map([['action', new Set(['10'])]]),
+          actionsGloballyAllowed: new Set(),
+        },
+      );
+
+      jest.useFakeTimers();
+      jest.setSystemTime(0);
+
+      const can1 = await service.can('10', 'action');
+      jest.setSystemTime(options.permissionsCacheDurationInSeconds * 1000 + 1);
+      const can2 = await service.can('10', 'action');
+
+      expect(can1).toBe(true);
+      expect(can2).toBe(true);
+
+      expect(getUsersMock).toHaveBeenCalledTimes(2);
+      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(2);
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('canOneOf', () => {
