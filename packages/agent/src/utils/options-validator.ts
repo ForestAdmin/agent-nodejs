@@ -28,10 +28,13 @@ export default class OptionsValidator {
     copyOptions.forestServerUrl = copyOptions.forestServerUrl || 'https://api.forestadmin.com';
     copyOptions.typingsMaxDepth = copyOptions.typingsMaxDepth ?? 5;
     copyOptions.prefix = copyOptions.prefix || '';
+    copyOptions.permissionsCacheDurationInSeconds = Math.max(
+      copyOptions.permissionsCacheDurationInSeconds ?? 15 * 60,
+      5 * 60,
+    );
 
     return {
       loggerLevel: 'Info',
-      permissionsCacheDurationInSeconds: 15 * 60,
       ...copyOptions,
     } as AgentOptionsWithDefaults;
   }

@@ -70,6 +70,15 @@ describe('OptionsValidator', () => {
 
       expect(options).toEqual(options);
     });
+
+    test('should force a minimum permissionsCacheDurationInSeconds value', () => {
+      const options = OptionsValidator.withDefaults({
+        ...mandatoryOptions,
+        permissionsCacheDurationInSeconds: 1,
+      });
+
+      expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 300);
+    });
   });
 
   describe('OptionsValidator.validate', () => {
