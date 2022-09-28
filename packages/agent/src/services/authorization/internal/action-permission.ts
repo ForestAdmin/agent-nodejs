@@ -89,7 +89,7 @@ export default class ActionPermissionService {
     if (
       this.permissionsPromise &&
       this.permissionExpirationTimestamp &&
-      this.permissionExpirationTimestamp < Date.now()
+      this.permissionExpirationTimestamp > Date.now()
     ) {
       return this.permissionsPromise;
     }
