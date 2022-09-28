@@ -124,7 +124,9 @@ export default class RenderingPermissionService {
     ]);
 
     if (
-      [PermissionLevel.Admin, PermissionLevel.Developer].includes(userInfo?.permissionLevel) ||
+      [PermissionLevel.Admin, PermissionLevel.Developer, PermissionLevel.Editor].includes(
+        userInfo?.permissionLevel,
+      ) ||
       permissions.charts.has(chartHash)
     ) {
       return true;
