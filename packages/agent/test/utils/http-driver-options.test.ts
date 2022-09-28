@@ -72,19 +72,19 @@ describe('OptionsValidator', () => {
     });
 
     describe('permissionsCacheDurationInSeconds', () => {
-      test('should force a minimum value', () => {
+      test('should force minimum value to 1 minute (forest server performance concerns)', () => {
         const options = OptionsValidator.withDefaults({
           ...mandatoryOptions,
           permissionsCacheDurationInSeconds: 1,
         });
 
-        expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 300);
+        expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 60);
       });
 
       test('should allow user to configure it with realistic value', () => {
         const options = OptionsValidator.withDefaults({
           ...mandatoryOptions,
-          permissionsCacheDurationInSeconds: 10 * 60,
+          permissionsCacheDurationInSeconds: 5 * 60,
         });
 
         expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 300);

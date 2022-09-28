@@ -30,7 +30,7 @@ export default class OptionsValidator {
     copyOptions.prefix = copyOptions.prefix || '';
     copyOptions.permissionsCacheDurationInSeconds = Math.max(
       copyOptions.permissionsCacheDurationInSeconds ?? 15 * 60,
-      5 * 60,
+      1 * 60,
     );
 
     return {
