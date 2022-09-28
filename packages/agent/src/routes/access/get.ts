@@ -23,7 +23,7 @@ export default class GetRoute extends CollectionRoute {
     const filter = new PaginatedFilter({
       conditionTree: ConditionTreeFactory.intersect(
         ConditionTreeFactory.matchIds(this.collection.schema, [id]),
-        await this.services.permissions.getScope(this.collection, context),
+        await this.services.authorization.getScope(this.collection, context),
       ),
     });
 

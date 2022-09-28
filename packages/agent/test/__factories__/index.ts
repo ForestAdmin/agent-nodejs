@@ -6,3 +6,5 @@ export { default as serializer } from './serializer';
 export { default as superagent } from './superagent';
 export { default as authorization } from './authorization/authorization';
 export { default as actionPermission } from './authorization/internal/action-permission';
+export { default as renderingPermission } from './authorization/internal/rendering-permission';
+export { default as userPermission } from './authorization/internal/user-permission';

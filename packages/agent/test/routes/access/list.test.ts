@@ -87,5 +87,51 @@ describe('ListRoute', () => {
 
       expect(services.authorization.assertCanBrowse).toHaveBeenLastCalledWith(context, 'books');
     });
+
+    test('it should apply the scope', async () => {
+      // given
+      const { dataSource, options, services, collection } = setup();
+
+      const list = new List(services, options, dataSource, collection.name);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { search: '2', 'fields[books]': 'id', timezone: 'Europe/Paris' },
+        },
+      });
+      jest.spyOn(collection, 'list').mockResolvedValue([{ id: 1 }, { id: 2 }]);
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      getScopeMock.mockResolvedValueOnce({
+        field: 'title',
+        operator: 'NotContains',
+        value: '[test]',
+      });
+
+      // when
+      await list.handleList(context);
+
+      // then
+      expect(collection.list).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          conditionTree: {
+            field: 'title',
+            operator: 'NotContains',
+            value: '[test]',
+          },
+          search: '2',
+          searchExtended: false,
+          segment: null,
+          page: { limit: 15, skip: 0 },
+          sort: [{ ascending: true, field: 'id' }],
+        },
+        new Projection('id'),
+      );
+      expect(services.authorization.getScope).toHaveBeenCalledWith(
+        dataSource.getCollection('books'),
+        context,
+      );
+    });
   });
 });

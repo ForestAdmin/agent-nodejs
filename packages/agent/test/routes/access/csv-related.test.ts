@@ -87,7 +87,7 @@ describe('CsvRelatedRoute', () => {
 
       const projectionParams = { 'fields[persons]': 'id,name' };
       const scopeCondition = factories.conditionTreeLeaf.build();
-      services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
+      services.authorization.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
       const personsCollection = dataSource.getCollection('persons');
       const context = createMockContext({
@@ -167,6 +167,71 @@ describe('CsvRelatedRoute', () => {
 
       const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvResult).toEqual(['name,id\n', 'a,1\nab,2\nabc,3']);
+    });
+
+    it('should apply the scope', async () => {
+      const { options, services, dataSource } = setupWithOneToManyRelation();
+      const csvRoute = new CsvRoute(services, options, dataSource, 'books', 'myPersons');
+
+      const projectionParams = { 'fields[persons]': 'id,name' };
+
+      const personsCollection = dataSource.getCollection('persons');
+      const context = createMockContext({
+        requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-426614174000' }] },
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: {
+            ...projectionParams,
+            header: 'id,name',
+            timezone: 'Europe/Paris',
+          },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
+
+      const listRelation = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
+      const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
+
+      const paginatedFilter = factories.filter.build();
+      const buildPaginated = jest
+        .spyOn(ContextFilterFactory, 'buildPaginated')
+        .mockReturnValue(paginatedFilter);
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      const scopeCondition = {
+        field: 'title',
+        operator: 'NotContains',
+        value: '[test]',
+      };
+      getScopeMock.mockResolvedValue(scopeCondition);
+
+      // when
+      await csvRoute.handleRelatedCsv(context);
+
+      // then
+      expect(buildPaginated).toHaveBeenCalledWith(personsCollection, context, scopeCondition);
+
+      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
+      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'books');
+
+      await readCsv(context.response.body as AsyncGenerator<string>);
+      expect(csvGenerator).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        new Projection('id', 'name'),
+        'id,name',
+        paginatedFilter,
+        personsCollection,
+        expect.any(Function),
+      );
+
+      expect(listRelation).toHaveBeenCalledWith(
+        dataSource.getCollection('books'),
+        ['123e4567-e89b-12d3-a456-111111111111'],
+        'myPersons',
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        expect.any(PaginatedFilter),
+        expect.any(Projection),
+      );
     });
   });
 });

@@ -54,6 +54,45 @@ describe('CountRoute', () => {
 
       expect(context.response.body).toEqual({ count: 2 });
     });
+
+    test('it should apply the scope', async () => {
+      const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
+      dataSource.getCollection('books').aggregate = aggregateSpy;
+      const count = new Count(services, options, dataSource, 'books');
+      const context = createMockContext({
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
+      });
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      getScopeMock.mockResolvedValueOnce({
+        field: 'title',
+        operator: 'NotContains',
+        value: '[test]',
+      });
+
+      await count.handleCount(context);
+
+      expect(aggregateSpy).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          conditionTree: {
+            field: 'title',
+            operator: 'NotContains',
+            value: '[test]',
+          },
+          search: null,
+          searchExtended: false,
+          segment: null,
+        },
+        { operation: 'Count' },
+      );
+      expect(context.response.body).toEqual({ count: 2 });
+      expect(services.authorization.getScope).toHaveBeenCalledWith(
+        dataSource.getCollection('books'),
+        context,
+      );
+    });
   });
 
   describe('for non countable collections', () => {

@@ -1,5 +1,6 @@
 import {
   CollectionUtils,
+  ConditionTreeFactory,
   ConditionTreeLeaf,
   Page,
   PaginatedFilter,
@@ -156,6 +157,87 @@ describe('ListRelatedRoute', () => {
         await count.handleListRelated(context);
 
         expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
+      });
+
+      test('it should apply the scope', async () => {
+        const { services, dataSource, options } = setupWithOneToManyRelation();
+        dataSource.getCollection('persons').schema.segments = ['a-valid-segment'];
+
+        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
+
+        jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([
+          { id: 1, name: 'aName' },
+          { id: 2, name: 'aName2' },
+        ]);
+
+        const searchParams = { search: 'aName' };
+        const conditionTreeParams = {
+          filters: JSON.stringify({
+            aggregator: 'And',
+            conditions: [
+              { field: 'id', operator: 'Equal', value: '123e4567-e89b-12d3-a456-426614174000' },
+            ],
+          }),
+        };
+        const segmentParams = { segment: 'a-valid-segment' };
+        const projectionParams = { 'fields[persons]': 'id,name' };
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+            query: {
+              ...searchParams,
+              ...conditionTreeParams,
+              ...segmentParams,
+              ...projectionParams,
+              timezone: 'Europe/Paris',
+            },
+          },
+        });
+
+        const getScopeMock = services.authorization.getScope as jest.Mock;
+        getScopeMock.mockResolvedValueOnce({
+          field: 'name',
+          operator: 'NotContains',
+          value: '[test]',
+        });
+
+        await count.handleListRelated(context);
+
+        expect(CollectionUtils.listRelation).toHaveBeenCalledWith(
+          dataSource.getCollection('books'),
+          ['2d162303-78bf-599e-b197-93590ac3d315'],
+          'myPersons',
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          new PaginatedFilter({
+            search: 'aName',
+            searchExtended: false,
+            page: new Page(0, 15),
+            sort: new Sort({ field: 'id', ascending: true }),
+            segment: 'a-valid-segment',
+            conditionTree: ConditionTreeFactory.fromPlainObject({
+              aggregator: 'And',
+              conditions: [
+                {
+                  field: 'id',
+                  operator: 'Equal',
+                  value: '123e4567-e89b-12d3-a456-426614174000',
+                },
+                {
+                  field: 'name',
+                  operator: 'NotContains',
+                  value: '[test]',
+                },
+              ],
+            }),
+          }),
+          ['id', 'name'],
+        );
+
+        expect(services.authorization.getScope).toHaveBeenCalledWith(
+          dataSource.getCollection('persons'),
+          context,
+        );
       });
     });
   });

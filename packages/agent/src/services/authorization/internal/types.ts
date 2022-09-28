@@ -1,3 +1,5 @@
+import { GenericTree } from '@forestadmin/datasource-toolkit';
+
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
 
 export type RightDescriptionWithRolesV4 = { roles: number[] };
@@ -38,8 +40,8 @@ export interface EnvironmentPermissionsV4Remote {
 
 export enum PermissionLevel {
   Admin = 'admin',
-  User = 'user',
   Developer = 'developer',
+  User = 'user',
 }
 
 export type UserPermissionV4 = {
@@ -47,9 +49,9 @@ export type UserPermissionV4 = {
   firstName: string;
   lastName: string;
   email: string;
-  roleId: number;
   permissionLevel: PermissionLevel;
   tags: Record<string, string>;
+  roleId: number;
 };
 
 export enum CollectionActionEvent {
@@ -67,3 +69,148 @@ export enum CustomActionEvent {
   SelfApprove = 'self-approve',
   RequireApproval = 'require-approval',
 }
+
+export enum ChartType {
+  Pie = 'Pie',
+  Value = 'Value',
+  Leaderboard = 'Leaderboard',
+  Line = 'Line',
+  Objective = 'Objective',
+  Percentage = 'Percentage',
+  Smart = 'Smart',
+}
+
+export interface DisplaySettings {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface BaseChart {
+  name: string;
+  description: string;
+  type: ChartType;
+  displaySettings: DisplaySettings;
+}
+
+export interface SmartRouteChart extends BaseChart {
+  type: Exclude<ChartType, ChartType.Smart>;
+  smartRoute: string;
+}
+
+export interface ApiRouteChart extends BaseChart {
+  type: Exclude<ChartType, ChartType.Smart>;
+  apiRoute: string;
+}
+
+export interface QueryChart extends BaseChart {
+  type: Exclude<ChartType, ChartType.Smart>;
+  query: string;
+  filter?: Record<string, any>; // To be completed
+}
+export interface S3Versions {
+  'component.js': string;
+  'template.hbs': string;
+}
+
+export interface SmartChart extends BaseChart {
+  type: ChartType.Smart;
+  s3Versions: S3Versions & { 'style.css': string };
+  id: string;
+}
+
+export type CollectionChart = SmartChart | ApiRouteChart | QueryChart | SmartRouteChart;
+
+export type DashboardChart = CollectionChart & {
+  id: string;
+};
+
+export type WorkspaceChart = CollectionChart & {
+  name: string;
+  description: string | null;
+  sourceCollectionId: string;
+};
+
+export interface RenderingChartDefinitions {
+  queries: string[];
+  leaderboards: Array<CollectionChart | DashboardChart | WorkspaceChart>;
+  lines: Array<CollectionChart | DashboardChart | WorkspaceChart>;
+  objectives: Array<CollectionChart | DashboardChart | WorkspaceChart>;
+  percentages: Array<CollectionChart | DashboardChart | WorkspaceChart>;
+  pies: Array<CollectionChart | DashboardChart | WorkspaceChart>;
+  values: Array<CollectionChart | DashboardChart | WorkspaceChart>;
+}
+
+export interface CollectionColumn {
+  id: string | number;
+  fieldName: string;
+  position: number | null;
+  isVisible: boolean;
+}
+
+export interface BaseCollectionSegment {
+  id: string | number;
+  type: 'manual' | 'smart';
+  name: string;
+  position: number;
+  defaultSortingFieldName: string | null;
+  defaultSortingFieldOrder: 'ascending' | 'descending' | null;
+  isVisible: boolean;
+  hasColumnsConfiguration: boolean;
+  columns: CollectionColumn[];
+}
+
+export interface FilterCondition {
+  id: string;
+  value: boolean | number | string | string[];
+  fieldName: string | null;
+  subFieldName: string | null;
+  embeddedFieldName?: string | null;
+  operator: string;
+  embeddedField?: {
+    id?: number;
+    type: string;
+    field: string;
+    enums?: Array<string | number | Record<string, string>>;
+  } | null;
+}
+
+export interface Filter {
+  id?: string;
+  type: 'and' | 'or';
+  conditions: FilterCondition[] | null;
+}
+
+export interface ManualCollectionSegment extends BaseCollectionSegment {
+  type: 'manual';
+  filter: Filter | null;
+  query: string | null;
+}
+export interface SmartCollectionSegment extends BaseCollectionSegment {
+  type: 'smart';
+}
+
+export type CollectionSegment = ManualCollectionSegment | SmartCollectionSegment;
+
+export type DynamicScopesValues = {
+  users: Record<string, Record<string, string | number>>;
+};
+
+export type CollectionRenderingPermissionV4 = {
+  scope: GenericTree | null;
+  segments: CollectionSegment[];
+};
+
+export type Team = { id: number; name: string };
+
+export type RenderingPermissionV4 = {
+  team: Team;
+  collections: Record<string, CollectionRenderingPermissionV4>;
+  stats: RenderingChartDefinitions;
+};
+
+export type User = Record<string, any> & {
+  id: number;
+  tags: Record<string, string>;
+};

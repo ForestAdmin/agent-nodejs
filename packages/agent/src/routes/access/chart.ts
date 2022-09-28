@@ -234,7 +234,7 @@ export default class Chart extends CollectionRoute {
   }
 
   private async getFilter(context: Context): Promise<Filter> {
-    const scope = await this.services.permissions.getScope(this.collection, context);
+    const scope = await this.services.authorization.getScope(this.collection, context);
 
     return ContextFilterFactory.build(this.collection, context, scope);
   }

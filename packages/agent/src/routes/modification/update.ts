@@ -32,7 +32,7 @@ export default class UpdateRoute extends CollectionRoute {
 
     const conditionTree = ConditionTreeFactory.intersect(
       ConditionTreeFactory.matchIds(this.collection.schema, [id]),
-      await this.services.permissions.getScope(this.collection, context),
+      await this.services.authorization.getScope(this.collection, context),
     );
     const caller = QueryStringParser.parseCaller(context);
     await this.collection.update(caller, new Filter({ conditionTree }), record);

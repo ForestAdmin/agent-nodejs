@@ -1,4 +1,4 @@
-import { ValidationError } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -224,10 +224,75 @@ describe('ChartRoute', () => {
             },
           });
         });
+
+        test('should apply the scope with the correct filter', async () => {
+          jest
+            .spyOn(dataSource.getCollection('books'), 'aggregate')
+            .mockResolvedValue([{ value: 1234, group: null }]);
+          const chart = new Chart(services, options, dataSource, 'books');
+          const context = createMockContext({
+            requestBody: {
+              type: 'Value',
+              aggregate: 'Count',
+              collection: 'books',
+              filters: JSON.stringify({ field: 'name', operator: 'Present', value: null }),
+            },
+            customProperties: { query: { timezone: 'Europe/Paris' } },
+            state: { user: { email: 'john.doe@domain.com' } },
+          });
+
+          const getScopeMock = services.authorization.getScope as jest.Mock;
+          const scopeCondition = ConditionTreeFactory.fromPlainObject({
+            field: 'title',
+            operator: 'NotContains',
+            value: '[test]',
+          });
+
+          getScopeMock.mockResolvedValueOnce(scopeCondition);
+
+          await chart.handleChart(context);
+
+          expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledTimes(1);
+          expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
+            { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+            {
+              conditionTree: {
+                aggregator: 'And',
+                conditions: [
+                  { field: 'name', operator: 'Present', value: null },
+                  {
+                    field: 'title',
+                    operator: 'NotContains',
+                    value: '[test]',
+                  },
+                ],
+              },
+              search: null,
+              searchExtended: false,
+              segment: null,
+            },
+            { field: undefined, groups: undefined, operation: 'Count' },
+          );
+          expect(context.response.body).toMatchObject({
+            data: {
+              attributes: { value: { countCurrent: 1234, countPrevious: undefined } },
+              type: 'stats',
+            },
+          });
+          expect(services.authorization.getScope).toHaveBeenCalledWith(
+            dataSource.getCollection('books'),
+            context,
+          );
+
+          expect(services.authorization.getScope).toHaveBeenCalledWith(
+            dataSource.getCollection('books'),
+            context,
+          );
+        });
       });
     });
 
-    describe('when the aggregation retun no data', () => {
+    describe('when the aggregation return no data', () => {
       test('should return 0 as value', async () => {
         jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValue([]);
         const chart = new Chart(services, options, dataSource, 'books');
@@ -281,6 +346,53 @@ describe('ChartRoute', () => {
         },
       });
     });
+
+    test('should apply the scope with the correct filter', async () => {
+      jest
+        .spyOn(dataSource.getCollection('books'), 'aggregate')
+        .mockResolvedValueOnce([{ value: 1234, group: null }]);
+
+      const chart = new Chart(services, options, dataSource, 'books');
+      const context = createMockContext({
+        requestBody: { type: 'Objective', aggregate: 'Count', collection: 'books' },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
+      });
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      const scopeCondition = ConditionTreeFactory.fromPlainObject({
+        field: 'title',
+        operator: 'NotContains',
+        value: '[test]',
+      });
+
+      getScopeMock.mockResolvedValueOnce(scopeCondition);
+
+      await chart.handleChart(context);
+
+      expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          conditionTree: { field: 'title', operator: 'NotContains', value: '[test]' },
+          search: null,
+          searchExtended: false,
+          segment: null,
+        },
+        { field: undefined, groups: undefined, operation: 'Count' },
+      );
+
+      expect(context.response.body).toMatchObject({
+        data: {
+          attributes: { value: { value: 1234 } },
+          type: 'stats',
+        },
+      });
+
+      expect(services.authorization.getScope).toHaveBeenCalledWith(
+        dataSource.getCollection('books'),
+        context,
+      );
+    });
   });
 
   describe('on pie chart', () => {
@@ -321,6 +433,64 @@ describe('ChartRoute', () => {
           type: 'stats',
         },
       });
+    });
+
+    test('should apply the scope with the correct filter', async () => {
+      jest
+        .spyOn(dataSource.getCollection('books'), 'aggregate')
+        .mockResolvedValueOnce([{ value: 1234, group: { 'author:firstName': 'Victor Hugo' } }]);
+      const chart = new Chart(services, options, dataSource, 'books');
+      const context = createMockContext({
+        requestBody: {
+          type: 'Pie',
+          aggregate: 'Count',
+          collection: 'books',
+          group_by_field: 'author:firstName',
+        },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
+      });
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      const scopeCondition = ConditionTreeFactory.fromPlainObject({
+        field: 'title',
+        operator: 'NotContains',
+        value: '[test]',
+      });
+
+      getScopeMock.mockResolvedValueOnce(scopeCondition);
+
+      await chart.handleChart(context);
+
+      expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          conditionTree: { field: 'title', operator: 'NotContains', value: '[test]' },
+          search: null,
+          searchExtended: false,
+          segment: null,
+        },
+        { field: undefined, groups: [{ field: 'author:firstName' }], operation: 'Count' },
+      );
+
+      expect(context.response.body).toMatchObject({
+        data: {
+          attributes: {
+            value: [
+              {
+                key: 'Victor Hugo',
+                value: 1234,
+              },
+            ],
+          },
+          type: 'stats',
+        },
+      });
+
+      expect(services.authorization.getScope).toHaveBeenCalledWith(
+        dataSource.getCollection('books'),
+        context,
+      );
     });
   });
 
@@ -368,6 +538,74 @@ describe('ChartRoute', () => {
           type: 'stats',
         },
       });
+    });
+
+    test('should apply the scope with the correct filter', async () => {
+      jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
+        { value: 1234, group: { publication: '2022-02-16T10:00:00.000Z' } },
+        { value: 456, group: { publication: '2022-02-02T10:00:00.000Z' } },
+      ]);
+
+      const chart = new Chart(services, options, dataSource, 'books');
+      const context = createMockContext({
+        requestBody: {
+          type: 'Line',
+          aggregate: 'Count',
+          collection: 'books',
+          group_by_date_field: 'publication',
+          time_range: 'Week',
+        },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
+      });
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      const scopeCondition = ConditionTreeFactory.fromPlainObject({
+        field: 'title',
+        operator: 'NotContains',
+        value: '[test]',
+      });
+
+      getScopeMock.mockResolvedValueOnce(scopeCondition);
+
+      await chart.handleChart(context);
+
+      expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          conditionTree: {
+            field: 'title',
+            operator: 'NotContains',
+            value: '[test]',
+          },
+          search: null,
+          searchExtended: false,
+          segment: null,
+        },
+        {
+          field: undefined,
+          groups: [{ field: 'publication', operation: 'Week' }],
+          operation: 'Count',
+        },
+      );
+
+      expect(context.response.body).toMatchObject({
+        data: {
+          attributes: {
+            value: [
+              { label: 'W5-2022', values: { value: 456 } },
+              { label: 'W6-2022', values: { value: 0 } },
+              { label: 'W7-2022', values: { value: 1234 } },
+            ],
+          },
+          type: 'stats',
+        },
+      });
+
+      expect(services.authorization.getScope).toHaveBeenCalledWith(
+        dataSource.getCollection('books'),
+        context,
+      );
     });
   });
 
@@ -457,6 +695,73 @@ describe('ChartRoute', () => {
           type: 'stats',
         },
       });
+    });
+
+    test('should apply the scope with the correct filter', async () => {
+      jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
+        { value: 1234, group: { 'author:id': 2 } },
+        { value: 456, group: { 'author:id': 1 } },
+      ]);
+
+      const chart = new Chart(services, options, dataSource, 'persons');
+
+      const context = createMockContext({
+        requestBody: {
+          type: 'Leaderboard',
+          aggregate: 'Sum',
+          aggregate_field: 'id',
+          collection: 'persons',
+          label_field: 'id',
+          relationship_field: 'books',
+          limit: 2,
+        },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
+      });
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      const scopeCondition = ConditionTreeFactory.fromPlainObject({
+        field: 'name',
+        operator: 'NotContains',
+        value: '[test]',
+      });
+
+      getScopeMock.mockResolvedValueOnce(scopeCondition);
+
+      await chart.handleChart(context);
+
+      expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          conditionTree: {
+            field: 'author:name',
+            operator: 'NotContains',
+            value: '[test]',
+          },
+          search: null,
+          searchExtended: false,
+          segment: null,
+        },
+        { field: 'id', groups: [{ field: 'author:id' }], operation: 'Sum' },
+        2,
+      );
+
+      expect(context.response.body).toMatchObject({
+        data: {
+          attributes: {
+            value: [
+              { key: 2, value: 1234 },
+              { key: 1, value: 456 },
+            ],
+          },
+          type: 'stats',
+        },
+      });
+
+      expect(services.authorization.getScope).toHaveBeenCalledWith(
+        dataSource.getCollection('persons'),
+        context,
+      );
     });
 
     describe('when aggregation field is not present', () => {

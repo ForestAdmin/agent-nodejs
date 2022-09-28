@@ -71,7 +71,7 @@ describe('AssociateRelatedRoute', () => {
       );
 
       const scope = factories.conditionTreeLeaf.build();
-      services.permissions.getScope = jest.fn().mockResolvedValue(scope);
+      services.authorization.getScope = jest.fn().mockResolvedValue(scope);
 
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -192,7 +192,7 @@ describe('AssociateRelatedRoute', () => {
       );
 
       const scope = factories.conditionTreeLeaf.build();
-      services.permissions.getScope = jest.fn().mockResolvedValue(scope);
+      services.authorization.getScope = jest.fn().mockResolvedValue(scope);
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },

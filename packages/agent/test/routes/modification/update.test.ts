@@ -1,4 +1,4 @@
-import { Projection } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -71,6 +71,69 @@ describe('UpdateRoute', () => {
         expect.objectContaining({
           data: expect.objectContaining({ attributes: { id: '1523', name: 'foo name' } }),
         }),
+      );
+    });
+
+    it('should apply the scope', async () => {
+      const bookCollection = factories.collection.build({
+        name: 'books',
+        update: jest.fn(),
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.isPrimaryKey().build({
+              columnType: 'Number',
+            }),
+            name: factories.columnSchema.build({
+              columnType: 'String',
+            }),
+          },
+        }),
+      });
+      bookCollection.list = jest.fn().mockResolvedValue([{ id: '1523', name: 'foo name' }]);
+      const dataSource = factories.dataSource.buildWithCollection(bookCollection);
+      const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
+
+      const customProperties = { query: { timezone: 'Europe/Paris' }, params: { id: '1523' } };
+      const requestBody = { data: { attributes: { name: 'foo name' } } };
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties,
+        requestBody,
+      });
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      getScopeMock.mockReturnValue({ field: 'title', operator: 'NotContains', value: '[test]' });
+
+      await updateRoute.handleUpdate(context);
+
+      const expectedFilter = factories.filter.build({
+        conditionTree: ConditionTreeFactory.fromPlainObject({
+          aggregator: 'And',
+          conditions: [
+            {
+              operator: 'Equal',
+              value: 1523,
+              field: 'id',
+            },
+            { field: 'title', operator: 'NotContains', value: '[test]' },
+          ],
+        }),
+      });
+
+      expect(bookCollection.update).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        expectedFilter,
+        { name: 'foo name' },
+      );
+      expect(bookCollection.list).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        expectedFilter,
+        new Projection('id', 'name'),
+      );
+
+      expect(services.authorization.getScope).toHaveBeenCalledWith(
+        dataSource.getCollection('books'),
+        context,
       );
     });
 

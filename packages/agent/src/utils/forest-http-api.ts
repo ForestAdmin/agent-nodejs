@@ -7,6 +7,7 @@ import superagent, { Response, ResponseError } from 'superagent';
 
 import { AgentOptions } from '../types';
 import { EnvironmentPermissionsV4, UserPermissionV4 } from '../services/authorization';
+import { RenderingPermissionV4 } from '../services/authorization/internal/types';
 
 export type IpWhitelistConfiguration = {
   isFeatureEnabled: boolean;
@@ -177,6 +178,21 @@ export default class ForestHttpApi {
     try {
       const { body } = await superagent
         .get(`${options.forestServerUrl}/liana/v4/permissions/users`)
+        .set('forest-secret-key', options.envSecret);
+
+      return body;
+    } catch (e) {
+      this.handleResponseError(e);
+    }
+  }
+
+  static async getRenderingPermissions(
+    renderingId: number,
+    options: HttpOptions,
+  ): Promise<RenderingPermissionV4> {
+    try {
+      const { body } = await superagent
+        .get(`${options.forestServerUrl}/liana/v4/permissions/renderings/${renderingId}`)
         .set('forest-secret-key', options.envSecret);
 
       return body;

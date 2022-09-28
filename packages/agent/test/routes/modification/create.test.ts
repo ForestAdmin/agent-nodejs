@@ -1,4 +1,4 @@
-import { ConditionTreeLeaf, Filter } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, ConditionTreeLeaf, Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import * as factories from '../../__factories__';
@@ -182,6 +182,84 @@ describe('CreateRoute', () => {
           },
         },
       });
+    });
+
+    test('it should apply the scope to relations', async () => {
+      const create = new CreateRoute(services, options, dataSource, 'persons');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        requestBody: {
+          data: {
+            type: 'persons',
+            attributes: { name: 'John' },
+            relationships: {
+              passport: { data: { type: 'passports', id: '1d162304-78bf-599e-b197-93590ac3d314' } },
+            },
+          },
+          jsonapi: { version: '1.0' },
+        },
+      });
+
+      const spy = jest.spyOn(dataSource.getCollection('passports'), 'update');
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      getScopeMock.mockResolvedValueOnce(
+        ConditionTreeFactory.fromPlainObject({
+          field: 'name',
+          operator: 'NotContains',
+          value: '[test]',
+        }),
+      );
+
+      await create.handleCreate(context);
+
+      expect(dataSource.getCollection('persons').create).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        new Filter({
+          conditionTree: ConditionTreeFactory.fromPlainObject({
+            aggregator: 'And',
+            conditions: [
+              {
+                field: 'personId',
+                operator: 'Equal',
+                value: 1,
+              },
+              {
+                field: 'name',
+                operator: 'NotContains',
+                value: '[test]',
+              },
+            ],
+          }),
+        }),
+        { personId: null },
+      );
+
+      expect(spy).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        new Filter({
+          conditionTree: ConditionTreeFactory.fromPlainObject({
+            aggregator: 'And',
+            conditions: [
+              {
+                field: 'id',
+                operator: 'Equal',
+                value: '1d162304-78bf-599e-b197-93590ac3d314',
+              },
+              {
+                field: 'name',
+                operator: 'NotContains',
+                value: '[test]',
+              },
+            ],
+          }),
+        }),
+        { personId: 1 },
+      );
+
+      expect(getScopeMock).toHaveBeenCalledWith(dataSource.getCollection('passports'), context);
     });
 
     test('should work with a many to one relation', async () => {

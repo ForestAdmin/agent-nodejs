@@ -111,8 +111,8 @@ function generateActionsAllowedByUser(
   permissions: IntermediateRightsList,
   users: UserPermissionV4[],
 ): Map<string, Set<string>> {
-  const userIdsByRole = users.reduce((acc, user) => {
-    acc.set(user.roleId, [...(acc.get(user.roleId) || []), user.id]);
+  const userIdsByRole = users.reduce((acc, { id, roleId }) => {
+    acc.set(roleId, [...(acc.get(roleId) || []), id]);
 
     return acc;
   }, new Map<number, number[]>());

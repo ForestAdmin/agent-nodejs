@@ -20,7 +20,7 @@ export default class CountRelatedRoute extends RelationRoute {
 
     if (this.foreignCollection.schema.countable) {
       const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-      const scope = await this.services.permissions.getScope(this.foreignCollection, context);
+      const scope = await this.services.authorization.getScope(this.foreignCollection, context);
       const caller = QueryStringParser.parseCaller(context);
       const filter = ContextFilterFactory.build(this.foreignCollection, context, scope);
 

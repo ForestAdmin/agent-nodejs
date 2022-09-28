@@ -1,4 +1,9 @@
-import { ActionResult, DataSource, Filter } from '@forestadmin/datasource-toolkit';
+import {
+  ActionResult,
+  ConditionTreeFactory,
+  DataSource,
+  Filter,
+} from '@forestadmin/datasource-toolkit';
 import { Readable } from 'stream';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import Router from '@koa/router';
@@ -151,6 +156,62 @@ describe('ActionRoute', () => {
           segment: null,
         },
       );
+    });
+
+    test('handleExecute should apply the scope', async () => {
+      const context = createMockContext({
+        ...baseContext,
+        requestBody: {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+              values: { firstname: 'John' },
+            },
+          },
+        },
+      });
+
+      (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
+        type: 'Error',
+        message: 'the result does not matter',
+      });
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      getScopeMock.mockResolvedValueOnce({
+        field: 'title',
+        operator: 'NotContains',
+        value: '[test]',
+      });
+
+      await handleExecute.call(route, context);
+
+      expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        'My_Action',
+        { firstname: 'John' },
+        {
+          conditionTree: ConditionTreeFactory.fromPlainObject({
+            aggregator: 'And',
+            conditions: [
+              {
+                field: 'id',
+                operator: 'Equal',
+                value: '123e4567-e89b-12d3-a456-426614174000',
+              },
+              {
+                field: 'title',
+                operator: 'NotContains',
+                value: '[test]',
+              },
+            ],
+          }),
+          search: null,
+          searchExtended: false,
+          segment: null,
+        },
+      );
+
+      expect(getScopeMock).toHaveBeenCalledWith(dataSource.getCollection('books'), context);
     });
 
     test.each([

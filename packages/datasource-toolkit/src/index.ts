@@ -41,6 +41,11 @@ export * from './interfaces/query/sort';
 export * from './interfaces/query/page';
 export * from './interfaces/record';
 export * from './interfaces/schema';
+export {
+  GenericTree,
+  GenericTreeBranch,
+  GenericTreeLeaf,
+} from './interfaces/query/condition-tree/factory';
 
 // Validation
 export { default as ConditionTreeValidator } from './validation/condition-tree';

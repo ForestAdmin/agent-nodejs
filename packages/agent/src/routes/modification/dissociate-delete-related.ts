@@ -111,7 +111,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
 
     return ContextFilterFactory.build(this.foreignCollection, context, null, {
       conditionTree: ConditionTreeFactory.intersect(
-        await this.services.permissions.getScope(this.foreignCollection, context),
+        await this.services.authorization.getScope(this.foreignCollection, context),
         QueryStringParser.parseConditionTree(this.foreignCollection, context),
         selectedIds,
       ),
