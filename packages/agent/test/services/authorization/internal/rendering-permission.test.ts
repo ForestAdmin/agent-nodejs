@@ -39,6 +39,7 @@ describe('RenderingPermissionService', () => {
       envSecret: 'secret',
       isProduction: true,
       permissionsCacheDurationInSeconds: 1000,
+      logger: jest.fn(),
     };
     const renderingPermission = new RenderingPermissionService(options, userPermission);
 

@@ -28,6 +28,7 @@ describe('ActionPermissionService', () => {
       envSecret: '123',
       forestServerUrl: 'http://api',
       isProduction: true,
+      logger: jest.fn(),
     };
     const service = new ActionPermissionService(options);
 
