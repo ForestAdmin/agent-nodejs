@@ -58,8 +58,8 @@ To push your latest layout changes from a remote environment, you may use the **
 Don't confuse `forest push` and `forest deploy`
 {% endhint %}
 
-- `forest push` applies your latest layout changes to your origin which is a non-production environment (i.e a "staging")
-- `forest deploy` applies your latest layout changes **definitively** to your origin which is the reference environment
+- `forest push` applies the latest layout changes of that branch or environment to a non-reference environment
+- `forest deploy` applies your latest layout changes **definitively** to your reference environment (i.e production)
 
 {% hint style="info" %}
 You cannot `push` to production, because anything added on Production should be definitive. Therefore you can only `deploy` to Production.

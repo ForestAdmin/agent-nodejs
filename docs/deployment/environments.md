@@ -98,10 +98,10 @@ Once your node server is successfully detected and running with the indicated en
 
 ### Change environment origin
 
-You can change an origin of an environment to create complexe architecture like dev => staging => preprod => production.
-All layout will be generated based on its parent.
+You can change the origins of your environments to create complexe workflows - for instance dev > staging > preprod > production.
+All the layout of an environment will be generated based on its parent's layout.
 
-To do so, click on the environment you wish to change the origin and from its details page, select the origin form _Set Origin_ section.
+To do so, click on the environment you wish to change the origin of and from its details page, select the desired origin in the _Set Origin_ section.
 
 ![](../assets/environment-set-origin.png)
 

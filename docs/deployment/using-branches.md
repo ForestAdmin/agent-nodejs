@@ -16,17 +16,17 @@ To manipulate your layouts, you will be using [Forest CLI](forest-cli-commands/)
 
 ### What is a branch?
 
-A branch is a fork (i.e copy) of the layout of the wanted _origin_ environment. It is attached to your development environment.
+A branch is a fork (i.e copy) of the layout of its _origin_ environment. It is attached to your development environment.
 
 {% hint style="info" %}
-Your **origin** environment is the environment you want based on to do some layout changes.
+The **origin** of a branch is either specified using the `--origin` option or selected when prompted otherwise). You should choose the environment you want to make some layout changes on.
 {% endhint %}
 
-Once you've created a branch, your layout will look exactly like the layout of your origin environment.
+Once you've created a branch, your layout will look exactly like the layout of its origin environment.
 
 ### How do branches work?
 
-Any **layout change** you make on your current branch using the [Layout Editor](https://docs.forestadmin.com/user-guide/getting-started/master-your-ui/using-the-layout-editor-mode) will be **saved on your current branch** and will not affect your origin environment.
+Any **layout change** you make on your current branch using the [Layout Editor](https://docs.forestadmin.com/user-guide/getting-started/master-your-ui/using-the-layout-editor-mode) will be **saved on your current branch** and will not affect its origin environment.
 
 Imagine the following situation where you have 3 environments:
 
@@ -37,9 +37,9 @@ The branch `my-branch` is based on the production layout. Any changes made on it
 ![](../assets/branch-example.png)
 
 {% hint style="warning" %}
-This also means that any changes made to the origin environment (i.e production) will instantly reflect on your branch.\
+This also means that any changes made to the origin of your branch will instantly reflect on your branch.\
 \
-For those familiar with git's _rebase_, this means you will **never have to** **rebase** your branch on your origin environment (i.e production).
+For those familiar with git's _rebase_, this means you will **never have to** **rebase** your branch on its origin.
 {% endhint %}
 
 ### How do you create a branch?
@@ -58,9 +58,7 @@ To learn more about the `branch` command, please visit [this page](forest-cli-co
 
 ### Checking your branch information
 
-On your interface, click on the environment dropdown at the top-left side of your screen. Select a developement environment (if you don't have one, see the [init](forest-cli-commands/init.md) command).
-
-Your **current** branch will be displayed at the top and you can see the **number of changes** made on the current branch.
+On your interface, you can check at all times what branch you are on and how many layout changes were made: they appear in the top banner. The `X branches pushed` information is relevant for remote environments only: it shows how many branches were already pushed onto it.
 
 ![](../assets/branch-current-branch-display.png)
 

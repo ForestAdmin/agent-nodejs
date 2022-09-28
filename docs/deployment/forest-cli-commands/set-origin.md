@@ -19,5 +19,5 @@ OPTIONS
 The layout of your branch will be refresh based on the new origin.
 
 {% hint style="inof" %}
-Your actual layout changes will be applied, if they can, on front of your new origin.
+Your current layout changes will be applied - if relevant - on top of your new origin.
 {% endhint %}

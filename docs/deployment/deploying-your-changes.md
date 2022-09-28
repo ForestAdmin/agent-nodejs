@@ -1,16 +1,16 @@
 # Deploying your changes
 
-You're building a great feature which requires tweaking your layout (UI), you've used the Layout Editor and it knows looks just like you had imagined? Well now is the time to try it on a remote server!
+You're building a great feature which requires tweaking your layout (UI), you've used the Layout Editor and it looks just like you had imagined? Well now is the time to try it on a remote server!
 
 Imagine this is your current situation:
 
 ![](../assets/dev-workflow-current-situation.png)
 
-Your branch `my-branch` is based on your _production_ environment and you have made **layout changes (Δ)** over it.
+This would be the case if you chose "Staging" as the origin of your branch when you first created it. You have then made **layout changes (Δ)** over it.
 
 ### Applying your changes to production: `deploy`
 
-**`deploy` ** means applying your branch's changes to your reference environment definitively. To achieve this, you'll be using Forest CLI's [deploy](forest-cli-commands/deploy.md) command from an environment have _production_ as origin:
+`deploy` means applying your branch's changes to your reference environment definitively. To achieve this, you'll be using Forest CLI's [deploy](forest-cli-commands/deploy.md) command from an environment have _production_ as origin:
 
 ```
 forest deploy
@@ -30,15 +30,19 @@ Note how your layout changes are also applied to your remote, as it is based on 
 
 ### Testing your changes on a remote (i.e "staging"): `push`
 
-**`push` ** means moving your branch's changes to a remote environment set as origin of your branch. To achieve this, you'll be using Forest CLI's [push](forest-cli-commands/push.md) command:
+Say, before you deployed to Production, you wanted to test your charges on a staging first.
+
+`push`means moving your branch's changes to a remote environment set as origin of your branch. To achieve this, you'll be using Forest CLI's [push](forest-cli-commands/push.md) command:
 
 ```
 forest push
 ```
 
-{% hint style="info" %}
 Note that you'll be pushing your **current** branch. To select another branch, use [switch](forest-cli-commands/switch.md).
 If the origin of your branch is not the remote you want (ie: staging) change it with [set-origin](forest-cli-commands/set-origin.md)
+
+{% hint style="info" %}
+As your company grows, so does your development flow: you may want a more complex architecture where you have more than one layer of test environments before production (i.e preprod). This is definitely possible using Forest CLI and the right environment settings, see [here](../environments.md#change-environment-origin).
 {% endhint %}
 
 ![](../assets/dev-workflow-push.png)

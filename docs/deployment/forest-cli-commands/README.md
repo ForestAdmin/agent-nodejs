@@ -7,7 +7,7 @@ You've seen in the previous section how [developing on Forest Admin](../) levera
 To install Forest CLI, run the following command in your terminal:
 
 ```
-npm install -g forest-cli
+npm install -g forest-cli@beta
 ```
 
 For further details on the package, check out [this page](https://www.npmjs.com/package/forest-cli).

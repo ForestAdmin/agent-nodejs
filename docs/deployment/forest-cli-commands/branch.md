@@ -42,7 +42,7 @@ feature/remove-tooltip  preprod                 2022-08-19T08:08:47.678Z
 ```
 
 {% hint style="info" %}
-`IS CURRENT` indicates your currently selected branch: your project's UI will locally display according to this branch's layout settings.
+`IS CURRENT` indicates your currently selected branch: your project's UI will locally be displayed according to this branch's layout settings.
 {% endhint %}
 
 ### Creating a new branch
