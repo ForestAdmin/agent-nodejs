@@ -44,6 +44,10 @@ collection.replaceFieldOperator('fullName', 'Equal', (value, context) => {
 
 Filtering emulation allows to make fields filterable automatically.
 
+{% hint style="warning" %}
+Filtering emulation performance cost is **linear** with the number of records in the collection. It is a convenient way to get things working quick for collections which have a low number of records (in the thousands at most).
+{% endhint %}
+
 ```javascript
 // Add support for all operators
 collection.emulateFieldFiltering('fullName');
@@ -51,7 +55,3 @@ collection.emulateFieldFiltering('fullName');
 // Add support for a single operator
 collection.emulateFieldOperator('fullName', 'Equal');
 ```
-
-{% hint style="warning" %}
-Filtering emulation performance cost is **linear** with the number of records in the collection. It is a convenient way to get things working quick for collections which have a low number of records (in the thousands at most).
-{% endhint %}

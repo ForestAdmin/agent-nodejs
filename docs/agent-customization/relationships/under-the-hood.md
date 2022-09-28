@@ -1,4 +1,4 @@
-Jointure emulation work by transparently analysing the requests which are performed by the frontend and customer API in your agent, and translating them into multiple requests to the relevant data sources.
+Join emulation work by transparently analysing the requests which are performed by the frontend and customer API in your agent, and translating them into multiple requests to the relevant data sources.
 
 For instance, supposing that:
 

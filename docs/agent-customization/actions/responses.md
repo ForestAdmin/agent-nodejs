@@ -10,7 +10,7 @@ The default behavior, when no exception is thrown in the handler is to display a
 
 ### Custom notifications
 
-The notification message and color can be customized
+The notification message and color can be customized.
 
 ```javascript
 return resultBuilder.success('Company is now live!');
@@ -32,16 +32,13 @@ For instance in case of success:
 
 ```javascript
 const record = await context.getRecord();
-return resultBuilder.success(
-  'Success',
-  { 
-    html: `
+return resultBuilder.success('Success', {
+  html: `
       <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has been successfuly charged.</p>
       <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
       <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
     `,
-  },
-);
+});
 ```
 
 ![](../../assets/actions-html-response-success.png)
@@ -50,25 +47,22 @@ For instance in case of error:
 
 ```javascript
 const record = await context.getRecord();
-return resultBuilder.error(
-  'An error occured',
-  {
-    html: `
+return resultBuilder.error('An error occured', {
+  html: `
       <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has not been charged.</p>
       <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
       <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
       <strong class="c-form__label--read c-clr-1-2">Reason</strong>
       <p class="c-clr-1-4 l-mb">You can not charge this credit card. The card is marked as blocked</p>
     `,
-  },
-);
+});
 ```
 
 ![](../../assets/actions-html-response-error.png)
 
 ### File generation
 
-On our Live Demo, the collection customers has an action Generate invoice. In this use case, we want to download the generated PDF invoice after clicking on the action. To indicate an action returns something to download, you have to enable the option `generateFile`.
+[On our Live Demo](https://app.forestadmin.com/livedemo), the collection customers has an action Generate invoice. In this use case, we want to download the generated PDF invoice after clicking on the action. To indicate an action returns something to download, you have to enable the option `generateFile`.
 
 The example code below will trigger a file download (With the file named `filename.txt`, containing `StringThatWillBeInTheFile` using `text/plain` mimetype).
 
@@ -88,7 +82,7 @@ To streamline your operation workflow, it could make sense to redirect to anothe
 
 It is possible using the `redirectTo` function.
 
-The redirection works both for internal (\*.forestadmin.com pages) and external links.
+The redirection works both for internal (`\*.forestadmin.com` pages) and external links.
 
 {% tabs %} {% tab title="Internal link" %}
 
@@ -125,7 +119,7 @@ return resultBuilder.webhook(
 
 If you want to create an action accessible from the details or the summary view of a record involving related data, this section may interest you.
 
-In the example below, the “Add new transaction” action is accessible from the summary view. This action creates a new transaction and automatically refresh the “Emitted transactions” related data section to see the new transaction.
+In the example below, the “Add new transaction” action is accessible from the summary view. This action creates a new transaction and automatically refreshes the “Emitted transactions” related data section to see the new transaction.
 
 ```javascript
 return resultBuilder.success('New transaction emitted', {

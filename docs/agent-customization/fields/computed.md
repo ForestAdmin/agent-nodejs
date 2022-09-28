@@ -63,7 +63,7 @@ agent.customizeCollection('user', collection => {
 
 ### Adding a field which depend on one to many relation
 
-Let's now add a `user.totalSpending` field by summing the amount of all `orders`
+Let's now add a `user.totalSpending` field by summing the amount of all `orders`.
 
 ```javascript
 // Structure

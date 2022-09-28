@@ -32,11 +32,11 @@ collection.replaceFieldSorting('creationDate', [{ field: 'id', ascending: false 
 
 ### Emulation
 
+Sort emulation allows to make any field automatically sortable. It will sort records by lexicographical order.
+
 {% hint style="warning" %}
 Sorting emulation performance cost is **linear** with the number of records in the collection. It is a convenient way to get things working quick for collections which have a low number of records (in the thousands at most).
 {% endhint %}
-
-Sort emulation allows to make any field automatically sortable. It will sort records by lexicographical order.
 
 ```javascript
 collection.emulateFieldSorting('fullName');
