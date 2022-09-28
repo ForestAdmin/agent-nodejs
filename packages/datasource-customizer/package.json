@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-customizer",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-alpha.1",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -29,7 +29,7 @@
     "fishery": "^2.1.0"
   },
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.0.0-beta.34",
+    "@forestadmin/datasource-toolkit": "1.0.0-alpha.1",
     "luxon": "^2.3.0",
     "object-hash": "^3.0.0",
     "uuid": "^8.3.2"
