@@ -26,7 +26,7 @@ export default class UserPermissionService {
       this.cacheExpirationTimestamp =
         Date.now() + this.options.permissionsCacheDurationInSeconds * 1000;
 
-      this.options.logger?.call(undefined, 'Debug', `Refreshing user permissions cache`);
+      this.options.logger('Debug', `Refreshing user permissions cache`);
 
       // The response here is not awaited in order to be set in the cache
       // allowing subsequent calls to getUserInfo to use the cache even if

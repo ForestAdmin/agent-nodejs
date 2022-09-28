@@ -84,11 +84,7 @@ export default class RenderingPermissionService {
   }
 
   private async loadPermissions(renderingId: number): Promise<RenderingPermission> {
-    this.options.logger?.call(
-      undefined,
-      'Debug',
-      `Loading rendering permissions for rendering ${renderingId}`,
-    );
+    this.options.logger('Debug', `Loading rendering permissions for rendering ${renderingId}`);
 
     const rawPermissions = await ForestHttpApi.getRenderingPermissions(renderingId, this.options);
 
@@ -133,11 +129,7 @@ export default class RenderingPermissionService {
       [PermissionLevel.Admin, PermissionLevel.Developer].includes(userInfo?.permissionLevel) ||
       permissions.charts.has(chartHash)
     ) {
-      this.options.logger?.call(
-        undefined,
-        'Debug',
-        `User ${userId} can retrieve chart on rendering ${renderingId}`,
-      );
+      this.options.logger('Debug', `User ${userId} can retrieve chart on rendering ${renderingId}`);
 
       return true;
     }
@@ -154,8 +146,7 @@ export default class RenderingPermissionService {
       });
     }
 
-    this.options.logger?.call(
-      undefined,
+    this.options.logger(
       'Debug',
       `User ${userId} cannot retrieve chart on rendering ${renderingId}`,
     );
@@ -164,8 +155,7 @@ export default class RenderingPermissionService {
   }
 
   public invalidateCache(renderingId) {
-    this.options.logger?.call(
-      undefined,
+    this.options.logger(
       'Debug',
       `Invalidating rendering permissions cache for rendering ${renderingId}`,
     );

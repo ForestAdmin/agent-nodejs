@@ -54,8 +54,7 @@ export default class ActionPermissionService {
       });
     }
 
-    this.options.logger?.call(
-      undefined,
+    this.options.logger(
       'Debug',
       `User ${userId} is ${isAllowed ? '' : 'not '}allowed to perform ${
         actionNames.length > 1 ? ' one of ' : ''
@@ -110,7 +109,7 @@ export default class ActionPermissionService {
   }
 
   private async fetchEnvironmentPermissions(): Promise<ActionPermissions> {
-    this.options.logger?.call(undefined, 'Debug', 'Fetching environment permissions');
+    this.options.logger('Debug', 'Fetching environment permissions');
 
     const [rawPermissions, users] = await Promise.all([
       ForestHttpApi.getEnvironmentPermissions(this.options),
