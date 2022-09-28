@@ -67,7 +67,7 @@ $ forest branch add-refund-action
 ❌ You cannot create a branch until this project has either a remote or a production environment.
 ```
 
-Any branch reflects `LayoutChange(s)` (i.e. changes in your UI) that you've made on that branch: to make this possible, a branch needs an **origin**, which is the state of the layout you started from and made those `LayoutChange(s)` on. This is why you need to [have a production environment](../../environments.md#deploying-to-production) (ideally) or simply a remote environment: those environments can serve as origin to your branches.
+Any branch reflects `LayoutChange(s)` (i.e. changes in your UI) that you've made on that branch: to make this possible, a branch needs an **origin**, which is the state of the layout you started from and made those `LayoutChange(s)` on. This is why you need to [have a production environment](../environments.md#deploying-to-production) (ideally) or simply a remote environment: those environments can serve as origin to your branches.
 
 ### Deleting a branch
 
