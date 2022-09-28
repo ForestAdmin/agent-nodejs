@@ -10,7 +10,7 @@ Supported group rounding operations are: `Year`, `Month`, `Week`, `Day` and `nul
 
 ### Count records
 
-The simplest possible query is to count records from a collection
+The simplest possible query is to count records from a collection.
 
 ```json
 { "operation": "Count", "field": null, "groups": [] }

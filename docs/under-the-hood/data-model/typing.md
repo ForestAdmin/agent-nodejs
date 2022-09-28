@@ -1,4 +1,4 @@
-Fields on forest admin can either use `Primitive Types` or `Composite Types`.
+Fields on Forest Admin can either use `Primitive Types` or `Composite Types`.
 
 ## Primitive types
 
@@ -22,7 +22,7 @@ The primitive types which are supported by Forest Admin are the following:
 {% hint style="info" %}
 
 - Fields using composite types are not sortable and do not implement validation
-- Only fields which are an array of a primitive type are filterable (depending on data source)
+- Only fields which are an array of a primitive type are filterable (depending on the data source)
 
 {% endhint %}
 
