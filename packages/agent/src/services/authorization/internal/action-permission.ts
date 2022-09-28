@@ -6,7 +6,7 @@ import generateActionsFromPermissions, {
 
 export type ActionPermissionOptions = Pick<
   AgentOptionsWithDefaults,
-  'forestServerUrl' | 'envSecret' | 'isProduction' | 'permissionsCacheDurationInSeconds'
+  'forestServerUrl' | 'envSecret' | 'isProduction' | 'permissionsCacheDurationInSeconds' | 'logger'
 >;
 
 export default class ActionPermissionService {
@@ -53,6 +53,14 @@ export default class ActionPermissionService {
         allowRefetch: false,
       });
     }
+
+    this.options.logger?.call(
+      undefined,
+      'Debug',
+      `User ${userId} is ${isAllowed ? '' : 'not '}allowed to perform ${
+        actionNames.length > 1 ? ' one of ' : ''
+      }${actionNames.join(', ')}`,
+    );
 
     return isAllowed;
   }
@@ -102,6 +110,8 @@ export default class ActionPermissionService {
   }
 
   private async fetchEnvironmentPermissions(): Promise<ActionPermissions> {
+    this.options.logger?.call(undefined, 'Debug', 'Fetching environment permissions');
+
     const [rawPermissions, users] = await Promise.all([
       ForestHttpApi.getEnvironmentPermissions(this.options),
       ForestHttpApi.getUsers(this.options),

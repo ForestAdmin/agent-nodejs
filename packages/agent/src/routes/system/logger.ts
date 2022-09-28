@@ -27,7 +27,7 @@ export default class Logger extends BaseRoute {
       message += ` ${context.request.method} ${context.request.path}`;
       message += ` - ${Date.now() - timer}ms`;
 
-      this.options?.logger(logLevel, message);
+      this.options.logger?.call(logLevel, message);
     }
   }
 }
