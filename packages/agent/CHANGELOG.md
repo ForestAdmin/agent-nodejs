@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-alpha.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-alpha.2...@forestadmin/agent@1.0.0-alpha.3) (2022-09-28)
+
+
+### Performance Improvements
+
+* **permissions:** check permission to retrieve chart data using the new permission endpoints ([#439](https://github.com/ForestAdmin/agent-nodejs/issues/439)) ([fb53fc1](https://github.com/ForestAdmin/agent-nodejs/commit/fb53fc1a6582e4e91396d9a3c004962a6631383c))
+
 # @forestadmin/agent [1.0.0-alpha.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-alpha.1...@forestadmin/agent@1.0.0-alpha.2) (2022-09-28)
 
 
