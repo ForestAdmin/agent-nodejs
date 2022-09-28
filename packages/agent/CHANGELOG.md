@@ -1,3 +1,19 @@
+# @forestadmin/agent [1.0.0-alpha.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-alpha.1...@forestadmin/agent@1.0.0-alpha.2) (2022-09-28)
+
+
+### Performance Improvements
+
+* **permissions:** use a lighter endpoint to retrieve scope configuration ([#432](https://github.com/ForestAdmin/agent-nodejs/issues/432)) ([f3d3834](https://github.com/ForestAdmin/agent-nodejs/commit/f3d3834e312e00844da85966f102e59e4c499524))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.0.0-alpha.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-alpha.2
+
 # @forestadmin/agent 1.0.0-alpha.1 (2022-09-28)
 
 
