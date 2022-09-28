@@ -42,7 +42,7 @@ Note that you'll be pushing your **current** branch. To select another branch, u
 If the origin of your branch is not the remote you want (ie: staging) change it with [set-origin](forest-cli-commands/set-origin.md)
 
 {% hint style="info" %}
-As your company grows, so does your development flow: you may want a more complex architecture where you have more than one layer of test environments before production (i.e preprod). This is definitely possible using Forest CLI and the right environment settings, see [here](../environments.md#change-environment-origin).
+As your company grows, so does your development flow: you may want a more complex architecture where you have more than one layer of test environments before production (i.e preprod). This is definitely possible using Forest CLI and the right environment settings, see [here](./environments.md#change-environment-origin).
 {% endhint %}
 
 ![](../assets/dev-workflow-push.png)
