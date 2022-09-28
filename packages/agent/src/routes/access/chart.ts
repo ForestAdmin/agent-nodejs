@@ -38,7 +38,7 @@ export default class Chart extends CollectionRoute {
   }
 
   async handleChart(context: Context) {
-    await this.services.permissions.canChart(context);
+    await this.services.authorization.assertCanRetrieveChart(context);
 
     context.response.body = {
       data: {

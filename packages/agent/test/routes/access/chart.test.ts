@@ -116,6 +116,27 @@ describe('ChartRoute', () => {
       });
     });
 
+    test('it should check that the chart is authorized', async () => {
+      jest
+        .spyOn(dataSource.getCollection('books'), 'aggregate')
+        .mockResolvedValue([{ value: 1234, group: null }]);
+
+      const error = new Error('Unauthorized');
+      const assertCanRetrieveChartMock = services.authorization.assertCanRetrieveChart as jest.Mock;
+      assertCanRetrieveChartMock.mockRejectedValueOnce(error);
+
+      const chart = new Chart(services, options, dataSource, 'books');
+      const context = createMockContext({
+        requestBody: { type: 'Value', aggregate: 'Count', collection: 'books', filters: undefined },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
+      });
+
+      await expect(chart.handleChart(context)).rejects.toBe(error);
+
+      expect(assertCanRetrieveChartMock).toHaveBeenCalledWith(context);
+    });
+
     describe('when the data needs filtering', () => {
       describe('when the filter contains a previous-able filter', () => {
         test('should call aggregate twice', async () => {

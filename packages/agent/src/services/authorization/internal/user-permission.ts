@@ -8,7 +8,7 @@ export type UserPermissionOptions = Pick<
 >;
 
 export default class UserPermissionService {
-  private cacheExpirationTimestamp: number;
+  private cacheExpirationTimestamp = 0;
 
   // The trick here is to keep the cache as a Promise and not a Map
   // in order to avoid doing the same HTTP request twice when
@@ -35,5 +35,10 @@ export default class UserPermissionService {
     }
 
     return (await this.userInfoById).get(userId);
+  }
+
+  public clearCache() {
+    this.userInfoById = null;
+    this.cacheExpirationTimestamp = Number.NEGATIVE_INFINITY;
   }
 }
