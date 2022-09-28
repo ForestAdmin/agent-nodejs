@@ -1,4 +1,4 @@
-This example shows how to upload a file to an S3 bucket.
+This example shows how to upload a file to a S3 bucket.
 
 To illustrate our example, imagine we have a User collection with an avatar string field. This field will store the s3
 URL of the avatar.
@@ -15,14 +15,14 @@ You can copy/paste this custom AWS service in your agent to use it.
 
 ```javascript
 class AwsS3Service {
-  constructor({accessKeyId, secretAccessKey, bucket}) {
+  constructor({ accessKeyId, secretAccessKey, bucket }) {
     this.accessKeyId = accessKeyId;
     this.secretAccessKey = secretAccessKey;
     this.bucket = bucket;
   }
 
   async upload(file, path) {
-    const {Location} = await this.client
+    const { Location } = await this.client
       .upload({
         Bucket: this.bucket,
         Key: `${path}/${file.name}`,
@@ -54,10 +54,10 @@ class AwsS3Service {
 }
 ```
 
-Instantiate the AWS service.
+Then, instantiate the AWS service.
 
 ```javascript
-const config ={
+const config = {
   accessKeyId: '...',
   secretAccessKey: '...',
   bucket: '...',
@@ -67,7 +67,7 @@ const s3 = new AwsS3Service(config);
 
 ## Add a method to decode the data URI given by the client
 
-Our data uri are not conventional because we have added the file name.
+Our data URI are not conventional because we have added the file name.
 
 ```javascript
 function parseDataUri(dataUri) {
@@ -75,7 +75,7 @@ function parseDataUri(dataUri) {
 
   const [header, data] = dataUri.substring(5).split(',');
   const [mimeType, ...mediaTypes] = header.split(';');
-  const result = {mimeType, buffer: Buffer.from(data, 'base64')};
+  const result = { mimeType, buffer: Buffer.from(data, 'base64') };
 
   for (const mediaType of mediaTypes) {
     const index = mediaType.indexOf('=');
@@ -93,33 +93,31 @@ First, we need to create a new field which will sign the url of the avatar to se
 
 ```javascript
 collection.addField('signedAvatar', {
-    columnType: 'String',
-    dependencies: ['avatar'],
-    getValues: records =>
-      records.map(record => {
-        // get the path stored in s3. The `pathname` starts with a `/` that's why we need to remove it.
-        const path = decodeURI(new URL(record.avatar).pathname.substring(1));
-        return s3.getUrlSignedUrlFromPath(path);
-      })
-    }
-  )
+  columnType: 'String',
+  dependencies: ['avatar'],
+  getValues: records =>
+    records.map(record => {
+      // get the path stored in s3. The `pathname` starts with a `/` that's why we need to remove it.
+      const path = decodeURI(new URL(record.avatar).pathname.substring(1));
+      return s3.getUrlSignedUrlFromPath(path);
+    }),
+});
 ```
 
 Then, we replace the field writing to store the new s3 url.
 
 ```javascript
-collection
-  .replaceFieldWriting('signedAvatar', async (newAvatarFile, context) => {
-    if (!newAvatarFile) return {avatar: null};
+collection.replaceFieldWriting('signedAvatar', async (newAvatarFile, context) => {
+  if (!newAvatarFile) return { avatar: null };
 
-    // compute an unique path to avoid collision when uploading the same file twice for a different record.
-    const uniquePath = `owner/${context.record.id}`;
-    // upload to s3 and get the url
-    const avatar = await s3.upload(parseDataUri(newAvatarFile), uniquePath);
+  // compute an unique path to avoid collision when uploading the same file twice for a different record.
+  const uniquePath = `owner/${context.record.id}`;
+  // upload to s3 and get the url
+  const avatar = await s3.upload(parseDataUri(newAvatarFile), uniquePath);
 
-    // save the decoded url in the database
-    return {avatar: decodeURI(avatar)};
-  })
+  // save the decoded url in the database
+  return { avatar: decodeURI(avatar) };
+});
 ```
 
 Finally, we want to replace the avatar field by the signedAvatar field.
@@ -149,7 +147,7 @@ function parseDataUri(dataUri) {
 
   const [header, data] = dataUri.substring(5).split(',');
   const [mimeType, ...mediaTypes] = header.split(';');
-  const result = {mimeType, buffer: Buffer.from(data, 'base64')};
+  const result = { mimeType, buffer: Buffer.from(data, 'base64') };
 
   for (const mediaType of mediaTypes) {
     const index = mediaType.indexOf('=');
@@ -161,14 +159,14 @@ function parseDataUri(dataUri) {
 }
 
 class AwsS3Service {
-  constructor({accessKeyId, secretAccessKey, bucket}) {
+  constructor({ accessKeyId, secretAccessKey, bucket }) {
     this.accessKeyId = accessKeyId;
     this.secretAccessKey = secretAccessKey;
     this.bucket = bucket;
   }
 
   async upload(file, path) {
-    const {Location} = await this.client
+    const { Location } = await this.client
       .upload({
         Bucket: this.bucket,
         Key: `${path}/${file.name}`,
@@ -208,20 +206,21 @@ const s3 = new AwsS3Service(config);
 
 collection
   .addField('signedAvatar', {
-      columnType: 'String',
-      dependencies: ['avatar'],
-      getValues: records =>
-        records.map(record =>
-          s3.getUrlSignedUrlFromPath(decodeURI(new URL(record.avatar).pathname.substring(1))),
-        )
-    }
-  ).replaceFieldWriting('signedAvatar', async (newAvatarFile: string, context) => {
-  if (!newAvatarFile) return {avatar: null};
+    columnType: 'String',
+    dependencies: ['avatar'],
+    getValues: records =>
+      records.map(record =>
+        s3.getUrlSignedUrlFromPath(decodeURI(new URL(record.avatar).pathname.substring(1))),
+      ),
+  })
+  .replaceFieldWriting('signedAvatar', async (newAvatarFile: string, context) => {
+    if (!newAvatarFile) return { avatar: null };
 
-  const uniquePath = `owner/${context.record.id}`;
-  const avatar = await s3.upload(parseDataUri(newAvatarFile), uniquePath);
+    const uniquePath = `owner/${context.record.id}`;
+    const avatar = await s3.upload(parseDataUri(newAvatarFile), uniquePath);
 
-  return {avatar: decodeURI(avatar)};
-}).removeField('avatar')
+    return { avatar: decodeURI(avatar) };
+  })
+  .removeField('avatar')
   .renameField('signedAvatar', 'avatar');
 ```
