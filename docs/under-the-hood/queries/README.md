@@ -52,7 +52,7 @@ collection.addSegment('mySegment', async context => {
 
 # Interface
 
-More detail about those methods can be found in the [API Reference](https://github.com/ForestAdmin/agent-nodejs/wiki/@forestadmin.datasource-toolkit.Collection)
+More detail about those methods can be found in the [API Reference](https://forestadmin.github.io/agent-nodejs/interfaces/_forestadmin_datasource_toolkit.Collection.html)
 
 All parameters are explained in depth in the following pages:
 

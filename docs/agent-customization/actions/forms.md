@@ -39,7 +39,7 @@ collection.addAction('Charge credit card', {
 
 ## Form entries
 
-Here is the list of available options to customize the input form. More informations can be found on our API Reference
+Here is the list of available options to customize the input form. More informations can be found on our [API Reference](https://forestadmin.github.io/agent-nodejs/interfaces/_forestadmin_datasource_toolkit.ActionField.html)
 
 | name         | type                                     | description                                                                                                                                                     |
 | ------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
