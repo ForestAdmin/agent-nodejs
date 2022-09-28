@@ -5,9 +5,9 @@ import {
   Projection,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
+import { Readable } from 'stream';
 import Router from '@koa/router';
 
-import { Readable } from 'stream';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import CsvGenerator from '../../utils/csv-generator';
 import CsvRouteContext from '../../utils/csv-route-context';
@@ -24,8 +24,8 @@ export default class CsvRelatedRoute extends RelationRoute {
   }
 
   async handleRelatedCsv(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `browse:${this.collection.name}`);
-    await this.services.permissions.can(context, `export:${this.collection.name}`);
+    await this.services.authorization.assertCanBrowse(context, this.collection.name);
+    await this.services.authorization.assertCanExport(context, this.collection.name);
 
     const { header } = context.request.query as Record<string, string>;
     CsvRouteContext.buildResponse(context);

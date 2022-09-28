@@ -117,8 +117,8 @@ describe('CsvRelatedRoute', () => {
       // then
       expect(buildPaginated).toHaveBeenCalledWith(personsCollection, context, scopeCondition);
 
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'browse:books');
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'export:books');
+      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
+      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'books');
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(

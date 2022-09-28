@@ -76,6 +76,25 @@ describe('GetRoute', () => {
       expect(context.response.body).toEqual('test');
     });
 
+    test('should check that the user has permission to get', async () => {
+      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([{ title: 'test ' }]);
+      services.serializer.serialize = jest.fn().mockReturnValue('test');
+      const get = new Get(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+        },
+      });
+
+      await get.handleGet(context);
+
+      expect(services.authorization.assertCanRead).toHaveBeenCalledWith(context, 'books');
+
+      expect(context.response.body).toEqual('test');
+    });
+
     describe('when an error happens', () => {
       describe('when list returns []', () => {
         test('should return an HTTP 404 response', async () => {

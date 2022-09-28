@@ -22,7 +22,7 @@ export default class UpdateField extends CollectionRoute {
   }
 
   public async handleUpdate(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `edit:${this.collection.name}`);
+    await this.services.authorization.assertCanEdit(context, this.collection.name);
 
     const { field, index, id } = context.params;
     const subRecord = context.request.body?.data?.attributes;

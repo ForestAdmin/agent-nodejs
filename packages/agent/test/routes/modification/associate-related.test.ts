@@ -106,7 +106,7 @@ describe('AssociateRelatedRoute', () => {
         }),
         { bookId: '123e4567-e89b-12d3-a456-111111111111' },
       );
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:books');
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });
   });
@@ -215,7 +215,7 @@ describe('AssociateRelatedRoute', () => {
           },
         ],
       );
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:books');
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });
   });

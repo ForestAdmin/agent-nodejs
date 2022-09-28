@@ -119,5 +119,21 @@ describe('UpdateField', () => {
       );
       expect(context.response.status).toEqual(204);
     });
+
+    it('should check that the user is authorized', async () => {
+      const updateRoute = new UpdateField(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: { attributes: { key: 'newKey', value: 'newValue' } } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { id: '1523', field: 'itemList', index: '1' },
+        },
+      });
+
+      await updateRoute.handleUpdate(context);
+
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
+    });
   });
 });

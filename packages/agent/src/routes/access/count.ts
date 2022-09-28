@@ -12,7 +12,7 @@ export default class CountRoute extends CollectionRoute {
   }
 
   public async handleCount(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `browse:${this.collection.name}`);
+    await this.services.authorization.assertCanBrowse(context, this.collection.name);
 
     if (this.collection.schema.countable) {
       const scope = await this.services.permissions.getScope(this.collection, context);

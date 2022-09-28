@@ -140,6 +140,32 @@ describe('CountRelatedRoute', () => {
         expect(context.response.body).toEqual({ count: 1568 });
       });
 
+      test("should check the user's permission", async () => {
+        const { services, dataSource, options } = setupWithOneToManyRelation();
+
+        const oneToManyRelationName = 'myBookPersons';
+        const count = new CountRelatedRoute(
+          services,
+          options,
+          dataSource,
+          'books',
+          oneToManyRelationName,
+        );
+
+        jest
+          .spyOn(CollectionUtils, 'aggregateRelation')
+          .mockResolvedValue([{ value: 1568, group: {} }]);
+
+        const context = setupContext();
+        await count.handleCountRelated(context);
+        expect(services.authorization.assertCanBrowse as jest.Mock).toHaveBeenCalledWith(
+          context,
+          'books',
+        );
+
+        expect(context.response.body).toEqual({ count: 1568 });
+      });
+
       describe('when there is empty aggregate result', () => {
         test('should return 0', async () => {
           const { services, dataSource, options } = setupWithOneToManyRelation();

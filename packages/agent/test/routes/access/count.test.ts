@@ -38,6 +38,22 @@ describe('CountRoute', () => {
       );
       expect(context.response.body).toEqual({ count: 2 });
     });
+
+    test('should check that the user has permission to count', async () => {
+      const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
+      dataSource.getCollection('books').aggregate = aggregateSpy;
+      const count = new Count(services, options, dataSource, 'books');
+      const context = createMockContext({
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        state: { user: { email: 'john.doe@domain.com' } },
+      });
+
+      await count.handleCount(context);
+
+      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
+
+      expect(context.response.body).toEqual({ count: 2 });
+    });
   });
 
   describe('for non countable collections', () => {

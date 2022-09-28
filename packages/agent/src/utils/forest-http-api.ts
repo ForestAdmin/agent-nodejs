@@ -6,6 +6,7 @@ import hashObject from 'object-hash';
 import superagent, { Response, ResponseError } from 'superagent';
 
 import { AgentOptions } from '../types';
+import { EnvironmentPermissionsV4, UserPermissionV4 } from '../services/authorization';
 
 export type IpWhitelistConfiguration = {
   isFeatureEnabled: boolean;
@@ -155,6 +156,30 @@ export default class ForestHttpApi {
         actionsByUser,
         scopes: ForestHttpApi.decodeScopePermissions(body?.data?.renderings?.[renderingId] ?? {}),
       };
+    } catch (e) {
+      this.handleResponseError(e);
+    }
+  }
+
+  static async getEnvironmentPermissions(options: HttpOptions): Promise<EnvironmentPermissionsV4> {
+    try {
+      const { body } = await superagent
+        .get(`${options.forestServerUrl}/liana/v4/permissions/environment`)
+        .set('forest-secret-key', options.envSecret);
+
+      return body;
+    } catch (e) {
+      this.handleResponseError(e);
+    }
+  }
+
+  static async getUsers(options: HttpOptions): Promise<UserPermissionV4[]> {
+    try {
+      const { body } = await superagent
+        .get(`${options.forestServerUrl}/liana/v4/permissions/users`)
+        .set('forest-secret-key', options.envSecret);
+
+      return body;
     } catch (e) {
       this.handleResponseError(e);
     }

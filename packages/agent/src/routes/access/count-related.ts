@@ -16,7 +16,7 @@ export default class CountRelatedRoute extends RelationRoute {
   }
 
   public async handleCountRelated(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `browse:${this.collection.name}`);
+    await this.services.authorization.assertCanBrowse(context, this.collection.name);
 
     if (this.foreignCollection.schema.countable) {
       const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);

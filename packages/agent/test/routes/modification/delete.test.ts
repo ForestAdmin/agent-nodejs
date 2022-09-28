@@ -78,7 +78,7 @@ describe('DeleteRoute', () => {
     });
 
     describe('when the given id is a simple id', () => {
-      test('should generate the filter to delete the right record', async () => {
+      function setup() {
         const bookCollection = factories.collection.build({
           name: 'books',
           schema: factories.collectionSchema.build({
@@ -99,6 +99,13 @@ describe('DeleteRoute', () => {
             query: { timezone: 'Europe/Paris' },
           },
         });
+
+        return { context, deleteRoute, bookCollection };
+      }
+
+      test('should generate the filter to delete the right record', async () => {
+        const { context, deleteRoute, bookCollection } = setup();
+
         await deleteRoute.handleDelete(context);
 
         expect(bookCollection.delete).toHaveBeenCalledWith(
@@ -115,6 +122,14 @@ describe('DeleteRoute', () => {
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
+      });
+
+      test('should check that the user is authorized to delete elements', async () => {
+        const { context, deleteRoute } = setup();
+
+        await deleteRoute.handleDelete(context);
+
+        expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
       });
     });
   });

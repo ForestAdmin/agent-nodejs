@@ -102,9 +102,10 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async checkPermissions(context: Context): Promise<void> {
-    await this.services.permissions.can(
+    await this.services.authorization.assertCanExecuteCustomAction(
       context,
-      `custom:${this.actionName}:${this.collection.name}`,
+      this.actionName,
+      this.collection.name,
     );
   }
 

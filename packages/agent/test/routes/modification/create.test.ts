@@ -21,7 +21,7 @@ describe('CreateRoute', () => {
   });
 
   describe('simple case', () => {
-    test('should call create and serializer implementation', async () => {
+    function setup() {
       const attributes = {
         name: 'Harry potter and thegoblet of fire',
         publishedAt: '2000-07-07T21:00:00.000Z',
@@ -57,6 +57,12 @@ describe('CreateRoute', () => {
         requestBody: { data: { attributes, type: 'books' } },
       });
 
+      return { context, create, collection, attributes };
+    }
+
+    test('should call create and serializer implementation', async () => {
+      const { context, create, collection, attributes } = setup();
+
       await create.handleCreate(context);
 
       expect(collection.create).toHaveBeenCalledWith(
@@ -77,6 +83,14 @@ describe('CreateRoute', () => {
           },
         },
       });
+    });
+
+    test('should check that the user is allowed to create an element', async () => {
+      const { context, create } = setup();
+
+      await create.handleCreate(context);
+
+      expect(services.authorization.assertCanAdd).toHaveBeenCalledWith(context, 'books');
     });
   });
 

@@ -70,5 +70,22 @@ describe('ListRoute', () => {
         meta: { decorators: { 0: { id: '2', search: ['id'] } } },
       });
     });
+
+    test('should check that the user has permission to list elements', async () => {
+      const { dataSource, options, services, collection } = setup();
+
+      const list = new List(services, options, dataSource, collection.name);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { search: '2', 'fields[books]': 'id', timezone: 'Europe/Paris' },
+        },
+      });
+      jest.spyOn(collection, 'list').mockResolvedValue([{ id: 1 }, { id: 2 }]);
+
+      await list.handleList(context);
+
+      expect(services.authorization.assertCanBrowse).toHaveBeenLastCalledWith(context, 'books');
+    });
   });
 });
