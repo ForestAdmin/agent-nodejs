@@ -71,13 +71,24 @@ describe('OptionsValidator', () => {
       expect(options).toEqual(options);
     });
 
-    test('should force a minimum permissionsCacheDurationInSeconds value', () => {
-      const options = OptionsValidator.withDefaults({
-        ...mandatoryOptions,
-        permissionsCacheDurationInSeconds: 1,
+    describe('permissionsCacheDurationInSeconds', () => {
+      test('should force a minimum value', () => {
+        const options = OptionsValidator.withDefaults({
+          ...mandatoryOptions,
+          permissionsCacheDurationInSeconds: 1,
+        });
+
+        expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 300);
       });
 
-      expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 300);
+      test('should allow user to configure it with realistic value', () => {
+        const options = OptionsValidator.withDefaults({
+          ...mandatoryOptions,
+          permissionsCacheDurationInSeconds: 10 * 60,
+        });
+
+        expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 300);
+      });
     });
   });
 
