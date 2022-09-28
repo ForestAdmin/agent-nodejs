@@ -12,9 +12,9 @@ Think about countries and towns: a country have multiple towns, each towns belon
 // Link 'countries' to 'towns'
 agent.customizeCollection('countries', collection =>
   collection.addOneToManyRelation('myTowns', 'towns', {
-      originKey: 'country_id',
-      originKeyTarget: 'id', // Optional (uses primary key of countries by default)
-  })
+    originKey: 'country_id',
+    originKeyTarget: 'id', // Optional (uses primary key of countries by default)
+  });
 );
 ```
 
@@ -51,7 +51,7 @@ agent.customizeCollection('movies', collection => {
 
 External relations allow to define collection which will only be available through the "Related Data" section or a given model.
 
-Note that external relations do not support pagination
+Note that external relations do not support pagination.
 
 ```javascript
 const states = [

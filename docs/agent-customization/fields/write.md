@@ -6,7 +6,7 @@ This is useful when you want to change how a given field behaves, but also to ma
 
 The `replaceFieldWriting` function allows to change the behavior of any change by creating a new patch that will be applied on the record.
 
-You should refrain from using handlers which have side effects (to perform error handling, validation, ...) and [use hooks instead](../hooks/README.md)
+You should refrain from using handlers which have side effects (to perform error handling, validation, ...) and [use hooks instead](../hooks/README.md).
 
 ## Examples
 

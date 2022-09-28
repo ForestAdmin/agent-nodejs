@@ -17,7 +17,7 @@ This is done in two steps:
 agent.customizeCollection('customers', collection => {
   // Create foreign key
   collection.addField('lastMessageId', {
-    beforeJointures: true, // Ensure this field is accesible for the jointure
+    beforeJointures: true, // Ensure this field is accessible for the jointure
     dependencies: ['id'],
     getValues: async (customers, context) => {
       // We're using Forest Admin's query interface (you can use an ORM or a plain SQL query)

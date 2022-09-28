@@ -52,7 +52,7 @@ agent.customizeCollection('people', collection =>
         { field: 'lastName', operator, value: searchString },
       ],
     };
-  }),
+  });
 );
 ```
 
@@ -84,7 +84,7 @@ agent.customizeCollection('products', collection =>
         { field: 'brand:name', operator: 'Equal', value: searchString },
       ],
     };
-  }),
+  });
 );
 ```
 
@@ -105,6 +105,6 @@ agent.customizeCollection('products', collection =>
     });
 
     return { field: 'id', operator: 'In', value: hits.map(h => h.id) };
-  }),
+  });
 );
 ```

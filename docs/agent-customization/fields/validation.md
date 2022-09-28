@@ -1,7 +1,7 @@
 ![A field failing validation](../../assets/field-validation-error.png)
 
 Most datasources are able to import validation rules from their target.
-For instance, if you are using the [SQL Datasource](../../datasources/provided/sql.md)
+For instance, if you are using the [SQL Datasource](../../datasources/provided/sql.md).
 
 - Columns of type `VARCHAR(15)` will automatically carry a `less than 15 chars` validator.
 - Non-nullable columns will automatically carry a `Present` validator.
