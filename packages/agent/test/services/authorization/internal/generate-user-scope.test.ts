@@ -176,9 +176,19 @@ describe('generateUserScope', () => {
             operator: 'Equal',
           },
           {
-            value: '$currentUser.tags.foo',
-            field: 'bar',
-            operator: 'Equal',
+            aggregator: 'Or',
+            conditions: [
+              {
+                value: '$currentUser.tags.foo',
+                field: 'bar',
+                operator: 'Equal',
+              },
+              {
+                value: '$currentUser.firstName',
+                field: 'bar',
+                operator: 'Equal',
+              },
+            ],
           },
         ],
       };
@@ -206,12 +216,24 @@ describe('generateUserScope', () => {
         ...condition,
         conditions: [
           {
-            ...condition.conditions[0],
             value: 42,
+            field: 'foo',
+            operator: 'Equal',
           },
           {
-            ...condition.conditions[1],
-            value: 'bar',
+            aggregator: 'Or',
+            conditions: [
+              {
+                value: 'bar',
+                field: 'bar',
+                operator: 'Equal',
+              },
+              {
+                value: 'Jane',
+                field: 'bar',
+                operator: 'Equal',
+              },
+            ],
           },
         ],
       });
