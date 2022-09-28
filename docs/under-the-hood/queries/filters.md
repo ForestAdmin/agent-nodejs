@@ -1,7 +1,7 @@
 A filter represents a subset of records _within a collection_.
 As such, a filter always exists on the context of a given collection.
 
-It is used to restrict the records which will be targeted by specific actions (list, update, aggregate, ...)
+It is used to restrict the records which will be targeted by specific actions (list, update, aggregate, ...).
 
 ```json
 {
@@ -35,14 +35,14 @@ A condition tree, as it names imply, is a set of conditions which apply on the r
 ### Simple condition tree
 
 ```json
-{ "field": "title", "operator": "starts_with", "value": "Found" }
+{ "field": "title", "operator": "StartsWith", "value": "Found" }
 ```
 
 ### With multiple conditions
 
 ```json
 {
-  "aggregator": "and",
+  "aggregator": "And",
   "conditions": [
     { "field": "title", "operator": "Equal", "value": "Foundation" },
     { "field": "subTitle", "operator": "Equal", "value": "The Psychohistorians" }
@@ -52,7 +52,7 @@ A condition tree, as it names imply, is a set of conditions which apply on the r
 
 ### With relations
 
-It also supports relations, the `one to one` and the `many to one` is supported.
+`one to one` and the `many to one` are supported.
 
 In this example, we want to apply a condition tree on a relation field value.
 
@@ -119,9 +119,9 @@ Here is the list of operators which are supported by forest admin.
 
 ## Operator equivalence
 
-You may have noticed that many operators overlap. In order to make data sources quicker to implement, forest admin supports automatic operator replacement.
+You may have noticed that many operators overlap. In order to make data sources quicker to implement, Forest Admin supports automatic operator replacement.
 
-What that means, is that when an operator can be expressed using a combination of other operators, forest admin will perform the substitution automatically using the following table.
+What that means is that when an operator can be expressed using a combination of other operators, Forest Admin will perform the substitution automatically using the following table.
 
 | Operator              | Automatic replacement                                        |
 | --------------------- | ------------------------------------------------------------ |
@@ -185,21 +185,21 @@ A paging clause tells the data source which page of the data should be retrieved
 
 # Search
 
-The `search` field in a filter simply is what the final user typed in the search bar in the admin panel, an can be used to restrict records.
+The `search` field is a simple filter that the final user typed in the search bar in the admin panel, and can be used to restrict records.
 
-Likewise `searchExtended` boolean is an action which can be triggered by end-users when a given search returns no results and its implementation can vary between data sources.
+Likewise `searchExtended` boolean is an action which can be triggered by end-users and its implementation can vary between data sources.
 
 For instance, in `@forestadmin/datasource-sql`, the `searchExtended` flag is used to also search content into all collections which are linked with a `many to one` or `one to one` relation to the current one.
 
 ## Examples
 
-Search into current collection
+Search into current collection:
 
 ```json
 { "search": "Isaac", "searchExtended": false }
 ```
 
-Search into current and linked collections
+Search into current and linked collections:
 
 ```json
 { "search": "Isaac", "searchExtended": true }

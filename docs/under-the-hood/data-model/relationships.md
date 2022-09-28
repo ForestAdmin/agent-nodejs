@@ -1,12 +1,12 @@
-A jointure is used to combine rows from two or more tables, based on a related column between them.
+A join is used to combine rows from two or more tables, based on a related column between them.
 
 ## Declaration
 
 In Forest Admin, relations are defined as fields and are traversable in only one direction.
 
-## Jointure Types
+## Join Types
 
-Four jointure types are available: `ManyToOne`, `ManyToMany`, `OneToMany` and `OneToOne`.
+Four join types are available: `ManyToOne`, `ManyToMany`, `OneToMany` and `OneToOne`.
 
 | Type       | Where are the common keys?                                                                         |
 | ---------- | -------------------------------------------------------------------------------------------------- |

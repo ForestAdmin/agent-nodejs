@@ -106,7 +106,7 @@
 
 ## Under the hood
 
-- [Data Model](under-the-hood/data-model/README.md)
+- [Data Model](under-the-hood/data-model)
   - [Typing](under-the-hood/data-model/typing.md)
   - [Relationships](under-the-hood/data-model/relationships.md)
 - [Query interface](under-the-hood/queries/README.md)
