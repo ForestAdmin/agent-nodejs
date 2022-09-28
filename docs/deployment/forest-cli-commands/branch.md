@@ -13,10 +13,12 @@ ARGUMENTS
   BRANCH_NAME  The name of the branch to create.
 
 OPTIONS
-  -d, --delete           Delete the branch.
-  --force                When deleting a branch, skip confirmation.
-  --help                 Display usage information.
-  --projectId=projectId  The id of the project to create a branch in.
+  -d, --delete            Delete the branch.
+  -f, --format=table|json [default: table] Output format.
+  -o, --origin=origin     Set the origin of the created branch.
+  --force                 When deleting a branch, skip confirmation.
+  --help                  Display usage information.
+  --projectId=projectId   The id of the project to create a branch in.
 ```
 
 Here are a few extra details on how it works.
@@ -33,13 +35,14 @@ To list your existing branches, simply omit any argument to the command:
 
 ```
 $ forest branch
-feature/new-button < current branch
-fix-missing-label
-feature/remove-tooltip
+NAME                    ORIGIN      IS CURRENT  CLOSED AT
+feature/new-button      production  ✅
+fix-missing-label       staging
+feature/remove-tooltip  preprod                 2022-08-19T08:08:47.678Z
 ```
 
 {% hint style="info" %}
-`< current branch` indicates your currently selected branch: your project's UI will locally display according to this branch's layout settings.
+`IS CURRENT` indicates your currently selected branch: your project's UI will locally be displayed according to this branch's layout settings.
 {% endhint %}
 
 ### Creating a new branch
@@ -47,7 +50,7 @@ feature/remove-tooltip
 To create a new branch, append the name of the branch you wish to create after `forest branch`, like so:
 
 ```
-$ forest branch feature/new-ops-feature
+$ forest branch feature/new-ops-feature --origin production
 ✅ Switched to new branch: feature/new-ops-feature
 ```
 
@@ -64,7 +67,7 @@ $ forest branch add-refund-action
 ❌ You cannot create a branch until this project has either a remote or a production environment.
 ```
 
-Any branch reflects `LayoutChange(s)` (i.e. changes in your UI) that you've made on that branch: to make this possible, a branch needs an **origin**, which is the state of the layout you started from and made those `LayoutChange(s)` on. This is why you need to [have a production environment](../environments.md#deploying-to-production) (ideally) or simply a remote environment: that environment will serve as origin to your branches.
+Any branch reflects `LayoutChange(s)` (i.e. changes in your UI) that you've made on that branch: to make this possible, a branch needs an **origin**, which is the state of the layout you started from and made those `LayoutChange(s)` on. This is why you need to [have a production environment](../environments.md#deploying-to-production) (ideally) or simply a remote environment: those environments can serve as origin to your branches.
 
 ### Deleting a branch
 
