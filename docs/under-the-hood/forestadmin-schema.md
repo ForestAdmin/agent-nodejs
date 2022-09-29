@@ -1,6 +1,6 @@
 ### The `.forestadmin-schema.json` file
 
-On server start, a `.forestadmin-schema.json` file will be auto-generated in **local (development) environments only.** It reflects:&#x20;
+On server start, a `.forestadmin-schema.json` file will be auto-generated in **local (development) environments only.** It reflects:
 
 - the **state of your collections.**
 - your **Forest Admin customisation**.
