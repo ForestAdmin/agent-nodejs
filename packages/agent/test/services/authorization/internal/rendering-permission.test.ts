@@ -203,7 +203,7 @@ describe('RenderingPermissionService', () => {
   });
 
   describe('canRetrieveChart', () => {
-    it.each([PermissionLevel.Admin, PermissionLevel.Developer])(
+    it.each([PermissionLevel.Admin, PermissionLevel.Developer, PermissionLevel.Editor])(
       'should return true if the user is a %d',
       async permissionLevel => {
         const { renderingPermission, getUserInfoMock, getRenderingPermissionsMock, options } =
