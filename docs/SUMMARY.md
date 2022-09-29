@@ -106,6 +106,7 @@
 
 ## Under the hood
 
+- [.forestadmin-schema.json](under-the-hood/forestadmin-schema.md)
 - [Data Model](under-the-hood/data-model)
   - [Typing](under-the-hood/data-model/typing.md)
   - [Relationships](under-the-hood/data-model/relationships.md)
