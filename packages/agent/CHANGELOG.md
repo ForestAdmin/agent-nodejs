@@ -1,3 +1,15 @@
+# @forestadmin/agent [1.0.0-alpha.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-alpha.3...@forestadmin/agent@1.0.0-alpha.4) (2022-09-29)
+
+
+### Bug Fixes
+
+* **charts:** allow editors to retrieve any chart ([#457](https://github.com/ForestAdmin/agent-nodejs/issues/457)) ([cd51d63](https://github.com/ForestAdmin/agent-nodejs/commit/cd51d630f96ad4caa1f87792adf819bc6c4aa9b9))
+
+
+### Features
+
+* **permissions:** add some logging ([#454](https://github.com/ForestAdmin/agent-nodejs/issues/454)) ([002e83a](https://github.com/ForestAdmin/agent-nodejs/commit/002e83ab0c189547a83b091d39b70df31a4f5083))
+
 # @forestadmin/agent [1.0.0-alpha.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-alpha.2...@forestadmin/agent@1.0.0-alpha.3) (2022-09-28)
 
 
