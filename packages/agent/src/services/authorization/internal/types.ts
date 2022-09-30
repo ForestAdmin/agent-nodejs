@@ -259,6 +259,35 @@ export type RenderingPermissionV4 = {
   stats: RenderingChartDefinitions;
 };
 
+export interface ActionApprovalAttributes {
+  requester_id: number;
+  ids: Array<string>;
+  collection_name: string;
+  smart_action_id: string;
+  values: any | null;
+  parent_collection_name: string | null;
+  parent_collection_id: string | null;
+  parent_association_name: string | null;
+  all_records: boolean;
+  all_records_subset_query: null;
+}
+
+export interface UserSafe {
+  id: number;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  username: string;
+}
+
+export type ActionApprovalJWT = {
+  data: {
+    id: string | number;
+    type: boolean;
+    attributes: ActionApprovalAttributes;
+  };
+};
+
 export type User = Record<string, any> & {
   id: number;
   tags: Record<string, string>;

@@ -1,6 +1,8 @@
 import { Context } from 'koa';
 
 import { Collection, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
+
+import { AgentOptionsWithDefaults } from '../../types';
 import { CollectionActionEvent, CustomActionEvent } from './internal/types';
 import {
   generateCollectionActionIdentifier,
@@ -8,11 +10,13 @@ import {
 } from './internal/generate-action-identifier';
 import ActionPermissionService from './internal/action-permission';
 import RenderingPermissionService from './internal/rendering-permission';
+import verifyAndDecodeApproval from './internal/hash-approval';
 
 export default class AuthorizationService {
   constructor(
     private readonly actionPermissionService: ActionPermissionService,
     private readonly renderingPermissionService: RenderingPermissionService,
+    private readonly options: AgentOptionsWithDefaults,
   ) {}
 
   public async assertCanBrowse(context: Context, collectionName: string) {
@@ -62,20 +66,48 @@ export default class AuthorizationService {
     collectionName: string,
   ) {
     const { id: userId } = context.state.user;
+    const {
+      body: {
+        data: {
+          attributes: { requester_id: approvalRequesterId },
+          type,
+        },
+      },
+    } = context.request;
+
+    let customActionEvenType = CustomActionEvent.Trigger;
+
+    if (type === 'custom-action-requests') {
+      customActionEvenType =
+        approvalRequesterId === context.state.user.id
+          ? CustomActionEvent.SelfApprove
+          : CustomActionEvent.Approve;
+    }
 
     if (
-      !(await this.actionPermissionService.canOneOf(`${userId}`, [
-        generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
-        generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
-        generateCustomActionIdentifier(
-          CustomActionEvent.SelfApprove,
-          customActionName,
-          collectionName,
-        ),
-      ]))
+      !(await this.actionPermissionService.can(
+        `${userId}`,
+        generateCustomActionIdentifier(customActionEvenType, customActionName, collectionName),
+      ))
     ) {
       context.throw(403, 'Forbidden');
     }
+  }
+
+  public getApprovalRequestData(context: Context) {
+    const {
+      body: {
+        data: {
+          attributes: { signed_approval_request: signedApprovalRequest },
+        },
+      },
+    } = context.request;
+
+    if (signedApprovalRequest) {
+      return verifyAndDecodeApproval(signedApprovalRequest, this.options.envSecret);
+    }
+
+    return null;
   }
 
   async getScope(collection: Collection, context: Context): Promise<ConditionTree> {
