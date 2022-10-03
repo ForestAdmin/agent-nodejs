@@ -112,39 +112,53 @@ export interface S3Versions {
   'template.hbs': string;
 }
 
+export interface FilterableChart extends BaseChart {
+  filter?: string;
+}
+
+export interface AggregatedChart extends BaseChart {
+  aggregator: 'Sum' | 'Count';
+  aggregateFieldName: string | null;
+}
+
+export interface CollectionChart extends BaseChart {
+  sourceCollectionId: string | number;
+}
+
+export interface GroupedByChart extends BaseChart {
+  groupByFieldName: string | null;
+}
+
 export interface SmartChart extends BaseChart {
   type: ChartType.Smart;
   s3Versions: S3Versions & { 'style.css': string };
   id: string;
 }
 
-export interface LeaderboardChart extends BaseChart {
+export interface LeaderboardChart extends BaseChart, AggregatedChart, CollectionChart {
   type: ChartType.Leaderboard;
-  sourceCollectionId: string | number;
   labelFieldName: string;
   relationshipFieldName: string;
-  aggregateFieldName: string | null;
-  aggregator: 'Sum' | 'Count';
-  limit;
+  limit: number;
 }
 
-export interface LineChart extends BaseChart {
+export interface LineChart
+  extends BaseChart,
+    FilterableChart,
+    AggregatedChart,
+    CollectionChart,
+    GroupedByChart {
   type: ChartType.Line;
-  sourceCollectionId: string | number;
-  groupByFieldName: string;
-  aggregateFieldName: string | null;
-  aggregator: 'Sum' | 'Count';
   timeRange: 'Day' | 'Week' | 'Month' | 'Year';
-  filter: Filter | null;
 }
 
-export interface ObjectiveChart extends BaseChart {
+export interface ObjectiveChart
+  extends BaseChart,
+    FilterableChart,
+    AggregatedChart,
+    CollectionChart {
   type: ChartType.Objective;
-  sourceCollectionId: string | number;
-  aggregateFieldName: string;
-  aggregator: 'Sum' | 'Count';
   objective: number;
-  filter: Filter | null;
 }
 
 export interface PercentageChart extends BaseChart {
@@ -153,21 +167,17 @@ export interface PercentageChart extends BaseChart {
   denominatorChartId: string;
 }
 
-export interface PieChart extends BaseChart {
+export interface PieChart
+  extends BaseChart,
+    FilterableChart,
+    AggregatedChart,
+    CollectionChart,
+    GroupedByChart {
   type: ChartType.Pie;
-  sourceCollectionId: string | number;
-  aggregateFieldName: string;
-  groupByFieldName: string;
-  aggregator: 'Sum' | 'Count';
-  filter: Filter | null;
 }
 
-export interface ValueChart extends BaseChart {
+export interface ValueChart extends BaseChart, FilterableChart, AggregatedChart, CollectionChart {
   type: ChartType.Value;
-  sourceCollectionId: string | number;
-  aggregateFieldName: string;
-  aggregator: 'Sum' | 'Count';
-  filter: Filter | null;
 }
 
 export type Chart =
@@ -181,16 +191,6 @@ export type Chart =
   | PercentageChart
   | PieChart
   | ValueChart;
-
-export interface RenderingChartDefinitions {
-  queries: string[];
-  leaderboards: LeaderboardChart[];
-  lines: LineChart[];
-  objectives: ObjectiveChart[];
-  percentages: PercentageChart[];
-  pies: PieChart[];
-  values: ValueChart[];
-}
 
 export interface CollectionColumn {
   id: string | number;
@@ -257,7 +257,7 @@ export type Team = { id: number; name: string };
 export type RenderingPermissionV4 = {
   team: Team;
   collections: Record<string, CollectionRenderingPermissionV4>;
-  stats: RenderingChartDefinitions;
+  stats: Chart[];
 };
 
 export type User = Record<string, any> & {

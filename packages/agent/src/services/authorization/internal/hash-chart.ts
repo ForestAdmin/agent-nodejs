@@ -1,26 +1,36 @@
 import hashObject from 'object-hash';
 
-import { RenderingChartDefinitions } from './types';
+import {
+  AggregatedChart,
+  Chart,
+  ChartType,
+  CollectionChart,
+  FilterableChart,
+  GroupedByChart,
+  LeaderboardChart,
+  LineChart,
+  QueryChart,
+} from './types';
 
-export function hashServerCharts(chartsByType: RenderingChartDefinitions): Set<string> {
-  const serverCharts = Object.entries(chartsByType)
-    .filter(([key]) => key !== 'queries')
-    .map(([, value]) => value)
-    .flat();
-
-  const frontendCharts = serverCharts.map(chart => ({
-    type: chart.type,
-    filters: chart.filter,
-    aggregate: chart.aggregator,
-    aggregate_field: chart.aggregateFieldName,
-    collection: chart.sourceCollectionId,
-    time_range: chart.timeRange,
-    group_by_date_field: (chart.type === 'Line' && chart.groupByFieldName) || null,
-    group_by_field: (chart.type !== 'Line' && chart.groupByFieldName) || null,
-    limit: chart.limit,
-    label_field: chart.labelFieldName,
-    relationship_field: chart.relationshipFieldName,
-  }));
+export function hashServerCharts(charts: Chart[]): Set<string> {
+  const frontendCharts = charts
+    // Query charts are not supported
+    .filter(x => !(x as QueryChart).query)
+    .map(chart => ({
+      type: chart.type,
+      filters: (chart as FilterableChart).filter,
+      aggregate: (chart as AggregatedChart).aggregator,
+      aggregate_field: (chart as AggregatedChart).aggregateFieldName,
+      collection: (chart as CollectionChart).sourceCollectionId,
+      time_range: (chart as LineChart).timeRange,
+      group_by_date_field:
+        (chart.type === ChartType.Line && (chart as LineChart).groupByFieldName) || null,
+      group_by_field:
+        (chart.type !== ChartType.Line && (chart as GroupedByChart).groupByFieldName) || null,
+      limit: (chart as LeaderboardChart).limit,
+      label_field: (chart as LeaderboardChart).labelFieldName,
+      relationship_field: (chart as LeaderboardChart).relationshipFieldName,
+    }));
 
   const hashes = frontendCharts.map(chart =>
     hashObject(chart, {
