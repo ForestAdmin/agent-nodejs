@@ -118,7 +118,7 @@ export default class ActionRoute extends CollectionRoute {
       this.services.authorization.getApprovalRequestData(context);
 
     if (approvalRequestDataWithAttributes) {
-      context.request.body.data = approvalRequestDataWithAttributes;
+      context.request.body = approvalRequestDataWithAttributes;
       context.state.isCustomActionApprovalRequest = true;
     } else {
       context.state.isCustomActionApprovalRequest = false;

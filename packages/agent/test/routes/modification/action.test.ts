@@ -119,10 +119,12 @@ describe('ActionRoute', () => {
         const getApprovalRequestDataMock = services.authorization
           .getApprovalRequestData as jest.Mock;
         getApprovalRequestDataMock.mockReturnValue({
-          attributes: {
-            values: { valueFrom: 'JWT' },
+          data: {
+            attributes: {
+              values: { valueFrom: 'JWT' },
+            },
+            type: 'typeFromJWT',
           },
-          type: 'typeFromJWT',
         });
         const nextMock = jest.fn();
 

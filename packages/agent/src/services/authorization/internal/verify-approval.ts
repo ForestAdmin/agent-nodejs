@@ -4,7 +4,7 @@ import { ActionApprovalJWT, JTWTokenExpiredError, JTWUnableToVerifyError } from 
 
 export default function verifyAndExtractApproval(approvalRequestToken: string, privateKey: string) {
   try {
-    return (jsonwebtoken.verify(approvalRequestToken, privateKey) as ActionApprovalJWT).data;
+    return jsonwebtoken.verify(approvalRequestToken, privateKey) as ActionApprovalJWT;
   } catch (err) {
     if (err instanceof TokenExpiredError) {
       throw new JTWTokenExpiredError();
