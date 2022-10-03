@@ -19,7 +19,7 @@ const agent = createAgent(options)
 
 // Add a relation between a Mongoose collection and a SQL collection.
 agent.customizeCollection('countryFromMongoose', collection =>
-  collection.addOneToManyRelation('towns', 'townsFromSQL', {
+  collection.addOneToManyRelation('towns', 'townsFromPostgres', {
     originKey: 'country_id',
   }),
 );
