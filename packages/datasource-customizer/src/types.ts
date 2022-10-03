@@ -25,4 +25,6 @@ export type OneToManyEmbeddedDefinition<
 
 export type DataSourceOptions = {
   rename?: { [oldName: string]: string };
+  include?: string[];
+  exclude?: string[];
 };

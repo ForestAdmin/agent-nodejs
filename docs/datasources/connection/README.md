@@ -14,7 +14,7 @@ Forest Admin collections map to any of those concepts:
 
 - Database collections/tables
 - ORM collections
-- Endpoints on supported SaaS providers
+- Endpoints on SaaS providers
 - Endpoints on your own API (by writing a custom data source)
 
 ## Example
