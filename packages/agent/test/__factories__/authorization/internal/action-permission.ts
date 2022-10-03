@@ -17,6 +17,7 @@ const actionPermissionsFactory = ActionPermissionsFactory.define(
       envSecret: '123',
       forestServerUrl: 'http://api',
       permissionsCacheDurationInSeconds: 15 * 60,
+      logger: () => {},
     }),
 );
 

@@ -19,6 +19,7 @@ describe('UserPermission', () => {
       envSecret: '123',
       forestServerUrl: 'http://api',
       permissionsCacheDurationInSeconds: 15 * 60,
+      logger: jest.fn(),
     };
     const userPermissions = new UserPermissionService(options);
 

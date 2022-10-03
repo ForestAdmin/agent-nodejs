@@ -17,7 +17,7 @@ import generateUserScope from './generate-user-scope';
 
 export type RenderingPermissionOptions = Pick<
   AgentOptionsWithDefaults,
-  'forestServerUrl' | 'envSecret' | 'isProduction' | 'permissionsCacheDurationInSeconds'
+  'forestServerUrl' | 'envSecret' | 'isProduction' | 'permissionsCacheDurationInSeconds' | 'logger'
 >;
 
 type RenderingPermission = {
@@ -84,6 +84,8 @@ export default class RenderingPermissionService {
   }
 
   private async loadPermissions(renderingId: number): Promise<RenderingPermission> {
+    this.options.logger('Debug', `Loading rendering permissions for rendering ${renderingId}`);
+
     const rawPermissions = await ForestHttpApi.getRenderingPermissions(renderingId, this.options);
 
     return {
@@ -124,9 +126,13 @@ export default class RenderingPermissionService {
     ]);
 
     if (
-      [PermissionLevel.Admin, PermissionLevel.Developer].includes(userInfo?.permissionLevel) ||
+      [PermissionLevel.Admin, PermissionLevel.Developer, PermissionLevel.Editor].includes(
+        userInfo?.permissionLevel,
+      ) ||
       permissions.charts.has(chartHash)
     ) {
+      this.options.logger('Debug', `User ${userId} can retrieve chart on rendering ${renderingId}`);
+
       return true;
     }
 
@@ -142,10 +148,20 @@ export default class RenderingPermissionService {
       });
     }
 
+    this.options.logger(
+      'Debug',
+      `User ${userId} cannot retrieve chart on rendering ${renderingId}`,
+    );
+
     return false;
   }
 
   public invalidateCache(renderingId) {
+    this.options.logger(
+      'Debug',
+      `Invalidating rendering permissions cache for rendering ${renderingId}`,
+    );
+
     this.permissionsByRendering.del(renderingId);
   }
 }

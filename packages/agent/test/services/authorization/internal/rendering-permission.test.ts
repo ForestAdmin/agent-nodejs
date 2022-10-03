@@ -39,6 +39,7 @@ describe('RenderingPermissionService', () => {
       envSecret: 'secret',
       isProduction: true,
       permissionsCacheDurationInSeconds: 1000,
+      logger: jest.fn(),
     };
     const renderingPermission = new RenderingPermissionService(options, userPermission);
 
@@ -203,7 +204,7 @@ describe('RenderingPermissionService', () => {
   });
 
   describe('canRetrieveChart', () => {
-    it.each([PermissionLevel.Admin, PermissionLevel.Developer])(
+    it.each([PermissionLevel.Admin, PermissionLevel.Developer, PermissionLevel.Editor])(
       'should return true if the user is a %d',
       async permissionLevel => {
         const { renderingPermission, getUserInfoMock, getRenderingPermissionsMock, options } =

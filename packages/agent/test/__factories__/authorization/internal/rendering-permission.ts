@@ -20,6 +20,7 @@ const renderingPermissionsFactory = RenderingPermissionsFactory.define(
         envSecret: '123',
         forestServerUrl: 'http://api',
         permissionsCacheDurationInSeconds: 15 * 60,
+        logger: () => {},
       },
       userPermissionsFactory.build(),
     ),

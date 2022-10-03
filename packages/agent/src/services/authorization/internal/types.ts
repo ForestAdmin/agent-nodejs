@@ -41,6 +41,7 @@ export interface EnvironmentPermissionsV4Remote {
 export enum PermissionLevel {
   Admin = 'admin',
   Developer = 'developer',
+  Editor = 'editor',
   User = 'user',
 }
 
