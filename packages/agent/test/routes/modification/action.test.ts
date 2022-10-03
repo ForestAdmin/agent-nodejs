@@ -39,7 +39,11 @@ describe('ActionRoute', () => {
     const route = new ActionRoute(services, options, dataSource, 'books', 'My_Action');
     route.setupRoutes(router);
 
-    expect(router.post).toHaveBeenCalledWith('/_actions/books/0/:slug', expect.any(Function));
+    expect(router.post).toHaveBeenCalledWith(
+      '/_actions/books/0/:slug',
+      expect.any(Function),
+      expect.any(Function),
+    );
     expect(router.post).toHaveBeenCalledWith(
       '/_actions/books/0/:slug/hooks/load',
       expect.any(Function),
@@ -87,9 +91,9 @@ describe('ActionRoute', () => {
       route.setupRoutes({
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        post: (path: string, handler: Router.Middleware) => {
+        post: (path: string, middleware: Router.Middleware, handler: Router.Middleware) => {
           if (path === '/_actions/books/0/:slug') handleExecute = handler;
-          else handleHook = handler;
+          else handleHook = middleware;
         },
       });
     });
@@ -359,9 +363,9 @@ describe('ActionRoute', () => {
           route.setupRoutes({
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            post: (path: string, handler: Router.Middleware) => {
+            post: (path: string, middleware: Router.Middleware, handler: Router.Middleware) => {
               if (path === '/_actions/reviews/0/:slug') handleExecute = handler;
-              else handleHook = handler;
+              else handleHook = middleware;
             },
           });
         });
