@@ -103,7 +103,7 @@ This strategy is a good match when writing data sources to full featured databas
 
 Before starting, it is highly advised to read and understand the following section:
 
-- [Data Model](../../under-the-hood/data-model/README.md)
+- [Data Model](../../under-the-hood/data-model)
   - [Typing](../../under-the-hood/data-model/typing.md)
   - [Relationships](../../under-the-hood/data-model/relationships.md)
 - [Query interface](../../under-the-hood/queries/README.md)
