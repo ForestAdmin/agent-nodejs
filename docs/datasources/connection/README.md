@@ -1,12 +1,6 @@
 After doing the quickstart, you should have a development project which is up and running and connected to your main data storage system.
 
-Now, that's already useful and can be built upon, but what if you want your panel to display and act on:
-
-- `Stripe` payments?
-- `Intercom` conversations?
-- Customer data that your sales team track in `Google Spreadsheet`?
-
-Forest Admin has you covered. If your application depends on multiple SaaS providers, so should your admin panel: you can plug as many data sources as you want into the same agent.
+However, you can plug as many data sources as you want into the same agent.
 
 ## What can I connect to?
 
@@ -14,7 +8,7 @@ Forest Admin collections map to any of those concepts:
 
 - Database collections/tables
 - ORM collections
-- Endpoints on SaaS providers
+- Endpoints on SaaS providers (by writing a custom data source)
 - Endpoints on your own API (by writing a custom data source)
 
 ## Example
