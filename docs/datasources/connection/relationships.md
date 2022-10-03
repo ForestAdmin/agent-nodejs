@@ -1,6 +1,6 @@
 Adding as many datasources as you need is good, inter-connecting them together is better.
 
-The relation mechanism allows you to add a relation between different data sources, regardless of their type in the same way than you define relation within a given datasource.
+The relation mechanism allows you to add a relation between different data sources, regardless of their type.
 
 {% hint style="info" %}
 If you want to know more about adding relations, please refer to this [section](../custom/relationships.md).
