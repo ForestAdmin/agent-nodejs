@@ -1,6 +1,6 @@
 For performance reasons, and to avoid naming conflicts, you may not want to import all collections from a datasource.
 
-This can be achieved by providing whitelist or blacklists in the options of the `agent.addDataSource` method.
+This can be achieved by providing a whitelist or a blacklist in the options of the `agent.addDataSource` method.
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
