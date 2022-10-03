@@ -3,7 +3,7 @@ import { Context } from 'koa';
 import { Collection, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 
 import { AgentOptionsWithDefaults } from '../../types';
-import { CollectionActionEvent, CustomActionEvent } from './internal/types';
+import { CollectionActionEvent, CustomActionEvent, UnableToVerifyJTWError } from './internal/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
@@ -108,7 +108,18 @@ export default class AuthorizationService {
     } = context.request;
 
     if (signedApprovalRequest) {
-      return verifyAndExtractApproval(signedApprovalRequest, this.options.envSecret);
+      try {
+        return verifyAndExtractApproval(signedApprovalRequest, this.options.envSecret);
+      } catch (e) {
+        if (e instanceof UnableToVerifyJTWError) {
+          throw new Error(
+            'Failed to verify and extract approval payload.' +
+              ' Can you check the envSecret you have configured in the AgentOptions?',
+          );
+        }
+
+        throw e;
+      }
     }
 
     return null;

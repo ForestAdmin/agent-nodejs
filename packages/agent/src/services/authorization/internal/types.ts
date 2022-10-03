@@ -285,3 +285,5 @@ export type ActionApprovalJWT = {
     attributes: ActionApprovalAttributes;
   };
 };
+
+export class UnableToVerifyJTWError extends Error {}

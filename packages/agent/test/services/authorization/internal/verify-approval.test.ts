@@ -1,5 +1,7 @@
 import verifyAndExtractApproval from '../../../../src/services/authorization/internal/verify-approval';
 
+import { UnableToVerifyJTWError } from '../../../../src/services/authorization/internal/types';
+
 /**
  * Fake token generated with "my-secret" HMACSHA256 private key
  * Payload:
@@ -16,13 +18,13 @@ const TOKEN =
 describe('verifyAndExtractApproval', () => {
   describe('invalid approval request token', () => {
     it('should throw an error', () => {
-      expect(() => verifyAndExtractApproval('token', 'privateKey')).toThrow();
+      expect(() => verifyAndExtractApproval('token', 'privateKey')).toThrow(UnableToVerifyJTWError);
     });
   });
 
   describe('invalid secretKey', () => {
     it('should throw an error', () => {
-      expect(() => verifyAndExtractApproval(TOKEN, 'privateKey')).toThrow();
+      expect(() => verifyAndExtractApproval(TOKEN, 'privateKey')).toThrow(UnableToVerifyJTWError);
     });
   });
 

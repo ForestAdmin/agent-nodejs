@@ -3,7 +3,10 @@ import { Context } from 'koa';
 
 import * as factories from '../../__factories__';
 
-import { CollectionActionEvent } from '../../../src/services/authorization/internal/types';
+import {
+  CollectionActionEvent,
+  UnableToVerifyJTWError,
+} from '../../../src/services/authorization/internal/types';
 import { CustomActionEvent } from '../../../src/services/authorization';
 import {
   generateCollectionActionIdentifier,
@@ -297,7 +300,7 @@ describe('AuthorizationService', () => {
   });
 
   describe('getApprovalRequestData', () => {
-    it('should return null when not signed_approval_request request attributes', async () => {
+    it('should return null when not signed_approval_request request attributes', () => {
       const actionPermissionService = factories.actionPermission.mockAllMethods().build();
       const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
       const authorizationService = new AuthorizationService(
@@ -317,15 +320,16 @@ describe('AuthorizationService', () => {
 
       const verifyAndExtractApprovalMock = verifyAndExtractApproval as jest.Mock;
 
-      await authorizationService.getApprovalRequestData(context);
+      const result = authorizationService.getApprovalRequestData(context);
 
+      expect(result).toBeNull();
       expect(verifyAndExtractApprovalMock).not.toHaveBeenCalled();
     });
 
     it(
       'should return the approval data when signed_approval_request' +
         ' is in the request attributes',
-      async () => {
+      () => {
         const actionPermissionService = factories.actionPermission.mockAllMethods().build();
         const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
         const authorizationService = new AuthorizationService(
@@ -349,7 +353,7 @@ describe('AuthorizationService', () => {
           verifyAndExtractApproval as jest.Mock
         ).mockReturnValue('verifyAndExtractApprovalData');
 
-        const result = await authorizationService.getApprovalRequestData(context);
+        const result = authorizationService.getApprovalRequestData(context);
 
         expect(result).toStrictEqual('verifyAndExtractApprovalData');
         expect(verifyAndExtractApprovalMock).toHaveBeenCalledWith(
@@ -358,6 +362,73 @@ describe('AuthorizationService', () => {
         );
       },
     );
+
+    it('should throw a specific error when verifyAndExtractApproval throws', () => {
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const authorizationService = new AuthorizationService(
+        actionPermissionService,
+        renderingPermissionService,
+        { envSecret: 'badEnvSecret' },
+      );
+
+      const context = {
+        request: {
+          body: {
+            data: {
+              attributes: { signed_approval_request: 'signedApprovalRequest' },
+            },
+          },
+        },
+        throw: jest.fn(),
+      } as unknown as Context;
+
+      const verifyAndExtractApprovalMock = (
+        verifyAndExtractApproval as jest.Mock
+      ).mockImplementation(() => {
+        throw new UnableToVerifyJTWError();
+      });
+
+      expect(() => authorizationService.getApprovalRequestData(context)).toThrow(
+        'Failed to verify and extract approval payload.' +
+          ' Can you check the envSecret you have configured in the AgentOptions?',
+      );
+
+      expect(verifyAndExtractApprovalMock).toHaveBeenCalled();
+    });
+
+    it('should throw an error when verifyAndExtractApproval throws', () => {
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const authorizationService = new AuthorizationService(
+        actionPermissionService,
+        renderingPermissionService,
+        { envSecret: 'badEnvSecret' },
+      );
+
+      const context = {
+        request: {
+          body: {
+            data: {
+              attributes: { signed_approval_request: 'signedApprovalRequest' },
+            },
+          },
+        },
+        throw: jest.fn(),
+      } as unknown as Context;
+
+      const verifyAndExtractApprovalMock = (
+        verifyAndExtractApproval as jest.Mock
+      ).mockImplementation(() => {
+        throw new Error('Other internal error');
+      });
+
+      expect(() => authorizationService.getApprovalRequestData(context)).toThrow(
+        'Other internal error',
+      );
+
+      expect(verifyAndExtractApprovalMock).toHaveBeenCalled();
+    });
   });
 
   describe('getScope', () => {
