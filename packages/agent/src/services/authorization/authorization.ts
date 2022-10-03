@@ -68,18 +68,18 @@ export default class AuthorizationService {
     collectionName: string,
   ) {
     const { id: userId } = context.state.user;
-    const {
-      body: {
-        data: {
-          attributes: { requester_id: approvalRequesterId } = { requester_id: null },
-          type = 'custom-action-trigger',
-        } = {},
-      } = {},
-    } = context.request;
 
     let customActionEvenType = CustomActionEvent.Trigger;
 
-    if (type === 'custom-action-requests') {
+    if (context.state.isCustomActionApprovalRequest) {
+      const {
+        body: {
+          data: {
+            attributes: { requester_id: approvalRequesterId },
+          },
+        },
+      } = context.request;
+
       customActionEvenType =
         approvalRequesterId === context.state.user.id
           ? CustomActionEvent.SelfApprove

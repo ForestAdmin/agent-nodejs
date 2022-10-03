@@ -135,6 +135,7 @@ describe('ActionRoute', () => {
           },
           type: 'typeFromJWT',
         });
+        expect(context.state.isCustomActionApprovalRequest).toStrictEqual(true);
       });
 
       test('should not change data request when approval request is not detected', async () => {
@@ -162,6 +163,7 @@ describe('ActionRoute', () => {
             ...baseContext.requestBody.data.attributes,
           },
         });
+        expect(context.state.isCustomActionApprovalRequest).toStrictEqual(false);
       });
     });
 

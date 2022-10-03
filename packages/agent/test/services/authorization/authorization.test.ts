@@ -10,11 +10,14 @@ import {
   generateCustomActionIdentifier,
 } from '../../../src/services/authorization/internal/generate-action-identifier';
 import AuthorizationService from '../../../src/services/authorization/authorization';
+import verifyAndExtractApproval from '../../../src/services/authorization/internal/verify-approval';
 
 jest.mock('../../../src/services/authorization/internal/generate-action-identifier', () => ({
   generateCollectionActionIdentifier: jest.fn(),
   generateCustomActionIdentifier: jest.fn(),
 }));
+
+jest.mock('../../../src/services/authorization/internal/verify-approval', () => jest.fn());
 
 jest.mock('@forestadmin/datasource-toolkit', () => ({
   __esModule: true,
@@ -174,12 +177,12 @@ describe('AuthorizationService', () => {
               id: 35,
               renderingId: 42,
             },
+            isCustomActionApprovalRequest: true,
           },
           request: {
             body: {
               data: {
                 attributes: { requester_id: 999 },
-                type: 'custom-action-requests',
               },
             },
           },
@@ -225,12 +228,12 @@ describe('AuthorizationService', () => {
               id: 35,
               renderingId: 42,
             },
+            isCustomActionApprovalRequest: true,
           },
           request: {
             body: {
               data: {
                 attributes: { requester_id: 35 },
-                type: 'custom-action-requests',
               },
             },
           },
@@ -291,6 +294,70 @@ describe('AuthorizationService', () => {
 
       expect(context.throw).toHaveBeenCalledWith(403, 'Forbidden');
     });
+  });
+
+  describe('getApprovalRequestData', () => {
+    it('should return null when not signed_approval_request request attributes', async () => {
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const authorizationService = new AuthorizationService(
+        actionPermissionService,
+        renderingPermissionService,
+        { envSecret: 'envSecret' },
+      );
+
+      const context = {
+        request: {
+          body: {
+            data: {},
+          },
+        },
+        throw: jest.fn(),
+      } as unknown as Context;
+
+      const verifyAndExtractApprovalMock = verifyAndExtractApproval as jest.Mock;
+
+      await authorizationService.getApprovalRequestData(context);
+
+      expect(verifyAndExtractApprovalMock).not.toHaveBeenCalled();
+    });
+
+    it(
+      'should return the approval data when signed_approval_request' +
+        ' is in the request attributes',
+      async () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'envSecret' },
+        );
+
+        const context = {
+          request: {
+            body: {
+              data: {
+                attributes: { signed_approval_request: 'signedApprovalRequest' },
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        const verifyAndExtractApprovalMock = (
+          verifyAndExtractApproval as jest.Mock
+        ).mockReturnValue('verifyAndExtractApprovalData');
+
+        const result = await authorizationService.getApprovalRequestData(context);
+
+        expect(result).toStrictEqual('verifyAndExtractApprovalData');
+        expect(verifyAndExtractApprovalMock).toHaveBeenCalledWith(
+          'signedApprovalRequest',
+          'envSecret',
+        );
+      },
+    );
   });
 
   describe('getScope', () => {

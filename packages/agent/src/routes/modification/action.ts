@@ -119,6 +119,9 @@ export default class ActionRoute extends CollectionRoute {
 
     if (approvalRequestDataWithAttributes) {
       context.request.body.data = approvalRequestDataWithAttributes;
+      context.state.isCustomActionApprovalRequest = true;
+    } else {
+      context.state.isCustomActionApprovalRequest = false;
     }
 
     return next();
