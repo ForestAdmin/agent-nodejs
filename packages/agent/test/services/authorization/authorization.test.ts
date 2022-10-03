@@ -5,9 +5,11 @@ import * as factories from '../../__factories__';
 
 import {
   CollectionActionEvent,
-  UnableToVerifyJTWError,
+  JTWTokenExpiredError,
+  JTWUnableToVerifyError,
 } from '../../../src/services/authorization/internal/types';
 import { CustomActionEvent } from '../../../src/services/authorization';
+import { HttpCode } from '../../../src/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
@@ -103,7 +105,7 @@ describe('AuthorizationService', () => {
 
       await authorizationService[assertion](context, 'books');
 
-      expect(context.throw).toHaveBeenCalledWith(403, 'Forbidden');
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
 
       expect(actionPermissionService.can).toHaveBeenCalledWith(
         '35',
@@ -185,7 +187,7 @@ describe('AuthorizationService', () => {
           request: {
             body: {
               data: {
-                attributes: { requester_id: 999 },
+                attributes: { requester_id: '999' },
               },
             },
           },
@@ -236,7 +238,7 @@ describe('AuthorizationService', () => {
           request: {
             body: {
               data: {
-                attributes: { requester_id: 35 },
+                attributes: { requester_id: '35' },
               },
             },
           },
@@ -295,7 +297,7 @@ describe('AuthorizationService', () => {
 
       await authorizationService.assertCanExecuteCustomAction(context, 'custom-action', 'books');
 
-      expect(context.throw).toHaveBeenCalledWith(403, 'Forbidden');
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
     });
   });
 
@@ -363,71 +365,115 @@ describe('AuthorizationService', () => {
       },
     );
 
-    it('should throw a specific error when verifyAndExtractApproval throws', () => {
-      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
-      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
-      const authorizationService = new AuthorizationService(
-        actionPermissionService,
-        renderingPermissionService,
-        { envSecret: 'badEnvSecret' },
-      );
+    describe('when verifyAndExtractApproval throws JTWUnableToVerifyError', () => {
+      it('should throw a specific Forbidden error', () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'badEnvSecret' },
+        );
 
-      const context = {
-        request: {
-          body: {
-            data: {
-              attributes: { signed_approval_request: 'signedApprovalRequest' },
+        const context = {
+          request: {
+            body: {
+              data: {
+                attributes: { signed_approval_request: 'signedApprovalRequest' },
+              },
             },
           },
-        },
-        throw: jest.fn(),
-      } as unknown as Context;
+          throw: jest.fn(),
+        } as unknown as Context;
 
-      const verifyAndExtractApprovalMock = (
-        verifyAndExtractApproval as jest.Mock
-      ).mockImplementation(() => {
-        throw new UnableToVerifyJTWError();
+        const verifyAndExtractApprovalMock = (
+          verifyAndExtractApproval as jest.Mock
+        ).mockImplementation(() => {
+          throw new JTWUnableToVerifyError();
+        });
+
+        authorizationService.getApprovalRequestData(context);
+
+        expect(context.throw).toHaveBeenCalledWith(
+          403,
+          'Failed to verify and extract approval payload.' +
+            ' Can you check the envSecret you have configured in the AgentOptions?',
+        );
+        expect(verifyAndExtractApprovalMock).toHaveBeenCalled();
       });
-
-      expect(() => authorizationService.getApprovalRequestData(context)).toThrow(
-        'Failed to verify and extract approval payload.' +
-          ' Can you check the envSecret you have configured in the AgentOptions?',
-      );
-
-      expect(verifyAndExtractApprovalMock).toHaveBeenCalled();
     });
 
-    it('should throw an error when verifyAndExtractApproval throws', () => {
-      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
-      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
-      const authorizationService = new AuthorizationService(
-        actionPermissionService,
-        renderingPermissionService,
-        { envSecret: 'badEnvSecret' },
-      );
+    describe('when verifyAndExtractApproval throws JTWTokenExpiredError', () => {
+      it('should throw a specific Forbidden error', () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'badEnvSecret' },
+        );
 
-      const context = {
-        request: {
-          body: {
-            data: {
-              attributes: { signed_approval_request: 'signedApprovalRequest' },
+        const context = {
+          request: {
+            body: {
+              data: {
+                attributes: { signed_approval_request: 'signedApprovalRequest' },
+              },
             },
           },
-        },
-        throw: jest.fn(),
-      } as unknown as Context;
+          throw: jest.fn(),
+        } as unknown as Context;
 
-      const verifyAndExtractApprovalMock = (
-        verifyAndExtractApproval as jest.Mock
-      ).mockImplementation(() => {
-        throw new Error('Other internal error');
+        const verifyAndExtractApprovalMock = (
+          verifyAndExtractApproval as jest.Mock
+        ).mockImplementation(() => {
+          throw new JTWTokenExpiredError();
+        });
+
+        authorizationService.getApprovalRequestData(context);
+
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.Forbidden,
+          'Failed to verify approval payload. The signed approval request token as expired..',
+        );
+
+        expect(verifyAndExtractApprovalMock).toHaveBeenCalled();
       });
+    });
 
-      expect(() => authorizationService.getApprovalRequestData(context)).toThrow(
-        'Other internal error',
-      );
+    describe('when verifyAndExtractApproval throws an unexpected error', () => {
+      it('should re-throw the initial error', () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'badEnvSecret' },
+        );
 
-      expect(verifyAndExtractApprovalMock).toHaveBeenCalled();
+        const context = {
+          request: {
+            body: {
+              data: {
+                attributes: { signed_approval_request: 'signedApprovalRequest' },
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        const verifyAndExtractApprovalMock = (
+          verifyAndExtractApproval as jest.Mock
+        ).mockImplementation(() => {
+          throw new Error('Other internal error');
+        });
+
+        expect(() => authorizationService.getApprovalRequestData(context)).toThrow(
+          'Other internal error',
+        );
+
+        expect(verifyAndExtractApprovalMock).toHaveBeenCalled();
+      });
     });
   });
 
@@ -567,7 +613,7 @@ describe('AuthorizationService', () => {
 
       await authorizationService.assertCanRetrieveChart(context);
 
-      expect(context.throw).toHaveBeenCalledWith(403, 'Forbidden');
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
     });
   });
 

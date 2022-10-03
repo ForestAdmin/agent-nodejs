@@ -2,8 +2,13 @@ import { Context } from 'koa';
 
 import { Collection, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 
-import { AgentOptionsWithDefaults } from '../../types';
-import { CollectionActionEvent, CustomActionEvent, UnableToVerifyJTWError } from './internal/types';
+import { AgentOptionsWithDefaults, HttpCode } from '../../types';
+import {
+  CollectionActionEvent,
+  CustomActionEvent,
+  JTWTokenExpiredError,
+  JTWUnableToVerifyError,
+} from './internal/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
@@ -58,7 +63,7 @@ export default class AuthorizationService {
         generateCollectionActionIdentifier(event, collectionName),
       ))
     ) {
-      context.throw(403, 'Forbidden');
+      context.throw(HttpCode.Forbidden, 'Forbidden');
     }
   }
 
@@ -81,7 +86,7 @@ export default class AuthorizationService {
       } = context.request;
 
       customActionEvenType =
-        approvalRequesterId === context.state.user.id
+        `${approvalRequesterId}` === `${context.state.user.id}`
           ? CustomActionEvent.SelfApprove
           : CustomActionEvent.Approve;
     }
@@ -92,7 +97,7 @@ export default class AuthorizationService {
         generateCustomActionIdentifier(customActionEvenType, customActionName, collectionName),
       ))
     ) {
-      context.throw(403, 'Forbidden');
+      context.throw(HttpCode.Forbidden, 'Forbidden');
     }
   }
 
@@ -111,14 +116,20 @@ export default class AuthorizationService {
       try {
         return verifyAndExtractApproval(signedApprovalRequest, this.options.envSecret);
       } catch (e) {
-        if (e instanceof UnableToVerifyJTWError) {
-          throw new Error(
+        if (e instanceof JTWTokenExpiredError) {
+          context.throw(
+            HttpCode.Forbidden,
+            'Failed to verify approval payload. The signed approval request token as expired..',
+          );
+        } else if (e instanceof JTWUnableToVerifyError) {
+          context.throw(
+            HttpCode.Forbidden,
             'Failed to verify and extract approval payload.' +
               ' Can you check the envSecret you have configured in the AgentOptions?',
           );
+        } else {
+          throw e;
         }
-
-        throw e;
       }
     }
 
@@ -150,7 +161,7 @@ export default class AuthorizationService {
         chartRequest,
       }))
     ) {
-      context.throw(403, 'Forbidden');
+      context.throw(HttpCode.Forbidden, 'Forbidden');
     }
   }
 

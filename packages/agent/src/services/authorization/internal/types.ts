@@ -1,3 +1,4 @@
+// eslint-disable-next-line max-classes-per-file
 import { GenericTree } from '@forestadmin/datasource-toolkit';
 
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
@@ -286,4 +287,5 @@ export type ActionApprovalJWT = {
   };
 };
 
-export class UnableToVerifyJTWError extends Error {}
+export class JTWUnableToVerifyError extends Error {}
+export class JTWTokenExpiredError extends Error {}
