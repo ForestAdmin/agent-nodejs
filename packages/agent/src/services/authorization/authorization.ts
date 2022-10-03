@@ -10,13 +10,15 @@ import {
 } from './internal/generate-action-identifier';
 import ActionPermissionService from './internal/action-permission';
 import RenderingPermissionService from './internal/rendering-permission';
-import verifyAndDecodeApproval from './internal/hash-approval';
+import verifyAndExtractApproval from './internal/verify-approval';
+
+export type AuthorizationServiceOptions = Pick<AgentOptionsWithDefaults, 'envSecret'>;
 
 export default class AuthorizationService {
   constructor(
     private readonly actionPermissionService: ActionPermissionService,
     private readonly renderingPermissionService: RenderingPermissionService,
-    private readonly options: AgentOptionsWithDefaults,
+    private readonly options: AuthorizationServiceOptions,
   ) {}
 
   public async assertCanBrowse(context: Context, collectionName: string) {
@@ -104,7 +106,7 @@ export default class AuthorizationService {
     } = context.request;
 
     if (signedApprovalRequest) {
-      return verifyAndDecodeApproval(signedApprovalRequest, this.options.envSecret);
+      return verifyAndExtractApproval(signedApprovalRequest, this.options.envSecret);
     }
 
     return null;

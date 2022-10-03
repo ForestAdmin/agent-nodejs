@@ -259,6 +259,11 @@ export type RenderingPermissionV4 = {
   stats: RenderingChartDefinitions;
 };
 
+export type User = Record<string, any> & {
+  id: number;
+  tags: Record<string, string>;
+};
+
 export interface ActionApprovalAttributes {
   requester_id: number;
   ids: Array<string>;
@@ -272,23 +277,10 @@ export interface ActionApprovalAttributes {
   all_records_subset_query: null;
 }
 
-export interface UserSafe {
-  id: number;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  username: string;
-}
-
 export type ActionApprovalJWT = {
   data: {
     id: string | number;
-    type: boolean;
+    type: string;
     attributes: ActionApprovalAttributes;
   };
-};
-
-export type User = Record<string, any> & {
-  id: number;
-  tags: Record<string, string>;
 };

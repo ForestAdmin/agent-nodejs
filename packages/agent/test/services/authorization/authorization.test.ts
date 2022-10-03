@@ -42,6 +42,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const context = {
@@ -76,6 +77,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const context = {
@@ -112,6 +114,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const context = {
@@ -161,6 +164,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const context = {
@@ -189,6 +193,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const getScopeMock = renderingPermissionService.getScope as jest.Mock;
@@ -231,6 +236,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const getScopeMock = renderingPermissionService.getScope as jest.Mock;
@@ -262,6 +268,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const context = {
@@ -295,6 +302,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const context = {
@@ -325,6 +333,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       authorizationService.invalidateScopeCache(42);
