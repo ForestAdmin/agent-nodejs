@@ -6,7 +6,7 @@ Now, that's already useful and can be built upon, but what if you want your pane
 - `Intercom` conversations?
 - Customer data that your sales team track in `Google Spreadsheet`?
 
-Forest Admin has you covered: if your application depends on multiple SaaS providers, so should your admin panel.
+Forest Admin has you covered. If your application depends on multiple SaaS providers, so should your admin panel: you can plug as many data sources as you want into the same agent.
 
 ## What can I connect to?
 
@@ -19,15 +19,16 @@ Forest Admin collections map to any of those concepts:
 
 ## Example
 
-In this example, we import all tables from a PostgreSQL database into Forest Admin.
-
-Take note that data sources are defined in independent NPM packages (here `@forestadmin/datasource-sql`).
+In this example, we import tables from a PostgreSQL, MariaDB and Mongo database into Forest Admin.
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
 const { createSqlDataSource } = require('@forestadmin/datasource-sql');
+const { createMongooseDataSource } = require('@forestadmin/datasource-mongoose');
 
-const agent = createAgent(options).addDataSource(
-  createSqlDataSource('postgres://user:pass@localhost:5432/mySchema'),
-);
+// Plug multiple datasources to a single agent.
+const agent = createAgent(options)
+  .addDataSource(createSqlDataSource('postgres://user:pass@a.server:5432/mySchema'))
+  .addDataSource(createSqlDataSource('mariadb://user:pass@another.server:5432/anotherSchema'))
+  .addDataSource(createMongooseDataSource(require('./mongoose-models')));
 ```
