@@ -108,54 +108,156 @@ describe('AuthorizationService', () => {
   });
 
   describe('assertCanExecuteCustomAction', () => {
-    it('should not do anything if the user is authorized', async () => {
-      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
-      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
-      const authorizationService = new AuthorizationService(
-        actionPermissionService,
-        renderingPermissionService,
-        { envSecret: 'envSecret' },
-      );
+    describe('Trigger', () => {
+      it('should not do anything if the user is authorized', async () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'envSecret' },
+        );
 
-      const context = {
-        state: {
-          user: {
-            id: 35,
-            renderingId: 42,
+        const context = {
+          state: {
+            user: {
+              id: 35,
+              renderingId: 42,
+            },
           },
-        },
-        throw: jest.fn(),
-      } as unknown as Context;
+          request: {
+            body: {
+              data: {
+                attributes: {},
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
 
-      (generateCustomActionIdentifier as jest.Mock).mockReturnValue('custom:books:approve');
-      (actionPermissionService.canOneOf as jest.Mock).mockResolvedValue(true);
+        (generateCustomActionIdentifier as jest.Mock).mockReturnValue(
+          'custom-action:books:trigger',
+        );
+        (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
 
-      await authorizationService.assertCanExecuteCustomAction(context, 'custom-action', 'books');
+        await authorizationService.assertCanExecuteCustomAction(context, 'custom-action', 'books');
 
-      expect(context.throw).not.toHaveBeenCalled();
+        expect(context.throw).not.toHaveBeenCalled();
 
-      expect(actionPermissionService.canOneOf).toHaveBeenCalledWith('35', [
-        'custom:books:approve',
-        'custom:books:approve',
-        'custom:books:approve',
-      ]);
+        expect(generateCustomActionIdentifier).toHaveBeenCalledTimes(1);
+        expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
+          CustomActionEvent.Trigger,
+          'custom-action',
+          'books',
+        );
 
-      expect(generateCustomActionIdentifier).toHaveBeenCalledTimes(3);
-      expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
-        CustomActionEvent.Trigger,
-        'custom-action',
-        'books',
-      );
-      expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
-        CustomActionEvent.Approve,
-        'custom-action',
-        'books',
-      );
-      expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
-        CustomActionEvent.SelfApprove,
-        'custom-action',
-        'books',
-      );
+        expect(actionPermissionService.can).toHaveBeenCalledWith(
+          '35',
+          'custom-action:books:trigger',
+        );
+      });
+    });
+
+    describe('Approve', () => {
+      it('should not do anything if the user is authorized', async () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'envSecret' },
+        );
+
+        const context = {
+          state: {
+            user: {
+              id: 35,
+              renderingId: 42,
+            },
+          },
+          request: {
+            body: {
+              data: {
+                attributes: { requester_id: 999 },
+                type: 'custom-action-requests',
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        (generateCustomActionIdentifier as jest.Mock).mockReturnValue(
+          'custom-action:books:approve',
+        );
+        (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
+
+        await authorizationService.assertCanExecuteCustomAction(context, 'custom-action', 'books');
+
+        expect(context.throw).not.toHaveBeenCalled();
+
+        expect(generateCustomActionIdentifier).toHaveBeenCalledTimes(1);
+        expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
+          CustomActionEvent.Approve,
+          'custom-action',
+          'books',
+        );
+
+        expect(actionPermissionService.can).toHaveBeenCalledWith(
+          '35',
+          'custom-action:books:approve',
+        );
+      });
+    });
+
+    describe('SelfApprove', () => {
+      it('should not do anything if the user is authorized', async () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'envSecret' },
+        );
+
+        const context = {
+          state: {
+            user: {
+              id: 35,
+              renderingId: 42,
+            },
+          },
+          request: {
+            body: {
+              data: {
+                attributes: { requester_id: 35 },
+                type: 'custom-action-requests',
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        (generateCustomActionIdentifier as jest.Mock).mockReturnValue(
+          'custom-action:books:self-approve',
+        );
+        (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
+
+        await authorizationService.assertCanExecuteCustomAction(context, 'custom-action', 'books');
+
+        expect(context.throw).not.toHaveBeenCalled();
+
+        expect(generateCustomActionIdentifier).toHaveBeenCalledTimes(1);
+        expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
+          CustomActionEvent.SelfApprove,
+          'custom-action',
+          'books',
+        );
+
+        expect(actionPermissionService.can).toHaveBeenCalledWith(
+          '35',
+          'custom-action:books:self-approve',
+        );
+      });
     });
 
     it('should throw an error if the user is not authorized', async () => {
@@ -172,6 +274,11 @@ describe('AuthorizationService', () => {
           user: {
             id: 35,
             renderingId: 42,
+          },
+        },
+        request: {
+          body: {
+            data: {},
           },
         },
         throw: jest.fn(),

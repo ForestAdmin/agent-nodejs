@@ -5,7 +5,6 @@ import { AgentOptionsWithDefaults } from '../../../types';
 import {
   CollectionRenderingPermissionV4,
   PermissionLevel,
-  RenderingPermissionV4,
   Team,
   User,
   UserPermissionV4,
@@ -63,7 +62,7 @@ export default class RenderingPermissionService {
     user: User;
     allowRetry: boolean;
   }): Promise<GenericTree> {
-    const [permissions, userInfo]: [RenderingPermissionV4, UserPermissionV4] = await Promise.all([
+    const [permissions, userInfo]: [RenderingPermission, UserPermissionV4] = await Promise.all([
       this.permissionsByRendering.fetch(renderingId),
       this.userPermissions.getUserInfo(user.id),
     ]);
@@ -83,7 +82,7 @@ export default class RenderingPermissionService {
     return generateUserScope(collectionPermissions.scope, permissions.team, userInfo);
   }
 
-  private async loadPermissions(renderingId: number): Promise<RenderingPermission> {
+  private async loadPermissions(renderingId: string): Promise<RenderingPermission> {
     this.options.logger('Debug', `Loading rendering permissions for rendering ${renderingId}`);
 
     const rawPermissions = await ForestHttpApi.getRenderingPermissions(renderingId, this.options);
@@ -100,7 +99,7 @@ export default class RenderingPermissionService {
     chartRequest,
     userId,
   }: {
-    renderingId: number;
+    renderingId: string;
     chartRequest: any;
     userId: number;
   }): Promise<boolean> {
@@ -115,7 +114,7 @@ export default class RenderingPermissionService {
     chartHash,
     allowRetry,
   }: {
-    renderingId: number;
+    renderingId: string;
     userId: number;
     chartHash: string;
     allowRetry: boolean;

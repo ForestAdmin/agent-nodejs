@@ -71,10 +71,10 @@ export default class AuthorizationService {
     const {
       body: {
         data: {
-          attributes: { requester_id: approvalRequesterId },
-          type,
-        },
-      },
+          attributes: { requester_id: approvalRequesterId } = { requester_id: null },
+          type = 'custom-action-trigger',
+        } = {},
+      } = {},
     } = context.request;
 
     let customActionEvenType = CustomActionEvent.Trigger;
@@ -100,9 +100,11 @@ export default class AuthorizationService {
     const {
       body: {
         data: {
-          attributes: { signed_approval_request: signedApprovalRequest },
-        },
-      },
+          attributes: { signed_approval_request: signedApprovalRequest } = {
+            signed_approval_request: null,
+          },
+        } = {},
+      } = {},
     } = context.request;
 
     if (signedApprovalRequest) {
