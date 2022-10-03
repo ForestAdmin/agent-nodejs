@@ -235,7 +235,7 @@ describe('RenderingPermissionService', () => {
         expect(result).toBe(true);
 
         expect(getUserInfoMock).toHaveBeenCalledWith(42);
-        expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
+        expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
       },
     );
 
@@ -278,7 +278,7 @@ describe('RenderingPermissionService', () => {
         expect(result).toBe(true);
 
         expect(getUserInfoMock).toHaveBeenCalledWith(42);
-        expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
+        expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
         expect(hashChartRequestMock).toHaveBeenCalledWith({ foo: 'bar' });
         expect(hashServerChartsMock).toHaveBeenCalledWith(stats);
       });
@@ -330,7 +330,7 @@ describe('RenderingPermissionService', () => {
 
           expect(getUserInfoMock).toHaveBeenCalledWith(42);
           expect(getUserInfoMock).toHaveBeenCalledTimes(2);
-          expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
+          expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
           expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
 
           expect(hashChartRequestMock).toHaveBeenCalledWith({ foo: 'bar' });
@@ -379,7 +379,7 @@ describe('RenderingPermissionService', () => {
 
           expect(getUserInfoMock).toHaveBeenCalledWith(42);
           expect(getUserInfoMock).toHaveBeenCalledTimes(2);
-          expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
+          expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
           expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
 
           expect(hashChartRequestMock).toHaveBeenCalledWith({ foo: 'bar' });
