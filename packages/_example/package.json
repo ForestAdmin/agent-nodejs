@@ -14,7 +14,7 @@
     "@koa/router": "^10.1.1",
     "@nestjs/common": "^8.4.5",
     "@nestjs/core": "^8.4.5",
-    "@nestjs/platform-express": "^8.4.5",
+    "@nestjs/platform-express": "^8.4.7",
     "@nestjs/platform-fastify": "^8.4.5",
     "dotenv": "^16.0.0",
     "express": "^4.18.1",
@@ -28,7 +28,7 @@
     "rxjs": "^7.5.5",
     "sequelize": "6.21.3",
     "superagent": "^7.0.1",
-    "mongoose": "^6.3.2",
+    "mongoose": "6.6.3",
     "tedious": "^14.3.0"
   },
   "scripts": {
