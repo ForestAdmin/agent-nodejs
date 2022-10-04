@@ -3,18 +3,26 @@ import { Context } from 'koa';
 
 import * as factories from '../../__factories__';
 
-import { CollectionActionEvent } from '../../../src/services/authorization/internal/types';
+import {
+  CollectionActionEvent,
+  JTWTokenExpiredError,
+  JTWUnableToVerifyError,
+} from '../../../src/services/authorization/internal/types';
 import { CustomActionEvent } from '../../../src/services/authorization';
+import { HttpCode } from '../../../src/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
 } from '../../../src/services/authorization/internal/generate-action-identifier';
 import AuthorizationService from '../../../src/services/authorization/authorization';
+import verifyAndExtractApproval from '../../../src/services/authorization/internal/verify-approval';
 
 jest.mock('../../../src/services/authorization/internal/generate-action-identifier', () => ({
   generateCollectionActionIdentifier: jest.fn(),
   generateCustomActionIdentifier: jest.fn(),
 }));
+
+jest.mock('../../../src/services/authorization/internal/verify-approval', () => jest.fn());
 
 jest.mock('@forestadmin/datasource-toolkit', () => ({
   __esModule: true,
@@ -42,6 +50,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const context = {
@@ -76,6 +85,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const context = {
@@ -95,7 +105,7 @@ describe('AuthorizationService', () => {
 
       await authorizationService[assertion](context, 'books');
 
-      expect(context.throw).toHaveBeenCalledWith(403, 'Forbidden');
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
 
       expect(actionPermissionService.can).toHaveBeenCalledWith(
         '35',
@@ -106,12 +116,165 @@ describe('AuthorizationService', () => {
   });
 
   describe('assertCanExecuteCustomAction', () => {
-    it('should not do anything if the user is authorized', async () => {
+    describe('Trigger', () => {
+      it('should not do anything if the user is authorized', async () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'envSecret' },
+        );
+
+        const context = {
+          state: {
+            user: {
+              id: 35,
+              renderingId: 42,
+            },
+          },
+          request: {
+            body: {
+              data: {
+                attributes: {},
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        (generateCustomActionIdentifier as jest.Mock).mockReturnValue(
+          'custom-action:books:trigger',
+        );
+        (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
+
+        await authorizationService.assertCanExecuteCustomAction(context, 'custom-action', 'books');
+
+        expect(context.throw).not.toHaveBeenCalled();
+
+        expect(generateCustomActionIdentifier).toHaveBeenCalledTimes(1);
+        expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
+          CustomActionEvent.Trigger,
+          'custom-action',
+          'books',
+        );
+
+        expect(actionPermissionService.can).toHaveBeenCalledWith(
+          '35',
+          'custom-action:books:trigger',
+        );
+      });
+    });
+
+    describe('Approve', () => {
+      it('should not do anything if the user is authorized', async () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'envSecret' },
+        );
+
+        const context = {
+          state: {
+            user: {
+              id: 35,
+              renderingId: 42,
+            },
+            isCustomActionApprovalRequest: true,
+          },
+          request: {
+            body: {
+              data: {
+                attributes: { requester_id: '999' },
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        (generateCustomActionIdentifier as jest.Mock).mockReturnValue(
+          'custom-action:books:approve',
+        );
+        (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
+
+        await authorizationService.assertCanExecuteCustomAction(context, 'custom-action', 'books');
+
+        expect(context.throw).not.toHaveBeenCalled();
+
+        expect(generateCustomActionIdentifier).toHaveBeenCalledTimes(1);
+        expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
+          CustomActionEvent.Approve,
+          'custom-action',
+          'books',
+        );
+
+        expect(actionPermissionService.can).toHaveBeenCalledWith(
+          '35',
+          'custom-action:books:approve',
+        );
+      });
+    });
+
+    describe('SelfApprove', () => {
+      it('should not do anything if the user is authorized', async () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'envSecret' },
+        );
+
+        const context = {
+          state: {
+            user: {
+              id: 35,
+              renderingId: 42,
+            },
+            isCustomActionApprovalRequest: true,
+          },
+          request: {
+            body: {
+              data: {
+                attributes: { requester_id: '35' },
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        (generateCustomActionIdentifier as jest.Mock).mockReturnValue(
+          'custom-action:books:self-approve',
+        );
+        (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
+
+        await authorizationService.assertCanExecuteCustomAction(context, 'custom-action', 'books');
+
+        expect(context.throw).not.toHaveBeenCalled();
+
+        expect(generateCustomActionIdentifier).toHaveBeenCalledTimes(1);
+        expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
+          CustomActionEvent.SelfApprove,
+          'custom-action',
+          'books',
+        );
+
+        expect(actionPermissionService.can).toHaveBeenCalledWith(
+          '35',
+          'custom-action:books:self-approve',
+        );
+      });
+    });
+
+    it('should throw an error if the user is not authorized', async () => {
       const actionPermissionService = factories.actionPermission.mockAllMethods().build();
       const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const context = {
@@ -121,53 +284,9 @@ describe('AuthorizationService', () => {
             renderingId: 42,
           },
         },
-        throw: jest.fn(),
-      } as unknown as Context;
-
-      (generateCustomActionIdentifier as jest.Mock).mockReturnValue('custom:books:approve');
-      (actionPermissionService.canOneOf as jest.Mock).mockResolvedValue(true);
-
-      await authorizationService.assertCanExecuteCustomAction(context, 'custom-action', 'books');
-
-      expect(context.throw).not.toHaveBeenCalled();
-
-      expect(actionPermissionService.canOneOf).toHaveBeenCalledWith('35', [
-        'custom:books:approve',
-        'custom:books:approve',
-        'custom:books:approve',
-      ]);
-
-      expect(generateCustomActionIdentifier).toHaveBeenCalledTimes(3);
-      expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
-        CustomActionEvent.Trigger,
-        'custom-action',
-        'books',
-      );
-      expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
-        CustomActionEvent.Approve,
-        'custom-action',
-        'books',
-      );
-      expect(generateCustomActionIdentifier).toHaveBeenCalledWith(
-        CustomActionEvent.SelfApprove,
-        'custom-action',
-        'books',
-      );
-    });
-
-    it('should throw an error if the user is not authorized', async () => {
-      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
-      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
-      const authorizationService = new AuthorizationService(
-        actionPermissionService,
-        renderingPermissionService,
-      );
-
-      const context = {
-        state: {
-          user: {
-            id: 35,
-            renderingId: 42,
+        request: {
+          body: {
+            data: {},
           },
         },
         throw: jest.fn(),
@@ -178,7 +297,183 @@ describe('AuthorizationService', () => {
 
       await authorizationService.assertCanExecuteCustomAction(context, 'custom-action', 'books');
 
-      expect(context.throw).toHaveBeenCalledWith(403, 'Forbidden');
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
+    });
+  });
+
+  describe('getApprovalRequestData', () => {
+    it('should return null when not signed_approval_request request attributes', () => {
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const authorizationService = new AuthorizationService(
+        actionPermissionService,
+        renderingPermissionService,
+        { envSecret: 'envSecret' },
+      );
+
+      const context = {
+        request: {
+          body: {
+            data: {},
+          },
+        },
+        throw: jest.fn(),
+      } as unknown as Context;
+
+      const verifyAndExtractApprovalMock = verifyAndExtractApproval as jest.Mock;
+
+      const result = authorizationService.getApprovalRequestData(context);
+
+      expect(result).toBeNull();
+      expect(verifyAndExtractApprovalMock).not.toHaveBeenCalled();
+    });
+
+    it(
+      'should return the approval data when signed_approval_request' +
+        ' is in the request attributes',
+      () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'envSecret' },
+        );
+
+        const context = {
+          request: {
+            body: {
+              data: {
+                attributes: { signed_approval_request: 'signedApprovalRequest' },
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        const verifyAndExtractApprovalMock = (
+          verifyAndExtractApproval as jest.Mock
+        ).mockReturnValue('verifyAndExtractApprovalData');
+
+        const result = authorizationService.getApprovalRequestData(context);
+
+        expect(result).toStrictEqual('verifyAndExtractApprovalData');
+        expect(verifyAndExtractApprovalMock).toHaveBeenCalledWith(
+          'signedApprovalRequest',
+          'envSecret',
+        );
+      },
+    );
+
+    describe('when verifyAndExtractApproval throws JTWUnableToVerifyError', () => {
+      it('should throw a specific Forbidden error', () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'badEnvSecret' },
+        );
+
+        const context = {
+          request: {
+            body: {
+              data: {
+                attributes: { signed_approval_request: 'signedApprovalRequest' },
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        const verifyAndExtractApprovalMock = (
+          verifyAndExtractApproval as jest.Mock
+        ).mockImplementation(() => {
+          throw new JTWUnableToVerifyError();
+        });
+
+        authorizationService.getApprovalRequestData(context);
+
+        expect(context.throw).toHaveBeenCalledWith(
+          403,
+          'Failed to verify and extract approval payload.' +
+            ' Can you check the envSecret you have configured in the AgentOptions?',
+        );
+        expect(verifyAndExtractApprovalMock).toHaveBeenCalled();
+      });
+    });
+
+    describe('when verifyAndExtractApproval throws JTWTokenExpiredError', () => {
+      it('should throw a specific Forbidden error', () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'badEnvSecret' },
+        );
+
+        const context = {
+          request: {
+            body: {
+              data: {
+                attributes: { signed_approval_request: 'signedApprovalRequest' },
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        const verifyAndExtractApprovalMock = (
+          verifyAndExtractApproval as jest.Mock
+        ).mockImplementation(() => {
+          throw new JTWTokenExpiredError();
+        });
+
+        authorizationService.getApprovalRequestData(context);
+
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.Forbidden,
+          'Failed to verify approval payload. The signed approval request token as expired.',
+        );
+
+        expect(verifyAndExtractApprovalMock).toHaveBeenCalled();
+      });
+    });
+
+    describe('when verifyAndExtractApproval throws an unexpected error', () => {
+      it('should re-throw the initial error', () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const authorizationService = new AuthorizationService(
+          actionPermissionService,
+          renderingPermissionService,
+          { envSecret: 'badEnvSecret' },
+        );
+
+        const context = {
+          request: {
+            body: {
+              data: {
+                attributes: { signed_approval_request: 'signedApprovalRequest' },
+              },
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        const verifyAndExtractApprovalMock = (
+          verifyAndExtractApproval as jest.Mock
+        ).mockImplementation(() => {
+          throw new Error('Other internal error');
+        });
+
+        expect(() => authorizationService.getApprovalRequestData(context)).toThrow(
+          'Other internal error',
+        );
+
+        expect(verifyAndExtractApprovalMock).toHaveBeenCalled();
+      });
     });
   });
 
@@ -189,6 +484,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const getScopeMock = renderingPermissionService.getScope as jest.Mock;
@@ -231,6 +527,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const getScopeMock = renderingPermissionService.getScope as jest.Mock;
@@ -262,6 +559,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const context = {
@@ -295,6 +593,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       const context = {
@@ -314,7 +613,7 @@ describe('AuthorizationService', () => {
 
       await authorizationService.assertCanRetrieveChart(context);
 
-      expect(context.throw).toHaveBeenCalledWith(403, 'Forbidden');
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
     });
   });
 
@@ -325,6 +624,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(
         actionPermissionService,
         renderingPermissionService,
+        { envSecret: 'envSecret' },
       );
 
       authorizationService.invalidateScopeCache(42);

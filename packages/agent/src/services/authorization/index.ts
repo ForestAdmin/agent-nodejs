@@ -11,7 +11,7 @@ export default function authorizationServiceFactory(
   const userPermissionService = new UserPermissionService(options);
   const renderingPermissionService = new RenderingPermissionService(options, userPermissionService);
 
-  return new AuthorizationService(actionPermissionService, renderingPermissionService);
+  return new AuthorizationService(actionPermissionService, renderingPermissionService, options);
 }
 
 export { CustomActionEvent, EnvironmentPermissionsV4, UserPermissionV4 } from './internal/types';

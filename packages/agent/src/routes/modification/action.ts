@@ -4,7 +4,7 @@ import {
   Filter,
   FilterFactory,
 } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
+import { Context, Next } from 'koa';
 import Router from '@koa/router';
 
 import { AgentOptionsWithDefaults, HttpCode } from '../../types';
@@ -35,7 +35,11 @@ export default class ActionRoute extends CollectionRoute {
     const actionIndex = Object.keys(this.collection.schema.actions).indexOf(this.actionName);
     const path = `/_actions/${this.collection.name}/${actionIndex}`;
 
-    router.post(`${path}/:slug`, this.handleExecute.bind(this));
+    router.post(
+      `${path}/:slug`,
+      this.middlewareCustomActionApprovalRequestData.bind(this),
+      this.handleExecute.bind(this),
+    );
     router.post(`${path}/:slug/hooks/load`, this.handleHook.bind(this));
     router.post(`${path}/:slug/hooks/change`, this.handleHook.bind(this));
   }
@@ -107,6 +111,20 @@ export default class ActionRoute extends CollectionRoute {
       this.actionName,
       this.collection.name,
     );
+  }
+
+  private async middlewareCustomActionApprovalRequestData(context: Context, next: Next) {
+    const approvalRequestDataWithAttributes =
+      this.services.authorization.getApprovalRequestData(context);
+
+    if (approvalRequestDataWithAttributes) {
+      context.request.body = approvalRequestDataWithAttributes;
+      context.state.isCustomActionApprovalRequest = true;
+    } else {
+      context.state.isCustomActionApprovalRequest = false;
+    }
+
+    return next();
   }
 
   private async getRecordSelection(context: Context): Promise<Filter> {

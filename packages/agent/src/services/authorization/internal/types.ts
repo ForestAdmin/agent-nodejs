@@ -1,3 +1,4 @@
+// eslint-disable-next-line max-classes-per-file
 import { GenericTree } from '@forestadmin/datasource-toolkit';
 
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
@@ -264,3 +265,27 @@ export type User = Record<string, any> & {
   id: number;
   tags: Record<string, string>;
 };
+
+export interface ActionApprovalAttributes {
+  requester_id: number;
+  ids: Array<string>;
+  collection_name: string;
+  smart_action_id: string;
+  values: any | null;
+  parent_collection_name: string | null;
+  parent_collection_id: string | null;
+  parent_association_name: string | null;
+  all_records: boolean;
+  all_records_subset_query: null;
+}
+
+export type ActionApprovalJWT = {
+  data: {
+    id: string | number;
+    type: string;
+    attributes: ActionApprovalAttributes;
+  };
+};
+
+export class JTWUnableToVerifyError extends Error {}
+export class JTWTokenExpiredError extends Error {}

@@ -1,18 +1,29 @@
 import { Context } from 'koa';
 
 import { Collection, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
-import { CollectionActionEvent, CustomActionEvent } from './internal/types';
+
+import { AgentOptionsWithDefaults, HttpCode } from '../../types';
+import {
+  CollectionActionEvent,
+  CustomActionEvent,
+  JTWTokenExpiredError,
+  JTWUnableToVerifyError,
+} from './internal/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
 } from './internal/generate-action-identifier';
 import ActionPermissionService from './internal/action-permission';
 import RenderingPermissionService from './internal/rendering-permission';
+import verifyAndExtractApproval from './internal/verify-approval';
+
+export type AuthorizationServiceOptions = Pick<AgentOptionsWithDefaults, 'envSecret'>;
 
 export default class AuthorizationService {
   constructor(
     private readonly actionPermissionService: ActionPermissionService,
     private readonly renderingPermissionService: RenderingPermissionService,
+    private readonly options: AuthorizationServiceOptions,
   ) {}
 
   public async assertCanBrowse(context: Context, collectionName: string) {
@@ -52,7 +63,7 @@ export default class AuthorizationService {
         generateCollectionActionIdentifier(event, collectionName),
       ))
     ) {
-      context.throw(403, 'Forbidden');
+      context.throw(HttpCode.Forbidden, 'Forbidden');
     }
   }
 
@@ -63,19 +74,66 @@ export default class AuthorizationService {
   ) {
     const { id: userId } = context.state.user;
 
-    if (
-      !(await this.actionPermissionService.canOneOf(`${userId}`, [
-        generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
-        generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
-        generateCustomActionIdentifier(
-          CustomActionEvent.SelfApprove,
-          customActionName,
-          collectionName,
-        ),
-      ]))
-    ) {
-      context.throw(403, 'Forbidden');
+    let customActionEvenType = CustomActionEvent.Trigger;
+
+    if (context.state.isCustomActionApprovalRequest) {
+      const {
+        body: {
+          data: {
+            attributes: { requester_id: approvalRequesterId },
+          },
+        },
+      } = context.request;
+
+      customActionEvenType =
+        `${approvalRequesterId}` === `${context.state.user.id}`
+          ? CustomActionEvent.SelfApprove
+          : CustomActionEvent.Approve;
     }
+
+    if (
+      !(await this.actionPermissionService.can(
+        `${userId}`,
+        generateCustomActionIdentifier(customActionEvenType, customActionName, collectionName),
+      ))
+    ) {
+      context.throw(HttpCode.Forbidden, 'Forbidden');
+    }
+  }
+
+  public getApprovalRequestData(context: Context) {
+    const {
+      body: {
+        data: {
+          attributes: { signed_approval_request: signedApprovalRequest } = {
+            signed_approval_request: null,
+          },
+        } = {},
+      } = {},
+    } = context.request;
+
+    if (signedApprovalRequest) {
+      try {
+        return verifyAndExtractApproval(signedApprovalRequest, this.options.envSecret);
+      } catch (e) {
+        if (e instanceof JTWTokenExpiredError) {
+          context.throw(
+            HttpCode.Forbidden,
+            'Failed to verify approval payload. The signed approval request token as expired.',
+          );
+        } else if (e instanceof JTWUnableToVerifyError) {
+          context.throw(
+            HttpCode.Forbidden,
+            'Failed to verify and extract approval payload.' +
+              ' Can you check the envSecret you have configured in the AgentOptions?',
+          );
+        } else {
+          throw e;
+        }
+      }
+    }
+
+    return null;
   }
 
   async getScope(collection: Collection, context: Context): Promise<ConditionTree> {
@@ -103,7 +161,7 @@ export default class AuthorizationService {
         chartRequest,
       }))
     ) {
-      context.throw(403, 'Forbidden');
+      context.throw(HttpCode.Forbidden, 'Forbidden');
     }
   }
 

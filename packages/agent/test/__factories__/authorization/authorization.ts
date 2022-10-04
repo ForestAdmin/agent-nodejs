@@ -17,13 +17,20 @@ export class AuthorizationsFactory extends Factory<AuthorizationService> {
       Authorizations.getScope = jest.fn();
       Authorizations.assertCanRetrieveChart = jest.fn();
       Authorizations.invalidateScopeCache = jest.fn();
+      Authorizations.getApprovalRequestData = jest.fn();
     });
   }
 }
 
 const authorizationServiceFactory = AuthorizationsFactory.define(
   () =>
-    new AuthorizationService(actionPermissionsFactory.build(), renderingPermissionsFactory.build()),
+    new AuthorizationService(
+      actionPermissionsFactory.build(),
+      renderingPermissionsFactory.build(),
+      {
+        envSecret: '123',
+      },
+    ),
 );
 
 export default authorizationServiceFactory;

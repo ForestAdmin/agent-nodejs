@@ -39,7 +39,11 @@ describe('ActionRoute', () => {
     const route = new ActionRoute(services, options, dataSource, 'books', 'My_Action');
     route.setupRoutes(router);
 
-    expect(router.post).toHaveBeenCalledWith('/_actions/books/0/:slug', expect.any(Function));
+    expect(router.post).toHaveBeenCalledWith(
+      '/_actions/books/0/:slug',
+      expect.any(Function),
+      expect.any(Function),
+    );
     expect(router.post).toHaveBeenCalledWith(
       '/_actions/books/0/:slug/hooks/load',
       expect.any(Function),
@@ -54,6 +58,7 @@ describe('ActionRoute', () => {
     let dataSource: DataSource;
     let route: ActionRoute;
     let handleExecute: Router.Middleware;
+    let middlewareCustomActionApprovalRequestData: Router.Middleware;
     let handleHook: Router.Middleware;
 
     const baseContext = {
@@ -87,10 +92,80 @@ describe('ActionRoute', () => {
       route.setupRoutes({
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        post: (path: string, handler: Router.Middleware) => {
-          if (path === '/_actions/books/0/:slug') handleExecute = handler;
-          else handleHook = handler;
+        post: (path: string, middleware: Router.Middleware, handler: Router.Middleware) => {
+          if (path === '/_actions/books/0/:slug') {
+            middlewareCustomActionApprovalRequestData = middleware;
+            handleExecute = handler;
+          } else handleHook = middleware;
         },
+      });
+    });
+
+    describe('middleware CustomActionApprovalRequestData', () => {
+      test('should change request data when approval request detected', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+                signed_approval_request: 'someSignedJWT',
+              },
+            },
+          },
+        });
+
+        const getApprovalRequestDataMock = services.authorization
+          .getApprovalRequestData as jest.Mock;
+        getApprovalRequestDataMock.mockReturnValue({
+          data: {
+            attributes: {
+              values: { valueFrom: 'JWT' },
+            },
+            type: 'typeFromJWT',
+          },
+        });
+        const nextMock = jest.fn();
+
+        await middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
+
+        expect(nextMock).toHaveBeenCalled();
+        expect(context.request.body.data).toStrictEqual({
+          attributes: {
+            values: { valueFrom: 'JWT' },
+          },
+          type: 'typeFromJWT',
+        });
+        expect(context.state.isCustomActionApprovalRequest).toStrictEqual(true);
+      });
+
+      test('should not change data request when approval request is not detected', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+              },
+            },
+          },
+        });
+
+        const getApprovalRequestDataMock = services.authorization
+          .getApprovalRequestData as jest.Mock;
+        getApprovalRequestDataMock.mockReturnValue(null);
+        const nextMock = jest.fn();
+
+        await middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
+
+        expect(nextMock).toHaveBeenCalled();
+        expect(context.request.body.data).toStrictEqual({
+          attributes: {
+            ...baseContext.requestBody.data.attributes,
+          },
+        });
+        expect(context.state.isCustomActionApprovalRequest).toStrictEqual(false);
       });
     });
 
@@ -359,9 +434,9 @@ describe('ActionRoute', () => {
           route.setupRoutes({
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            post: (path: string, handler: Router.Middleware) => {
+            post: (path: string, middleware: Router.Middleware, handler: Router.Middleware) => {
               if (path === '/_actions/reviews/0/:slug') handleExecute = handler;
-              else handleHook = handler;
+              else handleHook = middleware;
             },
           });
         });

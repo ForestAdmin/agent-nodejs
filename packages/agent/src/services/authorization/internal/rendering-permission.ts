@@ -5,7 +5,6 @@ import { AgentOptionsWithDefaults } from '../../../types';
 import {
   CollectionRenderingPermissionV4,
   PermissionLevel,
-  RenderingPermissionV4,
   Team,
   User,
   UserPermissionV4,
@@ -45,7 +44,7 @@ export default class RenderingPermissionService {
     collectionName,
     user,
   }: {
-    renderingId: string;
+    renderingId: number | string;
     collectionName: string;
     user: User;
   }): Promise<GenericTree> {
@@ -58,13 +57,13 @@ export default class RenderingPermissionService {
     user,
     allowRetry,
   }: {
-    renderingId: string;
+    renderingId: number | string;
     collectionName: string;
     user: User;
     allowRetry: boolean;
   }): Promise<GenericTree> {
-    const [permissions, userInfo]: [RenderingPermissionV4, UserPermissionV4] = await Promise.all([
-      this.permissionsByRendering.fetch(renderingId),
+    const [permissions, userInfo]: [RenderingPermission, UserPermissionV4] = await Promise.all([
+      this.permissionsByRendering.fetch(`${renderingId}`),
       this.userPermissions.getUserInfo(user.id),
     ]);
 
@@ -83,7 +82,7 @@ export default class RenderingPermissionService {
     return generateUserScope(collectionPermissions.scope, permissions.team, userInfo);
   }
 
-  private async loadPermissions(renderingId: number): Promise<RenderingPermission> {
+  private async loadPermissions(renderingId: string): Promise<RenderingPermission> {
     this.options.logger('Debug', `Loading rendering permissions for rendering ${renderingId}`);
 
     const rawPermissions = await ForestHttpApi.getRenderingPermissions(renderingId, this.options);
@@ -122,7 +121,7 @@ export default class RenderingPermissionService {
   }): Promise<boolean> {
     const [userInfo, permissions] = await Promise.all([
       this.userPermissions.getUserInfo(userId),
-      this.permissionsByRendering.fetch(renderingId),
+      this.permissionsByRendering.fetch(`${renderingId}`),
     ]);
 
     if (
@@ -162,6 +161,6 @@ export default class RenderingPermissionService {
       `Invalidating rendering permissions cache for rendering ${renderingId}`,
     );
 
-    this.permissionsByRendering.del(renderingId);
+    this.permissionsByRendering.del(`${renderingId}`);
   }
 }
