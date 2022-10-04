@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.0.0-alpha.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-alpha.4...@forestadmin/agent@1.0.0-alpha.5) (2022-10-04)
+
+
+### Features
+
+* handle correctly custom action approval request ([#463](https://github.com/ForestAdmin/agent-nodejs/issues/463)) ([c0b8195](https://github.com/ForestAdmin/agent-nodejs/commit/c0b8195384c91ab5360a1119c26411cc9202c5ec))
+
 # @forestadmin/agent [1.0.0-alpha.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-alpha.3...@forestadmin/agent@1.0.0-alpha.4) (2022-09-29)
 
 
