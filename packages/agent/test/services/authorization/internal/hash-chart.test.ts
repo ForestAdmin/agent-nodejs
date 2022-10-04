@@ -1,8 +1,8 @@
 import {
+  Chart,
   ChartType,
   LineChart,
   PieChart,
-  RenderingChartDefinitions,
   ValueChart,
 } from '../../../../src/services/authorization/internal/types';
 import {
@@ -13,81 +13,64 @@ import {
 describe('HashChart', () => {
   describe('hashServerCharts', () => {
     it('should not hash queries', () => {
-      const charts: RenderingChartDefinitions = {
-        queries: ['select * from books'],
-        leaderboards: [],
-        lines: [],
-        objectives: [],
-        percentages: [],
-        pies: [],
-        values: [],
-      };
+      const charts: Chart[] = [
+        {
+          query: 'select * from books',
+          type: ChartType.Value,
+        },
+      ];
 
       const result = hashServerCharts(charts);
 
       expect(result.size).toBe(0);
     });
 
-    describe.each(['leaderboards', 'objectives', 'percentages', 'pies', 'values', 'line'])(
-      'with %s charts',
-      type => {
-        it('should generate a hash for the type', () => {
-          const charts: RenderingChartDefinitions = {
-            queries: [],
-            leaderboards: [],
-            lines: [],
-            objectives: [],
-            percentages: [],
-            pies: [],
-            values: [],
-            [type]: [
-              {
-                type,
-                filter: {},
-                aggregator: 'count',
-                aggregate_field: 'year',
-                sourceCollectionId: 'books',
-                labelFieldName: 'year',
-              },
-            ],
-          };
+    describe.each([
+      ChartType.Leaderboard,
+      ChartType.Objective,
+      ChartType.Percentage,
+      ChartType.Pie,
+      ChartType.Value,
+      ChartType.Line,
+    ])('with %s charts', type => {
+      it('should generate a hash for the type', () => {
+        const charts: Chart[] = [
+          {
+            type,
+            filter: '{}',
+            aggregator: 'Count',
+            aggregateFieldName: 'Year',
+            sourceCollectionId: 'books',
+            labelFieldName: 'year',
+          } as Chart,
+        ];
 
-          const result = hashServerCharts(charts);
+        const result = hashServerCharts(charts);
 
-          expect(result.size).toBe(1);
-        });
-      },
-    );
+        expect(result.size).toBe(1);
+      });
+    });
 
     it('should exclude null or undefined values from the hash', () => {
-      const charts: RenderingChartDefinitions = {
-        queries: [],
-        leaderboards: [],
-        lines: [
-          {
-            type: ChartType.Line,
-            filter: null,
-            aggregator: 'Count',
-            aggregateFieldName: '',
-            sourceCollectionId: 'books',
-            groupByFieldName: 'id',
-            timeRange: 'Day',
-          },
-          {
-            type: ChartType.Line,
-            filter: undefined,
-            aggregator: 'Count',
-            aggregateFieldName: '',
-            sourceCollectionId: 'books',
-            groupByFieldName: 'id',
-            timeRange: 'Day',
-          } as unknown as LineChart,
-        ],
-        objectives: [],
-        percentages: [],
-        pies: [],
-        values: [],
-      };
+      const charts: Chart[] = [
+        {
+          type: ChartType.Line,
+          aggregator: 'Count',
+          aggregateFieldName: '',
+          sourceCollectionId: 'books',
+          groupByFieldName: 'id',
+          timeRange: 'Day',
+        },
+        {
+          type: ChartType.Line,
+          filter: undefined,
+          aggregator: 'Count',
+          aggregateFieldName: '',
+          sourceCollectionId: 'books',
+          groupByFieldName: 'id',
+          timeRange: 'Day',
+        } as unknown as LineChart,
+      ];
 
       const result = hashServerCharts(charts);
 
@@ -95,34 +78,24 @@ describe('HashChart', () => {
     });
 
     it('should generate different hashes for different properties', () => {
-      const charts: RenderingChartDefinitions = {
-        queries: [],
-        leaderboards: [],
-        lines: [
-          {
-            type: ChartType.Line,
-            filter: null,
-            aggregator: 'Count',
-            aggregateFieldName: '',
-            sourceCollectionId: 'books',
-            groupByFieldName: 'id',
-            timeRange: 'Day',
-          },
-          {
-            type: ChartType.Line,
-            filter: null,
-            aggregator: 'Count',
-            aggregateFieldName: '',
-            sourceCollectionId: 'books',
-            groupByFieldName: 'id',
-            timeRange: 'Year',
-          },
-        ],
-        objectives: [],
-        percentages: [],
-        pies: [],
-        values: [],
-      };
+      const charts: Chart[] = [
+        {
+          type: ChartType.Line,
+          aggregator: 'Count',
+          aggregateFieldName: '',
+          sourceCollectionId: 'books',
+          groupByFieldName: 'id',
+          timeRange: 'Day',
+        },
+        {
+          type: ChartType.Line,
+          aggregator: 'Count',
+          aggregateFieldName: '',
+          sourceCollectionId: 'books',
+          groupByFieldName: 'id',
+          timeRange: 'Year',
+        },
+      ];
 
       const result = hashServerCharts(charts);
 
@@ -134,7 +107,6 @@ describe('HashChart', () => {
     it('should generate the same hash for the same request', () => {
       const valueChart: ValueChart = {
         type: ChartType.Value,
-        filter: null,
         aggregator: 'Count',
         aggregateFieldName: 'year',
         sourceCollectionId: 'books',
@@ -224,7 +196,6 @@ describe('HashChart', () => {
       it('should generate the same hash for server & request formats', () => {
         const serverChart: LineChart = {
           type: ChartType.Line,
-          filter: null,
           aggregator: 'Count',
           aggregateFieldName: 'id',
           sourceCollectionId: 'books',
@@ -234,7 +205,6 @@ describe('HashChart', () => {
 
         const requestChart = {
           type: ChartType.Line,
-          filters: null,
           aggregate: 'Count',
           aggregate_field: 'id',
           collection: 'books',
@@ -242,15 +212,7 @@ describe('HashChart', () => {
           group_by_date_field: 'publishedAt',
         };
 
-        const serverHash = hashServerCharts({
-          queries: [],
-          leaderboards: [],
-          lines: [serverChart],
-          objectives: [],
-          percentages: [],
-          pies: [],
-          values: [],
-        });
+        const serverHash = hashServerCharts([serverChart]);
 
         const requestHash = hashChartRequest(requestChart);
 
@@ -260,7 +222,6 @@ describe('HashChart', () => {
       it('should generate different hashes if requests are different', () => {
         const serverChart: LineChart = {
           type: ChartType.Line,
-          filter: null,
           aggregator: 'Count',
           aggregateFieldName: 'id',
           sourceCollectionId: 'books',
@@ -278,15 +239,7 @@ describe('HashChart', () => {
           group_by_date_field: 'createdAt',
         };
 
-        const serverHash = hashServerCharts({
-          queries: [],
-          leaderboards: [],
-          lines: [serverChart],
-          objectives: [],
-          percentages: [],
-          pies: [],
-          values: [],
-        });
+        const serverHash = hashServerCharts([serverChart]);
 
         const requestHash = hashChartRequest(requestChart);
 
@@ -298,7 +251,6 @@ describe('HashChart', () => {
       it('should generate the same hash for server & request formats', () => {
         const serverChart: PieChart = {
           type: ChartType.Pie,
-          filter: null,
           aggregator: 'Sum',
           aggregateFieldName: 'id',
           sourceCollectionId: 'books',
@@ -314,15 +266,7 @@ describe('HashChart', () => {
           group_by_field: 'price',
         };
 
-        const serverHash = hashServerCharts({
-          queries: [],
-          leaderboards: [],
-          lines: [],
-          objectives: [],
-          percentages: [],
-          pies: [serverChart],
-          values: [],
-        });
+        const serverHash = hashServerCharts([serverChart]);
 
         const requestHash = hashChartRequest(requestChart);
 
@@ -332,7 +276,6 @@ describe('HashChart', () => {
       it('should generate different hashes if requests are different', () => {
         const serverChart: PieChart = {
           type: ChartType.Pie,
-          filter: null,
           aggregator: 'Sum',
           aggregateFieldName: 'id',
           sourceCollectionId: 'books',
@@ -348,15 +291,7 @@ describe('HashChart', () => {
           group_by_field: 'price',
         };
 
-        const serverHash = hashServerCharts({
-          queries: [],
-          leaderboards: [],
-          lines: [],
-          objectives: [],
-          percentages: [],
-          pies: [serverChart],
-          values: [],
-        });
+        const serverHash = hashServerCharts([serverChart]);
 
         const requestHash = hashChartRequest(requestChart);
 
@@ -368,7 +303,6 @@ describe('HashChart', () => {
       it('should generate the same hash for server & request formats', () => {
         const serverChart: ValueChart = {
           type: ChartType.Value,
-          filter: null,
           aggregator: 'Count',
           aggregateFieldName: 'id',
           sourceCollectionId: 'books',
@@ -382,15 +316,7 @@ describe('HashChart', () => {
           collection: 'books',
         };
 
-        const serverHash = hashServerCharts({
-          queries: [],
-          leaderboards: [],
-          lines: [],
-          objectives: [],
-          percentages: [],
-          pies: [],
-          values: [serverChart],
-        });
+        const serverHash = hashServerCharts([serverChart]);
 
         const requestHash = hashChartRequest(requestChart);
 
@@ -400,7 +326,6 @@ describe('HashChart', () => {
       it('should generate different hashes if requests are different', () => {
         const serverChart: ValueChart = {
           type: ChartType.Value,
-          filter: null,
           aggregator: 'Count',
           aggregateFieldName: 'id',
           sourceCollectionId: 'books',
@@ -414,15 +339,7 @@ describe('HashChart', () => {
           collection: 'books',
         };
 
-        const serverHash = hashServerCharts({
-          queries: [],
-          leaderboards: [],
-          lines: [],
-          objectives: [],
-          percentages: [],
-          pies: [],
-          values: [serverChart],
-        });
+        const serverHash = hashServerCharts([serverChart]);
 
         const requestHash = hashChartRequest(requestChart);
 
