@@ -17,7 +17,14 @@ export default class BaseDataSource<T extends Collection = Collection> implement
   getCollection(name: string): T {
     const collection = this._collections[name];
 
-    if (collection === undefined) throw new Error(`Collection '${name}' not found.`);
+    if (collection === undefined)
+      throw new Error(
+        `Collection '${name}' not found. List of available collections: ${Object.keys(
+          this._collections,
+        )
+          .sort()
+          .join(', ')}`,
+      );
 
     return collection;
   }
