@@ -40,7 +40,7 @@
     "build": "lerna run build",
     "clean": "lerna run clean && rm -rf coverage api-reference/",
     "docs": "yarn build && typedoc",
-    "docs:check-links": "find docs -type f -name '*.md' | xargs -L1 markdown-link-check",
+    "docs:check-links": "find docs -type f -name '*.md' | xargs -L1 markdown-link-check -q",
     "lint": "lerna exec eslint src test",
     "lint:fix": "lerna exec eslint src test -- --fix",
     "prepare": "husky install",

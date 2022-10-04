@@ -2,10 +2,8 @@ When building your admin panel, you will probably want to hide as much complexit
 
 This includes:
 
-- Reducing the number of exposed collections
 - Hiding technical and confidential fields
 - Using naming conventions that the final user understands.
-
 
 # Moving fields
 
@@ -21,7 +19,7 @@ The imported fields will behave as if they were on that collection.
 
 userCollection
   .importField('city', { path: 'address:city', readonly: true })
-  .importField('country', { path: 'address:country:name', readonly: true })
+  .importField('country', { path: 'address:country:name', readonly: true });
 ```
 
 {% hint style="info" %}
@@ -33,15 +31,15 @@ Note that when using `readonly: false`, the related records will be updated.
 Renaming and removing fields can be done simply by calling the `renameField` and `removeFields` methods.
 
 ```javascript
-collection
-  .renameField('account_v3_uuid_new', 'account')
-  .removeField('password')
+collection.renameField('account_v3_uuid_new', 'account').removeField('password');
 ```
 
 {% hint style="warning" %}
 Renamed and removed fields are renamed and removed ONLY in the admin panel.
 
 In your code:
+
 - Removed fields are still accessible (for instance, as dependencies to compute new fields)
 - Renamed fields should still be refered by using their original name.
+
 {% endhint %}

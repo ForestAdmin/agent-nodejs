@@ -38,7 +38,7 @@ Note that actions can have three different scopes:
 
 After declaring it, your action will appear in the "Smart actions" tab within your collection settings.
 
-{% hint style='error' %}
+{% hint style='info' %}
 
 An action is displayed in the UI only if:
 

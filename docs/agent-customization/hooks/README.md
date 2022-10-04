@@ -27,11 +27,9 @@ To declare a hook on a collection, the following informations are required:
 {% hint style="warning" %}
 
 A single collection can have multiple hooks with the same position and the same type. They will be run in their declaration order.
-Also, other Forest Admin features may rely on hooks.
+Collection Hooks are only called when the collection method is contacted by the UI. This means that any usage of the Forest Admin [query interface](../../under-the-hood/queries/README.md) will not trigger them.
 
 {% endhint %}
-
-Collection Hooks are only called when the collection method is contacted by the UI. This means that any usage of the Forest Admin [query interface](../../under-the-hood/queries/README.md) will not trigger them.
 
 ## Basic use-cases
 

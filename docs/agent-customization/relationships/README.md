@@ -1,6 +1,6 @@
-When relationships are defined during the customization step collections Forest Admin acts as if the two collections were natively linked at the datasource level.
+When relationships are defined during the customization step, Forest Admin collections acts as if the two collections were natively linked at the datasource level.
 
-You may have noticed that relationships within a datasource are configured out of the box, so you won't need to be defining those.
+You may have noticed that relationships within a datasource are configured out of the box, so you won't need to define those.
 
 However, you may want to create additional intra-datasource and cross-datasource relationships in order to:
 

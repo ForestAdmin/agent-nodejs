@@ -16,16 +16,16 @@ Sometimes, charts data are closely tied to your business. Forest Admin allows yo
 
 This is done in three steps:
 
-- Implement the chart from the agent code
+- Implement the chart from the agent code.
 - Create a new chart on a Dashboard, and choose "API" as the data source.
-- Enter the URL of the chart you just created (`/forest/_charts/<chartName>`)
+- Enter the URL of the chart you just created (`/forest/_charts/<chartName>`).
 
 ![](../assets/chart-api.png)
 
 Note that, when defining a chart from your agent:
 
-- The type of the chart defined in your agent must match your selection when adding it to a dashboard
-- The name of the chart must be URL-safe
+- The type of the chart defined in your agent must match your selection when adding it to a dashboard.
+- The name of the chart must be URL-safe.
 
 ## Relation to smart charts
 
@@ -57,7 +57,7 @@ agent.addChart('mrr', async (context, resultBuilder) => {
 
 ![Distribution chart example](../assets/chart-distribution.png)
 
-Distribution charts should return a plain object
+Distribution charts should return a plain object.
 
 ```javascript
 agent.addChart('booksByAuthorCountry', async (context, resultBuilder) => {
@@ -75,10 +75,10 @@ agent.addChart('booksByAuthorCountry', async (context, resultBuilder) => {
 
 ![Time chart example](../assets/chart-time.png)
 
-Time-based charts are very similar to distribution charts, the only differences being that
+Time-based charts are very similar to distribution charts, the only differences being that:
 
 - An additional parameter tells the frontend if the dates should be displayed by `Day`, `Week`, `Month` or `Year`.
-- The keys of the provided object must be ISO-8601 compliant dates
+- The keys of the provided object must be ISO-8601 compliant dates.
 
 ```javascript
 agent.addChart('transactionVolume', async (context, resultBuilder) => {
@@ -98,7 +98,7 @@ agent.addChart('transactionVolume', async (context, resultBuilder) => {
 
 ![Percentage chart example](../assets/chart-percentage.png)
 
-Percentage charts are very similar to value charts
+Percentage charts are very similar to value charts.
 
 ```javascript
 agent.addChart('averageVolumeIncrease', async (context, resultBuilder) => {
@@ -112,7 +112,7 @@ agent.addChart('averageVolumeIncrease', async (context, resultBuilder) => {
 
 ![Objective chart example](../assets/chart-objective.png)
 
-Objective charts are very similar to value charts, the only difference being that two numbers should be provided to the `resultBuilder`
+Objective charts are very similar to value charts, the only difference being that two numbers should be provided to the `resultBuilder`.
 
 ```javascript
 agent.addChart('companiesLive', async (context, resultBuilder) => {

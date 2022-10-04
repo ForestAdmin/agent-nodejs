@@ -30,14 +30,10 @@
   - [Relationships](datasources/multiple-datasources/relationships.md)
 - [Write your own](datasources/custom/README.md)
   - [Structure declaration](datasources/custom/structure.md)
-  - [Using a local cache](datasources/custom/local-cache/README.md)
-    - [Read implementation](datasources/custom/local-cache/read-only.md)
-    - [Write implementation](datasources/custom/local-cache/read-write.md)
-  - [Using query translation](datasources/custom/query-translation/README.md)
-    - [Capabilities declaration](datasources/custom/query-translation/capabilities.md)
-    - [Read implementation](datasources/custom/query-translation/read-only.md)
-    - [Write implementation](datasources/custom/query-translation/read-write.md)
-    - [Intra-datasource Relationships](datasources/custom/query-translation/relationships.md)
+  - [Capabilities declaration](datasources/custom/capabilities.md)
+  - [Read implementation](datasources/custom/read-only.md)
+  - [Write implementation](datasources/custom/read-write.md)
+  - [Intra-datasource Relationships](datasources/custom/relationships.md)
   - [Contribute](datasources/contribute.md)
 
 ## Agent customization
@@ -95,6 +91,7 @@
   - [login](deployment/forest-cli-commands/login.md)
   - [branch](deployment/forest-cli-commands/branch.md)
   - [switch](deployment/forest-cli-commands/switch.md)
+  - [set-origin](deployment/forest-cli-commands/set-origin.md)
   - [push](deployment/forest-cli-commands/push.md)
   - [environments:reset](deployment/forest-cli-commands/environments-reset.md)
   - [deploy](deployment/forest-cli-commands/deploy.md)
@@ -105,7 +102,7 @@
 
 ## Under the hood
 
-- [Data Model](under-the-hood/data-model/README.md)
+- [Data Model](under-the-hood/data-model)
   - [Typing](under-the-hood/data-model/typing.md)
   - [Relationships](under-the-hood/data-model/relationships.md)
 - [Query interface](under-the-hood/queries/README.md)

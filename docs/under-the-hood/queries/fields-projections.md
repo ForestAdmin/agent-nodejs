@@ -2,7 +2,7 @@
 
 Field identifiers simply are strings that identify a column in the context of a collection.
 
-If we consider the following collections
+If we consider the following collections:
 
 ![books, authors and reviews](../../assets/collection-relations.png)
 
@@ -18,7 +18,7 @@ If we consider the following collections
 
 Projections are mainly used to fetch partials records and automatically fetch linked records.
 
-Projections simply are an array of fields
+Projections simply are an array of fields.
 
 ```json
 ["id", "title", "author:firstName"] // for books
