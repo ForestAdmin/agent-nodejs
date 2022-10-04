@@ -25,5 +25,5 @@ agent.customizeCollection('countryFromMongoose', collection =>
 ```
 
 {% hint style="info" %}
-If you want to know more about adding relation, please refer to this [section](../custom/query-translation/relationships.md).
+If you want to know more about adding relation, please refer to this [section](../custom/relationships.md).
 {% endhint %}

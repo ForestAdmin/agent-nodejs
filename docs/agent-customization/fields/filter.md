@@ -1,6 +1,6 @@
 You may want to read about the following topics before using those features:
 
-- [Unlocking filtering, scopes and segments on the GUI](./../../datasources/custom/query-translation/capabilities.md#unlock-filtering-scopes-and-segments-on-gui)
+- [Unlocking filtering, scopes and segments on the UI](./../../datasources/custom/capabilities.md#unlock-filtering-scopes-and-segments-on-ui)
 - [Structure of a `ConditionTree`](../../under-the-hood/queries/filters.md#examples)
 - [List of all filtering Operators](../../under-the-hood/queries/filters.md#operators)
 - [Operator equivalence system](../../under-the-hood/queries/filters.md#operator-equivalence)

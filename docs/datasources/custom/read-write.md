@@ -1,6 +1,6 @@
 Making your records editable is achieved by implementing the `create`, `update` and `delete` methods.
 
-The three methods take a [filter](../../../under-the-hood/queries/filters.md) as parameter, but note that unlike the `list` method, there is no need to support paging.
+The three methods take a [filter](../../under-the-hood/queries/filters.md) as parameter, but note that unlike the `list` method, there is no need to support paging.
 
 ```javascript
 const { BaseCollection } = require('@forestadmin/datasource-toolkit');

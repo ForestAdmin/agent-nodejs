@@ -30,14 +30,10 @@
   - [Relationships](datasources/multiple-datasources/relationships.md)
 - [Write your own](datasources/custom/README.md)
   - [Structure declaration](datasources/custom/structure.md)
-  - [Using a local cache](datasources/custom/local-cache/README.md)
-    - [Read implementation](datasources/custom/local-cache/read-only.md)
-    - [Write implementation](datasources/custom/local-cache/read-write.md)
-  - [Using query translation](datasources/custom/query-translation/README.md)
-    - [Capabilities declaration](datasources/custom/query-translation/capabilities.md)
-    - [Read implementation](datasources/custom/query-translation/read-only.md)
-    - [Write implementation](datasources/custom/query-translation/read-write.md)
-    - [Intra-datasource Relationships](datasources/custom/query-translation/relationships.md)
+  - [Capabilities declaration](datasources/custom/capabilities.md)
+  - [Read implementation](datasources/custom/read-only.md)
+  - [Write implementation](datasources/custom/read-write.md)
+  - [Intra-datasource Relationships](datasources/custom/relationships.md)
   - [Contribute](datasources/contribute.md)
 
 ## Agent customization

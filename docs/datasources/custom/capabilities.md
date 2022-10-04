@@ -15,7 +15,7 @@ All data sources need to be able to
 - Understand paging (`skip`, `limit`)
 
 {% hint style="warning" %}
-Translating the `Or` node is a strong contraint, as many backends will not allow it and providing a working implementation requires making multiple queries and recombining the results.
+Translating the `Or` node is a strong constraint, as many backends will not allow it and providing a working implementation requires making multiple queries and recombining the results.
 {% endhint %}
 
 # Optional features
@@ -36,30 +36,30 @@ The more complete your query translator is, the most forest admin features will 
 | Using operator emulation                                     | `In` on primary keys                                             |
 | Using search emulation                                       | `Contains` on string fields, `Equal` on numbers, uuids and enums |
 
-## Unlock filtering, scopes and segments on GUI
+## Unlock filtering, scopes and segments on the UI
 
-Forest Admin GUI implements filtering, scopes and segments with a "per-field", not on a "per-field-and-operator" granularity.
+Forest Admin UI implements filtering, scopes and segments with a "per-field", not on a "per-field-and-operator" granularity.
 
-This means that filtering for a given field is either enabled or not from the GUI perspective. Forest Admin admin panel will enable the feature only once enough operators are supported depending on the type of the field.
+This means that filtering for a given field is either enabled or not from the UI perspective. Forest Admin admin panel will enable the feature only once enough operators are supported depending on the type of the field.
 
-| Field type | Needed operators to unlock GUI filters, scopes and segments                                      |
-| ---------- | ------------------------------------------------------------------------------------------------ |
-| Boolean    | `Equal`, `NotEqual`, `Present`, `blank`                                                          |
-| Date       | All dates operators                                                                              |
-| Enum       | `Equal`, `NotEqual`, `Present`, `blank`,`In`                                                     |
-| Number     | `Equal`, `NotEqual`, `Present`, `blank`,`In`, `GreaterThan`, LessThan`                           |
-| String     | `Equal`, `NotEqual`, `Present`, `blank`,`In`,`StartsWith`,`EndsWith`, `Ccontains`, `NotContains` |
-| Uuid       | `Equal`, `NotEqual`, `Present`, `Blank`                                                          |
+| Field type | Needed operators to unlock GUI filters, scopes and segments                                     |
+| ---------- | ----------------------------------------------------------------------------------------------- |
+| Boolean    | `Equal`, `NotEqual`, `Present`, `blank`                                                         |
+| Date       | All dates operators                                                                             |
+| Enum       | `Equal`, `NotEqual`, `Present`, `blank`,`In`                                                    |
+| Number     | `Equal`, `NotEqual`, `Present`, `blank`,`In`, `GreaterThan`, `LessThan`                         |
+| String     | `Equal`, `NotEqual`, `Present`, `blank`,`In`,`StartsWith`,`EndsWith`, `Contains`, `NotContains` |
+| Uuid       | `Equal`, `NotEqual`, `Present`, `Blank`                                                         |
 
 # Collection level capabilities
 
 ## Count
 
-![Pagination widget](../../../assets/customdatasource-count-capability.png)
+![Pagination widget](../../assets/customdatasource-count-capability.png)
 
 Enabling this features allows the pagination widget to display the total number of pages in a collections while browsing records.
 
-Once enabled, your collections must implement the [`aggregate method`](../../../under-the-hood/queries/README.md#interface).
+Once enabled, your collections must implement the [`aggregate method`](../../under-the-hood/queries/README.md#interface).
 
 ```javascript
 class MyCollection extends BaseCollection {
