@@ -15,14 +15,6 @@ export default class ActionPermissionService {
 
   constructor(private readonly options: ActionPermissionOptions) {}
 
-  public canOneOf(userId: string, actionNames: string[]): Promise<boolean> {
-    return this.hasPermissionOrRefetch({
-      userId,
-      actionNames,
-      allowRefetch: true,
-    });
-  }
-
   public can(userId: string, actionName: string): Promise<boolean> {
     return this.hasPermissionOrRefetch({
       userId,
