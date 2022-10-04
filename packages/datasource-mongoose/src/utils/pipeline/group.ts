@@ -1,5 +1,5 @@
+import { AccumulatorOperator, PipelineStage } from 'mongoose';
 import { Aggregation, AggregationOperation, DateOperation } from '@forestadmin/datasource-toolkit';
-import { PipelineStage } from 'mongoose';
 
 /** Transform a forest admin aggregation into mongo pipeline */
 export default class GroupGenerator {
@@ -37,7 +37,7 @@ export default class GroupGenerator {
   }
 
   /** Compute aggregation value */
-  private static computeValue(aggregation: Aggregation): unknown {
+  private static computeValue(aggregation: Aggregation): AccumulatorOperator {
     // Handle count(*) case
     if (!aggregation.field) return { $sum: 1 };
 
@@ -46,7 +46,9 @@ export default class GroupGenerator {
 
     return aggregation.operation === 'Count'
       ? { $sum: { $cond: [{ $ne: [field, null] }, 1, 0] } }
-      : { [this.AGGREGATION_OPERATION[aggregation.operation]]: field };
+      : ({
+          [this.AGGREGATION_OPERATION[aggregation.operation]]: field,
+        } as unknown as AccumulatorOperator);
   }
 
   /** Compute _id field for the $group pipeline stage */
