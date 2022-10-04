@@ -76,23 +76,23 @@ describe('PublicationCollectionDataSourceDecorator', () => {
     );
   });
 
-  describe('publicate', () => {
+  describe('keepCollectionsMatching', () => {
     it('should throw an error if a name is unknown', () => {
-      expect(() => decoratedDataSource.publicate(['unknown'])).toThrowError(
+      expect(() => decoratedDataSource.keepCollectionsMatching(['unknown'])).toThrowError(
         'Unknown collection name: "unknown"',
       );
 
-      expect(() => decoratedDataSource.publicate(undefined, ['unknown'])).toThrowError(
-        'Unknown collection name: "unknown"',
-      );
+      expect(() =>
+        decoratedDataSource.keepCollectionsMatching(undefined, ['unknown']),
+      ).toThrowError('Unknown collection name: "unknown"');
     });
 
     it('should be able to remove "librariesBooks" collection', () => {
-      decoratedDataSource.publicate(['libraries', 'books']);
+      decoratedDataSource.keepCollectionsMatching(['libraries', 'books']);
 
       expect(() => decoratedDataSource.getCollection('librariesBooks')).toThrow();
       expect(decoratedDataSource.getCollection('libraries').schema.fields).not.toHaveProperty(
-        'myLibrary',
+        'myBooks',
       );
       expect(decoratedDataSource.getCollection('books').schema.fields).not.toHaveProperty(
         'myLibraries',
@@ -100,7 +100,7 @@ describe('PublicationCollectionDataSourceDecorator', () => {
     });
 
     it('should be able to remove "books" collection', () => {
-      decoratedDataSource.publicate(undefined, ['books']);
+      decoratedDataSource.keepCollectionsMatching(undefined, ['books']);
 
       expect(() => decoratedDataSource.getCollection('books')).toThrow();
       expect(decoratedDataSource.getCollection('librariesBooks').schema.fields).not.toHaveProperty(

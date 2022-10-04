@@ -10,7 +10,7 @@ const agent = createAgent(options);
 const aDataSource = createSqlDataSource('postgres://user:pass@localhost:5432/mySchema');
 const anoterDataSource = createSqlDataSource('postgres://user:pass@localhost:5432/mySchema');
 
-// Rename sqlDataSource collections by providing replacements
+// Specify which collection you want to play with
 agent
   .addDataSource(aDataSource, { include: ['books', 'reviews'] })
   .addDataSource(anoterDataSource, { exclude: ['authors'] });

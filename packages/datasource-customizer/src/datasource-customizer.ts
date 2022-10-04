@@ -41,7 +41,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
 
       if (options?.include || options?.exclude) {
         const publicationDecorator = new PublicateCollectionDataSourceDecorator(dataSource);
-        publicationDecorator.publicate(options.include, options.exclude);
+        publicationDecorator.keepCollectionsMatching(options.include, options.exclude);
         dataSource = publicationDecorator;
       }
 

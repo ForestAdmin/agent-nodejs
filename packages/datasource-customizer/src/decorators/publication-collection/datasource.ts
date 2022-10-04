@@ -7,8 +7,8 @@ export default class PublicationCollectionDataSourceDecorator extends DataSource
     super(childDataSource, PublicationFieldCollectionDecorator);
   }
 
-  publicate(include?: string[], exclude?: string[]): void {
-    this.validateCollectionName([...(include ?? []), ...(exclude ?? [])]);
+  keepCollectionsMatching(include?: string[], exclude?: string[]): void {
+    this.validateCollectionNames([...(include ?? []), ...(exclude ?? [])]);
 
     const deleted = new Set<string>();
 
@@ -36,7 +36,7 @@ export default class PublicationCollectionDataSourceDecorator extends DataSource
     }
   }
 
-  private validateCollectionName(names: string[]): void {
+  private validateCollectionNames(names: string[]): void {
     for (const name of names) {
       if (!this._collections[name]) {
         throw new Error(`Unknown collection name: "${name}"`);
