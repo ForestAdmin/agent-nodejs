@@ -434,7 +434,7 @@ describe('AuthorizationService', () => {
 
         expect(context.throw).toHaveBeenCalledWith(
           HttpCode.Forbidden,
-          'Failed to verify approval payload. The signed approval request token as expired..',
+          'Failed to verify approval payload. The signed approval request token as expired.',
         );
 
         expect(verifyAndExtractApprovalMock).toHaveBeenCalled();

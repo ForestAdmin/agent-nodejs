@@ -119,7 +119,7 @@ export default class AuthorizationService {
         if (e instanceof JTWTokenExpiredError) {
           context.throw(
             HttpCode.Forbidden,
-            'Failed to verify approval payload. The signed approval request token as expired..',
+            'Failed to verify approval payload. The signed approval request token as expired.',
           );
         } else if (e instanceof JTWUnableToVerifyError) {
           context.throw(
