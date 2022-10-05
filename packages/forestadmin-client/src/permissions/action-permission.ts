@@ -1,19 +1,14 @@
-import { AgentOptionsWithDefaults } from '../../../types';
-import ForestHttpApi from '../../../utils/forest-http-api';
+import { ForestAdminClientOptionsWithDefaults } from '../types';
+import ForestHttpApi from './forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
 } from './generate-actions-from-permissions';
-
-export type ActionPermissionOptions = Pick<
-  AgentOptionsWithDefaults,
-  'forestServerUrl' | 'envSecret' | 'isProduction' | 'permissionsCacheDurationInSeconds' | 'logger'
->;
 
 export default class ActionPermissionService {
   private permissionsPromise: Promise<ActionPermissions> | undefined;
   private permissionExpirationTimestamp: number | undefined;
 
-  constructor(private readonly options: ActionPermissionOptions) {}
+  constructor(private readonly options: ForestAdminClientOptionsWithDefaults) {}
 
   public canOneOf(userId: string, actionNames: string[]): Promise<boolean> {
     return this.hasPermissionOrRefetch({

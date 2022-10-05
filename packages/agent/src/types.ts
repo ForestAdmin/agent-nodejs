@@ -1,4 +1,9 @@
 import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
+import {
+  GenericTree,
+  SmartActionApprovalRequestBody,
+  SmartActionRequestBody,
+} from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
 
 /** Options to configure behavior of an agent's forestadmin driver */
@@ -15,6 +20,7 @@ export type AgentOptions = {
   typingsPath?: string | null;
   typingsMaxDepth?: number;
   permissionsCacheDurationInSeconds?: number;
+  forestAdminClient?: ForestAdminClient;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 
@@ -43,3 +49,40 @@ export type SelectionIds = {
   areExcluded: boolean;
   ids: CompositeId[];
 };
+
+export type User = Record<string, any> & {
+  id: number;
+  renderingId: number;
+  tags: Record<string, string>;
+};
+
+export interface ForestAdminClient {
+  canBrowse(userId: number, collectionName: string): Promise<boolean>;
+  canRead(userId: number, collectionName: string): Promise<boolean>;
+  canAdd(userId: number, collectionName: string): Promise<boolean>;
+  canEdit(userId: number, collectionName: string): Promise<boolean>;
+  canDelete(userId: number, collectionName: string): Promise<boolean>;
+  canExport(userId: number, collectionName: string): Promise<boolean>;
+  canExecuteCustomAction(params: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+    body: SmartActionRequestBody | SmartActionApprovalRequestBody;
+  }): Promise<false | SmartActionRequestBody>;
+  canExecuteCustomActionHook(params: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+  }): Promise<boolean>;
+  getScope(user: User, collectionName: string): Promise<GenericTree>;
+  canRetrieveChart({
+    renderingId,
+    userId,
+    chartRequest,
+  }: {
+    renderingId: number;
+    userId: number;
+    chartRequest: any;
+  }): Promise<boolean>;
+  markScopesAsUpdated(renderingId: number): void;
+}

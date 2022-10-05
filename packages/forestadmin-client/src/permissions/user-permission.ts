@@ -1,11 +1,6 @@
-import { AgentOptionsWithDefaults } from '../../../types';
+import { ForestAdminClientOptionsWithDefaults } from '../types';
 import { UserPermissionV4 } from './types';
-import ForestHttpApi from '../../../utils/forest-http-api';
-
-export type UserPermissionOptions = Pick<
-  AgentOptionsWithDefaults,
-  'forestServerUrl' | 'envSecret' | 'isProduction' | 'permissionsCacheDurationInSeconds' | 'logger'
->;
+import ForestHttpApi from './forest-http-api';
 
 export default class UserPermissionService {
   private cacheExpirationTimestamp = 0;
@@ -15,7 +10,7 @@ export default class UserPermissionService {
   // 2 calls are made to getUserInfo at the same time.
   private userInfoById: Promise<Map<number, UserPermissionV4>> = null;
 
-  constructor(private readonly options: UserPermissionOptions) {}
+  constructor(private readonly options: ForestAdminClientOptionsWithDefaults) {}
 
   public async getUserInfo(userId: number): Promise<UserPermissionV4 | undefined> {
     if (

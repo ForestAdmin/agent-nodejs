@@ -1,5 +1,4 @@
-// eslint-disable-next-line max-classes-per-file
-import { GenericTree } from '@forestadmin/datasource-toolkit';
+import { Operator } from './operators';
 
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
 
@@ -248,6 +247,11 @@ export type DynamicScopesValues = {
   users: Record<string, Record<string, string | number>>;
 };
 
+export type Aggregator = 'And' | 'Or';
+export type GenericTreeBranch = { aggregator: Aggregator; conditions: Array<GenericTree> };
+export type GenericTreeLeaf = { field: string; operator: Operator; value?: unknown };
+export type GenericTree = GenericTreeBranch | GenericTreeLeaf;
+
 export type CollectionRenderingPermissionV4 = {
   scope: GenericTree | null;
   segments: CollectionSegment[];
@@ -266,26 +270,29 @@ export type User = Record<string, any> & {
   tags: Record<string, string>;
 };
 
-export interface ActionApprovalAttributes {
-  requester_id: number;
-  ids: Array<string>;
-  collection_name: string;
-  smart_action_id: string;
-  values: any | null;
-  parent_collection_name: string | null;
-  parent_collection_id: string | null;
-  parent_association_name: string | null;
-  all_records: boolean;
-  all_records_subset_query: null;
+export interface SmartActionRequestBody {
+  data: {
+    id: string;
+    type: string;
+    attributes: Record<string, any> & {
+      requester_id: number;
+      ids: Array<string>;
+      collection_name: string;
+      smart_action_id: string;
+      values: any | null;
+      parent_collection_name: string | null;
+      parent_collection_id: string | null;
+      parent_association_name: string | null;
+      all_records: boolean;
+      all_records_subset_query: null;
+    };
+  };
 }
 
-export type ActionApprovalJWT = {
-  data: {
-    id: string | number;
-    type: string;
-    attributes: ActionApprovalAttributes;
+export interface SmartActionApprovalRequestBody extends SmartActionRequestBody {
+  data: SmartActionRequestBody['data'] & {
+    attributes: SmartActionRequestBody['data']['attributes'] & {
+      signed_approval_request: string;
+    };
   };
-};
-
-export class JTWUnableToVerifyError extends Error {}
-export class JTWTokenExpiredError extends Error {}
+}

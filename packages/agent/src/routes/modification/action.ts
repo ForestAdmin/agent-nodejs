@@ -45,8 +45,6 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async handleExecute(context: Context): Promise<void> {
-    await this.checkPermissions(context);
-
     const { dataSource } = this.collection;
     const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);
@@ -86,7 +84,11 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async handleHook(context: Context): Promise<void> {
-    await this.checkPermissions(context);
+    await this.services.authorization.assertCanExecuteCustomActionHook(
+      context,
+      this.actionName,
+      this.collection.name,
+    );
 
     const { dataSource } = this.collection;
     const forestFields = context.request.body?.data?.attributes?.fields;
@@ -105,17 +107,13 @@ export default class ActionRoute extends CollectionRoute {
     };
   }
 
-  private async checkPermissions(context: Context): Promise<void> {
-    await this.services.authorization.assertCanExecuteCustomAction(
-      context,
-      this.actionName,
-      this.collection.name,
-    );
-  }
-
   private async middlewareCustomActionApprovalRequestData(context: Context, next: Next) {
     const approvalRequestDataWithAttributes =
-      this.services.authorization.getApprovalRequestData(context);
+      this.services.authorization.assertCanExecuteCustomActionAndReturnRequestBody(
+        context,
+        this.actionName,
+        this.collection.name,
+      );
 
     if (approvalRequestDataWithAttributes) {
       context.request.body = approvalRequestDataWithAttributes;

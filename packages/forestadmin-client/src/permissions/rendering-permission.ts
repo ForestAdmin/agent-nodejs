@@ -1,23 +1,18 @@
-import { GenericTree } from '@forestadmin/datasource-toolkit';
 import LruCache from 'lru-cache';
 
-import { AgentOptionsWithDefaults } from '../../../types';
 import {
   CollectionRenderingPermissionV4,
+  GenericTree,
   PermissionLevel,
   Team,
   User,
   UserPermissionV4,
 } from './types';
+import { ForestAdminClientOptionsWithDefaults } from '../types';
 import { hashChartRequest, hashServerCharts } from './hash-chart';
-import ForestHttpApi from '../../../utils/forest-http-api';
+import ForestHttpApi from './forest-http-api';
 import UserPermissionService from './user-permission';
 import generateUserScope from './generate-user-scope';
-
-export type RenderingPermissionOptions = Pick<
-  AgentOptionsWithDefaults,
-  'forestServerUrl' | 'envSecret' | 'isProduction' | 'permissionsCacheDurationInSeconds' | 'logger'
->;
 
 type RenderingPermission = {
   team: Team;
@@ -29,7 +24,7 @@ export default class RenderingPermissionService {
   private readonly permissionsByRendering: LruCache<string, RenderingPermission>;
 
   constructor(
-    private readonly options: RenderingPermissionOptions,
+    private readonly options: ForestAdminClientOptionsWithDefaults,
     private readonly userPermissions: UserPermissionService,
   ) {
     this.permissionsByRendering = new LruCache({
@@ -82,7 +77,7 @@ export default class RenderingPermissionService {
     return generateUserScope(collectionPermissions.scope, permissions.team, userInfo);
   }
 
-  private async loadPermissions(renderingId: string): Promise<RenderingPermission> {
+  private async loadPermissions(renderingId: number): Promise<RenderingPermission> {
     this.options.logger('Debug', `Loading rendering permissions for rendering ${renderingId}`);
 
     const rawPermissions = await ForestHttpApi.getRenderingPermissions(renderingId, this.options);
