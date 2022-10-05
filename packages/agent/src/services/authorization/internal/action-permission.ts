@@ -85,10 +85,10 @@ export default class ActionPermissionService {
     actionName: string;
     userId: string;
   }): boolean {
-    return (
+    return Boolean(
       permissions.everythingAllowed ||
-      permissions.actionsGloballyAllowed.has(actionName) ||
-      permissions.actionsAllowedByUser.get(actionName)?.has(userId)
+        permissions.actionsGloballyAllowed.has(actionName) ||
+        permissions.actionsAllowedByUser.get(actionName)?.has(userId),
     );
   }
 
