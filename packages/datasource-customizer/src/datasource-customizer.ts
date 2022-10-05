@@ -6,7 +6,7 @@ import { TCollectionName, TSchema } from './templates';
 import CollectionCustomizer from './collection-customizer';
 import CompositeDatasource from './decorators/composite-datasource';
 import DecoratorsStack from './decorators/decorators-stack';
-import PublicateCollectionDataSourceDecorator from './decorators/publication-collection/datasource';
+import PublicationCollectionDataSourceDecorator from './decorators/publication-collection/datasource';
 import RenameCollectionDataSourceDecorator from './decorators/rename-collection/datasource';
 import TypingGenerator from './typing-generator';
 
@@ -40,7 +40,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
       let dataSource = await factory(logger);
 
       if (options?.include || options?.exclude) {
-        const publicationDecorator = new PublicateCollectionDataSourceDecorator(dataSource);
+        const publicationDecorator = new PublicationCollectionDataSourceDecorator(dataSource);
         publicationDecorator.keepCollectionsMatching(options.include, options.exclude);
         dataSource = publicationDecorator;
       }
