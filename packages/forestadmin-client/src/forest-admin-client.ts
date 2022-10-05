@@ -117,7 +117,7 @@ export default class ForestAdminClient {
   }: {
     renderingId: number;
     userId: number;
-    chartRequest: any;
+    chartRequest: SmartActionApprovalRequestBody | SmartActionRequestBody;
   }): Promise<boolean> {
     return this.renderingPermissionService.canRetrieveChart({
       renderingId,

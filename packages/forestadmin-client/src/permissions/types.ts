@@ -105,7 +105,6 @@ export interface ApiRouteChart extends BaseChart {
 export interface QueryChart extends BaseChart {
   type: Exclude<ChartType, ChartType.Smart>;
   query: string;
-  filter?: Record<string, any>; // To be completed
 }
 export interface S3Versions {
   'component.js': string;
@@ -265,21 +264,24 @@ export type RenderingPermissionV4 = {
   stats: Chart[];
 };
 
-export type User = Record<string, any> & {
+export type User = {
   id: number;
   tags: Record<string, string>;
+  firstName: string;
+  lastName: string;
 };
 
 export interface SmartActionRequestBody {
   data: {
     id: string;
     type: string;
-    attributes: Record<string, any> & {
+    attributes: {
       requester_id: number;
       ids: Array<string>;
       collection_name: string;
       smart_action_id: string;
-      values: any | null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      values: Record<string, any> | null;
       parent_collection_name: string | null;
       parent_collection_id: string | null;
       parent_association_name: string | null;
