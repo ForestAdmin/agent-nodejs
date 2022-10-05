@@ -12,7 +12,7 @@ In order to bridge that gap, Forest Admin allows to add, move, remove and overri
 collection
   // Create a new field
   .addField('fullName', {
-    type: 'String',
+    columnType: 'String',
     dependencies: ['firstName', 'lastName'],
     getValues: (records, context) => records.map(r => `${r.firstName} ${r.lastName}`),
   })
