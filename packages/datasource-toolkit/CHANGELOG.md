@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.35](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.34...@forestadmin/datasource-toolkit@1.0.0-beta.35) (2022-10-05)
+
+
+### Bug Fixes
+
+* fix build version issue ([#479](https://github.com/ForestAdmin/agent-nodejs/issues/479)) ([a3902f8](https://github.com/ForestAdmin/agent-nodejs/commit/a3902f80c341c097eab3f1c3c26fb65fe1f060fa))
+
 # @forestadmin/datasource-toolkit [1.0.0-beta.34](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.33...@forestadmin/datasource-toolkit@1.0.0-beta.34) (2022-09-22)
 
 
