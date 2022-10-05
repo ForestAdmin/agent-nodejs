@@ -1,14 +1,5 @@
-import {
-  Chart,
-  ChartType,
-  LineChart,
-  PieChart,
-  ValueChart,
-} from '../../../../src/services/authorization/internal/types';
-import {
-  hashChartRequest,
-  hashServerCharts,
-} from '../../../../src/services/authorization/internal/hash-chart';
+import { Chart, ChartType, LineChart, PieChart, ValueChart } from '../../src/permissions/types';
+import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
 
 describe('HashChart', () => {
   describe('hashServerCharts', () => {

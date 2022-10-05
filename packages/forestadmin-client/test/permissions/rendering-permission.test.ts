@@ -1,23 +1,20 @@
-import { PermissionLevel } from '../../../../src/services/authorization/internal/types';
-import {
-  hashChartRequest,
-  hashServerCharts,
-} from '../../../../src/services/authorization/internal/hash-chart';
-import ForestHttpApi from '../../../../src/utils/forest-http-api';
-import RenderingPermissionService from '../../../../src/services/authorization/internal/rendering-permission';
-import generateUserScope from '../../../../src/services/authorization/internal/generate-user-scope';
-import userPermissionsFactory from '../../../__factories__/authorization/internal/user-permission';
+import { PermissionLevel } from '../../src/permissions/types';
+import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
+import ForestHttpApi from '../../src/permissions/forest-http-api';
+import RenderingPermissionService from '../../src/permissions/rendering-permission';
+import generateUserScope from '../../src/permissions/generate-user-scope';
+import userPermissionsFactory from '../__factories__/permissions/user-permission';
 
-jest.mock('../../../../src/utils/forest-http-api', () => ({
+jest.mock('../../src/permissions/forest-http-api', () => ({
   getRenderingPermissions: jest.fn(),
 }));
 
-jest.mock('../../../../src/services/authorization/internal/generate-user-scope', () => ({
+jest.mock('../../src/permissions/generate-user-scope', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
-jest.mock('../../../../src/services/authorization/internal/hash-chart', () => ({
+jest.mock('../../src/permissions/hash-chart', () => ({
   __esModule: true,
   hashServerCharts: jest.fn(),
   hashChartRequest: jest.fn(),

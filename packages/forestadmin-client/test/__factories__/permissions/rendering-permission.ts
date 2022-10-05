@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
-import RenderingPermissionService from '../../../../src/services/authorization/internal/rendering-permission';
+import RenderingPermissionService from '../../../src/permissions/rendering-permission';
 import userPermissionsFactory from './user-permission';
 
 export class RenderingPermissionsFactory extends Factory<RenderingPermissionService> {
@@ -16,7 +16,6 @@ const renderingPermissionsFactory = RenderingPermissionsFactory.define(
   () =>
     new RenderingPermissionService(
       {
-        isProduction: true,
         envSecret: '123',
         forestServerUrl: 'http://api',
         permissionsCacheDurationInSeconds: 15 * 60,

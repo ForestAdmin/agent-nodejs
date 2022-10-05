@@ -1,6 +1,6 @@
 import { ForestAdminClientOptions, ForestAdminClientOptionsWithDefaults } from './types';
 import ActionPermissionService from './permissions/action-permission';
-import ForestAdminClient from './forestadmin-client';
+import ForestAdminClient from './forest-admin-client';
 import RenderingPermissionService from './permissions/rendering-permission';
 import UserPermissionService from './permissions/user-permission';
 
@@ -12,6 +12,7 @@ export {
   Aggregator,
   SmartActionRequestBody,
   SmartActionApprovalRequestBody,
+  CollectionActionEvent,
 } from './permissions/types';
 export { Operator } from './permissions/operators';
 export { default as JTWTokenExpiredError } from './permissions/errors/jwt-token-expired-error';

@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
-import UserPermissionService from '../../../../src/services/authorization/internal/user-permission';
+import UserPermissionService from '../../../src/permissions/user-permission';
 
 export class UserPermissionsFactory extends Factory<UserPermissionService> {
   mockAllMethods() {
@@ -12,7 +12,6 @@ export class UserPermissionsFactory extends Factory<UserPermissionService> {
 const userPermissionsFactory = UserPermissionsFactory.define(
   () =>
     new UserPermissionService({
-      isProduction: true,
       envSecret: '123',
       forestServerUrl: 'http://api',
       permissionsCacheDurationInSeconds: 15 * 60,

@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
-import ActionPermissionService from '../../../../src/services/authorization/internal/action-permission';
+import ActionPermissionService from '../../../src/permissions/action-permission';
 
 export class ActionPermissionsFactory extends Factory<ActionPermissionService> {
   mockAllMethods() {
@@ -13,7 +13,6 @@ export class ActionPermissionsFactory extends Factory<ActionPermissionService> {
 const actionPermissionsFactory = ActionPermissionsFactory.define(
   () =>
     new ActionPermissionService({
-      isProduction: true,
       envSecret: '123',
       forestServerUrl: 'http://api',
       permissionsCacheDurationInSeconds: 15 * 60,

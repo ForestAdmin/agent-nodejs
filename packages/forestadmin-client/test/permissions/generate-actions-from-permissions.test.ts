@@ -1,12 +1,15 @@
-import { CollectionActionEvent } from '../../../../src/services/authorization/internal/types';
-import { CustomActionEvent, UserPermissionV4 } from '../../../../src/services/authorization';
+import {
+  CollectionActionEvent,
+  CustomActionEvent,
+  UserPermissionV4,
+} from '../../src/permissions/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
-} from '../../../../src/services/authorization/internal/generate-action-identifier';
-import generateActionsFromPermissions from '../../../../src/services/authorization/internal/generate-actions-from-permissions';
+} from '../../src/permissions/generate-action-identifier';
+import generateActionsFromPermissions from '../../src/permissions/generate-actions-from-permissions';
 
-jest.mock('../../../../src/services/authorization/internal/generate-action-identifier', () => ({
+jest.mock('../../src/permissions/generate-action-identifier', () => ({
   __esModule: true,
   generateCustomActionIdentifier: jest
     .fn()

@@ -117,7 +117,7 @@ describe('ActionRoute', () => {
         });
 
         const getApprovalRequestDataMock = services.authorization
-          .getApprovalRequestData as jest.Mock;
+          .assertCanExecuteCustomActionAndReturnRequestBody as jest.Mock;
         getApprovalRequestDataMock.mockReturnValue({
           data: {
             attributes: {
@@ -153,7 +153,7 @@ describe('ActionRoute', () => {
         });
 
         const getApprovalRequestDataMock = services.authorization
-          .getApprovalRequestData as jest.Mock;
+          .assertCanExecuteCustomActionAndReturnRequestBody as jest.Mock;
         getApprovalRequestDataMock.mockReturnValue(null);
         const nextMock = jest.fn();
 
@@ -166,34 +166,8 @@ describe('ActionRoute', () => {
           },
         });
         expect(context.state.isCustomActionApprovalRequest).toStrictEqual(false);
+        expect(getApprovalRequestDataMock).toHaveBeenCalledWith(context, 'My_Action', 'books');
       });
-    });
-
-    test('handleExecute should check permissions', async () => {
-      const context = createMockContext({
-        ...baseContext,
-        requestBody: {
-          data: {
-            attributes: {
-              ...baseContext.requestBody.data.attributes,
-              values: { firstname: 'John' },
-            },
-          },
-        },
-      });
-
-      (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
-        type: 'Error',
-        message: 'the result does not matter',
-      });
-
-      await handleExecute.call(route, context);
-
-      expect(services.authorization.assertCanExecuteCustomAction).toHaveBeenCalledWith(
-        context,
-        'My_Action',
-        'books',
-      );
     });
 
     test('handleExecute should delegate to collection with good params', async () => {

@@ -21,7 +21,7 @@ type RenderingPermission = {
 };
 
 export default class RenderingPermissionService {
-  private readonly permissionsByRendering: LruCache<string, RenderingPermission>;
+  protected readonly permissionsByRendering: LruCache<string, RenderingPermission>;
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,

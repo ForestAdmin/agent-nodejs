@@ -1,21 +1,18 @@
-import ActionPermissionService from '../../../../src/services/authorization/internal/action-permission';
-import ForestHttpApi from '../../../../src/utils/forest-http-api';
+import ActionPermissionService from '../../src/permissions/action-permission';
+import ForestHttpApi from '../../src/permissions/forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
-} from '../../../../src/services/authorization/internal/generate-actions-from-permissions';
+} from '../../src/permissions/generate-actions-from-permissions';
 
-jest.mock('../../../../src/utils/forest-http-api', () => ({
+jest.mock('../../src/permissions/forest-http-api', () => ({
   getUsers: jest.fn(),
   getEnvironmentPermissions: jest.fn(),
 }));
 
-jest.mock(
-  '../../../../src/services/authorization/internal/generate-actions-from-permissions',
-  () => ({
-    __esModule: true,
-    default: jest.fn(),
-  }),
-);
+jest.mock('../../src/permissions/generate-actions-from-permissions', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
 
 const generateActionsFromPermissionsMock = generateActionsFromPermissions as jest.Mock;
 const getUsersMock = ForestHttpApi.getUsers as jest.Mock;

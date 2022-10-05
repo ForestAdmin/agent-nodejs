@@ -5443,7 +5443,7 @@ find-yarn-workspace-root@^2.0.0:
   dependencies:
     micromatch "^4.0.2"
 
-fishery@^2.1.0:
+fishery@^2.1.0, fishery@^2.2.2:
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/fishery/-/fishery-2.2.2.tgz#94d3d9380295dd3ce555021e9353c5348b8beb77"
   integrity sha512-jeU0nDhPHJkupmjX+r9niKgVMTBDB8X+U/pktoGHAiWOSyNlMd0HhmqnjrpjUOCDPJYaSSu4Ze16h6dZOKSp2w==

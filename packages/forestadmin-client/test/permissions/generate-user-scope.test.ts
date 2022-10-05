@@ -1,11 +1,11 @@
-import { GenericTreeBranch, GenericTreeLeaf } from '@forestadmin/datasource-toolkit';
-import generateUserScope from '../../../../src/services/authorization/internal/generate-user-scope';
-
 import {
+  GenericTreeBranch,
+  GenericTreeLeaf,
   PermissionLevel,
   Team,
   UserPermissionV4,
-} from '../../../../src/services/authorization/internal/types';
+} from '../../src/permissions/types';
+import generateUserScope from '../../src/permissions/generate-user-scope';
 
 describe('generateUserScope', () => {
   describe('with a leaf', () => {

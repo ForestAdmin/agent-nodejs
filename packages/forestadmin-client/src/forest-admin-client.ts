@@ -18,36 +18,12 @@ import verifyAndExtractApproval from './permissions/verify-approval';
 
 export default class ForestAdminClient {
   constructor(
-    private readonly options: ForestAdminClientOptionsWithDefaults,
-    private readonly actionPermissionService: ActionPermissionService,
-    private readonly renderingPermissionService: RenderingPermissionService,
+    protected readonly options: ForestAdminClientOptionsWithDefaults,
+    protected readonly actionPermissionService: ActionPermissionService,
+    protected readonly renderingPermissionService: RenderingPermissionService,
   ) {}
 
-  public async canBrowse(userId: number, collectionName: string): Promise<boolean> {
-    return this.canOnCollection(userId, CollectionActionEvent.Browse, collectionName);
-  }
-
-  public async canRead(userId: number, collectionName: string): Promise<boolean> {
-    return this.canOnCollection(userId, CollectionActionEvent.Read, collectionName);
-  }
-
-  public async canAdd(userId: number, collectionName: string): Promise<boolean> {
-    return this.canOnCollection(userId, CollectionActionEvent.Add, collectionName);
-  }
-
-  public async canEdit(userId: number, collectionName: string): Promise<boolean> {
-    return this.canOnCollection(userId, CollectionActionEvent.Edit, collectionName);
-  }
-
-  public async canDelete(userId: number, collectionName: string): Promise<boolean> {
-    return this.canOnCollection(userId, CollectionActionEvent.Delete, collectionName);
-  }
-
-  public async canExport(userId: number, collectionName: string): Promise<boolean> {
-    return this.canOnCollection(userId, CollectionActionEvent.Export, collectionName);
-  }
-
-  private async canOnCollection(
+  public async canOnCollection(
     userId: number,
     event: CollectionActionEvent,
     collectionName: string,
@@ -75,7 +51,7 @@ export default class ForestAdminClient {
     );
 
     if (approvalSignedParameters) {
-      const approvalRequesterId = body?.data?.attributes?.requester_id;
+      const approvalRequesterId = approvalSignedParameters?.data?.attributes?.requester_id;
 
       customActionEvenType =
         `${approvalRequesterId}` === `${userId}`
@@ -84,7 +60,7 @@ export default class ForestAdminClient {
     }
 
     if (
-      this.actionPermissionService.can(
+      await this.actionPermissionService.can(
         `${userId}`,
         generateCustomActionIdentifier(customActionEvenType, customActionName, collectionName),
       )
@@ -126,9 +102,9 @@ export default class ForestAdminClient {
     return null;
   }
 
-  async getScope(user: User, collectionName: string): Promise<GenericTree> {
+  async getScope(renderingId: number, user: User, collectionName: string): Promise<GenericTree> {
     return this.renderingPermissionService.getScope({
-      renderingId: user.renderingId,
+      renderingId,
       collectionName,
       user,
     });

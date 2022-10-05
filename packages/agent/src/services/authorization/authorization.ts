@@ -1,7 +1,7 @@
 import { Context } from 'koa';
 
 import { Collection, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
-import { SmartActionRequestBody } from '@forestadmin/forestadmin-client';
+import { CollectionActionEvent, SmartActionRequestBody } from '@forestadmin/forestadmin-client';
 
 import { ForestAdminClient } from '../../types';
 
@@ -9,61 +9,37 @@ export default class AuthorizationService {
   constructor(private readonly forestAdminClient: ForestAdminClient) {}
 
   public async assertCanBrowse(context: Context, collectionName: string) {
-    await this.assertCanOnCollection(
-      this.forestAdminClient.canBrowse.bind(this.forestAdminClient),
-      context,
-      collectionName,
-    );
+    await this.assertCanOnCollection(CollectionActionEvent.Browse, context, collectionName);
   }
 
   public async assertCanRead(context: Context, collectionName: string) {
-    await this.assertCanOnCollection(
-      this.forestAdminClient.canRead.bind(this.forestAdminClient),
-      context,
-      collectionName,
-    );
+    await this.assertCanOnCollection(CollectionActionEvent.Read, context, collectionName);
   }
 
   public async assertCanAdd(context: Context, collectionName: string) {
-    await this.assertCanOnCollection(
-      this.forestAdminClient.canAdd.bind(this.forestAdminClient),
-      context,
-      collectionName,
-    );
+    await this.assertCanOnCollection(CollectionActionEvent.Add, context, collectionName);
   }
 
   public async assertCanEdit(context: Context, collectionName: string) {
-    await this.assertCanOnCollection(
-      this.forestAdminClient.canEdit.bind(this.forestAdminClient),
-      context,
-      collectionName,
-    );
+    await this.assertCanOnCollection(CollectionActionEvent.Edit, context, collectionName);
   }
 
   public async assertCanDelete(context: Context, collectionName: string) {
-    await this.assertCanOnCollection(
-      this.forestAdminClient.canDelete.bind(this.forestAdminClient),
-      context,
-      collectionName,
-    );
+    await this.assertCanOnCollection(CollectionActionEvent.Delete, context, collectionName);
   }
 
   public async assertCanExport(context: Context, collectionName: string) {
-    await this.assertCanOnCollection(
-      this.forestAdminClient.canExport.bind(this.forestAdminClient),
-      context,
-      collectionName,
-    );
+    await this.assertCanOnCollection(CollectionActionEvent.Export, context, collectionName);
   }
 
   private async assertCanOnCollection(
-    can: (userId: string, collectionName) => Promise<boolean>,
+    event: CollectionActionEvent,
     context: Context,
     collectionName: string,
   ) {
     const { id: userId } = context.state.user;
 
-    if (!(await can(`${userId}`, collectionName))) {
+    if (!(await this.forestAdminClient.canOnCollection(userId, event, collectionName))) {
       context.throw(403, 'Forbidden');
     }
   }
@@ -110,7 +86,7 @@ export default class AuthorizationService {
   public async getScope(collection: Collection, context: Context): Promise<ConditionTree> {
     const { user } = context.state;
 
-    const scope = await this.forestAdminClient.getScope(user, collection.name);
+    const scope = await this.forestAdminClient.getScope(user.renderingId, user, collection.name);
 
     if (!scope) return null;
 

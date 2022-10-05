@@ -1,6 +1,7 @@
 import { Factory } from 'fishery';
 
 import { AgentOptionsWithDefaults } from '../../src/types';
+import forestAdminClientFactory from './forest-admin-client';
 
 export default Factory.define<AgentOptionsWithDefaults>(() => ({
   prefix: 'prefix',
@@ -15,4 +16,5 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   loggerLevel: 'Error',
   typingsPath: null,
   typingsMaxDepth: 5,
+  forestAdminClient: forestAdminClientFactory.build(),
 }));

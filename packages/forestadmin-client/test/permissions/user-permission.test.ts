@@ -1,7 +1,7 @@
-import ForestHttpApi from '../../../../src/utils/forest-http-api';
-import UserPermissionService from '../../../../src/services/authorization/internal/user-permission';
+import ForestHttpApi from '../../src/permissions/forest-http-api';
+import UserPermissionService from '../../src/permissions/user-permission';
 
-jest.mock('../../../../src/utils/forest-http-api', () => ({
+jest.mock('../../src/permissions/forest-http-api', () => ({
   __esModule: true,
   default: {
     getUsers: jest.fn(),

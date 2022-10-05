@@ -1,9 +1,6 @@
-import verifyAndExtractApproval from '../../../../src/services/authorization/internal/verify-approval';
-
-import {
-  JTWTokenExpiredError,
-  JTWUnableToVerifyError,
-} from '../../../../src/services/authorization/internal/types';
+import JTWTokenExpiredError from '../../src/permissions/errors/jwt-token-expired-error';
+import JTWUnableToVerifyError from '../../src/permissions/errors/jwt-unable-to-verify-error';
+import verifyAndExtractApproval from '../../src/permissions/verify-approval';
 
 /**
  * Fake token generated with "my-secret" HMACSHA256 private key
