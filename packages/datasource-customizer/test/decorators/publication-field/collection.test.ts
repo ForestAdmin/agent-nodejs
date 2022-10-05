@@ -2,21 +2,21 @@ import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factorie
 import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
 
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
-import PublicationCollectionDecorator from '../../../src/decorators/publication/collection';
+import PublicationFieldCollectionDecorator from '../../../src/decorators/publication-field/collection';
 
-describe('PublicationCollectionDecorator', () => {
+describe('PublicationFieldCollectionDecorator', () => {
   // State
   let dataSource: DataSource;
-  let decoratedDataSource: DataSourceDecorator<PublicationCollectionDecorator>;
+  let decoratedDataSource: DataSourceDecorator<PublicationFieldCollectionDecorator>;
 
   // Convenience: Direct access to collections before and after decoration
   let persons: Collection;
   let bookPersons: Collection;
   let books: Collection;
 
-  let newPersons: PublicationCollectionDecorator;
-  let newBookPersons: PublicationCollectionDecorator;
-  let newBooks: PublicationCollectionDecorator;
+  let newPersons: PublicationFieldCollectionDecorator;
+  let newBookPersons: PublicationFieldCollectionDecorator;
+  let newBooks: PublicationFieldCollectionDecorator;
 
   // Build datasource
   beforeEach(() => {
@@ -77,7 +77,7 @@ describe('PublicationCollectionDecorator', () => {
 
   // Build decorator
   beforeEach(() => {
-    decoratedDataSource = new DataSourceDecorator(dataSource, PublicationCollectionDecorator);
+    decoratedDataSource = new DataSourceDecorator(dataSource, PublicationFieldCollectionDecorator);
 
     newBooks = decoratedDataSource.getCollection('books');
     newBookPersons = decoratedDataSource.getCollection('bookPersons');
@@ -132,7 +132,7 @@ describe('PublicationCollectionDecorator', () => {
       const created = { id: 1, bookId: 2, personId: 3, date: '1985-10-26' };
       (bookPersons.create as jest.Mock).mockResolvedValue([created]);
 
-      const result = await newBookPersons.create(null, [{ something: true }]);
+      const result = await newBookPersons.create(factories.caller.build(), [{ something: true }]);
       expect(result).toStrictEqual([{ id: 1, bookId: 2, personId: 3 }]);
     });
   });

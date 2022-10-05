@@ -6,6 +6,7 @@ import { TCollectionName, TSchema } from './templates';
 import CollectionCustomizer from './collection-customizer';
 import CompositeDatasource from './decorators/composite-datasource';
 import DecoratorsStack from './decorators/decorators-stack';
+import PublicationCollectionDataSourceDecorator from './decorators/publication-collection/datasource';
 import RenameCollectionDataSourceDecorator from './decorators/rename-collection/datasource';
 import TypingGenerator from './typing-generator';
 
@@ -36,11 +37,21 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    */
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
     this.customizations.push(async logger => {
-      const dataSource = await factory(logger);
-      const renamedDecorator = new RenameCollectionDataSourceDecorator(dataSource);
-      renamedDecorator.renameCollections(options?.rename);
+      let dataSource = await factory(logger);
 
-      this.compositeDataSource.addDataSource(renamedDecorator);
+      if (options?.include || options?.exclude) {
+        const publicationDecorator = new PublicationCollectionDataSourceDecorator(dataSource);
+        publicationDecorator.keepCollectionsMatching(options.include, options.exclude);
+        dataSource = publicationDecorator;
+      }
+
+      if (options?.rename) {
+        const renamedDecorator = new RenameCollectionDataSourceDecorator(dataSource);
+        renamedDecorator.renameCollections(options?.rename);
+        dataSource = renamedDecorator;
+      }
+
+      this.compositeDataSource.addDataSource(dataSource);
     });
 
     return this;
