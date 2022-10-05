@@ -1,6 +1,6 @@
 import { Factory } from 'fishery';
 
-import ForestAdminClient from '../../src/forestadmin-client';
+import ForestAdminClient from '../../src/forest-admin-client';
 import actionPermissionsFactory from './permissions/action-permission';
 import forestAdminClientOptionsFactory from './forest-admin-client-options';
 import renderingPermissionsFactory from './permissions/rendering-permission';
@@ -8,14 +8,9 @@ import renderingPermissionsFactory from './permissions/rendering-permission';
 export class ForestAdminClientFactory extends Factory<ForestAdminClient> {
   mockAllMethods() {
     return this.afterBuild(client => {
-      client.canAdd = jest.fn();
-      client.canDelete = jest.fn();
-      client.canExport = jest.fn();
-      client.canEdit = jest.fn();
-      client.canBrowse = jest.fn();
+      client.canOnCollection = jest.fn();
       client.canExecuteCustomAction = jest.fn();
       client.canExecuteCustomActionHook = jest.fn();
-      client.canRead = jest.fn();
       client.getScope = jest.fn();
       client.markScopesAsUpdated = jest.fn();
     });

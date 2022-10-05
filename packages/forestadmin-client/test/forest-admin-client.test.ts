@@ -8,7 +8,7 @@ import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
 } from '../src/permissions/generate-action-identifier';
-import ForestAdminClient from '../src/forestadmin-client';
+import ForestAdminClient from '../src/forest-admin-client';
 import verifyAndExtractApproval from '../src/permissions/verify-approval';
 
 jest.mock('../src/permissions/generate-action-identifier', () => ({
@@ -26,14 +26,7 @@ const generateCustomActionIdentifierMock = generateCustomActionIdentifier as jes
 const verifyAndExtractApprovalMock = verifyAndExtractApproval as jest.Mock;
 
 describe('ForestAdminClient', () => {
-  describe.each([
-    { exposedFunction: 'canBrowse', event: CollectionActionEvent.Browse },
-    { exposedFunction: 'canRead', event: CollectionActionEvent.Read },
-    { exposedFunction: 'canAdd', event: CollectionActionEvent.Add },
-    { exposedFunction: 'canEdit', event: CollectionActionEvent.Edit },
-    { exposedFunction: 'canDelete', event: CollectionActionEvent.Delete },
-    { exposedFunction: 'canExport', event: CollectionActionEvent.Export },
-  ])('when calling $exposedFunction', ({ exposedFunction, event }) => {
+  describe('canOnCollection', () => {
     it('should return the result of actionPermissionService and pass the right event', async () => {
       const userId = 1;
       const collectionName = 'collectionName';
@@ -47,11 +40,18 @@ describe('ForestAdminClient', () => {
       generateCollectionActionIdentifierMock.mockReturnValue('identifier');
       (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
 
-      const result = await forestAdminClient[exposedFunction](userId, collectionName);
+      const result = await forestAdminClient.canOnCollection(
+        userId,
+        CollectionActionEvent.Add,
+        collectionName,
+      );
 
       expect(actionPermissionService.can).toHaveBeenCalledWith(`${userId}`, 'identifier');
 
-      expect(generateCollectionActionIdentifierMock).toHaveBeenCalledWith(event, collectionName);
+      expect(generateCollectionActionIdentifierMock).toHaveBeenCalledWith(
+        CollectionActionEvent.Add,
+        collectionName,
+      );
       expect(result).toBe(true);
     });
   });
