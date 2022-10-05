@@ -15,25 +15,33 @@ export default class ActionPermissionService {
 
   constructor(private readonly options: ActionPermissionOptions) {}
 
+  public canOneOf(userId: string, actionNames: string[]): Promise<boolean> {
+    return this.hasPermissionOrRefetch({
+      userId,
+      actionNames,
+      allowRefetch: true,
+    });
+  }
+
   public can(userId: string, actionName: string): Promise<boolean> {
     return this.hasPermissionOrRefetch({
       userId,
-      actionName,
+      actionNames: [actionName],
       allowRefetch: true,
     });
   }
 
   private async hasPermissionOrRefetch({
     userId,
-    actionName,
+    actionNames,
     allowRefetch,
   }: {
     userId: string;
-    actionName: string;
+    actionNames: string[];
     allowRefetch: boolean;
   }): Promise<boolean> {
     const permissions = await this.getPermissions();
-    const isAllowed = this.isAllowed({ permissions, actionName, userId });
+    const isAllowed = this.isAllowedOneOf({ permissions, actionNames, userId });
 
     if (!isAllowed && allowRefetch) {
       this.permissionsPromise = undefined;
@@ -41,17 +49,31 @@ export default class ActionPermissionService {
 
       return this.hasPermissionOrRefetch({
         userId,
-        actionName,
+        actionNames,
         allowRefetch: false,
       });
     }
 
     this.options.logger(
       'Debug',
-      `User ${userId} is ${isAllowed ? '' : 'not '}allowed to perform ${actionName}`,
+      `User ${userId} is ${isAllowed ? '' : 'not '}allowed to perform ${
+        actionNames.length > 1 ? ' one of ' : ''
+      }${actionNames.join(', ')}`,
     );
 
     return isAllowed;
+  }
+
+  private isAllowedOneOf({
+    permissions,
+    actionNames,
+    userId,
+  }: {
+    permissions: ActionPermissions;
+    actionNames: string[];
+    userId: string;
+  }): boolean {
+    return actionNames.some(actionName => this.isAllowed({ permissions, actionName, userId }));
   }
 
   private isAllowed({
@@ -63,10 +85,10 @@ export default class ActionPermissionService {
     actionName: string;
     userId: string;
   }): boolean {
-    return !!(
+    return Boolean(
       permissions.everythingAllowed ||
-      permissions.actionsGloballyAllowed.has(actionName) ||
-      permissions.actionsAllowedByUser.get(actionName)?.has(userId)
+        permissions.actionsGloballyAllowed.has(actionName) ||
+        permissions.actionsAllowedByUser.get(actionName)?.has(userId),
     );
   }
 
