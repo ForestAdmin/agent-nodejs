@@ -1,5 +1,4 @@
-import { GenericTree, GenericTreeBranch, GenericTreeLeaf } from '@forestadmin/datasource-toolkit';
-import { Team, UserPermissionV4 } from './types';
+import { GenericTree, GenericTreeBranch, GenericTreeLeaf, Team, UserPermissionV4 } from './types';
 
 const USER_VALUE_PREFIX = '$currentUser.';
 const USER_VALUE_TAG_PREFIX = '$currentUser.tags.';
