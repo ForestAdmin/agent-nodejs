@@ -293,7 +293,7 @@ describe('AuthorizationService', () => {
       } as unknown as Context;
 
       (generateCustomActionIdentifier as jest.Mock).mockReturnValue('custom:books:approve');
-      (actionPermissionService.can as jest.Mock).mockResolvedValue(false);
+      (actionPermissionService.canOneOf as jest.Mock).mockResolvedValue(false);
 
       await authorizationService.assertCanExecuteCustomAction(context, 'custom-action', 'books');
 
