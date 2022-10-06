@@ -47,7 +47,11 @@ describe('AuthorizationService', () => {
 
       expect(context.throw).not.toHaveBeenCalled();
 
-      expect(forestAdminClient.canOnCollection).toHaveBeenCalledWith(35, event, 'books');
+      expect(forestAdminClient.canOnCollection).toHaveBeenCalledWith({
+        userId: 35,
+        event,
+        collectionName: 'books',
+      });
     });
 
     it('should throw an error when the user is not authorized', async () => {
@@ -232,7 +236,11 @@ describe('AuthorizationService', () => {
 
       expect(scope).toStrictEqual(parsed);
 
-      expect(forestAdminClient.getScope).toHaveBeenCalledWith(42, user, 'books');
+      expect(forestAdminClient.getScope).toHaveBeenCalledWith({
+        renderingId: 42,
+        user,
+        collectionName: 'books',
+      });
       expect(ConditionTreeFactory.fromPlainObject).toHaveBeenCalledWith({ foo: 'bar' });
     });
   });
