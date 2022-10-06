@@ -9,7 +9,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
-    "directory": "packages/agent"
+    "directory": "packages/forestadmin-client"
   },
   "dependencies": {
     "jsonwebtoken": "^8.5.1",
