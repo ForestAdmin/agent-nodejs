@@ -53,7 +53,6 @@ export type SelectionIds = {
 
 export type User = Record<string, any> & {
   id: number;
-  renderingId: number;
   tags: Record<string, string>;
 };
 
@@ -63,16 +62,25 @@ export interface ForestAdminClient {
     event: CollectionActionEvent,
     collectionName: string,
   ): Promise<boolean>;
-  canExecuteCustomAction(params: {
+  canExecuteCustomAction({
+    userId,
+    customActionName,
+    collectionName,
+    body,
+  }: {
     userId: number;
     customActionName: string;
     collectionName: string;
     body: SmartActionRequestBody | SmartActionApprovalRequestBody;
   }): Promise<false | SmartActionRequestBody>;
-  canExecuteCustomActionHook(params: {
+  canExecuteCustomActionHook({
+    userId,
+    collectionName,
+    customActionName,
+  }: {
     userId: number;
-    customActionName: string;
     collectionName: string;
+    customActionName: string;
   }): Promise<boolean>;
   getScope(renderingId: number, user: User, collectionName: string): Promise<GenericTree>;
   canRetrieveChart({
@@ -82,7 +90,7 @@ export interface ForestAdminClient {
   }: {
     renderingId: number;
     userId: number;
-    chartRequest: any;
+    chartRequest: SmartActionApprovalRequestBody | SmartActionRequestBody;
   }): Promise<boolean>;
-  markScopesAsUpdated(renderingId: number): void;
+  markScopesAsUpdated(renderingId: number);
 }

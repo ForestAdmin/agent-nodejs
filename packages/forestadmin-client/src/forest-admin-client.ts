@@ -102,7 +102,11 @@ export default class ForestAdminClient {
     return null;
   }
 
-  async getScope(renderingId: number, user: User, collectionName: string): Promise<GenericTree> {
+  public async getScope(
+    renderingId: number,
+    user: User,
+    collectionName: string,
+  ): Promise<GenericTree> {
     return this.renderingPermissionService.getScope({
       renderingId,
       collectionName,
@@ -110,7 +114,7 @@ export default class ForestAdminClient {
     });
   }
 
-  async canRetrieveChart({
+  public async canRetrieveChart({
     renderingId,
     userId,
     chartRequest,
