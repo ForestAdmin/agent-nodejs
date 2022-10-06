@@ -1,3 +1,19 @@
+# @forestadmin/agent [1.0.0-alpha.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-alpha.5...@forestadmin/agent@1.0.0-alpha.6) (2022-10-06)
+
+
+### Reverts
+
+* remove unused canOneOf internal authorisation function ([#477](https://github.com/ForestAdmin/agent-nodejs/issues/477)) ([fd972b8](https://github.com/ForestAdmin/agent-nodejs/commit/fd972b84745514a04c89750e1a2c02076a37bd08))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.0.0-alpha.3
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-alpha.3
+
 # @forestadmin/agent [1.0.0-beta.62](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.0-beta.61...@forestadmin/agent@1.0.0-beta.62) (2022-10-05)
 
 
