@@ -9,7 +9,7 @@ const { createAgent } = require('@forestadmin/agent');
 const { createSqlDataSource } = require('@forestadmin/datasource-sql');
 
 const agent = createAgent(options);
-const sqlDataSource = new createSqlDataSource('postgres://user:pass@localhost:5432/mySchema');
+const sqlDataSource = createSqlDataSource('postgres://user:pass@localhost:5432/mySchema');
 
 // Rename sqlDataSource collections by providing replacements
 agent.addDataSource(sqlDataSource, {

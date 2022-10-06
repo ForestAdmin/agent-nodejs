@@ -3,8 +3,8 @@ import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 
 /** This decorator allows hiding fields */
-export default class PublicationCollectionDecorator extends CollectionDecorator {
-  override readonly dataSource: DataSourceDecorator<PublicationCollectionDecorator>;
+export default class PublicationFieldCollectionDecorator extends CollectionDecorator {
+  override readonly dataSource: DataSourceDecorator<PublicationFieldCollectionDecorator>;
   private readonly unpublished: Set<string> = new Set();
 
   /** Show/hide fields from the schema */

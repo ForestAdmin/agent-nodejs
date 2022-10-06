@@ -7,7 +7,7 @@ import EmptyCollectionDecorator from './empty/collection';
 import HookCollectionDecorator from './hook/collection';
 import OperatorsEmulateCollectionDecorator from './operators-emulate/collection';
 import OperatorsReplaceCollectionDecorator from './operators-replace/collection';
-import PublicationCollectionDecorator from './publication/collection';
+import PublicationFieldCollectionDecorator from './publication-field/collection';
 import RelationCollectionDecorator from './relation/collection';
 import RenameFieldCollectionDecorator from './rename-field/collection';
 import SchemaCollectionDecorator from './schema/collection';
@@ -28,7 +28,7 @@ export default class DecoratorsStack {
   lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   lateOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
-  publication: DataSourceDecorator<PublicationCollectionDecorator>;
+  publication: DataSourceDecorator<PublicationFieldCollectionDecorator>;
   renameField: DataSourceDecorator<RenameFieldCollectionDecorator>;
   schema: DataSourceDecorator<SchemaCollectionDecorator>;
   search: DataSourceDecorator<SearchCollectionDecorator>;
@@ -72,7 +72,7 @@ export default class DecoratorsStack {
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
     // is consistent.
-    last = this.publication = new DataSourceDecorator(last, PublicationCollectionDecorator);
+    last = this.publication = new DataSourceDecorator(last, PublicationFieldCollectionDecorator);
     last = this.renameField = new DataSourceDecorator(last, RenameFieldCollectionDecorator);
     /* eslint-enable no-multi-assign */
 
