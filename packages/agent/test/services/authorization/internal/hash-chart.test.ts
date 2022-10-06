@@ -12,17 +12,21 @@ import {
 
 describe('HashChart', () => {
   describe('hashServerCharts', () => {
-    it('should not hash queries', () => {
+    it('should hash queries', () => {
       const charts: Chart[] = [
         {
           query: 'select * from books',
+          type: ChartType.Value,
+        },
+        {
+          query: 'select * from authors',
           type: ChartType.Value,
         },
       ];
 
       const result = hashServerCharts(charts);
 
-      expect(result.size).toBe(0);
+      expect(result.size).toBe(2);
     });
 
     describe.each([
