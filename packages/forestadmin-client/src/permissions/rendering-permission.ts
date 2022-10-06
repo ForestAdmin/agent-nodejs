@@ -14,7 +14,7 @@ import ForestHttpApi from './forest-http-api';
 import UserPermissionService from './user-permission';
 import generateUserScope from './generate-user-scope';
 
-type RenderingPermission = {
+export type RenderingPermission = {
   team: Team;
   collections: Record<string, CollectionRenderingPermissionV4>;
   charts: Set<string>;
