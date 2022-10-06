@@ -121,7 +121,8 @@ export default class ForestAdminClient {
   }: {
     renderingId: number;
     userId: number;
-    chartRequest: SmartActionApprovalRequestBody | SmartActionRequestBody;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    chartRequest: any;
   }): Promise<boolean> {
     return this.renderingPermissionService.canRetrieveChart({
       renderingId,
