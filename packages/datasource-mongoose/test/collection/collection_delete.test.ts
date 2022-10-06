@@ -1,8 +1,8 @@
 /* eslint-disable no-underscore-dangle */
 
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+import { Caller, Filter, Projection } from '@forestadmin/datasource-toolkit';
 import { Connection, Schema, Types } from 'mongoose';
-import { Filter, Projection } from '@forestadmin/datasource-toolkit';
 
 import { setupReview, setupWith2ManyToManyRelations } from '../_helpers';
 import MongooseDatasource from '../../src/datasource';
@@ -53,13 +53,15 @@ describe('MongooseCollection', () => {
 
     // Delete subrecordx
     const dataSource = new MongooseDatasource(connection, { asModels: { books: ['author'] } });
-    await dataSource.getCollection('books_author').delete(null, new Filter({}));
+    await dataSource.getCollection('books_author').delete({} as Caller, new Filter({}));
 
     // Check that it was deleted for real
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const newRecord = await connection.model<any>('books').findById(oldRecord._id);
-    expect(newRecord.author?.firstname).toBe(undefined);
-    expect(newRecord.author?.lastname).toBe(undefined);
+    const newRecord = await connection
+      .model<{ author: { firstname: string; lastname: string } }>('books')
+      .findById(oldRecord._id);
+    expect(newRecord?.author?.firstname).toBe(undefined);
+    expect(newRecord?.author?.lastname).toBe(undefined);
   });
 
   it('delete an element within an array', async () => {
