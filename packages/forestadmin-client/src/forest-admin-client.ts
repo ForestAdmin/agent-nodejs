@@ -23,11 +23,15 @@ export default class ForestAdminClient {
     protected readonly renderingPermissionService: RenderingPermissionService,
   ) {}
 
-  public async canOnCollection(
-    userId: number,
-    event: CollectionActionEvent,
-    collectionName: string,
-  ): Promise<boolean> {
+  public async canOnCollection({
+    userId,
+    collectionName,
+    event,
+  }: {
+    userId: number;
+    event: CollectionActionEvent;
+    collectionName: string;
+  }): Promise<boolean> {
     return this.actionPermissionService.can(
       `${userId}`,
       generateCollectionActionIdentifier(event, collectionName),
@@ -102,11 +106,15 @@ export default class ForestAdminClient {
     return null;
   }
 
-  public async getScope(
-    renderingId: number,
-    user: User,
-    collectionName: string,
-  ): Promise<GenericTree> {
+  public async getScope({
+    renderingId,
+    user,
+    collectionName,
+  }: {
+    renderingId: number;
+    user: User;
+    collectionName: string;
+  }): Promise<GenericTree> {
     return this.renderingPermissionService.getScope({
       renderingId,
       collectionName,

@@ -40,11 +40,11 @@ describe('ForestAdminClient', () => {
       generateCollectionActionIdentifierMock.mockReturnValue('identifier');
       (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
 
-      const result = await forestAdminClient.canOnCollection(
+      const result = await forestAdminClient.canOnCollection({
         userId,
-        CollectionActionEvent.Add,
+        event: CollectionActionEvent.Add,
         collectionName,
-      );
+      });
 
       expect(actionPermissionService.can).toHaveBeenCalledWith(`${userId}`, 'identifier');
 
@@ -299,6 +299,32 @@ describe('ForestAdminClient', () => {
       await forestAdminClient.markScopesAsUpdated(42);
 
       expect(renderingPermissionService.invalidateCache).toHaveBeenCalledWith(42);
+    });
+  });
+
+  describe('getScope', () => {
+    it('should return the scope from the rendering service', async () => {
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const forestAdminClient = new ForestAdminClient(
+        factories.forestAdminClientOptions.build(),
+        factories.actionPermission.build(),
+        renderingPermissionService,
+      );
+
+      (renderingPermissionService.getScope as jest.Mock).mockResolvedValue('scope');
+
+      const result = await forestAdminClient.getScope({
+        renderingId: 666,
+        collectionName: 'jedis',
+        user: { id: 42, tags: {} },
+      });
+
+      expect(renderingPermissionService.getScope).toHaveBeenCalledWith({
+        collectionName: 'jedis',
+        renderingId: 666,
+        user: { id: 42, tags: {} },
+      });
+      expect(result).toBe('scope');
     });
   });
 });

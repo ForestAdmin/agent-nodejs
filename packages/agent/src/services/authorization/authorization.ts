@@ -39,7 +39,13 @@ export default class AuthorizationService {
   ) {
     const { id: userId } = context.state.user;
 
-    if (!(await this.forestAdminClient.canOnCollection(userId, event, collectionName))) {
+    if (
+      !(await this.forestAdminClient.canOnCollection({
+        userId,
+        event,
+        collectionName,
+      }))
+    ) {
       context.throw(403, 'Forbidden');
     }
   }
@@ -86,7 +92,11 @@ export default class AuthorizationService {
   public async getScope(collection: Collection, context: Context): Promise<ConditionTree> {
     const { user } = context.state;
 
-    const scope = await this.forestAdminClient.getScope(user.renderingId, user, collection.name);
+    const scope = await this.forestAdminClient.getScope({
+      renderingId: user.renderingId,
+      user,
+      collectionName: collection.name,
+    });
 
     if (!scope) return null;
 

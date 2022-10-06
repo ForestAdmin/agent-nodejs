@@ -57,37 +57,28 @@ export type User = Record<string, any> & {
 };
 
 export interface ForestAdminClient {
-  canOnCollection(
-    userId: number,
-    event: CollectionActionEvent,
-    collectionName: string,
-  ): Promise<boolean>;
-  canExecuteCustomAction({
-    userId,
-    customActionName,
-    collectionName,
-    body,
-  }: {
+  canOnCollection(params: {
+    userId: number;
+    event: CollectionActionEvent;
+    collectionName: string;
+  }): Promise<boolean>;
+  canExecuteCustomAction(params: {
     userId: number;
     customActionName: string;
     collectionName: string;
     body: SmartActionRequestBody | SmartActionApprovalRequestBody;
   }): Promise<false | SmartActionRequestBody>;
-  canExecuteCustomActionHook({
-    userId,
-    collectionName,
-    customActionName,
-  }: {
+  canExecuteCustomActionHook(params: {
     userId: number;
     collectionName: string;
     customActionName: string;
   }): Promise<boolean>;
-  getScope(renderingId: number, user: User, collectionName: string): Promise<GenericTree>;
-  canRetrieveChart({
-    renderingId,
-    userId,
-    chartRequest,
-  }: {
+  getScope(params: {
+    renderingId: number;
+    user: User;
+    collectionName: string;
+  }): Promise<GenericTree>;
+  canRetrieveChart(params: {
     renderingId: number;
     userId: number;
     chartRequest: SmartActionApprovalRequestBody | SmartActionRequestBody;
