@@ -267,8 +267,6 @@ export type RenderingPermissionV4 = {
 export type User = {
   id: number;
   tags: Record<string, string>;
-  firstName: string;
-  lastName: string;
 };
 
 export interface SmartActionRequestBody {
