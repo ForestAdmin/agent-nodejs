@@ -1,3 +1,14 @@
+# @forestadmin/datasource-sql [1.0.0-alpha.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-alpha.2...@forestadmin/datasource-sql@1.0.0-alpha.3) (2022-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-alpha.3
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-alpha.3
+
 # @forestadmin/datasource-sql [1.0.0-beta.54](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.53...@forestadmin/datasource-sql@1.0.0-beta.54) (2022-10-05)
 
 
