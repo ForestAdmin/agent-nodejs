@@ -1,3 +1,18 @@
+# example [1.0.0-beta.83](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.82...example@1.0.0-beta.83) (2022-10-06)
+
+
+### Bug Fixes
+
+* **security:** upgrade mongoose to fix a vulnerability ([#469](https://github.com/ForestAdmin/agent-nodejs/issues/469)) ([74e16bb](https://github.com/ForestAdmin/agent-nodejs/commit/74e16bb019a72fbfaabbccc6b1d932989a4d04fa))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0-beta.25
+
 # example [1.0.0-beta.82](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.81...example@1.0.0-beta.82) (2022-10-06)
 
 
