@@ -719,6 +719,15 @@
     express "^4.17.1"
     fastify-plugin "^3.0.0"
 
+"@forestadmin/datasource-toolkit@1.0.0-alpha.2":
+  version "1.0.0-alpha.2"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.0.0-alpha.2.tgz#79a593fe73369aeb0535dec593ec43c5bb572ecf"
+  integrity sha512-nd6+y7xsRikt3SpzjxaRvNaFZp75f4flj1WlFhSgcAEtnSfhV6Vh9mlPfuX4FlggQ5sm8F9RajuW5kqtkA3RNw==
+  dependencies:
+    luxon "^2.3.0"
+    object-hash "^3.0.0"
+    uuid "^8.3.2"
+
 "@gar/promisify@^1.0.1", "@gar/promisify@^1.1.3":
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.3.tgz#555193ab2e3bb3b6adc3d551c9c030d9e860daf6"
