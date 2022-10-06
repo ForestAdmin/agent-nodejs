@@ -57,35 +57,3 @@ should return
   "director": { "firstName": "Stephen", "lastName": "Spielberg" }
 }
 ```
-
-# Alternative: using a decorator
-
-{% hint style='warning' %}
-When using a decorator to emulate behaviors (in this case, relationships), remove the initial declaration (in this case, the relation in the collection structure).
-{% endhint %}
-
-If the API which is being targeted does not support filtering and fetching fields from relationships natively, you may want to use the same technique that we're using for "Inter-datasource relations" to define the "Intra-datasource relations".
-
-At the cost of performance, everything would then work out of the box.
-
-```javascript
-const {
-  DataSourceDecorator,
-  JointureCollectionDecorator,
-} = require('@forestadmin/datasource-toolkit');
-const MyDataSource = require('./datasource');
-
-module.exports = function makeMyDataSourceWithRelations() {
-  const myDataSource = new MyDataSource();
-  const jointures = new DataSourceDecorator(myDataSource, JointureCollectionDecorator);
-
-  jointures.getCollection('movies').addRelation('director', {
-    type: 'ManyToOne',
-    foreignCollection: 'people',
-    foreignKey: 'directorId',
-    foreignKeyTarget: 'id',
-  });
-
-  return jointures;
-};
-```

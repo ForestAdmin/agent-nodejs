@@ -47,7 +47,7 @@
   "devDependencies": {
     "@nestjs/common": "^8.4.5",
     "@nestjs/core": "^8.4.5",
-    "@nestjs/platform-express": "^8.4.5",
+    "@nestjs/platform-express": "^8.4.7",
     "@nestjs/platform-fastify": "^8.4.5",
     "@shopify/jest-koa-mocks": "^3.1.0",
     "@types/json-api-serializer": "2.6.3",

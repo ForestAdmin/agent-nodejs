@@ -20,14 +20,14 @@
 
 ## Data Sources
 
-- [Usage](datasources/README.md)
+- [Connecting datasources](datasources/connection/README.md)
+  - [Collection selection](datasources/connection/partial-imports.md)
+  - [Naming conflicts](datasources/connection/naming-conflicts.md)
+  - [Cross-datasource relationships](datasources/connection/relationships.md)
 - Provided datasources
   - [SQL (without ORM)](datasources/provided/sql.md)
   - [Sequelize](datasources/provided/sequelize.md)
   - [Mongoose](datasources/provided/mongoose.md)
-- [Multiple datasources](datasources/multiple-datasources/README.md)
-  - [Naming conflicts](datasources/multiple-datasources/naming-conflicts.md)
-  - [Relationships](datasources/multiple-datasources/relationships.md)
 - [Write your own](datasources/custom/README.md)
   - [Structure declaration](datasources/custom/structure.md)
   - [Capabilities declaration](datasources/custom/capabilities.md)

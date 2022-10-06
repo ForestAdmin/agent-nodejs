@@ -20,14 +20,16 @@ beforeEach(() => {
 describe('Builder > Agent', () => {
   describe('addChart', () => {
     it('should add the chart to the schema', async () => {
-      const builder = new DataSourceCustomizer();
-      const dataSource = await builder
+      const customizer = new DataSourceCustomizer();
+      const dataSource = await customizer
         .addChart('myChart', (context, resultBuilder) => resultBuilder.value(12332, 3224))
         .getDataSource(() => {});
 
       // Check that the chart was added to the datasource
       expect(dataSource.schema.charts).toContain('myChart');
-      await expect(dataSource.renderChart(null, 'myChart')).resolves.toStrictEqual({
+      await expect(
+        dataSource.renderChart(factories.caller.build(), 'myChart'),
+      ).resolves.toStrictEqual({
         countCurrent: 12332,
         countPrevious: 3224,
       });
@@ -36,23 +38,22 @@ describe('Builder > Agent', () => {
 
   describe('customizeCollection', () => {
     it('should throw an error when designed collection is unknown', async () => {
-      const builder = new DataSourceCustomizer();
+      const customizer = new DataSourceCustomizer();
 
       await expect(
-        builder.customizeCollection('unknown', () => {}).getDataSource(() => {}),
+        customizer.customizeCollection('unknown', () => {}).getDataSource(() => {}),
       ).rejects.toThrowError("Collection 'unknown' not found");
     });
 
-    it('should provide collection builder otherwise', async () => {
-      const builder = new DataSourceCustomizer();
-
+    it('should provide collection customizer otherwise', async () => {
+      const customizer = new DataSourceCustomizer();
       const dataSource = factories.dataSource.buildWithCollection(
         factories.collection.build({ name: 'collection' }),
       );
 
       const handle = jest.fn();
 
-      await builder
+      await customizer
         .addDataSource(async () => dataSource)
         .customizeCollection('collection', handle)
         .getDataSource(() => {});
@@ -64,77 +65,74 @@ describe('Builder > Agent', () => {
     });
   });
 
-  describe('rename option', () => {
-    describe('when there is a naming conflict with two collection names', () => {
-      it('should throw an error when the given collection name does not exist', async () => {
-        const builder = new DataSourceCustomizer();
-        const dataSource1 = factories.dataSource.buildWithCollection(
-          factories.collection.build({ name: 'collection' }),
-        );
-        const dataSource2 = factories.dataSource.buildWithCollection(
-          factories.collection.build({ name: 'collection' }),
-        );
-        builder.addDataSource(async () => dataSource1);
-        builder.addDataSource(async () => dataSource2, {
-          rename: {
-            collectionDoesNotExist: 'updatedName',
-          },
-        });
+  describe('addDataSource', () => {
+    it('should throw when renaming an unknown collection', async () => {
+      const customizer = new DataSourceCustomizer();
+      const dataSource1 = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection' }),
+      );
+      const dataSource2 = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection' }),
+      );
+      customizer.addDataSource(async () => dataSource1);
+      customizer.addDataSource(async () => dataSource2, { rename: { missing: 'updatedName' } });
 
-        await expect(builder.getDataSource(() => {})).rejects.toThrowError(
-          'The given collection name "collectionDoesNotExist" does not exist',
-        );
-      });
+      await expect(customizer.getDataSource(() => {})).rejects.toThrowError(
+        'The given collection name "missing" does not exist',
+      );
+    });
 
-      it('should throw an error when the new name is also in conflict', async () => {
-        const builder = new DataSourceCustomizer();
-        const dataSource1 = factories.dataSource.buildWithCollection(
-          factories.collection.build({ name: 'collection' }),
-        );
-        const dataSource2 = factories.dataSource.buildWithCollection(
-          factories.collection.build({ name: 'collection' }),
-        );
-        builder.addDataSource(async () => dataSource1);
-        builder.addDataSource(async () => dataSource2, {
-          rename: {
-            collection: 'collection',
-          },
-        });
+    it('should throw when renaming to an existing collection', async () => {
+      const customizer = new DataSourceCustomizer();
+      const dataSource1 = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection' }),
+      );
+      const dataSource2 = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection' }),
+      );
+      customizer.addDataSource(async () => dataSource1);
+      customizer.addDataSource(async () => dataSource2, { rename: { collection: 'collection' } });
 
-        await expect(builder.getDataSource(() => {})).rejects.toThrowError(
-          'The given new collection name "collection" is already defined in the dataSource',
-        );
-      });
+      await expect(customizer.getDataSource(() => {})).rejects.toThrowError(
+        'The given new collection name "collection" is already defined in the dataSource',
+      );
+    });
 
-      it('should rename the collection name without error', async () => {
-        const builder = new DataSourceCustomizer();
-        const dataSource1 = factories.dataSource.buildWithCollection(
-          factories.collection.build({ name: 'collection' }),
-        );
-        const dataSource2 = factories.dataSource.buildWithCollection(
-          factories.collection.build({ name: 'collection' }),
-        );
-        builder.addDataSource(async () => dataSource1);
-        builder.addDataSource(async () => dataSource2, {
-          rename: {
-            collection: 'updatedName',
-          },
-        });
+    it('should rename a collection without errors', async () => {
+      const customizer = new DataSourceCustomizer();
+      const dataSource1 = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection' }),
+      );
+      const dataSource2 = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection' }),
+      );
+      customizer.addDataSource(async () => dataSource1);
+      customizer.addDataSource(async () => dataSource2, { rename: { collection: 'updatedName' } });
 
-        await expect(builder.getDataSource(() => {})).resolves.not.toThrowError();
-      });
+      await expect(customizer.getDataSource(() => {})).resolves.not.toThrowError();
+    });
 
-      it('should not throw an error when rename option is null', async () => {
-        const builder = new DataSourceCustomizer();
-        const dataSource = factories.dataSource.buildWithCollection(
-          factories.collection.build({ name: 'collection' }),
-        );
-        builder.addDataSource(async () => dataSource, {
-          rename: null,
-        });
+    it('should hide collections', async () => {
+      const customizer = new DataSourceCustomizer();
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({ name: 'collection1' }),
+        factories.collection.build({ name: 'collection2' }),
+      ]);
 
-        await expect(builder.getDataSource(() => {})).resolves.not.toThrowError();
-      });
+      customizer.addDataSource(async () => dataSource, { exclude: ['collection1'] });
+
+      const result = await customizer.getDataSource(() => {});
+      expect(result.collections).toHaveLength(1);
+    });
+
+    it('should not throw an error when rename option is null', async () => {
+      const customizer = new DataSourceCustomizer();
+      const dataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection' }),
+      );
+      customizer.addDataSource(async () => dataSource, { rename: null as unknown as undefined });
+
+      await expect(customizer.getDataSource(() => {})).resolves.not.toThrowError();
     });
   });
 });
