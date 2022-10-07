@@ -1,3 +1,79 @@
+# example 1.0.0 (2022-10-07)
+
+
+### Bug Fixes
+
+* action "select all + apply" are applied only on the related data ([#209](https://github.com/ForestAdmin/agent-nodejs/issues/209)) ([974054c](https://github.com/ForestAdmin/agent-nodejs/commit/974054c431700c98a73177dfe5cbd0d1bf564e9c))
+* **agent:** export a factory to create the agent ([#298](https://github.com/ForestAdmin/agent-nodejs/issues/298)) ([8370ab7](https://github.com/ForestAdmin/agent-nodejs/commit/8370ab7a7d58cbbbbae0991d48ab89033573fbb2))
+* codelimate configuration to remove _example directory to the coverage ([#177](https://github.com/ForestAdmin/agent-nodejs/issues/177)) ([50862da](https://github.com/ForestAdmin/agent-nodejs/commit/50862da06cf8d3a9bb8bbc86c78499d8e35f4d77))
+* datasource naming consistency ([#292](https://github.com/ForestAdmin/agent-nodejs/issues/292)) ([ff50a1f](https://github.com/ForestAdmin/agent-nodejs/commit/ff50a1f02aa65b3d99824c2bc9fb19d729a4e465))
+* **datasource sequelize:** enable date filter ([#166](https://github.com/ForestAdmin/agent-nodejs/issues/166)) ([5f0e349](https://github.com/ForestAdmin/agent-nodejs/commit/5f0e3494dbb254ef5351e0c85061ce196d8c2f9b))
+* **datasource-sequelize:** serialize record to transform date to iso string  ([#331](https://github.com/ForestAdmin/agent-nodejs/issues/331)) ([70216bb](https://github.com/ForestAdmin/agent-nodejs/commit/70216bb7fc5307e458ee5651e9f16c90b61ff49a))
+* **datasource:** properly set column FilterOperator values ([#117](https://github.com/ForestAdmin/agent-nodejs/issues/117)) ([92174a5](https://github.com/ForestAdmin/agent-nodejs/commit/92174a5f9016e8e54bed854979b0d7c408f11cae))
+* enable npm, git and github distribution ([bd91825](https://github.com/ForestAdmin/agent-nodejs/commit/bd91825f4d185874a259da28b0f7a6c7f557196d))
+* example project write override uses an outdated handler prototype ([#267](https://github.com/ForestAdmin/agent-nodejs/issues/267)) ([c32e212](https://github.com/ForestAdmin/agent-nodejs/commit/c32e21245d1703b599f474dfddfc5888e1a6fc77))
+* **example:** the imports in the seed to prepare the dbs ([#273](https://github.com/ForestAdmin/agent-nodejs/issues/273)) ([95891b7](https://github.com/ForestAdmin/agent-nodejs/commit/95891b7a7c884bc6ef7403dcea82f3cb2c40890c))
+* fix semantic release ([3a2fa73](https://github.com/ForestAdmin/agent-nodejs/commit/3a2fa738af84a50b9563db6ac039c922b77f55cc))
+* import packages from js ([#260](https://github.com/ForestAdmin/agent-nodejs/issues/260)) ([de00886](https://github.com/ForestAdmin/agent-nodejs/commit/de008862971ea5d3559e5a4c3136b0dd2161d760))
+* improve relation schema creation ([#238](https://github.com/ForestAdmin/agent-nodejs/issues/238)) ([cf9bfbf](https://github.com/ForestAdmin/agent-nodejs/commit/cf9bfbf83ea27c56eadbeb87a2d16cb1b66b355e))
+* leaderboard chart and aggregation emulation ([#241](https://github.com/ForestAdmin/agent-nodejs/issues/241)) ([d2015d7](https://github.com/ForestAdmin/agent-nodejs/commit/d2015d7f82fe6a42b36d797d6e5945b0b8f1c6ba))
+* **search:** stop generating invalid condition trees ([#109](https://github.com/ForestAdmin/agent-nodejs/issues/109)) ([9a2bf38](https://github.com/ForestAdmin/agent-nodejs/commit/9a2bf3858b8f9309947f68ce7717c288a8072edc))
+* **security:** upgrade mongoose to fix a vulnerability ([#469](https://github.com/ForestAdmin/agent-nodejs/issues/469)) ([74e16bb](https://github.com/ForestAdmin/agent-nodejs/commit/74e16bb019a72fbfaabbccc6b1d932989a4d04fa))
+* **typing-generator:** add simple quote arround the collection and fiel name to be compatible with ts ([#336](https://github.com/ForestAdmin/agent-nodejs/issues/336)) ([138b593](https://github.com/ForestAdmin/agent-nodejs/commit/138b593bff7d6dadbb5779d503e30c722f7978cf))
+* update code and sequelize version to avoid crash ([#374](https://github.com/ForestAdmin/agent-nodejs/issues/374)) ([e003416](https://github.com/ForestAdmin/agent-nodejs/commit/e0034166b86e48781ea099086fd93aa7c68dba03))
+
+
+### Features
+
+* add action routes and decorator ([#149](https://github.com/ForestAdmin/agent-nodejs/issues/149)) ([ebf27ff](https://github.com/ForestAdmin/agent-nodejs/commit/ebf27ffb439f5f2c983fe8873a515fe2802a9a17))
+* add default and validation to agent options ([#98](https://github.com/ForestAdmin/agent-nodejs/issues/98)) ([50f7b22](https://github.com/ForestAdmin/agent-nodejs/commit/50f7b2262f3ed1d1236326f20cacf8c36fee9a56))
+* add jointure decorator ([#158](https://github.com/ForestAdmin/agent-nodejs/issues/158)) ([e8d8e95](https://github.com/ForestAdmin/agent-nodejs/commit/e8d8e95d6d92e9378ca0de5d7efb12a8bd04a21e))
+* add record serializer ([#14](https://github.com/ForestAdmin/agent-nodejs/issues/14)) ([5ddeb30](https://github.com/ForestAdmin/agent-nodejs/commit/5ddeb306c8758d5533f406f8134b53ccd3a380b8))
+* add replaceSearch to collection customizer ([#310](https://github.com/ForestAdmin/agent-nodejs/issues/310)) ([09a45c7](https://github.com/ForestAdmin/agent-nodejs/commit/09a45c783c277dd5642aa9b289a43750f3d97ade))
+* add support for mongoose datasource ([#339](https://github.com/ForestAdmin/agent-nodejs/issues/339)) ([5515286](https://github.com/ForestAdmin/agent-nodejs/commit/55152862dceff4714bf9b36ed6c138acdf8cb9e3))
+* add support for standalone mode ([#304](https://github.com/ForestAdmin/agent-nodejs/issues/304)) ([c2bca75](https://github.com/ForestAdmin/agent-nodejs/commit/c2bca75a882c1591ad7560583ba0c56fb8020e12))
+* agent builder ([#146](https://github.com/ForestAdmin/agent-nodejs/issues/146)) ([678a8f7](https://github.com/ForestAdmin/agent-nodejs/commit/678a8f7b9b3204c811a5c1f2ee46287efdc84dd6))
+* allow configuring field validators during agent customization ([#365](https://github.com/ForestAdmin/agent-nodejs/issues/365)) ([8bc6fb3](https://github.com/ForestAdmin/agent-nodejs/commit/8bc6fb379891eb81cbfaddf6bffd89bb02f478ed))
+* autocomplete on field names ([#263](https://github.com/ForestAdmin/agent-nodejs/issues/263)) ([e2025d5](https://github.com/ForestAdmin/agent-nodejs/commit/e2025d57d930edf6d326bd0c6d7fffcd4aad728d))
+* bootstrap agent package ([#12](https://github.com/ForestAdmin/agent-nodejs/issues/12)) ([182c858](https://github.com/ForestAdmin/agent-nodejs/commit/182c858b6d912dba37fe821cc6baaad75b80c59d))
+* **builder:** add emulateFieldFiltering method and simplify addField ([#227](https://github.com/ForestAdmin/agent-nodejs/issues/227)) ([bbb7603](https://github.com/ForestAdmin/agent-nodejs/commit/bbb7603b3e9847e8f4e9788dca67e0a3cf2d1e83))
+* **builder:** add helper method to create embedded relationships ([#311](https://github.com/ForestAdmin/agent-nodejs/issues/311)) ([662cf58](https://github.com/ForestAdmin/agent-nodejs/commit/662cf5885c8b7c4fa17fed59f20f54625d4e5660))
+* **builder:** create one method per relation type in the collection customizer ([#302](https://github.com/ForestAdmin/agent-nodejs/issues/302)) ([df5438d](https://github.com/ForestAdmin/agent-nodejs/commit/df5438d641bd8c4f8ad7c114120189d9dda26c44))
+* compatibility with Express.js, Koa, Fastify & NestJS ([#300](https://github.com/ForestAdmin/agent-nodejs/issues/300)) ([904639e](https://github.com/ForestAdmin/agent-nodejs/commit/904639ec66f4116b3c5557d83ec43656e55ccbbc))
+* **datasource sequelize:** handle enum field type ([#193](https://github.com/ForestAdmin/agent-nodejs/issues/193)) ([04cc0f5](https://github.com/ForestAdmin/agent-nodejs/commit/04cc0f528b10f298b08d78e89e8f553b5e1a08e1))
+* **datasource sql:** handle primitive fields and default values ([#215](https://github.com/ForestAdmin/agent-nodejs/issues/215)) ([59a56da](https://github.com/ForestAdmin/agent-nodejs/commit/59a56da2721f39d0487b14d72b11d71b38b83a1f))
+* **decorator:** allow to rename a collection ([#341](https://github.com/ForestAdmin/agent-nodejs/issues/341)) ([1eb279e](https://github.com/ForestAdmin/agent-nodejs/commit/1eb279edc4fbe0511618bfdcf42e3980e57164da))
+* **decorator:** write emulate ([#157](https://github.com/ForestAdmin/agent-nodejs/issues/157)) ([6c7f5f6](https://github.com/ForestAdmin/agent-nodejs/commit/6c7f5f6daed7e9f51b3068ebca5ac49a9a6e01d8))
+* **example,live:** update example package to use Live DataSource ([#69](https://github.com/ForestAdmin/agent-nodejs/issues/69)) ([340d2a0](https://github.com/ForestAdmin/agent-nodejs/commit/340d2a08ea945169dd8c7547a5995bb7dd531fc5))
+* **example:** add custom connector ([#261](https://github.com/ForestAdmin/agent-nodejs/issues/261)) ([69e04de](https://github.com/ForestAdmin/agent-nodejs/commit/69e04ded95a3b528acc07a4463eacd4b7c5a5a2b))
+* give access to logged in user to customization context ([#253](https://github.com/ForestAdmin/agent-nodejs/issues/253)) ([be97812](https://github.com/ForestAdmin/agent-nodejs/commit/be978121e47ab06c7a50cc6dec0cdb9284ea9d96))
+* harmonize datasource creation and pass logger to it ([#257](https://github.com/ForestAdmin/agent-nodejs/issues/257)) ([82cb4ea](https://github.com/ForestAdmin/agent-nodejs/commit/82cb4ea37ac0a9fe83423d917226dfd8fad7d0a6))
+* implement api-charts ([#284](https://github.com/ForestAdmin/agent-nodejs/issues/284)) ([5917b8c](https://github.com/ForestAdmin/agent-nodejs/commit/5917b8cf645998cd3c0d750310cd81920b250e71))
+* implement condition tree equivalents ([#71](https://github.com/ForestAdmin/agent-nodejs/issues/71)) ([d434eb2](https://github.com/ForestAdmin/agent-nodejs/commit/d434eb294b159f91747e4d78e737f5bd32ffb147))
+* implement relations using any unique key ([#159](https://github.com/ForestAdmin/agent-nodejs/issues/159)) ([b6be495](https://github.com/ForestAdmin/agent-nodejs/commit/b6be495d93ae03a67c6dc9b4ffbb0ae9f4cbc0bc))
+* implement schema sender ([#36](https://github.com/ForestAdmin/agent-nodejs/issues/36)) ([89a7203](https://github.com/ForestAdmin/agent-nodejs/commit/89a72032a11c74cd41566862ac6d971003db0fd0))
+* **importField:** make it writable by default ([#362](https://github.com/ForestAdmin/agent-nodejs/issues/362)) ([aa4646e](https://github.com/ForestAdmin/agent-nodejs/commit/aa4646e6da49e06e0603a815dbae61fd8a4bfe30))
+* load all decorators in the project example ([#89](https://github.com/ForestAdmin/agent-nodejs/issues/89)) ([dd73b05](https://github.com/ForestAdmin/agent-nodejs/commit/dd73b0548eb25dc5108bb0a55b42b922c0414264))
+* make count an optional feature ([#327](https://github.com/ForestAdmin/agent-nodejs/issues/327)) ([b6f688c](https://github.com/ForestAdmin/agent-nodejs/commit/b6f688ca5f84aa29740761ff848c4beca5ee61d6))
+* **mongoose:** add schema generator ([#303](https://github.com/ForestAdmin/agent-nodejs/issues/303)) ([55fa26a](https://github.com/ForestAdmin/agent-nodejs/commit/55fa26a3d1c975c35bdab6a20655573ecaceb31e))
+* **oidc:** users don't need to provide agentUrl anymore ([#387](https://github.com/ForestAdmin/agent-nodejs/issues/387)) ([39d6ac7](https://github.com/ForestAdmin/agent-nodejs/commit/39d6ac72409081a1fe5748a67f5c1f4e146d7b01))
+* remove toolkit from customer code ([#229](https://github.com/ForestAdmin/agent-nodejs/issues/229)) ([1421c6d](https://github.com/ForestAdmin/agent-nodejs/commit/1421c6d8798ff92aada3fbfdfa2c95ee2429714b))
+* **route:** link record from 'toMany' association ([#230](https://github.com/ForestAdmin/agent-nodejs/issues/230)) ([8900cbd](https://github.com/ForestAdmin/agent-nodejs/commit/8900cbda88afdd73b19a8e136cd964af671650bb))
+* **security:** handle oidc authentication ([#23](https://github.com/ForestAdmin/agent-nodejs/issues/23)) ([17cd48e](https://github.com/ForestAdmin/agent-nodejs/commit/17cd48eb583763975a99835ef74438f7908923ca))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.0.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.0
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0
+* **@forestadmin/datasource-sql:** upgraded to 1.0.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.0
+
 # example [1.0.0-beta.83](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.0-beta.82...example@1.0.0-beta.83) (2022-10-06)
 
 
