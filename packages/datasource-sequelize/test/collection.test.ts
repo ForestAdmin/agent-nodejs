@@ -1,13 +1,15 @@
-import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from 'sequelize';
-
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
   ConditionTreeLeaf,
   DataSource,
   Filter,
+  PaginatedFilter,
   Projection,
   RecordData,
+  Sort,
 } from '@forestadmin/datasource-toolkit';
+import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from 'sequelize';
 
 import { SequelizeCollection } from '../src';
 
@@ -25,7 +27,7 @@ describe('SequelizeDataSource > Collection', () => {
     };
   };
 
-  it('should instanciate properly', () => {
+  it('should instantiate properly', () => {
     const { dataSource, name, sequelize } = makeConstructorParams();
     const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
 
@@ -36,7 +38,7 @@ describe('SequelizeDataSource > Collection', () => {
     expect(sequelizeCollection['model']).toBe(sequelize.models[name]);
   });
 
-  it('should fail to instanciate without a Sequelize model instance', () => {
+  it('should fail to instantiate without a Sequelize model instance', () => {
     const { dataSource, name } = makeConstructorParams();
     expect(() => new SequelizeCollection(name, dataSource, null)).toThrow(
       'Invalid (null) model instance.',
@@ -44,14 +46,11 @@ describe('SequelizeDataSource > Collection', () => {
   });
 
   describe('create', () => {
-    const setup = () => {
+    const setup = (recordData: RecordData[]) => {
       const { dataSource, name, sequelize } = makeConstructorParams();
       const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
-      const recordData = Symbol('recordData');
-      const record = {
-        get: jest.fn(() => recordData),
-      };
-      const bulkCreate = jest.fn().mockResolvedValue([record]);
+      const records = recordData.map(r => ({ get: jest.fn().mockReturnValueOnce(r) }));
+      const bulkCreate = jest.fn().mockResolvedValue(records);
       // eslint-disable-next-line @typescript-eslint/dot-notation
       sequelizeCollection['model'] = {
         ...sequelize.models[name],
@@ -60,22 +59,53 @@ describe('SequelizeDataSource > Collection', () => {
 
       return {
         bulkCreate,
-        recordData,
         sequelizeCollection,
       };
     };
 
     it('should delegate work to `sequelize.model.bulkCreate`', async () => {
-      const { bulkCreate, recordData, sequelizeCollection } = setup();
-      const data = Symbol('data') as unknown as RecordData[];
+      const data = [{ data: 'data' }, { data: 10 }, { data: ['Enum'] }];
+      const { bulkCreate, sequelizeCollection } = setup(data);
 
-      await expect(sequelizeCollection.create(data)).resolves.toEqual([recordData]);
+      await expect(sequelizeCollection.create(factories.caller.build(), data)).resolves.toEqual(
+        data,
+      );
+      expect(bulkCreate).toHaveBeenCalledWith(data);
+    });
+
+    it('should serialize date as iso string', async () => {
+      const data = [{ date: new Date('2000-01-02') }];
+      const { bulkCreate, sequelizeCollection } = setup(data);
+
+      await expect(sequelizeCollection.create(factories.caller.build(), data)).resolves.toEqual([
+        { date: '2000-01-02T00:00:00.000Z' },
+      ]);
+      expect(bulkCreate).toHaveBeenCalledWith(data);
+    });
+
+    it('should serialize date as iso string with many to one relation', async () => {
+      const data = [{ manyToOne: { date: new Date('2000-01-02') } }];
+      const { bulkCreate, sequelizeCollection } = setup(data);
+
+      await expect(sequelizeCollection.create(factories.caller.build(), data)).resolves.toEqual([
+        { manyToOne: { date: '2000-01-02T00:00:00.000Z' } },
+      ]);
+      expect(bulkCreate).toHaveBeenCalledWith(data);
+    });
+
+    it('should serialize array of date as iso string', async () => {
+      const data = [{ dates: [new Date('2000-01-02')] }];
+      const { bulkCreate, sequelizeCollection } = setup(data);
+
+      await expect(sequelizeCollection.create(factories.caller.build(), data)).resolves.toEqual([
+        { dates: ['2000-01-02T00:00:00.000Z'] },
+      ]);
       expect(bulkCreate).toHaveBeenCalledWith(data);
     });
   });
 
   describe('list', () => {
-    const setup = () => {
+    const setup = (recordData: RecordData[]) => {
       const { dataSource, name, sequelize } = makeConstructorParams();
 
       const relation = sequelize.define('relation', {
@@ -85,11 +115,8 @@ describe('SequelizeDataSource > Collection', () => {
       const model = sequelize.model(name);
       model.belongsTo(relation);
 
-      const recordData = Symbol('recordData');
-      const record = {
-        get: jest.fn(() => recordData),
-      };
-      const findAll = jest.fn().mockResolvedValue([record]);
+      const records = recordData.map(r => ({ get: jest.fn().mockReturnValueOnce(r) }));
+      const findAll = jest.fn().mockResolvedValue(records);
 
       model.findAll = findAll;
 
@@ -97,21 +124,22 @@ describe('SequelizeDataSource > Collection', () => {
 
       return {
         findAll,
-        record,
         recordData,
         sequelizeCollection,
+        records,
       };
     };
 
     it('should delegate work to `sequelize.model.findAll`', async () => {
-      const { findAll, recordData, sequelizeCollection } = setup();
+      const recordData = [{ data: 'data' }];
+      const { findAll, sequelizeCollection } = setup(recordData);
       const filter = new Filter({});
       const projection = new Projection();
 
-      const result = await sequelizeCollection.list(filter, projection);
+      const result = await sequelizeCollection.list(factories.caller.build(), filter, projection);
 
       expect(result).toBeArrayOfSize(1);
-      expect(result[0]).toBe(recordData);
+      expect(result[0]).toBe(recordData[0]);
       expect(findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: projection,
@@ -120,38 +148,65 @@ describe('SequelizeDataSource > Collection', () => {
     });
 
     it('should resolve with plain records', async () => {
-      const { record, recordData, sequelizeCollection } = setup();
+      const recordData = [{ data: 'data' }];
+      const { sequelizeCollection, records } = setup(recordData);
       const filter = new Filter({});
       const projection = new Projection();
 
-      const result = await sequelizeCollection.list(filter, projection);
+      const result = await sequelizeCollection.list(factories.caller.build(), filter, projection);
 
       expect(result).toBeArrayOfSize(1);
-      expect(result[0]).toBe(recordData);
-      expect(record.get).toHaveBeenCalledWith({ plain: true });
+      expect(result[0]).toBe(recordData[0]);
+      expect(records[0].get).toHaveBeenCalledWith({ plain: true });
     });
 
-    it('should add include from filter', async () => {
-      const { findAll, sequelizeCollection } = setup();
-      const filter = new Filter({
-        conditionTree: new ConditionTreeLeaf('relation:aField', 'Equal', 42),
-      });
+    it('should serialize date as iso string', async () => {
+      const recordData = [{ data: new Date('2000-10-01') }, { data: new Date('2000-10-02') }];
+      const { sequelizeCollection } = setup(recordData);
+      const filter = new Filter({});
       const projection = new Projection();
 
-      await sequelizeCollection.list(filter, projection);
+      const result = await sequelizeCollection.list(factories.caller.build(), filter, projection);
+
+      expect(result).toEqual([
+        { data: '2000-10-01T00:00:00.000Z' },
+        { data: '2000-10-02T00:00:00.000Z' },
+      ]);
+    });
+
+    it('should add include from condition tree, sort and projection', async () => {
+      const recordData = [{ data: 'data' }];
+      const { findAll, sequelizeCollection } = setup(recordData);
+      const filter = new PaginatedFilter({
+        sort: new Sort({ field: 'relation1:field1', ascending: true }),
+        conditionTree: new ConditionTreeLeaf('relation:aField', 'Equal', 42),
+      });
+      const projection = new Projection('relation3:field3');
+
+      await sequelizeCollection.list(factories.caller.build(), filter, projection);
 
       expect(findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             '$relation.a_field$': { [Op.eq]: 42 },
           },
-          include: expect.arrayContaining([
+          include: [
+            {
+              association: 'relation3',
+              attributes: ['field3'],
+              include: [],
+            },
             {
               association: 'relation',
               attributes: [],
               include: [],
             },
-          ]),
+            {
+              association: 'relation1',
+              attributes: [],
+              include: [],
+            },
+          ],
         }),
       );
     });
@@ -169,22 +224,23 @@ describe('SequelizeDataSource > Collection', () => {
       const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
 
       return {
+        model,
         update,
         sequelizeCollection,
       };
     };
 
-    it('should delegate work to `sequelize.model.update`', async () => {
-      const { update, sequelizeCollection } = setup();
-      const patch = { field: '__value__' };
-      const filter = new Filter({});
+    describe('when there is no condition tree', () => {
+      it('should delegate work to `sequelize.model.update`', async () => {
+        const { update, sequelizeCollection } = setup();
+        const patch = { field: '__value__' };
+        const filter = new Filter({});
+        const where = {};
 
-      await expect(sequelizeCollection.update(filter, patch)).resolves.not.toThrow();
+        await sequelizeCollection.update(factories.caller.build(), filter, patch);
 
-      expect(update).toHaveBeenCalledWith(
-        patch,
-        expect.objectContaining({ fields: Object.keys(patch) }),
-      );
+        expect(update).toHaveBeenCalledWith(patch, { where, fields: Object.keys(patch) });
+      });
     });
   });
 
@@ -200,18 +256,20 @@ describe('SequelizeDataSource > Collection', () => {
       const sequelizeCollection = new SequelizeCollection(name, dataSource, model);
 
       return {
+        model,
         destroy,
         sequelizeCollection,
       };
     };
 
-    it('should delegate work to `sequelize.model.update`', async () => {
+    it('should delegate work to `sequelize.model.delete``', async () => {
       const { destroy, sequelizeCollection } = setup();
       const filter = new Filter({});
+      const where = {};
 
-      await expect(sequelizeCollection.delete(filter)).resolves.not.toThrow();
+      await sequelizeCollection.delete(factories.caller.build(), filter);
 
-      expect(destroy).toHaveBeenCalledTimes(1);
+      expect(destroy).toHaveBeenCalledWith({ where });
     });
   });
 
@@ -256,7 +314,7 @@ describe('SequelizeDataSource > Collection', () => {
           renamed__field____grouped__: 'renamed__field__:value',
           'relations:as__field____grouped__': 'relations:as__field__:value',
           'relations:renamed__as__field____grouped__': 'relations:renamed__as__field__:value',
-          date__field____grouped__: 'date__field__:value',
+          date__field____grouped__: new Date('2000-10-01'),
         },
       ]);
 
@@ -274,7 +332,7 @@ describe('SequelizeDataSource > Collection', () => {
       };
     };
 
-    describe('whitout aggregate field', () => {
+    describe('without aggregate field', () => {
       it('should aggregate on *', async () => {
         const { findAll, sequelizeCollection } = setup();
         const aggregation = new Aggregation({
@@ -282,9 +340,9 @@ describe('SequelizeDataSource > Collection', () => {
         });
         const filter = new Filter({});
 
-        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-          { group: {}, value: '__aggregate__:value' },
-        ]);
+        await expect(
+          sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+        ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
@@ -304,9 +362,9 @@ describe('SequelizeDataSource > Collection', () => {
         });
         const filter = new Filter({});
 
-        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-          { group: {}, value: '__aggregate__:value' },
-        ]);
+        await expect(
+          sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+        ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
@@ -325,9 +383,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -338,7 +396,7 @@ describe('SequelizeDataSource > Collection', () => {
         });
       });
 
-      describe('when field name is deferent as column', () => {
+      describe('when field name is different as column', () => {
         it('should aggregate properly', async () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
@@ -347,9 +405,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -371,9 +429,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -393,9 +451,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -420,9 +478,9 @@ describe('SequelizeDataSource > Collection', () => {
             });
             const filter = new Filter({});
 
-            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-              { group: {}, value: '__aggregate__:value' },
-            ]);
+            await expect(
+              sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+            ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
             expect(findAll).toHaveBeenCalledTimes(1);
             expect(findAll).toHaveBeenCalledWith(
@@ -433,7 +491,7 @@ describe('SequelizeDataSource > Collection', () => {
           });
         });
 
-        describe('when field name is deferent as column', () => {
+        describe('when field name is different as column', () => {
           it('should aggregate properly', async () => {
             const { findAll, sequelizeCollection } = setup();
             const aggregation = new Aggregation({
@@ -442,9 +500,9 @@ describe('SequelizeDataSource > Collection', () => {
             });
             const filter = new Filter({});
 
-            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-              { group: {}, value: '__aggregate__:value' },
-            ]);
+            await expect(
+              sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+            ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
             expect(findAll).toHaveBeenCalledTimes(1);
             expect(findAll).toHaveBeenCalledWith(
@@ -472,9 +530,9 @@ describe('SequelizeDataSource > Collection', () => {
           conditionTree: new ConditionTreeLeaf('id', 'Equal', 42),
         });
 
-        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-          { group: {}, value: '__aggregate__:value' },
-        ]);
+        await expect(
+          sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+        ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
@@ -496,7 +554,9 @@ describe('SequelizeDataSource > Collection', () => {
         });
         const filter = new Filter({});
 
-        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+        await expect(
+          sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+        ).resolves.toEqual([
           { group: { __group_field__: '__group_field__:value' }, value: '__aggregate__:value' },
         ]);
 
@@ -511,7 +571,7 @@ describe('SequelizeDataSource > Collection', () => {
         );
       });
 
-      describe('when field name is deferent as column', () => {
+      describe('when field name is different as column', () => {
         it('should compute group properly', async () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
@@ -520,7 +580,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+          await expect(
+            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+          ).resolves.toEqual([
             { group: { renamed__field__: 'renamed__field__:value' }, value: '__aggregate__:value' },
           ]);
 
@@ -545,7 +607,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+          await expect(
+            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+          ).resolves.toEqual([
             {
               group: {
                 'relations:as__field__': 'relations:as__field__:value',
@@ -573,7 +637,9 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+          await expect(
+            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+          ).resolves.toEqual([
             {
               group: {
                 'relations:as__field__': 'relations:as__field__:value',
@@ -596,7 +662,7 @@ describe('SequelizeDataSource > Collection', () => {
           );
         });
 
-        describe('when field name is deferent as column', () => {
+        describe('when field name is different as column', () => {
           it('should aggregate properly', async () => {
             const { findAll, sequelizeCollection } = setup();
             const aggregation = new Aggregation({
@@ -605,7 +671,9 @@ describe('SequelizeDataSource > Collection', () => {
             });
             const filter = new Filter({});
 
-            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+            await expect(
+              sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+            ).resolves.toEqual([
               {
                 group: {
                   'relations:renamed__as__field__': 'relations:renamed__as__field__:value',
@@ -639,7 +707,9 @@ describe('SequelizeDataSource > Collection', () => {
             });
             const filter = new Filter({});
 
-            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
+            await expect(
+              sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+            ).resolves.toEqual([
               { group: { __group_field__: '__group_field__:value' }, value: '__aggregate__:value' },
             ]);
 
@@ -665,8 +735,11 @@ describe('SequelizeDataSource > Collection', () => {
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: { date__field__: 'date__field__:value' }, value: '__aggregate__:value' },
+          await expect(
+            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+          ).resolves.toEqual([
+            // date should be serialize in iso string
+            { group: { date__field__: '2000-10-01T00:00:00.000Z' }, value: '__aggregate__:value' },
           ]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
@@ -690,7 +763,7 @@ describe('SequelizeDataSource > Collection', () => {
         });
 
         describe('when dialect is mssql', () => {
-          it('should add date agregation to group', async () => {
+          it('should add date aggregation to group', async () => {
             const { findAll, sequelizeCollection } = setup('mssql');
 
             const aggregation = new Aggregation({
@@ -699,8 +772,14 @@ describe('SequelizeDataSource > Collection', () => {
             });
             const filter = new Filter({});
 
-            await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-              { group: { date__field__: 'date__field__:value' }, value: '__aggregate__:value' },
+            await expect(
+              sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+            ).resolves.toEqual([
+              {
+                // date should be serialize in iso string
+                group: { date__field__: '2000-10-01T00:00:00.000Z' },
+                value: '__aggregate__:value',
+              },
             ]);
 
             const aggregateFunction = {
@@ -724,16 +803,16 @@ describe('SequelizeDataSource > Collection', () => {
 
     describe('on sort', () => {
       describe('when dialect is postgres', () => {
-        it('should sort on aggragate by default', async () => {
+        it('should sort on aggregate by default', async () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
             operation: 'Count',
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -745,16 +824,16 @@ describe('SequelizeDataSource > Collection', () => {
       });
 
       describe('when dialect is mssql', () => {
-        it('should sort on aggragate by default', async () => {
+        it('should sort on aggregate by default', async () => {
           const { findAll, sequelizeCollection } = setup('mssql');
           const aggregation = new Aggregation({
             operation: 'Count',
           });
           const filter = new Filter({});
 
-          await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-            { group: {}, value: '__aggregate__:value' },
-          ]);
+          await expect(
+            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
@@ -765,16 +844,16 @@ describe('SequelizeDataSource > Collection', () => {
         });
       });
 
-      it('should sort on aggragate by default', async () => {
+      it('should sort on aggregate by default', async () => {
         const { findAll, sequelizeCollection } = setup('mysql');
         const aggregation = new Aggregation({
           operation: 'Count',
         });
         const filter = new Filter({});
 
-        await expect(sequelizeCollection.aggregate(filter, aggregation)).resolves.toEqual([
-          { group: {}, value: '__aggregate__:value' },
-        ]);
+        await expect(
+          sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
+        ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
 
         expect(findAll).toHaveBeenCalledTimes(1);
         expect(findAll).toHaveBeenCalledWith(
@@ -795,7 +874,7 @@ describe('SequelizeDataSource > Collection', () => {
         const limit = 1;
 
         await expect(
-          sequelizeCollection.aggregate(filter, aggregation, limit),
+          sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation, limit),
         ).resolves.not.toThrow();
 
         expect(findAll).toHaveBeenCalledTimes(1);

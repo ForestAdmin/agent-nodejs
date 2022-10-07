@@ -7,7 +7,7 @@ On our Live Demo example, our companies collection has many examples of Action. 
 ## In your code
 
 {% hint style='info' %}
-In the following example, we are making queries using the [Forest Admin Query Interface](../under-the-hood/queries/README.md).
+In the following example, we are making queries using the [Forest Admin Query Interface](../../under-the-hood/queries/README.md).
 
 As Forest Admin does not impose any restriction on the handler, you are free to call external APIs, or query your database directly instead.
 {% endhint %}
@@ -18,9 +18,9 @@ The action behavior is implemented in the `execute()` function.
 
 ```javascript
 agent.customizeCollection('companies', collection =>
-  collection.registerAction('Mark as live', {
+  collection.addAction('Mark as live', {
     scope: 'Single',
-    execute: async (context, responseBuilder) => {
+    execute: async (context, resultBuilder) => {
       // Change the company's status to live.
       await context.collection.update(context.filter, { status: 'live' });
     },
@@ -38,7 +38,7 @@ Note that actions can have three different scopes:
 
 After declaring it, your action will appear in the "Smart actions" tab within your collection settings.
 
-{% hint style='error' %}
+{% hint style='info' %}
 
 An action is displayed in the UI only if:
 

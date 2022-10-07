@@ -20,6 +20,16 @@ describe('FieldValidator', () => {
       expect(() => FieldValidator.validate(carsCollection, 'id')).not.toThrow();
     });
 
+    test('should not throw if the given value is null', () => {
+      expect(() => FieldValidator.validate(carsCollection, 'id', [null])).not.toThrow();
+    });
+
+    test('should not throw if the given value is allowed', () => {
+      expect(() =>
+        FieldValidator.validate(carsCollection, 'id', ['11111111-772d-48a8-871e-114a64251189']),
+      ).not.toThrow();
+    });
+
     test('should throw if the field does not exists', () => {
       expect(() => FieldValidator.validate(carsCollection, '__not_defined')).toThrow(
         "Column not found: 'cars.__not_defined'",

@@ -4,7 +4,16 @@ on:
   push:
     branches:
       - main
+      - alpha
+      - 'alpha-*'
+      - beta
+      - 'beta-*'
   pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build:
@@ -15,17 +24,15 @@ jobs:
       - name: Cancel previous running workflows
         uses: fkirc/skip-duplicate-actions@master
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14.17.6
+          node-version: 16.14.0
       - uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/_example/package.json') }}
-      - name: install dependencies
-        run: yarn install --frozen-lockfile --non-interactive --production=false
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
       - name: Bootstrap
-        run: yarn bootstrap
+        run: yarn bootstrap --ci
       - name: Build
         run: yarn build
       - name: Upload build
@@ -43,14 +50,14 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14.17.6
+          node-version: 16.14.0
       - name: Cache node_modules
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/_example/package.json') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
       - name: Download build
         uses: actions/download-artifact@v3
         with:
@@ -64,23 +71,27 @@ jobs:
   test:
     name: Testing
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     needs: [build]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14.17.6
+          node-version: 16.14.0
       - name: Cache node_modules
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/_example/package.json') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
       - name: Download build
         uses: actions/download-artifact@v3
         with:
           name: build
           path: 'packages/'
+      - name: Start docker datasource-sql containers
+        run: docker-compose -f ./packages/datasource-sql/docker-compose.yml up -d; sleep 20
+      - name: Start docker datasource-mongoose containers
+        run: docker-compose -f ./packages/datasource-mongoose/docker-compose.yml up -d; sleep 20
       - name: Send coverage
         uses: paambaati/codeclimate-action@84cea27117a473d605400ca3a97fcef7e433e2d6
         env:
@@ -90,44 +101,102 @@ jobs:
             ${{github.workspace}}/coverage/lcov.info:lcov
           coverageCommand: yarn test:coverage
 
-  doc:
-    name: Doc
+  doc-link-validation:
+    name: Validate Links in doc
     runs-on: ubuntu-latest
     needs: [build]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 14.17.6
+          node-version: 16.14.0
       - name: Cache node_modules
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/_example/package.json') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
+      - name: Check links in doc
+        run: yarn docs:check-links
+
+  doc-build:
+    name: Build doc
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.14.0
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
       - name: Build doc
         run: yarn docs
       - name: Archive documentation artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-pages-artifact@v1
         with:
-          name: api-reference
           path: api-reference
 
-  publish-doc:
-    name: Publish documentation
+  release:
+    name: Release packages
     runs-on: ubuntu-latest
-    needs: [doc, test, lint]
-    if: github.ref == 'refs/heads/main'
+    needs: [doc-build, doc-link-validation, test, lint]
+    if: |
+      github.event_name == 'push' 
+      && (
+        github.ref == 'refs/heads/main' 
+        || github.ref == 'refs/heads/beta' 
+        || github.ref == 'refs/heads/alpha' 
+        || startsWith('refs/heads/alpha-', github.ref) 
+        || startsWith('refs/heads/beta-', github.ref)
+      )
     steps:
       - uses: actions/checkout@v2
         with:
-          repository: ${{ github.repository }}.wiki
-      - name: Download a single artifact
+          fetch-depth: 0
+          persist-credentials: false # GITHUB_TOKEN must not be set for the semantic release
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.14.0
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
+      - name: Download build
         uses: actions/download-artifact@v3
         with:
-          name: api-reference
-      - name: Commit api reference
+          name: build
+          path: 'packages/'
+      - name: Configure npm
         run: |
-          git config --local user.email ${{ secrets.GIT_COMMITTER_EMAIL }}
-          git config --local user.name ${{ secrets.GIT_COMMITTER_NAME }}
-          git commit -am "docs: update api-reference on github wiki"
-          git push
+          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > .npmrc
+          cat .npmrc
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: 'Run multi-semantic-release'
+        run: '$(yarn bin)/multi-semantic-release --deps.bump=override'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GIT_AUTHOR_EMAIL: ${{ secrets.GIT_AUTHOR_EMAIL }}
+          GIT_AUTHOR_NAME: ${{ secrets.GIT_AUTHOR_NAME }}
+          GIT_COMMITTER_EMAIL: ${{ secrets.GIT_COMMITTER_EMAIL }}
+          GIT_COMMITTER_NAME: ${{ secrets.GIT_COMMITTER_NAME }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+  doc-publish:
+    name: Publish documentation
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: [release]
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1

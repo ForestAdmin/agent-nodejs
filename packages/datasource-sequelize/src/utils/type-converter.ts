@@ -29,61 +29,55 @@ export default class TypeConverter {
     return dataType;
   }
 
-  private static readonly dataTypeToColumnType: Record<string, PrimitiveTypes> = {
-    BIGINT: 'Number',
-    BLOB: null,
-    BOOLEAN: 'Boolean',
-    CHAR: 'String',
-    CIDR: null,
-    CITEXT: 'String',
-    DATE: 'Date',
-    DATEONLY: 'Dateonly',
-    DECIMAL: 'Number',
-    DOUBLE: 'Number',
-    ENUM: 'Enum',
-    FLOAT: 'Number',
-    GEOGRAPHY: null,
-    GEOMETRY: null,
-    HSTORE: null,
-    INET: null,
-    INTEGER: 'Number',
-    JSON: 'Json',
-    JSONB: 'Json',
-    JSONTYPE: null,
-    MACADDR: null,
-    MEDIUMINT: 'Number',
-    NOW: 'Date',
-    NUMBER: 'Number',
-    RANGE: null,
-    REAL: 'Number',
-    SMALLINT: 'Number',
-    STRING: 'String',
-    TEXT: 'String',
-    TIME: 'Timeonly',
-    TINYINT: 'Number',
-    TSVECTOR: null,
-    UUID: 'Uuid',
-    UUIDV1: 'Uuid',
-    UUIDV4: 'Uuid',
-    VIRTUAL: null,
-  };
+  private static getColumnTypeFromDataType(dataType: AbstractDataType): PrimitiveTypes {
+    switch (dataType.key) {
+      case DataTypes.BOOLEAN.key:
+        return 'Boolean';
+      case DataTypes.DATE.key:
+      case DataTypes.NOW.key:
+        return 'Date';
+      case DataTypes.DATEONLY.key:
+        return 'Dateonly';
+      case DataTypes.ENUM.key:
+        return 'Enum';
+      case DataTypes.JSON.key:
+      case DataTypes.JSONB.key:
+        return 'Json';
+      case DataTypes.BIGINT.key:
+      case DataTypes.DECIMAL.key:
+      case DataTypes.DOUBLE.key:
+      case DataTypes.FLOAT.key:
+      case DataTypes.INTEGER.key:
+      case DataTypes.MEDIUMINT.key:
+      case DataTypes.NUMBER.key:
+      case DataTypes.REAL.key:
+      case DataTypes.SMALLINT.key:
+      case DataTypes.TINYINT.key:
+        return 'Number';
+      case DataTypes.CHAR.key:
+      case DataTypes.CITEXT.key:
+      case DataTypes.STRING.key:
+      case DataTypes.TEXT.key:
+        return 'String';
+      case DataTypes.TIME.key:
+        return 'Timeonly';
+      case DataTypes.UUID.key:
+      case DataTypes.UUIDV1.key:
+      case DataTypes.UUIDV4.key:
+        return 'Uuid';
+      default:
+        throw new Error(`Unsupported data type: "${dataType}"`);
+    }
+  }
 
-  public static fromDataType(
-    dataType: AbstractDataTypeConstructor | ArrayDataType<AbstractDataTypeConstructor>,
-  ): ColumnType {
-    const dataTypeName = (dataType as AbstractDataType).key;
-
-    if (dataTypeName === 'ARRAY') {
+  public static fromDataType(dataType: AbstractDataType): ColumnType {
+    if (dataType.key === DataTypes.ARRAY.key) {
       const arrayDataType = dataType as ArrayDataType<AbstractDataTypeConstructor>;
 
-      return [this.fromDataType(arrayDataType.options.type)];
+      return [TypeConverter.fromDataType(arrayDataType.type as unknown as AbstractDataType)];
     }
 
-    const columnType = TypeConverter.dataTypeToColumnType[dataTypeName];
-
-    if (!columnType) throw new Error(`Unsupported data type: "${dataType}".`);
-
-    return columnType;
+    return TypeConverter.getColumnTypeFromDataType(dataType);
   }
 
   private static readonly baseOperators: Operator[] = [
@@ -94,76 +88,48 @@ export default class TypeConverter {
     'Present',
   ];
 
-  public static operatorsForDataType(
-    dataType: AbstractDataTypeConstructor | ArrayDataType<AbstractDataTypeConstructor>,
-  ): Set<Operator> {
-    const dataTypeName = dataType?.key;
-
-    if (dataTypeName === 'ARRAY') {
-      return new Set<Operator>([...this.baseOperators, 'In', 'IncludesAll', 'NotIn']);
+  public static operatorsForColumnType(columnType: ColumnType): Set<Operator> {
+    if (Array.isArray(columnType)) {
+      return new Set<Operator>([...TypeConverter.baseOperators, 'In', 'IncludesAll', 'NotIn']);
     }
 
-    switch (dataTypeName) {
-      case 'BOOLEAN':
-        return new Set<Operator>([...this.baseOperators]);
-      case 'UUID':
-      case 'UUIDV1':
-      case 'UUIDV4':
+    switch (columnType) {
+      case 'Boolean':
+        return new Set<Operator>([...TypeConverter.baseOperators]);
+      case 'Uuid':
         return new Set<Operator>([
-          ...this.baseOperators,
+          ...TypeConverter.baseOperators,
           'Contains',
           'EndsWith',
           'Like',
           'StartsWith',
         ]);
-      case 'BIGINT':
-      case 'DECIMAL':
-      case 'DOUBLE':
-      case 'FLOAT':
-      case 'INTEGER':
-      case 'MEDIUMINT':
-      case 'NUMBER':
-      case 'REAL':
-      case 'SMALLINT':
-      case 'TINYINT':
-        return new Set<Operator>([...this.baseOperators, 'GreaterThan', 'In', 'LessThan', 'NotIn']);
-      case 'CHAR':
-      case 'CITEXT':
-      case 'STRING':
-      case 'TEXT':
+      case 'Number':
         return new Set<Operator>([
-          ...this.baseOperators,
-          'Contains',
-          'EndsWith',
+          ...TypeConverter.baseOperators,
+          'GreaterThan',
+          'In',
+          'LessThan',
+          'NotIn',
+        ]);
+      case 'String':
+        return new Set<Operator>([
+          ...TypeConverter.baseOperators,
           'In',
           'Like',
+          'ILike',
           'LongerThan',
           'NotContains',
           'NotIn',
           'ShorterThan',
-          'StartsWith',
         ]);
-      case 'DATE':
-      case 'DATEONLY':
-      case 'NOW':
-      case 'TIME':
-        return new Set<Operator>([...this.baseOperators, 'GreaterThan', 'LessThan']);
-      case 'ENUM':
-        return new Set<Operator>([...this.baseOperators, 'In', 'NotIn']);
-      case 'JSON':
-      case 'JSONB':
-        return new Set<Operator>([...this.baseOperators]);
-      // Unsupported types.
-      case 'BLOB':
-      case 'CIDR':
-      case 'GEOGRAPHY':
-      case 'GEOMETRY':
-      case 'HSTORE':
-      case 'INET':
-      case 'MACADDR':
-      case 'RANGE':
-      case 'TSVECTOR':
-      case 'VIRTUAL':
+      case 'Date':
+      case 'Dateonly':
+        return new Set<Operator>([...TypeConverter.baseOperators, 'GreaterThan', 'LessThan']);
+      case 'Enum':
+        return new Set<Operator>([...TypeConverter.baseOperators, 'In', 'NotIn']);
+      case 'Json':
+        return new Set<Operator>([...TypeConverter.baseOperators]);
       default:
         return new Set<Operator>();
     }

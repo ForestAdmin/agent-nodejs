@@ -8,11 +8,6 @@ import RecordUtils from '../../utils/record';
 export type AggregationOperation = 'Count' | 'Sum' | 'Avg' | 'Max' | 'Min';
 export type DateOperation = 'Year' | 'Month' | 'Week' | 'Day';
 
-export type AggregateResult = {
-  value: unknown;
-  group: { [field: string]: unknown };
-};
-
 type Summary = {
   group: Record<string, unknown>;
   starCount: number;
@@ -25,18 +20,21 @@ type Summary = {
 export interface PlainAggregation {
   field?: string;
   operation: AggregationOperation;
-  groups?: AggregationGroup[];
+  groups?: Array<{ field: string; operation?: DateOperation }>;
 }
 
-export interface AggregationGroup {
-  field: string;
-  operation?: DateOperation;
-}
-
-export default class Aggregation implements PlainAggregation {
+type GenericAggregation = {
   field?: string;
   operation: AggregationOperation;
-  groups?: AggregationGroup[];
+  groups?: Array<{ field: string; operation?: DateOperation }>;
+};
+
+export type AggregateResult = { value: unknown; group: RecordData };
+
+export default class Aggregation {
+  field?: GenericAggregation['field'];
+  operation: GenericAggregation['operation'];
+  groups?: GenericAggregation['groups'];
 
   get projection(): Projection {
     const { field, groups } = this;
@@ -45,14 +43,26 @@ export default class Aggregation implements PlainAggregation {
     return new Projection(...aggregateFields);
   }
 
-  constructor(components: PlainAggregation) {
+  constructor(components: GenericAggregation) {
     this.field = components.field;
     this.operation = components.operation;
     this.groups = components.groups;
   }
 
-  apply(records: RecordData[], timezone: string): AggregateResult[] {
-    return this.formatSummaries(this.createSummaries(records, timezone));
+  apply(records: RecordData[], timezone: string, limit?: number): AggregateResult[] {
+    const rows = this.formatSummaries(this.createSummaries(records, timezone));
+
+    rows.sort((r1, r2) => {
+      if (r1.value === r2.value) return 0;
+
+      return r1.value < r2.value ? 1 : -1;
+    });
+
+    if (limit && rows.length > limit) {
+      rows.length = limit;
+    }
+
+    return rows;
   }
 
   nest(prefix: string): Aggregation {
@@ -61,7 +71,7 @@ export default class Aggregation implements PlainAggregation {
     }
 
     let nestedField: string;
-    let nestedGroups: AggregationGroup[];
+    let nestedGroups: GenericAggregation['groups'];
 
     if (this.field) {
       nestedField = `${prefix}:${this.field}`;

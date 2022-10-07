@@ -1,6 +1,12 @@
-import Agent from './builder/agent';
+import { CollectionCustomizer, TSchema } from '@forestadmin/datasource-customizer';
 
-export * from './types';
-export { default as Collection } from './builder/collection';
+import { AgentOptions } from './types';
+import Agent from './agent';
 
-export default Agent;
+export function createAgent<S extends TSchema = TSchema>(options: AgentOptions): Agent<S> {
+  return new Agent<S>(options);
+}
+
+export { Agent };
+export { CollectionCustomizer };
+export { AgentOptions } from './types';

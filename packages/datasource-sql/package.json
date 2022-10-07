@@ -1,12 +1,21 @@
 {
   "name": "@forestadmin/datasource-sql",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.55",
   "main": "dist/index.js",
   "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/datasource-sql"
+  },
   "dependencies": {
-    "@forestadmin/datasource-sequelize": "^1.0.0",
-    "@forestadmin/datasource-toolkit": "^1.0.0",
-    "sequelize": "6.18.0"
+    "@forestadmin/datasource-sequelize": "1.0.0-beta.46",
+    "@forestadmin/datasource-toolkit": "1.0.0-beta.36",
+    "pluralize": "^8.0.0",
+    "sequelize": "6.21.3"
   },
   "files": [
     "dist/**/*.js",
@@ -20,7 +29,6 @@
     "test": "jest"
   },
   "devDependencies": {
-    "lodash": "^4.17.21",
-    "sequelize": "6.18.0"
+    "lodash": "^4.17.21"
   }
 }

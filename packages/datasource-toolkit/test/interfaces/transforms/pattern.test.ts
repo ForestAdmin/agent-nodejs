@@ -36,4 +36,37 @@ describe('ConditionTreeOperators > Pattern', () => {
       ).toEqual({ field: 'column', operator: 'Like', value: '%something' });
     });
   });
+
+  describe('IContains', () => {
+    test('should be rewritten', () => {
+      expect(
+        alternatives.IContains[0].replacer(
+          new ConditionTreeLeaf('column', 'IContains', 'something'),
+          'Europe/Paris',
+        ),
+      ).toEqual({ field: 'column', operator: 'ILike', value: '%something%' });
+    });
+  });
+
+  describe('IStartsWith', () => {
+    test('should be rewritten', () => {
+      expect(
+        alternatives.IStartsWith[0].replacer(
+          new ConditionTreeLeaf('column', 'IStartsWith', 'something'),
+          'Europe/Paris',
+        ),
+      ).toEqual({ field: 'column', operator: 'ILike', value: 'something%' });
+    });
+  });
+
+  describe('IEndsWith', () => {
+    test('should be rewritten', () => {
+      expect(
+        alternatives.IEndsWith[0].replacer(
+          new ConditionTreeLeaf('column', 'IEndsWith', 'something'),
+          'Europe/Paris',
+        ),
+      ).toEqual({ field: 'column', operator: 'ILike', value: '%something' });
+    });
+  });
 });

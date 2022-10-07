@@ -10,16 +10,16 @@ The default behavior, when no exception is thrown in the handler is to display a
 
 ### Custom notifications
 
-The notification message and color can be customized
+The notification message and color can be customized.
 
 ```javascript
-return responseBuilder.success('Company is now live!');
+return resultBuilder.success('Company is now live!');
 ```
 
 <img src="../../assets/actions-custom-success-response.png" width="300">
 
 ```javascript
-return responseBuilder.error('The company was already live!');
+return resultBuilder.error('The company was already live!');
 ```
 
 <img src="../../assets/actions-custom-error-response.png" width="300">
@@ -28,50 +28,66 @@ return responseBuilder.error('The company was already live!');
 
 You can also return a HTML page as a response to give more feedback to the user who triggered your Action.
 
-For instance:
+For instance in case of success:
 
 ```javascript
 const record = await context.getRecord();
-return responseBuilder.success(
-  `
-    <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has been successfuly charged.</p>
-    <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
-    <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
-  `,
-  { type: 'html' },
-);
+return resultBuilder.success('Success', {
+  html: `
+      <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has been successfuly charged.</p>
+      <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
+      <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
+    `,
+});
 ```
 
-![](../../assets/actions-html-response.png)
+![](../../assets/actions-html-response-success.png)
+
+For instance in case of error:
+
+```javascript
+const record = await context.getRecord();
+return resultBuilder.error('An error occured', {
+  html: `
+      <p class="c-clr-1-4 l-mt l-mb">\$${record.amount / 100} USD has not been charged.</p>
+      <strong class="c-form__label--read c-clr-1-2">Credit card</strong>
+      <p class="c-clr-1-4 l-mb">**** **** **** ${record.source.last4}</p>
+      <strong class="c-form__label--read c-clr-1-2">Reason</strong>
+      <p class="c-clr-1-4 l-mb">You can not charge this credit card. The card is marked as blocked</p>
+    `,
+});
+```
+
+![](../../assets/actions-html-response-error.png)
 
 ### File generation
 
-On our Live Demo, the collection customers has an action Generate invoice. In this use case, we want to download the generated PDF invoice after clicking on the action. To indicate an action returns something to download, you have to enable the option `generateFile`.
+[On our Live Demo](https://app.forestadmin.com/livedemo), the collection customers has an action Generate invoice. In this use case, we want to download the generated PDF invoice after clicking on the action. To indicate an action returns something to download, you have to enable the option `generateFile`.
 
 The example code below will trigger a file download (With the file named `filename.txt`, containing `StringThatWillBeInTheFile` using `text/plain` mimetype).
 
 ```javascript
-collection.registerAction('Download a file', {
+collection.addAction('Download a file', {
   scope: 'Global',
   generateFile: true,
-  execute: async (context, responseBuilder) => {
-    return responseBuilder.file('StringThatWillBeInTheFile', 'filename.txt', 'text/plain');
+  execute: async (context, resultBuilder) => {
+    return resultBuilder.file('StringThatWillBeInTheFile', 'filename.txt', 'text/plain');
   },
 });
 ```
 
 ### Redirections
 
-To streamline your operation workflow, it could make sense to redirect to another page after a Smart action was successfully executed.
+To streamline your operation workflow, it could make sense to redirect to another page after an action was successfully executed.
 
 It is possible using the `redirectTo` function.
 
-The redirection works both for internal (\*.forestadmin.com pages) and external links.
+The redirection works both for internal (`\*.forestadmin.com` pages) and external links.
 
 {% tabs %} {% tab title="Internal link" %}
 
 ```javascript
-return responseBuilder.redirectTo(
+return resultBuilder.redirectTo(
   '/MyProject/MyEnvironment/MyTeam/data/20/index/record/20/108/activity',
 );
 ```
@@ -79,7 +95,7 @@ return responseBuilder.redirectTo(
 {% endtab %} {% tab title="External link" %}
 
 ```javascript
-return responseBuilder.redirectTo(
+return resultBuilder.redirectTo(
   'https://www.royalmail.com/portal/rm/track?trackNumber=ZW924750388GB',
 );
 ```
@@ -91,7 +107,7 @@ return responseBuilder.redirectTo(
 After an action you can set up a HTTP (or HTTPS) callback - a webhook - to forward information to other applications.
 
 ```javascript
-return responseBuilder.webhook(
+return resultBuilder.webhook(
   'http://my-company-name', // The url of the company providing the service.
   'POST', // The method you would like to use (typically a POST).
   {}, // You can add some headers if needed.
@@ -103,10 +119,10 @@ return responseBuilder.webhook(
 
 If you want to create an action accessible from the details or the summary view of a record involving related data, this section may interest you.
 
-In the example below, the “Add new transaction” action is accessible from the summary view. This action creates a new transaction and automatically refresh the “Emitted transactions” related data section to see the new transaction.
+In the example below, the “Add new transaction” action is accessible from the summary view. This action creates a new transaction and automatically refreshes the “Emitted transactions” related data section to see the new transaction.
 
 ```javascript
-return responseBuilder.success('New transaction emitted', {
+return resultBuilder.success('New transaction emitted', {
   invalidated: ['emitted_transactions'],
 });
 ```

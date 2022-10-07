@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
+import * as factories from './__factories__';
 import { AggregateResult } from '../src/interfaces/query/aggregation';
-import { CollectionSchema } from '../src';
-import { ColumnSchema, FieldSchema } from '../src/interfaces/schema';
+import { CollectionSchema, ColumnSchema, FieldSchema } from '../src/interfaces/schema';
 import { DataSource } from '../src/interfaces/collection';
 import { RecordData } from '../src/interfaces/record';
 import BaseCollection from '../src/base-collection';
@@ -161,11 +161,27 @@ describe('BaseCollection', () => {
     });
   });
 
+  describe('enableCount', () => {
+    class CollectionSearchable extends ConcreteCollection {
+      constructor(name: string, dataSource: DataSource) {
+        super(name, dataSource);
+
+        this.enableCount();
+      }
+    }
+
+    it('should set countable to true', () => {
+      const collection = new CollectionSearchable('__countable__', null);
+
+      expect(collection.schema.countable).toBe(true);
+    });
+  });
+
   describe('execute', () => {
     test('it always throws', async () => {
       const collection = new ConcreteCollection('books', null);
 
-      await expect(collection.execute('someAction')).rejects.toThrow();
+      await expect(collection.execute(factories.caller.build(), 'someAction')).rejects.toThrow();
     });
   });
 

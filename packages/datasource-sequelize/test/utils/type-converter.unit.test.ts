@@ -1,5 +1,5 @@
+import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { DataTypes } from 'sequelize';
-import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 import TypeConverter from '../../src/utils/type-converter';
 
@@ -17,14 +17,14 @@ describe('Utils > TypeConverter', () => {
   });
 
   describe('fromDataType', () => {
-    it('should throw with an unsupported data type', () => {
-      expect(() => TypeConverter.fromDataType(DataTypes.VIRTUAL)).toThrow(
-        'Unsupported data type: "VIRTUAL".',
+    it('should throw an error with an unsupported data type', () => {
+      expect(() => TypeConverter.fromDataType(DataTypes.VIRTUAL())).toThrow(
+        'Unsupported data type: "VIRTUAL"',
       );
     });
 
     it('should return a column type when known', () => {
-      expect(TypeConverter.fromDataType(DataTypes.BOOLEAN)).toBe('Boolean');
+      expect(TypeConverter.fromDataType(DataTypes.BOOLEAN())).toBe('Boolean');
     });
 
     it('should return an array column type when needed', () => {
@@ -34,10 +34,10 @@ describe('Utils > TypeConverter', () => {
     });
   });
 
-  describe('operatorsForDataType', () => {
+  describe('operatorsForColumnType', () => {
     describe('with an array type', () => {
       it('should return the matching set of operators', () => {
-        expect(TypeConverter.operatorsForDataType(DataTypes.ARRAY(DataTypes.BOOLEAN))).toEqual(
+        expect(TypeConverter.operatorsForColumnType(['Boolean'])).toEqual(
           new Set<Operator>([
             'Blank',
             'Equal',
@@ -54,10 +54,10 @@ describe('Utils > TypeConverter', () => {
 
     describe('with a non-array type', () => {
       describe.each([
-        ['Boolean', [DataTypes.BOOLEAN], ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present']],
+        ['Boolean', 'Boolean', ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present']],
         [
           'Universally Unique Identifier',
-          [DataTypes.UUID],
+          'Uuid',
           [
             'Blank',
             'Equal',
@@ -72,7 +72,7 @@ describe('Utils > TypeConverter', () => {
         ],
         [
           'Numerical',
-          [DataTypes.BIGINT],
+          'Number',
           [
             'Blank',
             'Equal',
@@ -87,14 +87,13 @@ describe('Utils > TypeConverter', () => {
         ],
         [
           'Textual',
-          [DataTypes.CHAR],
+          'String',
           [
             'Blank',
-            'Contains',
-            'EndsWith',
             'Equal',
             'In',
             'Like',
+            'ILike',
             'LongerThan',
             'Missing',
             'NotContains',
@@ -102,30 +101,22 @@ describe('Utils > TypeConverter', () => {
             'NotIn',
             'Present',
             'ShorterThan',
-            'StartsWith',
           ],
         ],
         [
           'Temporal',
-          [DataTypes.DATE],
+          'Date',
           ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present', 'LessThan', 'GreaterThan'],
         ],
-        [
-          'Enum',
-          [DataTypes.ENUM],
-          ['Blank', 'Equal', 'In', 'Missing', 'NotEqual', 'NotIn', 'Present'],
-        ],
-        ['JSON', [DataTypes.JSON], ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present']],
-        ['Unsupported', [DataTypes.BLOB], []],
-      ])('with "%s" types', (message, dataTypes, operatorList) => {
-        it.each([dataTypes])(
-          'should return the matching set of operators for type "%s"',
-          dataType => {
-            expect(TypeConverter.operatorsForDataType(dataType)).toEqual(
-              new Set<Operator>(operatorList as Operator[]),
-            );
-          },
-        );
+        ['Enum', 'Enum', ['Blank', 'Equal', 'In', 'Missing', 'NotEqual', 'NotIn', 'Present']],
+        ['JSON', 'Json', ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present']],
+        ['Unsupported', 'Blob', []],
+      ])('with "%s" types', (message, dataType, operatorList) => {
+        it('should return the matching set of operators for type "%s"', () => {
+          expect(TypeConverter.operatorsForColumnType(dataType as ColumnType)).toEqual(
+            new Set<Operator>(operatorList as Operator[]),
+          );
+        });
       });
     });
   });

@@ -1,3 +1,4 @@
+import { Caller } from '../interfaces/caller';
 import { Collection } from '../interfaces/collection';
 import { CompositeId, RecordData } from '../interfaces/record';
 import { FieldSchema, RelationSchema } from '../interfaces/schema';
@@ -71,10 +72,49 @@ export default class CollectionUtils {
     return inverse ? inverse[0] : null;
   }
 
+  static getThroughOrigin(collection: Collection, relationName: string): string {
+    const relation = collection.schema.fields[relationName];
+    if (relation.type !== 'ManyToMany') throw new Error('Relation must be many to many');
+
+    const throughCollection = collection.dataSource.getCollection(relation.throughCollection);
+    const originRelation = Object.entries(throughCollection.schema.fields).find(
+      ([, field]: [string, RelationSchema]) => {
+        return (
+          field.type === 'ManyToOne' &&
+          field.foreignCollection === collection.name &&
+          field.foreignKey === relation.originKey &&
+          field.foreignKeyTarget === relation.originKeyTarget
+        );
+      },
+    ) as [string, RelationSchema];
+
+    return originRelation ? originRelation[0] : null;
+  }
+
+  static getThroughTarget(collection: Collection, relationName: string): string {
+    const relation = collection.schema.fields[relationName];
+    if (relation.type !== 'ManyToMany') throw new Error('Relation must be many to many');
+
+    const throughCollection = collection.dataSource.getCollection(relation.throughCollection);
+    const foreignRelation = Object.entries(throughCollection.schema.fields).find(
+      ([, field]: [string, RelationSchema]) => {
+        return (
+          field.type === 'ManyToOne' &&
+          field.foreignCollection === relation.foreignCollection &&
+          field.foreignKey === relation.foreignKey &&
+          field.foreignKeyTarget === relation.foreignKeyTarget
+        );
+      },
+    ) as [string, RelationSchema];
+
+    return foreignRelation ? foreignRelation[0] : null;
+  }
+
   static async listRelation(
     collection: Collection,
     id: CompositeId,
     relationName: string,
+    caller: Caller,
     foreignFilter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
@@ -82,19 +122,31 @@ export default class CollectionUtils {
     const foreign = collection.dataSource.getCollection(relation.foreignCollection);
 
     // Optimization for many to many when there is not search/segment.
-    if (relation.type === 'ManyToMany' && relation.foreignRelation && foreignFilter.isNestable) {
-      const through = collection.dataSource.getCollection(relation.throughCollection);
-      const records = await through.list(
-        await FilterFactory.makeThroughFilter(collection, id, relationName, foreignFilter),
-        projection.nest(relation.foreignRelation),
-      );
+    if (relation.type === 'ManyToMany' && foreignFilter.isNestable) {
+      const foreignRelation = CollectionUtils.getThroughTarget(collection, relationName);
 
-      return records.map(r => r[relation.foreignRelation] as RecordData);
+      if (foreignRelation) {
+        const through = collection.dataSource.getCollection(relation.throughCollection);
+        const records = await through.list(
+          caller,
+          await FilterFactory.makeThroughFilter(
+            collection,
+            id,
+            relationName,
+            caller,
+            foreignFilter,
+          ),
+          projection.nest(foreignRelation),
+        );
+
+        return records.map(r => r[foreignRelation] as RecordData);
+      }
     }
 
     // Otherwise fetch the target table (this works with both relation types)
     return foreign.list(
-      await FilterFactory.makeForeignFilter(collection, id, relationName, foreignFilter),
+      caller,
+      await FilterFactory.makeForeignFilter(collection, id, relationName, caller, foreignFilter),
       projection,
     );
   }
@@ -103,6 +155,7 @@ export default class CollectionUtils {
     collection: Collection,
     id: CompositeId,
     relationName: string,
+    caller: Caller,
     foreignFilter: Filter,
     aggregation: Aggregation,
     limit?: number,
@@ -111,36 +164,54 @@ export default class CollectionUtils {
     const foreign = collection.dataSource.getCollection(relation.foreignCollection);
 
     // Optimization for many to many when there is not search/segment (saves one query)
-    if (relation.type === 'ManyToMany' && relation.foreignRelation && foreignFilter.isNestable) {
-      const through = collection.dataSource.getCollection(relation.throughCollection);
-      const records = await through.aggregate(
-        await FilterFactory.makeThroughFilter(collection, id, relationName, foreignFilter),
-        aggregation.nest(relation.foreignRelation),
-        limit,
-      );
+    if (relation.type === 'ManyToMany' && foreignFilter.isNestable) {
+      const foreignRelation = CollectionUtils.getThroughTarget(collection, relationName);
 
-      // unnest aggregation result
-      return records.map(({ value, group }) => ({
-        value,
-        group: Object.entries(group)
-          .map<[string, unknown]>(([key, v]) => [key.substring(key.indexOf(':') + 1), v])
-          .reduce((memo, [key, v]) => ({ ...memo, [key]: v }), {}),
-      }));
+      if (foreignRelation) {
+        const through = collection.dataSource.getCollection(relation.throughCollection);
+        const records = await through.aggregate(
+          caller,
+          await FilterFactory.makeThroughFilter(
+            collection,
+            id,
+            relationName,
+            caller,
+            foreignFilter,
+          ),
+          aggregation.nest(foreignRelation),
+          limit,
+        );
+
+        // unnest aggregation result
+        return records.map(({ value, group }) => ({
+          value,
+          group: Object.entries(group)
+            .map<[string, unknown]>(([key, v]) => [key.substring(key.indexOf(':') + 1), v])
+            .reduce((memo, [key, v]) => ({ ...memo, [key]: v }), {}),
+        }));
+      }
     }
 
     // Otherwise fetch the target table (this works with both relation types)
     return foreign.aggregate(
-      await FilterFactory.makeForeignFilter(collection, id, relationName, foreignFilter),
+      caller,
+      await FilterFactory.makeForeignFilter(collection, id, relationName, caller, foreignFilter),
       aggregation,
       limit,
     );
   }
 
-  static async getValue(collection: Collection, id: CompositeId, field: string): Promise<unknown> {
+  static async getValue(
+    collection: Collection,
+    caller: Caller,
+    id: CompositeId,
+    field: string,
+  ): Promise<unknown> {
     const index = SchemaUtils.getPrimaryKeys(collection.schema).indexOf(field);
     if (index !== -1) return id[index];
 
     const [record] = await collection.list(
+      caller,
       new Filter({ conditionTree: ConditionTreeFactory.matchIds(collection.schema, [id]) }),
       new Projection(field),
     );

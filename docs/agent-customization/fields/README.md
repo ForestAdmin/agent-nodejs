@@ -12,7 +12,7 @@ In order to bridge that gap, Forest Admin allows to add, move, remove and overri
 collection
   // Create a new field
   .addField('fullName', {
-    type: 'String',
+    columnType: 'String',
     dependencies: ['firstName', 'lastName'],
     getValues: (records, context) => records.map(r => `${r.firstName} ${r.lastName}`),
   })
@@ -23,6 +23,11 @@ collection
 
     return { firstName, lastName };
   })
+
+  // Add validators
+  .addFieldValidation('fullName', 'Present')
+  .addFieldValidation('fullName', 'ShorterThan', 30)
+  .addFieldValidation('fullName', 'LongerThan', 2)
 
   // Make it filterable and sortable
   .emulateFieldFiltering('fullName')

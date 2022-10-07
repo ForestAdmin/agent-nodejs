@@ -1,8 +1,16 @@
 {
   "name": "@forestadmin/datasource-toolkit",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.36",
   "main": "dist/src/index.js",
   "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/datasource-toolkit"
+  },
   "files": [
     "dist/src/**/*.js",
     "dist/src/**/*.d.ts"
@@ -22,7 +30,7 @@
   },
   "dependencies": {
     "luxon": "^2.3.0",
-    "object-hash": "^2.2.0",
+    "object-hash": "^3.0.0",
     "uuid": "^8.3.2"
   }
 }

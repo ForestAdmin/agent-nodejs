@@ -1,0 +1,10 @@
+version: '2'
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: forest_datasource_test_mongoose
+    ports:
+      - '27019:27017'
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password

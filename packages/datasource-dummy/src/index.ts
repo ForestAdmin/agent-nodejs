@@ -1,55 +1,35 @@
-import {
-  DataSource,
-  DataSourceDecorator,
-  RelationCollectionDecorator,
-} from '@forestadmin/datasource-toolkit';
+import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
+import { DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import DummyDataSource from './datasource';
 
-export default function makeDummyDataSource(): DataSource {
-  const dummy = new DummyDataSource();
-  const relations = new DataSourceDecorator(dummy, RelationCollectionDecorator);
+// eslint-disable-next-line import/prefer-default-export
+export function createDummyDataSource(): DataSourceFactory {
+  const customizer = new DataSourceCustomizer();
 
-  relations.getCollection('persons').addRelation('books', {
-    type: 'OneToMany',
-    foreignCollection: 'books',
-    originKey: 'authorId',
-  });
+  customizer.addDataSource(async () => new DummyDataSource());
 
-  relations.getCollection('books').addRelation('author', {
-    type: 'ManyToOne',
-    foreignCollection: 'persons',
-    foreignKey: 'authorId',
-  });
+  customizer.customizeCollection('persons', collection =>
+    collection
+      .addOneToManyRelation('books', 'books', { originKey: 'authorId' })
+      .addManyToOneRelation('author', 'persons', { foreignKey: 'authorId' })
+      .addManyToManyRelation('librairies', 'libraries', 'librariesBooks', {
+        originKey: 'bookId',
+        foreignKey: 'libraryId',
+      }),
+  );
 
-  relations.getCollection('books').addRelation('librairies', {
-    type: 'ManyToMany',
-    foreignCollection: 'libraries',
-    throughCollection: 'librariesBooks',
-    originKey: 'bookId',
-    foreignKey: 'libraryId',
-    foreignRelation: 'library',
-  });
+  customizer.customizeCollection('libraries', collection =>
+    collection.addManyToManyRelation('books', 'books', 'librariesBooks', {
+      originKey: 'libraryId',
+      foreignKey: 'bookId',
+    }),
+  );
 
-  relations.getCollection('libraries').addRelation('books', {
-    type: 'ManyToMany',
-    originKey: 'libraryId',
-    foreignKey: 'bookId',
-    throughCollection: 'librariesBooks',
-    foreignCollection: 'books',
-    foreignRelation: 'book',
-  });
+  customizer.customizeCollection('librariesBooks', collection =>
+    collection
+      .addManyToOneRelation('book', 'books', { foreignKey: 'bookId' })
+      .addManyToOneRelation('library', 'libraries', { foreignKey: 'libraryId' }),
+  );
 
-  relations.getCollection('librariesBooks').addRelation('book', {
-    type: 'ManyToOne',
-    foreignCollection: 'books',
-    foreignKey: 'bookId',
-  });
-
-  relations.getCollection('librariesBooks').addRelation('library', {
-    type: 'ManyToOne',
-    foreignCollection: 'libraries',
-    foreignKey: 'libraryId',
-  });
-
-  return relations;
+  return customizer.getFactory();
 }

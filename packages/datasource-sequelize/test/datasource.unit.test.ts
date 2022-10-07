@@ -26,15 +26,15 @@ describe('SequelizeDataSource', () => {
     const firstSequelize = new Sequelize({ dialect: 'postgres' });
     firstSequelize.define('cars', {});
     firstSequelize.define('owner', {});
-    const firstDatasource = new SequelizeDataSource(firstSequelize);
+    const firstDataSource = new SequelizeDataSource(firstSequelize);
 
     const secondSequelize = new Sequelize({ dialect: 'postgres' });
     secondSequelize.define('owner', {});
     secondSequelize.define('cars', {});
-    const secondDatasource = new SequelizeDataSource(secondSequelize);
+    const secondDataSource = new SequelizeDataSource(secondSequelize);
 
-    const firstCollectionNames = firstDatasource.collections.map(({ name }) => name);
-    const secondCollectionNames = secondDatasource.collections.map(({ name }) => name);
+    const firstCollectionNames = firstDataSource.collections.map(({ name }) => name);
+    const secondCollectionNames = secondDataSource.collections.map(({ name }) => name);
 
     expect(firstCollectionNames).toStrictEqual(secondCollectionNames);
   });

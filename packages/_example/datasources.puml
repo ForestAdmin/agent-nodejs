@@ -2,13 +2,37 @@
 !pragma layout smetana
 !theme cyborg-outline
 
-title: Datasources not connected
+title: DataSources not connected
 
 class STORE {
   String name
 }
 class STORE
-note left: TABLE IN MYSQL
+note bottom: TABLE IN MYSQL
+
+class ACCOUNT {
+   String firstName
+   String lastName
+   String storeId
+   Object address: {
+   -- Number streetNumber
+   -- String streetName
+   -- String city
+   -- String country
+   },
+   Object bills: [{
+   -- String title
+   -- Number amount
+   -- Date issueDate
+   -- items: [{
+   ---- Enum['high', 'medium', 'low'] importance
+   ---- String title
+   ---- Number amount
+   -- }],
+  }],
+}
+class ACCOUNT
+note bottom: TABLE IN MONGODB
 
 class OWNER {
   String firstName
@@ -38,6 +62,34 @@ class RENTALS {
 class RENTALS
 note bottom: TABLE IN MSSQL
 
+class CARD {
+  BigInt cardNumber
+  Enum cardType
+  Boolean isActive
+}
+note bottom: TABLE IN MARIADB
+
+class CUSTOMER {
+  String name
+  String firstName
+}
+note bottom: TABLE IN MARIADB
+
+class POST {
+  String title
+  String body
+}
+note bottom: REST API TYPICODE
+
+class COMMENT {
+  String name
+  String email
+  String body
+}
+note bottom: REST API TYPICODE
+
+POST "1" -- "*" COMMENT : has
 DVD "*" -- "*" RENTALS : has
+CUSTOMER "1" -- "*" CARD : has
 
 @enduml

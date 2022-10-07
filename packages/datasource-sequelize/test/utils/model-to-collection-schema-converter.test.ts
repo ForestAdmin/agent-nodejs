@@ -7,7 +7,7 @@ import TypeConverter from '../../src/utils/type-converter';
 describe('Utils > ModelToCollectionSchemaConverter', () => {
   describe('convert', () => {
     const setup = () => {
-      const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+      const sequelize = new Sequelize('postgres://', { logging: false });
 
       return {
         sequelize,
@@ -15,7 +15,9 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
     };
 
     it('should fail with a null model', () => {
-      expect(() => ModelToCollectionSchemaConverter.convert(null)).toThrow('Invalid (null) model.');
+      expect(() => ModelToCollectionSchemaConverter.convert(null, () => {})).toThrow(
+        'Invalid (null) model.',
+      );
     });
 
     it('should return an "empty" schema with an equally empty model', () => {
@@ -24,12 +26,14 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
       // "ID" column is added by Sequelize when no primary key is explicitely defined.
       const schema: CollectionSchema = {
         actions: {},
+        countable: true,
         fields: {
           id: {
             columnType: 'Number',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+            filterOperators: TypeConverter.operatorsForColumnType('Number'),
             isPrimaryKey: true,
             isReadOnly: true,
+            isSortable: true,
             validation: [],
             type: 'Column',
           },
@@ -40,7 +44,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
       const model = sequelize.define('__model__', {}, { timestamps: false });
 
-      expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+      expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
     });
 
     it('should honor primary key definition', () => {
@@ -48,12 +52,14 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
       const schema: CollectionSchema = {
         actions: {},
+        countable: true,
         fields: {
           myPk: {
             columnType: 'Number',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+            filterOperators: TypeConverter.operatorsForColumnType('Number'),
             isPrimaryKey: true,
             isReadOnly: true,
+            isSortable: true,
             validation: [],
             type: 'Column',
           },
@@ -74,7 +80,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         { timestamps: false },
       );
 
-      expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+      expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
     });
 
     it('should convert all model attributes to collection fields', () => {
@@ -82,42 +88,49 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
       const schema: CollectionSchema = {
         actions: {},
+        countable: true,
         fields: {
           myPk: {
             columnType: 'Number',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+            filterOperators: TypeConverter.operatorsForColumnType('Number'),
             isPrimaryKey: true,
+            isSortable: true,
             validation: [],
             type: 'Column',
           },
           myBoolean: {
             columnType: 'Boolean',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.BOOLEAN),
+            filterOperators: TypeConverter.operatorsForColumnType('Boolean'),
+            isSortable: true,
             validation: [],
             type: 'Column',
           },
           myValue: {
             columnType: 'String',
             defaultValue: '__default__',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.STRING),
+            filterOperators: TypeConverter.operatorsForColumnType('String'),
+            isSortable: true,
             validation: [],
             type: 'Column',
           },
           createdAt: {
             columnType: 'Date',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.DATE),
+            filterOperators: TypeConverter.operatorsForColumnType('Date'),
+            isSortable: true,
             validation: [],
             type: 'Column',
           },
           updatedAt: {
             columnType: 'Date',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.DATE),
+            filterOperators: TypeConverter.operatorsForColumnType('Date'),
+            isSortable: true,
             validation: [],
             type: 'Column',
           },
           myRequired: {
             columnType: 'Uuid',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.UUID),
+            filterOperators: TypeConverter.operatorsForColumnType('Uuid'),
+            isSortable: true,
             validation: [
               {
                 operator: 'Present',
@@ -127,15 +140,17 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           },
           myEnum: {
             columnType: 'Enum',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.ENUM),
+            filterOperators: TypeConverter.operatorsForColumnType('Enum'),
             enumValues: ['enum1', 'enum2', 'enum3'],
+            isSortable: true,
             validation: [],
             type: 'Column',
           },
           myJson: {
             columnType: 'Json',
-            filterOperators: TypeConverter.operatorsForDataType(DataTypes.JSON),
+            filterOperators: TypeConverter.operatorsForColumnType('Json'),
             defaultValue: { defautProperty: 'the value' },
+            isSortable: true,
             validation: [],
             type: 'Column',
           },
@@ -173,7 +188,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         { timestamps: true },
       );
 
-      expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+      expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
     });
 
     describe('with model containing associations', () => {
@@ -187,10 +202,12 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            countable: true,
             fields: {
               Model2Id: {
                 columnType: 'Number',
-                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                filterOperators: TypeConverter.operatorsForColumnType('Number'),
+                isSortable: true,
                 validation: [],
                 type: 'Column',
               },
@@ -202,9 +219,10 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               },
               id: {
                 columnType: 'Number',
-                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,
                 isReadOnly: true,
+                isSortable: true,
                 validation: [],
                 type: 'Column',
               },
@@ -213,7 +231,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             segments: [],
           };
 
-          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+          expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
       });
 
@@ -221,28 +239,38 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         it('should build correct schema', () => {
           const { sequelize } = setup();
 
-          const model = sequelize.define('__model__', {}, { timestamps: false });
-          const model2 = sequelize.define('__model2__', {}, { timestamps: false });
+          const model = sequelize.define(
+            '__model__',
+            { modelId: { primaryKey: true, type: DataTypes.INTEGER, autoIncrement: true } },
+            { timestamps: false },
+          );
+          const model2 = sequelize.define(
+            '__model2__',
+            { modelId2: { primaryKey: true, type: DataTypes.INTEGER, autoIncrement: true } },
+            { timestamps: false },
+          );
           model.belongsToMany(model2, { through: 'ss' });
           model2.belongsToMany(model, { through: 'ss' });
 
           const schema: CollectionSchema = {
             actions: {},
+            countable: true,
             fields: {
               __model2__s: {
                 foreignCollection: '__model2__',
-                foreignKey: 'Model2Id',
-                originKey: 'ModelId',
+                foreignKey: 'Model2ModelId2',
+                foreignKeyTarget: 'modelId2',
+                originKey: 'ModelModelId',
+                originKeyTarget: 'modelId',
                 throughCollection: 'ss',
-                originKeyTarget: 'id',
-                foreignKeyTarget: 'id',
                 type: 'ManyToMany',
               },
-              id: {
+              modelId: {
                 columnType: 'Number',
-                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,
                 isReadOnly: true,
+                isSortable: true,
                 validation: [],
                 type: 'Column',
               },
@@ -251,7 +279,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             segments: [],
           };
 
-          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+          expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
       });
 
@@ -265,6 +293,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            countable: true,
             fields: {
               __model2__s: {
                 foreignCollection: '__model2__',
@@ -274,9 +303,10 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               },
               id: {
                 columnType: 'Number',
-                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,
                 isReadOnly: true,
+                isSortable: true,
                 validation: [],
                 type: 'Column',
               },
@@ -285,7 +315,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             segments: [],
           };
 
-          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+          expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
       });
 
@@ -299,6 +329,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            countable: true,
             fields: {
               __model2__: {
                 foreignCollection: '__model2__',
@@ -308,9 +339,10 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               },
               id: {
                 columnType: 'Number',
-                filterOperators: TypeConverter.operatorsForDataType(DataTypes.INTEGER),
+                filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,
                 isReadOnly: true,
+                isSortable: true,
                 validation: [],
                 type: 'Column',
               },
@@ -319,13 +351,14 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             segments: [],
           };
 
-          expect(ModelToCollectionSchemaConverter.convert(model)).toEqual(schema);
+          expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
       });
 
       describe('when association is unknown', () => {
-        it('should throw an error', () => {
+        it('should Warn an error', () => {
           const model = {
+            name: 'modelTest',
             getAttributes: () => ({}),
             associations: {
               relationsModel: {
@@ -334,8 +367,13 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             } as ModelDefined<any, any>['associations'],
           } as ModelDefined<any, any>;
 
-          expect(() => ModelToCollectionSchemaConverter.convert(model)).toThrow(
-            'Unsupported association: "badAssociation".',
+          const logger = jest.fn();
+          ModelToCollectionSchemaConverter.convert(model, logger);
+
+          expect(logger).toHaveBeenCalledWith(
+            'Warn',
+            "Skipping association 'modelTest.relationsModel' " +
+              '(Unsupported association: "badAssociation".)',
           );
         });
       });

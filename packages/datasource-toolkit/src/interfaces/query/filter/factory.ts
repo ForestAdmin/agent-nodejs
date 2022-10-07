@@ -1,5 +1,6 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
+import { Caller } from '../../caller';
 import { Collection } from '../../collection';
 import { CompositeId } from '../../record';
 import { ManyToManySchema } from '../../schema';
@@ -38,8 +39,8 @@ export default class FilterFactory {
     );
   }
 
-  static getPreviousPeriodFilter(filter: Filter): Filter {
-    const now = DateTime.now().setZone(filter.timezone);
+  static getPreviousPeriodFilter(filter: Filter, timezone: string): Filter {
+    const now = DateTime.now().setZone(timezone);
 
     return filter.override({
       conditionTree: filter.conditionTree.replaceLeafs(leaf => {
@@ -98,18 +99,26 @@ export default class FilterFactory {
     collection: Collection,
     id: CompositeId,
     relationName: string,
+    caller: Caller,
     baseForeignFilter: PaginatedFilter,
   ): Promise<PaginatedFilter> {
     const relation = collection.schema.fields[relationName] as ManyToManySchema;
-    const originValue = await CollectionUtils.getValue(collection, id, relation.originKeyTarget);
+    const originValue = await CollectionUtils.getValue(
+      collection,
+      caller,
+      id,
+      relation.originKeyTarget,
+    );
+    const foreignRelation = CollectionUtils.getThroughTarget(collection, relationName);
 
     // Optimization for many to many when there is not search/segment (saves one query)
-    if (relation.foreignRelation && baseForeignFilter.isNestable) {
-      const baseThroughFilter = baseForeignFilter.nest(relation.foreignRelation);
+    if (foreignRelation && baseForeignFilter.isNestable) {
+      const baseThroughFilter = baseForeignFilter.nest(foreignRelation);
 
       return baseThroughFilter.override({
         conditionTree: ConditionTreeFactory.intersect(
           new ConditionTreeLeaf(relation.originKey, 'Equal', originValue),
+          new ConditionTreeLeaf(relation.foreignKey, 'Present'),
           baseThroughFilter.conditionTree,
         ),
       });
@@ -119,7 +128,14 @@ export default class FilterFactory {
     // are correctly apply, and then match ids in the though collection.
     const target = collection.dataSource.getCollection(relation.foreignCollection);
     const records = await target.list(
-      await FilterFactory.makeForeignFilter(collection, id, relationName, baseForeignFilter),
+      caller,
+      await FilterFactory.makeForeignFilter(
+        collection,
+        id,
+        relationName,
+        caller,
+        baseForeignFilter,
+      ),
       new Projection(relation.foreignKeyTarget),
     );
 
@@ -147,10 +163,16 @@ export default class FilterFactory {
     collection: Collection,
     id: CompositeId,
     relationName: string,
+    caller: Caller,
     baseForeignFilter: PaginatedFilter,
   ): Promise<Filter> {
     const relation = SchemaUtils.getToManyRelation(collection.schema, relationName);
-    const originValue = await CollectionUtils.getValue(collection, id, relation.originKeyTarget);
+    const originValue = await CollectionUtils.getValue(
+      collection,
+      caller,
+      id,
+      relation.originKeyTarget,
+    );
 
     // Compute condition tree to match parent record.
     let originTree: ConditionTree;
@@ -161,8 +183,12 @@ export default class FilterFactory {
     } else {
       // ManyToMany case (more complicated...)
       const through = collection.dataSource.getCollection(relation.throughCollection);
-      const throughTree = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
+      const throughTree = ConditionTreeFactory.intersect(
+        new ConditionTreeLeaf(relation.originKey, 'Equal', originValue),
+        new ConditionTreeLeaf(relation.foreignKey, 'Present'),
+      );
       const records = await through.list(
+        caller,
         new Filter({ conditionTree: throughTree }),
         new Projection(relation.foreignKey),
       );

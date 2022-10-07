@@ -3,6 +3,7 @@ import {
   AggregateResult,
   Aggregation,
   BaseCollection,
+  Caller,
   DataSource,
   FieldSchema,
   Filter,
@@ -47,7 +48,7 @@ export default class BaseDummyCollection extends BaseCollection {
     }
   }
 
-  async create(data: RecordData[]): Promise<RecordData[]> {
+  async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     const records = [];
 
     for (const datum of data) {
@@ -62,50 +63,50 @@ export default class BaseDummyCollection extends BaseCollection {
     return records;
   }
 
-  async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+  async list(
+    caller: Caller,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
     let result: RecordData[] = this.records.slice();
-    if (filter?.conditionTree) result = filter.conditionTree.apply(result, this, filter.timezone);
+    if (filter?.conditionTree) result = filter.conditionTree.apply(result, this, caller.timezone);
     if (filter?.sort) result = filter.sort.apply(result);
     if (filter?.page) result = filter.page.apply(result);
 
     return projection.apply(result);
   }
 
-  async update(filter: Filter, patch: RecordData): Promise<void> {
+  async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     let target: RecordData[] = this.records.slice();
-    if (filter?.conditionTree) target = filter.conditionTree.apply(target, this, filter.timezone);
+    if (filter?.conditionTree) target = filter.conditionTree.apply(target, this, caller.timezone);
 
     for (const record of target) Object.assign(record, patch);
   }
 
-  async delete(filter: Filter): Promise<void> {
+  async delete(caller: Caller, filter: Filter): Promise<void> {
     let target: RecordData[] = this.records.slice();
-    if (filter?.conditionTree) target = filter.conditionTree.apply(target, this, filter.timezone);
+    if (filter?.conditionTree) target = filter.conditionTree.apply(target, this, caller.timezone);
 
     for (const record of target) this.records.splice(this.records.indexOf(record), 1);
   }
 
   async aggregate(
+    caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    const result = await this.list(filter, aggregation.projection);
-
-    let aggregationResults = aggregation.apply(result, filter.timezone);
-
-    aggregationResults = aggregationResults.sort(
-      ({ value: a }, { value: b }) => (b as number) - (a as number),
+    return aggregation.apply(
+      await this.list(caller, filter, aggregation.projection),
+      caller.timezone,
+      limit,
     );
-
-    return limit ? aggregationResults.slice(0, limit) : aggregationResults;
   }
 
   override async execute(): Promise<ActionResult> {
     return {
       type: 'Success',
       message: 'Record set as active',
-      format: 'text',
       invalidated: new Set(),
     };
   }

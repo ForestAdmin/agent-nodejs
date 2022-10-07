@@ -8,7 +8,7 @@ Writing an abstraction layer is full of compromises: small enough so that it can
 
 # When to use?
 
-When customizing your forest admin with custom code (creating new actions, fields, ...), you can either access your data using the Forest Admin Query Interface, or using the native driver. It makes no difference for the admin panel.
+When customizing your Forest Admin with custom code (creating new actions, fields, ...), you can either access your data using the Forest Admin Query Interface, or using the native driver. It makes no difference for the admin panel.
 
 | -                        | Forest Admin Query Interface              | Native Driver                          |
 | ------------------------ | ----------------------------------------- | -------------------------------------- |
@@ -19,7 +19,7 @@ When customizing your forest admin with custom code (creating new actions, field
 
 This example shows the same segment implemented using both methods.
 
-Using the forest admin query interface
+Using the forest admin query interface:
 
 ```javascript
 collection.addSegment('mySegment', async context => {
@@ -31,7 +31,7 @@ collection.addSegment('mySegment', async context => {
 });
 ```
 
-Using a native driver
+Using a native driver:
 
 ```javascript
 const client = new Client({ host: 'localhost', database: 'myDb', port: 5432 });
@@ -52,7 +52,7 @@ collection.addSegment('mySegment', async context => {
 
 # Interface
 
-More detail about those methods can be found in the [API Reference](https://github.com/ForestAdmin/agent-nodejs/wiki/@forestadmin.datasource-toolkit.Collection)
+More detail about those methods can be found in the [API Reference](https://forestadmin.github.io/agent-nodejs/interfaces/_forestadmin_datasource_toolkit.Collection.html).
 
 All parameters are explained in depth in the following pages:
 

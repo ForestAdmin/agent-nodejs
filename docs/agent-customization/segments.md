@@ -8,13 +8,13 @@ Segments are designed for those who want to _systematically_ visualize data acco
 
 Segments can be configured from the interface, without the need to write any code.
 
-This is documented in the [User Guide](https://docs.forestadmin.com/user-guide/collections/segments)
+This is documented in the [User Guide](https://docs.forestadmin.com/user-guide/collections/segments).
 
 # From your agent
 
 Sometimes, segment filters are complicated and closely tied to your business. Forest Admin allows you to code how the segment is computed.
 
-For instance, on our Live Demo example, we’ve implemented a Segment on the collection `products` to allow admin users to see the bestsellers at a glance.
+For instance, on our [Live Demo example](https://app.forestadmin.com/livedemo), we’ve implemented a Segment on the collection `products` to allow admin users to see the bestsellers at a glance.
 
 ## Example
 
@@ -36,6 +36,6 @@ agent.customizeCollection('products', collection =>
 
     // Return a condition tree which matches those records
     return { field: 'id', operator: 'In', value: rows.map(r => r['product_id']) };
-  }),
+  });
 );
 ```

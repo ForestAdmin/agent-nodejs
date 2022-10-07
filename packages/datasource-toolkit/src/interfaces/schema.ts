@@ -8,15 +8,16 @@ export type ActionSchema = {
   staticForm?: boolean;
 };
 
+export type DataSourceSchema = {
+  charts: string[];
+};
+
 export type CollectionSchema = {
   actions: { [actionName: string]: ActionSchema };
+  countable: boolean;
   fields: { [fieldName: string]: FieldSchema };
   searchable: boolean;
   segments: string[];
-};
-
-export type DataSourceSchema = {
-  collections: { [name: string]: CollectionSchema };
 };
 
 export type RelationSchema = ManyToOneSchema | OneToManySchema | OneToOneSchema | ManyToManySchema;
@@ -60,7 +61,6 @@ export type ManyToManySchema = {
   foreignCollection: string;
   foreignKey: string;
   foreignKeyTarget: string;
-  foreignRelation?: string;
   originKey: string;
   originKeyTarget: string;
   type: 'ManyToMany';

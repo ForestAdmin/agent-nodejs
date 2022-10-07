@@ -5,26 +5,51 @@ import {
   MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE,
   MAP_ALLOWED_TYPES_FOR_OPERATOR,
 } from './rules';
+import { ValidationError } from '../errors';
 import CollectionUtils from '../utils/collection';
 import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
+import ConditionTreeBranch from '../interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeLeaf from '../interfaces/query/condition-tree/nodes/leaf';
 import FieldValidator from './field';
 import TypeGetter from './type-getter';
-import ValidationError from '../errors';
 
 export default class ConditionTreeValidator {
   static validate(conditionTree: ConditionTree, collection: Collection): void {
-    return conditionTree.forEachLeaf((currentCondition: ConditionTreeLeaf): void => {
-      const fieldSchema = CollectionUtils.getFieldSchema(
-        collection,
-        currentCondition.field,
-      ) as ColumnSchema;
+    if (conditionTree instanceof ConditionTreeBranch) {
+      ConditionTreeValidator.validateBranch(conditionTree, collection);
+    } else if (conditionTree instanceof ConditionTreeLeaf) {
+      ConditionTreeValidator.validateLeaf(conditionTree, collection);
+    } else {
+      throw new ValidationError('Unexpected condition tree type');
+    }
+  }
 
-      ConditionTreeValidator.throwIfOperatorNotAllowedWithColumn(currentCondition, fieldSchema);
-      ConditionTreeValidator.throwIfValueNotAllowedWithOperator(currentCondition, fieldSchema);
-      ConditionTreeValidator.throwIfOperatorNotAllowedWithColumnType(currentCondition, fieldSchema);
-      ConditionTreeValidator.throwIfValueNotAllowedWithColumnType(currentCondition, fieldSchema);
-    });
+  private static validateBranch(branch: ConditionTreeBranch, collection: Collection): void {
+    if (!['And', 'Or'].includes(branch.aggregator)) {
+      throw new ValidationError(
+        `The given aggregator '${branch.aggregator}' ` +
+          `is not supported. The supported values are: ['Or', 'And']`,
+      );
+    }
+
+    if (!Array.isArray(branch.conditions)) {
+      throw new ValidationError(
+        `The given conditions '${branch.conditions}' were expected to be an array`,
+      );
+    }
+
+    for (const condition of branch.conditions) {
+      ConditionTreeValidator.validate(condition, collection);
+    }
+  }
+
+  private static validateLeaf(leaf: ConditionTreeLeaf, collection: Collection): void {
+    const fieldSchema = CollectionUtils.getFieldSchema(collection, leaf.field) as ColumnSchema;
+
+    ConditionTreeValidator.throwIfOperatorNotAllowedWithColumn(leaf, fieldSchema);
+    ConditionTreeValidator.throwIfValueNotAllowedWithOperator(leaf, fieldSchema);
+    ConditionTreeValidator.throwIfOperatorNotAllowedWithColumnType(leaf, fieldSchema);
+    ConditionTreeValidator.throwIfValueNotAllowedWithColumnType(leaf, fieldSchema);
   }
 
   private static throwIfOperatorNotAllowedWithColumn(
@@ -89,10 +114,20 @@ export default class ConditionTreeValidator {
     conditionTree: ConditionTreeLeaf,
     columnSchema: ColumnSchema,
   ): void {
-    const { value, field } = conditionTree;
+    const { value, field, operator } = conditionTree;
     const { columnType } = columnSchema;
     const allowedTypes = MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE[columnType as PrimitiveTypes];
 
-    FieldValidator.validateValue(field, columnSchema, value, allowedTypes);
+    // exclude some cases where the value is not related to the columnType of the field
+    if (
+      operator !== 'ShorterThan' &&
+      operator !== 'LongerThan' &&
+      operator !== 'AfterXHoursAgo' &&
+      operator !== 'BeforeXHoursAgo' &&
+      operator !== 'PreviousXDays' &&
+      operator !== 'PreviousXDaysToDate'
+    ) {
+      FieldValidator.validateValue(field, columnSchema, value, allowedTypes);
+    }
   }
 }

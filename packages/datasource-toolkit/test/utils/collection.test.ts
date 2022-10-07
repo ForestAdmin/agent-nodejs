@@ -3,6 +3,7 @@ import Aggregation from '../../src/interfaces/query/aggregation';
 import CollectionUtils from '../../src/utils/collection';
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import Projection from '../../src/interfaces/query/projection';
 
 describe('CollectionUtils', () => {
   const setupWithUnsupportedRelation = () => {
@@ -32,6 +33,7 @@ describe('CollectionUtils', () => {
           id: factories.columnSchema.build({
             isPrimaryKey: true,
             columnType: 'Number',
+            filterOperators: new Set(['In', 'Equal']),
           }),
           oneToManyRelationField: factories.oneToManySchema.build({
             foreignCollection: 'reviews',
@@ -73,7 +75,9 @@ describe('CollectionUtils', () => {
           name: factories.columnSchema.build(),
           manyToManyRelationField: factories.manyToManySchema.build({
             throughCollection: 'librariesBooks',
-            foreignRelation: 'myLibrary',
+            foreignCollection: 'libraries',
+            foreignKey: 'libraryId',
+            originKey: 'bookId',
           }),
         },
       }),
@@ -267,6 +271,34 @@ describe('CollectionUtils', () => {
       });
     });
 
+    describe('getThroughOrigin', () => {
+      test('should get origin of many to many', () => {
+        const { dataSource } = setupWithAllRelations();
+
+        expect(
+          CollectionUtils.getThroughOrigin(dataSource.getCollection('persons'), 'myBooks'),
+        ).toStrictEqual('myPerson');
+
+        expect(
+          CollectionUtils.getThroughOrigin(dataSource.getCollection('books'), 'myPersons'),
+        ).toStrictEqual('myBook');
+      });
+    });
+
+    describe('getThroughTarget', () => {
+      test('should get origin of many to many', () => {
+        const { dataSource } = setupWithAllRelations();
+
+        expect(
+          CollectionUtils.getThroughTarget(dataSource.getCollection('persons'), 'myBooks'),
+        ).toStrictEqual('myBook');
+
+        expect(
+          CollectionUtils.getThroughTarget(dataSource.getCollection('books'), 'myPersons'),
+        ).toStrictEqual('myPerson');
+      });
+    });
+
     describe('getFieldSchema', () => {
       test('should throw if a relation is not many to one', () => {
         const { dataSource } = setupWithAllRelations();
@@ -292,6 +324,7 @@ describe('CollectionUtils', () => {
             dataSource.getCollection('books'),
             [2],
             'aNonSupportedRelationField',
+            factories.caller.build(),
             baseFilter,
             aggregation,
           ),
@@ -306,6 +339,7 @@ describe('CollectionUtils', () => {
       test('should return the aggregate result of the relation', async () => {
         const { dataSource } = setupWithOneToManyRelation();
         const aggregation = factories.aggregation.build();
+        const caller = factories.caller.build();
         const baseFilter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build(),
         });
@@ -314,6 +348,7 @@ describe('CollectionUtils', () => {
           dataSource.getCollection('books'),
           [2],
           'oneToManyRelationField',
+          caller,
           baseFilter,
           aggregation,
           55,
@@ -324,6 +359,7 @@ describe('CollectionUtils', () => {
           new ConditionTreeLeaf('bookId', 'Equal', 2),
         );
         expect(dataSource.getCollection('reviews').aggregate).toHaveBeenCalledWith(
+          caller,
           baseFilter.override({ conditionTree: expectedCondition }),
           aggregation,
           55,
@@ -346,10 +382,12 @@ describe('CollectionUtils', () => {
           .spyOn(dataSource.getCollection('librariesBooks'), 'aggregate')
           .mockResolvedValue([{ value: 34, group: { 'myBook:id': 1, 'myBook:aField': '1' } }]);
 
+        const caller = factories.caller.build();
         const aggregateResults = await CollectionUtils.aggregateRelation(
           dataSource.getCollection('books'),
           [2],
           'manyToManyRelationField',
+          caller,
           baseFilter,
           aggregation,
           55,
@@ -357,10 +395,12 @@ describe('CollectionUtils', () => {
 
         const expectedCondition = ConditionTreeFactory.intersect(
           new ConditionTreeLeaf('bookId', 'Equal', 2),
+          new ConditionTreeLeaf('libraryId', 'Present'),
           baseFilter.conditionTree.nest('myLibrary'),
         );
 
         expect(dataSource.getCollection('librariesBooks').aggregate).toHaveBeenCalledWith(
+          caller,
           baseFilter.override({ conditionTree: expectedCondition }),
           new Aggregation({
             operation: 'Max',
@@ -388,6 +428,7 @@ describe('CollectionUtils', () => {
             dataSource.getCollection('books'),
             [2],
             'aNonSupportedRelationField',
+            factories.caller.build(),
             baseFilter,
             factories.projection.build(),
           ),
@@ -405,12 +446,14 @@ describe('CollectionUtils', () => {
         const baseFilter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build(),
         });
+        const caller = factories.caller.build();
         const projection = factories.projection.build();
 
         await CollectionUtils.listRelation(
           dataSource.getCollection('books'),
           [2],
           'oneToManyRelationField',
+          caller,
           baseFilter,
           projection,
         );
@@ -420,6 +463,7 @@ describe('CollectionUtils', () => {
           new ConditionTreeLeaf('bookId', 'Equal', 2),
         );
         expect(dataSource.getCollection('reviews').list).toHaveBeenCalledWith(
+          caller,
           baseFilter.override({ conditionTree: expectedCondition }),
           projection,
         );
@@ -429,7 +473,7 @@ describe('CollectionUtils', () => {
     describe('when the relation is a many to many relation', () => {
       test('should return the record list of the relation', async () => {
         const { dataSource } = setupWithManyToManyRelation();
-        const projection = factories.projection.build();
+        const projection = new Projection();
         const paginatedFilter = factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build(),
         });
@@ -438,21 +482,24 @@ describe('CollectionUtils', () => {
           .spyOn(dataSource.getCollection('librariesBooks'), 'list')
           .mockResolvedValue([{ myLibrary: { id: 1, aField: 'aValue' } }]);
 
+        const caller = factories.caller.build();
         const listResults = await CollectionUtils.listRelation(
           dataSource.getCollection('books'),
           [2],
           'manyToManyRelationField',
+          caller,
           paginatedFilter,
           projection,
         );
 
-        const expectedCondition = ConditionTreeFactory.intersect(
-          new ConditionTreeLeaf('bookId', 'Equal', 2),
-          paginatedFilter.conditionTree.nest('myLibrary'),
-        );
         expect(dataSource.getCollection('librariesBooks').list).toHaveBeenCalledWith(
+          caller,
           paginatedFilter.override({
-            conditionTree: expectedCondition,
+            conditionTree: ConditionTreeFactory.intersect(
+              new ConditionTreeLeaf('bookId', 'Equal', 2),
+              new ConditionTreeLeaf('libraryId', 'Present'),
+              paginatedFilter.conditionTree.nest('myLibrary'),
+            ),
             sort: paginatedFilter.sort,
           }),
           projection.nest('myBook'),
@@ -476,7 +523,12 @@ describe('CollectionUtils', () => {
       test('it should return directly', async () => {
         const books = setupGetValue();
 
-        const value = await CollectionUtils.getValue(books, ['=[id-value]='], 'id');
+        const value = await CollectionUtils.getValue(
+          books,
+          factories.caller.build(),
+          ['=[id-value]='],
+          'id',
+        );
 
         expect(value).toEqual('=[id-value]=');
         expect(books.list).not.toHaveBeenCalled();
@@ -486,10 +538,12 @@ describe('CollectionUtils', () => {
     test('it should call collection list', async () => {
       const books = setupGetValue();
 
-      const value = await CollectionUtils.getValue(books, ['=[id-value]='], 'field');
+      const caller = factories.caller.build();
+      const value = await CollectionUtils.getValue(books, caller, ['=[id-value]='], 'field');
 
       expect(value).toEqual(123);
       expect(books.list).toHaveBeenCalledWith(
+        caller,
         { conditionTree: { field: 'id', operator: 'Equal', value: '=[id-value]=' } },
         ['field'],
       );

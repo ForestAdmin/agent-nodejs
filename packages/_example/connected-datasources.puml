@@ -2,39 +2,102 @@
 !pragma layout smetana
 !theme cyborg-outline
 
-title: Datasources connected with ForestAdmin
+title: DataSources connected with ForestAdmin
 
 class STORE {
+  .. Fields ..
   String name
+  .. Imported ..
   String ownerFullName
 }
 
+class REVIEW {
+  String title
+  String message
+}
+
 class OWNER {
+  .. Fields ..
   String firstName
   String lastName
+  .. Computed ..
   String fullName
 }
 
-class ADDRESS {
-  String zipCode
-  String address
+class ACCOUNT {
+  .. Fields ..
+   String firstName
+   String lastName
+   String storeId
+   Object address: {
+   -- Number streetNumber
+   -- String streetName
+   -- String city
+   -- String country
+   },
+   Object bills: [{
+   -- String title
+   -- Number amount
+   -- Date issueDate
+   -- items: [{
+   ---- Enum['high', 'medium', 'low'] importance
+   ---- String title
+   ---- Number amount
+   -- }],
+  }],
 }
 
 class DVD {
+  .. Fields ..
   String title
+  .. Computed ..
+  Int numberOfRentals
+  .. Renamed ..
   Int rentalPriceInDollar
+  .. Actions ..
+  IncreaseTheRentalPrice()
 }
-class DVD
-note bottom: ACTION => Increase the rental price
 
 class RENTALS {
+  .. Computed ..
   Int numberOfDays
+  .. Segments ..
+  MoreThan50Days()
 }
-class RENTALS
-note bottom: SEQUENCE => More than 50 days
 
+class CARD {
+  .. Fields ..
+  BigInt cardNumber
+  Enum cardType
+  Boolean isActive
+}
+
+class CUSTOMER {
+  .. Fields ..
+  String name
+  String firstName
+}
+
+class POST {
+  .. Fields ..
+  String title
+  String body
+}
+
+class COMMENT {
+  .. Fields ..
+  String name
+  String email
+  String body
+}
+
+OWNER "1" -- "*" POST : has
+POST "1" -- "*" COMMENT : has
 STORE "*" -- "1" OWNER : has
 STORE "1" -- "*" DVD : has
+STORE "1" -- "*" REVIEW : has
+STORE "1" -- "*" ACCOUNT : has
 DVD "*" -- "*" RENTALS : has
-STORE "1" -- "1" ADDRESS : has
+CUSTOMER "1" -- "*" CARD : has
+CUSTOMER "1" -- "*" RENTALS : has
 @enduml

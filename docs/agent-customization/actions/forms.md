@@ -4,7 +4,7 @@ For example, you might want to specify a reason if you want to block a user acco
 In the following example, an action form will be displayed for the "Charge credit card" action.
 
 ```javascript
-collection.registerAction('Charge credit card', {
+collection.addAction('Charge credit card', {
   scope: 'Bulk',
   form: [
     {
@@ -24,12 +24,12 @@ collection.registerAction('Charge credit card', {
       type: 'String',
     },
   ],
-  execute: async (context, responseBuilder) => {
+  execute: async (context, resultBuilder) => {
     try {
       // Add your business logic here
-      return responseBuilder.success(`Amount charged!`);
+      return resultBuilder.success(`Amount charged!`);
     } catch (error) {
-      return responseBuilder.error(`Failed to charge amount: ${error}`);
+      return resultBuilder.error(`Failed to charge amount: ${error}`);
     }
   },
 });
@@ -39,7 +39,7 @@ collection.registerAction('Charge credit card', {
 
 ## Form entries
 
-Here is the list of available options to customize the input form. More informations can be found on our API Reference
+Here is the list of available options to customize the input form. More informations can be found on our [API Reference](https://forestadmin.github.io/agent-nodejs/interfaces/_forestadmin_datasource_toolkit.ActionField.html).
 
 | name         | type                                     | description                                                                                                                                                     |
 | ------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -78,7 +78,7 @@ To make action form dynamic, you can use a `ContextHandler` instead of static va
 When using action, you'll probably need te get the values or ids of the selected records. See below how this can be achieved.
 Obviously this feature is only available for `Single` or `Bulk` action.
 
-To do that, you just need to use the `context` provided object to `ContextHandler` you can defined on each compatible properties of the smart action.
+To do that, you just need to use the `context` provided object to `ContextHandler` you can defined on each compatible properties of the action.
 
 {% tabs %} {% tab title="Using a single action" %}
 
@@ -118,7 +118,7 @@ const value = context.formValues['Amount'];
 The following example takes advantage of a few `ContextHandler` properties:
 
 ```javascript
-collection.registerAction('Tell me a greeting', {
+collection.addAction('Tell me a greeting', {
   scope: 'Single',
   form: [
     {
@@ -142,8 +142,8 @@ collection.registerAction('Tell me a greeting', {
       },
     },
   ],
-  execute: async (context, responseBuilder) => {
-    return responseBuilder.success(`Hello ${context.formValues['How should we refer to you?']}!`);
+  execute: async (context, resultBuilder) => {
+    return resultBuilder.success(`Hello ${context.formValues['How should we refer to you?']}!`);
   },
 });
 ```
@@ -157,7 +157,7 @@ Finally, executing the action will display a notification based on the user choi
 Use the `if` property of a field to allow you to hide or display it upon some logic.
 
 ```javascript
-collection.registerAction('Leave a review', {
+collection.addAction('Leave a review', {
   scope: 'Single',
   form: [
     {
@@ -171,9 +171,9 @@ collection.registerAction('Leave a review', {
       if: context => Number(context.formValues.Rating) < 4,
     },
   ],
-  execute: async (context, responseBuilder) => {
+  execute: async (context, resultBuilder) => {
     // use context.formValues to save theses informations or trigger an event.
-    return responseBuilder.success(`Thank you for your review!`);
+    return resultBuilder.success(`Thank you for your review!`);
   },
 });
 ```

@@ -1,11 +1,13 @@
-import { FindOptions, ModelDefined, ProjectionAlias, col, fn } from 'sequelize';
+import { FindOptions, ModelDefined, ProjectionAlias, Sequelize } from 'sequelize';
 
 import {
   AggregateResult,
   Aggregation,
   BaseCollection,
+  Caller,
   DataSource,
   Filter,
+  Logger,
   PaginatedFilter,
   Projection,
   RecordData,
@@ -14,71 +16,106 @@ import {
 import AggregationUtils from './utils/aggregation';
 import ModelConverter from './utils/model-to-collection-schema-converter';
 import QueryConverter from './utils/query-converter';
+import Serializer from './utils/serializer';
+import handleErrors from './utils/error-handler';
 
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected model: ModelDefined<any, any>;
-  private aggregationUtils: AggregationUtils;
+  private col: Sequelize['col'];
+  private fn: Sequelize['fn'];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(name: string, datasource: DataSource, model: ModelDefined<any, any>) {
+  private aggregationUtils: AggregationUtils;
+  private queryConverter: QueryConverter;
+
+  constructor(
+    name: string,
+    datasource: DataSource,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    model: ModelDefined<any, any>,
+    logger?: Logger,
+  ) {
     super(name, datasource);
 
     if (!model) throw new Error('Invalid (null) model instance.');
 
     this.model = model;
+    this.col = this.model.sequelize.col;
+    this.fn = this.model.sequelize.fn;
+
     this.aggregationUtils = new AggregationUtils(this.model);
+    this.queryConverter = new QueryConverter(this.model);
 
-    const modelSchema = ModelConverter.convert(this.model);
+    const modelSchema = ModelConverter.convert(this.model, logger);
 
+    this.enableCount();
     this.addFields(modelSchema.fields);
     this.addSegments(modelSchema.segments);
   }
 
-  async create(data: RecordData[]): Promise<RecordData[]> {
-    const records = await this.model.bulkCreate(data);
+  async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
+    const records = await handleErrors('create', () => this.model.bulkCreate(data));
 
-    return records.map(record => record.get({ plain: true }));
+    return records.map(record => Serializer.serialize(record.get({ plain: true })));
   }
 
-  async list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    let include = QueryConverter.getIncludeWithAttributesFromProjection(projection);
+  async list(
+    caller: Caller,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
+    let include = this.queryConverter.getIncludeWithAttributesFromProjection(projection);
 
     if (filter.conditionTree) {
       include = include.concat(
-        QueryConverter.getIncludeFromProjection(filter.conditionTree.projection),
+        this.queryConverter.getIncludeFromProjection(filter.conditionTree.projection),
+      );
+    }
+
+    if (filter.sort) {
+      include = include.concat(
+        this.queryConverter.getIncludeFromProjection(filter.sort.projection),
       );
     }
 
     const query: FindOptions = {
       attributes: projection.columns,
-      where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
+      where: this.queryConverter.getWhereFromConditionTree(filter.conditionTree),
       include,
       limit: filter.page?.limit,
       offset: filter.page?.skip,
-      order: QueryConverter.getOrderFromSort(filter.sort),
+      order: this.queryConverter.getOrderFromSort(filter.sort),
       subQuery: false,
     };
 
     const records = await this.model.findAll(query);
 
-    return records.map(record => record.get({ plain: true }));
+    return records.map(record => Serializer.serialize(record.get({ plain: true })));
   }
 
-  async update(filter: Filter, patch: RecordData): Promise<void> {
-    await this.model.update(patch, {
-      where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
+  async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+    const options = {
+      where: await this.queryConverter.getWhereFromConditionTreeToByPassInclude(
+        filter.conditionTree,
+      ),
       fields: Object.keys(patch),
-    });
+    };
+
+    await handleErrors('update', () => this.model.update(patch, options));
   }
 
-  async delete(filter: Filter): Promise<void> {
-    await this.model.destroy({
-      where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
-    });
+  async delete(caller: Caller, filter: Filter): Promise<void> {
+    const options = {
+      where: await this.queryConverter.getWhereFromConditionTreeToByPassInclude(
+        filter.conditionTree,
+      ),
+    };
+
+    await handleErrors('delete', () => this.model.destroy(options));
   }
 
   async aggregate(
+    caller: Caller,
     filter: Filter,
     aggregation: Aggregation,
     limit?: number,
@@ -88,10 +125,13 @@ export default class SequelizeCollection extends BaseCollection {
     if (aggregation.operation === 'Count' || !aggregationField) {
       aggregationField = '*';
     } else {
-      aggregationField = this.aggregationUtils.unAmbigousField(aggregationField);
+      aggregationField = this.aggregationUtils.quoteField(aggregationField);
     }
 
-    const aggregationFunction = fn(aggregation.operation.toUpperCase(), col(aggregationField));
+    const aggregationFunction = this.fn(
+      aggregation.operation.toUpperCase(),
+      this.col(aggregationField),
+    );
     const aggregationAttribute: ProjectionAlias = [
       aggregationFunction,
       this.aggregationUtils.aggregateFieldName,
@@ -100,11 +140,11 @@ export default class SequelizeCollection extends BaseCollection {
     const { groups, attributes: groupAttributes } =
       this.aggregationUtils.getGroupAndAttributesFromAggregation(aggregation.groups);
 
-    let include = QueryConverter.getIncludeFromProjection(aggregation.projection);
+    let include = this.queryConverter.getIncludeFromProjection(aggregation.projection);
 
     if (filter.conditionTree) {
       include = include.concat(
-        QueryConverter.getIncludeFromProjection(filter.conditionTree.projection),
+        this.queryConverter.getIncludeFromProjection(filter.conditionTree.projection),
       );
     }
 
@@ -113,7 +153,7 @@ export default class SequelizeCollection extends BaseCollection {
     const query: FindOptions = {
       attributes: [...groupAttributes, aggregationAttribute],
       group: groups,
-      where: QueryConverter.getWhereFromConditionTree(this.model, filter.conditionTree),
+      where: this.queryConverter.getWhereFromConditionTree(filter.conditionTree),
       include,
       limit,
       order: [order],

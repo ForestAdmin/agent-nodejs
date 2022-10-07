@@ -15,23 +15,27 @@ class MovieCollection extends BaseCollection {
   constructor() {
     // [...]
 
-    this.addColumn('id', {
+    this.addField('id', {
+      type: 'Column',
       columnType: 'Number',
       isPrimaryKey: true,
     });
 
-    this.addColumn('title', {
+    this.addField('title', {
+      type: 'Column',
       columnType: 'String',
       validation: [{ operator: 'Present' }],
     });
 
-    this.addColumn('mpa_rating', {
+    this.addField('mpa_rating', {
+      type: 'Column',
       columnType: 'Enum',
       enumValues: ['G', 'PG', 'PG-13', 'R', 'NC-17'],
       defaultValue: 'G',
     });
 
-    this.addColumn('stars', {
+    this.addField('stars', {
+      type: 'Column',
       columnType: [{ firstName: 'String', lastName: 'String' }],
     });
   }
@@ -48,7 +52,7 @@ You can read all about it in ["Under the hood > Data Model > Typing"](../../unde
 
 When using primitive type fields, Forest Admin supports declaring a validation clause, which will be imported into the UI of the admin panel to validate records before creating / updating them.
 
-The API for validation is the same than with [condition trees](../custom/query-translation/filters.md#condition-trees), besides the fact than their is no `"field"` entry.
+The API for validation is the same than with [condition trees](../../under-the-hood/queries/filters.md#condition-trees), besides the fact than their is no `"field"` entry.
 
 ```json
 {
@@ -66,12 +70,12 @@ The API for validation is the same than with [condition trees](../custom/query-t
 {% hint style='warning' %}
 Only **intra**-datasource relationships should be declared at the collection level.
 
-For **inter**-datasource relationships, you should use [jointures at the customization step](../../agent-customization/relationships.md)
+For **inter**-datasource relationships, you should use [jointures at the customization step](../../agent-customization/relationships/README.md)
 {% endhint %}
 
 You can declare relationships at the collection level, but that means that the datasource you are making is responsible from handling them.
 
-This will work out of the box for datasources using the "local-cache" strategy, however please read ["Using query translation > Intra-datasource Relationships"](./query-translation/relationships.md), before starting for the "query translation" strategy.
+This will work out of the box for datasources using the "local-cache" strategy, however please read ["Intra-datasource Relationships"](./relationships.md), before starting for the "query translation" strategy.
 
 ## Examples
 
@@ -82,17 +86,18 @@ class MovieCollection extends BaseCollection {
   constructor() {
     // [...]
 
-    this.addRelation('director', {
+    this.addField('director', {
       type: 'ManyToOne',
       foreignCollection: 'people',
       foreignKey: 'directorId',
       foreignKeyTarget: 'id',
     });
 
-    this.addRelation('actors', {
+    this.addField('actors', {
       type: 'ManyToMany',
       foreignCollection: 'people',
       throughCollection: 'actorsOnMovies',
+
       originKey: 'movieId',
       originKeyTarget: 'id',
       foreignKey: 'actorId',

@@ -1,3 +1,4 @@
+import { AggregateResult, Aggregation, ValidationError } from '@forestadmin/datasource-toolkit';
 import {
   Dialect,
   GroupOption,
@@ -5,22 +6,21 @@ import {
   ModelDefined,
   OrderItem,
   ProjectionAlias,
-  col,
+  Sequelize,
 } from 'sequelize';
 import { Fn } from 'sequelize/types/utils';
 
-import {
-  AggregateResult,
-  AggregationGroup,
-  ValidationError,
-} from '@forestadmin/datasource-toolkit';
-
 import DateAggregationConverter from './date-aggregation-converter';
+import Serializer from './serializer';
+import unAmbigousField from './un-ambigous';
 
 export default class AggregationUtils {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private model: ModelDefined<any, any>;
   private dialect: Dialect;
+  private col: Sequelize['col'];
+
+  private dateAggregationConverter: DateAggregationConverter;
 
   readonly aggregateFieldName = '__aggregate__';
 
@@ -28,49 +28,28 @@ export default class AggregationUtils {
   constructor(model: ModelDefined<any, any>) {
     this.model = model;
     this.dialect = this.model.sequelize.getDialect() as Dialect;
+    this.col = this.model.sequelize.col;
+
+    this.dateAggregationConverter = new DateAggregationConverter(this.model.sequelize);
   }
 
-  getGroupFieldName(groupField: string) {
+  private getGroupFieldName(groupField: string) {
     return `${groupField}__grouped__`;
   }
 
-  unAmbigousField(field: string) {
-    let tableName: string;
-    let fieldName: string;
+  quoteField(field: string) {
+    try {
+      const safeField = unAmbigousField(this.model, field, true);
 
-    if (field.includes(':')) {
-      const [associationName, nestedField] = field.split(':');
-      const association = this.model.associations[associationName];
-
-      if (!association) {
-        throw new ValidationError(
-          `${this.model.name} model does not have association "${associationName}".`,
-        );
-      }
-
-      const associationField = association.target.getAttributes()[nestedField];
-
-      if (!associationField) {
-        throw new ValidationError(`${associationName} model does not have field "${nestedField}".`);
-      }
-
-      tableName = associationName;
-      fieldName = associationField.field;
-    } else {
-      const modelField = this.model.getAttributes()[field];
-
-      if (!modelField) {
-        throw new ValidationError(`${this.model.name} model does not have field "${field}".`);
-      }
-
-      tableName = this.model.name;
-      fieldName = modelField.field;
+      return this.model.sequelize.getQueryInterface().quoteIdentifiers(safeField);
+    } catch {
+      throw new ValidationError(
+        `Invalid access: "${field}" on "${this.model.name}" does not exist.`,
+      );
     }
-
-    return this.model.sequelize.getQueryInterface().quoteIdentifiers(`${tableName}.${fieldName}`);
   }
 
-  getGroupAndAttributesFromAggregation(aggregationQueryGroup: AggregationGroup[]): {
+  getGroupAndAttributesFromAggregation(aggregationQueryGroup: Aggregation['groups']): {
     groups: GroupOption;
     attributes: ProjectionAlias[];
   } {
@@ -78,11 +57,10 @@ export default class AggregationUtils {
     const groups = aggregationQueryGroup?.map(group => {
       const { field } = group;
       const groupFieldName = this.getGroupFieldName(field);
-      const groupField = this.unAmbigousField(field);
+      const groupField = this.quoteField(field);
 
       if (group.operation) {
-        const groupFunction = DateAggregationConverter.convertToDialect(
-          this.dialect,
+        const groupFunction = this.dateAggregationConverter.convertToDialect(
           groupField,
           group.operation,
         );
@@ -92,7 +70,7 @@ export default class AggregationUtils {
         return this.dialect === 'mssql' ? groupFunction : groupFieldName;
       }
 
-      attributes.push([col(groupField), groupFieldName]);
+      attributes.push([this.col(groupField), groupFieldName]);
 
       return this.dialect === 'mssql' ? groupField : groupFieldName;
     });
@@ -106,13 +84,13 @@ export default class AggregationUtils {
     // FIXME handle properly order
     switch (this.dialect) {
       case 'postgres':
-        order = [col(this.aggregateFieldName), 'DESC NULLS LAST'];
+        order = [this.col(this.aggregateFieldName), 'DESC NULLS LAST'];
         break;
       case 'mssql':
         order = [aggregationFunction, 'DESC'];
         break;
       default:
-        order = [col(this.aggregateFieldName), 'DESC'];
+        order = [this.col(this.aggregateFieldName), 'DESC'];
     }
 
     return order;
@@ -121,7 +99,7 @@ export default class AggregationUtils {
   computeResult(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rows: Model<any, any>[],
-    aggregationQueryGroup: AggregationGroup[],
+    aggregationQueryGroup: Aggregation['groups'],
   ): AggregateResult[] {
     return rows.map(aggregate => {
       const aggregateResult = {
@@ -130,7 +108,9 @@ export default class AggregationUtils {
       };
 
       aggregationQueryGroup?.forEach(({ field }) => {
-        aggregateResult.group[field] = aggregate[this.getGroupFieldName(field)];
+        aggregateResult.group[field] = Serializer.serializeValue(
+          aggregate[this.getGroupFieldName(field)],
+        );
       });
 
       return aggregateResult;

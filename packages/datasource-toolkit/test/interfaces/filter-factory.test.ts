@@ -26,7 +26,6 @@ function setup() {
             foreignKey: 'reviewId',
             foreignKeyTarget: 'id',
             throughCollection: 'bookReview',
-            foreignRelation: 'review',
           }),
           bookReviews: factories.oneToManySchema.build({
             foreignCollection: 'reviews',
@@ -81,7 +80,7 @@ describe('FilterFactory', () => {
             value: 'someValue',
           }),
         });
-        expect(FilterFactory.getPreviousPeriodFilter(filter)).toStrictEqual(filter);
+        expect(FilterFactory.getPreviousPeriodFilter(filter, 'Europe/Paris')).toStrictEqual(filter);
       });
     });
 
@@ -101,7 +100,9 @@ describe('FilterFactory', () => {
           }),
         });
 
-        expect(FilterFactory.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
+        expect(
+          FilterFactory.getPreviousPeriodFilter(filter, 'Europe/Paris').conditionTree,
+        ).toMatchObject({
           operator: previousOperator,
         });
       });
@@ -119,7 +120,6 @@ describe('FilterFactory', () => {
         const newDate = time.setZone(TEST_TIMEZONE).minus({ [duration]: 2 });
 
         const filter = factories.filter.build({
-          timezone: TEST_TIMEZONE,
           conditionTree: factories.conditionTreeLeaf.build({
             operator: baseOperator as Operator,
             field: 'someField',
@@ -127,7 +127,9 @@ describe('FilterFactory', () => {
           }),
         });
 
-        expect(FilterFactory.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
+        expect(
+          FilterFactory.getPreviousPeriodFilter(filter, TEST_TIMEZONE).conditionTree,
+        ).toMatchObject({
           aggregator: 'And',
           conditions: [
             {
@@ -149,7 +151,6 @@ describe('FilterFactory', () => {
         DateTime.now = jest.fn(() => time);
 
         const filter = factories.filter.build({
-          timezone: TEST_TIMEZONE,
           conditionTree: factories.conditionTreeLeaf.build({
             operator: 'PreviousXDays',
             field: 'someField',
@@ -159,7 +160,9 @@ describe('FilterFactory', () => {
 
         const newDate = time.setZone(TEST_TIMEZONE);
 
-        expect(FilterFactory.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
+        expect(
+          FilterFactory.getPreviousPeriodFilter(filter, TEST_TIMEZONE).conditionTree,
+        ).toMatchObject({
           aggregator: 'And',
           conditions: [
             {
@@ -181,7 +184,6 @@ describe('FilterFactory', () => {
         DateTime.now = jest.fn(() => time);
 
         const filter = factories.filter.build({
-          timezone: TEST_TIMEZONE,
           conditionTree: factories.conditionTreeLeaf.build({
             operator: 'PreviousXDaysToDate',
             field: 'someField',
@@ -191,7 +193,9 @@ describe('FilterFactory', () => {
 
         const newDate = time.setZone(TEST_TIMEZONE);
 
-        expect(FilterFactory.getPreviousPeriodFilter(filter).conditionTree).toMatchObject({
+        expect(
+          FilterFactory.getPreviousPeriodFilter(filter, TEST_TIMEZONE).conditionTree,
+        ).toMatchObject({
           aggregator: 'And',
           conditions: [
             {
@@ -217,13 +221,20 @@ describe('FilterFactory', () => {
       const baseFilter = new Filter({
         conditionTree: new ConditionTreeLeaf('someField', 'Equal', 1),
       });
-      const filter = await FilterFactory.makeThroughFilter(books, [1], 'reviews', baseFilter);
+      const filter = await FilterFactory.makeThroughFilter(
+        books,
+        [1],
+        'reviews',
+        factories.caller.build(),
+        baseFilter,
+      );
 
       expect(filter).toEqual({
         conditionTree: {
           aggregator: 'And',
           conditions: [
             { field: 'bookId', operator: 'Equal', value: 1 },
+            { field: 'reviewId', operator: 'Present' },
             { field: 'review:someField', operator: 'Equal', value: 1 },
           ],
         },
@@ -244,7 +255,13 @@ describe('FilterFactory', () => {
         segment: 'someSegment',
       });
 
-      const filter = await FilterFactory.makeThroughFilter(books, [1], 'reviews', baseFilter);
+      const filter = await FilterFactory.makeThroughFilter(
+        books,
+        [1],
+        'reviews',
+        factories.caller.build(),
+        baseFilter,
+      );
 
       expect(filter).toEqual({
         conditionTree: {
@@ -266,7 +283,13 @@ describe('FilterFactory', () => {
         conditionTree: new ConditionTreeLeaf('someField', 'Equal', 1),
         segment: 'some-segment',
       });
-      const filter = await FilterFactory.makeForeignFilter(books, [1], 'bookReviews', baseFilter);
+      const filter = await FilterFactory.makeForeignFilter(
+        books,
+        [1],
+        'bookReviews',
+        factories.caller.build(),
+        baseFilter,
+      );
 
       expect(filter).toEqual({
         conditionTree: {
@@ -289,7 +312,13 @@ describe('FilterFactory', () => {
         conditionTree: new ConditionTreeLeaf('someField', 'Equal', 1),
         segment: 'some-segment',
       });
-      const filter = await FilterFactory.makeForeignFilter(books, [1], 'reviews', baseFilter);
+      const filter = await FilterFactory.makeForeignFilter(
+        books,
+        [1],
+        'reviews',
+        factories.caller.build(),
+        baseFilter,
+      );
 
       expect(filter).toEqual({
         conditionTree: {

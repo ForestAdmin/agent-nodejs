@@ -43,7 +43,7 @@ export default class ConditionTreeEquivalent {
     columnType: ColumnType,
     visited: unknown[] = [],
   ): Replacer {
-    if (filterOperators.has(op)) return leaf => leaf;
+    if (filterOperators?.has(op)) return leaf => leaf;
 
     for (const alt of ConditionTreeEquivalent.getAlternatives(op) ?? []) {
       const { replacer, dependsOn } = alt;

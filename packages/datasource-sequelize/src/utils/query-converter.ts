@@ -1,49 +1,80 @@
 import {
   ConditionTree,
   ConditionTreeBranch,
+  ConditionTreeFactory,
   ConditionTreeLeaf,
   Operator,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 import {
+  Dialect,
   IncludeOptions,
   ModelDefined,
   Op,
-  OrOperator,
   OrderItem,
+  Sequelize,
   WhereOperators,
   WhereOptions,
-  col,
-  fn,
-  where,
 } from 'sequelize';
-import { Where } from 'sequelize/types/utils';
+
+import unAmbigousField from './un-ambigous';
 
 export default class QueryConverter {
-  private static asArray(value: unknown) {
+  private model: ModelDefined<unknown, unknown>;
+  private dialect: Dialect;
+  private col: Sequelize['col'];
+  private fn: Sequelize['fn'];
+  private where: Sequelize['where'];
+
+  constructor(model: ModelDefined<unknown, unknown>) {
+    this.model = model;
+    this.dialect = this.model.sequelize.getDialect() as Dialect;
+    this.col = this.model.sequelize.col;
+    this.fn = this.model.sequelize.fn;
+    this.where = this.model.sequelize.where;
+  }
+
+  private asArray(value: unknown) {
     if (!Array.isArray(value)) return [value];
 
     return value;
   }
 
-  private static makeWhereClause(
-    operator: Operator,
+  private makeWhereClause(
     field: string,
+    operator: Operator,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     value?: any,
-  ): WhereOperators | OrOperator | Where {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): any {
     if (operator === null) throw new Error('Invalid (null) operator.');
 
     switch (operator) {
       case 'Blank':
         return {
-          [Op.or]: [this.makeWhereClause('Missing', field) as OrOperator, { [Op.eq]: '' }],
+          [Op.or]: [this.makeWhereClause(field, 'Missing'), { [Op.eq]: '' }],
         };
-      case 'Contains':
-        return where(fn('LOWER', col(field)), 'LIKE', `%${value.toLocaleLowerCase()}%`);
-      case 'EndsWith':
-        return where(fn('LOWER', col(field)), 'LIKE', `%${value.toLocaleLowerCase()}`);
+
+      case 'Like':
+        if (this.dialect === 'sqlite')
+          return this.where(this.col(field), 'GLOB', value.replace(/%/g, '*').replace(/_/g, '?'));
+        if (this.dialect === 'mysql' || this.dialect === 'mariadb')
+          return this.where(this.fn('BINARY', this.col(field)), 'LIKE', value);
+
+        return { [Op.like]: value };
+
+      case 'ILike':
+        if (this.dialect === 'postgres') return { [Op.iLike]: value };
+        if (this.dialect === 'mysql' || this.dialect === 'mariadb' || this.dialect === 'sqlite')
+          return { [Op.like]: value };
+
+        return this.where(this.fn('LOWER', this.col(field)), 'LIKE', value.toLocaleLowerCase());
+
+      case 'NotContains':
+        return {
+          [Op.not]: this.makeWhereClause(field, 'Like', `%${value}%`) as WhereOperators,
+        };
       case 'Equal':
         return { [Op.eq]: value };
       case 'GreaterThan':
@@ -56,26 +87,45 @@ export default class QueryConverter {
         return { [Op.lt]: value };
       case 'Missing':
         return { [Op.is]: null };
-      case 'NotContains':
-        return where(fn('LOWER', col(field)), 'NOT LIKE', `%${value.toLocaleLowerCase()}%`);
       case 'NotEqual':
         return { [Op.ne]: value };
       case 'NotIn':
         return { [Op.notIn]: this.asArray(value) };
       case 'Present':
         return { [Op.ne]: null };
-      case 'StartsWith':
-        return where(fn('LOWER', col(field)), 'LIKE', `${value.toLocaleLowerCase()}%`);
       default:
         throw new Error(`Unsupported operator: "${operator}".`);
     }
   }
 
-  static getWhereFromConditionTree(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    model: ModelDefined<any, any>,
+  /*
+   * Delete and update sequelize methods does not provide the include options.
+   * This method is developed to by pass this problem.
+   */
+  async getWhereFromConditionTreeToByPassInclude(
     conditionTree?: ConditionTree,
-  ): WhereOptions {
+  ): Promise<WhereOptions> {
+    const include = conditionTree ? this.getIncludeFromProjection(conditionTree.projection) : [];
+    const whereOptions = this.getWhereFromConditionTree(conditionTree);
+
+    if (include.length === 0) {
+      return whereOptions;
+    }
+
+    const keys = [...this.model.primaryKeyAttributes];
+    const records = await this.model.findAll({ attributes: keys, where: whereOptions, include });
+    const conditions = records.map(record => {
+      const equals = keys.map(pk => new ConditionTreeLeaf(pk, 'Equal', record.get(pk)));
+
+      return ConditionTreeFactory.intersect(...equals);
+    });
+
+    const union = ConditionTreeFactory.union(...conditions);
+
+    return this.getWhereFromConditionTree(union);
+  }
+
+  getWhereFromConditionTree(conditionTree?: ConditionTree): WhereOptions {
     if (!conditionTree) return {};
 
     const sequelizeWhereClause = {};
@@ -94,28 +144,17 @@ export default class QueryConverter {
       }
 
       sequelizeWhereClause[sequelizeOperator] = conditions.map(condition =>
-        this.getWhereFromConditionTree(model, condition),
+        this.getWhereFromConditionTree(condition),
       );
     } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
       const isRelation = field.includes(':');
 
-      let safeField: string;
-
-      if (isRelation) {
-        const paths = field.split(':');
-        const fieldName = paths.pop();
-        const safeFieldName = paths
-          .reduce((acc, path) => acc.associations[path].target, model)
-          .getAttributes()[fieldName].field;
-        safeField = `${paths.join('.')}.${safeFieldName}`;
-      } else {
-        safeField = model.getAttributes()[field].field;
-      }
+      const safeField = unAmbigousField(this.model, field);
 
       sequelizeWhereClause[isRelation ? `$${safeField}$` : safeField] = this.makeWhereClause(
-        operator,
         safeField,
+        operator,
         value,
       );
     } else {
@@ -125,7 +164,7 @@ export default class QueryConverter {
     return sequelizeWhereClause;
   }
 
-  private static computeIncludeFromProjection(
+  private computeIncludeFromProjection(
     projection: Projection,
     withAttributes = true,
   ): IncludeOptions[] {
@@ -138,15 +177,15 @@ export default class QueryConverter {
     });
   }
 
-  static getIncludeFromProjection(projection: Projection): IncludeOptions[] {
+  getIncludeFromProjection(projection: Projection): IncludeOptions[] {
     return this.computeIncludeFromProjection(projection, false);
   }
 
-  static getIncludeWithAttributesFromProjection(projection: Projection): IncludeOptions[] {
+  getIncludeWithAttributesFromProjection(projection: Projection): IncludeOptions[] {
     return this.computeIncludeFromProjection(projection);
   }
 
-  static getOrderFromSort(sort: Sort): OrderItem[] {
+  getOrderFromSort(sort: Sort): OrderItem[] {
     return (sort ?? []).map(({ field, ascending }): OrderItem => {
       const path = field.split(':') as [string];
 

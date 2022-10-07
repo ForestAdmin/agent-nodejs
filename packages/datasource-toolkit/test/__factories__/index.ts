@@ -13,4 +13,5 @@ export { default as manyToOneSchema } from './schema/many-to-one-schema';
 export { default as oneToManySchema } from './schema/one-to-many-schema';
 export { default as oneToOneSchema } from './schema/one-to-one-schema';
 export { default as projection } from './projection';
+export { default as caller } from './caller';
 export { default as recordData } from './record-data';

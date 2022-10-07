@@ -1,6 +1,6 @@
 You may want to read about the following topics before using those features:
 
-- [Unlocking filtering, scopes and segments on the GUI](./../../datasources/custom/query-translation/capabilities.md#unlock-filtering-scopes-and-segments-on-gui)
+- [Unlocking filtering, scopes and segments on the UI](./../../datasources/custom/capabilities.md#unlock-filtering-scopes-and-segments-on-ui)
 - [Structure of a `ConditionTree`](../../under-the-hood/queries/filters.md#examples)
 - [List of all filtering Operators](../../under-the-hood/queries/filters.md#operators)
 - [Operator equivalence system](../../under-the-hood/queries/filters.md#operator-equivalence)
@@ -13,7 +13,7 @@ Disabling filtering can be made without any code [in the field settings](https:/
 
 Filtering operators can be disabled one by one.
 
-This is used mostly for performance reasons: on big collections, it can be intesting to let users filter only on fields that are indexed in your database to avoid [full-table-scans](https://en.wikipedia.org/wiki/Full_table_scan).
+This is used mostly for performance reasons: on big collections, it can be interesting to let users filter only on fields that are indexed in your database to avoid [full-table-scans](https://en.wikipedia.org/wiki/Full_table_scan).
 
 ```javascript
 collection.replaceFieldOperator('fullName', 'Equal', null);
@@ -44,6 +44,10 @@ collection.replaceFieldOperator('fullName', 'Equal', (value, context) => {
 
 Filtering emulation allows to make fields filterable automatically.
 
+{% hint style="warning" %}
+Filtering emulation performance cost is **linear** with the number of records in the collection. It is a convenient way to get things working quick for collections which have a low number of records (in the thousands at most).
+{% endhint %}
+
 ```javascript
 // Add support for all operators
 collection.emulateFieldFiltering('fullName');
@@ -51,7 +55,3 @@ collection.emulateFieldFiltering('fullName');
 // Add support for a single operator
 collection.emulateFieldOperator('fullName', 'Equal');
 ```
-
-{% hint style="warning" %}
-Filtering emulation performance cost is **linear** with the number of records in the collection. It is a convenient way to get things working quick for collections which have a low number of records (in the thousands at most).
-{% endhint %}
