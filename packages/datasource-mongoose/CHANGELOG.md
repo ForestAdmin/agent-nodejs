@@ -1,3 +1,26 @@
+# @forestadmin/datasource-mongoose 1.0.0 (2022-10-07)
+
+
+### Bug Fixes
+
+* **mongoose:** options are not required when creating the connector ([#391](https://github.com/ForestAdmin/agent-nodejs/issues/391)) ([0cdd295](https://github.com/ForestAdmin/agent-nodejs/commit/0cdd295d8fce2f851622fd9537893c3b1b12a31e))
+* **security:** upgrade mongoose to fix a vulnerability ([#469](https://github.com/ForestAdmin/agent-nodejs/issues/469)) ([74e16bb](https://github.com/ForestAdmin/agent-nodejs/commit/74e16bb019a72fbfaabbccc6b1d932989a4d04fa))
+
+
+### Features
+
+* add support for mongoose datasource ([#339](https://github.com/ForestAdmin/agent-nodejs/issues/339)) ([5515286](https://github.com/ForestAdmin/agent-nodejs/commit/55152862dceff4714bf9b36ed6c138acdf8cb9e3))
+* make count an optional feature ([#327](https://github.com/ForestAdmin/agent-nodejs/issues/327)) ([b6f688c](https://github.com/ForestAdmin/agent-nodejs/commit/b6f688ca5f84aa29740761ff848c4beca5ee61d6))
+* **mongoose:** add schema generator ([#303](https://github.com/ForestAdmin/agent-nodejs/issues/303)) ([55fa26a](https://github.com/ForestAdmin/agent-nodejs/commit/55fa26a3d1c975c35bdab6a20655573ecaceb31e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0
+
 # @forestadmin/datasource-mongoose [1.0.0-beta.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.0-beta.24...@forestadmin/datasource-mongoose@1.0.0-beta.25) (2022-10-06)
 
 
