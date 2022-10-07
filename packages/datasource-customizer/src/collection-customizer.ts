@@ -3,6 +3,7 @@ import {
   ColumnSchema,
   Operator,
   RecordUtils,
+  RelationSchema,
   SchemaUtils,
   allowedOperatorsForColumnType,
 } from '@forestadmin/datasource-toolkit';
@@ -14,7 +15,15 @@ import { OperatorDefinition } from './decorators/operators-emulate/types';
 import { RelationDefinition } from './decorators/relation/types';
 import { SearchDefinition } from './decorators/search/types';
 import { SegmentDefinition } from './decorators/segment/types';
-import { TCollectionName, TColumnName, TFieldName, TSchema, TSortClause } from './templates';
+import {
+  TCollectionName,
+  TColumnName,
+  TFieldName,
+  TFieldRelation,
+  TRelationName,
+  TSchema,
+  TSortClause,
+} from './templates';
 import { WriteDefinition } from './decorators/write/types';
 import DecoratorsStack from './decorators/decorators-stack';
 
@@ -510,6 +519,26 @@ export default class CollectionCustomizer<
    */
   private addRelation(name: string, definition: RelationDefinition): this {
     this.stack.relation.getCollection(this.name).addRelation(name, definition);
+
+    return this;
+  }
+
+  importFieldsFromRelation(
+    relationName: TRelationName<S, N>,
+    options?: { include?: TFieldRelation<S, N>[]; exclude?: TFieldRelation<S, N>[] },
+  ): this {
+    const collection = this.stack.lateComputed.getCollection(this.name);
+    const relation = collection.schema.fields[relationName] as RelationSchema;
+    const foreignCollection = this.stack.lateComputed.getCollection(relation.foreignCollection);
+
+    const columns = options?.include?.length
+      ? new Set(options.include)
+      : new Set(SchemaUtils.getColumns(foreignCollection.schema).map(c => `${relationName}:${c}`));
+    options?.exclude?.forEach(column => columns.delete(column));
+
+    columns.forEach(path => {
+      this.importField(path.replace(':', '_'), { path: path as TFieldName<S, N> });
+    });
 
     return this;
   }
