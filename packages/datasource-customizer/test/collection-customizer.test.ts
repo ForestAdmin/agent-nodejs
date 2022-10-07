@@ -2,7 +2,7 @@ import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factorie
 import { ColumnSchema, ConditionTreeLeaf, Sort } from '@forestadmin/datasource-toolkit';
 
 import { ActionDefinition } from '../src/decorators/actions/types/actions';
-import { CollectionCustomizer, FieldDefinition } from '../src';
+import { CollectionCustomizer, ComputedDefinition } from '../src';
 import { WriteDefinition } from '../src/decorators/write/types';
 import DecoratorsStack from '../src/decorators/decorators-stack';
 
@@ -243,15 +243,44 @@ describe('Builder > Collection', () => {
   });
 
   describe('addField', () => {
-    it('should add a field', async () => {
+    it('should add a field to early collection', async () => {
+      const { stack } = await setup();
+      const collection = stack.earlyComputed.getCollection('authors');
+      const builder = new CollectionCustomizer(stack, 'authors');
+      const spy = jest.spyOn(collection, 'registerComputed');
+
+      const fieldDefinition: ComputedDefinition = {
+        columnType: 'String',
+        dependencies: ['firstName'],
+        getValues: records => records.map(() => 'aaa'),
+      };
+
+      const self = builder.addField('new field', fieldDefinition);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
+      expect(collection.schema.fields['new field']).toBeDefined();
+      expect(self).toEqual(builder);
+
+      const { getValues } = spy.mock.calls[0][1];
+      expect(getValues([{ firstName: 'John' }], null)).toStrictEqual(['aaa']);
+    });
+
+    it('should add a field to late collection', async () => {
       const { stack } = await setup();
       const collection = stack.lateComputed.getCollection('authors');
       const builder = new CollectionCustomizer(stack, 'authors');
       const spy = jest.spyOn(collection, 'registerComputed');
 
-      const fieldDefinition: FieldDefinition = {
+      // Add a relation to itself on the record
+      builder.addManyToOneRelation('mySelf', 'authors', {
+        foreignKey: 'authorId',
+        foreignKeyTarget: 'authorId',
+      });
+
+      const fieldDefinition: ComputedDefinition = {
         columnType: 'String',
-        dependencies: ['firstName'],
+        dependencies: ['firstName', 'mySelf:firstName'],
         getValues: records => records.map(() => 'aaa'),
       };
 
