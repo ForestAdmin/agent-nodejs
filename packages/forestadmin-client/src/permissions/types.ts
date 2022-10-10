@@ -106,10 +106,6 @@ export interface QueryChart extends BaseChart {
   type: Exclude<ChartType, ChartType.Smart>;
   query: string;
 }
-export interface S3Versions {
-  'component.js': string;
-  'template.hbs': string;
-}
 
 export interface FilterableChart extends BaseChart {
   filter?: string;
@@ -126,12 +122,6 @@ export interface CollectionChart extends BaseChart {
 
 export interface GroupedByChart extends BaseChart {
   groupByFieldName: string | null;
-}
-
-export interface SmartChart extends BaseChart {
-  type: ChartType.Smart;
-  s3Versions: S3Versions & { 'style.css': string };
-  id: string;
 }
 
 export interface LeaderboardChart extends BaseChart, AggregatedChart, CollectionChart {
@@ -180,7 +170,6 @@ export interface ValueChart extends BaseChart, FilterableChart, AggregatedChart,
 }
 
 export type Chart =
-  | SmartChart
   | ApiRouteChart
   | QueryChart
   | SmartRouteChart
