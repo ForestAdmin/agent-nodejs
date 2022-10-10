@@ -144,7 +144,7 @@ export default class ForestHttpApi {
         );
 
       throw new Error(
-        'An unexpected error occured while contacting the ForestAdmin server. ' +
+        'An unexpected error occurred while contacting the ForestAdmin server. ' +
           'Please contact support@forestadmin.com for further investigations.',
       );
     }

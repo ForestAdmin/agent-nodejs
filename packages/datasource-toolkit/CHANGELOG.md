@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.0.0-beta.36](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-beta.35...@forestadmin/datasource-toolkit@1.0.0-beta.36) (2022-10-06)
+
+
+### Bug Fixes
+
+* improve the error message when a collection is not found ([#467](https://github.com/ForestAdmin/agent-nodejs/issues/467)) ([51508c0](https://github.com/ForestAdmin/agent-nodejs/commit/51508c027c48f3631ffb7206cef2cb34dc53bd03))
+
 # @forestadmin/datasource-toolkit [1.0.0-alpha.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0-alpha.2...@forestadmin/datasource-toolkit@1.0.0-alpha.3) (2022-10-06)
 
 

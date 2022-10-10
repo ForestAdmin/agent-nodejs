@@ -3,7 +3,8 @@ import mongoose, { Model, Schema } from 'mongoose';
 import ReparentGenerator from '../../../src/utils/pipeline/reparent';
 
 describe('ReparentGenerator', () => {
-  let model: Model<unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let model: Model<any>;
 
   beforeAll(() => {
     const schema = new Schema({

@@ -26,11 +26,11 @@ yarn install && yarn bootstrap
 
 ## Getting started
 
-[https://docs.forestadmin.com/beta-developer-guide-agents-v2/getting-started/quick-start](https://docs.forestadmin.com/beta-developer-guide-agents-v2/getting-started/quick-start)
+[https://docs.forestadmin.com/developer-guide-agents-nodejs/getting-started/quick-start](https://docs.forestadmin.com/developer-guide-agents-nodejs/getting-started/quick-start)
 
 ## Documentation
 
-[https://docs.forestadmin.com/beta-developer-guide-agents-v2/](https://docs.forestadmin.com/beta-developer-guide-agents-v2/)
+[https://docs.forestadmin.com/developer-guide-agents-nodejs/](https://docs.forestadmin.com/developer-guide-agents-nodejs/)
 
 ## How it works
 
