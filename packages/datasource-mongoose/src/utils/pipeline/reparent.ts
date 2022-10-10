@@ -8,7 +8,7 @@ import MongooseSchema, { SchemaNode } from '../../mongoose/schema';
  * without loosing the parent (which may be needed later on).
  */
 export default class ReparentGenerator {
-  static reparent(model: Model<unknown>, prefix: string): PipelineStage[] {
+  static reparent(model: Model<unknown>, prefix: string | null): PipelineStage[] {
     if (!prefix?.length) return [];
 
     // Take only the part of the records we are interested in

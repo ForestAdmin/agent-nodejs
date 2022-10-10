@@ -13,7 +13,11 @@ const STRING_OPERATORS = ['Like', 'ILike', 'NotContains', 'LongerThan', 'Shorter
 
 /** Transform a forest admin filter into mongo pipeline */
 export default class FilterGenerator {
-  static filter(model: Model<unknown>, prefix: string, filter: PaginatedFilter): PipelineStage[] {
+  static filter(
+    model: Model<unknown>,
+    prefix: string | null,
+    filter: PaginatedFilter,
+  ): PipelineStage[] {
     const schema = MongooseSchema.fromModel(model).getSubSchema(prefix, true);
 
     const fields = new Set<string>();
