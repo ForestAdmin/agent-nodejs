@@ -48,7 +48,7 @@ yarn init
 Once everything is ready, install the following dependencies.
 
 ```bash
-yarn add @forestadmin/agent@beta dotenv
+yarn add @forestadmin/agent dotenv
 ```
 
 Create an `index.js` and a `.env` file.
@@ -99,7 +99,7 @@ Now that you are fully onboarded, the only missing part is to add a data source.
 To install the SQL Datasource package, you can run the following command
 
 ```bash
-yarn add @forestadmin/datasource-sql@beta
+yarn add @forestadmin/datasource-sql
 ```
 
 If you run on the example database provided above, simply add the following in your `index.js` and `.env`

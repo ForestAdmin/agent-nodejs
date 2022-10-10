@@ -1,6 +1,6 @@
 The SQL data source allows to import tables from SQL databases.
 
-In order to make everything work as expected, you need to install the package `@forestadmin/datasource-sql@beta`.
+In order to make everything work as expected, you need to install the package `@forestadmin/datasource-sql`.
 
 Depending on the database type you want to use, you may also need to install the associated javascript driver (`pg` for postgres, `mysql2` for mariadb/mysql, `tedious` for mssql, etc).
 
