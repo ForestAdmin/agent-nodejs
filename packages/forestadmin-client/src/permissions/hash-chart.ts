@@ -44,6 +44,7 @@ export function hashServerCharts(charts: Chart[]): Set<string> {
   return new Set(hashes);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function hashChartRequest(chart: Record<string, any>): string {
   const hashed = {
     ...chart,
