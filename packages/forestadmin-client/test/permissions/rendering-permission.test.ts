@@ -3,6 +3,7 @@ import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-c
 import ForestHttpApi from '../../src/permissions/forest-http-api';
 import RenderingPermissionService from '../../src/permissions/rendering-permission';
 import generateUserScope from '../../src/permissions/generate-user-scope';
+import isSegmentQueryAllowed from '../../src/permissions/is-segment-query-authorized';
 import userPermissionsFactory from '../__factories__/permissions/user-permission';
 
 jest.mock('../../src/permissions/forest-http-api', () => ({
@@ -18,6 +19,11 @@ jest.mock('../../src/permissions/hash-chart', () => ({
   __esModule: true,
   hashServerCharts: jest.fn(),
   hashChartRequest: jest.fn(),
+}));
+
+jest.mock('../../src/permissions/is-segment-query-authorized', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 describe('RenderingPermissionService', () => {
@@ -42,6 +48,7 @@ describe('RenderingPermissionService', () => {
 
     const hashServerChartsMock = hashServerCharts as jest.Mock;
     const hashChartRequestMock = hashChartRequest as jest.Mock;
+    const isSegmentQueryAllowedMock = isSegmentQueryAllowed as jest.Mock;
 
     return {
       userPermission,
@@ -50,6 +57,7 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock,
       hashServerChartsMock,
       hashChartRequestMock,
+      isSegmentQueryAllowedMock,
       options,
     };
   }
@@ -481,6 +489,170 @@ describe('RenderingPermissionService', () => {
       expect(result2).toBe(true);
 
       expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('canExecuteSegmentQuery', () => {
+    it('should return true if the segment query is allowed', async () => {
+      const {
+        renderingPermission,
+        getRenderingPermissionsMock,
+        isSegmentQueryAllowedMock,
+        options,
+      } = setup();
+
+      const actorsPermissions = {
+        segments: [{ query: 'foo' }],
+        scopes: [],
+      };
+
+      const permissions = {
+        team: { id: 33 },
+        collections: {
+          actors: actorsPermissions,
+        },
+        stats: {},
+      };
+
+      getRenderingPermissionsMock.mockResolvedValue(permissions);
+      isSegmentQueryAllowedMock.mockReturnValue(true);
+
+      const result = await renderingPermission.canExecuteSegmentQuery({
+        renderingId: 42,
+        collectionName: 'actors',
+        segmentQuery: 'SELECT * from actors',
+      });
+
+      expect(result).toBe(true);
+
+      expect(isSegmentQueryAllowedMock).toHaveBeenCalledWith(
+        'SELECT * from actors',
+        actorsPermissions.segments,
+      );
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+    });
+
+    it('should return false if the collection does not have an entry in permissions', async () => {
+      const {
+        renderingPermission,
+        getRenderingPermissionsMock,
+        isSegmentQueryAllowedMock,
+        options,
+      } = setup();
+
+      const permissions = {
+        team: { id: 33 },
+        collections: {},
+        stats: {},
+      };
+
+      getRenderingPermissionsMock.mockResolvedValue(permissions);
+
+      const result = await renderingPermission.canExecuteSegmentQuery({
+        renderingId: 42,
+        collectionName: 'actors',
+        segmentQuery: 'SELECT * from actors',
+      });
+
+      expect(result).toBe(false);
+
+      expect(isSegmentQueryAllowedMock).not.toHaveBeenCalled();
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+    });
+
+    it('should return false if the query is not allowed', async () => {
+      const {
+        renderingPermission,
+        getRenderingPermissionsMock,
+        isSegmentQueryAllowedMock,
+        options,
+      } = setup();
+
+      const actorsPermissions = {
+        segments: [{ query: 'foo' }],
+        scopes: [],
+      };
+
+      const permissions = {
+        team: { id: 33 },
+        collections: {
+          actors: actorsPermissions,
+        },
+        stats: {},
+      };
+
+      getRenderingPermissionsMock.mockResolvedValue(permissions);
+      isSegmentQueryAllowedMock.mockReturnValue(false);
+
+      const result = await renderingPermission.canExecuteSegmentQuery({
+        renderingId: 42,
+        collectionName: 'actors',
+        segmentQuery: 'SELECT * from actors',
+      });
+
+      expect(result).toBe(false);
+
+      expect(isSegmentQueryAllowedMock).toHaveBeenCalledWith(
+        'SELECT * from actors',
+        actorsPermissions.segments,
+      );
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+    });
+
+    it('should refresh the cache if the query is not allowed and return the second result', async () => {
+      const {
+        renderingPermission,
+        getRenderingPermissionsMock,
+        isSegmentQueryAllowedMock,
+        options,
+      } = setup();
+
+      const actorsPermissions1 = {
+        segments: [{ query: 'foo' }],
+        scopes: [],
+      };
+
+      const permissions1 = {
+        team: { id: 33 },
+        collections: {
+          actors: actorsPermissions1,
+        },
+        stats: {},
+      };
+
+      const actorsPermissions2 = {
+        segments: [{ query: 'bar' }],
+        scopes: [],
+      };
+
+      const permissions2 = {
+        team: { id: 33 },
+        collections: {
+          actors: actorsPermissions2,
+        },
+        stats: {},
+      };
+
+      getRenderingPermissionsMock
+        .mockResolvedValueOnce(permissions1)
+        .mockResolvedValueOnce(permissions2);
+      isSegmentQueryAllowedMock.mockReturnValueOnce(false).mockReturnValueOnce(true);
+
+      const result = await renderingPermission.canExecuteSegmentQuery({
+        renderingId: 42,
+        collectionName: 'actors',
+        segmentQuery: 'SELECT * from actors',
+      });
+
+      expect(result).toBe(true);
+
+      expect(isSegmentQueryAllowedMock).toHaveBeenCalledTimes(2);
+      expect(isSegmentQueryAllowedMock).toHaveBeenCalledWith(
+        'SELECT * from actors',
+        actorsPermissions2.segments,
+      );
+      expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
     });
   });
 });

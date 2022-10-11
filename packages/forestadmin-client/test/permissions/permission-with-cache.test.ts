@@ -44,6 +44,37 @@ describe('PermissionService', () => {
     });
   });
 
+  describe('canExecuteSegmentQuery', () => {
+    it('should test if the segment query is authorized on the rendering', async () => {
+      const userId = 1;
+      const collectionName = 'collectionName';
+      const renderingId = 1;
+      const segmentQuery = 'segmentQuery';
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const permissionService = new PermissionServiceWithCache(
+        factories.actionPermission.build(),
+        renderingPermissionService,
+      );
+
+      (renderingPermissionService.canExecuteSegmentQuery as jest.Mock).mockResolvedValue(true);
+
+      const result = await permissionService.canExecuteSegmentQuery({
+        userId,
+        collectionName,
+        renderingId,
+        segmentQuery,
+      });
+
+      expect(renderingPermissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
+        userId,
+        collectionName,
+        renderingId,
+        segmentQuery,
+      });
+      expect(result).toBe(true);
+    });
+  });
+
   describe('canTriggerCustomAction', () => {
     it('should return the result of actionPermissionService and pass the right event', async () => {
       const userId = 1;

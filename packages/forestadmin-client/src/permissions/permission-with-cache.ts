@@ -28,6 +28,15 @@ export default class PermissionServiceWithCache implements PermissionService {
     );
   }
 
+  public async canExecuteSegmentQuery(params: {
+    userId: number;
+    collectionName: string;
+    renderingId: number;
+    segmentQuery: string;
+  }) {
+    return this.renderingPermissionService.canExecuteSegmentQuery(params);
+  }
+
   public canTriggerCustomAction({
     userId,
     collectionName,

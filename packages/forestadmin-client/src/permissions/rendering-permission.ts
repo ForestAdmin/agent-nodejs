@@ -13,6 +13,7 @@ import { hashChartRequest, hashServerCharts } from './hash-chart';
 import ForestHttpApi from './forest-http-api';
 import UserPermissionService from './user-permission';
 import generateUserScope from './generate-user-scope';
+import isSegmentQueryAllowed from './is-segment-query-authorized';
 
 export type RenderingPermission = {
   team: Team;
@@ -75,6 +76,61 @@ export default class RenderingPermissionService {
     }
 
     return generateUserScope(collectionPermissions.scope, permissions.team, userInfo);
+  }
+
+  public async canExecuteSegmentQuery({
+    renderingId,
+    collectionName,
+    segmentQuery,
+  }: {
+    renderingId: number | string;
+    collectionName: string;
+    segmentQuery: string;
+  }): Promise<boolean> {
+    return this.canExecuteSegmentQueryOrRetry({
+      renderingId,
+      collectionName,
+      segmentQuery,
+      allowRetry: true,
+    });
+  }
+
+  private async canExecuteSegmentQueryOrRetry({
+    renderingId,
+    collectionName,
+    segmentQuery,
+    allowRetry,
+  }: {
+    renderingId: number | string;
+    collectionName: string;
+    segmentQuery: string;
+    allowRetry: boolean;
+  }): Promise<boolean> {
+    const permissions: RenderingPermission = await this.permissionsByRendering.fetch(
+      `${renderingId}`,
+    );
+
+    const collectionPermissions = permissions?.collections?.[collectionName];
+
+    if (
+      !collectionPermissions ||
+      !isSegmentQueryAllowed(segmentQuery, collectionPermissions.segments)
+    ) {
+      if (allowRetry) {
+        this.invalidateCache(renderingId);
+
+        return this.canExecuteSegmentQueryOrRetry({
+          renderingId,
+          collectionName,
+          segmentQuery,
+          allowRetry: false,
+        });
+      }
+
+      return false;
+    }
+
+    return true;
   }
 
   private async loadPermissions(renderingId: number): Promise<RenderingPermission> {

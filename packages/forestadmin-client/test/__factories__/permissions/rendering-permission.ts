@@ -8,6 +8,7 @@ export class RenderingPermissionsFactory extends Factory<RenderingPermissionServ
       permissions.getScope = jest.fn();
       permissions.canRetrieveChart = jest.fn();
       permissions.invalidateCache = jest.fn();
+      permissions.canExecuteSegmentQuery = jest.fn();
     });
   }
 }
