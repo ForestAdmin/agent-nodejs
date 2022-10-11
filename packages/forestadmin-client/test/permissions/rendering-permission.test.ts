@@ -599,7 +599,7 @@ describe('RenderingPermissionService', () => {
       expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
     });
 
-    it('should refresh the cache if the query is not allowed and return the second result', async () => {
+    it('should refresh the cache if the query is not allowed', async () => {
       const {
         renderingPermission,
         getRenderingPermissionsMock,
