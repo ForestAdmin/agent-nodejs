@@ -54,4 +54,10 @@ export interface PermissionService {
     userId: number;
     chartRequest: unknown;
   }): Promise<boolean>;
+  canExecuteSegmentQuery(params: {
+    userId: number;
+    collectionName: string;
+    renderingId: number;
+    segmentQuery: string;
+  }): Promise<boolean>;
 }
