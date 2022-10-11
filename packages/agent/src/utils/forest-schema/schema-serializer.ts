@@ -1,7 +1,7 @@
 import JSONAPISerializer from 'json-api-serializer';
 import crypto from 'crypto';
 
-import { RawSchema } from './types';
+import { ForestServerCollection } from './types';
 
 type SerializedSchema = { meta: { schemaFileHash: string } };
 
@@ -14,7 +14,7 @@ export default class SchemaSerializer {
     },
   };
 
-  static serialize(schema: RawSchema, lianaVersion: string): SerializedSchema {
+  static serialize(schema: ForestServerCollection[], lianaVersion: string): SerializedSchema {
     const hash = crypto.createHash('sha1').update(JSON.stringify(schema)).digest('hex');
 
     // Build serializer

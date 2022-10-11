@@ -83,5 +83,3 @@ export enum ValidationType {
   Contains = 'contains',
   Like = 'is like',
 }
-
-export type RawSchema = ForestServerCollection[];
