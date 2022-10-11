@@ -17,7 +17,6 @@ This is done in two steps:
 agent.customizeCollection('customers', collection => {
   // Create foreign key
   collection.addField('lastMessageId', {
-    beforeJointures: true, // Ensure this field is accessible for the jointure
     columnType: 'Number',
     dependencies: ['id'],
     getValues: async (customers, context) => {
@@ -70,7 +69,6 @@ agent
 function createFilterableIdentityField(collection) {
   // Create foreign key on the collection from the database
   collection.addField('userIdentifier', {
-    beforeJointures: true, // Ensure this field is accesible for the jointure
     columnType: 'String',
     dependencies: ['firstName', 'lastName', 'birthDate'],
     getValues: user => user.map(u => `${u.firstName}/${u.lastName}/${u.birthDate}`),
