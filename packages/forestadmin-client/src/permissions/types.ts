@@ -1,4 +1,4 @@
-import { Operator } from './operators';
+import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
 
@@ -235,11 +235,6 @@ export type DynamicScopesValues = {
   users: Record<string, Record<string, string | number>>;
 };
 
-export type Aggregator = 'And' | 'Or';
-export type GenericTreeBranch = { aggregator: Aggregator; conditions: Array<GenericTree> };
-export type GenericTreeLeaf = { field: string; operator: Operator; value?: unknown };
-export type GenericTree = GenericTreeBranch | GenericTreeLeaf;
-
 export type CollectionRenderingPermissionV4 = {
   scope: GenericTree | null;
   segments: CollectionSegment[];
@@ -253,7 +248,7 @@ export type RenderingPermissionV4 = {
   stats: Chart[];
 };
 
-export type User = {
+export type User = Record<string, unknown> & {
   id: number;
   tags: Record<string, string>;
 };

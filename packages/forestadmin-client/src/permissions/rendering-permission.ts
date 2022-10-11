@@ -1,8 +1,8 @@
 import LruCache from 'lru-cache';
+import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
 import {
   CollectionRenderingPermissionV4,
-  GenericTree,
   PermissionLevel,
   Team,
   User,

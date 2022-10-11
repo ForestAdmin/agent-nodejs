@@ -1,13 +1,14 @@
+import type { GenericTree } from '@forestadmin/datasource-toolkit';
+
 import {
   CollectionActionEvent,
   CustomActionEvent,
-  GenericTree,
   SmartActionApprovalRequestBody,
   SmartActionRequestBody,
   User,
 } from './permissions/types';
 
-import { ForestAdminClientOptionsWithDefaults } from './types';
+import { ForestAdminClient, ForestAdminClientOptionsWithDefaults } from './types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
@@ -16,7 +17,7 @@ import ActionPermissionService from './permissions/action-permission';
 import RenderingPermissionService from './permissions/rendering-permission';
 import verifyAndExtractApproval from './permissions/verify-approval';
 
-export default class ForestAdminClient {
+export default class ForestAdminClientWithCache implements ForestAdminClient {
   constructor(
     protected readonly options: ForestAdminClientOptionsWithDefaults,
     protected readonly actionPermissionService: ActionPermissionService,

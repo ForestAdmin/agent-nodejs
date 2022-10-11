@@ -1,9 +1,11 @@
 import { Context } from 'koa';
 
 import { Collection, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
-import { CollectionActionEvent, SmartActionRequestBody } from '@forestadmin/forestadmin-client';
-
-import { ForestAdminClient } from '../../types';
+import {
+  CollectionActionEvent,
+  ForestAdminClient,
+  SmartActionRequestBody,
+} from '@forestadmin/forestadmin-client';
 
 export default class AuthorizationService {
   constructor(private readonly forestAdminClient: ForestAdminClient) {}

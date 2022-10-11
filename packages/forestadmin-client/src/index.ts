@@ -1,15 +1,11 @@
 import { ForestAdminClientOptions, ForestAdminClientOptionsWithDefaults } from './types';
 import ActionPermissionService from './permissions/action-permission';
-import ForestAdminClient from './forest-admin-client';
+import ForestAdminClient from './forest-admin-client-with-cache';
 import RenderingPermissionService from './permissions/rendering-permission';
 import UserPermissionService from './permissions/user-permission';
 
-export { ForestAdminClientOptions, Logger, LoggerLevel } from './types';
+export { ForestAdminClientOptions, Logger, LoggerLevel, ForestAdminClient } from './types';
 export {
-  GenericTree,
-  GenericTreeBranch,
-  GenericTreeLeaf,
-  Aggregator,
   SmartActionRequestBody,
   SmartActionApprovalRequestBody,
   CollectionActionEvent,
