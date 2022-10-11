@@ -204,11 +204,16 @@ describe('ForestHttpApi', () => {
   });
 
   describe('Forest server error handling', () => {
-    test('should throw an error if an error with no status code is dispatched', async () => {
-      superagentMock.set.mockRejectedValue({ response: { status: 0 } });
+    describe('Failed to reach error', () => {
+      test.each([0, 502])(
+        'should throw an error if an error with status code %d is dispatched',
+        async status => {
+          superagentMock.set.mockRejectedValue({ response: { status } });
 
-      await expect(ForestHttpApi.getIpWhitelistConfiguration(options)).rejects.toThrow(
-        /Are you online/,
+          await expect(ForestHttpApi.getIpWhitelistConfiguration(options)).rejects.toThrow(
+            /Are you online/,
+          );
+        },
       );
     });
 
