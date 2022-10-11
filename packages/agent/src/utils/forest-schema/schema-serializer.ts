@@ -1,14 +1,11 @@
-import { DataSource } from '@forestadmin/datasource-toolkit';
 import JSONAPISerializer from 'json-api-serializer';
 import crypto from 'crypto';
 
-import { ForestServerCollection } from './types';
-import SchemaGeneratorCollection from './generator-collection';
+import { RawSchema } from './types';
 
-type RawSchema = ForestServerCollection[];
 type SerializedSchema = { meta: { schemaFileHash: string } };
 
-export default class RawSchemaGenerator {
+export default class SchemaSerializer {
   private static readonly meta = {
     liana: 'forest-nodejs-agent',
     stack: {
@@ -17,18 +14,7 @@ export default class RawSchemaGenerator {
     },
   };
 
-  public static async generate(dataSource: DataSource): Promise<RawSchema> {
-    const allCollectionSchemas = [];
-
-    const dataSourceCollectionSchemas = dataSource.collections.map(collection =>
-      SchemaGeneratorCollection.buildSchema(collection),
-    );
-    allCollectionSchemas.push(...dataSourceCollectionSchemas);
-
-    return Promise.all(allCollectionSchemas);
-  }
-
-  public static serialize(schema: RawSchema, lianaVersion: string): SerializedSchema {
+  static serialize(schema: RawSchema, lianaVersion: string): SerializedSchema {
     const hash = crypto.createHash('sha1').update(JSON.stringify(schema)).digest('hex');
 
     // Build serializer
@@ -49,7 +35,7 @@ export default class RawSchemaGenerator {
     return serializer.serialize(
       'collections',
       schema.map(c => ({ id: c.name, ...c })),
-      { ...RawSchemaGenerator.meta, liana_version: lianaVersion, schemaFileHash: hash },
+      { ...SchemaSerializer.meta, liana_version: lianaVersion, schemaFileHash: hash },
     ) as SerializedSchema;
   }
 }

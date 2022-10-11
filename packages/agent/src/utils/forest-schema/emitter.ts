@@ -4,7 +4,8 @@ import stringify from 'json-stringify-pretty-compact';
 
 import { AgentOptions } from '../../types';
 import { ForestServerCollection } from './types';
-import RawSchemaGenerator from './raw-schema-generator';
+import SchemaGenerator from './schema-generator';
+import SchemaSerializer from './schema-serializer';
 
 type RawSchema = ForestServerCollection[];
 type SerializedSchema = { meta: { schemaFileHash: string } };
@@ -24,14 +25,14 @@ export default class SchemaEmitter {
   ): Promise<SerializedSchema> {
     const schema: RawSchema = options.isProduction
       ? await SchemaEmitter.loadFromDisk(options.schemaPath)
-      : await RawSchemaGenerator.generate(dataSource);
+      : await SchemaGenerator.generate(dataSource);
 
     if (!options.isProduction) {
       const pretty = stringify(schema, { maxLength: 80 });
       await writeFile(options.schemaPath, pretty, { encoding: 'utf-8' });
     }
 
-    return RawSchemaGenerator.serialize(schema, version);
+    return SchemaSerializer.serialize(schema, version);
   }
 
   private static async loadFromDisk(schemaPath: string): Promise<RawSchema> {
