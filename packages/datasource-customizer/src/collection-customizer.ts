@@ -73,10 +73,7 @@ export default class CollectionCustomizer<
    * @example
    * .importField('authorName', { path: 'author:fullName' })
    */
-  importField(
-    name: string,
-    options: { path: TFieldName<S, N>; beforeRelations?: boolean; readonly?: boolean },
-  ): this {
+  importField(name: string, options: { path: TFieldName<S, N>; readonly?: boolean }): this {
     return this.use(importField, { name, ...options });
   }
 
