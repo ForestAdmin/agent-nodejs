@@ -52,6 +52,6 @@ export interface PermissionService {
   canRetrieveChart(params: {
     renderingId: number;
     userId: number;
-    chartRequest: any;
+    chartRequest: unknown;
   }): Promise<boolean>;
 }

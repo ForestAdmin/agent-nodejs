@@ -12,7 +12,7 @@ import {
   QueryChart,
 } from './types';
 
-function hashChart(chart: Record<string, any>): string {
+function hashChart(chart: Record<string, unknown>): string {
   const hash = hashObject(chart, {
     respectType: false,
     excludeKeys: key => chart[key] === null || chart[key] === undefined,

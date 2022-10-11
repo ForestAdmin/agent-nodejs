@@ -95,8 +95,7 @@ export default class RenderingPermissionService {
     userId,
   }: {
     renderingId: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    chartRequest: any;
+    chartRequest: unknown;
     userId: number;
   }): Promise<boolean> {
     const chartHash = hashChartRequest(chartRequest);

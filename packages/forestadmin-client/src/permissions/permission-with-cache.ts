@@ -96,8 +96,7 @@ export default class PermissionServiceWithCache implements PermissionService {
   }: {
     renderingId: number;
     userId: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    chartRequest: any;
+    chartRequest: unknown;
   }): Promise<boolean> {
     return this.renderingPermissionService.canRetrieveChart({
       renderingId,
