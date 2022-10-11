@@ -42,7 +42,7 @@ describe('verifyAndExtractApproval', () => {
 
   describe('valid secretKey', () => {
     it('should return the data payload of the token', () => {
-      const dataPayload = verifyAndExtractApproval(TOKEN, 'my-secret');
+      const dataPayload = verifyAndExtractApproval<{ data: { id: string } }>(TOKEN, 'my-secret');
       expect(dataPayload.data.id).toStrictEqual('forest-test-ok');
     });
   });

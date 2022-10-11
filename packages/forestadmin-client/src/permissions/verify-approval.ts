@@ -3,14 +3,12 @@ import jsonwebtoken, { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken
 import JTWTokenExpiredError from './errors/jwt-token-expired-error';
 import JTWUnableToVerifyError from './errors/jwt-unable-to-verify-error';
 
-import { SmartActionRequestBody } from './types';
-
-export default function verifyAndExtractApproval(
+export default function verifyAndExtractApproval<TResult>(
   approvalRequestToken: string,
   privateKey: string,
-): SmartActionRequestBody {
+): TResult {
   try {
-    return jsonwebtoken.verify(approvalRequestToken, privateKey) as SmartActionRequestBody;
+    return jsonwebtoken.verify(approvalRequestToken, privateKey) as TResult;
   } catch (err) {
     if (err instanceof TokenExpiredError) {
       throw new JTWTokenExpiredError();

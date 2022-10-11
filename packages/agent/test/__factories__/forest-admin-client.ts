@@ -1,16 +1,20 @@
 import { Factory } from 'fishery';
-
-import { ForestAdminClient } from '../../src/types';
+import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 
 export class ForestAdminClientFactory extends Factory<ForestAdminClient> {}
 
 const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
-  canOnCollection: jest.fn(),
-  canExecuteCustomAction: jest.fn(),
-  canExecuteCustomActionHook: jest.fn(),
+  verifySignedActionParameters: jest.fn(),
   canRetrieveChart: jest.fn(),
   getScope: jest.fn(),
   markScopesAsUpdated: jest.fn(),
+  permissionService: {
+    canApproveCustomAction: jest.fn(),
+    canOnCollection: jest.fn(),
+    canRequestCustomActionParameters: jest.fn(),
+    canRetrieveChart: jest.fn(),
+    canTriggerCustomAction: jest.fn(),
+  },
 }));
 
 export default forestAdminClientFactory;

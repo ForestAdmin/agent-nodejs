@@ -1,110 +1,25 @@
 import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
 import {
-  CollectionActionEvent,
-  CustomActionEvent,
-  SmartActionApprovalRequestBody,
-  SmartActionRequestBody,
-  User,
-} from './permissions/types';
-
-import { ForestAdminClient, ForestAdminClientOptionsWithDefaults } from './types';
-import {
-  generateCollectionActionIdentifier,
-  generateCustomActionIdentifier,
-} from './permissions/generate-action-identifier';
-import ActionPermissionService from './permissions/action-permission';
+  ForestAdminClient,
+  ForestAdminClientOptionsWithDefaults,
+  PermissionService,
+} from './types';
+import { User } from './permissions/types';
 import RenderingPermissionService from './permissions/rendering-permission';
 import verifyAndExtractApproval from './permissions/verify-approval';
 
 export default class ForestAdminClientWithCache implements ForestAdminClient {
   constructor(
     protected readonly options: ForestAdminClientOptionsWithDefaults,
-    protected readonly actionPermissionService: ActionPermissionService,
+    public readonly permissionService: PermissionService,
     protected readonly renderingPermissionService: RenderingPermissionService,
   ) {}
 
-  public async canOnCollection({
-    userId,
-    collectionName,
-    event,
-  }: {
-    userId: number;
-    event: CollectionActionEvent;
-    collectionName: string;
-  }): Promise<boolean> {
-    return this.actionPermissionService.can(
-      `${userId}`,
-      generateCollectionActionIdentifier(event, collectionName),
-    );
-  }
-
-  public async canExecuteCustomAction({
-    userId,
-    customActionName,
-    collectionName,
-    body,
-  }: {
-    userId: number;
-    customActionName: string;
-    collectionName: string;
-    body: SmartActionRequestBody | SmartActionApprovalRequestBody;
-  }): Promise<false | SmartActionRequestBody> {
-    let customActionEvenType = CustomActionEvent.Trigger;
-    const approvalSignedParameters = this.getApprovalRequestData(
-      body as SmartActionApprovalRequestBody,
-    );
-
-    if (approvalSignedParameters) {
-      const approvalRequesterId = approvalSignedParameters?.data?.attributes?.requester_id;
-
-      customActionEvenType =
-        `${approvalRequesterId}` === `${userId}`
-          ? CustomActionEvent.SelfApprove
-          : CustomActionEvent.Approve;
-    }
-
-    if (
-      await this.actionPermissionService.can(
-        `${userId}`,
-        generateCustomActionIdentifier(customActionEvenType, customActionName, collectionName),
-      )
-    ) {
-      return approvalSignedParameters || body;
-    }
-
-    return false;
-  }
-
-  public async canExecuteCustomActionHook({
-    userId,
-    collectionName,
-    customActionName,
-  }: {
-    userId: number;
-    collectionName: string;
-    customActionName: string;
-  }): Promise<boolean> {
-    return this.actionPermissionService.canOneOf(`${userId}`, [
-      generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
-      generateCustomActionIdentifier(
-        CustomActionEvent.RequireApproval,
-        customActionName,
-        collectionName,
-      ),
-    ]);
-  }
-
-  private getApprovalRequestData(
-    body: SmartActionApprovalRequestBody,
-  ): SmartActionRequestBody | null {
-    const signedApprovalRequest = body?.data?.attributes?.signed_approval_request;
-
-    if (signedApprovalRequest) {
-      return verifyAndExtractApproval(signedApprovalRequest, this.options.envSecret);
-    }
-
-    return null;
+  public verifySignedActionParameters<TSignedParameters>(
+    signedParameters: string,
+  ): TSignedParameters {
+    return verifyAndExtractApproval(signedParameters, this.options.envSecret);
   }
 
   public async getScope({
@@ -120,23 +35,6 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
       renderingId,
       collectionName,
       user,
-    });
-  }
-
-  public async canRetrieveChart({
-    renderingId,
-    userId,
-    chartRequest,
-  }: {
-    renderingId: number;
-    userId: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    chartRequest: any;
-  }): Promise<boolean> {
-    return this.renderingPermissionService.canRetrieveChart({
-      renderingId,
-      userId,
-      chartRequest,
     });
   }
 
