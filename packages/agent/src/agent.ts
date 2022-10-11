@@ -4,6 +4,7 @@ import {
   CollectionCustomizer,
   DataSourceCustomizer,
   DataSourceOptions,
+  Plugin,
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-customizer';
@@ -118,6 +119,17 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     handle: (collection: CollectionCustomizer<S, N>) => unknown,
   ): this {
     this.customizer.customizeCollection(name, handle);
+
+    return this;
+  }
+
+  /**
+   * Load a plugin, agent-wide
+   * @param plugin instance of the plugin
+   * @param options options which need to be passed to the plugin
+   */
+  use<Options>(plugin: Plugin<Options>, options?: Options): this {
+    this.customizer.use(plugin, options);
 
     return this;
   }

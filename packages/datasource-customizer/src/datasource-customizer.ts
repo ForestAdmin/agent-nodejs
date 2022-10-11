@@ -1,7 +1,13 @@
-import { Collection, DataSource, DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
+import {
+  Collection,
+  DataSource,
+  DataSourceFactory,
+  DataSourceSchema,
+  Logger,
+} from '@forestadmin/datasource-toolkit';
 
 import { ChartDefinition } from './decorators/chart/types';
-import { DataSourceOptions } from './types';
+import { DataSourceOptions, Plugin } from './types';
 import { TCollectionName, TSchema } from './templates';
 import CollectionCustomizer from './collection-customizer';
 import CompositeDatasource from './decorators/composite-datasource';
@@ -24,6 +30,20 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   private readonly compositeDataSource: CompositeDatasource<Collection>;
   private readonly stack: DecoratorsStack;
   private customizations: ((logger: Logger) => Promise<void>)[] = [];
+
+  /**
+   * Retrieve schema of the agent
+   */
+  get schema(): DataSourceSchema {
+    return this.stack.hook.schema;
+  }
+
+  /**
+   * Get list of customizable collections
+   */
+  get collections(): CollectionCustomizer<S>[] {
+    return this.stack.hook.collections.map(c => this.getCollection(c.name as TCollectionName<S>));
+  }
 
   constructor() {
     this.compositeDataSource = new CompositeDatasource<Collection>();
@@ -89,21 +109,53 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
     name: N,
     handle: (collection: CollectionCustomizer<S, N>) => unknown,
   ): this {
+    handle(this.getCollection(name));
+
+    return this;
+  }
+
+  /**
+   * Get given collection by name
+   * @param name name of the collection
+   */
+  getCollection<N extends TCollectionName<S>>(name: N): CollectionCustomizer<S, N> {
+    return new CollectionCustomizer<S, N>(this, this.customizations, this.stack, name);
+  }
+
+  /**
+   * Load a plugin, agent-wide
+   * @param plugin instance of the plugin
+   * @param options options which need to be passed to the plugin
+   */
+  use<Options>(plugin: Plugin<Options>, options?: Options): this {
     this.customizations.push(async () => {
-      if (this.stack.dataSource.getCollection(name)) {
-        handle(new CollectionCustomizer<S, N>(this.stack, name));
-      }
+      await plugin(this, null, options);
     });
 
     return this;
   }
 
   async getDataSource(logger: Logger): Promise<DataSource> {
-    while (this.customizations.length) {
-      await this.customizations.shift()(logger); // eslint-disable-line no-await-in-loop
-    }
+    await this.applyQueuedCustomizations(logger);
 
     return this.stack.dataSource;
+  }
+
+  /**
+   * Apply all customizations
+   * Plugins may queue new customizations, or call other plugins which will queue customizations.
+   *
+   * This method will be called recursively and clears the queue at each recursion to ensure
+   * that all customizations are applied in the right order.
+   */
+  async applyQueuedCustomizations(logger: Logger): Promise<void> {
+    const queuedCustomizations = this.customizations.slice();
+    this.customizations.length = 0;
+
+    while (queuedCustomizations.length) {
+      await queuedCustomizations.shift()(logger); // eslint-disable-line no-await-in-loop
+      await this.applyQueuedCustomizations(logger); // eslint-disable-line no-await-in-loop
+    }
   }
 
   getFactory(): DataSourceFactory {

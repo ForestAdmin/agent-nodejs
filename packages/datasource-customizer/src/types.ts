@@ -2,6 +2,8 @@ import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 import { TCollectionName, TFieldName, TRow, TSchema } from './templates';
 import CollectionCustomizationContext from './context/collection-context';
+import CollectionCustomizer from './collection-customizer';
+import DataSourceCustomizer from './datasource-customizer';
 
 export type OneToManyEmbeddedDefinition<
   S extends TSchema = TSchema,
@@ -20,3 +22,11 @@ export type DataSourceOptions = {
   include?: string[];
   exclude?: string[];
 };
+
+export type Plugin<Options> = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dataSourceCustomizer: DataSourceCustomizer<any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  collectionCustomizer: CollectionCustomizer<any, any>,
+  options?: Options,
+) => Promise<void>;

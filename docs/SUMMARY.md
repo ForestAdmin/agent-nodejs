@@ -52,6 +52,8 @@
   - [Validation](agent-customization/fields/validation.md)
 
 - [Hooks](agent-customization/hooks/README.md)
+- [Plugins](agent-customization/plugins/README.md)
+  - [Write your own](agent-customization/plugins/custom.md)
 - [Relationships](agent-customization/relationships/README.md)
   - [To a single record](agent-customization/relationships/single-record.md)
   - [To multiple records](agent-customization/relationships/multiple-records.md)
