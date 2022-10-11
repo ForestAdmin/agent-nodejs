@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.0.0...@forestadmin/datasource-customizer@1.1.0) (2022-10-11)
+
+
+### Features
+
+* **customizer:** automatically detect fields that can be computed before emulating relations ([#487](https://github.com/ForestAdmin/agent-nodejs/issues/487)) ([04f6fd8](https://github.com/ForestAdmin/agent-nodejs/commit/04f6fd84073b629f5576e3e46b58434e9fb08c26))
+
 # @forestadmin/datasource-customizer 1.0.0 (2022-10-07)
 
 
