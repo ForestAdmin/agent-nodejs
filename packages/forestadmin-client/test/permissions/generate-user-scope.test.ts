@@ -1,10 +1,6 @@
-import {
-  GenericTreeBranch,
-  GenericTreeLeaf,
-  PermissionLevel,
-  Team,
-  UserPermissionV4,
-} from '../../src/permissions/types';
+import type { GenericTree } from '@forestadmin/datasource-toolkit';
+
+import { PermissionLevel, Team, UserPermissionV4 } from '../../src/permissions/types';
 import generateUserScope from '../../src/permissions/generate-user-scope';
 
 describe('generateUserScope', () => {
@@ -12,7 +8,7 @@ describe('generateUserScope', () => {
     it.each([42, [42, 43], ['foo', 'bar'], null, '42'])(
       'should not modify the value %s when not related to the user',
       value => {
-        const condition: GenericTreeLeaf = {
+        const condition: GenericTree = {
           value,
           field: 'foo',
           operator: 'Equal',
@@ -40,7 +36,7 @@ describe('generateUserScope', () => {
     );
 
     it("should replace the value by the user's id", () => {
-      const condition: GenericTreeLeaf = {
+      const condition: GenericTree = {
         value: '$currentUser.id',
         field: 'foo',
         operator: 'Equal',
@@ -70,7 +66,7 @@ describe('generateUserScope', () => {
     });
 
     it("should replace the value by the user's tag", () => {
-      const condition: GenericTreeLeaf = {
+      const condition: GenericTree = {
         value: '$currentUser.tags.foo',
         field: 'foo',
         operator: 'Equal',
@@ -103,7 +99,7 @@ describe('generateUserScope', () => {
 
     describe('with a value related to the team', () => {
       it("should replace the value by the team's property", () => {
-        const condition: GenericTreeLeaf = {
+        const condition: GenericTree = {
           value: '$currentUser.team.name',
           field: 'foo',
           operator: 'Equal',
@@ -135,7 +131,7 @@ describe('generateUserScope', () => {
 
     describe('when the field cannot be found', () => {
       it('should replace with undefined if the dynamic value does not exist', () => {
-        const condition: GenericTreeLeaf = {
+        const condition: GenericTree = {
           value: '$currentUser.foo',
           field: 'foo',
           operator: 'Equal',
@@ -167,7 +163,7 @@ describe('generateUserScope', () => {
 
   describe('with a branch containing multiple leafs', () => {
     it('should replace values in every leaf', () => {
-      const condition: GenericTreeBranch = {
+      const condition: GenericTree = {
         aggregator: 'And',
         conditions: [
           {

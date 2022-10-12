@@ -1,13 +1,7 @@
 import LruCache from 'lru-cache';
 import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
-import {
-  CollectionRenderingPermissionV4,
-  PermissionLevel,
-  Team,
-  User,
-  UserPermissionV4,
-} from './types';
+import { CollectionRenderingPermissionV4, PermissionLevel, Team, UserPermissionV4 } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import { hashChartRequest, hashServerCharts } from './hash-chart';
 import ForestHttpApi from './forest-http-api';
@@ -38,29 +32,29 @@ export default class RenderingPermissionService {
   public async getScope({
     renderingId,
     collectionName,
-    user,
+    userId,
   }: {
     renderingId: number | string;
     collectionName: string;
-    user: User;
+    userId: number | string;
   }): Promise<GenericTree> {
-    return this.getScopeOrRetry({ renderingId, collectionName, user, allowRetry: true });
+    return this.getScopeOrRetry({ renderingId, collectionName, userId, allowRetry: true });
   }
 
   private async getScopeOrRetry({
     renderingId,
     collectionName,
-    user,
+    userId,
     allowRetry,
   }: {
     renderingId: number | string;
     collectionName: string;
-    user: User;
+    userId: number | string;
     allowRetry: boolean;
   }): Promise<GenericTree> {
     const [permissions, userInfo]: [RenderingPermission, UserPermissionV4] = await Promise.all([
       this.permissionsByRendering.fetch(`${renderingId}`),
-      this.userPermissions.getUserInfo(user.id),
+      this.userPermissions.getUserInfo(userId),
     ]);
 
     const collectionPermissions = permissions?.collections?.[collectionName];
@@ -69,7 +63,7 @@ export default class RenderingPermissionService {
       if (allowRetry) {
         this.invalidateCache(renderingId);
 
-        return this.getScopeOrRetry({ renderingId, collectionName, user, allowRetry: false });
+        return this.getScopeOrRetry({ renderingId, collectionName, userId, allowRetry: false });
       }
 
       return null;
@@ -150,9 +144,9 @@ export default class RenderingPermissionService {
     chartRequest,
     userId,
   }: {
-    renderingId: number;
+    renderingId: number | string;
     chartRequest: unknown;
-    userId: number;
+    userId: number | string;
   }): Promise<boolean> {
     const chartHash = hashChartRequest(chartRequest);
 
@@ -165,8 +159,8 @@ export default class RenderingPermissionService {
     chartHash,
     allowRetry,
   }: {
-    renderingId: number;
-    userId: number;
+    renderingId: number | string;
+    userId: number | string;
     chartHash: string;
     allowRetry: boolean;
   }): Promise<boolean> {
@@ -206,7 +200,7 @@ export default class RenderingPermissionService {
     return false;
   }
 
-  public invalidateCache(renderingId) {
+  public invalidateCache(renderingId: number | string) {
     this.options.logger(
       'Debug',
       `Invalidating rendering permissions cache for rendering ${renderingId}`,

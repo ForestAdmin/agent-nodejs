@@ -43,6 +43,20 @@ describe('UserPermission', () => {
       expect(getUsersMock).toHaveBeenCalledWith(options);
     });
 
+    it('should works with userId of type string', async () => {
+      const { userPermissions, options, getUsersMock } = setup();
+
+      getUsersMock.mockResolvedValueOnce([
+        { id: 42, email: 'alice@world.com' },
+        { id: 43, email: 'bob@world.com' },
+      ]);
+
+      const userInfo = await userPermissions.getUserInfo('43');
+
+      expect(userInfo).toStrictEqual({ id: 43, email: 'bob@world.com' });
+      expect(getUsersMock).toHaveBeenCalledWith(options);
+    });
+
     it('should reload the list of users if the given id does not exist', async () => {
       const { userPermissions, getUsersMock } = setup();
       getUsersMock.mockResolvedValueOnce([

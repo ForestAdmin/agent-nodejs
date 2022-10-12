@@ -5,7 +5,6 @@ import {
   ForestAdminClientOptionsWithDefaults,
   PermissionService,
 } from './types';
-import { User } from './permissions/types';
 import RenderingPermissionService from './permissions/rendering-permission';
 import verifyAndExtractApproval from './permissions/verify-approval';
 
@@ -24,21 +23,21 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
 
   public async getScope({
     renderingId,
-    user,
+    userId,
     collectionName,
   }: {
-    renderingId: number;
-    user: User;
+    renderingId: number | string;
+    userId: number | string;
     collectionName: string;
   }): Promise<GenericTree> {
     return this.renderingPermissionService.getScope({
       renderingId,
       collectionName,
-      user,
+      userId,
     });
   }
 
-  public markScopesAsUpdated(renderingId: number) {
+  public markScopesAsUpdated(renderingId: number | string) {
     this.renderingPermissionService.invalidateCache(renderingId);
   }
 }

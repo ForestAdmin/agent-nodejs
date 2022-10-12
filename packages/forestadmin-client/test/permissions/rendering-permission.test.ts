@@ -92,15 +92,13 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValueOnce(renderingPermissions);
       getUserInfoMock.mockResolvedValueOnce(userInfo);
 
-      const user = { id: 42, tags: {} };
-
       const expected = { foo: 'bar' };
       (generateUserScope as jest.Mock).mockReturnValueOnce(expected);
 
       const actual = await renderingPermission.getScope({
         renderingId: '42',
         collectionName: 'books',
-        user,
+        userId: 42,
       });
 
       expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
@@ -146,20 +144,18 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValueOnce(renderingPermissions2);
       getUserInfoMock.mockResolvedValue(userInfo);
 
-      const user = { id: 42, tags: {} };
-
       const expected = { foo: 'bar' };
       (generateUserScope as jest.Mock).mockReturnValueOnce(expected);
 
       const actual = await renderingPermission.getScope({
         renderingId: '42',
         collectionName: 'books',
-        user,
+        userId: '42',
       });
 
       expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
       expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
-      expect(getUserInfoMock).toHaveBeenCalledWith(42);
+      expect(getUserInfoMock).toHaveBeenCalledWith('42');
 
       expect(generateUserScope).toHaveBeenCalledWith(scope, team, userInfo);
 
@@ -189,15 +185,13 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValue(renderingPermissions);
       getUserInfoMock.mockResolvedValue(userInfo);
 
-      const user = { id: 42, tags: {} };
-
       const expected = { foo: 'bar' };
       (generateUserScope as jest.Mock).mockReturnValueOnce(expected);
 
       const actual = await renderingPermission.getScope({
         renderingId: '42',
         collectionName: 'books',
-        user,
+        userId: 42,
       });
 
       expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);

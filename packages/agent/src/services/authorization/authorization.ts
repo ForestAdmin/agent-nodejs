@@ -80,7 +80,7 @@ export default class AuthorizationService {
     context: Context;
     customActionName: string;
     collectionName: string;
-    requesterId: number;
+    requesterId: number | string;
   }): Promise<void> {
     const { id: userId } = context.state.user;
     const canApprove = await this.forestAdminClient.permissionService.canApproveCustomAction({
@@ -134,7 +134,7 @@ export default class AuthorizationService {
 
     const scope = await this.forestAdminClient.getScope({
       renderingId: user.renderingId,
-      user,
+      userId: user.id,
       collectionName: collection.name,
     });
 
@@ -143,7 +143,7 @@ export default class AuthorizationService {
     return ConditionTreeParser.fromPlainObject(collection, scope);
   }
 
-  public invalidateScopeCache(renderingId: number) {
+  public invalidateScopeCache(renderingId: number | string) {
     this.forestAdminClient.markScopesAsUpdated(renderingId);
   }
 

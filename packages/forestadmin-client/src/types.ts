@@ -1,6 +1,6 @@
 import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
-import { CollectionActionEvent, User } from './permissions/types';
+import { CollectionActionEvent } from './permissions/types';
 
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LoggerLevel, message: unknown) => void;
@@ -20,44 +20,44 @@ export interface ForestAdminClient {
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
   getScope(params: {
-    renderingId: number;
-    user: User;
+    renderingId: number | string;
+    userId: number | string;
     collectionName: string;
   }): Promise<GenericTree>;
-  markScopesAsUpdated(renderingId: number);
+  markScopesAsUpdated(renderingId: number | string): void;
 }
 
 export interface PermissionService {
   canOnCollection(params: {
-    userId: number;
+    userId: number | string;
     event: CollectionActionEvent;
     collectionName: string;
   }): Promise<boolean>;
   canTriggerCustomAction(params: {
-    userId: number;
+    userId: number | string;
     customActionName: string;
     collectionName: string;
   }): Promise<boolean>;
   canApproveCustomAction(params: {
-    userId: number;
+    userId: number | string;
     customActionName: string;
     collectionName: string;
-    requesterId: number;
+    requesterId: number | string;
   }): Promise<boolean>;
   canRequestCustomActionParameters(params: {
-    userId: number;
+    userId: number | string;
     collectionName: string;
     customActionName: string;
   }): Promise<boolean>;
   canRetrieveChart(params: {
-    renderingId: number;
-    userId: number;
+    renderingId: number | string;
+    userId: number | string;
     chartRequest: unknown;
   }): Promise<boolean>;
   canExecuteSegmentQuery(params: {
-    userId: number;
+    userId: number | string;
     collectionName: string;
-    renderingId: number;
+    renderingId: number | string;
     segmentQuery: string;
   }): Promise<boolean>;
 }
