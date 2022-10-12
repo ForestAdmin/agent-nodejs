@@ -41,12 +41,16 @@ export default class OperatorsDecorator extends CollectionDecorator {
     caller: Caller,
     filter?: PaginatedFilter,
   ): Promise<PaginatedFilter> {
+    console.log('refineFilter', filter);
+
     return filter?.override({
       conditionTree: filter.conditionTree?.replaceLeafs(leaf => {
         const schema = CollectionUtils.getFieldSchema(
           this.childCollection,
           leaf.field,
         ) as ColumnSchema;
+
+        console.log('LEAF', leaf);
 
         return ConditionTreeEquivalent.getEquivalentTree(
           leaf,

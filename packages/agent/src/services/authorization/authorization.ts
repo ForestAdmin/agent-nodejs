@@ -1,8 +1,9 @@
 import { Context } from 'koa';
 
-import { Collection, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
+import { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
 import { CollectionActionEvent, ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { HttpCode } from '../../types';
+import ConditionTreeParser from '../../utils/condition-tree-parser';
 
 export default class AuthorizationService {
   constructor(private readonly forestAdminClient: ForestAdminClient) {}
@@ -139,7 +140,7 @@ export default class AuthorizationService {
 
     if (!scope) return null;
 
-    return ConditionTreeFactory.fromPlainObject(scope);
+    return ConditionTreeParser.fromPlainObject(collection, scope);
   }
 
   public invalidateScopeCache(renderingId: number) {

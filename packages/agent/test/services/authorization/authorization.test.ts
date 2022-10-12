@@ -1,4 +1,4 @@
-import { Collection, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
+import { Collection } from '@forestadmin/datasource-toolkit';
 import { CollectionActionEvent } from '@forestadmin/forestadmin-client';
 import { Context } from 'koa';
 
@@ -7,9 +7,11 @@ import * as factories from '../../__factories__';
 import { HttpCode } from '../../../src/types';
 
 import AuthorizationService from '../../../src/services/authorization/authorization';
+import ConditionTreeParser from '../../../src/utils/condition-tree-parser';
 
-jest.mock('@forestadmin/datasource-toolkit', () => ({
-  ConditionTreeFactory: {
+jest.mock('../../../src/utils/condition-tree-parser', () => ({
+  __esModule: true,
+  default: {
     fromPlainObject: jest.fn(),
   },
 }));
@@ -266,7 +268,7 @@ describe('AuthorizationService', () => {
       const parsed = Symbol('parsed');
 
       (forestAdminClient.getScope as jest.Mock).mockResolvedValue({ foo: 'bar' });
-      (ConditionTreeFactory.fromPlainObject as jest.Mock).mockReturnValue(parsed);
+      (ConditionTreeParser.fromPlainObject as jest.Mock).mockReturnValue(parsed);
 
       const scope = await authorizationService.getScope(collection, context);
 
@@ -277,7 +279,7 @@ describe('AuthorizationService', () => {
         user,
         collectionName: 'books',
       });
-      expect(ConditionTreeFactory.fromPlainObject).toHaveBeenCalledWith({ foo: 'bar' });
+      expect(ConditionTreeParser.fromPlainObject).toHaveBeenCalledWith(collection, { foo: 'bar' });
     });
   });
 
