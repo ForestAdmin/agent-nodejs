@@ -247,8 +247,3 @@ export type RenderingPermissionV4 = {
   collections: Record<string, CollectionRenderingPermissionV4>;
   stats: Chart[];
 };
-
-export type User = Record<string, unknown> & {
-  id: number;
-  tags: Record<string, string>;
-};
