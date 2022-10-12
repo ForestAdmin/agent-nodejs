@@ -206,6 +206,6 @@ export default class RenderingPermissionService {
       `Invalidating rendering permissions cache for rendering ${renderingId}`,
     );
 
-    this.permissionsByRendering.del(`${renderingId}`);
+    this.permissionsByRendering.delete(`${renderingId}`);
   }
 }
