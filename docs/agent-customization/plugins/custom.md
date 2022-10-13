@@ -12,7 +12,7 @@ Three parameters are provided:
 | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | agent<br>([api-reference](https://forestadmin.github.io/agent-nodejs/classes/_forestadmin_datasource_customizer.DataSourceCustomizer.html))      | An object that allows customizing the whole agent. It has the same interface than the `Agent` you manipulate outside of plugins                                                                         |
 | collection<br>([api-reference](https://forestadmin.github.io/agent-nodejs/classes/_forestadmin_datasource_customizer.CollectionCustomizer.html)) | An object that allows customizing the collection that the plugin was called from (null if the plugin was called on the agent). It is the same object than is passed when you call `customizeCollection` |
-| options                                                                                                                                          | Options which were provided when calling the plugin                                                                                                                                                     |
+| options                                                                                                                                          | Options which are provided to the plugin. There is no set structure for this parameter, as each plugin can use different options.                                                                       |
 
 ## Making your plugin act differently depending on the collection
 
@@ -26,12 +26,17 @@ Relevant documentation:
 - [CollectionSchema](https://forestadmin.github.io/agent-nodejs/types/_forestadmin_datasource_toolkit.CollectionSchema.html) (for all other plugins)
 
 ```javascript
-export async function removeTimestamps(agent, collection, options) {
+export async function removeTimestamps(dataSource, collection, options) {
   const fieldsToRemove = [];
 
-  for (const collection of agent.collections) {
-    if (collection.schema.fields.createdAt) collection.removeField('createdAt');
-    if (collection.schema.fields.updatedAt) collection.removeField('updatedAt');
+  for (const currenCollection of dataSource.collections) {
+    if (currenCollection.schema.fields.createdAt) {
+      currenCollection.removeField('createdAt');
+    }
+
+    if (currenCollection.schema.fields.updatedAt) {
+      currenCollection.removeField('updatedAt');
+    }
   }
 }
 ```

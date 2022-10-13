@@ -47,6 +47,15 @@ export default class CollectionCustomizer<
     this.stack = stack;
   }
 
+  /**
+   * Load a plugin on the collection.
+   * @param plugin reference to the plugin function
+   * @param options options to pass to the plugin
+   * @example
+   * import { createFileField } from '@forestadmin/plugin-s3';
+   *
+   * collection.use(createFileField, { fieldname: 'avatar' }),
+   */
   use<Options>(plugin: Plugin<Options>, options?: Options): this {
     return this.pushCustomization(async () => {
       await plugin(this.dataSourceCustomizer, this, options);

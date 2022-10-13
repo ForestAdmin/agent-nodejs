@@ -33,14 +33,14 @@ A plugin is nothing more than an `async function` which performs customizations.
 The full documentation can be found in the ["Write your own plugin" section](./custom.md).
 
 ```javascript
-export async function removeTimestamps(agent, collection) {
-  // Allow the plugin to be used both on the agent or on individual collections
-  const collections = collection ? [collection] : agent.collections;
+export async function removeTimestamps(dataSource, collection) {
+  // Allow the plugin to be used both on the dataSource or on individual collections
+  const collections = collection ? [collection] : dataSource.collections;
 
   // Remove fields
-  for (const collection of collections) {
-    collection.removeField('createdAt');
-    collection.removeField('updatedAt');
+  for (const currentCollection of collections) {
+    currentCollection.removeField('createdAt');
+    currentCollection.removeField('updatedAt');
   }
 }
 ```

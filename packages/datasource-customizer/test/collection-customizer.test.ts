@@ -84,7 +84,7 @@ describe('Builder > Collection', () => {
 
     const dsc = new DataSourceCustomizer();
     dsc.addDataSource(() => Promise.resolve(dataSource));
-    await dsc.applyQueuedCustomizations(logger);
+    await dsc.getDataSource(logger);
 
     // @ts-ignore
     const { stack, customizations } = dsc;
@@ -102,7 +102,7 @@ describe('Builder > Collection', () => {
         c.disableCount();
       });
 
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({ countable: false });
@@ -117,7 +117,7 @@ describe('Builder > Collection', () => {
       const spy = jest.spyOn(stack.schema.getCollection('authors'), 'overrideSchema');
 
       const self = customizer.disableCount();
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({ countable: false });
@@ -168,7 +168,7 @@ describe('Builder > Collection', () => {
 
       const actionDefinition: ActionDefinition = { scope: 'Global', execute: () => {} };
       const self = customizer.addAction('action name', actionDefinition);
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('action name', actionDefinition);
@@ -183,7 +183,7 @@ describe('Builder > Collection', () => {
       const spy = jest.spyOn(stack.validation.getCollection('authors'), 'addValidation');
 
       const self = customizer.addFieldValidation('firstName', 'LongerThan', 5);
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', { operator: 'LongerThan', value: 5 });
@@ -200,7 +200,7 @@ describe('Builder > Collection', () => {
 
       const spy = jest.spyOn(customizer, 'addField');
       const self = customizer.importField('firstNameCopy', { path: 'firstName' });
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstNameCopy', {
@@ -221,7 +221,7 @@ describe('Builder > Collection', () => {
       const spy = jest.spyOn(stack.write.getCollection('authors'), 'replaceFieldWriting');
 
       const self = customizer.importField('translatorName', { path: 'translator:name' });
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toHaveBeenCalledWith('translatorName', expect.any(Function));
       const [[, definition]] = spy.mock.calls;
@@ -239,7 +239,7 @@ describe('Builder > Collection', () => {
         const self = customizer.importField('translatorName', {
           path: 'translator:nameInReadOnly',
         });
-        await dsc.applyQueuedCustomizations(logger);
+        await dsc.getDataSource(logger);
 
         expect(spy).not.toHaveBeenCalled();
         expect(self).toEqual(customizer);
@@ -255,7 +255,7 @@ describe('Builder > Collection', () => {
           path: 'translator:name',
           readonly: true,
         });
-        await dsc.applyQueuedCustomizations(logger);
+        await dsc.getDataSource(logger);
 
         expect(spy).not.toHaveBeenCalled();
         expect(self).toEqual(customizer);
@@ -270,7 +270,7 @@ describe('Builder > Collection', () => {
           readonly: false,
         });
 
-        await expect(dsc.applyQueuedCustomizations(logger)).rejects.toThrowError(
+        await expect(dsc.getDataSource(logger)).rejects.toThrowError(
           'Readonly option should not be false because the field' +
             ' "translator:nameInReadOnly" is not writable',
         );
@@ -290,7 +290,7 @@ describe('Builder > Collection', () => {
       };
 
       const self = customizer.addField('new field', fieldDefinition);
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
@@ -320,7 +320,7 @@ describe('Builder > Collection', () => {
       };
 
       const self = customizer.addField('new field', fieldDefinition);
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
@@ -345,7 +345,7 @@ describe('Builder > Collection', () => {
           return [{ firstname: 'John', lastName: 'Doe' }];
         },
       });
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstNameCopy', {
@@ -378,7 +378,7 @@ describe('Builder > Collection', () => {
         foreignKey: 'authorFk',
         foreignKeyTarget: 'authorId',
       });
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myAuthor', {
@@ -400,7 +400,7 @@ describe('Builder > Collection', () => {
         originKey: 'authorFk',
         originKeyTarget: 'authorId',
       });
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myBookAuthor', {
@@ -422,7 +422,7 @@ describe('Builder > Collection', () => {
         originKey: 'authorFk',
         originKeyTarget: 'authorId',
       });
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myBookAuthors', {
@@ -445,7 +445,7 @@ describe('Builder > Collection', () => {
         originKey: 'authorFk',
         originKeyTarget: 'authorId',
       });
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myBooks', {
@@ -472,7 +472,7 @@ describe('Builder > Collection', () => {
       const generator = async () => new ConditionTreeLeaf('fieldName', 'Present');
 
       const self = customizer.addSegment('new segment', generator);
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new segment', generator);
@@ -489,7 +489,7 @@ describe('Builder > Collection', () => {
       const spy = jest.spyOn(collection, 'emulateFieldSorting');
 
       const self = customizer.emulateFieldSorting('firstName');
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName');
@@ -506,7 +506,7 @@ describe('Builder > Collection', () => {
 
       const sortClauses = [{ field: 'firstName', ascending: true }];
       const self = customizer.replaceFieldSorting('firstName', sortClauses);
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', new Sort(...sortClauses));
@@ -523,7 +523,7 @@ describe('Builder > Collection', () => {
 
       const definition: WriteDefinition = jest.fn();
       const self = customizer.replaceFieldWriting('firstName', definition);
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', definition);
@@ -539,7 +539,7 @@ describe('Builder > Collection', () => {
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
       const self = customizer.emulateFieldFiltering('lastName');
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(19);
       expect(self).toEqual(customizer);
@@ -553,7 +553,7 @@ describe('Builder > Collection', () => {
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
       const self = customizer.emulateFieldOperator('firstName', 'Present');
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'Present');
@@ -569,7 +569,7 @@ describe('Builder > Collection', () => {
       const replacer = async () => new ConditionTreeLeaf('fieldName', 'NotEqual', null);
 
       const self = customizer.replaceFieldOperator('firstName', 'Present', replacer);
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'Present', replacer);
@@ -586,7 +586,7 @@ describe('Builder > Collection', () => {
         ({ field: 'firstName', operator: 'Equal', value: search } as const);
 
       const self = customizer.replaceSearch(replacer);
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith(replacer);
@@ -602,7 +602,7 @@ describe('Builder > Collection', () => {
       const hookHandler = () => {};
 
       const self = customizer.addHook('Before', 'List', hookHandler);
-      await dsc.applyQueuedCustomizations(logger);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('Before', 'List', hookHandler);

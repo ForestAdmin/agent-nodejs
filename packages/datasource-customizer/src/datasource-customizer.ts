@@ -123,9 +123,13 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   }
 
   /**
-   * Load a plugin, agent-wide
+   * Load a plugin across all collections
    * @param plugin instance of the plugin
    * @param options options which need to be passed to the plugin
+   * @example
+   * import { advancedExport } from '@forestadmin/plugin-advanced-export';
+   *
+   * dataSourceCustomizer.use(advancedExportPlugin, { format: 'xlsx' });
    */
   use<Options>(plugin: Plugin<Options>, options?: Options): this {
     this.customizations.push(async () => {
@@ -141,6 +145,14 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
     return this.stack.dataSource;
   }
 
+  getFactory(): DataSourceFactory {
+    return async (logger: Logger) => this.getDataSource(logger);
+  }
+
+  async updateTypesOnFileSystem(typingsPath: string, typingsMaxDepth: number): Promise<void> {
+    return TypingGenerator.updateTypesOnFileSystem(this.stack.hook, typingsPath, typingsMaxDepth);
+  }
+
   /**
    * Apply all customizations
    * Plugins may queue new customizations, or call other plugins which will queue customizations.
@@ -148,7 +160,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    * This method will be called recursively and clears the queue at each recursion to ensure
    * that all customizations are applied in the right order.
    */
-  async applyQueuedCustomizations(logger: Logger): Promise<void> {
+  private async applyQueuedCustomizations(logger: Logger): Promise<void> {
     const queuedCustomizations = this.customizations.slice();
     this.customizations.length = 0;
 
@@ -156,13 +168,5 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
       await queuedCustomizations.shift()(logger); // eslint-disable-line no-await-in-loop
       await this.applyQueuedCustomizations(logger); // eslint-disable-line no-await-in-loop
     }
-  }
-
-  getFactory(): DataSourceFactory {
-    return async (logger: Logger) => this.getDataSource(logger);
-  }
-
-  async updateTypesOnFileSystem(typingsPath: string, typingsMaxDepth: number): Promise<void> {
-    return TypingGenerator.updateTypesOnFileSystem(this.stack.hook, typingsPath, typingsMaxDepth);
   }
 }

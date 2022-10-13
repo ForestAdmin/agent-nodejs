@@ -26,7 +26,7 @@ describe('DataSourceCustomizer', () => {
     );
 
     expect(customizer.schema).toStrictEqual({ charts: [] });
-    await customizer.applyQueuedCustomizations(logger);
+    await customizer.getDataSource(logger);
     expect(customizer.schema).toStrictEqual({ charts: ['foo'] });
   });
 
@@ -37,7 +37,7 @@ describe('DataSourceCustomizer', () => {
     );
 
     expect(customizer.collections).toHaveLength(0);
-    await customizer.applyQueuedCustomizations(logger);
+    await customizer.getDataSource(logger);
     expect(customizer.collections).toHaveLength(1);
     expect(customizer.collections[0]).toBeInstanceOf(CollectionCustomizer);
   });
@@ -190,14 +190,14 @@ describe('DataSourceCustomizer', () => {
 
       const plugin = jest.fn();
       customizer.use(plugin, { myOptions: 1 });
-      await customizer.applyQueuedCustomizations(logger);
+      await customizer.getDataSource(logger);
 
       expect(plugin).toHaveBeenCalledTimes(1);
       expect(plugin).toHaveBeenCalledWith(customizer, null, { myOptions: 1 });
     });
   });
 
-  describe('applyQueuedCustomizations', () => {
+  describe('getDataSource', () => {
     it('should call customizations in the right order', async () => {
       // Note that is is also a problem for importField etc...
       // By default customizations are pushed to the end of the queue, which does not work when
@@ -222,7 +222,7 @@ describe('DataSourceCustomizer', () => {
         });
       });
 
-      await customizer.applyQueuedCustomizations(logger);
+      await customizer.getDataSource(logger);
       expect(array).toEqual([1, 2, 3, 4, 5]);
     });
   });
