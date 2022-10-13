@@ -61,13 +61,13 @@ export default class DecoratorsStack {
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
     last = this.segment = new DataSourceDecorator(last, SegmentCollectionDecorator);
     last = this.sortEmulate = new DataSourceDecorator(last, SortEmulateCollectionDecorator);
-    last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
 
     // Step 3: Access to all fields AND emulated capabilities
-    last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);
     last = this.chart = new ChartDataSourceDecorator(last);
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
+    last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);
+    last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
     last = this.hook = new DataSourceDecorator(last, HookCollectionDecorator);
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
