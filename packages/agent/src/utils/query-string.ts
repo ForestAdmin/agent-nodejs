@@ -24,6 +24,7 @@ export default class QueryStringParser {
       const filters =
         context.request.body?.data?.attributes?.all_records_subset_query?.filters ??
         context.request.body?.filters ??
+        context.request.body?.filter ??
         context.request.query?.filters;
 
       if (!filters) return null;

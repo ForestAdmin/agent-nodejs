@@ -96,7 +96,12 @@ describe('ChartRoute', () => {
 
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
-        requestBody: { type: 'Value', aggregate: 'Count', collection: 'books', filters: undefined },
+        requestBody: {
+          type: 'Value',
+          aggregator: 'Count',
+          sourceCollectionName: 'books',
+          filters: undefined,
+        },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         state: { user: { email: 'john.doe@domain.com' } },
       });
@@ -127,7 +132,12 @@ describe('ChartRoute', () => {
 
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
-        requestBody: { type: 'Value', aggregate: 'Count', collection: 'books', filters: undefined },
+        requestBody: {
+          type: 'Value',
+          aggregator: 'Count',
+          sourceCollectionName: 'books',
+          filters: undefined,
+        },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         state: { user: { email: 'john.doe@domain.com' } },
       });
@@ -148,8 +158,8 @@ describe('ChartRoute', () => {
           const context = createMockContext({
             requestBody: {
               type: 'Value',
-              aggregate: 'Count',
-              collection: 'books',
+              aggregator: 'Count',
+              sourceCollectionName: 'books',
               filters: JSON.stringify({ field: 'publishedAt', operator: 'Today', value: null }),
             },
             customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -176,8 +186,8 @@ describe('ChartRoute', () => {
             const context = createMockContext({
               requestBody: {
                 type: 'Value',
-                aggregate: 'Count',
-                collection: 'books',
+                aggregator: 'Count',
+                sourceCollectionName: 'books',
                 filters: JSON.stringify({
                   aggregator: 'And',
                   conditions: [
@@ -217,8 +227,8 @@ describe('ChartRoute', () => {
           const context = createMockContext({
             requestBody: {
               type: 'Value',
-              aggregate: 'Count',
-              collection: 'books',
+              aggregator: 'Count',
+              sourceCollectionName: 'books',
               filters: JSON.stringify({ field: 'name', operator: 'Present', value: null }),
             },
             customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -254,8 +264,8 @@ describe('ChartRoute', () => {
           const context = createMockContext({
             requestBody: {
               type: 'Value',
-              aggregate: 'Count',
-              collection: 'books',
+              aggregator: 'Count',
+              sourceCollectionName: 'books',
               filters: JSON.stringify({ field: 'name', operator: 'Present', value: null }),
             },
             customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -318,7 +328,7 @@ describe('ChartRoute', () => {
         jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValue([]);
         const chart = new Chart(services, options, dataSource, 'books');
         const context = createMockContext({
-          requestBody: { type: 'Value', aggregate: 'Count', collection: 'books' },
+          requestBody: { type: 'Value', aggregator: 'Count', sourceCollectionName: 'books' },
           customProperties: { query: { timezone: 'Europe/Paris' } },
           state: { user: { permission_level: 'user' } },
         });
@@ -347,7 +357,7 @@ describe('ChartRoute', () => {
         .mockResolvedValueOnce([{ value: 1234, group: null }]);
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
-        requestBody: { type: 'Objective', aggregate: 'Count', collection: 'books' },
+        requestBody: { type: 'Objective', aggregator: 'Count', sourceCollectionName: 'books' },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         state: { user: { email: 'john.doe@domain.com' } },
       });
@@ -375,7 +385,7 @@ describe('ChartRoute', () => {
 
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
-        requestBody: { type: 'Objective', aggregate: 'Count', collection: 'books' },
+        requestBody: { type: 'Objective', aggregator: 'Count', sourceCollectionName: 'books' },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         state: { user: { email: 'john.doe@domain.com' } },
       });
@@ -425,9 +435,9 @@ describe('ChartRoute', () => {
       const context = createMockContext({
         requestBody: {
           type: 'Pie',
-          aggregate: 'Count',
-          collection: 'books',
-          group_by_field: 'author:firstName',
+          aggregator: 'Count',
+          sourceCollectionName: 'books',
+          groupByFieldName: 'author:firstName',
         },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         state: { user: { email: 'john.doe@domain.com' } },
@@ -464,9 +474,9 @@ describe('ChartRoute', () => {
       const context = createMockContext({
         requestBody: {
           type: 'Pie',
-          aggregate: 'Count',
-          collection: 'books',
-          group_by_field: 'author:firstName',
+          aggregator: 'Count',
+          sourceCollectionName: 'books',
+          groupByFieldName: 'author:firstName',
         },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         state: { user: { email: 'john.doe@domain.com' } },
@@ -526,10 +536,10 @@ describe('ChartRoute', () => {
       const context = createMockContext({
         requestBody: {
           type: 'Line',
-          aggregate: 'Count',
-          collection: 'books',
-          group_by_date_field: 'publication',
-          time_range: 'Week',
+          aggregator: 'Count',
+          sourceCollectionName: 'books',
+          groupByFieldName: 'publication',
+          timeRange: 'Week',
         },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         state: { user: { email: 'john.doe@domain.com' } },
@@ -571,10 +581,10 @@ describe('ChartRoute', () => {
       const context = createMockContext({
         requestBody: {
           type: 'Line',
-          aggregate: 'Count',
-          collection: 'books',
-          group_by_date_field: 'publication',
-          time_range: 'Week',
+          aggregator: 'Count',
+          sourceCollectionName: 'books',
+          groupByFieldName: 'publication',
+          timeRange: 'Week',
         },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         state: { user: { email: 'john.doe@domain.com' } },
@@ -642,11 +652,11 @@ describe('ChartRoute', () => {
       const context = createMockContext({
         requestBody: {
           type: 'Leaderboard',
-          aggregate: 'Sum',
-          aggregate_field: 'id',
-          collection: 'persons',
-          label_field: 'id',
-          relationship_field: 'books',
+          aggregator: 'Sum',
+          aggregateFieldName: 'id',
+          sourceCollectionName: 'persons',
+          labelFieldName: 'id',
+          relationshipFieldName: 'books',
           limit: 2,
         },
         customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -686,10 +696,10 @@ describe('ChartRoute', () => {
       const context = createMockContext({
         requestBody: {
           type: 'Leaderboard',
-          aggregate: 'Count',
-          collection: 'publisher',
-          label_field: 'id',
-          relationship_field: 'authors',
+          aggregator: 'Count',
+          sourceCollectionName: 'publisher',
+          labelFieldName: 'id',
+          relationshipFieldName: 'authors',
           limit: 2,
         },
         customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -729,11 +739,11 @@ describe('ChartRoute', () => {
       const context = createMockContext({
         requestBody: {
           type: 'Leaderboard',
-          aggregate: 'Sum',
-          aggregate_field: 'id',
-          collection: 'persons',
-          label_field: 'id',
-          relationship_field: 'books',
+          aggregator: 'Sum',
+          aggregateFieldName: 'id',
+          sourceCollectionName: 'persons',
+          labelFieldName: 'id',
+          relationshipFieldName: 'books',
           limit: 2,
         },
         customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -797,10 +807,10 @@ describe('ChartRoute', () => {
         const context = createMockContext({
           requestBody: {
             type: 'Leaderboard',
-            aggregate: 'Count',
-            collection: 'persons',
-            label_field: 'id',
-            relationship_field: 'books',
+            aggregator: 'Count',
+            sourceCollectionName: 'persons',
+            labelFieldName: 'id',
+            relationshipFieldName: 'books',
             limit: 2,
           },
           customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -841,10 +851,10 @@ describe('ChartRoute', () => {
           const context = createMockContext({
             requestBody: {
               type: 'Leaderboard',
-              aggregate: 'Count',
-              collection: 'persons',
-              label_field: 'id',
-              relationship_field: 'invalid',
+              aggregator: 'Count',
+              sourceCollectionName: 'persons',
+              labelFieldName: 'id',
+              relationshipFieldName: 'invalid',
               limit: 2,
             },
             customProperties: { query: { timezone: 'Europe/Paris' } },

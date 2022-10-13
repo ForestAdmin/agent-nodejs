@@ -5,10 +5,10 @@ import PermissionService from './permissions/permission-with-cache';
 import RenderingPermissionService from './permissions/rendering-permission';
 import UserPermissionService from './permissions/user-permission';
 
-export { ForestAdminClientOptions, Logger, LoggerLevel, ForestAdminClient } from './types';
-export { CollectionActionEvent } from './permissions/types';
 export { default as JTWTokenExpiredError } from './permissions/errors/jwt-token-expired-error';
 export { default as JTWUnableToVerifyError } from './permissions/errors/jwt-unable-to-verify-error';
+export { ForestAdminClientOptions, Logger, LoggerLevel, ForestAdminClient } from './types';
+export { CollectionActionEvent } from './permissions/types';
 
 export default function createForestAdminClient(
   options: ForestAdminClientOptions,
@@ -28,3 +28,5 @@ export default function createForestAdminClient(
 
   return new ForestAdminClient(optionsWithDefaults, permissionService, renderingPermission);
 }
+
+export * from './charts/types';

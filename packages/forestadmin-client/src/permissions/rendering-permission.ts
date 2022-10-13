@@ -1,6 +1,7 @@
 import LruCache from 'lru-cache';
 import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
+import { Chart } from '../charts/types';
 import { CollectionRenderingPermissionV4, PermissionLevel, Team, UserPermissionV4 } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import { hashChartRequest, hashServerCharts } from './hash-chart';
@@ -149,7 +150,7 @@ export default class RenderingPermissionService {
     userId,
   }: {
     renderingId: number | string;
-    chartRequest: unknown;
+    chartRequest: Chart;
     userId: number | string;
   }): Promise<boolean> {
     const chartHash = hashChartRequest(chartRequest);
