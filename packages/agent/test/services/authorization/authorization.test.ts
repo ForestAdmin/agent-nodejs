@@ -276,7 +276,7 @@ describe('AuthorizationService', () => {
 
       expect(forestAdminClient.getScope).toHaveBeenCalledWith({
         renderingId: 42,
-        user,
+        userId: 666,
         collectionName: 'books',
       });
       expect(ConditionTreeParser.fromPlainObject).toHaveBeenCalledWith(collection, { foo: 'bar' });
