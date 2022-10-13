@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.1.0...@forestadmin/datasource-customizer@1.1.1) (2022-10-13)
+
+
+### Bug Fixes
+
+* **customizer:** write overrides should be called before record validation ([#490](https://github.com/ForestAdmin/agent-nodejs/issues/490)) ([449d056](https://github.com/ForestAdmin/agent-nodejs/commit/449d056c2be866f4f8d90c691b6b6e4e377a7db6))
+
 # @forestadmin/datasource-customizer [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.0.0...@forestadmin/datasource-customizer@1.1.0) (2022-10-11)
 
 
