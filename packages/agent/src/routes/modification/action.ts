@@ -117,7 +117,7 @@ export default class ActionRoute extends CollectionRoute {
     if (requestBody?.data?.attributes?.signed_approval_request) {
       const signedParameters =
         this.services.authorization.verifySignedActionParameters<SmartActionRequestBody>(
-          requestBody?.data?.attributes?.signed_approval_request,
+          requestBody.data.attributes.signed_approval_request,
         );
       await this.services.authorization.assertCanApproveCustomAction({
         context,
