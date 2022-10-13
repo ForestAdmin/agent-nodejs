@@ -29,7 +29,6 @@ import TypingGenerator from './typing-generator';
 export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   private readonly compositeDataSource: CompositeDatasource<Collection>;
   private readonly stack: DecoratorsStack;
-  private customizations: ((logger: Logger) => Promise<void>)[] = [];
 
   /**
    * Retrieve schema of the agent
@@ -56,7 +55,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    * @param options the options
    */
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
-    this.customizations.push(async logger => {
+    this.stack.queueCustomization(async logger => {
       let dataSource = await factory(logger);
 
       if (options?.include || options?.exclude) {
@@ -90,7 +89,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    * })
    */
   addChart(name: string, definition: ChartDefinition<S>): this {
-    this.customizations.push(async () => {
+    this.stack.queueCustomization(async () => {
       this.stack.chart.addChart(name, definition);
     });
 
@@ -119,7 +118,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    * @param name name of the collection
    */
   getCollection<N extends TCollectionName<S>>(name: N): CollectionCustomizer<S, N> {
-    return new CollectionCustomizer<S, N>(this, this.customizations, this.stack, name);
+    return new CollectionCustomizer<S, N>(this, this.stack, name);
   }
 
   /**
@@ -132,7 +131,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    * dataSourceCustomizer.use(advancedExportPlugin, { format: 'xlsx' });
    */
   use<Options>(plugin: Plugin<Options>, options?: Options): this {
-    this.customizations.push(async () => {
+    this.stack.queueCustomization(async () => {
       await plugin(this, null, options);
     });
 
@@ -140,7 +139,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   }
 
   async getDataSource(logger: Logger): Promise<DataSource> {
-    await this.applyQueuedCustomizations(logger);
+    await this.stack.applyQueuedCustomizations(logger);
 
     return this.stack.dataSource;
   }
@@ -151,22 +150,5 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
 
   async updateTypesOnFileSystem(typingsPath: string, typingsMaxDepth: number): Promise<void> {
     return TypingGenerator.updateTypesOnFileSystem(this.stack.hook, typingsPath, typingsMaxDepth);
-  }
-
-  /**
-   * Apply all customizations
-   * Plugins may queue new customizations, or call other plugins which will queue customizations.
-   *
-   * This method will be called recursively and clears the queue at each recursion to ensure
-   * that all customizations are applied in the right order.
-   */
-  private async applyQueuedCustomizations(logger: Logger): Promise<void> {
-    const queuedCustomizations = this.customizations.slice();
-    this.customizations.length = 0;
-
-    while (queuedCustomizations.length) {
-      await queuedCustomizations.shift()(logger); // eslint-disable-line no-await-in-loop
-      await this.applyQueuedCustomizations(logger); // eslint-disable-line no-await-in-loop
-    }
   }
 }

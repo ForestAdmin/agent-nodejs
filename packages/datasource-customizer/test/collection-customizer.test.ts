@@ -87,10 +87,10 @@ describe('Builder > Collection', () => {
     await dsc.getDataSource(logger);
 
     // @ts-ignore
-    const { stack, customizations } = dsc;
-    const customizer = new CollectionCustomizer(dsc, customizations, stack, 'authors');
+    const { stack } = dsc;
+    const customizer = new CollectionCustomizer(dsc, stack, 'authors');
 
-    return { dsc, stack, customizations, customizer };
+    return { dsc, stack, customizer };
   };
 
   describe('use', () => {
@@ -369,8 +369,8 @@ describe('Builder > Collection', () => {
 
   describe('relations', () => {
     it('should add a many to one', async () => {
-      const { dsc, customizations, stack } = await setup();
-      const customizer = new CollectionCustomizer(dsc, customizations, stack, 'book_author');
+      const { dsc, stack } = await setup();
+      const customizer = new CollectionCustomizer(dsc, stack, 'book_author');
 
       const spy = jest.spyOn(stack.relation.getCollection('book_author'), 'addRelation');
 

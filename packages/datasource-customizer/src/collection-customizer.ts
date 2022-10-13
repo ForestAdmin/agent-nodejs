@@ -2,7 +2,6 @@ import {
   CollectionSchema,
   CollectionUtils,
   ColumnSchema,
-  Logger,
   Operator,
   allowedOperatorsForColumnType,
 } from '@forestadmin/datasource-toolkit';
@@ -28,21 +27,14 @@ export default class CollectionCustomizer<
 > {
   private readonly dataSourceCustomizer: DataSourceCustomizer<S>;
   private readonly stack: DecoratorsStack;
-  private readonly customizations: ((logger: Logger) => Promise<void>)[];
   readonly name: string;
 
   get schema(): CollectionSchema {
     return this.stack.hook.getCollection(this.name).schema;
   }
 
-  constructor(
-    dataSourceCustomizer: DataSourceCustomizer<S>,
-    customizations: ((logger: Logger) => Promise<void>)[],
-    stack: DecoratorsStack,
-    name: string,
-  ) {
+  constructor(dataSourceCustomizer: DataSourceCustomizer<S>, stack: DecoratorsStack, name: string) {
     this.dataSourceCustomizer = dataSourceCustomizer;
-    this.customizations = customizations;
     this.name = name;
     this.stack = stack;
   }
@@ -490,7 +482,7 @@ export default class CollectionCustomizer<
   }
 
   private pushCustomization(customization: () => Promise<void>): this {
-    this.customizations.push(customization);
+    this.stack.queueCustomization(customization);
 
     return this;
   }

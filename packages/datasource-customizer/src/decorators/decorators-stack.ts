@@ -1,4 +1,4 @@
-import { DataSource } from '@forestadmin/datasource-toolkit';
+import { DataSource, Logger } from '@forestadmin/datasource-toolkit';
 import ActionCollectionDecorator from './actions/collection';
 import ChartDataSourceDecorator from './chart/datasource';
 import ComputedCollectionDecorator from './computed/collection';
@@ -39,6 +39,8 @@ export default class DecoratorsStack {
   hook: DataSourceDecorator<HookCollectionDecorator>;
   dataSource: DataSource;
 
+  private customizations: Array<(logger: Logger) => Promise<void>> = [];
+
   constructor(dataSource: DataSource) {
     let last: DataSource = dataSource;
 
@@ -77,5 +79,26 @@ export default class DecoratorsStack {
     /* eslint-enable no-multi-assign */
 
     this.dataSource = last;
+  }
+
+  queueCustomization(customization: (logger: Logger) => Promise<void>): void {
+    this.customizations.push(customization);
+  }
+
+  /**
+   * Apply all customizations
+   * Plugins may queue new customizations, or call other plugins which will queue customizations.
+   *
+   * This method will be called recursively and clears the queue at each recursion to ensure
+   * that all customizations are applied in the right order.
+   */
+  async applyQueuedCustomizations(logger: Logger): Promise<void> {
+    const queuedCustomizations = this.customizations.slice();
+    this.customizations.length = 0;
+
+    while (queuedCustomizations.length) {
+      await queuedCustomizations.shift()(logger); // eslint-disable-line no-await-in-loop
+      await this.applyQueuedCustomizations(logger); // eslint-disable-line no-await-in-loop
+    }
   }
 }
