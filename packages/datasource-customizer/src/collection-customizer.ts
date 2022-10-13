@@ -464,17 +464,6 @@ export default class CollectionCustomizer<
     });
   }
 
-  /**
-   * Add a relation between two collections.
-   * @param name name of the new relation
-   * @param definition definition of the new relation
-   * @example
-   * .addRelation('author', {
-   *   type: 'ManyToOne',
-   *   foreignCollection: 'persons',
-   *   foreignKey: 'authorId'
-   * });
-   */
   private pushRelation(name: string, definition: RelationDefinition): this {
     return this.pushCustomization(async () => {
       this.stack.relation.getCollection(this.name).addRelation(name, definition);
