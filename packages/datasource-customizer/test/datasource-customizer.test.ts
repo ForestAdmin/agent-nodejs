@@ -19,7 +19,7 @@ beforeEach(() => {
 describe('DataSourceCustomizer', () => {
   const logger = () => {};
 
-  it('schema should return a schema', async () => {
+  it('schema should proxy the call to the datasource', async () => {
     const customizer = new DataSourceCustomizer();
     customizer.addDataSource(async () =>
       factories.dataSource.build({ schema: { charts: ['foo'] } }),
@@ -30,7 +30,7 @@ describe('DataSourceCustomizer', () => {
     expect(customizer.schema).toStrictEqual({ charts: ['foo'] });
   });
 
-  it('collections should return an array of customizers', async () => {
+  it('collections should return an array of collection customizers', async () => {
     const customizer = new DataSourceCustomizer();
     customizer.addDataSource(async () =>
       factories.dataSource.buildWithCollection(factories.collection.build({ name: 'foo' })),
