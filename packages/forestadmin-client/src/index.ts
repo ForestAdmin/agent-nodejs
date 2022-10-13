@@ -7,7 +7,6 @@ import UserPermissionService from './permissions/user-permission';
 
 export { ForestAdminClientOptions, Logger, LoggerLevel, ForestAdminClient } from './types';
 export { CollectionActionEvent } from './permissions/types';
-export { Operator } from './permissions/operators';
 export { default as JTWTokenExpiredError } from './permissions/errors/jwt-token-expired-error';
 export { default as JTWUnableToVerifyError } from './permissions/errors/jwt-unable-to-verify-error';
 
