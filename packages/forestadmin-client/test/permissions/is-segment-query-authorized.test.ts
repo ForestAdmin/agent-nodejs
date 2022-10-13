@@ -1,4 +1,3 @@
-import { CollectionSegment } from '../../dist/permissions/types';
 import isSegmentQueryAllowed from '../../src/permissions/is-segment-query-authorized';
 
 describe('isSegmentQueryAuthorized', () => {
@@ -11,10 +10,7 @@ describe('isSegmentQueryAuthorized', () => {
       expect(
         isSegmentQueryAllowed(
           'SELECT * from users /*MULTI-SEGMENTS-QUERIES-UNION*/ UNION SELECT * from admins',
-          [
-            { query: 'SELECT * from users; ' },
-            { query: 'SELECT * from admins; ' },
-          ] as unknown as CollectionSegment[],
+          ['SELECT * from users; ', 'SELECT * from admins; '],
         ),
       ).toBe(true);
     });
@@ -23,7 +19,7 @@ describe('isSegmentQueryAuthorized', () => {
       expect(
         isSegmentQueryAllowed(
           'SELECT * from users /*MULTI-SEGMENTS-QUERIES-UNION*/ UNION SELECT * from admins',
-          [{ query: 'SELECT * from users; ' }] as unknown as CollectionSegment[],
+          ['SELECT * from users; '],
         ),
       ).toBe(false);
     });
@@ -31,19 +27,11 @@ describe('isSegmentQueryAuthorized', () => {
 
   describe('when there is only one query', () => {
     it('should return true if the query is allowed', () => {
-      expect(
-        isSegmentQueryAllowed('SELECT * from users;', [
-          { query: 'SELECT * from users;' },
-        ] as unknown as CollectionSegment[]),
-      ).toBe(true);
+      expect(isSegmentQueryAllowed('SELECT * from users;', ['SELECT * from users;'])).toBe(true);
     });
 
     it('should return false if the query is not allowed', () => {
-      expect(
-        isSegmentQueryAllowed('SELECT * from users;', [
-          { query: 'SELECT * from admins;' },
-        ] as unknown as CollectionSegment[]),
-      ).toBe(false);
+      expect(isSegmentQueryAllowed('SELECT * from users;', ['SELECT * from admins;'])).toBe(false);
     });
   });
 });

@@ -220,24 +220,13 @@ export interface Filter {
   conditions: FilterCondition[] | null;
 }
 
-export interface ManualCollectionSegment extends BaseCollectionSegment {
-  type: 'manual';
-  filter: Filter | null;
-  query: string | null;
-}
-export interface SmartCollectionSegment extends BaseCollectionSegment {
-  type: 'smart';
-}
-
-export type CollectionSegment = ManualCollectionSegment | SmartCollectionSegment;
-
 export type DynamicScopesValues = {
   users: Record<string, Record<string, string | number>>;
 };
 
 export type CollectionRenderingPermissionV4 = {
   scope: GenericTree | null;
-  segments: CollectionSegment[];
+  segments: string[];
 };
 
 export type Team = { id: number; name: string };

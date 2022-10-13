@@ -121,8 +121,12 @@ export default class RenderingPermissionService {
         });
       }
 
+      this.options.logger('Debug', `User cannot retrieve SQL segment on rendering ${renderingId}`);
+
       return false;
     }
+
+    this.options.logger('Debug', `User can retrieve SQL segment on rendering ${renderingId}`);
 
     return true;
   }
