@@ -43,7 +43,7 @@ describe('DataSourceCustomizer', () => {
   });
 
   describe('getFactory', () => {
-    it('should return a factory', async () => {
+    it('should return a factory with customization applied', async () => {
       const customizer = new DataSourceCustomizer();
       customizer.addDataSource(async () =>
         factories.dataSource.buildWithCollection(factories.collection.build({ name: 'foo' })),
