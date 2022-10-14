@@ -72,7 +72,7 @@ const agent = createAgent(options).addDataSource(createSqlDataSource({
   /** Only for PostgreSQL: A flag that defines if `pg-native` shall be used or not */
   native: false,
 
-  /** Only used by sqlite: path where the database file is located */
+  /** Only for SQLite: path where the database file is located */
   // storage?: string;
 
   /** Connection pool options */
