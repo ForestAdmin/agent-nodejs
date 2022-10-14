@@ -9,6 +9,10 @@ import Router from '@koa/router';
 
 import { AgentOptionsWithDefaults, HttpCode } from '../../types';
 import { ForestAdminHttpDriverServices } from '../../services';
+import {
+  SmartActionApprovalRequestBody,
+  SmartActionRequestBody,
+} from '../../services/authorization/types';
 import BodyParser from '../../utils/body-parser';
 import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
@@ -45,8 +49,6 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async handleExecute(context: Context): Promise<void> {
-    await this.checkPermissions(context);
-
     const { dataSource } = this.collection;
     const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);
@@ -86,7 +88,11 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async handleHook(context: Context): Promise<void> {
-    await this.checkPermissions(context);
+    await this.services.authorization.assertCanRequestCustomActionParameters(
+      context,
+      this.actionName,
+      this.collection.name,
+    );
 
     const { dataSource } = this.collection;
     const forestFields = context.request.body?.data?.attributes?.fields;
@@ -105,23 +111,27 @@ export default class ActionRoute extends CollectionRoute {
     };
   }
 
-  private async checkPermissions(context: Context): Promise<void> {
-    await this.services.authorization.assertCanExecuteCustomAction(
-      context,
-      this.actionName,
-      this.collection.name,
-    );
-  }
-
   private async middlewareCustomActionApprovalRequestData(context: Context, next: Next) {
-    const approvalRequestDataWithAttributes =
-      this.services.authorization.getApprovalRequestData(context);
+    const requestBody = context.request.body as SmartActionApprovalRequestBody;
 
-    if (approvalRequestDataWithAttributes) {
-      context.request.body = approvalRequestDataWithAttributes;
-      context.state.isCustomActionApprovalRequest = true;
+    if (requestBody?.data?.attributes?.signed_approval_request) {
+      const signedParameters =
+        this.services.authorization.verifySignedActionParameters<SmartActionRequestBody>(
+          requestBody.data.attributes.signed_approval_request,
+        );
+      await this.services.authorization.assertCanApproveCustomAction({
+        context,
+        customActionName: this.actionName,
+        collectionName: this.collection.name,
+        requesterId: signedParameters?.data?.attributes?.requester_id,
+      });
+      context.request.body = signedParameters;
     } else {
-      context.state.isCustomActionApprovalRequest = false;
+      await this.services.authorization.assertCanTriggerCustomAction({
+        context,
+        customActionName: this.actionName,
+        collectionName: this.collection.name,
+      });
     }
 
     return next();

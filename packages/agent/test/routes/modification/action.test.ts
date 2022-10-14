@@ -102,98 +102,87 @@ describe('ActionRoute', () => {
     });
 
     describe('middleware CustomActionApprovalRequestData', () => {
-      test('should change request data when approval request detected', async () => {
-        const context = createMockContext({
-          ...baseContext,
-          requestBody: {
+      describe('when the request is an approval', () => {
+        test('it should get the signed parameters, check rights and change body', async () => {
+          const context = createMockContext({
+            ...baseContext,
+            requestBody: {
+              data: {
+                attributes: {
+                  ...baseContext.requestBody.data.attributes,
+                  values: { firstname: 'John' },
+                  signed_approval_request: 'someSignedJWT',
+                },
+              },
+            },
+          });
+
+          const verifySignedActionParameters = services.authorization
+            .verifySignedActionParameters as jest.Mock;
+          const assertCanApproveCustomAction = services.authorization
+            .assertCanApproveCustomAction as jest.Mock;
+
+          const signedParams = {
+            data: {
+              attributes: {
+                values: { valueFrom: 'JWT' },
+                requester_id: 42,
+              },
+              type: 'typeFromJWT',
+            },
+          };
+          verifySignedActionParameters.mockReturnValue(signedParams);
+          const nextMock = jest.fn();
+
+          await middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
+
+          expect(nextMock).toHaveBeenCalled();
+
+          expect(verifySignedActionParameters).toHaveBeenCalledWith('someSignedJWT');
+          expect(assertCanApproveCustomAction).toHaveBeenCalledWith({
+            context,
+            customActionName: 'My_Action',
+            collectionName: 'books',
+            requesterId: 42,
+          });
+          expect(context.request.body).toStrictEqual(signedParams);
+        });
+      });
+
+      describe('when the request is a trigger', () => {
+        test('should not change data request when approval request is not detected', async () => {
+          const originalBody = {
             data: {
               attributes: {
                 ...baseContext.requestBody.data.attributes,
-                values: { firstname: 'John' },
-                signed_approval_request: 'someSignedJWT',
               },
             },
-          },
-        });
+          };
+          const context = createMockContext({
+            ...baseContext,
+            requestBody: originalBody,
+          });
 
-        const getApprovalRequestDataMock = services.authorization
-          .getApprovalRequestData as jest.Mock;
-        getApprovalRequestDataMock.mockReturnValue({
-          data: {
-            attributes: {
-              values: { valueFrom: 'JWT' },
-            },
-            type: 'typeFromJWT',
-          },
-        });
-        const nextMock = jest.fn();
+          const assertCanTriggerCustomAction = services.authorization
+            .assertCanTriggerCustomAction as jest.Mock;
+          const nextMock = jest.fn();
 
-        await middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
+          await middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
 
-        expect(nextMock).toHaveBeenCalled();
-        expect(context.request.body.data).toStrictEqual({
-          attributes: {
-            values: { valueFrom: 'JWT' },
-          },
-          type: 'typeFromJWT',
-        });
-        expect(context.state.isCustomActionApprovalRequest).toStrictEqual(true);
-      });
-
-      test('should not change data request when approval request is not detected', async () => {
-        const context = createMockContext({
-          ...baseContext,
-          requestBody: {
-            data: {
-              attributes: {
-                ...baseContext.requestBody.data.attributes,
-              },
-            },
-          },
-        });
-
-        const getApprovalRequestDataMock = services.authorization
-          .getApprovalRequestData as jest.Mock;
-        getApprovalRequestDataMock.mockReturnValue(null);
-        const nextMock = jest.fn();
-
-        await middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
-
-        expect(nextMock).toHaveBeenCalled();
-        expect(context.request.body.data).toStrictEqual({
-          attributes: {
-            ...baseContext.requestBody.data.attributes,
-          },
-        });
-        expect(context.state.isCustomActionApprovalRequest).toStrictEqual(false);
-      });
-    });
-
-    test('handleExecute should check permissions', async () => {
-      const context = createMockContext({
-        ...baseContext,
-        requestBody: {
-          data: {
+          expect(nextMock).toHaveBeenCalled();
+          expect(context.request.body.data).toStrictEqual({
             attributes: {
               ...baseContext.requestBody.data.attributes,
-              values: { firstname: 'John' },
             },
-          },
-        },
+          });
+          expect(assertCanTriggerCustomAction).toHaveBeenCalledWith({
+            context,
+            customActionName: 'My_Action',
+            collectionName: 'books',
+          });
+          expect(context.request.body).toStrictEqual(originalBody);
+        });
       });
-
-      (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
-        type: 'Error',
-        message: 'the result does not matter',
-      });
-
-      await handleExecute.call(route, context);
-
-      expect(services.authorization.assertCanExecuteCustomAction).toHaveBeenCalledWith(
-        context,
-        'My_Action',
-        'books',
-      );
     });
 
     test('handleExecute should delegate to collection with good params', async () => {

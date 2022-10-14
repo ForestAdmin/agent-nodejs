@@ -1,0 +1,38 @@
+{
+  "name": "@forestadmin/forestadmin-client",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/forestadmin-client"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^8.5.1",
+    "lru-cache": "^7.3.1",
+    "object-hash": "^3.0.0",
+    "superagent": "^7.0.1"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^8.5.8",
+    "@types/lru-cache": "^7.6.1",
+    "@types/superagent": "^4.1.15",
+    "fishery": "^2.1.0",
+    "@forestadmin/datasource-toolkit": "1.0.0-alpha.3"
+  }
+}

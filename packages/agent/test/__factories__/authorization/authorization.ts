@@ -1,13 +1,14 @@
 import { Factory } from 'fishery';
 
 import AuthorizationService from '../../../src/services/authorization/authorization';
-import actionPermissionsFactory from './internal/action-permission';
-import renderingPermissionsFactory from './internal/rendering-permission';
+import forestAdminClientFactory from '../forest-admin-client';
 
 export class AuthorizationsFactory extends Factory<AuthorizationService> {
   mockAllMethods() {
     return this.afterBuild(Authorizations => {
-      Authorizations.assertCanExecuteCustomAction = jest.fn();
+      Authorizations.assertCanApproveCustomAction = jest.fn();
+      Authorizations.assertCanRequestCustomActionParameters = jest.fn();
+      Authorizations.assertCanTriggerCustomAction = jest.fn();
       Authorizations.assertCanBrowse = jest.fn();
       Authorizations.assertCanRead = jest.fn();
       Authorizations.assertCanAdd = jest.fn();
@@ -17,20 +18,13 @@ export class AuthorizationsFactory extends Factory<AuthorizationService> {
       Authorizations.getScope = jest.fn();
       Authorizations.assertCanRetrieveChart = jest.fn();
       Authorizations.invalidateScopeCache = jest.fn();
-      Authorizations.getApprovalRequestData = jest.fn();
+      Authorizations.verifySignedActionParameters = jest.fn();
     });
   }
 }
 
 const authorizationServiceFactory = AuthorizationsFactory.define(
-  () =>
-    new AuthorizationService(
-      actionPermissionsFactory.build(),
-      renderingPermissionsFactory.build(),
-      {
-        envSecret: '123',
-      },
-    ),
+  () => new AuthorizationService(forestAdminClientFactory.build()),
 );
 
 export default authorizationServiceFactory;

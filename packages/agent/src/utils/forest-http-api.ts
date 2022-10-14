@@ -4,8 +4,6 @@ import { JSONAPIDocument } from 'json-api-serializer';
 import superagent, { Response, ResponseError } from 'superagent';
 
 import { AgentOptions } from '../types';
-import { EnvironmentPermissionsV4, UserPermissionV4 } from '../services/authorization';
-import { RenderingPermissionV4 } from '../services/authorization/internal/types';
 
 export type IpWhitelistConfiguration = {
   isFeatureEnabled: boolean;
@@ -114,45 +112,6 @@ export default class ForestHttpApi {
         .post(new URL('/forest/apimaps', options.forestServerUrl).toString())
         .send(apimap)
         .set('forest-secret-key', options.envSecret);
-    } catch (e) {
-      this.handleResponseError(e);
-    }
-  }
-
-  static async getEnvironmentPermissions(options: HttpOptions): Promise<EnvironmentPermissionsV4> {
-    try {
-      const { body } = await superagent
-        .get(`${options.forestServerUrl}/liana/v4/permissions/environment`)
-        .set('forest-secret-key', options.envSecret);
-
-      return body;
-    } catch (e) {
-      this.handleResponseError(e);
-    }
-  }
-
-  static async getUsers(options: HttpOptions): Promise<UserPermissionV4[]> {
-    try {
-      const { body } = await superagent
-        .get(`${options.forestServerUrl}/liana/v4/permissions/users`)
-        .set('forest-secret-key', options.envSecret);
-
-      return body;
-    } catch (e) {
-      this.handleResponseError(e);
-    }
-  }
-
-  static async getRenderingPermissions(
-    renderingId: string | number,
-    options: HttpOptions,
-  ): Promise<RenderingPermissionV4> {
-    try {
-      const { body } = await superagent
-        .get(`${options.forestServerUrl}/liana/v4/permissions/renderings/${renderingId}`)
-        .set('forest-secret-key', options.envSecret);
-
-      return body;
     } catch (e) {
       this.handleResponseError(e);
     }

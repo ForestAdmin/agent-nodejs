@@ -1,4 +1,5 @@
 import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
+import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
 
 /** Options to configure behavior of an agent's forestadmin driver */
@@ -15,6 +16,7 @@ export type AgentOptions = {
   typingsPath?: string | null;
   typingsMaxDepth?: number;
   permissionsCacheDurationInSeconds?: number;
+  forestAdminClient?: ForestAdminClient;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 
