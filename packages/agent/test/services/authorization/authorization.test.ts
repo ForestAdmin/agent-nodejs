@@ -1,5 +1,5 @@
+import { ChartType, CollectionActionEvent } from '@forestadmin/forestadmin-client';
 import { Collection } from '@forestadmin/datasource-toolkit';
-import { CollectionActionEvent } from '@forestadmin/forestadmin-client';
 import { Context } from 'koa';
 
 import * as factories from '../../__factories__';
@@ -325,7 +325,14 @@ describe('AuthorizationService', () => {
             renderingId: 42,
           },
         },
-        request: { body: { foo: 'bar' } },
+        request: {
+          body: {
+            type: ChartType.Value,
+            sourceCollectionName: 'jedi',
+            aggregateFieldName: 'strength',
+            aggregator: 'Sum',
+          },
+        },
         throw: jest.fn(),
       } as unknown as Context;
 
@@ -337,7 +344,12 @@ describe('AuthorizationService', () => {
       expect(forestAdminClient.permissionService.canRetrieveChart).toHaveBeenCalledWith({
         renderingId: 42,
         userId: 35,
-        chartRequest: { foo: 'bar' },
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
       });
     });
   });

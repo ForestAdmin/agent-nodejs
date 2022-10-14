@@ -1,5 +1,6 @@
 import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
+import { Chart } from './charts/types';
 import { CollectionActionEvent } from './permissions/types';
 
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
@@ -52,7 +53,7 @@ export interface PermissionService {
   canRetrieveChart(params: {
     renderingId: number | string;
     userId: number | string;
-    chartRequest: unknown;
+    chartRequest: Chart;
   }): Promise<boolean>;
   canExecuteSegmentQuery(params: {
     userId: number | string;

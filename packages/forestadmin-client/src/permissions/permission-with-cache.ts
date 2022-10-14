@@ -1,3 +1,4 @@
+import { Chart } from '../charts/types';
 import { CollectionActionEvent, CustomActionEvent } from './types';
 import { PermissionService } from '../types';
 import {
@@ -105,7 +106,7 @@ export default class PermissionServiceWithCache implements PermissionService {
   }: {
     renderingId: number;
     userId: number;
-    chartRequest: unknown;
+    chartRequest: Chart;
   }): Promise<boolean> {
     return this.renderingPermissionService.canRetrieveChart({
       renderingId,
