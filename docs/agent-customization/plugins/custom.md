@@ -29,13 +29,13 @@ Relevant documentation:
 export async function removeTimestamps(dataSource, collection, options) {
   const fieldsToRemove = [];
 
-  for (const currenCollection of dataSource.collections) {
-    if (currenCollection.schema.fields.createdAt) {
-      currenCollection.removeField('createdAt');
+  for (const currentCollection of dataSource.collections) {
+    if (currentCollection.schema.fields.createdAt) {
+      currentCollection.removeField('createdAt');
     }
 
-    if (currenCollection.schema.fields.updatedAt) {
-      currenCollection.removeField('updatedAt');
+    if (currentCollection.schema.fields.updatedAt) {
+      currentCollection.removeField('updatedAt');
     }
   }
 }
