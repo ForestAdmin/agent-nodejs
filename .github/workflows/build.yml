@@ -176,6 +176,8 @@ jobs:
           cat .npmrc
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Disable workspaces-update
+        run: npm config set workspaces-update false
       - name: 'Run multi-semantic-release'
         run: '$(yarn bin)/multi-semantic-release --deps.bump=override'
         env:

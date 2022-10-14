@@ -8,8 +8,9 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import { ActionDefinition } from './decorators/actions/types/actions';
-import { FieldDefinition, OneToManyEmbeddedDefinition } from './types';
+import { ComputedDefinition } from './decorators/computed/types';
 import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
+import { OneToManyEmbeddedDefinition } from './types';
 import { OperatorDefinition } from './decorators/operators-emulate/types';
 import { RelationDefinition } from './decorators/relation/types';
 import { SearchDefinition } from './decorators/search/types';
@@ -50,15 +51,11 @@ export default class CollectionCustomizer<
    * @example
    * .importField('authorName', { path: 'author:fullName' })
    */
-  importField(
-    name: string,
-    options: { path: TFieldName<S, N>; beforeRelations?: boolean; readonly?: boolean },
-  ): this {
+  importField(name: string, options: { path: TFieldName<S, N>; readonly?: boolean }): this {
     const collection = this.stack.lateComputed.getCollection(this.name);
     const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
 
     this.addField(name, {
-      beforeRelations: options.beforeRelations,
       columnType: schema.columnType,
       defaultValue: schema.defaultValue,
       dependencies: [options.path],
@@ -162,13 +159,22 @@ export default class CollectionCustomizer<
    *    getValues: (records) => records.map(record => \`${record.lastName} ${record.firstName}\`),
    * });
    */
-  addField(name: string, definition: FieldDefinition<S, N>): this {
-    const { beforeRelations, ...computedDefinition } = definition;
-    const collection = definition.beforeRelations
-      ? this.stack.earlyComputed.getCollection(this.name)
-      : this.stack.lateComputed.getCollection(this.name);
+  addField(name: string, definition: ComputedDefinition<S, N>): this {
+    const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
+    const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
+    const canBeComputedBeforeRelations = definition.dependencies.every(field => {
+      try {
+        return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
+      } catch {
+        return false;
+      }
+    });
 
-    collection.registerComputed(name, computedDefinition);
+    const collection = canBeComputedBeforeRelations
+      ? collectionBeforeRelations
+      : collectionAfterRelations;
+
+    collection.registerComputed(name, definition as ComputedDefinition);
 
     return this;
   }
