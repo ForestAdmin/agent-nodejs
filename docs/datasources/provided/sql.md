@@ -72,11 +72,8 @@ const agent = createAgent(options).addDataSource(createSqlDataSource({
   /** A flag that defines if `pg-native` shall be used or not */
   native: false,
 
-  /**
-   * Use read / write replication.
-   * @see https://sequelize.org/docs/v6/other-topics/read-replication/
-   */
-  replication: false,
+  /** Only used by sqlite: path where the database file is located */
+  // storage?: string;
 
   /** Connection pool options */
   pool: {
@@ -93,8 +90,11 @@ const agent = createAgent(options).addDataSource(createSqlDataSource({
     idle: 10000,
   },
 
-  /** Only used by sqlite: path where the database file is located */
-  // storage?: string;
+  /**
+   * Use read / write replication.
+   * @see https://sequelize.org/docs/v6/other-topics/read-replication/
+   */
+  replication: false,
 }));
 ```
 
