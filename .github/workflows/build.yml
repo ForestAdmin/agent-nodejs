@@ -142,6 +142,8 @@ jobs:
   release:
     name: Release packages
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs: [doc-build, doc-link-validation, test, lint]
     if: |
       github.event_name == 'push' 
