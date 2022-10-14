@@ -3,9 +3,27 @@ import hashObject from 'object-hash';
 import { Chart, ChartType } from '../charts/types';
 
 function hashChart(chart: Chart): string {
+  const knownChartKeys = [
+    'type',
+    'filter',
+    'sourceCollectionName',
+    'aggregator',
+    'aggregateFieldName',
+    'groupByFieldName',
+    'labelFieldName',
+    'relationshipFieldName',
+    'limit',
+    'timeRange',
+    'objective',
+    'numeratorChartId',
+    'denominatorChartId',
+    'apiRoute',
+    'query',
+  ];
   const hash = hashObject(chart, {
     respectType: false,
-    excludeKeys: key => chart[key] === null || chart[key] === undefined,
+    excludeKeys: key =>
+      chart[key] === null || chart[key] === undefined || !knownChartKeys.includes(key),
   });
 
   return hash;
@@ -28,13 +46,5 @@ export function isGroupedByChart(chart: Chart): chart is Chart & { groupByFieldN
 }
 
 export function hashChartRequest(chart: Chart): string {
-  // When the server sends the data of the allowed charts, the target column is not specified
-  // for relations => allow them all.
-  if (isGroupedByChart(chart)) {
-    chart.groupByFieldName = chart?.groupByFieldName?.includes(':')
-      ? chart.groupByFieldName.substring(0, chart.groupByFieldName.indexOf(':'))
-      : chart.groupByFieldName;
-  }
-
   return hashChart(chart);
 }

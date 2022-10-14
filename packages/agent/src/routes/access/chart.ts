@@ -13,7 +13,15 @@ import { DateTime } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
 import Router from '@koa/router';
 
-import { Chart, ChartType } from '@forestadmin/forestadmin-client';
+import {
+  Chart,
+  ChartType,
+  LeaderboardChart,
+  LineChart,
+  ObjectiveChart,
+  PieChart,
+  ValueChart,
+} from '@forestadmin/forestadmin-client';
 import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import QueryStringParser from '../../utils/query-string';
@@ -96,7 +104,7 @@ export default class ChartRoute extends CollectionRoute {
       groupByFieldName: groupByField,
       aggregator,
       aggregateFieldName: aggregateField,
-    } = context.request.body;
+    } = <PieChart>context.request.body;
 
     const rows = await this.collection.aggregate(
       QueryStringParser.parseCaller(context),
@@ -120,7 +128,7 @@ export default class ChartRoute extends CollectionRoute {
       aggregateFieldName: aggregateField,
       groupByFieldName: groupByDateField,
       timeRange,
-    } = context.request.body;
+    } = <LineChart>context.request.body;
 
     const rows = await this.collection.aggregate(
       QueryStringParser.parseCaller(context),
@@ -161,7 +169,7 @@ export default class ChartRoute extends CollectionRoute {
   private async makeLeaderboardChart(
     context: Context,
   ): Promise<Array<{ key: string; value: number }>> {
-    const { body } = context.request;
+    const body = <LeaderboardChart>context.request.body;
     const field = this.collection.schema.fields[body.relationshipFieldName] as RelationSchema;
 
     let collection: string;
@@ -217,7 +225,9 @@ export default class ChartRoute extends CollectionRoute {
   }
 
   private async computeValue(context: Context, filter: Filter): Promise<number> {
-    const { aggregator, aggregateFieldName: aggregateField } = context.request.body;
+    const { aggregator, aggregateFieldName: aggregateField } = <ValueChart | ObjectiveChart>(
+      context.request.body
+    );
     const aggregation = new Aggregation({ operation: aggregator, field: aggregateField });
 
     const rows = await this.collection.aggregate(

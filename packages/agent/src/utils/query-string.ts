@@ -29,7 +29,7 @@ export default class QueryStringParser {
 
       if (!filters) return null;
 
-      const json = JSON.parse(filters.toString());
+      const json = typeof filters === 'object' ? filters : JSON.parse(filters.toString());
       const conditionTree = ConditionTreeParser.fromPlainObject(collection, json);
       ConditionTreeValidator.validate(conditionTree, collection);
 

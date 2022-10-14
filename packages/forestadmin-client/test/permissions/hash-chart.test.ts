@@ -158,7 +158,7 @@ describe('HashChart', () => {
       const hash1 = hashChartRequest(pieChart1);
       const hash2 = hashChartRequest(pieChart2);
 
-      expect(hash1).toBe(hash2);
+      expect(hash1).not.toBe(hash2);
     });
 
     it('should not compare null or undefined values', () => {
