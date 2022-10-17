@@ -173,7 +173,10 @@ export default class SchemaGeneratorFields {
       type: keyField.columnType as PrimitiveTypes,
       defaultValue: keyField.defaultValue ?? null,
       isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
-      isPrimaryKey: Boolean(keyField.isPrimaryKey),
+
+      // Always set false even if the foreign key is the primary key.
+      // Doing otherwise breaks the frontend when no reference field is set.
+      isPrimaryKey: false,
       isRequired: keyField.validation?.some(v => v.operator === 'Present') ?? false,
       isReadOnly: Boolean(keyField.isReadOnly),
       isSortable: Boolean(keyField.isSortable),

@@ -103,8 +103,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       isRequired: true,
       validations: [{ type: 'is present', message: "Failed validation rule: 'Present'" }],
       isFilterable: true,
-      isPrimaryKey: true,
-
+      isPrimaryKey: false,
       defaultValue: null,
       enums: null,
       integration: null,
