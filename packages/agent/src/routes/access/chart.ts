@@ -141,9 +141,8 @@ export default class Chart extends CollectionRoute {
 
     const values = {};
     rows.forEach(row => {
-      values[DateTime.fromISO(row.group[groupByDateField] as string).toISODate()] = Number(
-        row.value,
-      );
+      const date = DateTime.fromISO(row.group[groupByDateField] as string).toISODate();
+      if (date !== null) values[date] = Number(row.value);
     });
 
     const dates = Object.keys(values).sort((dateA, dateB) => dateA.localeCompare(dateB));

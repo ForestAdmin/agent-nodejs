@@ -5,6 +5,11 @@ import * as factories from '../../__factories__';
 import Chart from '../../../src/routes/access/chart';
 
 describe('ChartRoute', () => {
+  const defaultContext = {
+    customProperties: { query: { timezone: 'Europe/Paris' } },
+    state: { user: { email: 'john.doe@domain.com' } },
+  };
+
   const services = factories.forestAdminHttpDriverServices.build();
   const dataSource = factories.dataSource.buildWithCollections([
     factories.collection.build({
@@ -80,7 +85,7 @@ describe('ChartRoute', () => {
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
         requestBody: { type: 'ChartTypeThatDoNotExist' },
-        state: { user: { permission_level: 'admin' } },
+        ...defaultContext,
       });
       await expect(chart.handleChart(context)).rejects.toThrow(
         new ValidationError('Invalid Chart type "ChartTypeThatDoNotExist"'),
@@ -97,8 +102,7 @@ describe('ChartRoute', () => {
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
         requestBody: { type: 'Value', aggregate: 'Count', collection: 'books', filters: undefined },
-        customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        ...defaultContext,
       });
 
       await chart.handleChart(context);
@@ -131,8 +135,7 @@ describe('ChartRoute', () => {
               collection: 'books',
               filters: JSON.stringify({ field: 'publishedAt', operator: 'Today', value: null }),
             },
-            customProperties: { query: { timezone: 'Europe/Paris' } },
-            state: { user: { permission_level: 'user' } },
+            ...defaultContext,
           });
 
           await chart.handleChart(context);
@@ -165,8 +168,7 @@ describe('ChartRoute', () => {
                   ],
                 }),
               },
-              customProperties: { query: { timezone: 'Europe/Paris' } },
-              state: { user: { permission_level: 'user' } },
+              ...defaultContext,
             });
 
             await chart.handleChart(context);
@@ -201,7 +203,7 @@ describe('ChartRoute', () => {
               filters: JSON.stringify({ field: 'name', operator: 'Present', value: null }),
             },
             customProperties: { query: { timezone: 'Europe/Paris' } },
-            state: { user: { email: 'john.doe@domain.com' } },
+            ...defaultContext,
           });
 
           await chart.handleChart(context);
@@ -262,8 +264,7 @@ describe('ChartRoute', () => {
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
         requestBody: { type: 'Objective', aggregate: 'Count', collection: 'books' },
-        customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        ...defaultContext,
       });
 
       await chart.handleChart(context);
@@ -296,8 +297,7 @@ describe('ChartRoute', () => {
           collection: 'books',
           group_by_field: 'author:firstName',
         },
-        customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        ...defaultContext,
       });
 
       await chart.handleChart(context);
@@ -340,8 +340,7 @@ describe('ChartRoute', () => {
           group_by_date_field: 'publication',
           time_range: 'Week',
         },
-        customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        ...defaultContext,
       });
 
       await chart.handleChart(context);
@@ -369,6 +368,39 @@ describe('ChartRoute', () => {
         },
       });
     });
+
+    describe('when a field has a null value with a group by', () => {
+      test('should only return lines where there is a value', async () => {
+        jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
+          // publication has nul value
+          { value: 10, group: { publication: null } },
+          { value: 456, group: { publication: '2022-02-02T10:00:00.000Z' } },
+        ]);
+
+        const chart = new Chart(services, options, dataSource, 'books');
+        const context = createMockContext({
+          requestBody: {
+            type: 'Line',
+            aggregate: 'Count',
+            collection: 'books',
+            group_by_date_field: 'publication',
+            time_range: 'Day',
+          },
+          ...defaultContext,
+        });
+
+        await chart.handleChart(context);
+
+        expect(context.response.body).toMatchObject({
+          data: {
+            attributes: {
+              value: [{ label: '02/02/2022', values: { value: 456 } }],
+            },
+            type: 'stats',
+          },
+        });
+      });
+    });
   });
 
   describe('on leaderboard chart', () => {
@@ -390,8 +422,7 @@ describe('ChartRoute', () => {
           relationship_field: 'books',
           limit: 2,
         },
-        customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        ...defaultContext,
       });
 
       await chart.handleChart(context);
@@ -433,8 +464,7 @@ describe('ChartRoute', () => {
           relationship_field: 'authors',
           limit: 2,
         },
-        customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        ...defaultContext,
       });
 
       await chart.handleChart(context);
@@ -477,8 +507,7 @@ describe('ChartRoute', () => {
             relationship_field: 'books',
             limit: 2,
           },
-          customProperties: { query: { timezone: 'Europe/Paris' } },
-          state: { user: { email: 'john.doe@domain.com' } },
+          ...defaultContext,
         });
 
         await chart.handleChart(context);
@@ -521,8 +550,7 @@ describe('ChartRoute', () => {
               relationship_field: 'invalid',
               limit: 2,
             },
-            customProperties: { query: { timezone: 'Europe/Paris' } },
-            state: { user: { permission_level: 'user' } },
+            ...defaultContext,
           });
 
           await expect(chart.handleChart(context)).rejects.toThrowError(
