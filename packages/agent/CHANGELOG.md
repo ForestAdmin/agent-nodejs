@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.3...@forestadmin/agent@1.1.0) (2022-10-18)
+
+
+### Features
+
+* **customization:** plugin system ([#397](https://github.com/ForestAdmin/agent-nodejs/issues/397)) ([06d4de7](https://github.com/ForestAdmin/agent-nodejs/commit/06d4de76a42233511a1741cb9a77c6f36d13c249))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.2.0
+
 ## @forestadmin/agent [1.0.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.2...@forestadmin/agent@1.0.3) (2022-10-13)
 
 
