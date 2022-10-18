@@ -114,11 +114,11 @@ export default class AuthorizationService {
     }
   }
 
-  public async assertCanRetrieveChart(context: Context): Promise<void> {
+  public async assertCanExecuteChart(context: Context): Promise<void> {
     const { renderingId, id: userId } = context.state.user;
     const { body: chartRequest } = context.request;
 
-    const canRetrieve = await this.forestAdminClient.permissionService.canRetrieveChart({
+    const canRetrieve = await this.forestAdminClient.permissionService.canExecuteChart({
       renderingId,
       userId,
       chartRequest,

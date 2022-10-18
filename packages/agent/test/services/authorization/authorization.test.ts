@@ -1,6 +1,9 @@
 import { ChartType, CollectionActionEvent } from '@forestadmin/forestadmin-client';
 import { Collection } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
+import ChainedSQLQueryError from '@forestadmin/forestadmin-client/src/permissions/errors/chained-sql-query-error';
+import EmptySQLQueryError from '@forestadmin/forestadmin-client/src/permissions/errors/empty-sql-query-error';
+import NonSelectSQLQueryError from '@forestadmin/forestadmin-client/src/permissions/errors/non-select-sql-query-error';
 
 import * as factories from '../../__factories__';
 
@@ -283,7 +286,7 @@ describe('AuthorizationService', () => {
     });
   });
 
-  describe('assertCanRetrieveChart', () => {
+  describe('assertCanExecuteChart', () => {
     it('should check if the user can retrieve the chart and do nothing if OK', async () => {
       const forestAdminClient = factories.forestAdminClient.build();
 
@@ -300,13 +303,13 @@ describe('AuthorizationService', () => {
         throw: jest.fn(),
       } as unknown as Context;
 
-      (forestAdminClient.permissionService.canRetrieveChart as jest.Mock).mockResolvedValue(true);
+      (forestAdminClient.permissionService.canExecuteChart as jest.Mock).mockResolvedValue(true);
 
-      await authorizationService.assertCanRetrieveChart(context);
+      await authorizationService.assertCanExecuteChart(context);
 
       expect(context.throw).not.toHaveBeenCalled();
 
-      expect(forestAdminClient.permissionService.canRetrieveChart).toHaveBeenCalledWith({
+      expect(forestAdminClient.permissionService.canExecuteChart).toHaveBeenCalledWith({
         renderingId: 42,
         userId: 35,
         chartRequest: context.request.body,
@@ -336,12 +339,12 @@ describe('AuthorizationService', () => {
         throw: jest.fn(),
       } as unknown as Context;
 
-      (forestAdminClient.permissionService.canRetrieveChart as jest.Mock).mockResolvedValue(false);
+      (forestAdminClient.permissionService.canExecuteChart as jest.Mock).mockResolvedValue(false);
 
-      await authorizationService.assertCanRetrieveChart(context);
+      await authorizationService.assertCanExecuteChart(context);
 
       expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
-      expect(forestAdminClient.permissionService.canRetrieveChart).toHaveBeenCalledWith({
+      expect(forestAdminClient.permissionService.canExecuteChart).toHaveBeenCalledWith({
         renderingId: 42,
         userId: 35,
         chartRequest: {
@@ -349,6 +352,123 @@ describe('AuthorizationService', () => {
           sourceCollectionName: 'jedi',
           aggregateFieldName: 'strength',
           aggregator: 'Sum',
+        },
+      });
+    });
+
+    it('should throw an error if the query is empty', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      const context = {
+        state: {
+          user: {
+            id: 35,
+            renderingId: 42,
+          },
+        },
+        request: {
+          body: {
+            type: ChartType.Value,
+            query: '  ',
+          },
+        },
+        throw: jest.fn(),
+      } as unknown as Context;
+
+      (forestAdminClient.permissionService.canExecuteChart as jest.Mock).mockRejectedValue(
+        new EmptySQLQueryError(),
+      );
+
+      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrowError(
+        new EmptySQLQueryError(),
+      );
+
+      expect(forestAdminClient.permissionService.canExecuteChart).toHaveBeenCalledWith({
+        renderingId: 42,
+        userId: 35,
+        chartRequest: {
+          type: ChartType.Value,
+          query: '  ',
+        },
+      });
+    });
+
+    it('should throw an error if the query is chained', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      const context = {
+        state: {
+          user: {
+            id: 35,
+            renderingId: 42,
+          },
+        },
+        request: {
+          body: {
+            type: ChartType.Value,
+            query: 'SELECT * FROM jedis; SELECT * FROM siths',
+          },
+        },
+        throw: jest.fn(),
+      } as unknown as Context;
+
+      (forestAdminClient.permissionService.canExecuteChart as jest.Mock).mockRejectedValue(
+        new ChainedSQLQueryError(),
+      );
+
+      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrowError(
+        new ChainedSQLQueryError(),
+      );
+
+      expect(forestAdminClient.permissionService.canExecuteChart).toHaveBeenCalledWith({
+        renderingId: 42,
+        userId: 35,
+        chartRequest: {
+          type: ChartType.Value,
+          query: 'SELECT * FROM jedis; SELECT * FROM siths',
+        },
+      });
+    });
+
+    it('should throw an error if the query is an Update', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      const context = {
+        state: {
+          user: {
+            id: 35,
+            renderingId: 42,
+          },
+        },
+        request: {
+          body: {
+            type: ChartType.Value,
+            query: 'UPDATE jedis SET padawan_id = ?',
+          },
+        },
+        throw: jest.fn(),
+      } as unknown as Context;
+
+      (forestAdminClient.permissionService.canExecuteChart as jest.Mock).mockRejectedValue(
+        new NonSelectSQLQueryError(),
+      );
+
+      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrowError(
+        new NonSelectSQLQueryError(),
+      );
+
+      expect(forestAdminClient.permissionService.canExecuteChart).toHaveBeenCalledWith({
+        renderingId: 42,
+        userId: 35,
+        chartRequest: {
+          type: ChartType.Value,
+          query: 'UPDATE jedis SET padawan_id = ?',
         },
       });
     });

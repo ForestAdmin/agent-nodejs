@@ -203,7 +203,7 @@ describe('PermissionService', () => {
     });
   });
 
-  describe('canRetrieveChart', () => {
+  describe('canExecuteChart', () => {
     it('should check if the user has the right to display the chart', async () => {
       const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
       const permissionService = new PermissionServiceWithCache(
@@ -211,9 +211,9 @@ describe('PermissionService', () => {
         renderingPermissionService,
       );
 
-      (renderingPermissionService.canRetrieveChart as jest.Mock).mockResolvedValue(true);
+      (renderingPermissionService.canExecuteChart as jest.Mock).mockResolvedValue(true);
 
-      const result = await permissionService.canRetrieveChart({
+      const result = await permissionService.canExecuteChart({
         userId: 42,
         renderingId: 666,
         chartRequest: {
@@ -224,7 +224,7 @@ describe('PermissionService', () => {
         },
       });
 
-      expect(renderingPermissionService.canRetrieveChart).toHaveBeenCalledWith({
+      expect(renderingPermissionService.canExecuteChart).toHaveBeenCalledWith({
         userId: 42,
         renderingId: 666,
         chartRequest: {

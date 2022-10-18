@@ -127,8 +127,8 @@ describe('ChartRoute', () => {
         .mockResolvedValue([{ value: 1234, group: null }]);
 
       const error = new Error('Unauthorized');
-      const assertCanRetrieveChartMock = services.authorization.assertCanRetrieveChart as jest.Mock;
-      assertCanRetrieveChartMock.mockRejectedValueOnce(error);
+      const assertCanExecuteChartMock = services.authorization.assertCanExecuteChart as jest.Mock;
+      assertCanExecuteChartMock.mockRejectedValueOnce(error);
 
       const chart = new Chart(services, options, dataSource, 'books');
       const context = createMockContext({
@@ -144,7 +144,7 @@ describe('ChartRoute', () => {
 
       await expect(chart.handleChart(context)).rejects.toBe(error);
 
-      expect(assertCanRetrieveChartMock).toHaveBeenCalledWith(context);
+      expect(assertCanExecuteChartMock).toHaveBeenCalledWith(context);
     });
 
     describe('when the data needs filtering', () => {

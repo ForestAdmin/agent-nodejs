@@ -99,7 +99,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     ]);
   }
 
-  public async canRetrieveChart({
+  public async canExecuteChart({
     renderingId,
     userId,
     chartRequest,
@@ -108,7 +108,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     userId: number;
     chartRequest: Chart;
   }): Promise<boolean> {
-    return this.renderingPermissionService.canRetrieveChart({
+    return this.renderingPermissionService.canExecuteChart({
       renderingId,
       userId,
       chartRequest,
