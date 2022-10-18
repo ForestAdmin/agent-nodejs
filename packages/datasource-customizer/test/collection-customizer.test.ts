@@ -1,12 +1,20 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { ColumnSchema, ConditionTreeLeaf, Sort } from '@forestadmin/datasource-toolkit';
 
 import { ActionDefinition } from '../src/decorators/actions/types/actions';
-import { CollectionCustomizer, ComputedDefinition } from '../src';
+import {
+  CollectionCustomizationContext,
+  CollectionCustomizer,
+  ComputedDefinition,
+  DataSourceCustomizer,
+} from '../src';
 import { WriteDefinition } from '../src/decorators/write/types';
-import DecoratorsStack from '../src/decorators/decorators-stack';
 
 describe('Builder > Collection', () => {
+  const logger = () => {};
+
   const setup = async () => {
     const dataSource = factories.dataSource.buildWithCollections([
       factories.collection.build({
@@ -73,103 +81,126 @@ describe('Builder > Collection', () => {
         }),
       }),
     ]);
-    const stack = new DecoratorsStack(dataSource);
 
-    return { stack };
+    const dsc = new DataSourceCustomizer();
+    dsc.addDataSource(() => Promise.resolve(dataSource));
+    await dsc.getDataSource(logger);
+
+    // @ts-ignore
+    const { stack } = dsc;
+    const customizer = new CollectionCustomizer(dsc, stack, 'authors');
+
+    return { dsc, stack, customizer };
   };
 
-  describe('disableCount', () => {
-    it('should edit the schema', async () => {
-      const { stack } = await setup();
-      const collection = stack.schema.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(collection, 'overrideSchema');
+  describe('use', () => {
+    it('should run the provided code', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.schema.getCollection('authors'), 'overrideSchema');
 
-      const self = builder.disableCount();
+      const self = customizer.use(async (_, c) => {
+        c.disableCount();
+      });
+
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({ countable: false });
-      expect(collection.schema.countable).toBeFalsy();
-      expect(self).toEqual(builder);
+      expect(self.schema.countable).toBeFalsy();
+      expect(self).toEqual(customizer);
+    });
+  });
+
+  describe('disableCount', () => {
+    it('should edit the schema', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.schema.getCollection('authors'), 'overrideSchema');
+
+      const self = customizer.disableCount();
+      await dsc.getDataSource(logger);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith({ countable: false });
+      expect(self.schema.countable).toBeFalsy();
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('renameField', () => {
     it('should rename a field', async () => {
-      const { stack } = await setup();
-      const collection = stack.renameField.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(collection, 'renameField');
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.renameField.getCollection('authors'), 'renameField');
 
-      const self = builder.renameField('firstName', 'renamed');
+      const self = customizer.renameField('firstName', 'renamed');
+      const dataSource = await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'renamed');
-      expect(collection.schema.fields.renamed).toBeDefined();
-      expect(self).toEqual(builder);
+      expect(self.schema.fields.renamed).toBeUndefined();
+      expect(dataSource.getCollection('authors').schema.fields.renamed).toBeDefined();
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('removeField', () => {
     it('should remove the field given fields', async () => {
-      const { stack } = await setup();
-      const collection = stack.publication.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(collection, 'changeFieldVisibility');
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.publication.getCollection('authors'), 'changeFieldVisibility');
 
-      const self = builder.removeField('firstName', 'lastName');
+      const self = customizer.removeField('firstName', 'lastName');
+      const dataSource = await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(2);
       expect(spy).toHaveBeenNthCalledWith(1, 'firstName', false);
       expect(spy).toHaveBeenNthCalledWith(2, 'lastName', false);
-      expect(collection.schema.fields.firstName).toBeUndefined();
-      expect(collection.schema.fields.lastName).toBeUndefined();
-      expect(self).toEqual(builder);
+      expect(self.schema.fields.firstName).toBeDefined();
+      expect(self.schema.fields.lastName).toBeDefined();
+      expect(dataSource.getCollection('authors').schema.fields.firstName).toBeUndefined();
+      expect(dataSource.getCollection('authors').schema.fields.lastName).toBeUndefined();
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('addAction', () => {
     it('should add an action', async () => {
-      const { stack } = await setup();
-      const collection = stack.action.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
-
-      const spy = jest.spyOn(collection, 'addAction');
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.action.getCollection('authors'), 'addAction');
 
       const actionDefinition: ActionDefinition = { scope: 'Global', execute: () => {} };
-      const self = builder.addAction('action name', actionDefinition);
+      const self = customizer.addAction('action name', actionDefinition);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('action name', actionDefinition);
-      expect(collection.schema.actions['action name']).toBeDefined();
-      expect(self).toEqual(builder);
+      expect(self.schema.actions['action name']).toBeDefined();
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('addValidation', () => {
     it('should add a validation rule', async () => {
-      const { stack } = await setup();
-      const collection = stack.validation.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.validation.getCollection('authors'), 'addValidation');
 
-      const spy = jest.spyOn(collection, 'addValidation');
-      const self = builder.addFieldValidation('firstName', 'LongerThan', 5);
+      const self = customizer.addFieldValidation('firstName', 'LongerThan', 5);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', { operator: 'LongerThan', value: 5 });
-      expect((collection.schema.fields.firstName as ColumnSchema).validation).toStrictEqual([
+      expect((self.schema.fields.firstName as ColumnSchema).validation).toStrictEqual([
         { operator: 'LongerThan', value: 5 },
       ]);
-      expect(self).toEqual(builder);
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('importField', () => {
     it('should call addField', async () => {
-      const { stack } = await setup();
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(builder, 'addField');
-      const self = builder.importField('firstNameCopy', { path: 'firstName' });
+      const { dsc, customizer } = await setup();
+
+      const spy = jest.spyOn(customizer, 'addField');
+      const self = customizer.importField('firstNameCopy', { path: 'firstName' });
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstNameCopy', {
@@ -177,64 +208,69 @@ describe('Builder > Collection', () => {
         dependencies: ['firstName'],
         getValues: expect.any(Function),
       });
-      expect(self).toEqual(builder);
+      expect(self).toEqual(customizer);
 
       const { getValues } = spy.mock.calls[0][1];
-      expect(getValues([{ firstName: 'John' }], null)).toStrictEqual(['John']);
+      expect(
+        getValues([{ firstName: 'John' }], null as unknown as CollectionCustomizationContext),
+      ).toStrictEqual(['John']);
     });
 
     it('should call the replaceFieldWriting with the correct path', async () => {
-      const { stack } = await setup();
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const collection = stack.write.getCollection('authors');
-      const replaceFieldWritingSpy = jest.spyOn(collection, 'replaceFieldWriting');
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.write.getCollection('authors'), 'replaceFieldWriting');
 
-      builder.importField('translatorName', { path: 'translator:name' });
+      const self = customizer.importField('translatorName', { path: 'translator:name' });
+      await dsc.getDataSource(logger);
 
-      expect(replaceFieldWritingSpy).toHaveBeenCalledWith('translatorName', expect.any(Function));
-      const [[, definition]] = replaceFieldWritingSpy.mock.calls;
+      expect(spy).toHaveBeenCalledWith('translatorName', expect.any(Function));
+      const [[, definition]] = spy.mock.calls;
       expect(definition('newNameValue', {} as never)).toEqual({
         translator: { name: 'newNameValue' },
       });
+      expect(self).toEqual(customizer);
     });
 
     describe('when the field is not writable', () => {
       it('should not call the replaceFieldWriting', async () => {
-        const { stack } = await setup();
-        const builder = new CollectionCustomizer(stack, 'authors');
-        const collection = stack.write.getCollection('authors');
-        const replaceFieldWritingSpy = jest.spyOn(collection, 'replaceFieldWriting');
+        const { dsc, customizer, stack } = await setup();
+        const spy = jest.spyOn(stack.write.getCollection('authors'), 'replaceFieldWriting');
 
-        builder.importField('translatorName', { path: 'translator:nameInReadOnly' });
+        const self = customizer.importField('translatorName', {
+          path: 'translator:nameInReadOnly',
+        });
+        await dsc.getDataSource(logger);
 
-        expect(replaceFieldWritingSpy).not.toHaveBeenCalled();
+        expect(spy).not.toHaveBeenCalled();
+        expect(self).toEqual(customizer);
       });
     });
 
     describe('when the "readOnly" option is true', () => {
       it('should not call the replaceFieldWriting', async () => {
-        const { stack } = await setup();
-        const builder = new CollectionCustomizer(stack, 'authors');
-        const collection = stack.write.getCollection('authors');
-        const replaceFieldWritingSpy = jest.spyOn(collection, 'replaceFieldWriting');
+        const { dsc, customizer, stack } = await setup();
+        const spy = jest.spyOn(stack.write.getCollection('authors'), 'replaceFieldWriting');
 
-        builder.importField('translatorName', { path: 'translator:name', readonly: true });
+        const self = customizer.importField('translatorName', {
+          path: 'translator:name',
+          readonly: true,
+        });
+        await dsc.getDataSource(logger);
 
-        expect(replaceFieldWritingSpy).not.toHaveBeenCalled();
+        expect(spy).not.toHaveBeenCalled();
+        expect(self).toEqual(customizer);
       });
     });
 
     describe('when the "readOnly" option is false and the schema doest not allow to write', () => {
       it('should throw an error', async () => {
-        const { stack } = await setup();
-        const builder = new CollectionCustomizer(stack, 'authors');
+        const { dsc, customizer } = await setup();
+        customizer.importField('translatorName', {
+          path: 'translator:nameInReadOnly',
+          readonly: false,
+        });
 
-        expect(() =>
-          builder.importField('translatorName', {
-            path: 'translator:nameInReadOnly',
-            readonly: false,
-          }),
-        ).toThrowError(
+        await expect(dsc.getDataSource(logger)).rejects.toThrowError(
           'Readonly option should not be false because the field' +
             ' "translator:nameInReadOnly" is not writable',
         );
@@ -244,10 +280,8 @@ describe('Builder > Collection', () => {
 
   describe('addField', () => {
     it('should add a field to early collection', async () => {
-      const { stack } = await setup();
-      const collection = stack.earlyComputed.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(collection, 'registerComputed');
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.earlyComputed.getCollection('authors'), 'registerComputed');
 
       const fieldDefinition: ComputedDefinition = {
         columnType: 'String',
@@ -255,25 +289,26 @@ describe('Builder > Collection', () => {
         getValues: records => records.map(() => 'aaa'),
       };
 
-      const self = builder.addField('new field', fieldDefinition);
+      const self = customizer.addField('new field', fieldDefinition);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
-      expect(collection.schema.fields['new field']).toBeDefined();
-      expect(self).toEqual(builder);
+      expect(self.schema.fields['new field']).toBeDefined();
+      expect(self).toEqual(customizer);
 
       const { getValues } = spy.mock.calls[0][1];
-      expect(getValues([{ firstName: 'John' }], null)).toStrictEqual(['aaa']);
+      expect(
+        getValues([{ firstName: 'John' }], null as unknown as CollectionCustomizationContext),
+      ).toStrictEqual(['aaa']);
     });
 
     it('should add a field to late collection', async () => {
-      const { stack } = await setup();
-      const collection = stack.lateComputed.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(collection, 'registerComputed');
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.lateComputed.getCollection('authors'), 'registerComputed');
 
       // Add a relation to itself on the record
-      builder.addManyToOneRelation('mySelf', 'authors', {
+      customizer.addManyToOneRelation('mySelf', 'authors', {
         foreignKey: 'authorId',
         foreignKeyTarget: 'authorId',
       });
@@ -284,29 +319,33 @@ describe('Builder > Collection', () => {
         getValues: records => records.map(() => 'aaa'),
       };
 
-      const self = builder.addField('new field', fieldDefinition);
+      const self = customizer.addField('new field', fieldDefinition);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
-      expect(collection.schema.fields['new field']).toBeDefined();
-      expect(self).toEqual(builder);
+      expect(self.schema.fields['new field']).toBeDefined();
+      expect(self).toEqual(customizer);
 
       const { getValues } = spy.mock.calls[0][1];
-      expect(getValues([{ firstName: 'John' }], null)).toStrictEqual(['aaa']);
+      expect(
+        getValues([{ firstName: 'John' }], null as unknown as CollectionCustomizationContext),
+      ).toStrictEqual(['aaa']);
     });
   });
 
   describe('addExternalRelation', () => {
     it('should call addField', async () => {
-      const { stack } = await setup();
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(builder, 'addField');
-      const self = builder.addExternalRelation('firstNameCopy', {
+      const { dsc, customizer } = await setup();
+
+      const spy = jest.spyOn(customizer, 'addField');
+      const self = customizer.addExternalRelation('firstNameCopy', {
         schema: { firstname: 'String', lastName: 'String' },
         listRecords: () => {
           return [{ firstname: 'John', lastName: 'Doe' }];
         },
       });
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstNameCopy', {
@@ -314,10 +353,13 @@ describe('Builder > Collection', () => {
         dependencies: ['authorId'],
         getValues: expect.any(Function),
       });
-      expect(self).toEqual(builder);
+      expect(self).toEqual(customizer);
 
       const { getValues } = spy.mock.calls[0][1];
-      const values = await getValues([{ authorId: 1 }, { authorId: 2 }], null);
+      const values = await getValues(
+        [{ authorId: 1 }, { authorId: 2 }],
+        null as unknown as CollectionCustomizationContext,
+      );
       expect(values).toStrictEqual([
         [{ firstname: 'John', lastName: 'Doe' }],
         [{ firstname: 'John', lastName: 'Doe' }],
@@ -327,15 +369,16 @@ describe('Builder > Collection', () => {
 
   describe('relations', () => {
     it('should add a many to one', async () => {
-      const { stack } = await setup();
-      const collection = stack.relation.getCollection('book_author');
-      const builder = new CollectionCustomizer(stack, 'book_author');
-      const spy = jest.spyOn(collection, 'addRelation');
+      const { dsc, stack } = await setup();
+      const customizer = new CollectionCustomizer(dsc, stack, 'book_author');
 
-      const self = builder.addManyToOneRelation('myAuthor', 'authors', {
+      const spy = jest.spyOn(stack.relation.getCollection('book_author'), 'addRelation');
+
+      const self = customizer.addManyToOneRelation('myAuthor', 'authors', {
         foreignKey: 'authorFk',
         foreignKeyTarget: 'authorId',
       });
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myAuthor', {
@@ -344,20 +387,20 @@ describe('Builder > Collection', () => {
         foreignKey: 'authorFk',
         foreignKeyTarget: 'authorId',
       });
-      expect(collection.schema.fields.myAuthor).toBeDefined();
-      expect(self).toEqual(builder);
+      expect(self.schema.fields.myAuthor).toBeDefined();
+      expect(self).toEqual(customizer);
     });
 
     it('should add a one to one', async () => {
-      const { stack } = await setup();
-      const collection = stack.relation.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(collection, 'addRelation');
+      const { dsc, customizer, stack } = await setup();
 
-      const self = builder.addOneToOneRelation('myBookAuthor', 'book_author', {
+      const spy = jest.spyOn(stack.relation.getCollection('authors'), 'addRelation');
+
+      const self = customizer.addOneToOneRelation('myBookAuthor', 'book_author', {
         originKey: 'authorFk',
         originKeyTarget: 'authorId',
       });
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myBookAuthor', {
@@ -366,20 +409,20 @@ describe('Builder > Collection', () => {
         originKey: 'authorFk',
         originKeyTarget: 'authorId',
       });
-      expect(collection.schema.fields.myBookAuthor).toBeDefined();
-      expect(self).toEqual(builder);
+      expect(self.schema.fields.myBookAuthor).toBeDefined();
+      expect(self).toEqual(customizer);
     });
 
     it('should add a one to many', async () => {
-      const { stack } = await setup();
-      const collection = stack.relation.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(collection, 'addRelation');
+      const { dsc, customizer, stack } = await setup();
 
-      const self = builder.addOneToManyRelation('myBookAuthors', 'book_author', {
+      const spy = jest.spyOn(stack.relation.getCollection('authors'), 'addRelation');
+
+      const self = customizer.addOneToManyRelation('myBookAuthors', 'book_author', {
         originKey: 'authorFk',
         originKeyTarget: 'authorId',
       });
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myBookAuthors', {
@@ -388,22 +431,21 @@ describe('Builder > Collection', () => {
         originKey: 'authorFk',
         originKeyTarget: 'authorId',
       });
-      expect(collection.schema.fields.myBookAuthors).toBeDefined();
-      expect(self).toEqual(builder);
+      expect(self.schema.fields.myBookAuthors).toBeDefined();
+      expect(self).toEqual(customizer);
     });
 
     it('should add a many to many', async () => {
-      const { stack } = await setup();
-      const collection = stack.relation.getCollection('authors');
-      const spy = jest.spyOn(collection, 'addRelation');
-      const builder = new CollectionCustomizer(stack, 'authors');
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.relation.getCollection('authors'), 'addRelation');
 
-      const self = builder.addManyToManyRelation('myBooks', 'books', 'book_author', {
+      const self = customizer.addManyToManyRelation('myBooks', 'books', 'book_author', {
         foreignKey: 'bookFk',
         foreignKeyTarget: 'bookId',
         originKey: 'authorFk',
         originKeyTarget: 'authorId',
       });
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myBooks', {
@@ -415,153 +457,156 @@ describe('Builder > Collection', () => {
         originKey: 'authorFk',
         originKeyTarget: 'authorId',
       });
-      expect(collection.schema.fields.myBooks).toBeDefined();
-      expect(self).toEqual(builder);
+      expect(self.schema.fields.myBooks).toBeDefined();
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('addSegment', () => {
     it('should add a segment', async () => {
-      const { stack } = await setup();
+      const { dsc, customizer, stack } = await setup();
       const collection = stack.segment.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
+
       const spy = jest.spyOn(collection, 'addSegment');
 
       const generator = async () => new ConditionTreeLeaf('fieldName', 'Present');
 
-      const self = builder.addSegment('new segment', generator);
+      const self = customizer.addSegment('new segment', generator);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new segment', generator);
-      expect(collection.schema.segments).toEqual(expect.arrayContaining(['new segment']));
-      expect(self).toEqual(builder);
+      expect(self.schema.segments).toEqual(expect.arrayContaining(['new segment']));
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('emulateFieldSorting', () => {
     it('should emulate sort on field', async () => {
-      const { stack } = await setup();
+      const { dsc, customizer, stack } = await setup();
       const collection = stack.sortEmulate.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
+
       const spy = jest.spyOn(collection, 'emulateFieldSorting');
 
-      const self = builder.emulateFieldSorting('firstName');
+      const self = customizer.emulateFieldSorting('firstName');
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName');
-      expect(self).toEqual(builder);
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('replaceFieldSorting', () => {
     it('should replace sort on field', async () => {
-      const { stack } = await setup();
+      const { dsc, customizer, stack } = await setup();
       const collection = stack.sortEmulate.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
+
       const spy = jest.spyOn(collection, 'replaceFieldSorting');
 
       const sortClauses = [{ field: 'firstName', ascending: true }];
-      const self = builder.replaceFieldSorting('firstName', sortClauses);
+      const self = customizer.replaceFieldSorting('firstName', sortClauses);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', new Sort(...sortClauses));
-      expect(self).toEqual(builder);
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('replaceFieldWriting', () => {
     it('should replace write on field', async () => {
-      const { stack } = await setup();
+      const { dsc, customizer, stack } = await setup();
       const collection = stack.write.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
+
       const spy = jest.spyOn(collection, 'replaceFieldWriting');
 
       const definition: WriteDefinition = jest.fn();
-      builder.replaceFieldWriting('firstName', definition);
+      const self = customizer.replaceFieldWriting('firstName', definition);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', definition);
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('emulateFieldFiltering', () => {
     it('should emulate operator on field', async () => {
-      const { stack } = await setup();
+      const { dsc, customizer, stack } = await setup();
       const collection = stack.earlyOpEmulate.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
+
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
 
-      const self = builder.emulateFieldFiltering('lastName');
+      const self = customizer.emulateFieldFiltering('lastName');
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(19);
-      expect(self).toEqual(builder);
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('emulateFieldOperator', () => {
     it('should emulate operator on field', async () => {
-      const { stack } = await setup();
+      const { dsc, customizer, stack } = await setup();
       const collection = stack.earlyOpEmulate.getCollection('authors');
       const spy = jest.spyOn(collection, 'emulateFieldOperator');
-      const builder = new CollectionCustomizer(stack, 'authors');
 
-      const self = builder.emulateFieldOperator('firstName', 'Present');
+      const self = customizer.emulateFieldOperator('firstName', 'Present');
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'Present');
-      expect(self).toEqual(builder);
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('replaceFieldOperator', () => {
     it('should replace operator on field', async () => {
-      const { stack } = await setup();
-      const collection = stack.earlyOpEmulate.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(collection, 'replaceFieldOperator');
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.earlyOpEmulate.getCollection('authors'), 'replaceFieldOperator');
 
       const replacer = async () => new ConditionTreeLeaf('fieldName', 'NotEqual', null);
 
-      const self = builder.replaceFieldOperator('firstName', 'Present', replacer);
+      const self = customizer.replaceFieldOperator('firstName', 'Present', replacer);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'Present', replacer);
-      expect(self).toEqual(builder);
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('replaceSearch', () => {
     it('should call the search decorator', async () => {
-      const { stack } = await setup();
-      const collection = stack.search.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(collection, 'replaceSearch');
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.search.getCollection('authors'), 'replaceSearch');
 
       const replacer = async search =>
         ({ field: 'firstName', operator: 'Equal', value: search } as const);
 
-      const self = builder.replaceSearch(replacer);
+      const self = customizer.replaceSearch(replacer);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith(replacer);
-      expect(self).toEqual(builder);
+      expect(self).toEqual(customizer);
     });
   });
 
   describe('addHook', () => {
     it('should call the hook decorator', async () => {
-      const { stack } = await setup();
-      const collection = stack.hook.getCollection('authors');
-      const builder = new CollectionCustomizer(stack, 'authors');
-      const spy = jest.spyOn(collection, 'addHook');
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.hook.getCollection('authors'), 'addHook');
 
       const hookHandler = () => {};
 
-      const self = builder.addHook('Before', 'List', hookHandler);
+      const self = customizer.addHook('Before', 'List', hookHandler);
+      await dsc.getDataSource(logger);
 
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('Before', 'List', hookHandler);
-      expect(self).toEqual(builder);
+      expect(self).toEqual(customizer);
     });
   });
 });
