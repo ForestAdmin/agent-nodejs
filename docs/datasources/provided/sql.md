@@ -20,8 +20,10 @@ In order to make everything work as expected, you need to:
 | MySQL                | `mysql2`              |
 | Oracle               | `oracledb`            |
 | PostgreSQL           | `pg` + `pg-hstore`    |
-| Snowflake            | `snowflake-sdk`       |
 | SQLite               | `sqlite3`             |
+
+<!-- Snowflake is removed because introspection does not work -->
+<!-- | Snowflake            | `snowflake-sdk`       | -->
 
 ## Configuration
 
