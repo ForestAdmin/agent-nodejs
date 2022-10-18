@@ -66,14 +66,14 @@ const agent = createAgent(options).addDataSource(createSqlDataSource({
   /** The port of the relational database */
   port: 5432,
 
-  /** A flag that defines if is used SSL */
+  /** A flag that defines if a TLS connection should be used */
   ssl: false,
 
   /** Only for PostgreSQL: A flag that defines if `pg-native` shall be used or not */
   native: false,
 
   /** Only for SQLite: path where the database file is located */
-  // storage?: string;
+  // storage: '/tmp/my-sqlite-database.db'
 
   /** Connection pool options */
   pool: {

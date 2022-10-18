@@ -1,6 +1,6 @@
 import { Options } from 'sequelize/types';
 
-export type DatabaseConnectionOptions =
+export type ConnectionOptions =
   | string
   | Pick<
       Options,

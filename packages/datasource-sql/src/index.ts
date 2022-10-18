@@ -1,12 +1,12 @@
-import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 import { Sequelize } from 'sequelize';
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
-import { DatabaseConnectionOptions as ConnectionOptions } from './types';
-import { Table } from './introspection/types';
 import Introspector from './introspection/introspector';
 import ModelBuilder from './orm-builder/model';
 import RelationBuilder from './orm-builder/relations';
+import type { ConnectionOptions } from './types';
+import type { Table } from './introspection/types';
 
 function createEmptySequelize(uriOrOptions: ConnectionOptions, logger: Logger): Sequelize {
   const logging = (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
@@ -57,3 +57,5 @@ export function createSqlDataSource(
     return new SequelizeDataSource(sequelize, logger);
   };
 }
+
+export type { ConnectionOptions, Table };
