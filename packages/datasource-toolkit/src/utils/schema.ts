@@ -9,6 +9,12 @@ export default class SchemaUtils {
     });
   }
 
+  static isPrimaryKey(schema: CollectionSchema, fieldName: string): boolean {
+    const field = schema.fields[fieldName];
+
+    return field.type === 'Column' && field.isPrimaryKey;
+  }
+
   static isForeignKey(schema: CollectionSchema, name: string): boolean {
     const field = schema.fields[name];
 

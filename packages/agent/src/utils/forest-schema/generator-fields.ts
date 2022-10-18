@@ -10,6 +10,7 @@ import {
   OneToOneSchema,
   PrimitiveTypes,
   RelationSchema,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import { ForestServerColumnType, ForestServerField } from './types';
 import FrontendFilterableUtils from './filterable';
@@ -55,6 +56,7 @@ export default class SchemaGeneratorFields {
 
   private static buildColumnSchema(collection: Collection, name: string): ForestServerField {
     const column = collection.schema.fields[name] as ColumnSchema;
+    const isForeignKey = SchemaUtils.isForeignKey(collection.schema, name);
 
     return {
       defaultValue: column.defaultValue ?? null,
@@ -64,7 +66,7 @@ export default class SchemaGeneratorFields {
       inverseOf: null,
       isFilterable: FrontendFilterableUtils.isFilterable(column.columnType, column.filterOperators),
       isPrimaryKey: Boolean(column.isPrimaryKey),
-      isReadOnly: Boolean(column.isReadOnly),
+      isReadOnly: isForeignKey || Boolean(column.isReadOnly),
       isRequired: column.validation?.some(v => v.operator === 'Present') ?? false,
       isSortable: Boolean(column.isSortable),
       isVirtual: false,

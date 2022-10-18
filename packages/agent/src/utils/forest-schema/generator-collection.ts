@@ -14,7 +14,11 @@ export default class SchemaGeneratorCollection {
           .map(name => SchemaGeneratorActions.buildSchema(collection, name)),
       ),
       fields: Object.keys(collection.schema.fields)
-        .filter(name => !SchemaUtils.isForeignKey(collection.schema, name))
+        .filter(
+          name =>
+            !SchemaUtils.isForeignKey(collection.schema, name) ||
+            SchemaUtils.isPrimaryKey(collection.schema, name),
+        )
         .sort()
         .map(name => SchemaGeneratorFields.buildSchema(collection, name)),
       icon: null,
