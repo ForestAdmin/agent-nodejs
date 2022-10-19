@@ -6,6 +6,7 @@ import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import { Schema } from './typings';
 import createTypicode from './datasources/typicode';
 import customizeAccount from './customizations/account';
+import customizeCard from './customizations/card';
 import customizeComment from './customizations/comment';
 import customizeCustomer from './customizations/customer';
 import customizeDvd from './customizations/dvd';
@@ -29,7 +30,22 @@ export default function makeAgent() {
   };
 
   return createAgent<Schema>(envOptions)
-    .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
+    .addDataSource(
+      // Using an URI
+      createSqlDataSource('mariadb://example:password@localhost:3808/example'),
+      { include: ['customer'] },
+    )
+    .addDataSource(
+      // Using a connection object
+      createSqlDataSource({
+        dialect: 'mariadb',
+        username: 'example',
+        password: 'password',
+        port: 3808,
+        database: 'example',
+      }),
+      { include: ['card'] },
+    )
     .addDataSource(createTypicode())
     .addDataSource(createSequelizeDataSource(sequelizePostgres))
     .addDataSource(createSequelizeDataSource(sequelizeMySql))
@@ -45,6 +61,7 @@ export default function makeAgent() {
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
 
+    .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('store', customizeStore)
