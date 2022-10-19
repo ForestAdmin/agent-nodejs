@@ -1,5 +1,10 @@
 import { Collection, SchemaUtils } from '@forestadmin/datasource-toolkit';
-import { ForestServerAction, ForestServerCollection } from './types';
+import {
+  ForestServerAction,
+  ForestServerCollection,
+  ForestServerField,
+  ForestServerSegment,
+} from './types';
 import SchemaGeneratorActions from './generator-actions';
 import SchemaGeneratorFields from './generator-fields';
 import SchemaGeneratorSegments from './generator-segments';
