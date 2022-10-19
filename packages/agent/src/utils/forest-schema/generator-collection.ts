@@ -37,11 +37,9 @@ export default class SchemaGeneratorCollection {
     );
   }
 
-  /**
-   * Do not export foreign keys as those will be edited using the many to one relationship.
-   * Note that we always keep primary keys as not having them breaks reference fields in the UI.
-   */
   private static buildFields(collection: Collection): ForestServerField[] {
+    // Do not export foreign keys as those will be edited using the many to one relationship.
+    // Note that we always keep primary keys as not having them breaks reference fields in the UI.
     return Object.keys(collection.schema.fields)
       .filter(
         name =>
