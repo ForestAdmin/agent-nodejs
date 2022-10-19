@@ -27,7 +27,7 @@ export default class SchemaGeneratorCollection {
       icon: null,
       integration: null,
       isReadOnly: Object.values(collection.schema.fields).every(
-        field => field.type === 'Column' && field.isReadOnly,
+        field => field.type !== 'Column' || field.isReadOnly,
       ),
       isSearchable: collection.schema.searchable,
       isVirtual: false,

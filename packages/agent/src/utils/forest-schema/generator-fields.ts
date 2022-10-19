@@ -68,8 +68,8 @@ export default class SchemaGeneratorFields {
       isPrimaryKey: Boolean(column.isPrimaryKey),
 
       // When a column is a foreign key, it is readonly.
-      // This is because we want to avoid the user to update the foreign key directly as they
-      // can use the relationship field in the UI.
+      // This may sound counter-intuitive: it is so that the user don't have two fields which
+      // allow updating the same foreign key in the detail-view form (fk + many to one)
       isReadOnly: isForeignKey || Boolean(column.isReadOnly),
       isRequired: column.validation?.some(v => v.operator === 'Present') ?? false,
       isSortable: Boolean(column.isSortable),
