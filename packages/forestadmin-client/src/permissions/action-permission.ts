@@ -1,4 +1,5 @@
 import { ForestAdminClientOptionsWithDefaults } from '../types';
+
 import ForestHttpApi from './forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
@@ -24,6 +25,22 @@ export default class ActionPermissionService {
       actionNames: [actionName],
       allowRefetch: true,
     });
+  }
+
+  public async getCustomActionCondition(userId: string, actionName: string) {
+    const permissions = await this.getPermissions();
+    const userInfo = permissions.users.find(user => `${user.id}` === userId);
+
+    if (!userInfo) {
+      // INTERNAL ERROR ? Shouldn't even be possible
+      throw new Error('UserInformationNotFoundError');
+    }
+
+    const conditionFilter = permissions.generateActionsConditionByRoleId
+      .get(actionName)
+      ?.get(userInfo.roleId);
+
+    return conditionFilter;
   }
 
   private async hasPermissionOrRefetch({

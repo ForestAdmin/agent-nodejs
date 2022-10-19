@@ -66,8 +66,9 @@ export default class AuthorizationService {
       collectionName,
     });
 
+    // As canTriggerCustomAction throws errors when needed this case should not happen
     if (!canTrigger) {
-      context.throw(HttpCode.Forbidden, 'Forbidden');
+      context.throw(HttpCode.Unprocessable, 'Unprocessable');
     }
   }
 

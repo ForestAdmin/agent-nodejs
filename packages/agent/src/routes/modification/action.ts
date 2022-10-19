@@ -51,6 +51,12 @@ export default class ActionRoute extends CollectionRoute {
   private async handleExecute(context: Context): Promise<void> {
     const { dataSource } = this.collection;
     const caller = QueryStringParser.parseCaller(context);
+
+    // Could be moved to middlewareCustomActionApprovalRequestData and added to context.state
+    // It will be impacted by scopes - We need to understand what it means
+    // IMO, this is not an issue. Manager (approvers) should always have an larger (or equal) scope
+    // to the requester
+    // so that every Ids should match
     const filter = await this.getRecordSelection(context);
     const rawData = context.request.body.data.attributes.values;
 
