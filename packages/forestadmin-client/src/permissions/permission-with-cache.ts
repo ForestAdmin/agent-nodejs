@@ -41,14 +41,14 @@ export default class PermissionServiceWithCache implements PermissionService {
     userId,
     collectionName,
     customActionName,
-    executionConfiguration,
-    magicFunction,
+    customActionConfiguration,
+    conditionSolver,
   }: {
     userId: number;
     customActionName: string;
     collectionName: string;
-    executionConfiguration: { ids: number[] };
-    magicFunction: (filter: GenericTreeWithSources) => Promise<number[]>;
+    customActionConfiguration: { ids: number[] };
+    conditionSolver: (filter: GenericTreeWithSources) => Promise<number[]>;
   }): Promise<boolean> {
     // ===== TRIGGER STAGE
     // LOGIC: check that the user can Trigger
@@ -69,13 +69,13 @@ export default class PermissionServiceWithCache implements PermissionService {
 
     if (conditionalTriggerFilter) {
       // LOGIC: check that the user can Trigger with condition filter if any
-      // try magicFunction catch throw new Error('InvalidActionConditionError');
-      const matchingRecordsIdsWithConditionFilter = await magicFunction(conditionalTriggerFilter);
+      // try conditionSolver catch throw new Error('InvalidActionConditionError');
+      const matchingRecordsIdsWithConditionFilter = await conditionSolver(conditionalTriggerFilter);
 
       // CASE: Condition partially respected -> CustomAction TriggerForbidden
       // if some records don't match the condition the user is not allow to perform the action
       if (
-        executionConfiguration.ids.some(
+        customActionConfiguration.ids.some(
           recordIdMatchingCondition =>
             !matchingRecordsIdsWithConditionFilter.includes(recordIdMatchingCondition),
         )
@@ -114,17 +114,16 @@ export default class PermissionServiceWithCache implements PermissionService {
 
     if (conditionalRequireApprovalFilter) {
       // LOGIC: check that the user need to RequireApproval with condition filter if any
-      // try magicFunction catch throw new Error('InvalidActionConditionError');
-      const matchingRecordsIdsWithConditionFilter = await magicFunction(
+      // try conditionSolver catch throw new Error('InvalidActionConditionError');
+      const matchingRecordsIdsWithConditionFilter = await conditionSolver(
         conditionalRequireApprovalFilter,
       );
 
       // CASE: Condition partially respected -> CustomAction RequiresApproval
       // if at least some records match the condition
       if (
-        executionConfiguration.ids.some(
-          recordIdMatchingCondition =>
-            !matchingRecordsIdsWithConditionFilter.includes(recordIdMatchingCondition),
+        customActionConfiguration.ids.some(recordIdMatchingCondition =>
+          matchingRecordsIdsWithConditionFilter.includes(recordIdMatchingCondition),
         )
       ) {
         throw new Error('CustomActionRequiresApprovalError');
