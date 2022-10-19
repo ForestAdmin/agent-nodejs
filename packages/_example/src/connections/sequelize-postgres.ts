@@ -28,4 +28,25 @@ sequelizePostgres.define(
   },
 );
 
+sequelizePostgres.define(
+  'review',
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
+    },
+    storeId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+  },
+  {
+    tableName: 'review',
+    underscored: true,
+    timestamps: false,
+  },
+);
+
 export default sequelizePostgres;
