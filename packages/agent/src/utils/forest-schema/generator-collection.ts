@@ -14,10 +14,13 @@ export default class SchemaGeneratorCollection {
           .map(name => SchemaGeneratorActions.buildSchema(collection, name)),
       ),
       fields: Object.keys(collection.schema.fields)
+        // Do not export foreign keys as those will be edited using the many to one relationship.
+        // Note that we always keep primary keys as not having them breaks reference fields in the
+        // UI.
         .filter(
           name =>
-            !SchemaUtils.isForeignKey(collection.schema, name) ||
-            SchemaUtils.isPrimaryKey(collection.schema, name),
+            SchemaUtils.isPrimaryKey(collection.schema, name) ||
+            !SchemaUtils.isForeignKey(collection.schema, name),
         )
         .sort()
         .map(name => SchemaGeneratorFields.buildSchema(collection, name)),

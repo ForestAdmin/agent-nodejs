@@ -66,6 +66,10 @@ export default class SchemaGeneratorFields {
       inverseOf: null,
       isFilterable: FrontendFilterableUtils.isFilterable(column.columnType, column.filterOperators),
       isPrimaryKey: Boolean(column.isPrimaryKey),
+
+      // When a column is a foreign key, it is readonly.
+      // This is because we want to avoid the user to update the foreign key directly as they
+      // can use the relationship field in the UI.
       isReadOnly: isForeignKey || Boolean(column.isReadOnly),
       isRequired: column.validation?.some(v => v.operator === 'Present') ?? false,
       isSortable: Boolean(column.isSortable),
