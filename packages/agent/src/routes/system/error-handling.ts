@@ -20,8 +20,20 @@ export default class ErrorHandling extends BaseRoute {
     try {
       await next();
     } catch (e) {
-      context.response.status = this.getErrorStatus(e);
-      context.response.body = { errors: [{ detail: this.getErrorMessage(e) }] };
+      const status = this.getErrorStatus(e);
+      const data = this.getErrorPayload(e);
+
+      context.response.status = status;
+      context.response.body = {
+        errors: [
+          {
+            name: this.getErrorName(e),
+            detail: this.getErrorMessage(e),
+            status,
+            ...(data ? { data } : {}),
+          },
+        ],
+      };
 
       if (!this.options.isProduction) {
         process.nextTick(() => this.debugLogError(context, e));
@@ -54,6 +66,14 @@ export default class ErrorHandling extends BaseRoute {
     }
 
     return 'Unexpected error';
+  }
+
+  private getErrorName(error: Error): string {
+    return error.constructor.name;
+  }
+
+  private getErrorPayload(error: Error & { data: unknown }): unknown {
+    return error.data;
   }
 
   private debugLogError(context: Context, error: Error): void {
