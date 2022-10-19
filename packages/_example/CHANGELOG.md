@@ -1,3 +1,18 @@
+# example [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.4...example@1.1.0) (2022-10-19)
+
+
+### Features
+
+* **datasource-sql:** add advanced options on createSqlDataSource ([#495](https://github.com/ForestAdmin/agent-nodejs/issues/495)) ([ce0ef64](https://github.com/ForestAdmin/agent-nodejs/commit/ce0ef643c385f15d4ecf689da1329319e99b6316))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.1.0
+
 ## example [1.0.4](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.3...example@1.0.4) (2022-10-18)
 
 
