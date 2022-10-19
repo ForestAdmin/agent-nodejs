@@ -37,20 +37,19 @@ export default class SchemaGeneratorCollection {
     );
   }
 
+  /**
+   * Do not export foreign keys as those will be edited using the many to one relationship.
+   * Note that we always keep primary keys as not having them breaks reference fields in the UI.
+   */
   private static buildFields(collection: Collection): ForestServerField[] {
-    return (
-      Object.keys(collection.schema.fields)
-        // Do not export foreign keys as those will be edited using the many to one relationship.
-        // Note that we always keep primary keys as not having them breaks reference fields in the
-        // UI.
-        .filter(
-          name =>
-            SchemaUtils.isPrimaryKey(collection.schema, name) ||
-            !SchemaUtils.isForeignKey(collection.schema, name),
-        )
-        .sort()
-        .map(name => SchemaGeneratorFields.buildSchema(collection, name))
-    );
+    return Object.keys(collection.schema.fields)
+      .filter(
+        name =>
+          SchemaUtils.isPrimaryKey(collection.schema, name) ||
+          !SchemaUtils.isForeignKey(collection.schema, name),
+      )
+      .sort()
+      .map(name => SchemaGeneratorFields.buildSchema(collection, name));
   }
 
   private static buildSegments(collection: Collection): ForestServerSegment[] {
