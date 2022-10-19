@@ -27,8 +27,8 @@ describe('SchemaGeneratorCollection', () => {
           id: factories.columnSchema.isPrimaryKey().build({
             isReadOnly: true,
           }),
-          // relation to myself using a one-to-one relationship
-          // (this is a valid use case for a self-referencing relationship even if useless)
+          // self-referency relation using a one-to-one relationship
+          // (useless in real-life but we want to check that the schema is generated correctly)
           mySelf: factories.oneToOneSchema.build({
             originKey: 'id',
             originKeyTarget: 'id',
