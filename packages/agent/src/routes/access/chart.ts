@@ -2,6 +2,8 @@ import {
   Aggregation,
   CollectionUtils,
   ConditionTreeBranch,
+  ConditionTreeFactory,
+  ConditionTreeLeaf,
   DateOperation,
   Filter,
   FilterFactory,
@@ -129,9 +131,16 @@ export default class Chart extends CollectionRoute {
       time_range: timeRange,
     } = context.request.body;
 
+    const filter = await this.getFilter(context);
+    const filterOnlyWithValues = filter.override({
+      conditionTree: ConditionTreeFactory.intersect(
+        filter.conditionTree,
+        new ConditionTreeLeaf(groupByDateField, 'Present'),
+      ),
+    });
     const rows = await this.collection.aggregate(
       QueryStringParser.parseCaller(context),
-      await this.getFilter(context),
+      filterOnlyWithValues,
       new Aggregation({
         operation: aggregate,
         field: aggregateField,
@@ -141,8 +150,9 @@ export default class Chart extends CollectionRoute {
 
     const values = {};
     rows.forEach(row => {
-      const date = DateTime.fromISO(row.group[groupByDateField] as string).toISODate();
-      if (date !== null) values[date] = Number(row.value);
+      values[DateTime.fromISO(row.group[groupByDateField] as string).toISODate()] = Number(
+        row.value,
+      );
     });
 
     const dates = Object.keys(values).sort((dateA, dateB) => dateA.localeCompare(dateB));

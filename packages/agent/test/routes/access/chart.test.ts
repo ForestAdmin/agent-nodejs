@@ -325,7 +325,7 @@ describe('ChartRoute', () => {
   });
 
   describe('on line chart', () => {
-    test('it should call the collection aggregate with the correct parameters', async () => {
+    test('it should call the collection aggregate without the null values', async () => {
       jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
         { value: 1234, group: { publication: '2022-02-16T10:00:00.000Z' } },
         { value: 456, group: { publication: '2022-02-02T10:00:00.000Z' } },
@@ -347,7 +347,15 @@ describe('ChartRoute', () => {
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
         { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
-        { conditionTree: null, search: null, searchExtended: false, segment: null },
+        {
+          conditionTree: factories.conditionTreeLeaf.build({
+            operator: 'Present',
+            field: 'publication',
+          }),
+          search: null,
+          searchExtended: false,
+          segment: null,
+        },
         {
           field: undefined,
           groups: [{ field: 'publication', operation: 'Week' }],
@@ -366,39 +374,6 @@ describe('ChartRoute', () => {
           },
           type: 'stats',
         },
-      });
-    });
-
-    describe('when a field has a null value with a group by', () => {
-      test('should only return lines where there is a value', async () => {
-        jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
-          // publication has nul value
-          { value: 10, group: { publication: null } },
-          { value: 456, group: { publication: '2022-02-02T10:00:00.000Z' } },
-        ]);
-
-        const chart = new Chart(services, options, dataSource, 'books');
-        const context = createMockContext({
-          requestBody: {
-            type: 'Line',
-            aggregate: 'Count',
-            collection: 'books',
-            group_by_date_field: 'publication',
-            time_range: 'Day',
-          },
-          ...defaultContext,
-        });
-
-        await chart.handleChart(context);
-
-        expect(context.response.body).toMatchObject({
-          data: {
-            attributes: {
-              value: [{ label: '02/02/2022', values: { value: 456 } }],
-            },
-            type: 'stats',
-          },
-        });
       });
     });
   });
