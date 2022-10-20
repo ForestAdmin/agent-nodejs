@@ -2,6 +2,8 @@ import {
   Aggregation,
   CollectionUtils,
   ConditionTreeBranch,
+  ConditionTreeFactory,
+  ConditionTreeLeaf,
   DateOperation,
   Filter,
   FilterFactory,
@@ -129,9 +131,16 @@ export default class Chart extends CollectionRoute {
       time_range: timeRange,
     } = context.request.body;
 
+    const filter = await this.getFilter(context);
+    const filterOnlyWithValues = filter.override({
+      conditionTree: ConditionTreeFactory.intersect(
+        filter.conditionTree,
+        new ConditionTreeLeaf(groupByDateField, 'Present'),
+      ),
+    });
     const rows = await this.collection.aggregate(
       QueryStringParser.parseCaller(context),
-      await this.getFilter(context),
+      filterOnlyWithValues,
       new Aggregation({
         operation: aggregate,
         field: aggregateField,
