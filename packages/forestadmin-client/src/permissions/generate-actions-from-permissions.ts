@@ -5,6 +5,8 @@ import {
   EnvironmentCollectionsPermissionsV4,
   EnvironmentPermissionsV4,
   EnvironmentPermissionsV4Remote,
+  GenericTreeWithSources,
+  RightConditionByRolesV4,
   RightDescriptionV4,
   RightDescriptionWithRolesV4,
   UserPermissionV4,
@@ -18,10 +20,15 @@ export type ActionPermissions = {
   everythingAllowed: boolean;
   actionsGloballyAllowed: Set<string>;
   actionsAllowedByUser: Map<string, Set<string>>;
+  actionsConditionByRoleId: Map<string, Map<number, GenericTreeWithSources>>;
+  users: UserPermissionV4[];
 };
 
 type IntermediateRightsList = {
-  [key: string]: RightDescriptionV4;
+  [key: string]: {
+    rightDescription: RightDescriptionV4;
+    rightConditions?: RightConditionByRolesV4[];
+  };
 };
 
 function generateCollectionPermissions(
@@ -32,23 +39,29 @@ function generateCollectionPermissions(
 
     return {
       ...acc,
-      [generateCollectionActionIdentifier(CollectionActionEvent.Browse, collectionId)]:
-        collection.browseEnabled,
-      [generateCollectionActionIdentifier(CollectionActionEvent.Read, collectionId)]:
-        collection.readEnabled,
-      [generateCollectionActionIdentifier(CollectionActionEvent.Edit, collectionId)]:
-        collection.editEnabled,
-      [generateCollectionActionIdentifier(CollectionActionEvent.Add, collectionId)]:
-        collection.addEnabled,
-      [generateCollectionActionIdentifier(CollectionActionEvent.Delete, collectionId)]:
-        collection.deleteEnabled,
-      [generateCollectionActionIdentifier(CollectionActionEvent.Export, collectionId)]:
-        collection.exportEnabled,
+      [generateCollectionActionIdentifier(CollectionActionEvent.Browse, collectionId)]: {
+        rightDescription: collection.browseEnabled,
+      },
+      [generateCollectionActionIdentifier(CollectionActionEvent.Read, collectionId)]: {
+        rightDescription: collection.readEnabled,
+      },
+      [generateCollectionActionIdentifier(CollectionActionEvent.Edit, collectionId)]: {
+        rightDescription: collection.editEnabled,
+      },
+      [generateCollectionActionIdentifier(CollectionActionEvent.Add, collectionId)]: {
+        rightDescription: collection.addEnabled,
+      },
+      [generateCollectionActionIdentifier(CollectionActionEvent.Delete, collectionId)]: {
+        rightDescription: collection.deleteEnabled,
+      },
+      [generateCollectionActionIdentifier(CollectionActionEvent.Export, collectionId)]: {
+        rightDescription: collection.exportEnabled,
+      },
     };
   }, {});
 }
 
-function generateCollectionActionPermission(
+function generateCustomActionPermission(
   collectionId: string,
   actions: EnvironmentCollectionActionPermissionsV4,
 ): IntermediateRightsList {
@@ -56,17 +69,27 @@ function generateCollectionActionPermission(
     return {
       ...acc,
       ...{
-        [generateCustomActionIdentifier(CustomActionEvent.Approve, actionName, collectionId)]:
-          actionPermissions.userApprovalEnabled,
-        [generateCustomActionIdentifier(CustomActionEvent.SelfApprove, actionName, collectionId)]:
-          actionPermissions.selfApprovalEnabled,
-        [generateCustomActionIdentifier(CustomActionEvent.Trigger, actionName, collectionId)]:
-          actionPermissions.triggerEnabled,
+        [generateCustomActionIdentifier(CustomActionEvent.Approve, actionName, collectionId)]: {
+          rightDescription: actionPermissions.userApprovalEnabled,
+          rightConditions: actionPermissions.userApprovalConditions,
+        },
+        [generateCustomActionIdentifier(CustomActionEvent.SelfApprove, actionName, collectionId)]: {
+          rightDescription: actionPermissions.selfApprovalEnabled,
+        },
+
+        [generateCustomActionIdentifier(CustomActionEvent.Trigger, actionName, collectionId)]: {
+          rightDescription: actionPermissions.triggerEnabled,
+          rightConditions: actionPermissions.triggerConditions,
+        },
+
         [generateCustomActionIdentifier(
           CustomActionEvent.RequireApproval,
           actionName,
           collectionId,
-        )]: actionPermissions.approvalRequired,
+        )]: {
+          rightDescription: actionPermissions.approvalRequired,
+          rightConditions: actionPermissions.approvalRequiredConditions,
+        },
       },
     };
   }, {});
@@ -80,7 +103,7 @@ function generateActionPermissions(
 
     return {
       ...acc,
-      ...generateCollectionActionPermission(collectionId, actions),
+      ...generateCustomActionPermission(collectionId, actions),
     };
   }, {});
 }
@@ -88,7 +111,7 @@ function generateActionPermissions(
 function generateActionsGloballyAllowed(permissions: IntermediateRightsList): Set<string> {
   return new Set(
     Object.entries(permissions)
-      .filter(([, permission]) => permission === true)
+      .filter(([, permission]) => permission.rightDescription === true)
       .map(([action]) => action),
   );
 }
@@ -103,7 +126,7 @@ function getUsersForRoles(roles: number[], userIdsByRole: Map<number, number[]>)
       }
 
       return acc;
-    }, []),
+    }, new Array<string>()),
   );
 }
 
@@ -119,10 +142,26 @@ function generateActionsAllowedByUser(
 
   return new Map(
     Object.entries(permissions)
-      .filter(([, permission]) => typeof permission !== 'boolean')
+      .filter(([, permission]) => typeof permission.rightDescription !== 'boolean')
       .map(([name, permission]) => [
         name,
-        getUsersForRoles((permission as RightDescriptionWithRolesV4).roles, userIdsByRole),
+        getUsersForRoles(
+          (permission.rightDescription as RightDescriptionWithRolesV4).roles,
+          userIdsByRole,
+        ),
+      ]),
+  );
+}
+
+function generateActionsConditionByRoleId(
+  permissions: IntermediateRightsList,
+): Map<string, Map<number, GenericTreeWithSources>> {
+  return new Map(
+    Object.entries(permissions)
+      .filter(([, permission]) => permission.rightConditions)
+      .map(([name, permission]) => [
+        name,
+        new Map(permission.rightConditions?.map(({ roleId, filter }) => [roleId, filter])),
       ]),
   );
 }
@@ -136,6 +175,8 @@ export default function generateActionsFromPermissions(
       everythingAllowed: true,
       actionsGloballyAllowed: new Set(),
       actionsAllowedByUser: new Map(),
+      actionsConditionByRoleId: new Map(),
+      users: [],
     };
   }
 
@@ -150,5 +191,7 @@ export default function generateActionsFromPermissions(
     everythingAllowed: false,
     actionsGloballyAllowed: generateActionsGloballyAllowed(allPermissions),
     actionsAllowedByUser: generateActionsAllowedByUser(allPermissions, users),
+    actionsConditionByRoleId: generateActionsConditionByRoleId(allPermissions),
+    users,
   };
 }

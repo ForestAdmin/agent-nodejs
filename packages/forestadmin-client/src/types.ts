@@ -38,6 +38,11 @@ export interface PermissionService {
     customActionName: string;
     collectionName: string;
   }): Promise<boolean>;
+  doesTriggerCustomActionRequiresApproval(params: {
+    userId: number | string;
+    customActionName: string;
+    collectionName: string;
+  }): Promise<boolean>;
   canApproveCustomAction(params: {
     userId: number | string;
     customActionName: string;
@@ -60,4 +65,20 @@ export interface PermissionService {
     renderingId: number | string;
     segmentQuery: string;
   }): Promise<boolean>;
+
+  getConditionalTriggerFilter(params: {
+    userId: number | string;
+    customActionName: string;
+    collectionName: string;
+  }): Promise<GenericTree>;
+  getConditionalRequiresApprovalFilter(params: {
+    userId: number | string;
+    customActionName: string;
+    collectionName: string;
+  }): Promise<GenericTree>;
+  getConditionalApproveFilter(params: {
+    userId: number | string;
+    customActionName: string;
+    collectionName: string;
+  }): Promise<GenericTree>;
 }

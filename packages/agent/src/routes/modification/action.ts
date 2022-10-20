@@ -114,6 +114,9 @@ export default class ActionRoute extends CollectionRoute {
   private async middlewareCustomActionApprovalRequestData(context: Context, next: Next) {
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
 
+    const filter = await this.getRecordSelection(context);
+    const caller = QueryStringParser.parseCaller(context);
+
     if (requestBody?.data?.attributes?.signed_approval_request) {
       const signedParameters =
         this.services.authorization.verifySignedActionParameters<SmartActionRequestBody>(
@@ -131,6 +134,9 @@ export default class ActionRoute extends CollectionRoute {
         context,
         customActionName: this.actionName,
         collectionName: this.collection.name,
+        requestConditionTree: filter.conditionTree,
+        collectionAggregate: this.collection.aggregate,
+        caller,
       });
     }
 

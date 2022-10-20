@@ -52,6 +52,25 @@ export default class PermissionServiceWithCache implements PermissionService {
     );
   }
 
+  public doesTriggerCustomActionRequiresApproval({
+    userId,
+    collectionName,
+    customActionName,
+  }: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+  }): Promise<boolean> {
+    return this.actionPermissionService.can(
+      `${userId}`,
+      generateCustomActionIdentifier(
+        CustomActionEvent.RequireApproval,
+        customActionName,
+        collectionName,
+      ),
+    );
+  }
+
   public canApproveCustomAction({
     userId,
     collectionName,
@@ -77,6 +96,55 @@ export default class PermissionServiceWithCache implements PermissionService {
           );
 
     return this.actionPermissionService.can(`${userId}`, actionIdentifier);
+  }
+
+  public getConditionalTriggerFilter({
+    userId,
+    collectionName,
+    customActionName,
+  }: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+  }) {
+    return this.actionPermissionService.getCustomActionCondition(
+      `${userId}`,
+      generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
+    );
+  }
+
+  public getConditionalRequiresApprovalFilter({
+    userId,
+    collectionName,
+    customActionName,
+  }: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+  }) {
+    return this.actionPermissionService.getCustomActionCondition(
+      `${userId}`,
+      generateCustomActionIdentifier(
+        CustomActionEvent.RequireApproval,
+        customActionName,
+        collectionName,
+      ),
+    );
+  }
+
+  public getConditionalApproveFilter({
+    userId,
+    collectionName,
+    customActionName,
+  }: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+  }) {
+    return this.actionPermissionService.getCustomActionCondition(
+      `${userId}`,
+      generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
+    );
   }
 
   public async canRequestCustomActionParameters({

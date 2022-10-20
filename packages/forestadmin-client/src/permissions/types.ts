@@ -1,9 +1,21 @@
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
+import type { Aggregator, GenericTree, GenericTreeLeaf } from '@forestadmin/datasource-toolkit';
 
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
 
 export type RightDescriptionWithRolesV4 = { roles: number[] };
 export type RightDescriptionV4 = boolean | RightDescriptionWithRolesV4;
+
+export type GenericTreeBranchWithSource = {
+  aggregator: Aggregator;
+  conditions: Array<GenericTreeWithSources>;
+};
+export type GenericTreeLeafWithSource = GenericTreeLeaf & { source: 'data' | 'input' };
+export type GenericTreeWithSources = GenericTreeBranchWithSource | GenericTreeLeafWithSource;
+
+export type RightConditionByRolesV4 = {
+  roleId: number;
+  filter: GenericTreeWithSources;
+};
 
 export interface EnvironmentCollectionAccessPermissionsV4 {
   browseEnabled: RightDescriptionV4;
@@ -16,8 +28,11 @@ export interface EnvironmentCollectionAccessPermissionsV4 {
 
 export interface EnvironmentSmartActionPermissionsV4 {
   triggerEnabled: RightDescriptionV4;
+  triggerConditions: RightConditionByRolesV4[];
   approvalRequired: RightDescriptionV4;
+  approvalRequiredConditions: RightConditionByRolesV4[];
   userApprovalEnabled: RightDescriptionV4;
+  userApprovalConditions: RightConditionByRolesV4[];
   selfApprovalEnabled: RightDescriptionV4;
 }
 

@@ -113,4 +113,15 @@ export default class ActionPermissionService {
 
     return generateActionsFromPermissions(rawPermissions, users);
   }
+
+  public async getCustomActionCondition(userId: string, actionName: string) {
+    const permissions = await this.getPermissions();
+    const userInfo = permissions.users.find(user => `${user.id}` === userId);
+
+    const conditionFilter = permissions.actionsConditionByRoleId
+      .get(actionName)
+      .get(userInfo.roleId);
+
+    return conditionFilter;
+  }
 }
