@@ -21,6 +21,20 @@ async function createOwnerRecords(connection: Sequelize): Promise<any[]> {
   return connection.model('owner').bulkCreate(ownerRecords);
 }
 
+async function createReviewRecords(connection: Sequelize, storeRecords: any[]): Promise<any[]> {
+  const reviewRecords = [];
+
+  for (let i = 0; i < 10; i += 1) {
+    reviewRecords.push({
+      message: faker.lorem.paragraph(1),
+      title: faker.name.title(),
+      storeId: faker.datatype.boolean() ? null : faker.random.arrayElement(storeRecords).id,
+    });
+  }
+
+  return connection.model('review').bulkCreate(reviewRecords);
+}
+
 async function createStoreRecords(connection: Sequelize, ownerRecords: any[]): Promise<any[]> {
   return connection.model('store').bulkCreate(
     ownerRecords.reduce((records, ownerRecord) => {
@@ -172,6 +186,7 @@ async function seedData() {
     const customerRecords = await createCustomerCardRecords(sequelizeMariaDb);
     await createAccountRecords(mongoose, storeRecords);
     await createDvdRentalsRecords(sequelizeMsSql, storeRecords, customerRecords);
+    await createReviewRecords(sequelizePostgres, storeRecords);
   } catch (error) {
     console.error('---------------');
     console.error('The seed failed');

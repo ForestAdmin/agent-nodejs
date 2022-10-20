@@ -37,6 +37,14 @@ sequelizePostgres.define(
       autoIncrement: true,
       allowNull: false,
     },
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    message: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
     storeId: {
       type: DataTypes.INTEGER,
       allowNull: true,

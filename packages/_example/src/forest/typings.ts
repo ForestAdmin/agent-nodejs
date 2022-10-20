@@ -286,6 +286,8 @@ export type Schema = {
   'review': {
     plain: {
       'id': number;
+      'title': string;
+      'message': string;
       'storeId': number;
     };
     nested: {
