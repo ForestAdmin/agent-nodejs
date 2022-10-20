@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.1...@forestadmin/agent@1.1.2) (2022-10-20)
+
+
+### Bug Fixes
+
+* allow to create a record when the client sends a null relation ([#502](https://github.com/ForestAdmin/agent-nodejs/issues/502)) ([700d94f](https://github.com/ForestAdmin/agent-nodejs/commit/700d94f208d8f0a6cba329d2dd14af93f203158a))
+
 ## @forestadmin/agent [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.0...@forestadmin/agent@1.1.1) (2022-10-20)
 
 
