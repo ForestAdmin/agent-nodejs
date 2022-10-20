@@ -1,4 +1,5 @@
 import * as factories from '../__factories__';
+import { ChartType } from '../../src/charts/types';
 import { CollectionActionEvent, CustomActionEvent } from '../../src/permissions/types';
 import {
   generateCollectionActionIdentifier,
@@ -215,13 +216,23 @@ describe('PermissionService', () => {
       const result = await permissionService.canRetrieveChart({
         userId: 42,
         renderingId: 666,
-        chartRequest: { foo: 'bar' },
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
       });
 
       expect(renderingPermissionService.canRetrieveChart).toHaveBeenCalledWith({
         userId: 42,
         renderingId: 666,
-        chartRequest: { foo: 'bar' },
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
       });
       expect(result).toBe(true);
     });

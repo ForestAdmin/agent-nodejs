@@ -1,3 +1,4 @@
+import { ChartType } from '../../src/charts/types';
 import { PermissionLevel } from '../../src/permissions/types';
 import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
 import ForestHttpApi from '../../src/permissions/forest-http-api';
@@ -227,7 +228,12 @@ describe('RenderingPermissionService', () => {
 
         const result = await renderingPermission.canRetrieveChart({
           renderingId: 60,
-          chartRequest: { foo: 'bar' },
+          chartRequest: {
+            type: ChartType.Value,
+            sourceCollectionName: 'jedi',
+            aggregateFieldName: 'strength',
+            aggregator: 'Sum',
+          },
           userId: 42,
         });
 
@@ -270,7 +276,12 @@ describe('RenderingPermissionService', () => {
 
         const result = await renderingPermission.canRetrieveChart({
           renderingId: 60,
-          chartRequest: { foo: 'bar' },
+          chartRequest: {
+            type: ChartType.Value,
+            sourceCollectionName: 'jedi',
+            aggregateFieldName: 'strength',
+            aggregator: 'Sum',
+          },
           userId: 42,
         });
 
@@ -278,7 +289,12 @@ describe('RenderingPermissionService', () => {
 
         expect(getUserInfoMock).toHaveBeenCalledWith(42);
         expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
-        expect(hashChartRequestMock).toHaveBeenCalledWith({ foo: 'bar' });
+        expect(hashChartRequestMock).toHaveBeenCalledWith({
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        });
         expect(hashServerChartsMock).toHaveBeenCalledWith(stats);
       });
 
@@ -321,7 +337,12 @@ describe('RenderingPermissionService', () => {
 
           const result = await renderingPermission.canRetrieveChart({
             renderingId: 60,
-            chartRequest: { foo: 'bar' },
+            chartRequest: {
+              type: ChartType.Value,
+              sourceCollectionName: 'jedi',
+              aggregateFieldName: 'strength',
+              aggregator: 'Sum',
+            },
             userId: 42,
           });
 
@@ -332,7 +353,12 @@ describe('RenderingPermissionService', () => {
           expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
           expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
 
-          expect(hashChartRequestMock).toHaveBeenCalledWith({ foo: 'bar' });
+          expect(hashChartRequestMock).toHaveBeenCalledWith({
+            type: ChartType.Value,
+            sourceCollectionName: 'jedi',
+            aggregateFieldName: 'strength',
+            aggregator: 'Sum',
+          });
 
           expect(hashServerChartsMock).toHaveBeenCalledWith(stats1);
           expect(hashServerChartsMock).toHaveBeenCalledWith(stats2);
@@ -370,7 +396,12 @@ describe('RenderingPermissionService', () => {
 
           const result = await renderingPermission.canRetrieveChart({
             renderingId: 60,
-            chartRequest: { foo: 'bar' },
+            chartRequest: {
+              type: ChartType.Value,
+              sourceCollectionName: 'jedi',
+              aggregateFieldName: 'strength',
+              aggregator: 'Sum',
+            },
             userId: 42,
           });
 
@@ -381,7 +412,12 @@ describe('RenderingPermissionService', () => {
           expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
           expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
 
-          expect(hashChartRequestMock).toHaveBeenCalledWith({ foo: 'bar' });
+          expect(hashChartRequestMock).toHaveBeenCalledWith({
+            type: ChartType.Value,
+            sourceCollectionName: 'jedi',
+            aggregateFieldName: 'strength',
+            aggregator: 'Sum',
+          });
 
           expect(hashServerChartsMock).toHaveBeenCalledWith(stats);
           expect(hashServerChartsMock).toHaveBeenCalledTimes(2);
@@ -421,7 +457,12 @@ describe('RenderingPermissionService', () => {
 
       const result1 = await renderingPermission.canRetrieveChart({
         renderingId: 60,
-        chartRequest: { foo: 'bar' },
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
         userId: 42,
       });
 
@@ -429,7 +470,12 @@ describe('RenderingPermissionService', () => {
 
       const result2 = await renderingPermission.canRetrieveChart({
         renderingId: 60,
-        chartRequest: { foo: 'bar' },
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
         userId: 42,
       });
       expect(result1).toBe(true);
@@ -468,7 +514,12 @@ describe('RenderingPermissionService', () => {
 
       const result1 = await renderingPermission.canRetrieveChart({
         renderingId: 60,
-        chartRequest: { foo: 'bar' },
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
         userId: 42,
       });
 
@@ -476,7 +527,12 @@ describe('RenderingPermissionService', () => {
 
       const result2 = await renderingPermission.canRetrieveChart({
         renderingId: 60,
-        chartRequest: { foo: 'bar' },
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
         userId: 42,
       });
       expect(result1).toBe(true);
