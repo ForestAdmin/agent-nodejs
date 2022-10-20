@@ -5,7 +5,7 @@ URL of the avatar.
 
 ## Create an AWS service
 
-You must install the [AWS SDK](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/node-sdk-install.html).
+You must install the [AWS SDK](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/getting-started-nodejs.html).
 
 ```bash
 npm install aws-sdk
