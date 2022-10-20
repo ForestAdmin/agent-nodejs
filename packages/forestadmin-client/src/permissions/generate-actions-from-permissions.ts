@@ -20,7 +20,7 @@ export type ActionPermissions = {
   everythingAllowed: boolean;
   actionsGloballyAllowed: Set<string>;
   actionsAllowedByUser: Map<string, Set<string>>;
-  generateActionsConditionByRoleId: Map<string, Map<number, GenericTreeWithSources>>;
+  actionsConditionByRoleId: Map<string, Map<number, GenericTreeWithSources>>;
   users: UserPermissionV4[];
 };
 
@@ -175,7 +175,7 @@ export default function generateActionsFromPermissions(
       everythingAllowed: true,
       actionsGloballyAllowed: new Set(),
       actionsAllowedByUser: new Map(),
-      generateActionsConditionByRoleId: new Map(),
+      actionsConditionByRoleId: new Map(),
       users: [],
     };
   }
@@ -191,7 +191,7 @@ export default function generateActionsFromPermissions(
     everythingAllowed: false,
     actionsGloballyAllowed: generateActionsGloballyAllowed(allPermissions),
     actionsAllowedByUser: generateActionsAllowedByUser(allPermissions, users),
-    generateActionsConditionByRoleId: generateActionsConditionByRoleId(allPermissions),
+    actionsConditionByRoleId: generateActionsConditionByRoleId(allPermissions),
     users,
   };
 }

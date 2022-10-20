@@ -27,28 +27,6 @@ export default class ActionPermissionService {
     });
   }
 
-  public async testCustomActionCondition(
-    userId: number,
-    actionName: string,
-    testFunciton: (array1: number[], array2: number[]) => boolean,
-  ) {
-    const permissions = await this.getPermissions();
-    const userInfo = permissions.users.find(user => user.id === userId);
-
-    if (!userInfo) {
-      // INTERNAL ERROR ? Shouldn't even be possible
-      throw new Error('UserInformationNotFoundError');
-    }
-
-    const conditionFilter = permissions.generateActionsConditionByRoleId
-      .get(actionName)
-      ?.get(userInfo.roleId);
-
-    testFunciton([], []);
-
-    return conditionFilter;
-  }
-
   public async getCustomActionCondition(userId: string, actionName: string) {
     const permissions = await this.getPermissions();
     const userInfo = permissions.users.find(user => `${user.id}` === userId);
@@ -58,7 +36,7 @@ export default class ActionPermissionService {
       throw new Error('UserInformationNotFoundError');
     }
 
-    const conditionFilter = permissions.generateActionsConditionByRoleId
+    const conditionFilter = permissions.actionsConditionByRoleId
       .get(actionName)
       ?.get(userInfo.roleId);
 

@@ -41,14 +41,10 @@ export default class PermissionServiceWithCache implements PermissionService {
     userId,
     collectionName,
     customActionName,
-    customActionConfiguration,
-    conditionSolver,
   }: {
     userId: number;
     customActionName: string;
     collectionName: string;
-    customActionConfiguration: { ids: number[] };
-    conditionSolver: (filter: GenericTreeWithSources) => Promise<number[]>;
   }): Promise<boolean> {
     // ===== TRIGGER STAGE
     // LOGIC: check that the user can Trigger
@@ -62,6 +58,36 @@ export default class PermissionServiceWithCache implements PermissionService {
       throw new Error('CustomActionTriggerForbiddenError');
     }
 
+    return true;
+  }
+
+  // canTriggerCustomAction: boolean
+  // ??? hasConditionalTriggerFilter: boolean
+  // getConditionalTriggerFilter: GenericTreeWithSources
+  // ??? hasConditionalRequiresApprovalFilter: boolean
+  // getConditionalRequiresApprovalFilter: GenericTreeWithSources
+
+  // canApproveCustomAction: boolean
+  // ??? hasConditionalTriggerFilter: boolean
+  // getConditionalApproveFilter: GenericTreeWithSources
+  // ??? hasConditionalApproveFilter: boolean
+
+  public async canTriggerCustomActionConditional({
+    userId,
+    collectionName,
+    customActionName,
+    customActionFilter,
+    conditionSolver,
+  }: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+    customActionFilter: GenericTreeWithSources;
+    conditionSolver: (filter: GenericTreeWithSources) => Promise<number[]>;
+  }): Promise<boolean> {
+    const customActionRecordIds = await conditionSolver(customActionFilter);
+
+    // ===== TRIGGER STAGE
     const conditionalTriggerFilter = await this.actionPermissionService.getCustomActionCondition(
       `${userId}`,
       generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
@@ -75,7 +101,7 @@ export default class PermissionServiceWithCache implements PermissionService {
       // CASE: Condition partially respected -> CustomAction TriggerForbidden
       // if some records don't match the condition the user is not allow to perform the action
       if (
-        customActionConfiguration.ids.some(
+        customActionRecordIds.some(
           recordIdMatchingCondition =>
             !matchingRecordsIdsWithConditionFilter.includes(recordIdMatchingCondition),
         )
@@ -122,7 +148,7 @@ export default class PermissionServiceWithCache implements PermissionService {
       // CASE: Condition partially respected -> CustomAction RequiresApproval
       // if at least some records match the condition
       if (
-        customActionConfiguration.ids.some(recordIdMatchingCondition =>
+        customActionRecordIds.some(recordIdMatchingCondition =>
           matchingRecordsIdsWithConditionFilter.includes(recordIdMatchingCondition),
         )
       ) {

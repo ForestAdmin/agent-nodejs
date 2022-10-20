@@ -54,9 +54,8 @@ export default class ActionRoute extends CollectionRoute {
 
     // Could be moved to middlewareCustomActionApprovalRequestData and added to context.state
     // It will be impacted by scopes - We need to understand what it means
-    // IMO, this is not an issue. Manager (approvers) should always have an larger (or equal) scope
-    // to the requester
-    // so that every Ids should match
+    // IMO, this is not an issue. Manager (approvers) should always have an larger
+    // (or equal) scope to the requester so that every Ids should match
     const filter = await this.getRecordSelection(context);
     const rawData = context.request.body.data.attributes.values;
 
@@ -67,6 +66,25 @@ export default class ActionRoute extends CollectionRoute {
 
     // Now that we have the field list, we can parse the data again.
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
+
+    // Here we are we have the record selection filter and data we can check conditional
+    // So do we move all previous logic to middlewareCustomActionApprovalRequestData ?
+    //
+
+    // const recordIdsMatchingCustomActionFilter = dataSource
+    //   .getCollection(this.collection.name)
+    //   .list(caller, filter, new Projection('id'));
+
+    // const countRecordsMatchingCustomActionFilter = dataSource
+    //   .getCollection(this.collection.name)
+    //   .aggregate(
+    //     caller,
+    //     filter,
+    //     new Aggregation({
+    //       operation: 'Count',
+    //     }),
+    //   );
+
     const result = await this.collection.execute(caller, this.actionName, data, filter);
 
     if (result?.type === 'Error') {
