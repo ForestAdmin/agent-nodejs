@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.0...@forestadmin/agent@1.1.1) (2022-10-20)
+
+
+### Bug Fixes
+
+* **line-chart:** line chart with null value on group by should return some values   ([#501](https://github.com/ForestAdmin/agent-nodejs/issues/501)) ([2925ebf](https://github.com/ForestAdmin/agent-nodejs/commit/2925ebf59b667515f2be485282729c5c64a1e322))
+
 # @forestadmin/agent [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.3...@forestadmin/agent@1.1.0) (2022-10-18)
 
 
