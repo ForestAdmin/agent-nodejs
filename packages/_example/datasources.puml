@@ -41,6 +41,15 @@ class OWNER {
 class OWNER
 note bottom: TABLE IN POSTGRES
 
+class REVIEW {
+    String title
+    String message
+    Number storeId
+}
+class REVIEW
+note bottom: TABLE IN POSTGRES
+
+
 class ADDRESS {
   String zipCode
   String address
