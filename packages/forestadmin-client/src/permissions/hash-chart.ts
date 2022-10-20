@@ -1,29 +1,31 @@
 import hashObject from 'object-hash';
 
-import { Chart, ChartType } from '../charts/types';
+import { Chart, ChartKeys } from '../charts/types';
 
 function hashChart(chart: Chart): string {
-  const knownChartKeys = [
+  const knownChartKeys: ChartKeys[] = [
     'type',
+    'apiRoute',
+    'smartRoute',
+    'query',
+    'labelFieldName',
     'filter',
     'sourceCollectionName',
     'aggregator',
     'aggregateFieldName',
     'groupByFieldName',
-    'labelFieldName',
     'relationshipFieldName',
     'limit',
     'timeRange',
     'objective',
     'numeratorChartId',
     'denominatorChartId',
-    'apiRoute',
-    'query',
   ];
+
   const hash = hashObject(chart, {
     respectType: false,
     excludeKeys: key =>
-      chart[key] === null || chart[key] === undefined || !knownChartKeys.includes(key),
+      chart[key] === null || chart[key] === undefined || !knownChartKeys.includes(key as ChartKeys),
   });
 
   return hash;
@@ -36,13 +38,7 @@ export function hashServerCharts(charts: Chart[]): Set<string> {
 }
 
 export function isGroupedByChart(chart: Chart): chart is Chart & { groupByFieldName?: string } {
-  return [
-    ChartType.Leaderboard,
-    ChartType.Line,
-    ChartType.Objective,
-    ChartType.Pie,
-    ChartType.Value,
-  ].includes(chart.type);
+  return 'groupByFieldName' in chart;
 }
 
 export function hashChartRequest(chart: Chart): string {

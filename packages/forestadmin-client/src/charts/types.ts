@@ -1,3 +1,5 @@
+export type KeysOfUnion<T> = T extends T ? keyof T : never;
+
 export interface BaseChart {
   type: ChartType;
 }
@@ -65,6 +67,7 @@ export interface PercentageChart extends BaseChart {
   numeratorChartId: string;
   denominatorChartId: string;
 }
+
 export enum ChartType {
   Pie = 'Pie',
   Value = 'Value',
@@ -74,6 +77,7 @@ export enum ChartType {
   Percentage = 'Percentage',
   Smart = 'Smart',
 }
+
 export interface PieChart
   extends BaseChart,
     FilterableChart,
@@ -97,3 +101,5 @@ export type Chart =
   | PercentageChart
   | PieChart
   | ValueChart;
+
+export type ChartKeys = KeysOfUnion<Chart>;
