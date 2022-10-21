@@ -19,6 +19,9 @@
     "@forestadmin/datasource-toolkit": "1.0.1",
     "luxon": "^2.3.0"
   },
+  "devDependencies": {
+    "mongoose": "6.6.3"
+  },
   "peerDependencies": {
     "mongoose": "6.x"
   },
