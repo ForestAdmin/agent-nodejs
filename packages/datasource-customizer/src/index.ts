@@ -14,7 +14,6 @@ export { SearchDefinition } from './decorators/search/types';
 export { SegmentDefinition } from './decorators/segment/types';
 export { WriteDefinition } from './decorators/write/types';
 export * from './decorators/hook/types';
-export { default as importFieldsFromRelation } from './plugins/import-fields-from-relation';
 
 // Context
 export { default as CollectionCustomizationContext } from './context/collection-context';

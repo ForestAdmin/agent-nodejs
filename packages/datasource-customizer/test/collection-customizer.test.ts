@@ -276,6 +276,17 @@ describe('Builder > Collection', () => {
         );
       });
     });
+
+    describe('when the given field does not exist', () => {
+      it('should throw an error', async () => {
+        const { dsc, customizer } = await setup();
+
+        customizer.importField('translatorName', { path: 'doesNotExistPath' });
+        await expect(dsc.getDataSource(logger)).rejects.toThrow(
+          'Field doesNotExistPath not found in collection authors',
+        );
+      });
+    });
   });
 
   describe('addField', () => {
