@@ -1,6 +1,4 @@
-import { UnprocessableError } from '@forestadmin/datasource-toolkit';
-
-export default class EmptySQLQueryError extends UnprocessableError {
+export default class EmptySQLQueryError extends Error {
   constructor() {
     super('You cannot execute an empty SQL query.');
   }

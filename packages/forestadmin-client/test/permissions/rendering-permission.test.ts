@@ -830,6 +830,7 @@ describe('RenderingPermissionService', () => {
         renderingPermission,
         getRenderingPermissionsMock,
         isSegmentQueryAllowedMock,
+        verifySQLQueryMock,
         options,
       } = setup();
 
@@ -863,6 +864,7 @@ describe('RenderingPermissionService', () => {
         .mockResolvedValueOnce(permissions1)
         .mockResolvedValueOnce(permissions2);
       isSegmentQueryAllowedMock.mockReturnValueOnce(false).mockReturnValueOnce(true);
+      verifySQLQueryMock.mockReturnValue(true);
 
       const result = await renderingPermission.canExecuteSegmentQuery({
         renderingId: 42,

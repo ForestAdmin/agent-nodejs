@@ -1,9 +1,12 @@
-import { ChartType, CollectionActionEvent } from '@forestadmin/forestadmin-client';
+import {
+  ChainedSQLQueryError,
+  ChartType,
+  CollectionActionEvent,
+  EmptySQLQueryError,
+  NonSelectSQLQueryError,
+} from '@forestadmin/forestadmin-client';
 import { Collection } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
-import ChainedSQLQueryError from '@forestadmin/forestadmin-client/src/permissions/errors/chained-sql-query-error';
-import EmptySQLQueryError from '@forestadmin/forestadmin-client/src/permissions/errors/empty-sql-query-error';
-import NonSelectSQLQueryError from '@forestadmin/forestadmin-client/src/permissions/errors/non-select-sql-query-error';
 
 import * as factories from '../../__factories__';
 

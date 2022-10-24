@@ -1,6 +1,4 @@
-import { UnprocessableError } from '@forestadmin/datasource-toolkit';
-
-export default class NonSelectSQLQueryError extends UnprocessableError {
+export default class NonSelectSQLQueryError extends Error {
   constructor() {
     super('Only SELECT queries are allowed.');
   }

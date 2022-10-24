@@ -1,7 +1,13 @@
 import { Context } from 'koa';
 
-import { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
-import { CollectionActionEvent, ForestAdminClient } from '@forestadmin/forestadmin-client';
+import {
+  ChainedSQLQueryError,
+  CollectionActionEvent,
+  EmptySQLQueryError,
+  ForestAdminClient,
+  NonSelectSQLQueryError,
+} from '@forestadmin/forestadmin-client';
+import { Collection, ConditionTree, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import { HttpCode } from '../../types';
 import ConditionTreeParser from '../../utils/condition-tree-parser';
 
@@ -118,14 +124,26 @@ export default class AuthorizationService {
     const { renderingId, id: userId } = context.state.user;
     const { body: chartRequest } = context.request;
 
-    const canRetrieve = await this.forestAdminClient.permissionService.canExecuteChart({
-      renderingId,
-      userId,
-      chartRequest,
-    });
+    try {
+      const canRetrieve = await this.forestAdminClient.permissionService.canExecuteChart({
+        renderingId,
+        userId,
+        chartRequest,
+      });
 
-    if (!canRetrieve) {
-      context.throw(HttpCode.Forbidden, 'Forbidden');
+      if (!canRetrieve) {
+        context.throw(HttpCode.Forbidden, 'Forbidden');
+      }
+    } catch (error) {
+      if (
+        error instanceof EmptySQLQueryError ||
+        error instanceof ChainedSQLQueryError ||
+        error instanceof NonSelectSQLQueryError
+      ) {
+        throw new UnprocessableError(error.message);
+      }
+
+      throw error;
     }
   }
 

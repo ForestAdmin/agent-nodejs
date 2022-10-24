@@ -1,6 +1,4 @@
-import { UnprocessableError } from '@forestadmin/datasource-toolkit';
-
-export default class ChainedSQLQueryError extends UnprocessableError {
+export default class ChainedSQLQueryError extends Error {
   constructor() {
     super('You cannot chain SQL queries.');
   }
