@@ -7045,10 +7045,10 @@ jest@^27.4.7:
     import-local "^3.0.2"
     jest-cli "^27.5.1"
 
-jose@^4.1.4:
-  version "4.6.1"
-  resolved "https://registry.yarnpkg.com/jose/-/jose-4.6.1.tgz#241472ff928c79b2e2e2fe4c1056b3085384ec42"
-  integrity sha512-EFnufEivlIB6j7+JwaenYQzdUDs/McajDr9WnhT6EI0WxbexnfuZimpWX1GnobF6OnQsUFmWFXUXdWyZHWdQow==
+jose@^4.10.0:
+  version "4.10.3"
+  resolved "https://registry.yarnpkg.com/jose/-/jose-4.10.3.tgz#36ffeae395f14624a99961db6ada957476eccb19"
+  integrity sha512-3S4wQnaoJKSAx9uHSoyf8B/lxjs1qCntHWL6wNFszJazo+FtWe+qD0zVfY0BlqJ5HHK4jcnM98k3BQzVLbzE4g==
 
 js-tokens@^4.0.0:
   version "4.0.0"
@@ -9108,12 +9108,12 @@ opener@^1.5.2:
   resolved "https://registry.yarnpkg.com/opener/-/opener-1.5.2.tgz#5d37e1f35077b9dcac4301372271afdeb2a13598"
   integrity sha512-ur5UIdyw5Y7yEj9wLzhqXiy6GZ3Mwx0yGI+5sMn2r0N0v3cKJvUmFH5yPP+WXh9e0xfyzyJX95D8l088DNFj7A==
 
-openid-client@5.1.3:
-  version "5.1.3"
-  resolved "https://registry.yarnpkg.com/openid-client/-/openid-client-5.1.3.tgz#25ef0e48929f33462028001fd4077a7ae5b3ad4d"
-  integrity sha512-i5quCXurPkN50ndRLE2D3Q6khz6AieJ0gTKOmsl3G4ZIP/Udf5Qw5CMRdhMvbFvfKRrkcCWPFXmduFUFYTC0xw==
+openid-client@5.2.1:
+  version "5.2.1"
+  resolved "https://registry.yarnpkg.com/openid-client/-/openid-client-5.2.1.tgz#dd26298aca237625298ef34ff11ad9276917df28"
+  integrity sha512-KPxqWnxobG/70Cxqyvd43RWfCfHedFnCdHSBpw5f7WnTnuBAeBnvot/BIo+brrcTr0wyAYUlL/qejQSGwWtdIg==
   dependencies:
-    jose "^4.1.4"
+    jose "^4.10.0"
     lru-cache "^6.0.0"
     object-hash "^2.0.1"
     oidc-token-hash "^5.0.1"
