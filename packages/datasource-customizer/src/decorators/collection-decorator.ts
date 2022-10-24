@@ -4,8 +4,10 @@ import {
   AggregateResult,
   Aggregation,
   Caller,
+  Chart,
   Collection,
   CollectionSchema,
+  CompositeId,
   DataSource,
   Filter,
   PaginatedFilter,
@@ -97,6 +99,10 @@ export default class CollectionDecorator implements Collection {
     const refinedFilter = await this.refineFilter(caller, filter);
 
     return this.childCollection.aggregate(caller, refinedFilter, aggregation, limit);
+  }
+
+  async renderChart(caller: Caller, name: string, recordId: CompositeId): Promise<Chart> {
+    return this.childCollection.renderChart(caller, name, recordId);
   }
 
   protected markSchemaAsDirty(): void {

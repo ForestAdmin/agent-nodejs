@@ -1,12 +1,11 @@
 import { Caller, Chart, DataSource, DataSourceSchema } from '@forestadmin/datasource-toolkit';
-
 import { ChartDefinition } from './types';
 import AgentCustomizationContext from '../../context/agent-context';
-import CollectionDecorator from '../collection-decorator';
+import ChartCollectionDecorator from './collection';
 import DataSourceDecorator from '../datasource-decorator';
 import ResultBuilder from './result-builder';
 
-export default class ChartDataSourceDecorator extends DataSourceDecorator {
+export default class ChartDataSourceDecorator extends DataSourceDecorator<ChartCollectionDecorator> {
   private charts: Record<string, ChartDefinition> = {};
 
   override get schema(): DataSourceSchema {
@@ -20,7 +19,7 @@ export default class ChartDataSourceDecorator extends DataSourceDecorator {
   }
 
   constructor(childDataSource: DataSource) {
-    super(childDataSource, CollectionDecorator);
+    super(childDataSource, ChartCollectionDecorator);
   }
 
   addChart(name: string, definition: ChartDefinition) {
