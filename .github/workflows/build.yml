@@ -142,8 +142,6 @@ jobs:
   release:
     name: Release packages
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     needs: [doc-build, doc-link-validation, test, lint]
     if: |
       github.event_name == 'push' 
@@ -183,7 +181,7 @@ jobs:
       - name: 'Run multi-semantic-release'
         run: '$(yarn bin)/multi-semantic-release --deps.bump=override'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           GIT_AUTHOR_EMAIL: ${{ secrets.GIT_AUTHOR_EMAIL }}
           GIT_AUTHOR_NAME: ${{ secrets.GIT_AUTHOR_NAME }}
           GIT_COMMITTER_EMAIL: ${{ secrets.GIT_COMMITTER_EMAIL }}
