@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.2...@forestadmin/agent@1.1.3) (2022-10-24)
+
+
+### Bug Fixes
+
+* **security:** update openid-client to latest version ([#511](https://github.com/ForestAdmin/agent-nodejs/issues/511)) ([ed06c54](https://github.com/ForestAdmin/agent-nodejs/commit/ed06c54c44d050d20ef30d039df2cb4c932978b6))
+
 ## @forestadmin/agent [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.1...@forestadmin/agent@1.1.2) (2022-10-20)
 
 
