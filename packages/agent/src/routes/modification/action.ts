@@ -112,24 +112,32 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async middlewareCustomActionApprovalRequestData(context: Context, next: Next) {
-    const requestBody = context.request.body as SmartActionApprovalRequestBody;
-
-    const filter = await this.getRecordSelection(context);
+    // Will be move from middleware to simple function
+    // We don't want to compute filter again + later will need data from form
     const caller = QueryStringParser.parseCaller(context);
+    const requestBody = context.request.body as SmartActionApprovalRequestBody;
 
     if (requestBody?.data?.attributes?.signed_approval_request) {
       const signedParameters =
         this.services.authorization.verifySignedActionParameters<SmartActionRequestBody>(
           requestBody.data.attributes.signed_approval_request,
         );
+
+      context.request.body = signedParameters;
+
+      // Needs to be compute after body as been updated
+      const filter = await this.getRecordSelection(context);
       await this.services.authorization.assertCanApproveCustomAction({
         context,
         customActionName: this.actionName,
         collectionName: this.collection.name,
         requesterId: signedParameters?.data?.attributes?.requester_id,
+        requestConditionTree: filter.conditionTree,
+        collectionAggregate: this.collection.aggregate,
+        caller,
       });
-      context.request.body = signedParameters;
     } else {
+      const filter = await this.getRecordSelection(context);
       await this.services.authorization.assertCanTriggerCustomAction({
         context,
         customActionName: this.actionName,

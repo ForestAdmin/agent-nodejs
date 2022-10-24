@@ -7,7 +7,9 @@ import {
   ConditionTree,
   ConditionTreeFactory,
   Filter,
+  ForbiddenError,
   GenericTree,
+  UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 import { CollectionActionEvent, ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { HttpCode } from '../../types';
@@ -58,6 +60,8 @@ export default class AuthorizationService {
     }
   }
 
+  // Question: How to have a nicer signature caller collectionAggregate requestConditionTree
+  // are used for the same purpose
   public async assertCanTriggerCustomAction({
     context,
     customActionName,
@@ -84,32 +88,11 @@ export default class AuthorizationService {
       context.throw(HttpCode.Forbidden, 'Forbidden');
     }
 
-    const preBakedIntersectAggregate = async (conditionalTriggerRawFilter?: GenericTree) => {
-      // Build filter format with the right format
-      const conditionalConditionTree = ConditionTreeFactory.fromPlainObject(
-        conditionalTriggerRawFilter,
-      );
-
-      const conditionalFilter = new Filter({
-        conditionTree: ConditionTreeFactory.intersect(
-          conditionalConditionTree,
-          requestConditionTree,
-        ),
-      });
-
-      const rows = collectionAggregate(
-        caller,
-        conditionalFilter,
-        new Aggregation({
-          operation: 'Count',
-        }),
-      );
-
-      return (rows?.[0]?.value as number) ?? 0;
-    };
-
-    // Can be promisify to only compute if needed
-    const requestRecordsCount = await preBakedIntersectAggregate();
+    const preBakedIntersectAggregate = AuthorizationService.makeBakedIntersectAggregate(
+      caller,
+      collectionAggregate,
+      requestConditionTree,
+    );
 
     // Checking conditional trigger filter
     const conditionalTriggerRawFilter =
@@ -120,17 +103,14 @@ export default class AuthorizationService {
       });
 
     if (conditionalTriggerRawFilter) {
-      // preBakedIntersectAggregate should embed this code internally
-      // try {
-      // } catch (e) {
-      //   context.throw(HttpCode.Unprocessable, 'InvalidActionConditionError');
-      // }
+      // Promise.all()
+      const requestRecordsCount = await preBakedIntersectAggregate();
       const matchingRecordsCount = await preBakedIntersectAggregate(conditionalTriggerRawFilter);
 
       // CASE: Condition partially respected -> CustomAction TriggerForbidden
       // if some records don't match the condition the user is not allow to perform the action
       if (matchingRecordsCount !== requestRecordsCount) {
-        throw new Error('CustomActionTriggerForbiddenError');
+        throw new ForbiddenError('CustomActionTriggerForbiddenError');
       }
     }
 
@@ -167,9 +147,10 @@ export default class AuthorizationService {
       }
     }
 
-    // CASE: Some records respect the condition -> CustomAction RequiresApproval
-    // OR CASE: No conditionalRequireApprovalFilter -> CustomAction always RequiresApproval
-    throw new Error('CustomActionTriggerForbiddenError');
+    // CASE: Some records match the condition -> CustomAction RequiresApproval
+    // OR CASE: No conditional RequireApproval filter -> CustomAction always RequiresApproval
+    // + compute rolesIdsAllowedToApprove somehow
+    throw new ForbiddenError('CustomActionRequiresApprovalError');
   }
 
   public async assertCanApproveCustomAction({
@@ -177,11 +158,17 @@ export default class AuthorizationService {
     customActionName,
     collectionName,
     requesterId,
+    collectionAggregate,
+    requestConditionTree,
+    caller,
   }: {
     context: Context;
     customActionName: string;
     collectionName: string;
     requesterId: number | string;
+    collectionAggregate: Collection['aggregate'];
+    requestConditionTree: ConditionTree;
+    caller: Caller;
   }): Promise<void> {
     const { id: userId } = context.state.user;
     const canApprove = await this.forestAdminClient.permissionService.canApproveCustomAction({
@@ -192,8 +179,42 @@ export default class AuthorizationService {
     });
 
     if (!canApprove) {
-      context.throw(HttpCode.Forbidden, 'Forbidden');
+      // CASE: ApprovalNotAllowedError
+      // + compute rolesIdsAllowedToApprove somehow
+      throw new ForbiddenError('ApprovalNotAllowedError');
     }
+
+    const preBakedIntersectAggregate = AuthorizationService.makeBakedIntersectAggregate(
+      caller,
+      collectionAggregate,
+      requestConditionTree,
+    );
+
+    // Checking conditional approve filter
+    const conditionalApproveRawFilter =
+      await this.forestAdminClient.permissionService.getConditionalApproveFilter({
+        userId,
+        customActionName,
+        collectionName,
+      });
+
+    if (conditionalApproveRawFilter) {
+      // Promise.all()
+      const requestRecordsCount = await preBakedIntersectAggregate();
+      const matchingRecordsCount = await preBakedIntersectAggregate(conditionalApproveRawFilter);
+
+      // CASE: Condition partially respected -> CustomAction ApprovalNotAllowedError
+      // if some records don't match the condition the user is not allow to approve the action
+      if (matchingRecordsCount !== requestRecordsCount) {
+        // + compute rolesIdsAllowedToApprove somehow
+        // WARNING requestConditionTree have scope inside !
+        // Shouldn’t use the same for computing rolesIdsAllowedToApprove
+        throw new ForbiddenError('ApprovalNotAllowedError');
+      }
+    }
+
+    // CASE: No conditional approve -> User can approve
+    // CASE: All records match the condition -> User can approve
   }
 
   public async assertCanRequestCustomActionParameters(
@@ -250,5 +271,37 @@ export default class AuthorizationService {
 
   public verifySignedActionParameters<TSignedParameters>(signedToken: string): TSignedParameters {
     return this.forestAdminClient.verifySignedActionParameters(signedToken);
+  }
+
+  private static makeBakedIntersectAggregate(
+    caller: Caller,
+    collectionAggregate: Collection['aggregate'],
+    requestConditionTree: ConditionTree,
+  ) {
+    return async (conditionalRawFilter?: GenericTree) => {
+      try {
+        // Build filter format with the right format
+        const conditionalConditionTree = ConditionTreeFactory.fromPlainObject(conditionalRawFilter);
+
+        const conditionalFilter = new Filter({
+          conditionTree: conditionalConditionTree
+            ? ConditionTreeFactory.intersect(conditionalConditionTree, requestConditionTree)
+            : requestConditionTree,
+        });
+
+        const rows = collectionAggregate(
+          caller,
+          conditionalFilter,
+          new Aggregation({
+            operation: 'Count',
+          }),
+        );
+
+        return (rows?.[0]?.value as number) ?? 0;
+      } catch (error) {
+        // HttpCode.Unprocessable
+        throw new UnprocessableError('InvalidActionConditionError');
+      }
+    };
   }
 }
