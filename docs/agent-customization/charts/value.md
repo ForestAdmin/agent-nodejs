@@ -2,35 +2,45 @@
 
 Value chart simply are charts that display a single value.
 
+They can be added to the _Dashboard_ using the `addChart` method on the agent object
+
 ```javascript
-agent
-  // Add a chart to the Dashboard page
-  .addChart('monthlyRecuringRevenue', async (context, resultBuilder) => {
+// Add a chart to the Dashboard page
+agent.addChart('monthlyRecuringRevenue', async (context, resultBuilder) => {
+  // Request the sum of the "amount" field of all the records in the "payments" collection
+  const aggregation = { operation: 'Sum', field: 'amount' };
+  const filter = { conditionTree: { field: 'status', operator: 'equal', value: 'paid' } };
+  const mrr = await context.dataSource.getCollection('payments').aggregate(filter, aggregation);
+
+  // Return the result to the chart
+  return resultBuilder.value(mrr[0].amount);
+});
+```
+
+Or to the _Analytics_ page of a collection using the `addChart` method on the collection object
+
+```javascript
+// Add a chart to the Analytics page of the collection "customers"
+agent.customizerCollection('customers', collection => {
+  collection.addChart('monthlyRecuringRevenue', async (context, resultBuilder) => {
+    // Request the sum of the "amount" field of the records in the "payments" collection matching
+    // current customer
     const aggregation = { operation: 'Sum', field: 'amount' };
-    const filter = { conditionTree: { field: 'status', operator: 'equal', value: 'paid' } };
-
+    const filter = {
+      conditionTree: {
+        aggregator: 'And',
+        conditions: [
+          { field: 'status', operator: 'equal', value: 'paid' },
+          { field: 'customer:id', operator: 'equal', value: context.recordId },
+        ],
+      },
+    };
     const mrr = await context.dataSource.getCollection('payments').aggregate(filter, aggregation);
+
+    // Return the result to the chart
     return resultBuilder.value(mrr[0].amount);
-  })
-
-  // Add a chart to the Analytics page of the collection "customers"
-  .customizerCollection('customers', collection => {
-    collection.addChart('monthlyRecuringRevenue', async (context, resultBuilder) => {
-      const aggregation = { operation: 'Sum', field: 'amount' };
-      const filter = {
-        conditionTree: {
-          aggregator: 'And',
-          conditions: [
-            { field: 'status', operator: 'equal', value: 'paid' },
-            { field: 'customer:id', operator: 'equal', value: context.recordId },
-          ],
-        },
-      };
-
-      const mrr = await context.dataSource.getCollection('payments').aggregate(filter, aggregation);
-      return resultBuilder.value(mrr[0].amount);
-    });
   });
+});
 ```
 
 Optionally, an older value can be provided to the `resultBuilder` to display a growth percentage on the top right of the widget as in the following screenshot:
