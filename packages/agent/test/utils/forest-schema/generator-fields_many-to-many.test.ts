@@ -88,28 +88,30 @@ describe('SchemaGeneratorFields > Many to Many', () => {
     });
   });
 
-  test('should generate relation as primary key', () => {
-    const schema = SchemaGeneratorFields.buildSchema(
-      setupWithManyToManyRelation().getCollection('bookPersons'),
-      'book',
-    );
+  describe('when the field reference is the primary key', () => {
+    test('the many to one relation should not be a primary key', () => {
+      const schema = SchemaGeneratorFields.buildSchema(
+        setupWithManyToManyRelation().getCollection('bookPersons'),
+        'book',
+      );
 
-    expect(schema).toEqual({
-      field: 'book',
-      inverseOf: null,
-      reference: 'books.booksPk',
-      relationship: 'BelongsTo',
-      type: 'Uuid',
-      isRequired: true,
-      validations: [{ type: 'is present', message: "Failed validation rule: 'Present'" }],
-      isFilterable: true,
-      isPrimaryKey: false,
-      defaultValue: null,
-      enums: null,
-      integration: null,
-      isReadOnly: true,
-      isSortable: false,
-      isVirtual: false,
+      expect(schema).toEqual({
+        field: 'book',
+        inverseOf: null,
+        reference: 'books.booksPk',
+        relationship: 'BelongsTo',
+        type: 'Uuid',
+        isRequired: true,
+        validations: [{ type: 'is present', message: "Failed validation rule: 'Present'" }],
+        isFilterable: true,
+        isPrimaryKey: false,
+        defaultValue: null,
+        enums: null,
+        integration: null,
+        isReadOnly: true,
+        isSortable: false,
+        isVirtual: false,
+      });
     });
   });
 

@@ -71,10 +71,11 @@ describe('SchemaGeneratorCollection', () => {
     expect(schema.segments[1]).toHaveProperty('name', 'Live');
   });
 
-  test('persons should have an id, regarless of the fact that it is also a fk', async () => {
+  test('persons should have only one id, regardless of the fact that it is also a fk', async () => {
     const schema = await SchemaGeneratorCollection.buildSchema(dataSource.getCollection('persons'));
 
-    expect(schema.fields[0]).toMatchObject({ field: 'id' });
+    expect(schema.fields[0]).toMatchObject({ field: 'id', isPrimaryKey: true });
+    expect(schema.fields.filter(f => f.isPrimaryKey)).toHaveLength(1);
   });
 
   test('persons should have a one-to-one relationship', async () => {
