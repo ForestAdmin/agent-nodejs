@@ -12,6 +12,7 @@
     "directory": "packages/forestadmin-client"
   },
   "dependencies": {
+    "@forestadmin/datasource-toolkit": "1.0.0-alpha.3",
     "jsonwebtoken": "^8.5.1",
     "lru-cache": "^7.3.1",
     "object-hash": "^3.0.0",
@@ -33,6 +34,6 @@
     "@types/jsonwebtoken": "^8.5.8",
     "@types/lru-cache": "^7.6.1",
     "@types/superagent": "^4.1.15",
-    "fishery": "^2.1.0"
+    "fishery": "^2.2.2"
   }
 }

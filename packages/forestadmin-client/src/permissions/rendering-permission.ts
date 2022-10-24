@@ -1,13 +1,14 @@
 import LruCache from 'lru-cache';
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
+import type { Collection, GenericTree } from '@forestadmin/datasource-toolkit';
 
 import { Chart, QueryChart } from '../charts/types';
 import { CollectionRenderingPermissionV4, PermissionLevel, Team, UserPermissionV4 } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import { hashChartRequest, hashServerCharts } from './hash-chart';
+import ContextVariablesInjector from '../utils/context-variables-injector';
+import ContextVariablesInstantiator from '../utils/context-variables-instantiator';
 import ForestHttpApi from './forest-http-api';
 import UserPermissionService from './user-permission';
-import generateUserScope from './generate-user-scope';
 import isSegmentQueryAllowed from './is-segment-query-authorized';
 import verifySQLQuery from './verify-sql-query';
 
@@ -33,24 +34,24 @@ export default class RenderingPermissionService {
 
   public async getScope({
     renderingId,
-    collectionName,
+    collection,
     userId,
   }: {
     renderingId: number | string;
-    collectionName: string;
+    collection: Collection;
     userId: number | string;
   }): Promise<GenericTree> {
-    return this.getScopeOrRetry({ renderingId, collectionName, userId, allowRetry: true });
+    return this.getScopeOrRetry({ renderingId, collection, userId, allowRetry: true });
   }
 
   private async getScopeOrRetry({
     renderingId,
-    collectionName,
+    collection,
     userId,
     allowRetry,
   }: {
     renderingId: number | string;
-    collectionName: string;
+    collection: Collection;
     userId: number | string;
     allowRetry: boolean;
   }): Promise<GenericTree> {
@@ -59,19 +60,29 @@ export default class RenderingPermissionService {
       this.userPermissions.getUserInfo(userId),
     ]);
 
-    const collectionPermissions = permissions?.collections?.[collectionName];
+    const collectionPermissions = permissions?.collections?.[collection.name];
 
     if (!collectionPermissions) {
       if (allowRetry) {
         this.invalidateCache(renderingId);
 
-        return this.getScopeOrRetry({ renderingId, collectionName, userId, allowRetry: false });
+        return this.getScopeOrRetry({ renderingId, collection, userId, allowRetry: false });
       }
 
       return null;
     }
 
-    return generateUserScope(collectionPermissions.scope, permissions.team, userInfo);
+    const contextVariablesInstantiator = new ContextVariablesInstantiator(this);
+    const contextVariables = await contextVariablesInstantiator.buildContextVariables({
+      userId: userInfo.id,
+      renderingId,
+    });
+
+    return ContextVariablesInjector.injectContextInFilter(
+      collectionPermissions.scope,
+      contextVariables,
+      collection,
+    );
   }
 
   public async canExecuteSegmentQuery({
@@ -228,5 +239,17 @@ export default class RenderingPermissionService {
     );
 
     this.permissionsByRendering.delete(`${renderingId}`);
+  }
+
+  public async getUser(userId: number | string): Promise<UserPermissionV4> {
+    return this.userPermissions.getUserInfo(userId);
+  }
+
+  public async getTeam(renderingId: number | string): Promise<Team> {
+    const permissions: RenderingPermission = await this.permissionsByRendering.fetch(
+      `${renderingId}`,
+    );
+
+    return permissions.team;
   }
 }

@@ -1,7 +1,9 @@
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
+import type { Collection, GenericTree } from '@forestadmin/datasource-toolkit';
 
-import type { Chart } from './charts/types';
-import type { CollectionActionEvent } from './permissions/types';
+import { Chart } from './charts/types';
+import { CollectionActionEvent } from './permissions/types';
+import ChartHandler from './charts/chart-handler';
+import ContextVariablesInjector from './utils/context-variables-injector';
 
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LoggerLevel, message: unknown) => void;
@@ -17,13 +19,15 @@ export type ForestAdminClientOptionsWithDefaults = Required<ForestAdminClientOpt
 
 export interface ForestAdminClient {
   readonly permissionService: PermissionService;
+  readonly contextVariablesInjector: ContextVariablesInjector;
+  readonly chartHandler: ChartHandler;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
   getScope(params: {
     renderingId: number | string;
     userId: number | string;
-    collectionName: string;
+    collection: Collection;
   }): Promise<GenericTree>;
   markScopesAsUpdated(renderingId: number | string): void;
 }

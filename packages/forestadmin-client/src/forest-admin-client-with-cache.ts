@@ -1,10 +1,12 @@
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
+import type { Collection, GenericTree } from '@forestadmin/datasource-toolkit';
 
 import {
   ForestAdminClient,
   ForestAdminClientOptionsWithDefaults,
   PermissionService,
 } from './types';
+import ChartHandler from './charts/chart-handler';
+import ContextVariablesInjector from './utils/context-variables-injector';
 import RenderingPermissionService from './permissions/rendering-permission';
 import verifyAndExtractApproval from './permissions/verify-approval';
 
@@ -13,6 +15,8 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     protected readonly options: ForestAdminClientOptionsWithDefaults,
     public readonly permissionService: PermissionService,
     protected readonly renderingPermissionService: RenderingPermissionService,
+    public readonly contextVariablesInjector: ContextVariablesInjector,
+    public readonly chartHandler: ChartHandler,
   ) {}
 
   public verifySignedActionParameters<TSignedParameters>(
@@ -24,15 +28,15 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
   public async getScope({
     renderingId,
     userId,
-    collectionName,
+    collection,
   }: {
     renderingId: number | string;
     userId: number | string;
-    collectionName: string;
+    collection: Collection;
   }): Promise<GenericTree> {
     return this.renderingPermissionService.getScope({
       renderingId,
-      collectionName,
+      collection,
       userId,
     });
   }

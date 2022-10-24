@@ -109,7 +109,7 @@ describe('RenderingPermissionService', () => {
 
       const actual = await renderingPermission.getScope({
         renderingId: '42',
-        collectionName: 'books',
+        collection: { name: 'books' },
         userId: 42,
       });
 
@@ -161,7 +161,7 @@ describe('RenderingPermissionService', () => {
 
       const actual = await renderingPermission.getScope({
         renderingId: '42',
-        collectionName: 'books',
+        collection: { name: 'books' },
         userId: '42',
       });
 
@@ -202,7 +202,7 @@ describe('RenderingPermissionService', () => {
 
       const actual = await renderingPermission.getScope({
         renderingId: '42',
-        collectionName: 'books',
+        collection: { name: 'books' },
         userId: 42,
       });
 

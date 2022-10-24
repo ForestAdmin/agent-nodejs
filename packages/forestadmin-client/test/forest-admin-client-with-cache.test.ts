@@ -57,12 +57,12 @@ describe('ForestAdminClientWithCache', () => {
 
       const result = await forestAdminClient.getScope({
         renderingId: 666,
-        collectionName: 'jedis',
+        collection: { name: 'jedis' },
         userId: 42,
       });
 
       expect(renderingPermissionService.getScope).toHaveBeenCalledWith({
-        collectionName: 'jedis',
+        collection: { name: 'jedis' },
         renderingId: 666,
         userId: 42,
       });

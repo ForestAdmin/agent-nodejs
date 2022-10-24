@@ -1,3 +1,5 @@
+import { PlainConditionTreeBranch } from '@forestadmin/datasource-toolkit';
+
 export type KeysOfUnion<T> = T extends T ? keyof T : never;
 
 export interface BaseChart {
@@ -20,7 +22,7 @@ export interface QueryChart extends BaseChart {
 }
 
 export interface FilterableChart extends BaseChart {
-  filter?: string | null;
+  filter?: PlainConditionTreeBranch | null;
 }
 
 export interface AggregatedChart extends BaseChart {
@@ -77,7 +79,6 @@ export enum ChartType {
   Percentage = 'Percentage',
   Smart = 'Smart',
 }
-
 export interface PieChart
   extends BaseChart,
     FilterableChart,

@@ -1,5 +1,6 @@
 import {
   Aggregation,
+  Caller,
   CollectionUtils,
   ConditionTreeBranch,
   DateOperation,
@@ -8,11 +9,6 @@ import {
   RelationSchema,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
-import { DateTime } from 'luxon';
-import { v1 as uuidv1 } from 'uuid';
-import Router from '@koa/router';
-
 import {
   Chart,
   ChartType,
@@ -22,6 +18,11 @@ import {
   PieChart,
   ValueChart,
 } from '@forestadmin/forestadmin-client';
+import { Context } from 'koa';
+import { DateTime } from 'luxon';
+import { v1 as uuidv1 } from 'uuid';
+import Router from '@koa/router';
+
 import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import QueryStringParser from '../../utils/query-string';
@@ -52,6 +53,14 @@ export default class ChartRoute extends CollectionRoute {
 
   private async makeChart(context: Context) {
     const { type } = <Chart>context.request.body;
+    const { renderingId, id: userId } = <Caller>context.state.user;
+
+    context.request.body = await this.services.chartHandler.getChart({
+      userId,
+      renderingId,
+      chartRequest: context.request.body,
+      collection: this.collection,
+    });
 
     switch (type) {
       case ChartType.Value:
