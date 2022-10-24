@@ -1,3 +1,18 @@
+## @forestadmin/datasource-customizer [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.2.0...@forestadmin/datasource-customizer@1.2.1) (2022-10-24)
+
+
+### Bug Fixes
+
+* **schema-emitter:** better handling of schema edge-cases ([#496](https://github.com/ForestAdmin/agent-nodejs/issues/496)) ([53c9cea](https://github.com/ForestAdmin/agent-nodejs/commit/53c9cea190b017aa16b3691972d21d07fdf549d6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.1
+
 # @forestadmin/datasource-customizer [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.1.1...@forestadmin/datasource-customizer@1.2.0) (2022-10-18)
 
 
