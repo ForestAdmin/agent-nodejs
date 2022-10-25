@@ -130,7 +130,7 @@ export default class MongooseCollection extends BaseCollection {
     } else {
       // We are updating a subdocument (this.prefix is set).
 
-      // Updates can be called from agent customizations, so we need to handle the case where we are
+      // This method can be called from customer code, so we need to handle the case where we are
       // updating many documents at once (the GUI only allows to update documents one by one).
       // This is trivial when using the flattener on simple objects, but becomes more convoluted
       // when using arrays: we need to update the right element of the array in each document.
