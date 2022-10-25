@@ -134,11 +134,11 @@ export default class MongooseCollection extends BaseCollection {
       // updating many documents at once (the GUI only allows to update documents one by one).
       // This is trivial when using the flattener on simple objects, but becomes more convoluted
       // when using arrays: we need to update the right element of the array in each document.
-      // As we don't want to make one query per document, for performance reasons we group the ids
-      // by path (which contain the indexes of the potentially nested arrays).
+      // For performance reasons we group the ids by path (which contain the indexes of the
+      // potentially nested arrays) instead of performing one update per doc.
 
-      // When we are using a single field as a model, an extra level of nesting is added.
-      // This is common when using the flattener to create many to many relationships.
+      // Also note, that when we are using a single field as a model, an extra level of nesting is
+      // added (this is common when using the flattener to create many to many relationships)
       const { isLeaf } = MongooseSchema.fromModel(this.model).getSubSchema(this.prefix);
 
       // `idsByPath` contains one entry if using the flattener in object-mode, but potentially many
