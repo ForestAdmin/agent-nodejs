@@ -35,6 +35,14 @@ export default abstract class BaseCollection implements Collection {
     this.schema.actions[name] = schema;
   }
 
+  protected addChart(name: string): void {
+    if (this.schema.charts.includes(name)) {
+      throw new Error(`Chart "${name}" already defined in collection`);
+    }
+
+    this.schema.charts.push(name);
+  }
+
   protected addField(name: string, schema: FieldSchema): void {
     const fieldSchema = this.schema.fields[name];
 

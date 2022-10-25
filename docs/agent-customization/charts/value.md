@@ -10,10 +10,10 @@ agent.addChart('monthlyRecuringRevenue', async (context, resultBuilder) => {
   // Request the sum of the "amount" field of all the records in the "payments" collection
   const aggregation = { operation: 'Sum', field: 'amount' };
   const filter = { conditionTree: { field: 'status', operator: 'equal', value: 'paid' } };
-  const mrr = await context.dataSource.getCollection('payments').aggregate(filter, aggregation);
+  const rows = await context.dataSource.getCollection('payments').aggregate(filter, aggregation);
 
   // Return the result to the chart
-  return resultBuilder.value(mrr[0].amount);
+  return resultBuilder.value(rows[0].value);
 });
 ```
 
@@ -35,10 +35,10 @@ agent.customizerCollection('customers', collection => {
         ],
       },
     };
-    const mrr = await context.dataSource.getCollection('payments').aggregate(filter, aggregation);
+    const rows = await context.dataSource.getCollection('payments').aggregate(filter, aggregation);
 
     // Return the result to the chart
-    return resultBuilder.value(mrr[0].amount);
+    return resultBuilder.value(rows[0].value);
   });
 });
 ```
