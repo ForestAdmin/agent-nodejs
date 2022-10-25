@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  ChartDefinition,
   CollectionCustomizer,
+  DataSourceChartDefinition,
   DataSourceCustomizer,
   DataSourceOptions,
   Plugin,
@@ -100,7 +100,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *   }
    * })
    */
-  addChart(name: string, definition: ChartDefinition<S>): this {
+  addChart(name: string, definition: DataSourceChartDefinition<S>): this {
     this.customizer.addChart(name, definition);
 
     return this;

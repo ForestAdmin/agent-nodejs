@@ -218,6 +218,14 @@ describe('Route index', () => {
       const setupWithChart = (): DataSource => {
         return factories.dataSource.build({
           schema: { charts: ['myChart'] },
+          collections: [
+            factories.collection.build({
+              name: 'books',
+              schema: factories.collectionSchema.build({
+                charts: ['myChart'],
+              }),
+            }),
+          ],
         });
       };
 
@@ -230,7 +238,8 @@ describe('Route index', () => {
           factories.forestAdminHttpDriverServices.build(),
         );
 
-        expect(routes.length).toEqual(ROOT_ROUTES_CTOR.length + 1);
+        // because there are two charts, there are two routes in addition to the basic ones
+        expect(routes.length).toEqual(ROOT_ROUTES_CTOR.length + COLLECTION_ROUTES_CTOR.length + 2);
       });
     });
   });

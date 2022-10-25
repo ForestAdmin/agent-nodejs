@@ -59,7 +59,10 @@ export default class CollectionApiChartRoute extends CollectionRoute {
     return this.collection.renderChart(
       QueryStringParser.parseCaller(context),
       this.chartName,
-      IdUtils.unpackId(this.collection.schema, context.request.body.record_id),
+      IdUtils.unpackId(
+        this.collection.schema,
+        String(context.request.body?.record_id ?? context.request.query?.record_id),
+      ),
     );
   }
 }
