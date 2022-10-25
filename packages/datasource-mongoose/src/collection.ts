@@ -119,7 +119,7 @@ export default class MongooseCollection extends BaseCollection {
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     // Fetch the ids of the documents OR subdocuments that will be updated.
-    // We need to do that regarless of `this.prefix` because the filter may contain conditions on
+    // We need to do that regardless of `this.prefix` because the filter may contain conditions on
     // relationships.
     const records = await this.list(caller, filter, new Projection('_id'));
     const ids = records.map(record => record._id);
