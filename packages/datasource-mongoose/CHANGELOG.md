@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.0.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.1...@forestadmin/datasource-mongoose@1.0.2) (2022-10-25)
+
+
+### Bug Fixes
+
+* mongoose connector broken for all versions besides 6.6.3 ([#509](https://github.com/ForestAdmin/agent-nodejs/issues/509)) ([9cece2c](https://github.com/ForestAdmin/agent-nodejs/commit/9cece2c2adf5b7edfcad515e6c3c340faa757f79))
+
 ## @forestadmin/datasource-mongoose [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.0...@forestadmin/datasource-mongoose@1.0.1) (2022-10-24)
 
 
