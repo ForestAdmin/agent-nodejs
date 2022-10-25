@@ -26,7 +26,7 @@ export interface FilterableChart extends BaseChart {
 }
 
 export interface AggregatedChart extends BaseChart {
-  aggregate: 'Sum' | 'Count';
+  aggregator: 'Sum' | 'Count';
   aggregateFieldName: string | null;
 }
 

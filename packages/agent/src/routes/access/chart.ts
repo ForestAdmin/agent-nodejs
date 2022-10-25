@@ -234,10 +234,10 @@ export default class ChartRoute extends CollectionRoute {
   }
 
   private async computeValue(context: Context, filter: Filter): Promise<number> {
-    const { aggregate, aggregateFieldName: aggregateField } = <ValueChart | ObjectiveChart>(
+    const { aggregator, aggregateFieldName: aggregateField } = <ValueChart | ObjectiveChart>(
       context.request.body
     );
-    const aggregation = new Aggregation({ operation: aggregate, field: aggregateField });
+    const aggregation = new Aggregation({ operation: aggregator, field: aggregateField });
 
     const rows = await this.collection.aggregate(
       QueryStringParser.parseCaller(context),
