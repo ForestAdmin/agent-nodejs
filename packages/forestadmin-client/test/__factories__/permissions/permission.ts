@@ -11,7 +11,7 @@ export class PermissionServiceFactory extends Factory<PermissionServiceWithCache
       client.canTriggerCustomAction = jest.fn();
       client.canApproveCustomAction = jest.fn();
       client.canRequestCustomActionParameters = jest.fn();
-      client.canRetrieveChart = jest.fn();
+      client.canExecuteChart = jest.fn();
     });
   }
 }

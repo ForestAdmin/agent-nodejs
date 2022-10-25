@@ -7,6 +7,9 @@ import UserPermissionService from './permissions/user-permission';
 
 export { default as JTWTokenExpiredError } from './permissions/errors/jwt-token-expired-error';
 export { default as JTWUnableToVerifyError } from './permissions/errors/jwt-unable-to-verify-error';
+export { default as ChainedSQLQueryError } from './permissions/errors/chained-sql-query-error';
+export { default as EmptySQLQueryError } from './permissions/errors/empty-sql-query-error';
+export { default as NonSelectSQLQueryError } from './permissions/errors/non-select-sql-query-error';
 export { ForestAdminClientOptions, Logger, LoggerLevel, ForestAdminClient } from './types';
 export { CollectionActionEvent } from './permissions/types';
 

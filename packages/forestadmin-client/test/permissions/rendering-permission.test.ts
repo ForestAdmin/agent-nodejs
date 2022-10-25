@@ -1,11 +1,15 @@
 import { ChartType } from '../../src/charts/types';
 import { PermissionLevel } from '../../src/permissions/types';
 import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
+import ChainedSQLQueryError from '../../src/permissions/errors/chained-sql-query-error';
+import EmptySQLQueryError from '../../src/permissions/errors/empty-sql-query-error';
 import ForestHttpApi from '../../src/permissions/forest-http-api';
+import NonSelectSQLQueryError from '../../src/permissions/errors/non-select-sql-query-error';
 import RenderingPermissionService from '../../src/permissions/rendering-permission';
 import generateUserScope from '../../src/permissions/generate-user-scope';
 import isSegmentQueryAllowed from '../../src/permissions/is-segment-query-authorized';
 import userPermissionsFactory from '../__factories__/permissions/user-permission';
+import verifySQLQuery from '../../src/permissions/verify-sql-query';
 
 jest.mock('../../src/permissions/forest-http-api', () => ({
   getRenderingPermissions: jest.fn(),
@@ -23,6 +27,11 @@ jest.mock('../../src/permissions/hash-chart', () => ({
 }));
 
 jest.mock('../../src/permissions/is-segment-query-authorized', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../../src/permissions/verify-sql-query', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
@@ -49,6 +58,7 @@ describe('RenderingPermissionService', () => {
 
     const hashServerChartsMock = hashServerCharts as jest.Mock;
     const hashChartRequestMock = hashChartRequest as jest.Mock;
+    const verifySQLQueryMock = verifySQLQuery as jest.Mock;
     const isSegmentQueryAllowedMock = isSegmentQueryAllowed as jest.Mock;
 
     return {
@@ -58,6 +68,7 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock,
       hashServerChartsMock,
       hashChartRequestMock,
+      verifySQLQueryMock,
       isSegmentQueryAllowedMock,
       options,
     };
@@ -203,7 +214,7 @@ describe('RenderingPermissionService', () => {
     });
   });
 
-  describe('canRetrieveChart', () => {
+  describe('canExecuteChart', () => {
     it.each([PermissionLevel.Admin, PermissionLevel.Developer, PermissionLevel.Editor])(
       'should return true if the user is a %d',
       async permissionLevel => {
@@ -226,7 +237,7 @@ describe('RenderingPermissionService', () => {
           team: {},
         });
 
-        const result = await renderingPermission.canRetrieveChart({
+        const result = await renderingPermission.canExecuteChart({
           renderingId: 60,
           chartRequest: {
             type: ChartType.Value,
@@ -274,7 +285,7 @@ describe('RenderingPermissionService', () => {
         hashServerChartsMock.mockReturnValue(new Set(['HASH']));
         hashChartRequestMock.mockReturnValue('HASH');
 
-        const result = await renderingPermission.canRetrieveChart({
+        const result = await renderingPermission.canExecuteChart({
           renderingId: 60,
           chartRequest: {
             type: ChartType.Value,
@@ -296,6 +307,167 @@ describe('RenderingPermissionService', () => {
           aggregator: 'Sum',
         });
         expect(hashServerChartsMock).toHaveBeenCalledWith(stats);
+      });
+
+      describe('with a query chart', () => {
+        describe('when the query is empty', () => {
+          it('should throw an error', async () => {
+            const {
+              renderingPermission,
+              getUserInfoMock,
+              getRenderingPermissionsMock,
+              options,
+              hashServerChartsMock,
+              hashChartRequestMock,
+              verifySQLQueryMock,
+            } = setup();
+
+            const userInfo = {
+              id: 42,
+              firstName: 'Jane',
+              lastName: 'Doe',
+              email: 'jane@forest.com',
+              permissionLevel: PermissionLevel.User,
+            };
+
+            getUserInfoMock.mockResolvedValue(userInfo);
+            verifySQLQueryMock.mockRejectedValue(new EmptySQLQueryError());
+
+            const stats = { queries: [{ type: 'Value', query: '  ' }] };
+            getRenderingPermissionsMock.mockResolvedValue({
+              collections: {},
+              stats,
+              team: {},
+            });
+            hashServerChartsMock.mockReturnValue(new Set(['HASH']));
+            hashChartRequestMock.mockReturnValue('HASH');
+
+            const result = renderingPermission.canExecuteChart({
+              renderingId: 60,
+              chartRequest: {
+                type: ChartType.Value,
+                query: '  ',
+              },
+              userId: 42,
+            });
+
+            await expect(result).rejects.toThrowError(EmptySQLQueryError);
+
+            expect(getUserInfoMock).toHaveBeenCalledWith(42);
+            expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+            expect(hashChartRequestMock).toHaveBeenCalledWith({
+              type: ChartType.Value,
+              query: '  ',
+            });
+            expect(hashServerChartsMock).toHaveBeenCalledWith(stats);
+          });
+        });
+
+        describe('when the query is chained', () => {
+          it('should throw an error', async () => {
+            const {
+              renderingPermission,
+              getUserInfoMock,
+              getRenderingPermissionsMock,
+              options,
+              hashServerChartsMock,
+              hashChartRequestMock,
+              verifySQLQueryMock,
+            } = setup();
+
+            const userInfo = {
+              id: 42,
+              firstName: 'Jane',
+              lastName: 'Doe',
+              email: 'jane@forest.com',
+              permissionLevel: PermissionLevel.User,
+            };
+
+            getUserInfoMock.mockResolvedValue(userInfo);
+            verifySQLQueryMock.mockRejectedValue(new ChainedSQLQueryError());
+
+            const stats = { queries: [{ type: 'Value', query: '  ' }] };
+            getRenderingPermissionsMock.mockResolvedValue({
+              collections: {},
+              stats,
+              team: {},
+            });
+            hashServerChartsMock.mockReturnValue(new Set(['HASH']));
+            hashChartRequestMock.mockReturnValue('HASH');
+
+            const result = renderingPermission.canExecuteChart({
+              renderingId: 60,
+              chartRequest: {
+                type: ChartType.Value,
+                query: 'SELECT count(*) as value FROM jedis; SELECT count(*) as value FROM siths;',
+              },
+              userId: 42,
+            });
+
+            await expect(result).rejects.toThrowError(ChainedSQLQueryError);
+
+            expect(getUserInfoMock).toHaveBeenCalledWith(42);
+            expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+            expect(hashChartRequestMock).toHaveBeenCalledWith({
+              type: ChartType.Value,
+              query: 'SELECT count(*) as value FROM jedis; SELECT count(*) as value FROM siths;',
+            });
+            expect(hashServerChartsMock).toHaveBeenCalledWith(stats);
+          });
+        });
+
+        describe('when the query is an update', () => {
+          it('should throw an error', async () => {
+            const {
+              renderingPermission,
+              getUserInfoMock,
+              getRenderingPermissionsMock,
+              options,
+              hashServerChartsMock,
+              hashChartRequestMock,
+              verifySQLQueryMock,
+            } = setup();
+
+            const userInfo = {
+              id: 42,
+              firstName: 'Jane',
+              lastName: 'Doe',
+              email: 'jane@forest.com',
+              permissionLevel: PermissionLevel.User,
+            };
+
+            getUserInfoMock.mockResolvedValue(userInfo);
+            verifySQLQueryMock.mockRejectedValue(new NonSelectSQLQueryError());
+
+            const stats = { queries: [{ type: 'Value', query: '  ' }] };
+            getRenderingPermissionsMock.mockResolvedValue({
+              collections: {},
+              stats,
+              team: {},
+            });
+            hashServerChartsMock.mockReturnValue(new Set(['HASH']));
+            hashChartRequestMock.mockReturnValue('HASH');
+
+            const result = renderingPermission.canExecuteChart({
+              renderingId: 60,
+              chartRequest: {
+                type: ChartType.Value,
+                query: 'UPDATE jedis SET padawan_id = ?',
+              },
+              userId: 42,
+            });
+
+            await expect(result).rejects.toThrowError(NonSelectSQLQueryError);
+
+            expect(getUserInfoMock).toHaveBeenCalledWith(42);
+            expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+            expect(hashChartRequestMock).toHaveBeenCalledWith({
+              type: ChartType.Value,
+              query: 'UPDATE jedis SET padawan_id = ?',
+            });
+            expect(hashServerChartsMock).toHaveBeenCalledWith(stats);
+          });
+        });
       });
 
       describe('when the user is not allowed with the first permissions', () => {
@@ -335,7 +507,7 @@ describe('RenderingPermissionService', () => {
           hashServerChartsMock.mockReturnValueOnce(new Set(['HASH2']));
           hashChartRequestMock.mockReturnValue('HASH2');
 
-          const result = await renderingPermission.canRetrieveChart({
+          const result = await renderingPermission.canExecuteChart({
             renderingId: 60,
             chartRequest: {
               type: ChartType.Value,
@@ -394,7 +566,7 @@ describe('RenderingPermissionService', () => {
           hashServerChartsMock.mockReturnValue(new Set(['HASH1']));
           hashChartRequestMock.mockReturnValue('HASH2');
 
-          const result = await renderingPermission.canRetrieveChart({
+          const result = await renderingPermission.canExecuteChart({
             renderingId: 60,
             chartRequest: {
               type: ChartType.Value,
@@ -455,7 +627,7 @@ describe('RenderingPermissionService', () => {
       hashServerChartsMock.mockReturnValue(new Set(['HASH']));
       hashChartRequestMock.mockReturnValue('HASH');
 
-      const result1 = await renderingPermission.canRetrieveChart({
+      const result1 = await renderingPermission.canExecuteChart({
         renderingId: 60,
         chartRequest: {
           type: ChartType.Value,
@@ -468,7 +640,7 @@ describe('RenderingPermissionService', () => {
 
       renderingPermission.invalidateCache(60);
 
-      const result2 = await renderingPermission.canRetrieveChart({
+      const result2 = await renderingPermission.canExecuteChart({
         renderingId: 60,
         chartRequest: {
           type: ChartType.Value,
@@ -512,7 +684,7 @@ describe('RenderingPermissionService', () => {
       hashServerChartsMock.mockReturnValue(new Set(['HASH']));
       hashChartRequestMock.mockReturnValue('HASH');
 
-      const result1 = await renderingPermission.canRetrieveChart({
+      const result1 = await renderingPermission.canExecuteChart({
         renderingId: 60,
         chartRequest: {
           type: ChartType.Value,
@@ -525,7 +697,7 @@ describe('RenderingPermissionService', () => {
 
       renderingPermission.invalidateCache(666);
 
-      const result2 = await renderingPermission.canRetrieveChart({
+      const result2 = await renderingPermission.canExecuteChart({
         renderingId: 60,
         chartRequest: {
           type: ChartType.Value,
@@ -547,6 +719,7 @@ describe('RenderingPermissionService', () => {
       const {
         renderingPermission,
         getRenderingPermissionsMock,
+        verifySQLQueryMock,
         isSegmentQueryAllowedMock,
         options,
       } = setup();
@@ -565,6 +738,7 @@ describe('RenderingPermissionService', () => {
       };
 
       getRenderingPermissionsMock.mockResolvedValue(permissions);
+      verifySQLQueryMock.mockReturnValue(true);
       isSegmentQueryAllowedMock.mockReturnValue(true);
 
       const result = await renderingPermission.canExecuteSegmentQuery({
@@ -614,6 +788,7 @@ describe('RenderingPermissionService', () => {
       const {
         renderingPermission,
         getRenderingPermissionsMock,
+        verifySQLQueryMock,
         isSegmentQueryAllowedMock,
         options,
       } = setup();
@@ -632,6 +807,7 @@ describe('RenderingPermissionService', () => {
       };
 
       getRenderingPermissionsMock.mockResolvedValue(permissions);
+      verifySQLQueryMock.mockReturnValue(true);
       isSegmentQueryAllowedMock.mockReturnValue(false);
 
       const result = await renderingPermission.canExecuteSegmentQuery({
@@ -654,6 +830,7 @@ describe('RenderingPermissionService', () => {
         renderingPermission,
         getRenderingPermissionsMock,
         isSegmentQueryAllowedMock,
+        verifySQLQueryMock,
         options,
       } = setup();
 
@@ -687,6 +864,7 @@ describe('RenderingPermissionService', () => {
         .mockResolvedValueOnce(permissions1)
         .mockResolvedValueOnce(permissions2);
       isSegmentQueryAllowedMock.mockReturnValueOnce(false).mockReturnValueOnce(true);
+      verifySQLQueryMock.mockReturnValue(true);
 
       const result = await renderingPermission.canExecuteSegmentQuery({
         renderingId: 42,

@@ -50,7 +50,7 @@ export interface PermissionService {
     collectionName: string;
     customActionName: string;
   }): Promise<boolean>;
-  canRetrieveChart(params: {
+  canExecuteChart(params: {
     renderingId: number | string;
     userId: number | string;
     chartRequest: Chart;
