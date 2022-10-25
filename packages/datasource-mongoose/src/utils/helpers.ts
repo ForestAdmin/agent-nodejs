@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { RecordData } from '@forestadmin/datasource-toolkit';
 import { Types, isValidObjectId } from 'mongoose';
 
 /**
@@ -107,4 +108,29 @@ export function groupIdsByPath(ids: string[]): { [path: string]: unknown[] } {
  */
 export function replaceMongoTypes(records: any): any {
   return JSON.parse(JSON.stringify(records));
+}
+
+/**
+ * Takes a patch that was built to be applied on a subdocument, and returns a patch that can be
+ * applied on the parent document.
+ *
+ * @example
+ * nestPatch('authors.1', { _id: '123', name: 'Asimov'}, false)
+ *  == nestPatch('authors.1.name', { _id: '123', content: 'Asimov'}, true)
+ *  == { 'authors.1.name': 'Asimov' }
+ */
+export function nestPatch(path: string, patch: RecordData, isLeaf: boolean): RecordData {
+  const cleanPatch = {};
+
+  if (isLeaf) {
+    cleanPatch[path] = patch.content;
+  } else {
+    for (const [key, value] of Object.entries(patch)) {
+      if (key !== '_id' && key !== '_pid') {
+        cleanPatch[`${path}.${key}`] = value;
+      }
+    }
+  }
+
+  return cleanPatch;
 }
