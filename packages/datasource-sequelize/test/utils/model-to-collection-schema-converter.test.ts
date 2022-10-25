@@ -26,6 +26,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
       // "ID" column is added by Sequelize when no primary key is explicitely defined.
       const schema: CollectionSchema = {
         actions: {},
+        charts: [],
         countable: true,
         fields: {
           id: {
@@ -52,6 +53,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
       const schema: CollectionSchema = {
         actions: {},
+        charts: [],
         countable: true,
         fields: {
           myPk: {
@@ -88,6 +90,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
       const schema: CollectionSchema = {
         actions: {},
+        charts: [],
         countable: true,
         fields: {
           myPk: {
@@ -202,6 +205,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            charts: [],
             countable: true,
             fields: {
               Model2Id: {
@@ -254,6 +258,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            charts: [],
             countable: true,
             fields: {
               __model2__s: {
@@ -293,6 +298,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            charts: [],
             countable: true,
             fields: {
               __model2__s: {
@@ -329,6 +335,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            charts: [],
             countable: true,
             fields: {
               __model2__: {
