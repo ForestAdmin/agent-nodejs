@@ -221,6 +221,23 @@ describe('CollectionDecorator', () => {
     });
   });
 
+  describe('renderChart', () => {
+    it('calls the child renderChart method', async () => {
+      const response = { value: 123 };
+      const childRenderChart = jest.fn().mockReturnValue(response);
+      const decoratedCollection = new DecoratedCollection(
+        factories.collection.build({ renderChart: childRenderChart }),
+        factories.dataSource.build(),
+      );
+
+      const caller = factories.caller.build();
+      const result = await decoratedCollection.renderChart(caller, 'a chart name', [123]);
+
+      expect(result).toStrictEqual(response);
+      expect(childRenderChart).toHaveBeenCalledWith(caller, 'a chart name', [123]);
+    });
+  });
+
   describe('name', () => {
     it('calls the child name', async () => {
       const decoratedCollection = new DecoratedCollection(

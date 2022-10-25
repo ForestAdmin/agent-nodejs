@@ -8,6 +8,7 @@ import {
   CollectionCustomizationContext,
   CollectionCustomizer,
   ComputedDefinition,
+  DataSourceChartDefinition,
   DataSourceCustomizer,
 } from '../src';
 import { WriteDefinition } from '../src/decorators/write/types';
@@ -173,6 +174,22 @@ describe('Builder > Collection', () => {
       expect(spy).toBeCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('action name', actionDefinition);
       expect(self.schema.actions['action name']).toBeDefined();
+      expect(self).toEqual(customizer);
+    });
+  });
+
+  describe('addChart', () => {
+    it('should add a chart', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.chart.getCollection('authors'), 'addChart');
+
+      const chartDefinition: DataSourceChartDefinition = (ctx, rb) => rb.value(1);
+      const self = customizer.addChart('chart name', chartDefinition);
+      await dsc.getDataSource(logger);
+
+      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('chart name', chartDefinition);
+      expect(self.schema.charts).toContain('chart name');
       expect(self).toEqual(customizer);
     });
   });

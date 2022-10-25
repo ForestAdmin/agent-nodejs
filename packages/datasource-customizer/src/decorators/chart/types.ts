@@ -4,7 +4,7 @@ import AgentCustomizationContext from '../../context/agent-context';
 import CollectionChartContext from './context';
 import ResultBuilder from './result-builder';
 
-export type ChartDefinition<S extends TSchema = TSchema> = (
+export type DataSourceChartDefinition<S extends TSchema = TSchema> = (
   context: AgentCustomizationContext<S>,
   resultBuilder: ResultBuilder,
 ) => Promise<Chart> | Chart;
