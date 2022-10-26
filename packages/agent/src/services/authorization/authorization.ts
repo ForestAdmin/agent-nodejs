@@ -68,15 +68,13 @@ export default class AuthorizationService {
   public async assertCanTriggerCustomAction({
     context,
     customActionName,
-    collectionName,
-    collectionAggregate,
+    collection,
     requestConditionTreeForCaller,
     caller,
   }: {
     context: Context;
     customActionName: string;
-    collectionName: string;
-    collectionAggregate: Collection['aggregate'];
+    collection: Collection;
     requestConditionTreeForCaller: ConditionTree;
     requestConditionTreeForAllCaller: ConditionTree;
     caller: Caller;
@@ -85,7 +83,7 @@ export default class AuthorizationService {
     const canTrigger = await this.forestAdminClient.permissionService.canTriggerCustomAction({
       userId,
       customActionName,
-      collectionName,
+      collectionName: collection.name,
     });
 
     if (!canTrigger) {
@@ -94,7 +92,7 @@ export default class AuthorizationService {
 
     const preBakedIntersectAggregate = this.makeBakedIntersectAggregate(
       caller,
-      collectionAggregate,
+      collection,
       requestConditionTreeForCaller,
     );
 
@@ -103,7 +101,7 @@ export default class AuthorizationService {
       await this.forestAdminClient.permissionService.getConditionalTriggerFilter({
         userId,
         customActionName,
-        collectionName,
+        collectionName: collection.name,
       });
 
     if (conditionalTriggerRawFilter) {
@@ -125,7 +123,7 @@ export default class AuthorizationService {
       await await this.forestAdminClient.permissionService.doesTriggerCustomActionRequiresApproval({
         userId,
         customActionName,
-        collectionName,
+        collectionName: collection.name,
       });
 
     // CASE: User can trigger without approval required -> return
@@ -138,7 +136,7 @@ export default class AuthorizationService {
       await this.forestAdminClient.permissionService.getConditionalRequiresApprovalFilter({
         userId,
         customActionName,
-        collectionName,
+        collectionName: collection.name,
       });
 
     if (conditionalRequiresApprovalRawFilter) {
@@ -156,26 +154,25 @@ export default class AuthorizationService {
     // OR CASE: No conditional RequireApproval filter -> CustomAction always RequiresApproval
     const rolesIdsAllowedToApprove = await this.getRolesIdsAllowedToApprove(
       customActionName,
-      collectionName,
+      collection.name,
       preBakedIntersectAggregate,
     );
+
     throw new CustomActionRequiresApprovalError(rolesIdsAllowedToApprove);
   }
 
   public async assertCanApproveCustomAction({
     context,
     customActionName,
-    collectionName,
     requesterId,
-    collectionAggregate,
+    collection,
     requestConditionTreeForCaller,
     caller,
   }: {
     context: Context;
     customActionName: string;
-    collectionName: string;
     requesterId: number | string;
-    collectionAggregate: Collection['aggregate'];
+    collection: Collection;
     requestConditionTreeForCaller: ConditionTree;
     requestConditionTreeForAllCaller: ConditionTree;
     caller: Caller;
@@ -184,13 +181,13 @@ export default class AuthorizationService {
     const canApprove = await this.forestAdminClient.permissionService.canApproveCustomAction({
       userId,
       customActionName,
-      collectionName,
+      collectionName: collection.name,
       requesterId,
     });
 
     const preBakedIntersectAggregate = this.makeBakedIntersectAggregate(
       caller,
-      collectionAggregate,
+      collection,
       requestConditionTreeForCaller,
     );
 
@@ -198,7 +195,7 @@ export default class AuthorizationService {
       // CASE: ApprovalNotAllowedError
       const rolesIdsAllowedToApprove = await this.getRolesIdsAllowedToApprove(
         customActionName,
-        collectionName,
+        collection.name,
         preBakedIntersectAggregate,
       );
 
@@ -210,7 +207,7 @@ export default class AuthorizationService {
       await this.forestAdminClient.permissionService.getConditionalApproveFilter({
         userId,
         customActionName,
-        collectionName,
+        collectionName: collection.name,
       });
 
     if (conditionalApproveRawFilter) {
@@ -224,7 +221,7 @@ export default class AuthorizationService {
         // WARNING requestConditionTreeForCaller have scope inside !
         const rolesIdsAllowedToApprove = await this.getRolesIdsAllowedToApprove(
           customActionName,
-          collectionName,
+          collection.name,
           preBakedIntersectAggregate,
         );
         throw new ApprovalNotAllowedError(rolesIdsAllowedToApprove);
@@ -293,7 +290,7 @@ export default class AuthorizationService {
 
   private makeBakedIntersectAggregate(
     caller: Caller,
-    collectionAggregate: Collection['aggregate'],
+    collection: Collection,
     requestConditionTree: ConditionTree,
   ) {
     return async (conditionalRawFilter?: GenericTree) => {
@@ -302,13 +299,13 @@ export default class AuthorizationService {
         const conditionalFilter = new Filter({
           conditionTree: conditionalRawFilter
             ? ConditionTreeFactory.intersect(
-                ConditionTreeFactory.fromPlainObject(conditionalRawFilter),
+                ConditionTreeParser.fromPlainObject(collection, conditionalRawFilter),
                 requestConditionTree,
               )
             : requestConditionTree,
         });
 
-        const rows = await collectionAggregate(
+        const rows = await collection.aggregate(
           caller,
           conditionalFilter,
           new Aggregation({
@@ -328,7 +325,7 @@ export default class AuthorizationService {
     collectionName: string,
     aggregate: (conditionalRawFilter?: GenericTree) => Promise<number>,
   ) {
-    const rolesIdsAllowedToApprove = [];
+    const rolesIdsAllowedToApprovePromises = [];
 
     const conditionsByRoleId =
       await this.forestAdminClient.permissionService.getConditionalApproveFilters({
@@ -340,14 +337,18 @@ export default class AuthorizationService {
     const requestRecordsCount = await aggregate();
 
     // No optimized way to do it
-    conditionsByRoleId.forEach(async (filter, roleId) => {
-      const matchingRecordsCount = await aggregate(filter);
-
-      if (requestRecordsCount === matchingRecordsCount) {
-        rolesIdsAllowedToApprove.push(roleId);
-      }
+    conditionsByRoleId.forEach(filter => {
+      rolesIdsAllowedToApprovePromises.push(aggregate(filter));
     });
 
-    return rolesIdsAllowedToApprove;
+    const counts: number[] = await Promise.all(rolesIdsAllowedToApprovePromises);
+
+    const iterator = conditionsByRoleId.keys();
+
+    return counts.map(conditionRecordsCount => {
+      const { value } = iterator.next();
+
+      return requestRecordsCount === conditionRecordsCount ? value : null;
+    });
   }
 }

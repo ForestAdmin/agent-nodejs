@@ -59,21 +59,19 @@ export default class ActionRoute extends CollectionRoute {
       await this.services.authorization.assertCanApproveCustomAction({
         context,
         customActionName: this.actionName,
-        collectionName: this.collection.name,
+        collection: this.collection,
         requesterId: requestBody.data.attributes.requester_id,
         requestConditionTreeForCaller: filterForCaller.conditionTree,
         requestConditionTreeForAllCaller: filterForAllCaller.conditionTree,
-        collectionAggregate: this.collection.aggregate.bind(this.collection),
         caller,
       });
     } else {
       await this.services.authorization.assertCanTriggerCustomAction({
         context,
         customActionName: this.actionName,
-        collectionName: this.collection.name,
+        collection: this.collection,
         requestConditionTreeForCaller: filterForCaller.conditionTree,
         requestConditionTreeForAllCaller: filterForAllCaller.conditionTree,
-        collectionAggregate: this.collection.aggregate.bind(this.collection),
         caller,
       });
     }
