@@ -15,6 +15,8 @@ describe('OptionsValidator', () => {
       expect(options).toHaveProperty('logger', expect.any(Function));
       expect(options).toHaveProperty('prefix', '');
       expect(options).toHaveProperty('schemaPath', '.forestadmin-schema.json');
+      expect(options).toHaveProperty('typingsMaxDepth', 5);
+      expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 900);
     });
 
     test('logger should be callable', () => {
@@ -75,10 +77,16 @@ describe('OptionsValidator', () => {
       test('should force minimum value to 1 minute (forest server performance concerns)', () => {
         const options = OptionsValidator.withDefaults({
           ...mandatoryOptions,
+          logger: jest.fn(),
           permissionsCacheDurationInSeconds: 1,
         });
 
         expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 60);
+        expect(options.logger).toHaveBeenCalledWith(
+          'Warn',
+          'options.permissionsCacheDurationInSeconds is getting ignore. ' +
+            'Set to minimum value 60 seconds',
+        );
       });
 
       test('should allow user to configure it with realistic value', () => {

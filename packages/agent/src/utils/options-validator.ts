@@ -3,6 +3,8 @@ import path from 'path';
 
 import { AgentOptions, AgentOptionsWithDefaults } from '../types';
 
+const DEFAULT_MINIMUM_CACHE_DURATION = 60;
+
 export default class OptionsValidator {
   private static loggerPrefix = {
     Debug: '\x1b[34mdebug:\x1b[0m',
@@ -28,10 +30,18 @@ export default class OptionsValidator {
     copyOptions.forestServerUrl = copyOptions.forestServerUrl || 'https://api.forestadmin.com';
     copyOptions.typingsMaxDepth = copyOptions.typingsMaxDepth ?? 5;
     copyOptions.prefix = copyOptions.prefix || '';
-    copyOptions.permissionsCacheDurationInSeconds = Math.max(
-      copyOptions.permissionsCacheDurationInSeconds ?? 15 * 60,
-      1 * 60,
-    );
+
+    copyOptions.permissionsCacheDurationInSeconds =
+      copyOptions.permissionsCacheDurationInSeconds ?? 15 * DEFAULT_MINIMUM_CACHE_DURATION;
+
+    if (copyOptions.permissionsCacheDurationInSeconds < DEFAULT_MINIMUM_CACHE_DURATION) {
+      copyOptions.permissionsCacheDurationInSeconds = DEFAULT_MINIMUM_CACHE_DURATION;
+      copyOptions.logger(
+        'Warn',
+        'options.permissionsCacheDurationInSeconds is getting ignore. ' +
+          `Set to minimum value ${DEFAULT_MINIMUM_CACHE_DURATION} seconds`,
+      );
+    }
 
     return {
       loggerLevel: 'Info',
