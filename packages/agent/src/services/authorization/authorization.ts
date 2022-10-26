@@ -12,6 +12,7 @@ import {
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 import { CollectionActionEvent, ForestAdminClient } from '@forestadmin/forestadmin-client';
+
 import { HttpCode } from '../../types';
 import ConditionTreeParser from '../../utils/condition-tree-parser';
 
@@ -88,7 +89,7 @@ export default class AuthorizationService {
       context.throw(HttpCode.Forbidden, 'Forbidden');
     }
 
-    const preBakedIntersectAggregate = AuthorizationService.makeBakedIntersectAggregate(
+    const preBakedIntersectAggregate = this.makeBakedIntersectAggregate(
       caller,
       collectionAggregate,
       requestConditionTree,
@@ -109,6 +110,7 @@ export default class AuthorizationService {
 
       // CASE: Condition partially respected -> CustomAction TriggerForbidden
       // if some records don't match the condition the user is not allow to perform the action
+
       if (matchingRecordsCount !== requestRecordsCount) {
         throw new ForbiddenError('CustomActionTriggerForbiddenError');
       }
@@ -184,7 +186,7 @@ export default class AuthorizationService {
       throw new ForbiddenError('ApprovalNotAllowedError');
     }
 
-    const preBakedIntersectAggregate = AuthorizationService.makeBakedIntersectAggregate(
+    const preBakedIntersectAggregate = this.makeBakedIntersectAggregate(
       caller,
       collectionAggregate,
       requestConditionTree,
@@ -273,7 +275,7 @@ export default class AuthorizationService {
     return this.forestAdminClient.verifySignedActionParameters(signedToken);
   }
 
-  private static makeBakedIntersectAggregate(
+  private makeBakedIntersectAggregate(
     caller: Caller,
     collectionAggregate: Collection['aggregate'],
     requestConditionTree: ConditionTree,
@@ -281,15 +283,16 @@ export default class AuthorizationService {
     return async (conditionalRawFilter?: GenericTree) => {
       try {
         // Build filter format with the right format
-        const conditionalConditionTree = ConditionTreeFactory.fromPlainObject(conditionalRawFilter);
-
         const conditionalFilter = new Filter({
-          conditionTree: conditionalConditionTree
-            ? ConditionTreeFactory.intersect(conditionalConditionTree, requestConditionTree)
+          conditionTree: conditionalRawFilter
+            ? ConditionTreeFactory.intersect(
+                ConditionTreeFactory.fromPlainObject(conditionalRawFilter),
+                requestConditionTree,
+              )
             : requestConditionTree,
         });
 
-        const rows = collectionAggregate(
+        const rows = await collectionAggregate(
           caller,
           conditionalFilter,
           new Aggregation({
@@ -299,7 +302,6 @@ export default class AuthorizationService {
 
         return (rows?.[0]?.value as number) ?? 0;
       } catch (error) {
-        // HttpCode.Unprocessable
         throw new UnprocessableError('InvalidActionConditionError');
       }
     };

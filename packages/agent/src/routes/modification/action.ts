@@ -133,7 +133,7 @@ export default class ActionRoute extends CollectionRoute {
         collectionName: this.collection.name,
         requesterId: signedParameters?.data?.attributes?.requester_id,
         requestConditionTree: filter.conditionTree,
-        collectionAggregate: this.collection.aggregate,
+        collectionAggregate: this.collection.aggregate.bind(this.collection),
         caller,
       });
     } else {
@@ -143,7 +143,7 @@ export default class ActionRoute extends CollectionRoute {
         customActionName: this.actionName,
         collectionName: this.collection.name,
         requestConditionTree: filter.conditionTree,
-        collectionAggregate: this.collection.aggregate,
+        collectionAggregate: this.collection.aggregate.bind(this.collection),
         caller,
       });
     }
