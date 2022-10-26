@@ -153,7 +153,7 @@ export default class AuthorizationService {
     const scope = await this.forestAdminClient.getScope({
       renderingId: user.renderingId,
       userId: user.id,
-      collection,
+      collectionName: collection.name,
     });
 
     if (!scope) return null;

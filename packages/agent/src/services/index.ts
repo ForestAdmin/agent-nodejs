@@ -1,4 +1,4 @@
-import { ChartHandler } from '@forestadmin/forestadmin-client';
+import { ChartHandlerInterface } from '@forestadmin/forestadmin-client';
 
 import { AgentOptionsWithDefaults } from '../types';
 import AuthorizationService from './authorization/authorization';
@@ -8,7 +8,7 @@ import authorizationServiceFactory from './authorization';
 export type ForestAdminHttpDriverServices = {
   serializer: Serializer;
   authorization: AuthorizationService;
-  chartHandler: ChartHandler;
+  chartHandler: ChartHandlerInterface;
 };
 
 export default (options: AgentOptionsWithDefaults): ForestAdminHttpDriverServices => {

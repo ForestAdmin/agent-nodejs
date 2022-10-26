@@ -1,9 +1,9 @@
-import type { Collection, GenericTree } from '@forestadmin/datasource-toolkit';
+import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
-import { Chart } from './charts/types';
-import { CollectionActionEvent } from './permissions/types';
-import ChartHandler from './charts/chart-handler';
-import ContextVariablesInjector from './utils/context-variables-injector';
+import ContextVariables, { RequestContextVariables } from './utils/context-variables';
+import type { Chart } from './charts/types';
+import type { ChartRequest } from './charts/chart-handler';
+import type { CollectionActionEvent } from './permissions/types';
 
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LoggerLevel, message: unknown) => void;
@@ -19,15 +19,15 @@ export type ForestAdminClientOptionsWithDefaults = Required<ForestAdminClientOpt
 
 export interface ForestAdminClient {
   readonly permissionService: PermissionService;
-  readonly contextVariablesInjector: ContextVariablesInjector;
-  readonly chartHandler: ChartHandler;
+  readonly contextVariablesInstantiator: ContextVariablesInstantiatorInterface;
+  readonly chartHandler: ChartHandlerInterface;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
   getScope(params: {
     renderingId: number | string;
     userId: number | string;
-    collection: Collection;
+    collectionName: string;
   }): Promise<GenericTree>;
   markScopesAsUpdated(renderingId: number | string): void;
 }
@@ -65,4 +65,20 @@ export interface PermissionService {
     renderingId: number | string;
     segmentQuery: string;
   }): Promise<boolean>;
+}
+
+export interface ChartHandlerInterface {
+  getChart(params: {
+    userId: string | number;
+    renderingId: string | number;
+    chartRequest: ChartRequest;
+  }): Promise<Chart>;
+}
+
+export interface ContextVariablesInstantiatorInterface {
+  buildContextVariables(params: {
+    requestContextVariables?: RequestContextVariables;
+    renderingId: string | number;
+    userId: string | number;
+  }): Promise<ContextVariables>;
 }

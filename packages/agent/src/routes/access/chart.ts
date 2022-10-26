@@ -59,7 +59,6 @@ export default class ChartRoute extends CollectionRoute {
       userId,
       renderingId,
       chartRequest: context.request.body,
-      collection: this.collection,
     });
 
     switch (type) {
@@ -234,6 +233,7 @@ export default class ChartRoute extends CollectionRoute {
   }
 
   private async computeValue(context: Context, filter: Filter): Promise<number> {
+    console.log('context.request', context.request);
     const { aggregator, aggregateFieldName: aggregateField } = <ValueChart | ObjectiveChart>(
       context.request.body
     );

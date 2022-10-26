@@ -12,7 +12,14 @@ export { default as JTWUnableToVerifyError } from './permissions/errors/jwt-unab
 export { default as ChainedSQLQueryError } from './permissions/errors/chained-sql-query-error';
 export { default as EmptySQLQueryError } from './permissions/errors/empty-sql-query-error';
 export { default as NonSelectSQLQueryError } from './permissions/errors/non-select-sql-query-error';
-export { ForestAdminClientOptions, Logger, LoggerLevel, ForestAdminClient } from './types';
+export {
+  ForestAdminClientOptions,
+  Logger,
+  LoggerLevel,
+  ForestAdminClient,
+  ChartHandlerInterface,
+  ContextVariablesInstantiatorInterface,
+} from './types';
 export { CollectionActionEvent } from './permissions/types';
 
 export default function createForestAdminClient(

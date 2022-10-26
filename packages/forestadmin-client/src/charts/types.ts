@@ -1,4 +1,4 @@
-import { PlainConditionTreeBranch } from '@forestadmin/datasource-toolkit';
+import type { PlainConditionTreeBranch } from '@forestadmin/datasource-toolkit';
 
 export type KeysOfUnion<T> = T extends T ? keyof T : never;
 

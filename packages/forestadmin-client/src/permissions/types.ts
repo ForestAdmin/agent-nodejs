@@ -51,7 +51,7 @@ export type UserPermissionV4 = {
   id: number;
   firstName: string;
   lastName: string;
-  username: string;
+  fullName: string;
   email: string;
   permissionLevel: PermissionLevel;
   tags: Record<string, string>;

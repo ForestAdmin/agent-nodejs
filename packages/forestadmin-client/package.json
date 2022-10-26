@@ -12,7 +12,6 @@
     "directory": "packages/forestadmin-client"
   },
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.0.1-alpha.1",
     "jsonwebtoken": "^8.5.1",
     "lru-cache": "^7.3.1",
     "object-hash": "^3.0.0",

@@ -1,7 +1,7 @@
 import { Team, UserPermissionV4 } from '../permissions/types';
 
 export type RequestContextVariables = {
-  [key: string]: string;
+  [key: string]: string | number | boolean;
 };
 
 const USER_VALUE_PREFIX = 'currentUser.';
@@ -19,7 +19,7 @@ export default class ContextVariables {
     team,
     user,
   }: {
-    requestContextVariables: RequestContextVariables;
+    requestContextVariables?: RequestContextVariables;
     team: Team;
     user: UserPermissionV4;
   }) {
@@ -35,12 +35,6 @@ export default class ContextVariables {
 
     if (contextVariableKey.startsWith(USER_VALUE_TAG_PREFIX)) {
       return this.user?.tags?.[contextVariableKey.substring(USER_VALUE_TAG_PREFIX.length)];
-    }
-
-    if (contextVariableKey === USER_VALUE_FULLNAME) {
-      return this.user.firstName && this.user.lastName
-        ? `${this.user.firstName} ${this.user.lastName}`
-        : this.user.username;
     }
 
     return this.user?.[contextVariableKey.substring(USER_VALUE_PREFIX.length)];

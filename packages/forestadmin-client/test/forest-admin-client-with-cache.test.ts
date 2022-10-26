@@ -18,6 +18,8 @@ describe('ForestAdminClientWithCache', () => {
         options,
         factories.permission.build(),
         factories.renderingPermission.build(),
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
       );
 
       verifyAndExtractApprovalMock.mockReturnValue(signedParameters);
@@ -36,6 +38,8 @@ describe('ForestAdminClientWithCache', () => {
         factories.forestAdminClientOptions.build(),
         factories.permission.build(),
         renderingPermissionService,
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
       );
 
       await forestAdminClient.markScopesAsUpdated(42);
@@ -51,18 +55,20 @@ describe('ForestAdminClientWithCache', () => {
         factories.forestAdminClientOptions.build(),
         factories.permission.build(),
         renderingPermissionService,
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
       );
 
       (renderingPermissionService.getScope as jest.Mock).mockResolvedValue('scope');
 
       const result = await forestAdminClient.getScope({
         renderingId: 666,
-        collection: { name: 'jedis' },
+        collectionName: 'jedis',
         userId: 42,
       });
 
       expect(renderingPermissionService.getScope).toHaveBeenCalledWith({
-        collection: { name: 'jedis' },
+        collectionName: 'jedis',
         renderingId: 666,
         userId: 42,
       });

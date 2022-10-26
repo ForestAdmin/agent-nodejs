@@ -5,6 +5,7 @@ import { Chart, QueryChart } from '../charts/types';
 import { CollectionRenderingPermissionV4, PermissionLevel, Team, UserPermissionV4 } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import { hashChartRequest, hashServerCharts } from './hash-chart';
+import ContextVariables from '../utils/context-variables';
 import ContextVariablesInjector from '../utils/context-variables-injector';
 import ContextVariablesInstantiator from '../utils/context-variables-instantiator';
 import ForestHttpApi from './forest-http-api';
@@ -34,24 +35,24 @@ export default class RenderingPermissionService {
 
   public async getScope({
     renderingId,
-    collection,
+    collectionName,
     userId,
   }: {
     renderingId: number | string;
-    collection: Collection;
+    collectionName: string;
     userId: number | string;
   }): Promise<GenericTree> {
-    return this.getScopeOrRetry({ renderingId, collection, userId, allowRetry: true });
+    return this.getScopeOrRetry({ renderingId, collectionName, userId, allowRetry: true });
   }
 
   private async getScopeOrRetry({
     renderingId,
-    collection,
+    collectionName,
     userId,
     allowRetry,
   }: {
     renderingId: number | string;
-    collection: Collection;
+    collectionName: string;
     userId: number | string;
     allowRetry: boolean;
   }): Promise<GenericTree> {
@@ -60,28 +61,22 @@ export default class RenderingPermissionService {
       this.userPermissions.getUserInfo(userId),
     ]);
 
-    const collectionPermissions = permissions?.collections?.[collection.name];
+    const collectionPermissions = permissions?.collections?.[collectionName];
 
     if (!collectionPermissions) {
       if (allowRetry) {
         this.invalidateCache(renderingId);
 
-        return this.getScopeOrRetry({ renderingId, collection, userId, allowRetry: false });
+        return this.getScopeOrRetry({ renderingId, collectionName, userId, allowRetry: false });
       }
 
       return null;
     }
 
-    const contextVariablesInstantiator = new ContextVariablesInstantiator(this);
-    const contextVariables = await contextVariablesInstantiator.buildContextVariables({
-      userId: userInfo.id,
-      renderingId,
-    });
 
     return ContextVariablesInjector.injectContextInFilter(
       collectionPermissions.scope,
-      contextVariables,
-      collection,
+      new ContextVariables({ team: permissions.team, user: userInfo }),
     );
   }
 

@@ -1,11 +1,8 @@
-import {
-  Collection,
-  CollectionUtils,
-  ColumnSchema,
-  ColumnType,
+import type {
   PlainConditionTreeBranch,
   PlainConditionTreeLeaf,
 } from '@forestadmin/datasource-toolkit';
+
 import ContextVariables from './context-variables';
 
 export default class ContextVariablesInjector {
@@ -15,62 +12,9 @@ export default class ContextVariablesInjector {
     return 'aggregator' in filter;
   }
 
-  private static getExpectedTypeForCondition(
-    filter: PlainConditionTreeLeaf,
-    collection: Collection,
-  ): ColumnType {
-    if (
-      [
-        'ShorterThan',
-        'LongerThan',
-        'AfterXHoursAgo',
-        'BeforeXHoursAgo',
-        'PreviousXDays',
-        'PreviousXDaysToDate',
-      ].includes(filter.operator)
-    ) {
-      return 'Number';
-    }
-
-    const fieldSchema = CollectionUtils.getFieldSchema(collection, filter.field) as ColumnSchema;
-
-    return fieldSchema.columnType;
-  }
-
-  private static castToBoolean(value: unknown): boolean {
-    if (value === 'true') {
-      return true;
-    }
-
-    if (value === 'false') {
-      return false;
-    }
-
-    return !!value;
-  }
-
-  private static castToType(value: unknown, expectedType: ColumnType): unknown {
-    if (value === null || value === undefined) return value;
-
-    switch (expectedType) {
-      case 'String':
-      case 'Dateonly':
-        return `${value as string | number}`;
-      case 'Number':
-        return Number(value);
-      case 'Boolean':
-        return ContextVariablesInjector.castToBoolean(value);
-      case 'Date':
-        return new Date(value as string | Date);
-      default:
-        return value;
-    }
-  }
-
   public static injectContextInValue<ValueType>(
     value: ValueType,
     contextVariables: ContextVariables,
-    expectedType: ColumnType,
   ): ValueType {
     if (typeof value !== 'string') {
       return value;
@@ -91,19 +35,12 @@ export default class ContextVariablesInjector {
       match = regex.exec(value);
     }
 
-    return ContextVariablesInjector.castToType(
-      valueWithContextVariablesInjected,
-      expectedType,
-    ) as ValueType;
+    return valueWithContextVariablesInjected as unknown as ValueType;
   }
 
   public static injectContextInFilter<
-    PlainConditionTree extends PlainConditionTreeBranch | PlainConditionTreeLeaf,
-  >(
-    filter: PlainConditionTree,
-    contextVariables: ContextVariables,
-    collection: Collection,
-  ): PlainConditionTree {
+    PlainConditionTree extends PlainConditionTreeBranch | PlainConditionTreeLeaf | null,
+  >(filter: PlainConditionTree, contextVariables: ContextVariables): PlainConditionTree {
     if (!filter) {
       return null;
     }
@@ -112,18 +49,14 @@ export default class ContextVariablesInjector {
       return {
         ...filter,
         conditions: filter.conditions.map(condition => {
-          return this.injectContextInFilter(condition, contextVariables, collection);
+          return this.injectContextInFilter(condition, contextVariables);
         }),
       };
     }
 
     return {
       ...filter,
-      value: this.injectContextInValue(
-        filter.value,
-        contextVariables,
-        ContextVariablesInjector.getExpectedTypeForCondition(filter, collection),
-      ),
+      value: this.injectContextInValue(filter.value, contextVariables),
     };
   }
 }
