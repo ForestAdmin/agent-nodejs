@@ -2,7 +2,6 @@
 import * as factories from './__factories__';
 import { AggregateResult } from '../src/interfaces/query/aggregation';
 import { CollectionSchema, ColumnSchema, FieldSchema } from '../src/interfaces/schema';
-import { DataSource } from '../src/interfaces/collection';
 import { RecordData } from '../src/interfaces/record';
 import BaseCollection from '../src/base-collection';
 
@@ -10,7 +9,7 @@ class ConcreteCollection extends BaseCollection {
   override schema: CollectionSchema;
 
   constructor() {
-    super('books', null as unknown as DataSource);
+    super('books', factories.dataSource.build());
   }
 
   create(): Promise<RecordData[]> {
