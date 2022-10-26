@@ -6,16 +6,8 @@ describe('CollectionChartContext', () => {
     name: 'myCollection',
     schema: {
       fields: {
-        id1: factories.columnSchema.build({
-          isPrimaryKey: true,
-          columnType: 'Number',
-          filterOperators: new Set(['Equal', 'In']),
-        }),
-        id2: factories.columnSchema.build({
-          isPrimaryKey: true,
-          columnType: 'Number',
-          filterOperators: new Set(['Equal', 'In']),
-        }),
+        id1: factories.columnSchema.numericPrimaryKey().build(),
+        id2: factories.columnSchema.numericPrimaryKey().build(),
       },
     },
     list: jest.fn().mockResolvedValue([{ id1: 1, id2: 2 }]),

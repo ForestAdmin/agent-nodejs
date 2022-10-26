@@ -15,10 +15,7 @@ function setup() {
       name: 'books',
       schema: {
         fields: {
-          id: factories.columnSchema.build({
-            isPrimaryKey: true,
-            columnType: 'Number',
-          }),
+          id: factories.columnSchema.numericPrimaryKey().build(),
           reviews: factories.manyToManySchema.build({
             foreignCollection: 'reviews',
             originKey: 'bookId',
@@ -39,10 +36,7 @@ function setup() {
       name: 'reviews',
       schema: {
         fields: {
-          id: factories.columnSchema.build({
-            isPrimaryKey: true,
-            columnType: 'Number',
-          }),
+          id: factories.columnSchema.numericPrimaryKey().build(),
         },
       },
     }),
@@ -50,14 +44,8 @@ function setup() {
       name: 'bookReview',
       schema: {
         fields: {
-          bookId: factories.columnSchema.build({
-            isPrimaryKey: true,
-            columnType: 'Number',
-          }),
-          reviewId: factories.columnSchema.build({
-            isPrimaryKey: true,
-            columnType: 'Number',
-          }),
+          bookId: factories.columnSchema.numericPrimaryKey().build(),
+          reviewId: factories.columnSchema.numericPrimaryKey().build(),
           review: factories.manyToOneSchema.build({
             foreignCollection: 'reviews',
             foreignKey: 'reviewId',

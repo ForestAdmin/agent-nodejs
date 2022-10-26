@@ -12,7 +12,7 @@ describe('CollectionApiChartRoute', () => {
     schema: factories.collectionSchema.build({
       charts: ['myChart'],
       fields: {
-        id: factories.columnSchema.build({ columnType: 'Number', isPrimaryKey: true }),
+        id: factories.columnSchema.numericPrimaryKey().build(),
       },
     }),
     renderChart: jest.fn().mockResolvedValue({ countCurrent: 12 }),

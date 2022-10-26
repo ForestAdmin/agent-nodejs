@@ -18,11 +18,7 @@ describe('ChartCollectionDecorator', () => {
       schema: factories.collectionSchema.build({
         charts: ['childChart'],
         fields: {
-          id: factories.columnSchema.build({
-            columnType: 'Number',
-            isPrimaryKey: true,
-            filterOperators: new Set(['Equal', 'In']),
-          }),
+          id: factories.columnSchema.numericPrimaryKey().build(),
         },
       }),
       list: jest.fn().mockResolvedValue([{ id: 123 }]),

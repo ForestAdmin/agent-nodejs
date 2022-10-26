@@ -30,11 +30,7 @@ describe('CollectionUtils', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({
-            isPrimaryKey: true,
-            columnType: 'Number',
-            filterOperators: new Set(['In', 'Equal']),
-          }),
+          id: factories.columnSchema.numericPrimaryKey().build(),
           oneToManyRelationField: factories.oneToManySchema.build({
             foreignCollection: 'reviews',
             originKey: 'bookId',
