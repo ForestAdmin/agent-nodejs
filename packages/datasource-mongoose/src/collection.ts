@@ -176,7 +176,7 @@ export default class MongooseCollection extends BaseCollection {
 
     if (schema.isArray) {
       // Iterate paths in reverse order so that when we delete elements from arrays, the indexes
-      // of the nested elements that we'll touch don't change.
+      // of the next elements that we'll touch don't change.
       for (const path of Object.keys(idsByPath).sort(compareIds).reverse()) {
         const arrayPath = path.substring(0, path.lastIndexOf('.'));
         const index = Number(path.substring(path.lastIndexOf('.') + 1));
