@@ -44,7 +44,7 @@ describe('Builder > Collection', () => {
               foreignCollection: 'translators',
               originKey: 'authorId',
             }),
-            authorId: factories.columnSchema.isPrimaryKey().build({
+            authorId: factories.columnSchema.uuidPrimaryKey().build({
               filterOperators: new Set(['Equal', 'In']),
             }),
             firstName: factories.columnSchema.build({
@@ -61,10 +61,10 @@ describe('Builder > Collection', () => {
         name: 'book_author',
         schema: factories.collectionSchema.build({
           fields: {
-            authorFk: factories.columnSchema.isPrimaryKey().build({
+            authorFk: factories.columnSchema.uuidPrimaryKey().build({
               filterOperators: new Set(['Equal', 'In']),
             }),
-            bookFk: factories.columnSchema.isPrimaryKey().build({
+            bookFk: factories.columnSchema.uuidPrimaryKey().build({
               filterOperators: new Set(['Equal', 'In']),
             }),
           },
@@ -74,7 +74,7 @@ describe('Builder > Collection', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            bookId: factories.columnSchema.isPrimaryKey().build({
+            bookId: factories.columnSchema.uuidPrimaryKey().build({
               filterOperators: new Set(['Equal', 'In']),
             }),
             title: factories.columnSchema.build({ columnType: 'String' }),

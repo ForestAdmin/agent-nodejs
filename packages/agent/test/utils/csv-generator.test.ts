@@ -32,7 +32,7 @@ describe('CsvGenerator', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             name: factories.columnSchema.build({ columnType: 'String' }),
           },
         }),

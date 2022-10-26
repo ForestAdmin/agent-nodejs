@@ -80,8 +80,8 @@ describe('Sort', () => {
         const collectionWithCompositeId = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              id1: factories.columnSchema.isPrimaryKey().build(),
-              id2: factories.columnSchema.isPrimaryKey().build(),
+              id1: factories.columnSchema.uuidPrimaryKey().build(),
+              id2: factories.columnSchema.uuidPrimaryKey().build(),
             },
           }),
         });
@@ -94,7 +94,7 @@ describe('Sort', () => {
         const collectionWithSimpleId = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
             },
           }),
         });

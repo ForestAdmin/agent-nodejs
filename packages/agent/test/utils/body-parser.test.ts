@@ -9,7 +9,7 @@ describe('BodyParser', () => {
     const setupSchema = (): CollectionSchema => {
       return factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
         },
       });
     };

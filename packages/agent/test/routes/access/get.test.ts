@@ -11,7 +11,7 @@ describe('GetRoute', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           name: factories.columnSchema.build({ columnType: 'String' }),
           author: factories.oneToOneSchema.build({
             foreignCollection: 'persons',
@@ -25,7 +25,7 @@ describe('GetRoute', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
         },
       }),

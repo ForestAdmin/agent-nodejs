@@ -90,7 +90,7 @@ describe('Route index', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build(),
+                id: factories.columnSchema.uuidPrimaryKey().build(),
                 personId: factories.columnSchema.build(),
               },
             }),
@@ -100,7 +100,7 @@ describe('Route index', () => {
             name: 'persons',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build(),
+                id: factories.columnSchema.uuidPrimaryKey().build(),
                 books: factories.oneToManySchema.build(),
               },
             }),
@@ -131,7 +131,7 @@ describe('Route index', () => {
             name: 'libraries',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build(),
+                id: factories.columnSchema.uuidPrimaryKey().build(),
                 manyToManyRelationField: factories.manyToManySchema.build(),
               },
             }),
@@ -140,8 +140,8 @@ describe('Route index', () => {
             name: 'librariesBooks',
             schema: factories.collectionSchema.build({
               fields: {
-                bookId: factories.columnSchema.isPrimaryKey().build(),
-                libraryId: factories.columnSchema.isPrimaryKey().build(),
+                bookId: factories.columnSchema.uuidPrimaryKey().build(),
+                libraryId: factories.columnSchema.uuidPrimaryKey().build(),
                 myBook: factories.manyToOneSchema.build(),
                 myLibrary: factories.manyToOneSchema.build(),
               },
@@ -151,7 +151,7 @@ describe('Route index', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build(),
+                id: factories.columnSchema.uuidPrimaryKey().build(),
                 manyToManyRelationField: factories.manyToManySchema.build(),
               },
             }),

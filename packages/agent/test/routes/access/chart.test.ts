@@ -16,7 +16,7 @@ describe('ChartRoute', () => {
       name: 'publisher',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           authors: factories.manyToManySchema.build({
             foreignCollection: 'persons',
             throughCollection: 'books',
@@ -30,7 +30,7 @@ describe('ChartRoute', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           name: factories.columnSchema.build({
             columnType: 'String',
             filterOperators: new Set(['Present']),
@@ -56,7 +56,7 @@ describe('ChartRoute', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           books: factories.oneToManySchema.build({
             foreignCollection: 'books',
             originKey: 'authorId',

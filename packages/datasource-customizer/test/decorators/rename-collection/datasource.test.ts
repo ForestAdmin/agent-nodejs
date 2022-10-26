@@ -8,7 +8,7 @@ describe('RenameCollectionDecorator', () => {
         name: 'book',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             owner: factories.oneToOneSchema.build({
               foreignCollection: 'owner',
               originKey: 'bookId',
@@ -21,7 +21,7 @@ describe('RenameCollectionDecorator', () => {
         name: 'owner',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             bookId: factories.columnSchema.build(),
             book: factories.manyToOneSchema.build({
               foreignCollection: 'book',
@@ -40,7 +40,7 @@ describe('RenameCollectionDecorator', () => {
       name: 'libraries',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           manyToManyRelationField: factories.manyToManySchema.build({
             throughCollection: 'librariesBooks',
             foreignCollection: 'books',
@@ -57,8 +57,8 @@ describe('RenameCollectionDecorator', () => {
       name: 'librariesBooks',
       schema: factories.collectionSchema.build({
         fields: {
-          bookId: factories.columnSchema.isPrimaryKey().build(),
-          libraryId: factories.columnSchema.isPrimaryKey().build(),
+          bookId: factories.columnSchema.uuidPrimaryKey().build(),
+          libraryId: factories.columnSchema.uuidPrimaryKey().build(),
           myBook: factories.manyToOneSchema.build({
             foreignCollection: 'books',
             foreignKey: 'bookId',
@@ -77,7 +77,7 @@ describe('RenameCollectionDecorator', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           manyToManyRelationField: factories.manyToManySchema.build({
             throughCollection: 'librariesBooks',
             foreignCollection: 'libraries',
@@ -107,7 +107,7 @@ describe('RenameCollectionDecorator', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           name: factories.columnSchema.build({ columnType: 'String' }),
           myBooks: factories.manyToOneSchema.build({
             foreignCollection: 'books',
@@ -121,7 +121,7 @@ describe('RenameCollectionDecorator', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           personId: factories.columnSchema.build({ columnType: 'Uuid' }),
           myPersons: factories.manyToOneSchema.build({
             foreignCollection: 'persons',

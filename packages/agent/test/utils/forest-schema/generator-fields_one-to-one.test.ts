@@ -8,9 +8,7 @@ describe('SchemaGeneratorFields > One to One', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            bookPk: factories.columnSchema.isPrimaryKey().build({
-              columnType: 'Number',
-            }),
+            bookPk: factories.columnSchema.numericPrimaryKey().build(),
             authorId: factories.columnSchema.build({
               columnType: 'String',
               isReadOnly: true,

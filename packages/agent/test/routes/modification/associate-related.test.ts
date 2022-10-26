@@ -16,7 +16,7 @@ describe('AssociateRelatedRoute', () => {
         name: 'bookPersons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
           },
         }),
@@ -26,7 +26,7 @@ describe('AssociateRelatedRoute', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             myBookPersons: factories.oneToManySchema.build({
               foreignCollection: 'bookPersons',
               originKey: 'bookId',
@@ -121,7 +121,7 @@ describe('AssociateRelatedRoute', () => {
         name: 'libraries',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             manyToManyRelationField: factories.manyToManySchema.build({
               throughCollection: 'librariesBooks',
               foreignCollection: 'books',
@@ -138,8 +138,8 @@ describe('AssociateRelatedRoute', () => {
         name: 'librariesBooks',
         schema: factories.collectionSchema.build({
           fields: {
-            bookId: factories.columnSchema.isPrimaryKey().build(),
-            libraryId: factories.columnSchema.isPrimaryKey().build(),
+            bookId: factories.columnSchema.uuidPrimaryKey().build(),
+            libraryId: factories.columnSchema.uuidPrimaryKey().build(),
             myBook: factories.manyToOneSchema.build({
               foreignCollection: 'books',
               foreignKey: 'bookId',
@@ -158,7 +158,7 @@ describe('AssociateRelatedRoute', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             manyToManyRelationField: factories.manyToManySchema.build({
               throughCollection: 'librariesBooks',
               foreignCollection: 'libraries',

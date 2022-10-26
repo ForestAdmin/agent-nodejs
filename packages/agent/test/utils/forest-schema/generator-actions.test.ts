@@ -152,7 +152,7 @@ describe('SchemaGeneratorActions', () => {
         name: 'authors',
         schema: factories.collectionSchema.build({
           fields: {
-            primaryId: factories.columnSchema.isPrimaryKey().build(),
+            primaryId: factories.columnSchema.uuidPrimaryKey().build(),
           },
         }),
       }),

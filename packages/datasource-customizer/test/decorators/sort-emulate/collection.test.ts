@@ -51,7 +51,7 @@ describe('SortEmulationDecoratorCollection', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           authorId: factories.columnSchema.build(),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
@@ -74,7 +74,7 @@ describe('SortEmulationDecoratorCollection', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           firstName: factories.columnSchema.build(),
           lastName: factories.columnSchema.build({ isSortable: false }),
         },

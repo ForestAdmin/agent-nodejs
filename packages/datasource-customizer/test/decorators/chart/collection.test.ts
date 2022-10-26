@@ -10,7 +10,7 @@ describe('ChartCollectionDecorator', () => {
   let dataSource: DataSource;
   let decoratedDataSource: DataSourceDecorator<ChartCollectionDecorator>;
   let books: Collection;
-  let newBooks: ChartCollectionDecorator;
+  let decoratedBook: ChartCollectionDecorator;
 
   beforeEach(() => {
     books = factories.collection.build({
@@ -31,30 +31,31 @@ describe('ChartCollectionDecorator', () => {
 
     dataSource = factories.dataSource.buildWithCollections([books]);
     decoratedDataSource = new DataSourceDecorator(dataSource, ChartCollectionDecorator);
-    newBooks = decoratedDataSource.getCollection('books');
+    decoratedBook = decoratedDataSource.getCollection('books');
   });
 
   test('schema should not be changed', () => {
-    expect(newBooks.schema).toStrictEqual(books.schema);
+    expect(decoratedBook.schema).toStrictEqual(books.schema);
   });
 
   test('addChart should not let adding a chart with the same name', () => {
     const fn = () =>
-      newBooks.addChart('childChart', jest.fn().mockResolvedValue({ countCurrent: 2 }));
+      decoratedBook.addChart('childChart', jest.fn().mockResolvedValue({ countCurrent: 2 }));
 
     expect(fn).toThrowError("Chart 'childChart' already exists.");
   });
 
   describe('when a chart is added (single pk)', () => {
-    const handler: jest.Mock = jest.fn().mockResolvedValue({ countCurrent: 2 });
+    let handler: jest.Mock;
 
     beforeEach(() => {
-      newBooks.addChart('newChart', handler);
+      handler = jest.fn().mockResolvedValue({ countCurrent: 2 });
+      decoratedBook.addChart('newChart', handler);
     });
 
     test('renderChart() should call the child collection', async () => {
       const caller = factories.caller.build();
-      const result = await newBooks.renderChart(caller, 'childChart', [123]);
+      const result = await decoratedBook.renderChart(caller, 'childChart', [123]);
 
       expect(books.renderChart).toHaveBeenCalledWith(caller, 'childChart', [123]);
       expect(result).toStrictEqual({ countCurrent: 1 });
@@ -62,7 +63,7 @@ describe('ChartCollectionDecorator', () => {
 
     test('handler should be called when rendering the chart', async () => {
       const caller = factories.caller.build();
-      const result = await newBooks.renderChart(caller, 'newChart', [123]);
+      const result = await decoratedBook.renderChart(caller, 'newChart', [123]);
 
       expect(result).toStrictEqual({ countCurrent: 2 });
 
