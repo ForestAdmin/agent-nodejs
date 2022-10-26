@@ -5,9 +5,9 @@ describe('SchemaUtils', () => {
   describe('isPrimaryKey', () => {
     const schema = factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.isPrimaryKey().build(),
+        id: factories.columnSchema.uuidPrimaryKey().build(),
         notId: factories.columnSchema.build({ isPrimaryKey: false }),
-        otherId: factories.columnSchema.isPrimaryKey().build(),
+        otherId: factories.columnSchema.uuidPrimaryKey().build(),
       },
     });
 

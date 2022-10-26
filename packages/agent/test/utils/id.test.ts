@@ -67,7 +67,7 @@ describe('IdUtils', () => {
   describe('with a schema with a string id field', () => {
     const stringSchema = factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.numericPrimaryKey().build(),
+        id: factories.columnSchema.build({ columnType: 'String', isPrimaryKey: true }),
       },
     });
 
@@ -89,7 +89,7 @@ describe('IdUtils', () => {
     const compositeSchema = factories.collectionSchema.build({
       fields: {
         id: factories.columnSchema.numericPrimaryKey().build(),
-        otherId: factories.columnSchema.uuidPrimaryKey().build({ columnType: 'String' }),
+        otherId: factories.columnSchema.build({ columnType: 'String', isPrimaryKey: true }),
       },
     });
 
