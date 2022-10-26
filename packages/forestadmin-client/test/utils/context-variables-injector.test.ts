@@ -1,7 +1,8 @@
-import { PermissionLevel, UserPermissionV4 } from '../../src/permissions/types';
+import type { GenericTree } from '@forestadmin/datasource-toolkit';
+
+import { PermissionLevel } from '../../src/permissions/types';
 import ContextVariables from '../../src/utils/context-variables';
 import ContextVariablesInjector from '../../src/utils/context-variables-injector';
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
 describe('ContextVariablesInjector', () => {
   const team = { id: 100, name: 'Ninja' };
@@ -91,13 +92,16 @@ describe('ContextVariablesInjector', () => {
             field: 'foo',
             operator: 'Equal',
           };
-  
-          const generated = ContextVariablesInjector.injectContextInFilter(condition, contextVariables);
-  
+
+          const generated = ContextVariablesInjector.injectContextInFilter(
+            condition,
+            contextVariables,
+          );
+
           expect(generated).toEqual(condition);
         },
       );
-  
+
       it("should replace the value by the user's id", () => {
         const condition: GenericTree = {
           value: '{{currentUser.id}}',
@@ -105,30 +109,35 @@ describe('ContextVariablesInjector', () => {
           operator: 'Equal',
         };
 
-  
-        const generated = ContextVariablesInjector.injectContextInFilter(condition, contextVariables);
-  
+        const generated = ContextVariablesInjector.injectContextInFilter(
+          condition,
+          contextVariables,
+        );
+
         expect(generated).toEqual({
           ...condition,
           value: `${user.id}`,
         });
       });
-  
+
       it("should replace the value by the user's tag", () => {
         const condition: GenericTree = {
           value: '{{currentUser.tags.planet}}',
           field: 'foo',
           operator: 'Equal',
         };
-  
-        const generated = ContextVariablesInjector.injectContextInFilter(condition, contextVariables);
-  
+
+        const generated = ContextVariablesInjector.injectContextInFilter(
+          condition,
+          contextVariables,
+        );
+
         expect(generated).toEqual({
           ...condition,
           value: user.tags.planet,
         });
       });
-  
+
       describe('with a value related to the team', () => {
         it("should replace the value by the team's property", () => {
           const condition: GenericTree = {
@@ -136,16 +145,19 @@ describe('ContextVariablesInjector', () => {
             field: 'foo',
             operator: 'Equal',
           };
-  
-          const generated = ContextVariablesInjector.injectContextInFilter(condition, contextVariables);
-  
+
+          const generated = ContextVariablesInjector.injectContextInFilter(
+            condition,
+            contextVariables,
+          );
+
           expect(generated).toEqual({
             ...condition,
             value: team.name,
           });
         });
       });
-  
+
       describe('when the field cannot be found', () => {
         it('should replace with undefined if the dynamic value does not exist', () => {
           const condition: GenericTree = {
@@ -153,9 +165,12 @@ describe('ContextVariablesInjector', () => {
             field: 'foo',
             operator: 'Equal',
           };
-  
-          const generated = ContextVariablesInjector.injectContextInFilter(condition, contextVariables);
-  
+
+          const generated = ContextVariablesInjector.injectContextInFilter(
+            condition,
+            contextVariables,
+          );
+
           expect(generated).toEqual({
             ...condition,
             value: 'undefined',
@@ -163,7 +178,7 @@ describe('ContextVariablesInjector', () => {
         });
       });
     });
-  
+
     describe('with a branch containing multiple leafs', () => {
       it('should replace values in every leaf', () => {
         const condition: GenericTree = {
@@ -191,9 +206,12 @@ describe('ContextVariablesInjector', () => {
             },
           ],
         };
-  
-        const generated = ContextVariablesInjector.injectContextInFilter(condition, contextVariables);
-  
+
+        const generated = ContextVariablesInjector.injectContextInFilter(
+          condition,
+          contextVariables,
+        );
+
         expect(generated).toEqual({
           ...condition,
           conditions: [
@@ -221,11 +239,11 @@ describe('ContextVariablesInjector', () => {
         });
       });
     });
-  
+
     describe('with null', () => {
       it('should return null', () => {
         const generated = ContextVariablesInjector.injectContextInFilter(null, contextVariables);
-  
+
         expect(generated).toBeNull();
       });
     });

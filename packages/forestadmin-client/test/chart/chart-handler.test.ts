@@ -1,14 +1,16 @@
-import ChartHandlerService, { ChartRequest } from '../../src/charts/chart-handler';
-import { ChartType, PieChart, ValueChart, LeaderboardChart, ObjectiveChart, LineChart } from '../../src/charts/types';
-import ActionPermissionService from '../../src/permissions/action-permission';
-import ForestHttpApi from '../../src/permissions/forest-http-api';
-import generateActionsFromPermissions, {
-  ActionPermissions,
-} from '../../src/permissions/generate-actions-from-permissions';
-import ContextVariablesInjector from '../../src/utils/context-variables-injector';
-import { contextVariablesInstantiator } from '../__factories__';
-import contextVariablesInstantiatorFactory, { ContextVariablesInstantiatorFactory } from '../__factories__/utils/context-variables-instantiator';
 import type { PlainConditionTreeBranch } from '@forestadmin/datasource-toolkit';
+
+import {
+  ChartType,
+  LeaderboardChart,
+  LineChart,
+  ObjectiveChart,
+  PieChart,
+  ValueChart,
+} from '../../src/charts/types';
+import ChartHandlerService, { ChartRequest } from '../../src/charts/chart-handler';
+import ContextVariablesInjector from '../../src/utils/context-variables-injector';
+import contextVariablesInstantiatorFactory from '../__factories__/utils/context-variables-instantiator';
 
 jest.mock('../../src/permissions/forest-http-api', () => ({
   getUsers: jest.fn(),
@@ -20,13 +22,11 @@ jest.mock('../../src/permissions/generate-actions-from-permissions', () => ({
   default: jest.fn(),
 }));
 
-const generateActionsFromPermissionsMock = generateActionsFromPermissions as jest.Mock;
-const getUsersMock = ForestHttpApi.getUsers as jest.Mock;
-const getEnvironmentPermissionsMock = ForestHttpApi.getEnvironmentPermissions as jest.Mock;
-
 describe('ChartHandlerService', () => {
   function setup() {
-    const contextVariablesInstantiator = contextVariablesInstantiatorFactory.mockAllMethods().build();
+    const contextVariablesInstantiator = contextVariablesInstantiatorFactory
+      .mockAllMethods()
+      .build();
     const service = new ChartHandlerService(contextVariablesInstantiator);
 
     const users = [
@@ -35,8 +35,9 @@ describe('ChartHandlerService', () => {
     ];
     const contextVariables = { test: 'me' };
 
-    const buildContextVariablesMock = contextVariablesInstantiator.buildContextVariables as jest.Mock;
-    buildContextVariablesMock.mockResolvedValue(contextVariables)
+    const buildContextVariablesMock =
+      contextVariablesInstantiator.buildContextVariables as jest.Mock;
+    buildContextVariablesMock.mockResolvedValue(contextVariables);
 
     return { service, users, contextVariablesInstantiator, contextVariables };
   }
@@ -49,20 +50,27 @@ describe('ChartHandlerService', () => {
     describe('with a Pie chart', () => {
       test('it should replace filter and aggregator when using context', async () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
-        
-        const injectedFilter: PlainConditionTreeBranch = { aggregator: 'And', conditions: [{ field: 'test', operator: 'Equal', value: 'me' }] };
-        jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(injectedFilter);
+
+        const injectedFilter: PlainConditionTreeBranch = {
+          aggregator: 'And',
+          conditions: [{ field: 'test', operator: 'Equal', value: 'me' }],
+        };
+        jest
+          .spyOn(ContextVariablesInjector, 'injectContextInFilter')
+          .mockReturnValue(injectedFilter);
         jest.spyOn(ContextVariablesInjector, 'injectContextInValue').mockReturnValue('Sum');
 
         const filter: PlainConditionTreeBranch = {
-          aggregator:'Or',
-          conditions: [{
-            field: 'name',
-            operator: 'Equal',
-            value: '{{masters.selectedRecord.name}}',
-          }]
+          aggregator: 'Or',
+          conditions: [
+            {
+              field: 'name',
+              operator: 'Equal',
+              value: '{{masters.selectedRecord.name}}',
+            },
+          ],
         };
-        const requestContextVariables = { 'you': 'are' };
+        const requestContextVariables = { you: 'are' };
         const chartRequest: ChartRequest<PieChart> = {
           type: ChartType.Pie,
           aggregator: '{{aggregators.selectedValue}}' as 'Sum' | 'Count',
@@ -98,27 +106,34 @@ describe('ChartHandlerService', () => {
           userId,
           renderingId,
           requestContextVariables,
-        })
+        });
       });
     });
 
     describe('with a Value chart', () => {
       test('it should replace filter and aggregator when using context', async () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
-        
-        const injectedFilter: PlainConditionTreeBranch = { aggregator: 'And', conditions: [{ field: 'test', operator: 'Equal', value: 'me' }] };
-        jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(injectedFilter);
+
+        const injectedFilter: PlainConditionTreeBranch = {
+          aggregator: 'And',
+          conditions: [{ field: 'test', operator: 'Equal', value: 'me' }],
+        };
+        jest
+          .spyOn(ContextVariablesInjector, 'injectContextInFilter')
+          .mockReturnValue(injectedFilter);
         jest.spyOn(ContextVariablesInjector, 'injectContextInValue').mockReturnValue('Sum');
 
         const filter: PlainConditionTreeBranch = {
-          aggregator:'Or',
-          conditions: [{
-            field: 'name',
-            operator: 'Equal',
-            value: '{{masters.selectedRecord.name}}',
-          }]
+          aggregator: 'Or',
+          conditions: [
+            {
+              field: 'name',
+              operator: 'Equal',
+              value: '{{masters.selectedRecord.name}}',
+            },
+          ],
         };
-        const requestContextVariables = { 'you': 'are' };
+        const requestContextVariables = { you: 'are' };
         const chartRequest: ChartRequest<ValueChart> = {
           type: ChartType.Value,
           aggregator: '{{aggregators.selectedValue}}' as 'Sum' | 'Count',
@@ -152,27 +167,36 @@ describe('ChartHandlerService', () => {
           userId,
           renderingId,
           requestContextVariables,
-        })
+        });
       });
     });
 
     describe('with a Objective chart', () => {
       test('it should replace filter and aggregator when using context', async () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
-        
-        const injectedFilter: PlainConditionTreeBranch = { aggregator: 'And', conditions: [{ field: 'test', operator: 'Equal', value: 'me' }] };
-        jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(injectedFilter);
-        jest.spyOn(ContextVariablesInjector, 'injectContextInValue').mockImplementation(value => value === '{{aggregators.selectedValue}}' ? 'Sum' : 134);
+
+        const injectedFilter: PlainConditionTreeBranch = {
+          aggregator: 'And',
+          conditions: [{ field: 'test', operator: 'Equal', value: 'me' }],
+        };
+        jest
+          .spyOn(ContextVariablesInjector, 'injectContextInFilter')
+          .mockReturnValue(injectedFilter);
+        jest
+          .spyOn(ContextVariablesInjector, 'injectContextInValue')
+          .mockImplementation(value => (value === '{{aggregators.selectedValue}}' ? 'Sum' : 134));
 
         const filter: PlainConditionTreeBranch = {
-          aggregator:'Or',
-          conditions: [{
-            field: 'name',
-            operator: 'Equal',
-            value: '{{masters.selectedRecord.name}}',
-          }]
+          aggregator: 'Or',
+          conditions: [
+            {
+              field: 'name',
+              operator: 'Equal',
+              value: '{{masters.selectedRecord.name}}',
+            },
+          ],
         };
-        const requestContextVariables = { 'you': 'are' };
+        const requestContextVariables = { you: 'are' };
         const chartRequest: ChartRequest<ObjectiveChart> = {
           type: ChartType.Objective,
           aggregator: '{{aggregators.selectedValue}}' as 'Sum' | 'Count',
@@ -212,27 +236,38 @@ describe('ChartHandlerService', () => {
           userId,
           renderingId,
           requestContextVariables,
-        })
+        });
       });
     });
 
     describe('with a Line chart', () => {
       test('it should replace filter and aggregator when using context', async () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
-        
-        const injectedFilter: PlainConditionTreeBranch = { aggregator: 'And', conditions: [{ field: 'test', operator: 'Equal', value: 'me' }] };
-        jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(injectedFilter);
-        jest.spyOn(ContextVariablesInjector, 'injectContextInValue').mockImplementation(value => value === '{{aggregators.selectedValue}}' ? 'Sum' : 'Year');
+
+        const injectedFilter: PlainConditionTreeBranch = {
+          aggregator: 'And',
+          conditions: [{ field: 'test', operator: 'Equal', value: 'me' }],
+        };
+        jest
+          .spyOn(ContextVariablesInjector, 'injectContextInFilter')
+          .mockReturnValue(injectedFilter);
+        jest
+          .spyOn(ContextVariablesInjector, 'injectContextInValue')
+          .mockImplementation(value =>
+            value === '{{aggregators.selectedValue}}' ? 'Sum' : 'Year',
+          );
 
         const filter: PlainConditionTreeBranch = {
-          aggregator:'Or',
-          conditions: [{
-            field: 'name',
-            operator: 'Equal',
-            value: '{{masters.selectedRecord.name}}',
-          }]
+          aggregator: 'Or',
+          conditions: [
+            {
+              field: 'name',
+              operator: 'Equal',
+              value: '{{masters.selectedRecord.name}}',
+            },
+          ],
         };
-        const requestContextVariables = { 'you': 'are' };
+        const requestContextVariables = { you: 'are' };
         const chartRequest: ChartRequest<LineChart> = {
           type: ChartType.Line,
           aggregator: '{{aggregators.selectedValue}}' as 'Sum' | 'Count',
@@ -274,26 +309,19 @@ describe('ChartHandlerService', () => {
           userId,
           renderingId,
           requestContextVariables,
-        })
+        });
       });
     });
 
     describe('with a Leaderboard chart', () => {
       test('it should replace filter and aggregator when using context', async () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
-        
-        const injectedFilter: PlainConditionTreeBranch = { aggregator: 'And', conditions: [{ field: 'test', operator: 'Equal', value: 'me' }] };
-        jest.spyOn(ContextVariablesInjector, 'injectContextInValue').mockImplementation(value => value === '{{aggregators.selectedValue}}' ? 'Sum' : 13);
 
-        const filter: PlainConditionTreeBranch = {
-          aggregator:'Or',
-          conditions: [{
-            field: 'name',
-            operator: 'Equal',
-            value: '{{masters.selectedRecord.name}}',
-          }]
-        };
-        const requestContextVariables = { 'you': 'are' };
+        jest
+          .spyOn(ContextVariablesInjector, 'injectContextInValue')
+          .mockImplementation(value => (value === '{{aggregators.selectedValue}}' ? 'Sum' : 13));
+
+        const requestContextVariables = { you: 'are' };
         const chartRequest: ChartRequest<LeaderboardChart> = {
           type: ChartType.Leaderboard,
           aggregator: '{{aggregators.selectedValue}}' as 'Sum' | 'Count',
@@ -331,7 +359,7 @@ describe('ChartHandlerService', () => {
           userId,
           renderingId,
           requestContextVariables,
-        })
+        });
       });
     });
   });

@@ -1,5 +1,5 @@
 import LruCache from 'lru-cache';
-import type { Collection, GenericTree } from '@forestadmin/datasource-toolkit';
+import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
 import { Chart, QueryChart } from '../charts/types';
 import { CollectionRenderingPermissionV4, PermissionLevel, Team, UserPermissionV4 } from './types';
@@ -7,7 +7,6 @@ import { ForestAdminClientOptionsWithDefaults } from '../types';
 import { hashChartRequest, hashServerCharts } from './hash-chart';
 import ContextVariables from '../utils/context-variables';
 import ContextVariablesInjector from '../utils/context-variables-injector';
-import ContextVariablesInstantiator from '../utils/context-variables-instantiator';
 import ForestHttpApi from './forest-http-api';
 import UserPermissionService from './user-permission';
 import isSegmentQueryAllowed from './is-segment-query-authorized';
@@ -72,7 +71,6 @@ export default class RenderingPermissionService {
 
       return null;
     }
-
 
     return ContextVariablesInjector.injectContextInFilter(
       collectionPermissions.scope,

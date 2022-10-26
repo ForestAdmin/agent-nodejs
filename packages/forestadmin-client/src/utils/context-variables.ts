@@ -5,7 +5,6 @@ export type RequestContextVariables = {
 };
 
 const USER_VALUE_PREFIX = 'currentUser.';
-const USER_VALUE_FULLNAME = 'currentUser.fullName';
 const USER_VALUE_TAG_PREFIX = 'currentUser.tags.';
 const USER_VALUE_TEAM_PREFIX = 'currentUser.team.';
 

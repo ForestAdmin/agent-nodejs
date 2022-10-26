@@ -104,7 +104,7 @@ describe('ChartRoute', () => {
         aggregator: 'Count',
         sourceCollectionName: 'books',
         filters: undefined,
-      }
+      };
       const context = createMockContext({
         requestBody: chartRequest,
         customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -121,7 +121,7 @@ describe('ChartRoute', () => {
       expect(getChartMock).toHaveBeenCalledWith({
         chartRequest,
         userId: 100,
-        renderingId: 'myRenderingId'
+        renderingId: 'myRenderingId',
       });
       expect(context.response.body).toMatchObject({
         data: {
@@ -366,7 +366,11 @@ describe('ChartRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'aggregate')
         .mockResolvedValueOnce([{ value: 1234, group: null }]);
       const chart = new Chart(services, options, dataSource, 'books');
-      const chartRequest = { type: 'Objective', aggregator: 'Count', sourceCollectionName: 'books' };
+      const chartRequest = {
+        type: 'Objective',
+        aggregator: 'Count',
+        sourceCollectionName: 'books',
+      };
       const context = createMockContext({
         requestBody: chartRequest,
         customProperties: { query: { timezone: 'Europe/Paris' } },
@@ -383,7 +387,7 @@ describe('ChartRoute', () => {
       expect(getChartMock).toHaveBeenCalledWith({
         chartRequest,
         userId: 100,
-        renderingId: 'myRenderingId'
+        renderingId: 'myRenderingId',
       });
       expect(context.response.body).toMatchObject({
         data: {
@@ -469,7 +473,7 @@ describe('ChartRoute', () => {
       expect(getChartMock).toHaveBeenCalledWith({
         chartRequest,
         userId: 100,
-        renderingId: 'myRenderingId'
+        renderingId: 'myRenderingId',
       });
       expect(context.response.body).toMatchObject({
         data: {
@@ -580,7 +584,7 @@ describe('ChartRoute', () => {
       expect(getChartMock).toHaveBeenCalledWith({
         chartRequest,
         userId: 100,
-        renderingId: 'myRenderingId'
+        renderingId: 'myRenderingId',
       });
       expect(context.response.body).toMatchObject({
         data: {
@@ -700,7 +704,7 @@ describe('ChartRoute', () => {
       expect(getChartMock).toHaveBeenCalledWith({
         chartRequest,
         userId: 100,
-        renderingId: 'myRenderingId'
+        renderingId: 'myRenderingId',
       });
       expect(context.response.body).toMatchObject({
         data: {

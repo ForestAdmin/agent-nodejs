@@ -1,6 +1,15 @@
-import type { AggregatedChart, ApiRouteChart, Chart, FilterableChart, GroupedByChart, LeaderboardChart, LineChart, ObjectiveChart } from "../charts/types";
+import type {
+  AggregatedChart,
+  ApiRouteChart,
+  Chart,
+  FilterableChart,
+  GroupedByChart,
+  LeaderboardChart,
+  LineChart,
+  ObjectiveChart,
+} from '../charts/types';
 
-import { ChartType } from "../charts/types";
+import { ChartType } from '../charts/types';
 
 export default class ChartDetector {
   public static isAPIRouteChart(chart: Chart): chart is ApiRouteChart {
