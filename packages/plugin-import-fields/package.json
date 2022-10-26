@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/plugin-import-fields",
-  "version": "1.0.0",
+  "version": "0.0.0-development",
   "description": "A plugin that import all fields from a relation",
   "main": "dist/index.js",
   "license": "GPL-3.0",
@@ -15,7 +15,7 @@
     "lint": "eslint src test",
     "test": "jest"
   },
-  "dependencies": {
+  "devDependencies": {
     "@forestadmin/datasource-customizer": "^1.2.0",
     "@forestadmin/datasource-toolkit": "^1.0.0"
   }

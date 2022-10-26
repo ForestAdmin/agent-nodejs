@@ -1,21 +1,17 @@
-import { RelationSchema, SchemaUtils } from '@forestadmin/datasource-toolkit';
-
-import {
+/* eslint-disable import/prefer-default-export */
+import type {
   CollectionCustomizer,
   DataSourceCustomizer,
-  TCollectionName,
-  TFieldName,
-  TFieldRelation,
-  TRelationName,
-  TSchema,
 } from '@forestadmin/datasource-customizer';
+import type { CollectionSchema, RelationSchema } from '@forestadmin/datasource-toolkit';
 
-function getRelationOrThrowError<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
->(
-  relationName: TRelationName<S, N>,
-  collectionCustomizer: CollectionCustomizer<S, N>,
+function getColumns(schema: CollectionSchema): string[] {
+  return Object.keys(schema.fields).filter(fieldName => schema.fields[fieldName].type === 'Column');
+}
+
+function getRelationOrThrowError(
+  relationName: string,
+  collectionCustomizer: CollectionCustomizer,
 ): RelationSchema {
   const relation = collectionCustomizer.schema.fields[relationName] as RelationSchema;
 
@@ -49,27 +45,21 @@ function getRelationOrThrowError<
  * @param options.include - The list of fields to import.
  * @param options.exclude - The list of fields to exclude.
  */
-export default async function importFields<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
->(
-  dataSourceCustomizer: DataSourceCustomizer<S>,
-  collectionCustomizer: CollectionCustomizer<S, N>,
-  options: {
-    relationName: TRelationName<S, N>;
-    include?: TFieldRelation<S, N>[];
-    exclude?: TFieldRelation<S, N>[];
+export async function importFields(
+  dataSourceCustomizer: DataSourceCustomizer,
+  collectionCustomizer: CollectionCustomizer,
+  options?: {
+    relationName: string;
+    include?: string[];
+    exclude?: string[];
   },
 ): Promise<void> {
   const { relationName, include, exclude } = options;
 
   const relation = getRelationOrThrowError(relationName, collectionCustomizer);
-  const foreignCollection = dataSourceCustomizer.getCollection(relation.foreignCollection as N);
-
+  const foreignCollection = dataSourceCustomizer.getCollection(relation.foreignCollection);
   const columns =
-    include?.length > 0
-      ? new Set(include)
-      : new Set(SchemaUtils.getColumns(foreignCollection.schema));
+    include?.length > 0 ? new Set(include) : new Set(getColumns(foreignCollection.schema));
 
   if (exclude?.length > 0) {
     exclude.forEach(column => columns.delete(column));
@@ -78,7 +68,7 @@ export default async function importFields<
   columns.forEach(column => {
     const path = `${relationName}:${column}`;
     const supportedFormatByFrontend = `${relationName}_${column}`;
-    collectionCustomizer.importField(supportedFormatByFrontend, { path: path as TFieldName<S, N> });
+    collectionCustomizer.importField(supportedFormatByFrontend, { path });
   });
 
   return this;
