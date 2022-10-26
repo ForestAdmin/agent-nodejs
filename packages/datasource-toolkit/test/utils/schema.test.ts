@@ -2,22 +2,6 @@ import * as factories from '../__factories__';
 import SchemaUtils from '../../src/utils/schema';
 
 describe('SchemaUtils', () => {
-  describe('getColumns', () => {
-    const schema = factories.collectionSchema.build({
-      fields: {
-        aField: factories.columnSchema.build(),
-        anOtherField: factories.columnSchema.build(),
-        aRelation: factories.oneToOneSchema.build(),
-      },
-    });
-
-    test('should return only the columns', () => {
-      const result = SchemaUtils.getColumns(schema);
-
-      expect(result).toStrictEqual(['aField', 'anOtherField']);
-    });
-  });
-
   describe('getPrimaryKeys', () => {
     const schema = factories.collectionSchema.build({
       fields: {

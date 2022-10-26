@@ -1,8 +1,9 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 
-import { DataSource } from '@forestadmin/datasource-toolkit';
-import importFields from '../src/index';
+import { ColumnSchema, DataSource } from '@forestadmin/datasource-toolkit';
+import { importFields } from '../src';
 
 describe('plugin importFields', () => {
   const logger = () => {};
@@ -75,6 +76,58 @@ describe('plugin importFields', () => {
       'owner_bookId',
       'owner_name',
     ]);
+  });
+
+  describe('when the readonly option is passed', () => {
+    it('imports all fields with readonly as true', async () => {
+      const customizer = new DataSourceCustomizer();
+      customizer.addDataSource(async () => setupWithOneToOneRelation());
+      const dataSource = await customizer
+        .customizeCollection('book', book =>
+          book.use(importFields, { relationName: 'owner', readonly: true }),
+        )
+        .getDataSource(logger);
+
+      const { fields } = dataSource.getCollection('book').schema;
+      expect((fields.owner_bookId as ColumnSchema).isReadOnly).toEqual(true);
+      expect((fields.owner_name as ColumnSchema).isReadOnly).toEqual(true);
+    });
+  });
+
+  describe('when the plugin is called from the datasource', () => {
+    it('should throw an error', async () => {
+      const customizer = new DataSourceCustomizer();
+      await expect(
+        customizer.use(importFields, { relationName: 'aRelation' }).getDataSource(logger),
+      ).rejects.toThrow(
+        'This plugin should be called when you are' +
+          ' customizing a collection not directly on the agent',
+      );
+    });
+  });
+
+  describe('when the relation name is not given', () => {
+    it('should throw an error when option is null', async () => {
+      const customizer = new DataSourceCustomizer();
+      customizer.addDataSource(async () => setupWithOneToOneRelation());
+      await expect(
+        customizer
+          .customizeCollection('book', book => book.use(importFields))
+          .getDataSource(logger),
+      ).rejects.toThrow('Relation name is required');
+    });
+
+    it('should throw an error when relation name is not given', async () => {
+      const customizer = new DataSourceCustomizer();
+      customizer.addDataSource(async () => setupWithOneToOneRelation());
+      await expect(
+        customizer
+          .customizeCollection('book', book =>
+            book.use(importFields, {} as { relationName: string }),
+          )
+          .getDataSource(logger),
+      ).rejects.toThrow('Relation name is required');
+    });
   });
 
   describe('when the relation does not exist', () => {

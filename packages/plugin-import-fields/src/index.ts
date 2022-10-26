@@ -37,13 +37,14 @@ function getRelationOrThrowError(
 }
 
 /**
- * Import all the fields of a relation in the current collection.
- * @param dataSourceCustomizer - The da dataSource customizer provided by the agent.
+ * Import all fields of a relation in the current collection.
+ * @param dataSourceCustomizer - The dataSource customizer provided by the agent.
  * @param collectionCustomizer - The collection customizer instance provided by the agent.
  * @param options - The options of the plugin.
  * @param options.relationName - The name of the relation to import.
  * @param options.include - The list of fields to import.
  * @param options.exclude - The list of fields to exclude.
+ * @param options.readonly - Should the imported fields be read-only?
  */
 export async function importFields(
   dataSourceCustomizer: DataSourceCustomizer,
@@ -52,9 +53,21 @@ export async function importFields(
     relationName: string;
     include?: string[];
     exclude?: string[];
+    readonly?: boolean;
   },
 ): Promise<void> {
-  const { relationName, include, exclude } = options;
+  if (!options || !options.relationName) {
+    throw new Error('Relation name is required');
+  }
+
+  if (!collectionCustomizer) {
+    throw new Error(
+      'This plugin should be called when you are customizing a collection' +
+        ' not directly on the agent',
+    );
+  }
+
+  const { relationName, include, exclude, readonly } = options;
 
   const relation = getRelationOrThrowError(relationName, collectionCustomizer);
   const foreignCollection = dataSourceCustomizer.getCollection(relation.foreignCollection);
@@ -68,7 +81,7 @@ export async function importFields(
   columns.forEach(column => {
     const path = `${relationName}:${column}`;
     const supportedFormatByFrontend = `${relationName}_${column}`;
-    collectionCustomizer.importField(supportedFormatByFrontend, { path });
+    collectionCustomizer.importField(supportedFormatByFrontend, { path, readonly });
   });
 
   return this;

@@ -21,18 +21,6 @@ export type TSchema = Record<string, { plain: RecordData; nested: RecordData; fl
 /** Collection name */
 export type TCollectionName<S extends TSchema> = Extract<keyof S, string>;
 
-/** Relation names (no field) */
-export type TRelationName<S extends TSchema, N extends TCollectionName<S>> = Extract<
-  keyof S[N]['nested'],
-  string
->;
-
-/** Field names of the relations */
-export type TFieldRelation<S extends TSchema, N extends TCollectionName<S>> = Extract<
-  keyof S[N]['flat'],
-  string
->;
-
 /** Column name (no relations) */
 export type TColumnName<S extends TSchema, N extends TCollectionName<S>> = Extract<
   keyof S[N]['plain'],

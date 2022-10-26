@@ -1,12 +1,6 @@
 import { CollectionSchema, ManyToManySchema, OneToManySchema } from '../interfaces/schema';
 
 export default class SchemaUtils {
-  static getColumns(schema: CollectionSchema): string[] {
-    return Object.keys(schema.fields).filter(
-      fieldName => schema.fields[fieldName].type === 'Column',
-    );
-  }
-
   static getPrimaryKeys(schema: CollectionSchema): string[] {
     return Object.keys(schema.fields).filter(fieldName => {
       const field = schema.fields[fieldName];
