@@ -1,5 +1,4 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import Router from '@koa/router';
 
 import * as factories from '../../__factories__';
 import CollectionApiChartRoute from '../../../src/routes/access/api-chart-collection';
@@ -33,23 +32,9 @@ describe('CollectionApiChartRoute', () => {
 
   describe('with the route mounted', () => {
     let route: CollectionApiChartRoute;
-    let handleApiChart: Router.Middleware;
-    let handleSmartChart: Router.Middleware;
 
     beforeEach(() => {
       route = new CollectionApiChartRoute(services, options, dataSource, 'books', 'myChart');
-      route.setupRoutes({
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        post: (_: string, handler: Router.Middleware) => {
-          handleApiChart = handler;
-        },
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        get: (_: string, handler: Router.Middleware) => {
-          handleSmartChart = handler;
-        },
-      });
     });
 
     test('handleApiChart should return the chart in a JSON-API response', async () => {
@@ -58,7 +43,9 @@ describe('CollectionApiChartRoute', () => {
         state: { user: { email: 'marty@doclabs.com' } },
         requestBody: { record_id: 123 },
       });
-      await handleApiChart.call(route, context);
+
+      // @ts-expect-error: testing private method
+      await route.handleApiChart(context);
 
       expect(dataSource.getCollection('books').renderChart).toHaveBeenCalledWith(
         { email: 'marty@doclabs.com', timezone: 'Europe/Paris' },
@@ -80,7 +67,8 @@ describe('CollectionApiChartRoute', () => {
         state: { user: { email: 'marty@doclabs.com' } },
       });
 
-      await handleSmartChart.call(route, context);
+      // @ts-expect-error: testing private method
+      await route.handleSmartChart(context);
 
       expect(dataSource.getCollection('books').renderChart).toHaveBeenCalledWith(
         { email: 'marty@doclabs.com', timezone: 'Europe/Paris' },
