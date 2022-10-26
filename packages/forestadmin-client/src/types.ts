@@ -81,4 +81,9 @@ export interface PermissionService {
     customActionName: string;
     collectionName: string;
   }): Promise<GenericTree>;
+
+  getConditionalApproveFilters(params: {
+    customActionName: string;
+    collectionName: string;
+  }): Promise<Map<number, GenericTree>>;
 }

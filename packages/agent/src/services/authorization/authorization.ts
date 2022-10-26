@@ -7,14 +7,16 @@ import {
   ConditionTree,
   ConditionTreeFactory,
   Filter,
-  ForbiddenError,
   GenericTree,
-  UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 import { CollectionActionEvent, ForestAdminClient } from '@forestadmin/forestadmin-client';
 
 import { HttpCode } from '../../types';
+import ApprovalNotAllowedError from './errors/approvalNotAllowedError';
 import ConditionTreeParser from '../../utils/condition-tree-parser';
+import CustomActionRequiresApprovalError from './errors/CustomActionRequiresApprovalError';
+import CustomActionTriggerForbiddenError from './errors/customActionTriggerForbiddenError';
+import InvalidActionConditionError from './errors/invalidActionConditionError';
 
 export default class AuthorizationService {
   constructor(private readonly forestAdminClient: ForestAdminClient) {}
@@ -68,14 +70,15 @@ export default class AuthorizationService {
     customActionName,
     collectionName,
     collectionAggregate,
-    requestConditionTree,
+    requestConditionTreeForCaller,
     caller,
   }: {
     context: Context;
     customActionName: string;
     collectionName: string;
     collectionAggregate: Collection['aggregate'];
-    requestConditionTree: ConditionTree;
+    requestConditionTreeForCaller: ConditionTree;
+    requestConditionTreeForAllCaller: ConditionTree;
     caller: Caller;
   }): Promise<void> {
     const { id: userId } = context.state.user;
@@ -92,7 +95,7 @@ export default class AuthorizationService {
     const preBakedIntersectAggregate = this.makeBakedIntersectAggregate(
       caller,
       collectionAggregate,
-      requestConditionTree,
+      requestConditionTreeForCaller,
     );
 
     // Checking conditional trigger filter
@@ -112,7 +115,7 @@ export default class AuthorizationService {
       // if some records don't match the condition the user is not allow to perform the action
 
       if (matchingRecordsCount !== requestRecordsCount) {
-        throw new ForbiddenError('CustomActionTriggerForbiddenError');
+        throw new CustomActionTriggerForbiddenError();
       }
     }
 
@@ -151,8 +154,12 @@ export default class AuthorizationService {
 
     // CASE: Some records match the condition -> CustomAction RequiresApproval
     // OR CASE: No conditional RequireApproval filter -> CustomAction always RequiresApproval
-    // + compute rolesIdsAllowedToApprove somehow
-    throw new ForbiddenError('CustomActionRequiresApprovalError');
+    const rolesIdsAllowedToApprove = await this.getRolesIdsAllowedToApprove(
+      customActionName,
+      collectionName,
+      preBakedIntersectAggregate,
+    );
+    throw new CustomActionRequiresApprovalError(rolesIdsAllowedToApprove);
   }
 
   public async assertCanApproveCustomAction({
@@ -161,7 +168,7 @@ export default class AuthorizationService {
     collectionName,
     requesterId,
     collectionAggregate,
-    requestConditionTree,
+    requestConditionTreeForCaller,
     caller,
   }: {
     context: Context;
@@ -169,7 +176,8 @@ export default class AuthorizationService {
     collectionName: string;
     requesterId: number | string;
     collectionAggregate: Collection['aggregate'];
-    requestConditionTree: ConditionTree;
+    requestConditionTreeForCaller: ConditionTree;
+    requestConditionTreeForAllCaller: ConditionTree;
     caller: Caller;
   }): Promise<void> {
     const { id: userId } = context.state.user;
@@ -180,17 +188,22 @@ export default class AuthorizationService {
       requesterId,
     });
 
-    if (!canApprove) {
-      // CASE: ApprovalNotAllowedError
-      // + compute rolesIdsAllowedToApprove somehow
-      throw new ForbiddenError('ApprovalNotAllowedError');
-    }
-
     const preBakedIntersectAggregate = this.makeBakedIntersectAggregate(
       caller,
       collectionAggregate,
-      requestConditionTree,
+      requestConditionTreeForCaller,
     );
+
+    if (!canApprove) {
+      // CASE: ApprovalNotAllowedError
+      const rolesIdsAllowedToApprove = await this.getRolesIdsAllowedToApprove(
+        customActionName,
+        collectionName,
+        preBakedIntersectAggregate,
+      );
+
+      throw new ApprovalNotAllowedError(rolesIdsAllowedToApprove);
+    }
 
     // Checking conditional approve filter
     const conditionalApproveRawFilter =
@@ -208,10 +221,13 @@ export default class AuthorizationService {
       // CASE: Condition partially respected -> CustomAction ApprovalNotAllowedError
       // if some records don't match the condition the user is not allow to approve the action
       if (matchingRecordsCount !== requestRecordsCount) {
-        // + compute rolesIdsAllowedToApprove somehow
-        // WARNING requestConditionTree have scope inside !
-        // Shouldn’t use the same for computing rolesIdsAllowedToApprove
-        throw new ForbiddenError('ApprovalNotAllowedError');
+        // WARNING requestConditionTreeForCaller have scope inside !
+        const rolesIdsAllowedToApprove = await this.getRolesIdsAllowedToApprove(
+          customActionName,
+          collectionName,
+          preBakedIntersectAggregate,
+        );
+        throw new ApprovalNotAllowedError(rolesIdsAllowedToApprove);
       }
     }
 
@@ -302,8 +318,36 @@ export default class AuthorizationService {
 
         return (rows?.[0]?.value as number) ?? 0;
       } catch (error) {
-        throw new UnprocessableError('InvalidActionConditionError');
+        throw new InvalidActionConditionError();
       }
     };
+  }
+
+  private async getRolesIdsAllowedToApprove(
+    customActionName: string,
+    collectionName: string,
+    aggregate: (conditionalRawFilter?: GenericTree) => Promise<number>,
+  ) {
+    const rolesIdsAllowedToApprove = [];
+
+    const conditionsByRoleId =
+      await this.forestAdminClient.permissionService.getConditionalApproveFilters({
+        customActionName,
+        collectionName,
+      });
+
+    // No optimized way to do it
+    const requestRecordsCount = await aggregate();
+
+    // No optimized way to do it
+    conditionsByRoleId.forEach(async (filter, roleId) => {
+      const matchingRecordsCount = await aggregate(filter);
+
+      if (requestRecordsCount === matchingRecordsCount) {
+        rolesIdsAllowedToApprove.push(roleId);
+      }
+    });
+
+    return rolesIdsAllowedToApprove;
   }
 }

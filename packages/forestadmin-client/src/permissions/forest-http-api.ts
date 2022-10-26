@@ -31,7 +31,7 @@ export default class ForestHttpApi {
   }
 
   static async getRenderingPermissions(
-    renderingId: number,
+    renderingId: string,
     options: HttpOptions,
   ): Promise<RenderingPermissionV4> {
     try {

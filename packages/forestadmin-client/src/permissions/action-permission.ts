@@ -114,7 +114,7 @@ export default class ActionPermissionService {
     return generateActionsFromPermissions(rawPermissions, users);
   }
 
-  public async getCustomActionCondition(userId: string, actionName: string) {
+  public async getCustomActionConditionForUser(userId: string, actionName: string) {
     const permissions = await this.getPermissions();
     const userInfo = permissions.users.find(user => `${user.id}` === userId);
 
@@ -123,5 +123,11 @@ export default class ActionPermissionService {
       .get(userInfo.roleId);
 
     return conditionFilter;
+  }
+
+  public async getAllCustomActionConditions(actionName: string) {
+    const permissions = await this.getPermissions();
+
+    return permissions.actionsConditionByRoleId.get(actionName);
   }
 }

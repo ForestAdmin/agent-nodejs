@@ -37,7 +37,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     return this.renderingPermissionService.canExecuteSegmentQuery(params);
   }
 
-  public canTriggerCustomAction({
+  public async canTriggerCustomAction({
     userId,
     collectionName,
     customActionName,
@@ -52,7 +52,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     );
   }
 
-  public doesTriggerCustomActionRequiresApproval({
+  public async doesTriggerCustomActionRequiresApproval({
     userId,
     collectionName,
     customActionName,
@@ -71,7 +71,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     );
   }
 
-  public canApproveCustomAction({
+  public async canApproveCustomAction({
     userId,
     collectionName,
     customActionName,
@@ -98,7 +98,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     return this.actionPermissionService.can(`${userId}`, actionIdentifier);
   }
 
-  public getConditionalTriggerFilter({
+  public async getConditionalTriggerFilter({
     userId,
     collectionName,
     customActionName,
@@ -107,13 +107,13 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }) {
-    return this.actionPermissionService.getCustomActionCondition(
+    return this.actionPermissionService.getCustomActionConditionForUser(
       `${userId}`,
       generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
     );
   }
 
-  public getConditionalRequiresApprovalFilter({
+  public async getConditionalRequiresApprovalFilter({
     userId,
     collectionName,
     customActionName,
@@ -122,7 +122,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }) {
-    return this.actionPermissionService.getCustomActionCondition(
+    return this.actionPermissionService.getCustomActionConditionForUser(
       `${userId}`,
       generateCustomActionIdentifier(
         CustomActionEvent.RequireApproval,
@@ -132,7 +132,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     );
   }
 
-  public getConditionalApproveFilter({
+  public async getConditionalApproveFilter({
     userId,
     collectionName,
     customActionName,
@@ -141,8 +141,20 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }) {
-    return this.actionPermissionService.getCustomActionCondition(
+    return this.actionPermissionService.getCustomActionConditionForUser(
       `${userId}`,
+      generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
+    );
+  }
+
+  public async getConditionalApproveFilters({
+    collectionName,
+    customActionName,
+  }: {
+    customActionName: string;
+    collectionName: string;
+  }) {
+    return this.actionPermissionService.getAllCustomActionConditions(
       generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
     );
   }

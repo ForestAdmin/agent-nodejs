@@ -51,17 +51,48 @@ export default class ActionRoute extends CollectionRoute {
   private async handleExecute(context: Context): Promise<void> {
     const { dataSource } = this.collection;
     const caller = QueryStringParser.parseCaller(context);
-    const filter = await this.getRecordSelection(context);
+    const filterForCaller = await this.getRecordSelection(context);
+    const filterForAllCaller = await this.getRecordSelection(context, false);
+    const requestBody = context.request.body as SmartActionApprovalRequestBody;
+
+    if (requestBody?.data?.attributes?.requester_id) {
+      await this.services.authorization.assertCanApproveCustomAction({
+        context,
+        customActionName: this.actionName,
+        collectionName: this.collection.name,
+        requesterId: requestBody.data.attributes.requester_id,
+        requestConditionTreeForCaller: filterForCaller.conditionTree,
+        requestConditionTreeForAllCaller: filterForAllCaller.conditionTree,
+        collectionAggregate: this.collection.aggregate.bind(this.collection),
+        caller,
+      });
+    } else {
+      await this.services.authorization.assertCanTriggerCustomAction({
+        context,
+        customActionName: this.actionName,
+        collectionName: this.collection.name,
+        requestConditionTreeForCaller: filterForCaller.conditionTree,
+        requestConditionTreeForAllCaller: filterForAllCaller.conditionTree,
+        collectionAggregate: this.collection.aggregate.bind(this.collection),
+        caller,
+      });
+    }
+
     const rawData = context.request.body.data.attributes.values;
 
     // As forms are dynamic, we don't have any way to ensure that we're parsing the data correctly
     // => better send invalid data to the getForm() customer handler than to the execute() one.
     const unsafeData = ForestValueConverter.makeFormDataUnsafe(rawData);
-    const fields = await this.collection.getForm(caller, this.actionName, unsafeData, filter);
+    const fields = await this.collection.getForm(
+      caller,
+      this.actionName,
+      unsafeData,
+      filterForCaller,
+    );
 
     // Now that we have the field list, we can parse the data again.
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
-    const result = await this.collection.execute(caller, this.actionName, data, filter);
+    const result = await this.collection.execute(caller, this.actionName, data, filterForCaller);
 
     if (result?.type === 'Error') {
       context.response.status = HttpCode.BadRequest;
@@ -112,9 +143,6 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async middlewareCustomActionApprovalRequestData(context: Context, next: Next) {
-    // Will be move from middleware to simple function
-    // We don't want to compute filter again + later will need data from form
-    const caller = QueryStringParser.parseCaller(context);
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
 
     if (requestBody?.data?.attributes?.signed_approval_request) {
@@ -124,34 +152,12 @@ export default class ActionRoute extends CollectionRoute {
         );
 
       context.request.body = signedParameters;
-
-      // Needs to be compute after body as been updated
-      const filter = await this.getRecordSelection(context);
-      await this.services.authorization.assertCanApproveCustomAction({
-        context,
-        customActionName: this.actionName,
-        collectionName: this.collection.name,
-        requesterId: signedParameters?.data?.attributes?.requester_id,
-        requestConditionTree: filter.conditionTree,
-        collectionAggregate: this.collection.aggregate.bind(this.collection),
-        caller,
-      });
-    } else {
-      const filter = await this.getRecordSelection(context);
-      await this.services.authorization.assertCanTriggerCustomAction({
-        context,
-        customActionName: this.actionName,
-        collectionName: this.collection.name,
-        requestConditionTree: filter.conditionTree,
-        collectionAggregate: this.collection.aggregate.bind(this.collection),
-        caller,
-      });
     }
 
     return next();
   }
 
-  private async getRecordSelection(context: Context): Promise<Filter> {
+  private async getRecordSelection(context: Context, withScope = true): Promise<Filter> {
     const selectionIds = BodyParser.parseSelectionIds(this.collection.schema, context);
     let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
     if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
@@ -159,7 +165,7 @@ export default class ActionRoute extends CollectionRoute {
     const conditionTree = ConditionTreeFactory.intersect(
       selectedIds,
       QueryStringParser.parseConditionTree(this.collection, context),
-      await this.services.authorization.getScope(this.collection, context),
+      withScope ? await this.services.authorization.getScope(this.collection, context) : null,
     );
 
     const caller = QueryStringParser.parseCaller(context);

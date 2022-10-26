@@ -131,7 +131,7 @@ export default class RenderingPermissionService {
     return true;
   }
 
-  private async loadPermissions(renderingId: number): Promise<RenderingPermission> {
+  private async loadPermissions(renderingId: string): Promise<RenderingPermission> {
     this.options.logger('Debug', `Loading rendering permissions for rendering ${renderingId}`);
 
     const rawPermissions = await ForestHttpApi.getRenderingPermissions(renderingId, this.options);
