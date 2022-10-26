@@ -89,11 +89,7 @@ export default abstract class BaseCollection implements Collection {
   ): Promise<AggregateResult[]>;
 
   async execute(caller: Caller, name: string): Promise<ActionResult> {
-    throw new Error(
-      this.schema.actions[name]
-        ? `Action ${name} is not implemented.`
-        : `No action named ${name} was added`,
-    );
+    throw new Error(`Action ${name} is not implemented.`);
   }
 
   async getForm(): Promise<ActionField[]> {
@@ -101,10 +97,6 @@ export default abstract class BaseCollection implements Collection {
   }
 
   async renderChart(caller: Caller, name: string): Promise<Chart> {
-    throw new Error(
-      this.schema.charts[name]
-        ? `Chart ${name} is not implemented.`
-        : `No chart named '${name}' exists on this datasource.`,
-    );
+    throw new Error(`Chart ${name} is not implemented.`);
   }
 }
