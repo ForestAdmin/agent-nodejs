@@ -147,6 +147,9 @@ export default class MongooseCollection extends BaseCollection {
 
       // Perform the updates.
       const promises = Object.entries(idsByPath).map(async ([path, rootIds]) => {
+        // When using object-mode flattener, path == this.prefix.
+        // When using array-mode flattener, path == this.prefix + '.0' (or '.1', etc).
+        // (Both can be used at the same time as this is a recursive process).
         const pathPatch = nestPatch(path, patch, isLeaf);
 
         if (Object.keys(pathPatch).length) {
