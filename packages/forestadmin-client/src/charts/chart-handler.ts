@@ -13,6 +13,7 @@ import {
 import type { ChartHandlerInterface } from '../types';
 import type { RequestContextVariables } from '../utils/context-variables';
 import type ContextVariablesInstantiator from '../utils/context-variables-instantiator';
+import ChartDetector from '../utils/chart-detector';
 
 export type ChartRequest<C extends Chart = Chart> = C & {
   contextVariables?: RequestContextVariables;
@@ -20,30 +21,6 @@ export type ChartRequest<C extends Chart = Chart> = C & {
 
 export default class ChartHandlerService implements ChartHandlerInterface {
   constructor(private readonly contextVariablesInstantiator: ContextVariablesInstantiator) {}
-
-  public static isAPIRouteChart(chart: Chart): chart is ApiRouteChart {
-    return 'apiRoute' in chart;
-  }
-
-  public static isLineChart(chart: Chart): chart is LineChart {
-    return chart.type === ChartType.Line;
-  }
-
-  public static isObjectiveChart(chart: Chart): chart is ObjectiveChart {
-    return chart.type === ChartType.Objective;
-  }
-
-  public static isLeaderboardChart(chart: Chart): chart is LeaderboardChart {
-    return chart.type === ChartType.Leaderboard;
-  }
-
-  public static isFilterableChart(chart: Chart): chart is FilterableChart & Chart {
-    return 'filter' in chart;
-  }
-
-  public static isAggregatedChart(chart: Chart): chart is AggregatedChart & Chart {
-    return 'aggregator' in chart;
-  }
 
   public async getChart({
     userId,
@@ -63,31 +40,31 @@ export default class ChartHandlerService implements ChartHandlerInterface {
     const chart = { ...chartRequest };
     delete chart.contextVariables;
 
-    if (ChartHandlerService.isFilterableChart(chart)) {
+    if (ChartDetector.isFilterableChart(chart)) {
       chart.filter = ContextVariablesInjector.injectContextInFilter(chart.filter, contextVariables);
     }
 
-    if (ChartHandlerService.isAggregatedChart(chart)) {
+    if (ChartDetector.isAggregatedChart(chart)) {
       chart.aggregator = ContextVariablesInjector.injectContextInValue(
         chart.aggregator,
         contextVariables,
       );
     }
 
-    if (ChartHandlerService.isLineChart(chart)) {
+    if (ChartDetector.isLineChart(chart)) {
       chart.timeRange = ContextVariablesInjector.injectContextInValue(
         chart.timeRange,
         contextVariables,
       );
     }
 
-    if (ChartHandlerService.isObjectiveChart(chart)) {
+    if (ChartDetector.isObjectiveChart(chart)) {
       chart.objective = Number(
         ContextVariablesInjector.injectContextInValue(chart.objective, contextVariables),
       );
     }
 
-    if (ChartHandlerService.isLeaderboardChart(chart)) {
+    if (ChartDetector.isLeaderboardChart(chart)) {
       chart.limit = Number(
         ContextVariablesInjector.injectContextInValue(chart.limit, contextVariables),
       );
