@@ -59,7 +59,7 @@ describe('SchemaGeneratorFields > One to One', () => {
       defaultValue: null,
       enums: null,
       integration: null,
-      isFilterable: false,
+      isFilterable: true,
       isPrimaryKey: false,
       isReadOnly: true,
       isRequired: false,
