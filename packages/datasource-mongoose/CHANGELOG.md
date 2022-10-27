@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.1.0...@forestadmin/datasource-mongoose@1.1.1) (2022-10-27)
+
+
+### Bug Fixes
+
+* **mongoose:** when updating a field on flattened collections, all fields are overwritten ([#514](https://github.com/ForestAdmin/agent-nodejs/issues/514)) ([6204327](https://github.com/ForestAdmin/agent-nodejs/commit/620432747fb26c0f03784a88ac4a53d64f878df4))
+
 # @forestadmin/datasource-mongoose [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.2...@forestadmin/datasource-mongoose@1.1.0) (2022-10-27)
 
 
