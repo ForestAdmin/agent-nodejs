@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.4...@forestadmin/agent@1.2.0) (2022-10-27)
+
+
+### Features
+
+* **plugin:** import all fields from a relation ([#510](https://github.com/ForestAdmin/agent-nodejs/issues/510)) ([77f54c6](https://github.com/ForestAdmin/agent-nodejs/commit/77f54c6ef3359ac39f11e76c6881a246db42817c))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.3.0
+
 ## @forestadmin/agent [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.3...@forestadmin/agent@1.1.4) (2022-10-24)
 
 
