@@ -1,10 +1,10 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
-import * as factories from '../__factories__';
-import { Operator } from '../../src/interfaces/query/condition-tree/nodes/operators';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
-import Filter from '../../src/interfaces/query/filter/unpaginated';
+import { Operator } from '../../src/interfaces/query/condition-tree/nodes/operators';
 import FilterFactory from '../../src/interfaces/query/filter/factory';
+import Filter from '../../src/interfaces/query/filter/unpaginated';
+import * as factories from '../__factories__';
 
 const TEST_TIMEZONE = 'Europe/Dublin';
 const TEST_DATE = '2022-02-16T10:00:00.000Z';

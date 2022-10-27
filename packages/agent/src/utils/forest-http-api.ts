@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IssuerMetadata } from 'openid-client';
-import { JSONAPIDocument } from 'json-api-serializer';
 import { PlainConditionTree } from '@forestadmin/datasource-toolkit';
+import { JSONAPIDocument } from 'json-api-serializer';
 import hashObject from 'object-hash';
+import { IssuerMetadata } from 'openid-client';
 import superagent, { Response, ResponseError } from 'superagent';
 
 import { AgentOptions } from '../types';

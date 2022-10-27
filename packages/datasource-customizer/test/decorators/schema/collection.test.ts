@@ -1,4 +1,5 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import SchemaCollectionDecorator from '../../../src/decorators/schema/collection';
 
 describe('SchemaCollectionDecorator', () => {

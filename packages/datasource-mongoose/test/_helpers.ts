@@ -1,6 +1,6 @@
 /* eslint-disable import/prefer-default-export */
-import { Model, Schema, Types, createConnection, deleteModel, model } from 'mongoose';
 import { RecordData } from '@forestadmin/datasource-toolkit';
+import { Model, Schema, Types, createConnection, deleteModel, model } from 'mongoose';
 
 export const buildModel = (schema: Schema, modelName = 'aModel'): Model<RecordData> => {
   try {

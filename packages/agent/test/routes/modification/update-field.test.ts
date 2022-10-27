@@ -1,8 +1,8 @@
 import { DataSource, Projection, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import UpdateField from '../../../src/routes/modification/update-field';
+import * as factories from '../../__factories__';
 
 describe('UpdateField', () => {
   const options = factories.forestAdminHttpDriverOptions.build();

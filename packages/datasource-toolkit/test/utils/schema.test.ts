@@ -1,5 +1,5 @@
-import * as factories from '../__factories__';
 import SchemaUtils from '../../src/utils/schema';
+import * as factories from '../__factories__';
 
 describe('SchemaUtils', () => {
   describe('isPrimaryKey', () => {

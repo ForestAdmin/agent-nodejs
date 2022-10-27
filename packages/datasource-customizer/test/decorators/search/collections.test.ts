@@ -1,5 +1,6 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { ConditionTreeFactory, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
 
 describe('SearchCollectionDecorator', () => {

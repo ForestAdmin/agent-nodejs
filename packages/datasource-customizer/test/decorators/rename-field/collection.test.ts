@@ -1,4 +1,3 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
   Collection,
@@ -10,6 +9,8 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import RenameFieldCollectionDecorator from '../../../src/decorators/rename-field/collection';
 

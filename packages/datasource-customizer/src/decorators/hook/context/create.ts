@@ -1,6 +1,7 @@
 /* eslint-disable max-classes-per-file */
 
 import { Caller, Collection, RecordData } from '@forestadmin/datasource-toolkit';
+
 import { TCollectionName, TRow, TSchema } from '../../../templates';
 import HookContext from './hook';
 

@@ -1,8 +1,8 @@
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import Chart from '../../../src/routes/access/chart';
+import * as factories from '../../__factories__';
 
 describe('ChartRoute', () => {
   const defaultContext = {

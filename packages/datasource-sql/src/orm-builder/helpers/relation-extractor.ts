@@ -1,5 +1,5 @@
-import { Relation } from '../types';
 import { Table } from '../../introspection/types';
+import { Relation } from '../types';
 
 export default class RelationExtractor {
   static listRelations(tableName: string, tables: Table[]): Relation[] {

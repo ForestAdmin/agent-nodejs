@@ -1,6 +1,5 @@
 /* eslint-disable no-underscore-dangle */
 
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregator,
   ConditionTree,
@@ -9,14 +8,15 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Connection, Types } from 'mongoose';
 
+import MongooseDatasource from '../../src/datasource';
 import {
   setupReview,
   setupWith2ManyToManyRelations,
   setupWithManyToOneRelation,
 } from '../_helpers';
-import MongooseDatasource from '../../src/datasource';
 
 describe('MongooseCollection', () => {
   let connection: Connection;

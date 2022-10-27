@@ -6,21 +6,21 @@ import {
   allowedOperatorsForColumnType,
 } from '@forestadmin/datasource-toolkit';
 
+import DataSourceCustomizer from './datasource-customizer';
 import { ActionDefinition } from './decorators/actions/types/actions';
 import { CollectionChartDefinition } from './decorators/chart/types';
 import { ComputedDefinition } from './decorators/computed/types';
+import DecoratorsStack from './decorators/decorators-stack';
 import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
-import { OneToManyEmbeddedDefinition, Plugin } from './types';
 import { OperatorDefinition } from './decorators/operators-emulate/types';
 import { RelationDefinition } from './decorators/relation/types';
 import { SearchDefinition } from './decorators/search/types';
 import { SegmentDefinition } from './decorators/segment/types';
-import { TCollectionName, TColumnName, TFieldName, TSchema, TSortClause } from './templates';
 import { WriteDefinition } from './decorators/write/types';
-import DataSourceCustomizer from './datasource-customizer';
-import DecoratorsStack from './decorators/decorators-stack';
 import addExternalRelation from './plugins/add-external-relation';
 import importField from './plugins/import-field';
+import { TCollectionName, TColumnName, TFieldName, TSchema, TSortClause } from './templates';
+import { OneToManyEmbeddedDefinition, Plugin } from './types';
 
 export default class CollectionCustomizer<
   S extends TSchema = TSchema,

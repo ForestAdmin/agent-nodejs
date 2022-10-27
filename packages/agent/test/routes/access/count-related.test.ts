@@ -7,8 +7,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import CountRelatedRoute from '../../../src/routes/access/count-related';
+import * as factories from '../../__factories__';
 
 describe('CountRelatedRoute', () => {
   const setupWithOneToManyRelation = (countable = true) => {

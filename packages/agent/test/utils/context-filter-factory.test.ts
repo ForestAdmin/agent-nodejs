@@ -7,8 +7,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../__factories__';
 import ContextFilterFactory from '../../src/utils/context-filter-factory';
+import * as factories from '../__factories__';
 
 describe('FilterFactory', () => {
   describe('buildPaginated', () => {

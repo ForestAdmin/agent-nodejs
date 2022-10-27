@@ -6,8 +6,8 @@ import {
   Sort,
 } from '@forestadmin/datasource-toolkit';
 
-import * as factories from '../__factories__';
 import CsvGenerator, { CHUNK_SIZE } from '../../src/utils/csv-generator';
+import * as factories from '../__factories__';
 import readCsv from '../__helper__/read-csv';
 
 describe('CsvGenerator', () => {

@@ -1,10 +1,10 @@
 import { ActionResult, DataSource, Filter } from '@forestadmin/datasource-toolkit';
-import { Readable } from 'stream';
-import { createMockContext } from '@shopify/jest-koa-mocks';
 import Router from '@koa/router';
+import { createMockContext } from '@shopify/jest-koa-mocks';
+import { Readable } from 'stream';
 
-import * as factories from '../../__factories__';
 import ActionRoute from '../../../src/routes/modification/action';
+import * as factories from '../../__factories__';
 
 describe('ActionRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();

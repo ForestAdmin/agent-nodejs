@@ -1,9 +1,9 @@
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
-import { TCollectionName, TFieldName, TRow, TSchema } from './templates';
-import CollectionCustomizationContext from './context/collection-context';
 import CollectionCustomizer from './collection-customizer';
+import CollectionCustomizationContext from './context/collection-context';
 import DataSourceCustomizer from './datasource-customizer';
+import { TCollectionName, TFieldName, TRow, TSchema } from './templates';
 
 export type OneToManyEmbeddedDefinition<
   S extends TSchema = TSchema,

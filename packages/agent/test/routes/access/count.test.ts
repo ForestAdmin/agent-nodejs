@@ -1,7 +1,7 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import Count from '../../../src/routes/access/count';
+import * as factories from '../../__factories__';
 
 describe('CountRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();

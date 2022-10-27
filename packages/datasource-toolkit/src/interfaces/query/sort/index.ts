@@ -1,6 +1,6 @@
+import RecordUtils from '../../../utils/record';
 import { RecordData } from '../../record';
 import Projection from '../projection';
-import RecordUtils from '../../../utils/record';
 
 export type PlainSortClause = { field: string; ascending: boolean };
 

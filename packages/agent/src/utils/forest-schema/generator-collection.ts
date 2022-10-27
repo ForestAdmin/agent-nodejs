@@ -1,13 +1,14 @@
 import { Collection, SchemaUtils } from '@forestadmin/datasource-toolkit';
+
+import SchemaGeneratorActions from './generator-actions';
+import SchemaGeneratorFields from './generator-fields';
+import SchemaGeneratorSegments from './generator-segments';
 import {
   ForestServerAction,
   ForestServerCollection,
   ForestServerField,
   ForestServerSegment,
 } from './types';
-import SchemaGeneratorActions from './generator-actions';
-import SchemaGeneratorFields from './generator-fields';
-import SchemaGeneratorSegments from './generator-segments';
 
 export default class SchemaGeneratorCollection {
   /** Build forest-server schema for a collection */

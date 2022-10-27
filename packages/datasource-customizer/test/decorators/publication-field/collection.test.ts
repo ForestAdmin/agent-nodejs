@@ -1,5 +1,5 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import PublicationFieldCollectionDecorator from '../../../src/decorators/publication-field/collection';

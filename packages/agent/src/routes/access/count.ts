@@ -1,10 +1,10 @@
 import { Aggregation } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
 import Router from '@koa/router';
+import { Context } from 'koa';
 
-import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import QueryStringParser from '../../utils/query-string';
+import CollectionRoute from '../collection-route';
 
 export default class CountRoute extends CollectionRoute {
   setupRoutes(router: Router): void {

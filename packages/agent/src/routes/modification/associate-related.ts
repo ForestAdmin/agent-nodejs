@@ -9,8 +9,8 @@ import {
   OneToManySchema,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
 import Router from '@koa/router';
+import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
 import ContextFilterFactory from '../../utils/context-filter-factory';

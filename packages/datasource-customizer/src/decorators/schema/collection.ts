@@ -1,4 +1,5 @@
 import { CollectionSchema } from '@forestadmin/datasource-toolkit';
+
 import CollectionDecorator from '../collection-decorator';
 
 /**

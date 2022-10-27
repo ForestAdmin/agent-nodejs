@@ -1,5 +1,3 @@
-import { FindOptions, ModelDefined, ProjectionAlias, Sequelize } from 'sequelize';
-
 import {
   AggregateResult,
   Aggregation,
@@ -12,12 +10,13 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+import { FindOptions, ModelDefined, ProjectionAlias, Sequelize } from 'sequelize';
 
 import AggregationUtils from './utils/aggregation';
+import handleErrors from './utils/error-handler';
 import ModelConverter from './utils/model-to-collection-schema-converter';
 import QueryConverter from './utils/query-converter';
 import Serializer from './utils/serializer';
-import handleErrors from './utils/error-handler';
 
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

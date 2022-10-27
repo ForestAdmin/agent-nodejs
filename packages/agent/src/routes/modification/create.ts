@@ -10,11 +10,11 @@ import {
   RelationSchema,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
 import Router from '@koa/router';
+import { Context } from 'koa';
 
-import CollectionRoute from '../collection-route';
 import QueryStringParser from '../../utils/query-string';
+import CollectionRoute from '../collection-route';
 
 export default class CreateRoute extends CollectionRoute {
   setupRoutes(router: Router): void {

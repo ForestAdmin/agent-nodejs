@@ -1,4 +1,11 @@
 import {
+  CollectionSchema,
+  ColumnSchema,
+  FieldSchema,
+  Logger,
+  RelationSchema,
+} from '@forestadmin/datasource-toolkit';
+import {
   AbstractDataType,
   Association,
   BelongsTo,
@@ -10,14 +17,6 @@ import {
   ModelAttributes,
   ModelDefined,
 } from 'sequelize';
-
-import {
-  CollectionSchema,
-  ColumnSchema,
-  FieldSchema,
-  Logger,
-  RelationSchema,
-} from '@forestadmin/datasource-toolkit';
 
 import TypeConverter from './type-converter';
 

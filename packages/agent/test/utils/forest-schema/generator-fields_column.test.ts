@@ -1,8 +1,8 @@
 import { FieldTypes } from '@forestadmin/datasource-toolkit';
 
-import * as factories from '../../__factories__';
-import { ValidationType } from '../../../src/utils/forest-schema/types';
 import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
+import { ValidationType } from '../../../src/utils/forest-schema/types';
+import * as factories from '../../__factories__';
 
 describe('SchemaGeneratorFields > Column', () => {
   describe('invalid schema', () => {

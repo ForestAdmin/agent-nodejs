@@ -1,5 +1,5 @@
-import * as factories from '../__factories__';
 import Serializer from '../../src/services/serializer';
+import * as factories from '../__factories__';
 
 describe('Serializer', () => {
   const setupSerializer = (): Serializer => {

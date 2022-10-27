@@ -1,5 +1,6 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { DataSource } from '@forestadmin/datasource-toolkit/dist/src/interfaces/collection';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import ChartDataSourceDecorator from '../../../src/decorators/chart/datasource';
 
 describe('ChartDataSourceDecorator', () => {

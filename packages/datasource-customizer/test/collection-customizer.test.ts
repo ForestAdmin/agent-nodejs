@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { ColumnSchema, ConditionTreeLeaf, Sort } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import { ActionDefinition } from '../src/decorators/actions/types/actions';
 import {
   CollectionCustomizationContext,
   CollectionCustomizer,
@@ -11,6 +10,7 @@ import {
   DataSourceChartDefinition,
   DataSourceCustomizer,
 } from '../src';
+import { ActionDefinition } from '../src/decorators/actions/types/actions';
 import { WriteDefinition } from '../src/decorators/write/types';
 
 describe('Builder > Collection', () => {
