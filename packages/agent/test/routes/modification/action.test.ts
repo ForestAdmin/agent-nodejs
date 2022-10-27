@@ -71,7 +71,7 @@ describe('ActionRoute', () => {
           name: 'books',
           schema: {
             actions: { My_Action: { scope: 'Single' } },
-            fields: { id: factories.columnSchema.isPrimaryKey().build() },
+            fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
           },
           getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
           execute: jest.fn(),
@@ -269,7 +269,7 @@ describe('ActionRoute', () => {
               name: 'reviews',
               schema: {
                 actions: { My_Action: { scope: 'Bulk' } },
-                fields: { id: factories.columnSchema.isPrimaryKey().build() },
+                fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
               },
               getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
               execute: jest.fn(),
@@ -278,7 +278,7 @@ describe('ActionRoute', () => {
               name: 'books',
               schema: {
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build(),
+                  id: factories.columnSchema.uuidPrimaryKey().build(),
                   reviews: factories.oneToManySchema.build({
                     foreignCollection: 'reviews',
                   }),

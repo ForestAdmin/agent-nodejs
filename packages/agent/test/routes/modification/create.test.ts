@@ -44,7 +44,7 @@ describe('CreateRoute', () => {
         ]),
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             name: factories.columnSchema.build({ columnType: 'String' }),
             publishedAt: factories.columnSchema.build({ columnType: 'Date' }),
             price: factories.columnSchema.build({ columnType: 'Number' }),
@@ -90,7 +90,7 @@ describe('CreateRoute', () => {
         create: jest.fn().mockImplementation((_, items) => items.map(item => ({ ...item, id: 1 }))),
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             name: factories.columnSchema.build(),
             passport: {
               type: 'OneToOne',
@@ -106,7 +106,7 @@ describe('CreateRoute', () => {
         create: jest.fn().mockImplementation((_, items) => items),
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             personId: factories.columnSchema.build({ columnType: 'Uuid' }),
             person: {
               type: 'ManyToOne',

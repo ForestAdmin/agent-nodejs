@@ -7,7 +7,7 @@ describe('SchemaGeneratorCollection', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           authorId: factories.columnSchema.build({ columnType: 'Uuid' }),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
@@ -24,9 +24,7 @@ describe('SchemaGeneratorCollection', () => {
           'Add person': { scope: 'Global' },
         },
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build({
-            isReadOnly: true,
-          }),
+          id: factories.columnSchema.uuidPrimaryKey().build({ isReadOnly: true }),
           // self-referency relation using a one-to-one relationship
           // (useless in real-life but we want to check that the schema is generated correctly)
           mySelf: factories.oneToOneSchema.build({

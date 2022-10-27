@@ -17,7 +17,7 @@ describe('Permissions', () => {
   const collection = factories.collection.build({
     name: 'books',
     schema: factories.collectionSchema.build({
-      fields: { id: factories.columnSchema.isPrimaryKey().build() },
+      fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
     }),
   });
 

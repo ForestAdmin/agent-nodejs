@@ -25,6 +25,7 @@ export default CollectionFactory.define(() => ({
   schema: collectionSchemaFactory.build(),
   execute: jest.fn(),
   getForm: jest.fn(),
+  renderChart: jest.fn(),
   create: jest.fn(),
   list: jest.fn(),
   update: jest.fn(),

@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@forestadmin/datasource-toolkit';
 
-import { ChartDefinition } from './decorators/chart/types';
+import { DataSourceChartDefinition } from './decorators/chart/types';
 import { DataSourceOptions, Plugin } from './types';
 import { TCollectionName, TSchema } from './templates';
 import CollectionCustomizer from './collection-customizer';
@@ -88,7 +88,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    *   }
    * })
    */
-  addChart(name: string, definition: ChartDefinition<S>): this {
+  addChart(name: string, definition: DataSourceChartDefinition<S>): this {
     this.stack.queueCustomization(async () => {
       this.stack.chart.addChart(name, definition);
     });

@@ -8,7 +8,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            booksPk: factories.columnSchema.isPrimaryKey().build(),
+            booksPk: factories.columnSchema.uuidPrimaryKey().build(),
             reviewers: factories.manyToManySchema.build({
               foreignCollection: 'persons',
               foreignKey: 'personId',
@@ -24,17 +24,19 @@ describe('SchemaGeneratorFields > Many to Many', () => {
         name: 'bookPersons',
         schema: factories.collectionSchema.build({
           fields: {
-            bookId: factories.columnSchema
-              .isPrimaryKey()
-              .build({ isReadOnly: true, validation: [{ operator: 'Present' }] }),
+            bookId: factories.columnSchema.uuidPrimaryKey().build({
+              isReadOnly: true,
+              validation: [{ operator: 'Present' }],
+            }),
             book: factories.manyToOneSchema.build({
               foreignCollection: 'books',
               foreignKey: 'bookId',
               foreignKeyTarget: 'booksPk',
             }),
-            personId: factories.columnSchema
-              .isPrimaryKey()
-              .build({ isReadOnly: true, validation: [{ operator: 'Present' }] }),
+            personId: factories.columnSchema.uuidPrimaryKey().build({
+              isReadOnly: true,
+              validation: [{ operator: 'Present' }],
+            }),
             person: factories.manyToOneSchema.build({
               foreignCollection: 'person',
               foreignKey: 'personId',
@@ -47,7 +49,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            personsPk: factories.columnSchema.isPrimaryKey().build(),
+            personsPk: factories.columnSchema.uuidPrimaryKey().build(),
             books: factories.manyToManySchema.build({
               foreignCollection: 'books',
               foreignKey: 'bookId',

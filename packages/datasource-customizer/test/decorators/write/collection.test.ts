@@ -307,7 +307,7 @@ describe('WriteDecorator', () => {
         name: 'prices',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             value: factories.columnSchema.build({ columnType: 'Number' }),
           },
         }),
@@ -317,7 +317,7 @@ describe('WriteDecorator', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             name: factories.columnSchema.build({ columnType: 'String' }),
             priceId: factories.columnSchema.build({ columnType: 'Uuid' }),
             myPrice: factories.manyToOneSchema.build({
@@ -332,7 +332,7 @@ describe('WriteDecorator', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             authorId: factories.columnSchema.build({ columnType: 'Uuid' }),
             title: factories.columnSchema.build({ columnType: 'String' }),
             myAuthor: factories.manyToOneSchema.build({
@@ -353,7 +353,7 @@ describe('WriteDecorator', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               myOwner: factories.oneToOneSchema.build({
                 foreignCollection: 'owners',
                 originKey: 'bookId',
@@ -366,7 +366,7 @@ describe('WriteDecorator', () => {
           name: 'owners',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
               name: factories.columnSchema.build({ columnType: 'String' }),
             },
@@ -880,7 +880,7 @@ describe('WriteDecorator', () => {
                   name: 'books',
                   schema: factories.collectionSchema.build({
                     fields: {
-                      id: factories.columnSchema.isPrimaryKey().build(),
+                      id: factories.columnSchema.uuidPrimaryKey().build(),
                       myOwner: factories.oneToOneSchema.build({
                         foreignCollection: 'owners',
                         originKey: 'bookId',
@@ -897,7 +897,7 @@ describe('WriteDecorator', () => {
                   name: 'owners',
                   schema: factories.collectionSchema.build({
                     fields: {
-                      id: factories.columnSchema.isPrimaryKey().build(),
+                      id: factories.columnSchema.uuidPrimaryKey().build(),
                       bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
                       name: factories.columnSchema.build({ columnType: 'String' }),
                     },
@@ -907,7 +907,7 @@ describe('WriteDecorator', () => {
                   name: 'formats',
                   schema: factories.collectionSchema.build({
                     fields: {
-                      id: factories.columnSchema.isPrimaryKey().build(),
+                      id: factories.columnSchema.uuidPrimaryKey().build(),
                       bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
                       name: factories.columnSchema.build({ columnType: 'String' }),
                     },
@@ -1029,7 +1029,7 @@ describe('WriteDecorator', () => {
                 name: 'formats',
                 schema: factories.collectionSchema.build({
                   fields: {
-                    id: factories.columnSchema.isPrimaryKey().build(),
+                    id: factories.columnSchema.uuidPrimaryKey().build(),
                     name: factories.columnSchema.build({ columnType: 'String' }),
                   },
                 }),
@@ -1039,7 +1039,7 @@ describe('WriteDecorator', () => {
                 name: 'authors',
                 schema: factories.collectionSchema.build({
                   fields: {
-                    id: factories.columnSchema.isPrimaryKey().build(),
+                    id: factories.columnSchema.uuidPrimaryKey().build(),
                     name: factories.columnSchema.build({ columnType: 'String' }),
                     priceId: factories.columnSchema.build({ columnType: 'Uuid' }),
                   },
@@ -1050,7 +1050,7 @@ describe('WriteDecorator', () => {
                 name: 'books',
                 schema: factories.collectionSchema.build({
                   fields: {
-                    id: factories.columnSchema.isPrimaryKey().build(),
+                    id: factories.columnSchema.uuidPrimaryKey().build(),
                     title: factories.columnSchema.build({ columnType: 'String' }),
                     authorId: factories.columnSchema.build({ columnType: 'Uuid' }),
                     myAuthor: factories.manyToOneSchema.build({
@@ -1165,7 +1165,7 @@ describe('WriteDecorator', () => {
               name: 'books',
               schema: factories.collectionSchema.build({
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build(),
+                  id: factories.columnSchema.uuidPrimaryKey().build(),
                   myAuthor: factories.oneToOneSchema.build({
                     foreignCollection: 'authors',
                     originKey: 'bookId',
@@ -1183,7 +1183,7 @@ describe('WriteDecorator', () => {
               name: 'authors',
               schema: factories.collectionSchema.build({
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build(),
+                  id: factories.columnSchema.uuidPrimaryKey().build(),
                   bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
                   name: factories.columnSchema.build({ columnType: 'String' }),
                 },
@@ -1193,7 +1193,7 @@ describe('WriteDecorator', () => {
               name: 'formats',
               schema: factories.collectionSchema.build({
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build(),
+                  id: factories.columnSchema.uuidPrimaryKey().build(),
                   name: factories.columnSchema.build({ columnType: 'String' }),
                 },
               }),

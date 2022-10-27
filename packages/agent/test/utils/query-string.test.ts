@@ -9,7 +9,7 @@ describe('QueryStringParser', () => {
     name: 'books',
     schema: factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.isPrimaryKey().build(),
+        id: factories.columnSchema.uuidPrimaryKey().build(),
         name: factories.columnSchema.build(),
       },
       segments: ['fake-segment'],
@@ -180,7 +180,7 @@ describe('QueryStringParser', () => {
           name: 'cars',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
               owner: factories.oneToOneSchema.build({
                 foreignCollection: 'owner',
@@ -194,7 +194,7 @@ describe('QueryStringParser', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
             },
           }),
@@ -235,7 +235,7 @@ describe('QueryStringParser', () => {
           name: 'cars',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
               owner: factories.oneToOneSchema.build({
                 foreignCollection: 'owner',
@@ -248,7 +248,7 @@ describe('QueryStringParser', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
             },
           }),

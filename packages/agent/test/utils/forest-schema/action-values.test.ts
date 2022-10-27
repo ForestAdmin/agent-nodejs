@@ -7,10 +7,7 @@ describe('ForestValueConverter', () => {
       name: 'reviews',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({
-            columnType: 'Number',
-            isPrimaryKey: true,
-          }),
+          id: factories.columnSchema.numericPrimaryKey().build(),
         },
       }),
     }),

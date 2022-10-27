@@ -14,8 +14,8 @@ describe('EmptyCollectionDecorator', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build({}),
-          title: factories.columnSchema.build({}),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
+          title: factories.columnSchema.build(),
         },
       }),
     });

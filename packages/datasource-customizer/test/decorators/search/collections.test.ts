@@ -76,7 +76,7 @@ describe('SearchCollectionDecorator', () => {
       test('it should be used instead of the default one', async () => {
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
-            fields: { id: factories.columnSchema.isPrimaryKey().build() },
+            fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
           }),
         });
         const filter = factories.filter.build({ search: 'something' });
@@ -473,7 +473,7 @@ describe('SearchCollectionDecorator', () => {
                 name: 'books',
                 schema: factories.collectionSchema.unsearchable().build({
                   fields: {
-                    id: factories.columnSchema.isPrimaryKey().build(),
+                    id: factories.columnSchema.uuidPrimaryKey().build(),
                     myPersons: factories.oneToOneSchema.build({
                       foreignCollection: 'persons',
                       originKey: 'personId',
@@ -489,8 +489,8 @@ describe('SearchCollectionDecorator', () => {
                 name: 'bookPersons',
                 schema: factories.collectionSchema.unsearchable().build({
                   fields: {
-                    bookId: factories.columnSchema.isPrimaryKey().build(),
-                    personId: factories.columnSchema.isPrimaryKey().build(),
+                    bookId: factories.columnSchema.uuidPrimaryKey().build(),
+                    personId: factories.columnSchema.uuidPrimaryKey().build(),
                   },
                 }),
               }),
@@ -498,7 +498,7 @@ describe('SearchCollectionDecorator', () => {
                 name: 'persons',
                 schema: factories.collectionSchema.unsearchable().build({
                   fields: {
-                    id: factories.columnSchema.isPrimaryKey().build(),
+                    id: factories.columnSchema.uuidPrimaryKey().build(),
                   },
                 }),
               }),

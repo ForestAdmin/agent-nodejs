@@ -81,7 +81,7 @@ describe('Projection', () => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             name: factories.columnSchema.build(),
           },
         }),
@@ -100,8 +100,8 @@ describe('Projection', () => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
-            key1: factories.columnSchema.isPrimaryKey().build(),
-            key2: factories.columnSchema.isPrimaryKey().build(),
+            key1: factories.columnSchema.uuidPrimaryKey().build(),
+            key2: factories.columnSchema.uuidPrimaryKey().build(),
             name: factories.columnSchema.build(),
           },
         }),
@@ -118,7 +118,7 @@ describe('Projection', () => {
           name: 'cars',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
               owner: factories.oneToOneSchema.build({
                 foreignCollection: 'owner',
@@ -132,7 +132,7 @@ describe('Projection', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
             },
           }),

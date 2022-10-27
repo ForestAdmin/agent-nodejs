@@ -7,6 +7,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import { ActionDefinition } from './decorators/actions/types/actions';
+import { CollectionChartDefinition } from './decorators/chart/types';
 import { ComputedDefinition } from './decorators/computed/types';
 import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
 import { OneToManyEmbeddedDefinition, Plugin } from './types';
@@ -122,6 +123,24 @@ export default class CollectionCustomizer<
         .getCollection(this.name)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .addAction(name, definition as ActionDefinition<any, any>);
+    });
+  }
+
+  /**
+   * Create a new API chart
+   * @param name name of the chart
+   * @param definition definition of the chart
+   * @example
+   * .addChart('numCustomers', {
+   *   type: 'Value',
+   *   render: (context, resultBuilder) => {
+   *     return resultBuilder.value(123);
+   *   }
+   * })
+   */
+  addChart(name: string, definition: CollectionChartDefinition<S, N>): this {
+    return this.pushCustomization(async () => {
+      this.stack.chart.getCollection(this.name).addChart(name, definition);
     });
   }
 

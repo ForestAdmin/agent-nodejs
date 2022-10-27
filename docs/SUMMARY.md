@@ -41,7 +41,15 @@
 - [Actions](agent-customization/actions/README.md)
   - [Responses](agent-customization/actions/responses.md)
   - [Forms](agent-customization/actions/forms.md)
-- [Charts](agent-customization/charts.md)
+- [Charts](agent-customization/charts/README.md)
+
+  - [Value](agent-customization/charts/value.md)
+  - [Objective](agent-customization/charts/objective.md)
+  - [Percentage](agent-customization/charts/percentage.md)
+  - [Distribution](agent-customization/charts/distribution.md)
+  - [Leaderboard](agent-customization/charts/leaderboard.md)
+  - [Time-based](agent-customization/charts/time.md)
+
 - [Fields](agent-customization/fields/README.md)
 
   - [Add fields](agent-customization/fields/computed.md)

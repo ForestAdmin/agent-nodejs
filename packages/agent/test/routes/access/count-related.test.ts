@@ -21,7 +21,7 @@ describe('CountRelatedRoute', () => {
       schema: factories.collectionSchema.build({
         countable,
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
         },
       }),
     });
@@ -30,7 +30,7 @@ describe('CountRelatedRoute', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           myBookPersons: factories.oneToManySchema.build({
             foreignCollection: 'bookPersons',
           }),

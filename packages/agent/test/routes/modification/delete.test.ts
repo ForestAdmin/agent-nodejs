@@ -27,12 +27,8 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              idField1: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
-              idField2: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
+              idField1: factories.columnSchema.numericPrimaryKey().build(),
+              idField2: factories.columnSchema.numericPrimaryKey().build(),
               notIdField: factories.columnSchema.build({
                 columnType: 'Number',
               }),
@@ -83,9 +79,7 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
+              id: factories.columnSchema.numericPrimaryKey().build(),
             },
           }),
         });
@@ -126,9 +120,7 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
+              id: factories.columnSchema.numericPrimaryKey().build(),
             },
           }),
         });
@@ -168,9 +160,7 @@ describe('DeleteRoute', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build({
-                  columnType: 'Number',
-                }),
+                id: factories.columnSchema.numericPrimaryKey().build(),
               },
             }),
           });
@@ -217,12 +207,8 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              idField1: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
-              idField2: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
+              idField1: factories.columnSchema.numericPrimaryKey().build(),
+              idField2: factories.columnSchema.numericPrimaryKey().build(),
               notIdField: factories.columnSchema.build({
                 columnType: 'Number',
               }),
@@ -294,12 +280,8 @@ describe('DeleteRoute', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                idField1: factories.columnSchema.isPrimaryKey().build({
-                  columnType: 'Number',
-                }),
-                idField2: factories.columnSchema.isPrimaryKey().build({
-                  columnType: 'Number',
-                }),
+                idField1: factories.columnSchema.numericPrimaryKey().build(),
+                idField2: factories.columnSchema.numericPrimaryKey().build(),
                 notIdField: factories.columnSchema.build({
                   columnType: 'Number',
                 }),

@@ -18,7 +18,7 @@ describe('SortEmulationDecoratorCollection', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build({ isReadOnly: true }),
+          id: factories.columnSchema.uuidPrimaryKey().build({ isReadOnly: true }),
           title: factories.columnSchema.build({
             filterOperators: new Set(['LongerThan', 'Present']),
           }),
