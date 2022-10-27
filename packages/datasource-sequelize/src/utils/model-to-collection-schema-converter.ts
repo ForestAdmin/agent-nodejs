@@ -126,6 +126,10 @@ export default class ModelToCollectionSchemaConverter {
       column.enumValues = [...arrayType.options.type.values];
     }
 
+    if (Array.isArray(column.enumValues) && column.enumValues.length === 0) {
+      delete column.enumValues;
+    }
+
     return column;
   }
 
