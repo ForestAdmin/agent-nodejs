@@ -152,7 +152,10 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           },
           myEnumList: {
             columnType: ['Enum'],
-            filterOperators: TypeConverter.operatorsForColumnType('Enum'),
+            filterOperators: new Set([
+              ...TypeConverter.operatorsForColumnType('Enum'),
+              'IncludesAll',
+            ]),
             enumValues: ['enum1', 'enum2', 'enum3'],
             isSortable: true,
             validation: [],
