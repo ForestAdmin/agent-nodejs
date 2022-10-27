@@ -150,6 +150,14 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             validation: [],
             type: 'Column',
           },
+          myEnumList: {
+            columnType: ['Enum'],
+            filterOperators: TypeConverter.operatorsForColumnType('Enum'),
+            enumValues: ['enum1', 'enum2', 'enum3'],
+            isSortable: true,
+            validation: [],
+            type: 'Column',
+          },
           myJson: {
             columnType: 'Json',
             filterOperators: TypeConverter.operatorsForColumnType('Json'),
@@ -183,6 +191,9 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           },
           myEnum: {
             type: DataTypes.ENUM('enum1', 'enum2', 'enum3'),
+          },
+          myEnumList: {
+            type: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2', 'enum3')),
           },
           myJson: {
             type: DataTypes.JSON,

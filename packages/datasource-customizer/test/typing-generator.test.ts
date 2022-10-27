@@ -13,7 +13,14 @@ describe('TypingGenerator', () => {
             boolean: factories.columnSchema.build({ columnType: 'Boolean' }),
             string: factories.columnSchema.build({ columnType: 'String' }),
             point: factories.columnSchema.build({ columnType: 'Point' }),
-            enum: factories.columnSchema.build({ columnType: 'Enum', enumValues: ['a', 'b', 'c'] }),
+            enumWithValues: factories.columnSchema.build({
+              columnType: 'Enum',
+              enumValues: ['a', 'b', 'c'],
+            }),
+            enumWithoutValues: factories.columnSchema.build({
+              columnType: 'Enum',
+              enumValues: undefined,
+            }),
 
             complex: factories.columnSchema.build({
               columnType: { firstname: 'String', lastname: 'String' },
@@ -35,6 +42,7 @@ describe('TypingGenerator', () => {
             'string': string;
             'point': [number, number];
             'enum': 'a' | 'b' | 'c';
+            'enum': string;
             'complex': { firstname: string; lastname: string };
             'array': Array<string>;
           };
