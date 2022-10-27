@@ -1,3 +1,14 @@
+## @forestadmin/plugin-import-fields [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-import-fields@1.0.0...@forestadmin/plugin-import-fields@1.0.1) (2022-10-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.4.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.0
+
 # @forestadmin/plugin-import-fields 1.0.0 (2022-10-27)
 
 
