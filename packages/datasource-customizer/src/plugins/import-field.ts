@@ -18,6 +18,11 @@ export default async function importField<
     (memo, field) => {
       const collection = dataSourceCustomizer.getCollection(memo.collection as TCollectionName<S>);
       const fieldSchema = collection.schema.fields[field];
+
+      if (fieldSchema === undefined) {
+        throw new Error(`Field ${field} not found in collection ${collection.name}`);
+      }
+
       if (fieldSchema.type === 'Column') return { schema: fieldSchema };
       if (fieldSchema.type === 'ManyToOne' || fieldSchema.type === 'OneToOne')
         return { collection: fieldSchema.foreignCollection };
