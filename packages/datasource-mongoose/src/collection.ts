@@ -15,10 +15,10 @@ import {
 import { Model, PipelineStage } from 'mongoose';
 
 import {
+  buildSubdocumentPatch,
   compareIds,
   escape,
   groupIdsByPath,
-  nestPatch,
   replaceMongoTypes,
   splitId,
 } from './utils/helpers';
@@ -150,10 +150,10 @@ export default class MongooseCollection extends BaseCollection {
         // When using object-mode flattener, path == this.prefix.
         // When using array-mode flattener, path == this.prefix + '.0' (or '.1', etc).
         // (Both can be used at the same time as this is a recursive process).
-        const pathPatch = nestPatch(path, patch, isLeaf);
+        const subdocPatch = buildSubdocumentPatch(path, patch, isLeaf);
 
-        if (Object.keys(pathPatch).length) {
-          await this.model.updateMany({ _id: rootIds }, pathPatch, { rawResult: true });
+        if (Object.keys(subdocPatch).length) {
+          await this.model.updateMany({ _id: rootIds }, subdocPatch, { rawResult: true });
         }
       });
 

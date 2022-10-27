@@ -119,7 +119,11 @@ export function replaceMongoTypes(records: any): any {
  *  == nestPatch('authors.1.name', { _id: '123', content: 'Asimov'}, true)
  *  == { 'authors.1.name': 'Asimov' }
  */
-export function nestPatch(path: string, patch: RecordData, isLeaf: boolean): RecordData {
+export function buildSubdocumentPatch(
+  path: string,
+  patch: RecordData,
+  isLeaf: boolean,
+): RecordData {
   const cleanPatch = {};
 
   if (isLeaf) {
