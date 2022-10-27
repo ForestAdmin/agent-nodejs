@@ -41,8 +41,8 @@ describe('TypingGenerator', () => {
             'boolean': boolean;
             'string': string;
             'point': [number, number];
-            'enum': 'a' | 'b' | 'c';
-            'enum': string;
+            'enumWithValues': 'a' | 'b' | 'c';
+            'enumWithoutValues': string;
             'complex': { firstname: string; lastname: string };
             'array': Array<string>;
           };
