@@ -14,7 +14,7 @@ describe('plugin importFields', () => {
         name: 'book',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             owner: factories.oneToOneSchema.build({
               foreignCollection: 'owner',
               originKey: 'bookId',
