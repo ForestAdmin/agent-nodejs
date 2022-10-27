@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.2.1...@forestadmin/datasource-customizer@1.3.0) (2022-10-27)
+
+
+### Features
+
+* **plugin:** import all fields from a relation ([#510](https://github.com/ForestAdmin/agent-nodejs/issues/510)) ([77f54c6](https://github.com/ForestAdmin/agent-nodejs/commit/77f54c6ef3359ac39f11e76c6881a246db42817c))
+
 ## @forestadmin/datasource-customizer [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.2.0...@forestadmin/datasource-customizer@1.2.1) (2022-10-24)
 
 
