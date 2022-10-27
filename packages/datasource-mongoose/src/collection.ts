@@ -14,7 +14,14 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { Model, PipelineStage } from 'mongoose';
 
-import { compareIds, escape, groupIdsByPath, replaceMongoTypes, splitId } from './utils/helpers';
+import {
+  buildSubdocumentPatch,
+  compareIds,
+  escape,
+  groupIdsByPath,
+  replaceMongoTypes,
+  splitId,
+} from './utils/helpers';
 import FieldsGenerator from './utils/schema/fields';
 import FilterGenerator from './utils/pipeline/filter';
 import GroupGenerator from './utils/pipeline/group';
@@ -111,30 +118,47 @@ export default class MongooseCollection extends BaseCollection {
   }
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+    // Fetch the ids of the documents OR subdocuments that will be updated.
+    // We need to do that regardless of `this.prefix` because the filter may contain conditions on
+    // relationships.
     const records = await this.list(caller, filter, new Projection('_id'));
     const ids = records.map(record => record._id);
 
     if (!this.prefix) {
+      // We are updating a real document, we can delegate the work to mongoose directly.
       await this.model.updateMany({ _id: ids }, patch, { rawResult: true });
+    } else {
+      // We are updating a subdocument (this.prefix is set).
 
-      return;
+      // This method can be called from customer code, so we need to handle the case where we are
+      // updating many documents at once (the GUI only allows to update documents one by one).
+      // This is trivial when using the flattener on simple objects, but becomes more convoluted
+      // when using arrays: we need to update the right element of the array in each document.
+      // For performance reasons we group the ids by path (which contain the indexes of the
+      // potentially nested arrays) instead of performing one update per doc.
+
+      // Also note, that when we are using a single field as a model, an extra level of nesting is
+      // added (this is common when using the flattener to create many to many relationships)
+      const { isLeaf } = MongooseSchema.fromModel(this.model).getSubSchema(this.prefix);
+
+      // `idsByPath` contains one entry if using the flattener in object-mode, but potentially many
+      // if using the flattener in array-mode.
+      const idsByPath = groupIdsByPath(ids);
+
+      // Perform the updates.
+      const promises = Object.entries(idsByPath).map(async ([path, rootIds]) => {
+        // When using object-mode flattener, path == this.prefix.
+        // When using array-mode flattener, path == this.prefix + '.0' (or '.1', etc).
+        // (Both can be used at the same time as this is a recursive process).
+        const subdocPatch = buildSubdocumentPatch(path, patch, isLeaf);
+
+        if (Object.keys(subdocPatch).length) {
+          await this.model.updateMany({ _id: rootIds }, subdocPatch, { rawResult: true });
+        }
+      });
+
+      await Promise.all(promises);
     }
-
-    // Clean patch
-    const schema = MongooseSchema.fromModel(this.model).getSubSchema(this.prefix);
-    let cleanPatch = { ...patch };
-    delete cleanPatch._id; // Virtual field
-    delete cleanPatch._pid; // Ignore _pids: they should not be editable from the frontend.
-    if (Object.keys(cleanPatch).length === 0) return;
-    if (schema.isLeaf) cleanPatch = cleanPatch.content;
-
-    // Perform update
-    const idsByPath = groupIdsByPath(ids);
-    const promises = Object.entries(idsByPath).map(async ([path, rootIds]) =>
-      this.model.updateMany({ _id: rootIds }, { [path]: cleanPatch }, { rawResult: true }),
-    );
-
-    await Promise.all(promises);
   }
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
@@ -151,6 +175,8 @@ export default class MongooseCollection extends BaseCollection {
     const idsByPath = groupIdsByPath(ids);
 
     if (schema.isArray) {
+      // Iterate paths in reverse order so that when we delete elements from arrays, the indexes
+      // of the next elements that we'll touch don't change.
       for (const path of Object.keys(idsByPath).sort(compareIds).reverse()) {
         const arrayPath = path.substring(0, path.lastIndexOf('.'));
         const index = Number(path.substring(path.lastIndexOf('.') + 1));
