@@ -1,3 +1,19 @@
+# @forestadmin/agent [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.2.0...@forestadmin/agent@1.3.0) (2022-10-27)
+
+
+### Features
+
+* allow creating collection charts ([#506](https://github.com/ForestAdmin/agent-nodejs/issues/506)) ([e707757](https://github.com/ForestAdmin/agent-nodejs/commit/e707757376990888a1d037abf477537f513728ac))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.4.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.0
+
 # @forestadmin/agent [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.4...@forestadmin/agent@1.2.0) (2022-10-27)
 
 
