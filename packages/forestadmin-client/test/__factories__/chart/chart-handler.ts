@@ -5,7 +5,7 @@ import contextVariablesInstantiatorFactory from '../utils/context-variables-inst
 export class ChartHandlerFactory extends Factory<ChartHandlerService> {
   mockAllMethods() {
     return this.afterBuild(chartHandler => {
-      chartHandler.getChart = jest.fn();
+      chartHandler.getChartWithContextInjected = jest.fn();
     });
   }
 }

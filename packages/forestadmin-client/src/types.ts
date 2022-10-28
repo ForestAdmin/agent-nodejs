@@ -68,7 +68,7 @@ export interface PermissionService {
 }
 
 export interface ChartHandlerInterface {
-  getChart(params: {
+  getChartWithContextInjected(params: {
     userId: string | number;
     renderingId: string | number;
     chartRequest: ChartRequest;

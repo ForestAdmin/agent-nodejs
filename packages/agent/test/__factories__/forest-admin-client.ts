@@ -20,7 +20,7 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
     buildContextVariables: jest.fn(),
   },
   chartHandler: {
-    getChart: jest.fn(),
+    getChartWithContextInjected: jest.fn(),
   },
 }));
 

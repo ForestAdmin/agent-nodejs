@@ -43,7 +43,6 @@ export default class ConditionTreeParser {
     throw new Error('Failed to instantiate condition tree from json');
   }
 
-  /** Handle 'In' where the frontend unexpectedly sends strings */
   private static parseValue(collection: Collection, leaf: PlainConditionTreeLeaf): unknown {
     const schema = CollectionUtils.getFieldSchema(collection, leaf.field) as ColumnSchema;
     const expectedType = this.getExpectedTypeForCondition(leaf, schema);
@@ -64,16 +63,16 @@ export default class ConditionTreeParser {
     filter: PlainConditionTreeLeaf,
     fieldSchema: ColumnSchema,
   ): ColumnType {
-    if (
-      [
-        'ShorterThan',
-        'LongerThan',
-        'AfterXHoursAgo',
-        'BeforeXHoursAgo',
-        'PreviousXDays',
-        'PreviousXDaysToDate',
-      ].includes(filter.operator)
-    ) {
+    const operatorsExpectingNumber: Operator[] = [
+      'ShorterThan',
+      'LongerThan',
+      'AfterXHoursAgo',
+      'BeforeXHoursAgo',
+      'PreviousXDays',
+      'PreviousXDaysToDate',
+    ];
+
+    if (operatorsExpectingNumber.includes(filter.operator)) {
       return 'Number';
     }
 

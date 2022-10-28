@@ -6,8 +6,9 @@ import Chart from '../../../src/routes/access/chart';
 
 describe('ChartRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
-  const getChartMock = services.chartHandler.getChart as jest.Mock;
-  getChartMock.mockImplementation(({ chartRequest }) => chartRequest);
+  const getChartWithContextInjectedMock = services.chartHandler
+    .getChartWithContextInjected as jest.Mock;
+  getChartWithContextInjectedMock.mockImplementation(({ chartRequest }) => chartRequest);
 
   const dataSource = factories.dataSource.buildWithCollections([
     factories.collection.build({
@@ -118,7 +119,7 @@ describe('ChartRoute', () => {
         { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: undefined, operation: 'Count' },
       );
-      expect(getChartMock).toHaveBeenCalledWith({
+      expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
         chartRequest,
         userId: 100,
         renderingId: 'myRenderingId',
@@ -384,7 +385,7 @@ describe('ChartRoute', () => {
         { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: undefined, operation: 'Count' },
       );
-      expect(getChartMock).toHaveBeenCalledWith({
+      expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
         chartRequest,
         userId: 100,
         renderingId: 'myRenderingId',
@@ -470,7 +471,7 @@ describe('ChartRoute', () => {
         { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: [{ field: 'author:firstName' }], operation: 'Count' },
       );
-      expect(getChartMock).toHaveBeenCalledWith({
+      expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
         chartRequest,
         userId: 100,
         renderingId: 'myRenderingId',
@@ -581,7 +582,7 @@ describe('ChartRoute', () => {
           operation: 'Count',
         },
       );
-      expect(getChartMock).toHaveBeenCalledWith({
+      expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
         chartRequest,
         userId: 100,
         renderingId: 'myRenderingId',
@@ -701,7 +702,7 @@ describe('ChartRoute', () => {
         { field: 'id', groups: [{ field: 'author:id' }], operation: 'Sum' },
         2,
       );
-      expect(getChartMock).toHaveBeenCalledWith({
+      expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
         chartRequest,
         userId: 100,
         renderingId: 'myRenderingId',

@@ -13,7 +13,7 @@ export type ChartRequest<C extends Chart = Chart> = C & {
 export default class ChartHandlerService implements ChartHandlerInterface {
   constructor(private readonly contextVariablesInstantiator: ContextVariablesInstantiator) {}
 
-  public async getChart({
+  public async getChartWithContextInjected({
     userId,
     renderingId,
     chartRequest,

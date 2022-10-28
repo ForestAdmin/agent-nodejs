@@ -46,14 +46,14 @@ describe('ChartHandlerService', () => {
     jest.clearAllMocks();
   });
 
-  describe('getChart', () => {
+  describe('getChartWithContextInjected', () => {
     describe('with a Pie chart', () => {
       test('it should replace filter and aggregator when using context', async () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
 
         const injectedFilter: PlainConditionTreeBranch = {
-          aggregator: 'And',
-          conditions: [{ field: 'test', operator: 'Equal', value: 'me' }],
+          aggregator: 'Or',
+          conditions: [{ field: 'name', operator: 'Equal', value: 'me' }],
         };
         jest
           .spyOn(ContextVariablesInjector, 'injectContextInFilter')
@@ -84,7 +84,11 @@ describe('ChartHandlerService', () => {
         const userId = 10;
         const renderingId = 11;
 
-        const chart = await service.getChart({ userId, renderingId, chartRequest });
+        const chart = await service.getChartWithContextInjected({
+          userId,
+          renderingId,
+          chartRequest,
+        });
 
         expect(chart).toStrictEqual({
           type: ChartType.Pie,
@@ -115,8 +119,8 @@ describe('ChartHandlerService', () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
 
         const injectedFilter: PlainConditionTreeBranch = {
-          aggregator: 'And',
-          conditions: [{ field: 'test', operator: 'Equal', value: 'me' }],
+          aggregator: 'Or',
+          conditions: [{ field: 'name', operator: 'Equal', value: 'me' }],
         };
         jest
           .spyOn(ContextVariablesInjector, 'injectContextInFilter')
@@ -146,7 +150,11 @@ describe('ChartHandlerService', () => {
         const userId = 10;
         const renderingId = 11;
 
-        const chart = await service.getChart({ userId, renderingId, chartRequest });
+        const chart = await service.getChartWithContextInjected({
+          userId,
+          renderingId,
+          chartRequest,
+        });
 
         expect(chart).toStrictEqual({
           type: ChartType.Value,
@@ -176,8 +184,8 @@ describe('ChartHandlerService', () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
 
         const injectedFilter: PlainConditionTreeBranch = {
-          aggregator: 'And',
-          conditions: [{ field: 'test', operator: 'Equal', value: 'me' }],
+          aggregator: 'Or',
+          conditions: [{ field: 'name', operator: 'Equal', value: 'me' }],
         };
         jest
           .spyOn(ContextVariablesInjector, 'injectContextInFilter')
@@ -210,7 +218,11 @@ describe('ChartHandlerService', () => {
         const userId = 10;
         const renderingId = 11;
 
-        const chart = await service.getChart({ userId, renderingId, chartRequest });
+        const chart = await service.getChartWithContextInjected({
+          userId,
+          renderingId,
+          chartRequest,
+        });
 
         expect(chart).toStrictEqual({
           type: ChartType.Objective,
@@ -241,12 +253,12 @@ describe('ChartHandlerService', () => {
     });
 
     describe('with a Line chart', () => {
-      test('it should replace filter and aggregator when using context', async () => {
+      test('it should replace filter, aggregator and timeRange when using context', async () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
 
         const injectedFilter: PlainConditionTreeBranch = {
-          aggregator: 'And',
-          conditions: [{ field: 'test', operator: 'Equal', value: 'me' }],
+          aggregator: 'Or',
+          conditions: [{ field: 'name', operator: 'Equal', value: 'me' }],
         };
         jest
           .spyOn(ContextVariablesInjector, 'injectContextInFilter')
@@ -282,7 +294,11 @@ describe('ChartHandlerService', () => {
         const userId = 10;
         const renderingId = 11;
 
-        const chart = await service.getChart({ userId, renderingId, chartRequest });
+        const chart = await service.getChartWithContextInjected({
+          userId,
+          renderingId,
+          chartRequest,
+        });
 
         expect(chart).toStrictEqual({
           type: ChartType.Line,
@@ -336,7 +352,11 @@ describe('ChartHandlerService', () => {
         const userId = 10;
         const renderingId = 11;
 
-        const chart = await service.getChart({ userId, renderingId, chartRequest });
+        const chart = await service.getChartWithContextInjected({
+          userId,
+          renderingId,
+          chartRequest,
+        });
 
         expect(chart).toStrictEqual({
           type: ChartType.Leaderboard,

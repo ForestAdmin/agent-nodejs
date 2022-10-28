@@ -55,7 +55,7 @@ export default class ChartRoute extends CollectionRoute {
     const { type } = <Chart>context.request.body;
     const { renderingId, id: userId } = <Caller>context.state.user;
 
-    context.request.body = await this.services.chartHandler.getChart({
+    context.request.body = await this.services.chartHandler.getChartWithContextInjected({
       userId,
       renderingId,
       chartRequest: context.request.body,

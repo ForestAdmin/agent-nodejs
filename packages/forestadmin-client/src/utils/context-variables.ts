@@ -29,7 +29,7 @@ export default class ContextVariables {
 
   private getCurrentUserData(contextVariableKey: string): unknown {
     if (contextVariableKey.startsWith(USER_VALUE_TEAM_PREFIX)) {
-      return this.team[contextVariableKey.slice(USER_VALUE_TEAM_PREFIX.length)];
+      return this.team[contextVariableKey.substring(USER_VALUE_TEAM_PREFIX.length)];
     }
 
     if (contextVariableKey.startsWith(USER_VALUE_TAG_PREFIX)) {

@@ -1,8 +1,5 @@
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
-
 import { PermissionLevel } from '../../src/permissions/types';
 import ContextVariables from '../../src/utils/context-variables';
-import ContextVariablesInjector from '../../src/utils/context-variables-injector';
 
 describe('ContextVariables', () => {
   const team = { id: 100, name: 'Ninja' };

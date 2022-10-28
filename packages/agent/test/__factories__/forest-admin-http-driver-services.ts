@@ -8,6 +8,6 @@ export default Factory.define<ForestAdminHttpDriverServices>(() => ({
   serializer: factorySerializer.build(),
   authorization: factoryAuthorization.mockAllMethods().build(),
   chartHandler: {
-    getChart: jest.fn(),
+    getChartWithContextInjected: jest.fn(),
   },
 }));
