@@ -37,10 +37,6 @@ export function hashServerCharts(charts: Chart[]): Set<string> {
   return new Set(hashes);
 }
 
-export function isGroupedByChart(chart: Chart): chart is Chart & { groupByFieldName?: string } {
-  return 'groupByFieldName' in chart;
-}
-
 export function hashChartRequest(chart: Chart): string {
   return hashChart(chart);
 }

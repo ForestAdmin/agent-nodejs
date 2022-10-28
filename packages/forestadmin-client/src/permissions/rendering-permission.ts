@@ -5,9 +5,10 @@ import { Chart, QueryChart } from '../charts/types';
 import { CollectionRenderingPermissionV4, PermissionLevel, Team, UserPermissionV4 } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import { hashChartRequest, hashServerCharts } from './hash-chart';
+import ContextVariables from '../utils/context-variables';
+import ContextVariablesInjector from '../utils/context-variables-injector';
 import ForestHttpApi from './forest-http-api';
 import UserPermissionService from './user-permission';
-import generateUserScope from './generate-user-scope';
 import isSegmentQueryAllowed from './is-segment-query-authorized';
 import verifySQLQuery from './verify-sql-query';
 
@@ -71,7 +72,10 @@ export default class RenderingPermissionService {
       return null;
     }
 
-    return generateUserScope(collectionPermissions.scope, permissions.team, userInfo);
+    return ContextVariablesInjector.injectContextInFilter(
+      collectionPermissions.scope,
+      new ContextVariables({ team: permissions.team, user: userInfo }),
+    );
   }
 
   public async canExecuteSegmentQuery({
@@ -228,5 +232,17 @@ export default class RenderingPermissionService {
     );
 
     this.permissionsByRendering.delete(`${renderingId}`);
+  }
+
+  public async getUser(userId: number | string): Promise<UserPermissionV4> {
+    return this.userPermissions.getUserInfo(userId);
+  }
+
+  public async getTeam(renderingId: number | string): Promise<Team> {
+    const permissions: RenderingPermission = await this.permissionsByRendering.fetch(
+      `${renderingId}`,
+    );
+
+    return permissions.team;
   }
 }

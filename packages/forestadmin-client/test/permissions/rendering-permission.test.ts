@@ -1,23 +1,20 @@
+import type { PlainConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
+
 import { ChartType } from '../../src/charts/types';
 import { PermissionLevel } from '../../src/permissions/types';
 import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
 import ChainedSQLQueryError from '../../src/permissions/errors/chained-sql-query-error';
+import ContextVariablesInjector from '../../src/utils/context-variables-injector';
 import EmptySQLQueryError from '../../src/permissions/errors/empty-sql-query-error';
 import ForestHttpApi from '../../src/permissions/forest-http-api';
 import NonSelectSQLQueryError from '../../src/permissions/errors/non-select-sql-query-error';
 import RenderingPermissionService from '../../src/permissions/rendering-permission';
-import generateUserScope from '../../src/permissions/generate-user-scope';
 import isSegmentQueryAllowed from '../../src/permissions/is-segment-query-authorized';
 import userPermissionsFactory from '../__factories__/permissions/user-permission';
 import verifySQLQuery from '../../src/permissions/verify-sql-query';
 
 jest.mock('../../src/permissions/forest-http-api', () => ({
   getRenderingPermissions: jest.fn(),
-}));
-
-jest.mock('../../src/permissions/generate-user-scope', () => ({
-  __esModule: true,
-  default: jest.fn(),
 }));
 
 jest.mock('../../src/permissions/hash-chart', () => ({
@@ -104,8 +101,8 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValueOnce(renderingPermissions);
       getUserInfoMock.mockResolvedValueOnce(userInfo);
 
-      const expected = { foo: 'bar' };
-      (generateUserScope as jest.Mock).mockReturnValueOnce(expected);
+      const expected: PlainConditionTreeLeaf = { field: 'test', operator: 'Equal', value: 'me' };
+      jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(expected);
 
       const actual = await renderingPermission.getScope({
         renderingId: '42',
@@ -116,7 +113,10 @@ describe('RenderingPermissionService', () => {
       expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
       expect(getUserInfoMock).toHaveBeenCalledWith(42);
 
-      expect(generateUserScope).toHaveBeenCalledWith(scope, team, userInfo);
+      expect(ContextVariablesInjector.injectContextInFilter).toHaveBeenCalledWith(
+        scope,
+        expect.objectContaining({ team, user: userInfo }),
+      );
 
       expect(actual).toBe(expected);
     });
@@ -156,8 +156,8 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValueOnce(renderingPermissions2);
       getUserInfoMock.mockResolvedValue(userInfo);
 
-      const expected = { foo: 'bar' };
-      (generateUserScope as jest.Mock).mockReturnValueOnce(expected);
+      const expected: PlainConditionTreeLeaf = { field: 'test', operator: 'Equal', value: 'me' };
+      jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValueOnce(expected);
 
       const actual = await renderingPermission.getScope({
         renderingId: '42',
@@ -169,7 +169,10 @@ describe('RenderingPermissionService', () => {
       expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
       expect(getUserInfoMock).toHaveBeenCalledWith('42');
 
-      expect(generateUserScope).toHaveBeenCalledWith(scope, team, userInfo);
+      expect(ContextVariablesInjector.injectContextInFilter).toHaveBeenCalledWith(
+        scope,
+        expect.objectContaining({ team, user: userInfo }),
+      );
 
       expect(actual).toBe(expected);
     });
@@ -197,8 +200,8 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValue(renderingPermissions);
       getUserInfoMock.mockResolvedValue(userInfo);
 
-      const expected = { foo: 'bar' };
-      (generateUserScope as jest.Mock).mockReturnValueOnce(expected);
+      const expected: PlainConditionTreeLeaf = { field: 'test', operator: 'Equal', value: 'me' };
+      jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(expected);
 
       const actual = await renderingPermission.getScope({
         renderingId: '42',
@@ -208,7 +211,7 @@ describe('RenderingPermissionService', () => {
 
       expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
 
-      expect(generateUserScope).not.toHaveBeenCalled();
+      expect(ContextVariablesInjector.injectContextInFilter).not.toHaveBeenCalled();
 
       expect(actual).toBe(null);
     });

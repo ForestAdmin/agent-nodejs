@@ -1,6 +1,8 @@
 import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
+import ContextVariables, { RequestContextVariables } from './utils/context-variables';
 import type { Chart } from './charts/types';
+import type { ChartRequest } from './charts/chart-handler';
 import type { CollectionActionEvent } from './permissions/types';
 
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
@@ -17,6 +19,8 @@ export type ForestAdminClientOptionsWithDefaults = Required<ForestAdminClientOpt
 
 export interface ForestAdminClient {
   readonly permissionService: PermissionService;
+  readonly contextVariablesInstantiator: ContextVariablesInstantiatorInterface;
+  readonly chartHandler: ChartHandlerInterface;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
@@ -61,4 +65,20 @@ export interface PermissionService {
     renderingId: number | string;
     segmentQuery: string;
   }): Promise<boolean>;
+}
+
+export interface ChartHandlerInterface {
+  getChartWithContextInjected(params: {
+    userId: string | number;
+    renderingId: string | number;
+    chartRequest: ChartRequest;
+  }): Promise<Chart>;
+}
+
+export interface ContextVariablesInstantiatorInterface {
+  buildContextVariables(params: {
+    requestContextVariables?: RequestContextVariables;
+    renderingId: string | number;
+    userId: string | number;
+  }): Promise<ContextVariables>;
 }

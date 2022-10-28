@@ -16,6 +16,12 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
     canExecuteChart: jest.fn(),
     canTriggerCustomAction: jest.fn(),
   },
+  contextVariablesInstantiator: {
+    buildContextVariables: jest.fn(),
+  },
+  chartHandler: {
+    getChartWithContextInjected: jest.fn(),
+  },
 }));
 
 export default forestAdminClientFactory;

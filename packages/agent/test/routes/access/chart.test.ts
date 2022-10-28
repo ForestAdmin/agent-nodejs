@@ -6,6 +6,10 @@ import Chart from '../../../src/routes/access/chart';
 
 describe('ChartRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
+  const getChartWithContextInjectedMock = services.chartHandler
+    .getChartWithContextInjected as jest.Mock;
+  getChartWithContextInjectedMock.mockImplementation(({ chartRequest }) => chartRequest);
+
   const dataSource = factories.dataSource.buildWithCollections([
     factories.collection.build({
       name: 'publisher',
@@ -63,6 +67,7 @@ describe('ChartRoute', () => {
   ]);
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
+  const user = { email: 'john.doe@domain.com', id: 100, renderingId: 'myRenderingId' };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -95,24 +100,30 @@ describe('ChartRoute', () => {
         .mockResolvedValue([{ value: 1234, group: null }]);
 
       const chart = new Chart(services, options, dataSource, 'books');
+      const chartRequest = {
+        type: 'Value',
+        aggregator: 'Count',
+        sourceCollectionName: 'books',
+        filters: undefined,
+      };
       const context = createMockContext({
-        requestBody: {
-          type: 'Value',
-          aggregator: 'Count',
-          sourceCollectionName: 'books',
-          filters: undefined,
-        },
+        requestBody: chartRequest,
         customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user },
       });
 
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { ...user, timezone: 'Europe/Paris' },
         { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: undefined, operation: 'Count' },
       );
+      expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
+        chartRequest,
+        userId: 100,
+        renderingId: 'myRenderingId',
+      });
       expect(context.response.body).toMatchObject({
         data: {
           attributes: { value: { countCurrent: 1234, countPrevious: undefined } },
@@ -356,20 +367,29 @@ describe('ChartRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'aggregate')
         .mockResolvedValueOnce([{ value: 1234, group: null }]);
       const chart = new Chart(services, options, dataSource, 'books');
+      const chartRequest = {
+        type: 'Objective',
+        aggregator: 'Count',
+        sourceCollectionName: 'books',
+      };
       const context = createMockContext({
-        requestBody: { type: 'Objective', aggregator: 'Count', sourceCollectionName: 'books' },
+        requestBody: chartRequest,
         customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user },
       });
 
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { ...user, timezone: 'Europe/Paris' },
         { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: undefined, operation: 'Count' },
       );
-
+      expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
+        chartRequest,
+        userId: 100,
+        renderingId: 'myRenderingId',
+      });
       expect(context.response.body).toMatchObject({
         data: {
           attributes: { value: { value: 1234 } },
@@ -432,25 +452,30 @@ describe('ChartRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'aggregate')
         .mockResolvedValueOnce([{ value: 1234, group: { 'author:firstName': 'Victor Hugo' } }]);
       const chart = new Chart(services, options, dataSource, 'books');
+      const chartRequest = {
+        type: 'Pie',
+        aggregator: 'Count',
+        sourceCollectionName: 'books',
+        groupByFieldName: 'author:firstName',
+      };
       const context = createMockContext({
-        requestBody: {
-          type: 'Pie',
-          aggregator: 'Count',
-          sourceCollectionName: 'books',
-          groupByFieldName: 'author:firstName',
-        },
+        requestBody: chartRequest,
         customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user },
       });
 
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { ...user, timezone: 'Europe/Paris' },
         { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: undefined, groups: [{ field: 'author:firstName' }], operation: 'Count' },
       );
-
+      expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
+        chartRequest,
+        userId: 100,
+        renderingId: 'myRenderingId',
+      });
       expect(context.response.body).toMatchObject({
         data: {
           attributes: {
@@ -533,22 +558,23 @@ describe('ChartRoute', () => {
       ]);
 
       const chart = new Chart(services, options, dataSource, 'books');
+      const chartRequest = {
+        type: 'Line',
+        aggregator: 'Count',
+        sourceCollectionName: 'books',
+        groupByFieldName: 'publication',
+        timeRange: 'Week',
+      };
       const context = createMockContext({
-        requestBody: {
-          type: 'Line',
-          aggregator: 'Count',
-          sourceCollectionName: 'books',
-          groupByFieldName: 'publication',
-          timeRange: 'Week',
-        },
+        requestBody: chartRequest,
         customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user },
       });
 
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { ...user, timezone: 'Europe/Paris' },
         { conditionTree: null, search: null, searchExtended: false, segment: null },
         {
           field: undefined,
@@ -556,7 +582,11 @@ describe('ChartRoute', () => {
           operation: 'Count',
         },
       );
-
+      expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
+        chartRequest,
+        userId: 100,
+        renderingId: 'myRenderingId',
+      });
       expect(context.response.body).toMatchObject({
         data: {
           attributes: {
@@ -649,29 +679,34 @@ describe('ChartRoute', () => {
 
       const chart = new Chart(services, options, dataSource, 'persons');
 
+      const chartRequest = {
+        type: 'Leaderboard',
+        aggregator: 'Sum',
+        aggregateFieldName: 'id',
+        sourceCollectionName: 'persons',
+        labelFieldName: 'id',
+        relationshipFieldName: 'books',
+        limit: 2,
+      };
       const context = createMockContext({
-        requestBody: {
-          type: 'Leaderboard',
-          aggregator: 'Sum',
-          aggregateFieldName: 'id',
-          sourceCollectionName: 'persons',
-          labelFieldName: 'id',
-          relationshipFieldName: 'books',
-          limit: 2,
-        },
+        requestBody: chartRequest,
         customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user },
       });
 
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { ...user, timezone: 'Europe/Paris' },
         { conditionTree: null, search: null, searchExtended: false, segment: null },
         { field: 'id', groups: [{ field: 'author:id' }], operation: 'Sum' },
         2,
       );
-
+      expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
+        chartRequest,
+        userId: 100,
+        renderingId: 'myRenderingId',
+      });
       expect(context.response.body).toMatchObject({
         data: {
           attributes: {
