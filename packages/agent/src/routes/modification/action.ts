@@ -138,26 +138,34 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async getRecordSelection(context: Context): Promise<Filter> {
-    const selectionIds = BodyParser.parseSelectionIds(this.collection.schema, context);
-    let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
-    if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
-
-    const conditionTree = ConditionTreeFactory.intersect(
-      selectedIds,
-      QueryStringParser.parseConditionTree(this.collection, context),
-      await this.services.authorization.getScope(this.collection, context),
-    );
-
-    const caller = QueryStringParser.parseCaller(context);
-    const filter = ContextFilterFactory.build(this.collection, context, null, { conditionTree });
     const attributes = context.request?.body?.data?.attributes;
 
-    if (attributes?.parent_association_name) {
-      const relation = attributes?.parent_association_name;
-      const parentCollection = this.dataSource.getCollection(attributes.parent_collection_name);
-      const parentId = IdUtils.unpackId(parentCollection.schema, attributes.parent_collection_id);
+    // Match user filter + search + scope + segment.
+    const scope = await this.services.authorization.getScope(this.collection, context);
+    let filter = ContextFilterFactory.build(this.collection, context, scope);
 
-      return FilterFactory.makeForeignFilter(parentCollection, parentId, relation, caller, filter);
+    // Restrict the filter to the selected records for single or bulk actions.
+    if (this.collection.schema.actions[this.actionName].scope !== 'Global') {
+      const selectionIds = BodyParser.parseSelectionIds(this.collection.schema, context);
+      let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
+      if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
+
+      const conditionTree = ConditionTreeFactory.intersect(
+        selectedIds,
+        QueryStringParser.parseConditionTree(this.collection, context),
+        await this.services.authorization.getScope(this.collection, context),
+      );
+      filter = filter.override({ conditionTree });
+    }
+
+    // Restrict the filter further for the "related data" page.
+    if (attributes?.parent_association_name) {
+      const caller = QueryStringParser.parseCaller(context);
+      const relation = attributes?.parent_association_name;
+      const parent = this.dataSource.getCollection(attributes.parent_collection_name);
+      const parentId = IdUtils.unpackId(parent.schema, attributes.parent_collection_id);
+
+      filter = await FilterFactory.makeForeignFilter(parent, parentId, relation, caller, filter);
     }
 
     return filter;
