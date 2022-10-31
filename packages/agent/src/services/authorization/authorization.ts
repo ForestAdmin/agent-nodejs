@@ -72,8 +72,6 @@ export default class AuthorizationService {
     }
   }
 
-  // Question: How to have a nicer signature caller collectionAggregate requestConditionTree
-  // are used for the same purpose
   public async assertCanTriggerCustomAction({
     context,
     customActionName,
@@ -96,7 +94,6 @@ export default class AuthorizationService {
       throw new CustomActionTriggerForbiddenError();
     }
 
-    // STATE: Trigger is OK let see if requires approval
     const triggerRequiresApproval = await this.doesTriggerCustomActionRequiresApproval(
       userId,
       customActionName,
@@ -106,8 +103,6 @@ export default class AuthorizationService {
     );
 
     if (triggerRequiresApproval) {
-      // CASE: Some records match the condition -> CustomAction RequiresApproval
-      // OR CASE: No conditional RequireApproval filter -> CustomAction always RequiresApproval
       const rolesIdsAllowedToApprove = await this.getRolesIdsAllowedToApprove(
         caller,
         customActionName,
@@ -254,12 +249,10 @@ export default class AuthorizationService {
         collectionName: collection.name,
       });
 
-    // CASE: User can trigger without approval required
     if (!doesTriggerRequiresApproval) {
       return false;
     }
 
-    // Checking conditional Requires Approval filter
     const conditionalRequiresApprovalRawFilter =
       await this.forestAdminClient.permissionService.getConditionalRequiresApprovalFilter({
         userId,
@@ -275,7 +268,7 @@ export default class AuthorizationService {
         conditionalRequiresApprovalRawFilter,
       );
 
-      // CASE: No records match the condition -> User can trigger without approval
+      // No records match the condition, trigger does not require approval
       if (matchingRecordsCount === 0) {
         return false;
       }
@@ -300,11 +293,9 @@ export default class AuthorizationService {
     });
 
     if (!canApprove) {
-      // CASE: ApprovalNotAllowedError
       return false;
     }
 
-    // Checking conditional approve filter
     const conditionalApproveRawFilter =
       await this.forestAdminClient.permissionService.getConditionalApproveFilter({
         userId,
@@ -332,8 +323,8 @@ export default class AuthorizationService {
         this.intersectAggregate(caller, collection, requestConditionTree, conditionalRawFilter),
       ]);
 
-      // if some records don't match the condition the user is not allow to
-      // perform the conditional action
+      // If some records don't match the condition then the user
+      // is not allow to perform the conditional action
       if (matchingRecordsCount !== requestRecordsCount) {
         return false;
       }
