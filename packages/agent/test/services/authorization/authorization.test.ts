@@ -5,21 +5,36 @@ import {
   EmptySQLQueryError,
   NonSelectSQLQueryError,
 } from '@forestadmin/forestadmin-client';
-import { Collection } from '@forestadmin/datasource-toolkit';
+import { Collection, GenericTree } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 
 import * as factories from '../../__factories__';
 
 import { HttpCode } from '../../../src/types';
 
+import {
+  canPerformConditionalCustomAction,
+  intersectCount,
+  transformToRolesIdsGroupByConditions,
+} from '../../../src/services/authorization/authorization-internal';
+import ApprovalNotAllowedError from '../../../src/services/authorization/errors/approvalNotAllowedError';
 import AuthorizationService from '../../../src/services/authorization/authorization';
 import ConditionTreeParser from '../../../src/utils/condition-tree-parser';
+import CustomActionRequiresApprovalError from '../../../src/services/authorization/errors/CustomActionRequiresApprovalError';
+import CustomActionTriggerForbiddenError from '../../../src/services/authorization/errors/customActionTriggerForbiddenError';
 
 jest.mock('../../../src/utils/condition-tree-parser', () => ({
   __esModule: true,
   default: {
     fromPlainObject: jest.fn(),
   },
+}));
+
+jest.mock('../../../src/services/authorization/authorization-internal', () => ({
+  __esModule: true,
+  intersectCount: jest.fn(),
+  canPerformConditionalCustomAction: jest.fn(),
+  transformToRolesIdsGroupByConditions: jest.fn(),
 }));
 
 describe('AuthorizationService', () => {
@@ -85,107 +100,437 @@ describe('AuthorizationService', () => {
   });
 
   describe('assertCanTriggerCustomAction', () => {
-    it('should do nothing if the user can trigger a custom action', async () => {
-      const context = { state: { user: { id: 42 } } } as Context;
+    describe('canTriggerCustomAction', () => {
+      it('should do nothing if the user can trigger a custom action', async () => {
+        const context = { state: { user: { id: 42 } } } as Context;
 
-      const forestAdminClient = factories.forestAdminClient.build();
+        const forestAdminClient = factories.forestAdminClient.build();
 
-      (forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock).mockResolvedValue(
-        true,
-      );
+        (forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock).mockResolvedValue(
+          true,
+        );
 
-      const authorization = new AuthorizationService(forestAdminClient);
+        (canPerformConditionalCustomAction as jest.Mock).mockResolvedValue(true);
 
-      await expect(
-        authorization.assertCanTriggerCustomAction({
-          context,
+        const authorization = new AuthorizationService(forestAdminClient);
+
+        await expect(
+          authorization.assertCanTriggerCustomAction({
+            context,
+            customActionName: 'do-something',
+            collection: factories.collection.build({ name: 'actors' }),
+            requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+            requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
+            caller: factories.caller.build(),
+          }),
+        ).resolves.toBe(undefined);
+
+        expect(forestAdminClient.permissionService.canTriggerCustomAction).toHaveBeenCalledWith({
+          userId: 42,
           customActionName: 'do-something',
           collectionName: 'actors',
-        }),
-      ).resolves.toBe(undefined);
+        });
+      });
 
-      expect(forestAdminClient.permissionService.canTriggerCustomAction).toHaveBeenCalledWith({
-        userId: 42,
-        customActionName: 'do-something',
-        collectionName: 'actors',
+      it('should do nothing if the user can trigger a conditional custom action', async () => {
+        const context = { state: { user: { id: 42 } } } as Context;
+
+        const forestAdminClient = factories.forestAdminClient.build();
+
+        (forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock).mockResolvedValue(
+          true,
+        );
+
+        (canPerformConditionalCustomAction as jest.Mock).mockResolvedValue(true);
+
+        const authorization = new AuthorizationService(forestAdminClient);
+
+        await expect(
+          authorization.assertCanTriggerCustomAction({
+            context,
+            customActionName: 'do-something',
+            collection: factories.collection.build({ name: 'actors' }),
+            requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+            requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
+            caller: factories.caller.build(),
+          }),
+        ).resolves.toBe(undefined);
+
+        expect(forestAdminClient.permissionService.canTriggerCustomAction).toHaveBeenCalledWith({
+          userId: 42,
+          customActionName: 'do-something',
+          collectionName: 'actors',
+        });
+      });
+
+      it('should throw an error if the user cannot trigger', async () => {
+        const context = {
+          state: { user: { id: 42 } },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        const forestAdminClient = factories.forestAdminClient.build();
+
+        (forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock).mockResolvedValue(
+          false,
+        );
+
+        const authorization = new AuthorizationService(forestAdminClient);
+
+        await expect(
+          authorization.assertCanTriggerCustomAction({
+            context,
+            customActionName: 'do-something',
+            collection: factories.collection.build({ name: 'actors' }),
+            requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+            requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
+            caller: factories.caller.build(),
+          }),
+        ).rejects.toThrow(CustomActionTriggerForbiddenError);
+      });
+
+      it('should throw an error if the user cannot trigger conditional', async () => {
+        const context = {
+          state: { user: { id: 42 } },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        const forestAdminClient = factories.forestAdminClient.build();
+
+        (forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock).mockResolvedValue(
+          false,
+        );
+
+        (canPerformConditionalCustomAction as jest.Mock).mockResolvedValue(false);
+
+        const authorization = new AuthorizationService(forestAdminClient);
+
+        await expect(
+          authorization.assertCanTriggerCustomAction({
+            context,
+            customActionName: 'do-something',
+            collection: factories.collection.build({ name: 'actors' }),
+            requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+            requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
+            caller: factories.caller.build(),
+          }),
+        ).rejects.toThrow(CustomActionTriggerForbiddenError);
       });
     });
 
-    it('should throw an error if the user cannot trigger', async () => {
-      const context = {
-        state: { user: { id: 42 } },
-        throw: jest.fn(),
-      } as unknown as Context;
+    describe('doesTriggerCustomActionRequiresApproval', () => {
+      describe('with Trigger does not Requires Approval', () => {
+        it('should do nothing if the user trigger does not require approval', async () => {
+          const context = { state: { user: { id: 42 } } } as Context;
 
-      const forestAdminClient = factories.forestAdminClient.build();
+          const forestAdminClient = factories.forestAdminClient.build();
 
-      (forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock).mockResolvedValue(
-        false,
-      );
+          (
+            forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+          ).mockResolvedValue(true);
+          (canPerformConditionalCustomAction as jest.Mock).mockResolvedValue(true);
 
-      const authorization = new AuthorizationService(forestAdminClient);
+          (
+            forestAdminClient.permissionService.doesTriggerCustomActionRequiresApproval as jest.Mock
+          ).mockResolvedValue(false);
 
-      await authorization.assertCanTriggerCustomAction({
-        context,
-        collectionName: 'actors',
-        customActionName: 'do-something',
+          const authorization = new AuthorizationService(forestAdminClient);
+
+          await expect(
+            authorization.assertCanTriggerCustomAction({
+              context,
+              customActionName: 'do-something',
+              collection: factories.collection.build({ name: 'actors' }),
+              requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+              requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
+              caller: factories.caller.build(),
+            }),
+          ).resolves.toBe(undefined);
+
+          expect(
+            forestAdminClient.permissionService.doesTriggerCustomActionRequiresApproval,
+          ).toHaveBeenCalledWith({
+            userId: 42,
+            customActionName: 'do-something',
+            collectionName: 'actors',
+          });
+        });
       });
 
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
+      describe('with Trigger Requires Approval', () => {
+        describe('without "RequiresApproval" condition defined', () => {
+          it('should throw an error CustomActionRequiresApprovalError', async () => {
+            const context = {
+              state: { user: { id: 42 } },
+              throw: jest.fn(),
+            } as unknown as Context;
+
+            const forestAdminClient = factories.forestAdminClient.build();
+
+            (
+              forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+            ).mockResolvedValue(true);
+            (canPerformConditionalCustomAction as jest.Mock).mockResolvedValue(true);
+
+            (
+              forestAdminClient.permissionService
+                .doesTriggerCustomActionRequiresApproval as jest.Mock
+            ).mockResolvedValue(true);
+
+            (
+              forestAdminClient.permissionService
+                .getConditionalRequiresApprovalCondition as jest.Mock
+            ).mockResolvedValue(null);
+
+            const condition = {
+              value: 'some',
+              field: 'definition',
+              operator: 'Equal',
+            } as GenericTree;
+
+            const fakeActionConditionsByRoleId = new Map<number, GenericTree>([[10, condition]]);
+
+            (
+              forestAdminClient.permissionService.getConditionalApproveConditions as jest.Mock
+            ).mockResolvedValue(fakeActionConditionsByRoleId);
+
+            (transformToRolesIdsGroupByConditions as jest.Mock).mockReturnValue([
+              {
+                roleIds: [10],
+                condition,
+              },
+            ]);
+
+            (intersectCount as jest.Mock).mockResolvedValue(1);
+
+            const authorization = new AuthorizationService(forestAdminClient);
+
+            await expect(
+              authorization.assertCanTriggerCustomAction({
+                context,
+                customActionName: 'do-something',
+                collection: factories.collection.build({ name: 'actors' }),
+                requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+                requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
+                caller: factories.caller.build(),
+              }),
+            ).rejects.toThrow(new CustomActionRequiresApprovalError([10]));
+          });
+        });
+
+        describe('with "RequiresApproval" condition defined', () => {
+          it('should do nothing if no records match the "RequiresApproval" condition', async () => {
+            const context = { state: { user: { id: 42 } } } as Context;
+
+            const forestAdminClient = factories.forestAdminClient.build();
+
+            (
+              forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+            ).mockResolvedValue(true);
+            (canPerformConditionalCustomAction as jest.Mock).mockResolvedValue(true);
+
+            (
+              forestAdminClient.permissionService
+                .doesTriggerCustomActionRequiresApproval as jest.Mock
+            ).mockResolvedValue(true);
+
+            (
+              forestAdminClient.permissionService
+                .getConditionalRequiresApprovalCondition as jest.Mock
+            ).mockResolvedValue({
+              value: '42',
+              field: 'foo',
+              operator: 'Equal',
+            });
+
+            (intersectCount as jest.Mock).mockResolvedValue(0);
+
+            const authorization = new AuthorizationService(forestAdminClient);
+
+            await expect(
+              authorization.assertCanTriggerCustomAction({
+                context,
+                customActionName: 'do-something',
+                collection: factories.collection.build({ name: 'actors' }),
+                requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+                requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
+                caller: factories.caller.build(),
+              }),
+            ).resolves.toBe(undefined);
+
+            expect(
+              forestAdminClient.permissionService.getConditionalRequiresApprovalCondition,
+            ).toHaveBeenCalledWith({
+              userId: 42,
+              customActionName: 'do-something',
+              collectionName: 'actors',
+            });
+          });
+
+          it(
+            'should throw an error CustomActionRequiresApprovalError ' +
+              'if some records on which the CustomAction is executed match condition',
+            async () => {
+              const context = {
+                state: { user: { id: 42 } },
+                throw: jest.fn(),
+              } as unknown as Context;
+
+              const forestAdminClient = factories.forestAdminClient.build();
+
+              (
+                forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+              ).mockResolvedValue(true);
+              (canPerformConditionalCustomAction as jest.Mock).mockResolvedValue(true);
+
+              (
+                forestAdminClient.permissionService
+                  .doesTriggerCustomActionRequiresApproval as jest.Mock
+              ).mockResolvedValue(true);
+
+              (
+                forestAdminClient.permissionService
+                  .getConditionalRequiresApprovalCondition as jest.Mock
+              ).mockResolvedValue({
+                value: '42',
+                field: 'foo',
+                operator: 'Equal',
+              });
+
+              const condition = {
+                value: 'some',
+                field: 'definition',
+                operator: 'Equal',
+              } as GenericTree;
+
+              const fakeActionConditionsByRoleId = new Map<number, GenericTree>([[10, condition]]);
+
+              (
+                forestAdminClient.permissionService.getConditionalApproveConditions as jest.Mock
+              ).mockResolvedValue(fakeActionConditionsByRoleId);
+
+              (transformToRolesIdsGroupByConditions as jest.Mock).mockReturnValue([
+                {
+                  roleIds: [10],
+                  condition,
+                },
+              ]);
+
+              (intersectCount as jest.Mock).mockResolvedValueOnce(3).mockResolvedValue(1);
+
+              const authorization = new AuthorizationService(forestAdminClient);
+
+              await expect(
+                authorization.assertCanTriggerCustomAction({
+                  context,
+                  customActionName: 'do-something',
+                  collection: factories.collection.build({ name: 'actors' }),
+                  requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+                  requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
+                  caller: factories.caller.build(),
+                }),
+              ).rejects.toThrow(new CustomActionRequiresApprovalError([10]));
+            },
+          );
+        });
+      });
     });
   });
 
   describe('assertCanApproveCustomAction', () => {
-    it('should do nothing if the user can approve a custom action', async () => {
-      const context = { state: { user: { id: 42 } } } as Context;
+    describe('canApproveCustomAction', () => {
+      it('should do nothing if the user can approve a custom action', async () => {
+        const context = { state: { user: { id: 42 } } } as Context;
 
-      const forestAdminClient = factories.forestAdminClient.build();
+        const forestAdminClient = factories.forestAdminClient.build();
 
-      (forestAdminClient.permissionService.canApproveCustomAction as jest.Mock).mockResolvedValue(
-        true,
-      );
+        (forestAdminClient.permissionService.canApproveCustomAction as jest.Mock).mockResolvedValue(
+          true,
+        );
 
-      const authorization = new AuthorizationService(forestAdminClient);
+        (canPerformConditionalCustomAction as jest.Mock).mockResolvedValue(true);
 
-      await expect(
-        authorization.assertCanApproveCustomAction({
-          context,
+        const authorization = new AuthorizationService(forestAdminClient);
+
+        await expect(
+          authorization.assertCanApproveCustomAction({
+            context,
+            customActionName: 'do-something',
+            collection: factories.collection.build({ name: 'actors' }),
+            requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+            requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
+            caller: factories.caller.build(),
+            requesterId: 30,
+          }),
+        ).resolves.toBe(undefined);
+
+        expect(forestAdminClient.permissionService.canApproveCustomAction).toHaveBeenCalledWith({
+          userId: 42,
           customActionName: 'do-something',
           collectionName: 'actors',
           requesterId: 30,
-        }),
-      ).resolves.toBe(undefined);
-
-      expect(forestAdminClient.permissionService.canApproveCustomAction).toHaveBeenCalledWith({
-        userId: 42,
-        customActionName: 'do-something',
-        collectionName: 'actors',
-        requesterId: 30,
-      });
-    });
-
-    it('should throw an error if the user cannot approve', async () => {
-      const context = {
-        state: { user: { id: 42 } },
-        throw: jest.fn(),
-      } as unknown as Context;
-
-      const forestAdminClient = factories.forestAdminClient.build();
-
-      (forestAdminClient.permissionService.canApproveCustomAction as jest.Mock).mockResolvedValue(
-        false,
-      );
-
-      const authorization = new AuthorizationService(forestAdminClient);
-
-      await authorization.assertCanApproveCustomAction({
-        context,
-        collectionName: 'actors',
-        customActionName: 'do-something',
-        requesterId: 30,
+        });
       });
 
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
+      it('should throw an error if the user cannot approve', async () => {
+        const context = {
+          state: { user: { id: 42 } },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        const forestAdminClient = factories.forestAdminClient.build();
+
+        (forestAdminClient.permissionService.canApproveCustomAction as jest.Mock).mockResolvedValue(
+          false,
+        );
+
+        const condition = {
+          value: 'some',
+          field: 'definition',
+          operator: 'Equal',
+        } as GenericTree;
+
+        const fakeActionConditionsByRoleId = new Map<number, GenericTree>([[10, condition]]);
+
+        (
+          forestAdminClient.permissionService.getConditionalApproveConditions as jest.Mock
+        ).mockResolvedValue(fakeActionConditionsByRoleId);
+
+        (transformToRolesIdsGroupByConditions as jest.Mock).mockReturnValue([
+          {
+            roleIds: [10],
+            condition,
+          },
+          {
+            roleIds: [11],
+            condition,
+          },
+          {
+            roleIds: [12, 13],
+            condition,
+          },
+        ]);
+
+        (intersectCount as jest.Mock)
+          .mockResolvedValueOnce(3)
+          .mockResolvedValueOnce(3)
+          .mockResolvedValueOnce(1)
+          .mockResolvedValueOnce(3);
+
+        const authorization = new AuthorizationService(forestAdminClient);
+
+        await expect(
+          authorization.assertCanApproveCustomAction({
+            context,
+            customActionName: 'do-something',
+            collection: factories.collection.build({ name: 'actors' }),
+            requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+            requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
+            caller: factories.caller.build(),
+            requesterId: 30,
+          }),
+        ).rejects.toThrow(new ApprovalNotAllowedError([10, 12, 13]));
+      });
     });
   });
 
