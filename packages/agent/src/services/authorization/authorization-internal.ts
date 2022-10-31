@@ -16,7 +16,7 @@ export async function intersectCount(
   caller: Caller,
   collection: Collection,
   requestConditionTree: ConditionTree,
-  conditionalRawCondition?: GenericTree,
+  conditionalRawCondition?: unknown,
 ) {
   try {
     // Build filter format with the right format
@@ -47,7 +47,7 @@ export async function canPerformConditionalCustomAction(
   caller: Caller,
   collection: Collection,
   requestConditionTree: ConditionTree,
-  conditionalRawCondition: GenericTree,
+  conditionalRawCondition: unknown | null,
 ) {
   if (conditionalRawCondition) {
     const [requestRecordsCount, matchingRecordsCount] = await Promise.all([
