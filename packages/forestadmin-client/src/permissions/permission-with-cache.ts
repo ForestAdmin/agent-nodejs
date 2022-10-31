@@ -1,6 +1,5 @@
 import { Chart } from '../charts/types';
 import { CollectionActionEvent, CustomActionEvent } from './types';
-import { GenericTree } from '@forestadmin/datasource-toolkit';
 import { PermissionService } from '../types';
 import {
   generateCollectionActionIdentifier,
