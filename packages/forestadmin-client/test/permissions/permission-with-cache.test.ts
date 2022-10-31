@@ -1,4 +1,5 @@
 import * as factories from '../__factories__';
+import { ChartType } from '../../src/charts/types';
 import { CollectionActionEvent, CustomActionEvent } from '../../src/permissions/types';
 import {
   generateCollectionActionIdentifier,
@@ -202,7 +203,7 @@ describe('PermissionService', () => {
     });
   });
 
-  describe('canRetrieveChart', () => {
+  describe('canExecuteChart', () => {
     it('should check if the user has the right to display the chart', async () => {
       const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
       const permissionService = new PermissionServiceWithCache(
@@ -210,18 +211,28 @@ describe('PermissionService', () => {
         renderingPermissionService,
       );
 
-      (renderingPermissionService.canRetrieveChart as jest.Mock).mockResolvedValue(true);
+      (renderingPermissionService.canExecuteChart as jest.Mock).mockResolvedValue(true);
 
-      const result = await permissionService.canRetrieveChart({
+      const result = await permissionService.canExecuteChart({
         userId: 42,
         renderingId: 666,
-        chartRequest: { foo: 'bar' },
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
       });
 
-      expect(renderingPermissionService.canRetrieveChart).toHaveBeenCalledWith({
+      expect(renderingPermissionService.canExecuteChart).toHaveBeenCalledWith({
         userId: 42,
         renderingId: 666,
-        chartRequest: { foo: 'bar' },
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
       });
       expect(result).toBe(true);
     });

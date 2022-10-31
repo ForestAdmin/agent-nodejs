@@ -3,11 +3,22 @@ import {
   Collection,
   CollectionUtils,
   ColumnSchema,
+  ColumnType,
   ConditionTree,
   ConditionTreeBranch,
   ConditionTreeLeaf,
   Operator,
+  PlainConditionTreeLeaf,
 } from '@forestadmin/datasource-toolkit';
+
+const STRING_TO_BOOLEAN = {
+  true: true,
+  yes: true,
+  '1': true,
+  false: false,
+  no: false,
+  '0': false,
+};
 
 export default class ConditionTreeParser {
   static fromPlainObject(collection: Collection, json: unknown): ConditionTree {
@@ -32,31 +43,11 @@ export default class ConditionTreeParser {
     throw new Error('Failed to instantiate condition tree from json');
   }
 
-  /** Handle 'In' where the frontend unexpectedly sends strings */
-  private static parseValue(
-    collection: Collection,
-    leaf: { field: string; operator: string; value: unknown },
-  ): unknown {
+  private static parseValue(collection: Collection, leaf: PlainConditionTreeLeaf): unknown {
     const schema = CollectionUtils.getFieldSchema(collection, leaf.field) as ColumnSchema;
+    const expectedType = this.getExpectedTypeForCondition(leaf, schema);
 
-    if (leaf.operator === 'In' && typeof leaf.value === 'string') {
-      if (schema.columnType === 'Boolean') {
-        return leaf.value
-          .split(',')
-          .map(bool => !['false', '0', 'no'].includes(bool.toLowerCase().trim()));
-      }
-
-      if (schema.columnType === 'Number') {
-        return leaf.value
-          .split(',')
-          .map(string => Number(string.trim()))
-          .filter(number => !Number.isNaN(number) && Number.isFinite(number));
-      }
-
-      return leaf.value.split(',').map(v => v.trim());
-    }
-
-    return leaf.value;
+    return this.castToType(leaf.value, expectedType);
   }
 
   /** Convert snake_case to PascalCase */
@@ -66,6 +57,58 @@ export default class ConditionTreeParser {
       value.slice(1).replace(/_[a-z]/g, match => match.slice(1).toUpperCase());
 
     return pascalCased as Operator;
+  }
+
+  private static getExpectedTypeForCondition(
+    filter: PlainConditionTreeLeaf,
+    fieldSchema: ColumnSchema,
+  ): ColumnType {
+    const operatorsExpectingNumber: Operator[] = [
+      'ShorterThan',
+      'LongerThan',
+      'AfterXHoursAgo',
+      'BeforeXHoursAgo',
+      'PreviousXDays',
+      'PreviousXDaysToDate',
+    ];
+
+    if (operatorsExpectingNumber.includes(filter.operator)) {
+      return 'Number';
+    }
+
+    if (filter.operator === 'In') {
+      return [fieldSchema.columnType];
+    }
+
+    return fieldSchema.columnType;
+  }
+
+  private static castToType(value: unknown, expectedType: ColumnType): unknown {
+    if (value === null || value === undefined) return value;
+
+    if (Array.isArray(expectedType)) {
+      const items = typeof value === 'string' ? value.split(',').map(item => item.trim()) : value;
+      const filter = expectedType[0] === 'Number' ? item => !Number.isNaN(item) : () => true;
+
+      return Array.isArray(items)
+        ? items.map(item => this.castToType(item, expectedType[0])).filter(filter)
+        : value;
+    }
+
+    switch (expectedType) {
+      case 'String':
+      case 'Dateonly':
+      case 'Date':
+        return `${value as string | number}`;
+      case 'Number':
+        return Number(value);
+      case 'Boolean':
+        return typeof value === 'string' && value in STRING_TO_BOOLEAN
+          ? STRING_TO_BOOLEAN[value]
+          : !!value;
+      default:
+        return value;
+    }
   }
 
   private static isLeaf(raw: unknown): raw is { field: string; operator: string; value: unknown } {

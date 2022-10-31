@@ -1,3 +1,25 @@
+# @forestadmin/agent [1.1.0-alpha.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.0-alpha.2...@forestadmin/agent@1.1.0-alpha.3) (2022-10-25)
+
+
+### Bug Fixes
+
+* **chart/segment:** check that query is valid before executing it ([#508](https://github.com/ForestAdmin/agent-nodejs/issues/508)) ([84b1042](https://github.com/ForestAdmin/agent-nodejs/commit/84b104263ed6e94a538080318533043f812b27bf))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.0.0-alpha.2
+
+# @forestadmin/agent [1.1.0-alpha.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.0-alpha.1...@forestadmin/agent@1.1.0-alpha.2) (2022-10-24)
+
+
+### Features
+
+* support custom errors with data and add more information about error ([#497](https://github.com/ForestAdmin/agent-nodejs/issues/497)) ([8f66c97](https://github.com/ForestAdmin/agent-nodejs/commit/8f66c97000e52115e8ed13e0d5c99f1f26b2bc57))
+
 # @forestadmin/agent [1.1.0-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.3...@forestadmin/agent@1.1.0-alpha.1) (2022-10-14)
 
 

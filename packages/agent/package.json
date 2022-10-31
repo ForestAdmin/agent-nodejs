@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent",
-  "version": "1.1.0-alpha.1",
+  "version": "1.1.0-alpha.3",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -16,7 +16,7 @@
     "@fastify/express": "^1.1.0",
     "@forestadmin/datasource-customizer": "1.1.2-alpha.1",
     "@forestadmin/datasource-toolkit": "1.0.1-alpha.1",
-    "@forestadmin/forestadmin-client": "1.0.0-alpha.1",
+    "@forestadmin/forestadmin-client": "1.0.0-alpha.2",
     "@koa/cors": "^3.3.0",
     "@koa/router": "^10.1.1",
     "forest-ip-utils": "^1.0.1",

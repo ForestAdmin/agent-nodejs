@@ -1,4 +1,4 @@
-import { Chart, ChartType, LineChart, PieChart, ValueChart } from '../../src/permissions/types';
+import { Chart, ChartType, LineChart, PieChart, ValueChart } from '../../src/charts/types';
 import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
 
 describe('HashChart', () => {
@@ -32,10 +32,10 @@ describe('HashChart', () => {
         const charts: Chart[] = [
           {
             type,
-            filter: '{}',
+            filter: { aggregator: 'Or', conditions: [] },
             aggregator: 'Count',
             aggregateFieldName: 'Year',
-            sourceCollectionId: 'books',
+            sourceCollectionName: 'books',
             labelFieldName: 'year',
           } as Chart,
         ];
@@ -52,7 +52,7 @@ describe('HashChart', () => {
           type: ChartType.Line,
           aggregator: 'Count',
           aggregateFieldName: '',
-          sourceCollectionId: 'books',
+          sourceCollectionName: 'books',
           groupByFieldName: 'id',
           timeRange: 'Day',
         },
@@ -61,7 +61,7 @@ describe('HashChart', () => {
           filter: undefined,
           aggregator: 'Count',
           aggregateFieldName: '',
-          sourceCollectionId: 'books',
+          sourceCollectionName: 'books',
           groupByFieldName: 'id',
           timeRange: 'Day',
         } as unknown as LineChart,
@@ -78,7 +78,7 @@ describe('HashChart', () => {
           type: ChartType.Line,
           aggregator: 'Count',
           aggregateFieldName: '',
-          sourceCollectionId: 'books',
+          sourceCollectionName: 'books',
           groupByFieldName: 'id',
           timeRange: 'Day',
         },
@@ -86,7 +86,7 @@ describe('HashChart', () => {
           type: ChartType.Line,
           aggregator: 'Count',
           aggregateFieldName: '',
-          sourceCollectionId: 'books',
+          sourceCollectionName: 'books',
           groupByFieldName: 'id',
           timeRange: 'Year',
         },
@@ -104,7 +104,7 @@ describe('HashChart', () => {
         type: ChartType.Value,
         aggregator: 'Count',
         aggregateFieldName: 'year',
-        sourceCollectionId: 'books',
+        sourceCollectionName: 'books',
       };
 
       const hash = hashChartRequest(valueChart);
@@ -114,20 +114,20 @@ describe('HashChart', () => {
     });
 
     it('should generate different hashes for different requests', () => {
-      const valueChart1 = {
+      const valueChart1: ValueChart = {
         type: ChartType.Value,
         filter: null,
-        aggregate: 'Count',
-        aggregate_field: 'year',
-        collection: 'books',
+        aggregator: 'Count',
+        aggregateFieldName: 'year',
+        sourceCollectionName: 'books',
       };
 
-      const valueChart2 = {
+      const valueChart2: ValueChart = {
         type: ChartType.Value,
         filter: null,
-        aggregate: 'Count',
-        aggregate_field: 'price',
-        collection: 'books',
+        aggregator: 'Count',
+        aggregateFieldName: 'price',
+        sourceCollectionName: 'books',
       };
 
       const hash1 = hashChartRequest(valueChart1);
@@ -137,46 +137,46 @@ describe('HashChart', () => {
     });
 
     it('should generate hashes without subfields in group by', () => {
-      const pieChart1 = {
+      const pieChart1: PieChart = {
         type: ChartType.Pie,
         filter: null,
-        aggregate: 'Count',
-        aggregate_field: 'year',
-        collection: 'books',
-        group_by_field: 'author:age',
+        aggregator: 'Count',
+        aggregateFieldName: 'year',
+        sourceCollectionName: 'books',
+        groupByFieldName: 'author:age',
       };
 
-      const pieChart2 = {
+      const pieChart2: PieChart = {
         type: ChartType.Pie,
         filter: null,
-        aggregate: 'Count',
-        aggregate_field: 'year',
-        collection: 'books',
-        group_by_field: 'author:bookCount',
+        aggregator: 'Count',
+        aggregateFieldName: 'year',
+        sourceCollectionName: 'books',
+        groupByFieldName: 'author:bookCount',
       };
 
       const hash1 = hashChartRequest(pieChart1);
       const hash2 = hashChartRequest(pieChart2);
 
-      expect(hash1).toBe(hash2);
+      expect(hash1).not.toBe(hash2);
     });
 
     it('should not compare null or undefined values', () => {
-      const chart1 = {
+      const chart1: PieChart = {
         type: ChartType.Pie,
         filter: null,
-        aggregate: 'Count',
-        aggregate_field: 'year',
-        collection: 'books',
-        group_by_field: 'author:age',
+        aggregator: 'Count',
+        aggregateFieldName: 'year',
+        sourceCollectionName: 'books',
+        groupByFieldName: 'author:age',
       };
 
-      const chart2 = {
+      const chart2: PieChart = {
         type: ChartType.Pie,
-        aggregate: 'Count',
-        aggregate_field: 'year',
-        collection: 'books',
-        group_by_field: 'author:age',
+        aggregator: 'Count',
+        aggregateFieldName: 'year',
+        sourceCollectionName: 'books',
+        groupByFieldName: 'author:age',
       };
 
       const hash1 = hashChartRequest(chart1);
@@ -193,18 +193,18 @@ describe('HashChart', () => {
           type: ChartType.Line,
           aggregator: 'Count',
           aggregateFieldName: 'id',
-          sourceCollectionId: 'books',
+          sourceCollectionName: 'books',
           groupByFieldName: 'publishedAt',
           timeRange: 'Day',
         };
 
-        const requestChart = {
+        const requestChart: LineChart = {
           type: ChartType.Line,
-          aggregate: 'Count',
-          aggregate_field: 'id',
-          collection: 'books',
-          time_range: 'Day',
-          group_by_date_field: 'publishedAt',
+          aggregator: 'Count',
+          aggregateFieldName: 'id',
+          sourceCollectionName: 'books',
+          timeRange: 'Day',
+          groupByFieldName: 'publishedAt',
         };
 
         const serverHash = hashServerCharts([serverChart]);
@@ -219,19 +219,19 @@ describe('HashChart', () => {
           type: ChartType.Line,
           aggregator: 'Count',
           aggregateFieldName: 'id',
-          sourceCollectionId: 'books',
+          sourceCollectionName: 'books',
           groupByFieldName: 'publishedAt',
           timeRange: 'Day',
         };
 
-        const requestChart = {
+        const requestChart: LineChart = {
           type: ChartType.Line,
-          filters: null,
-          aggregate: 'Count',
-          aggregate_field: 'id',
-          collection: 'books',
-          time_range: 'Day',
-          group_by_date_field: 'createdAt',
+          filter: null,
+          aggregator: 'Count',
+          aggregateFieldName: 'id',
+          sourceCollectionName: 'books',
+          timeRange: 'Day',
+          groupByFieldName: 'createdAt',
         };
 
         const serverHash = hashServerCharts([serverChart]);
@@ -248,17 +248,17 @@ describe('HashChart', () => {
           type: ChartType.Pie,
           aggregator: 'Sum',
           aggregateFieldName: 'id',
-          sourceCollectionId: 'books',
+          sourceCollectionName: 'books',
           groupByFieldName: 'price',
         };
 
-        const requestChart = {
+        const requestChart: PieChart = {
           type: ChartType.Pie,
-          filters: null,
-          aggregate: 'Sum',
-          aggregate_field: 'id',
-          collection: 'books',
-          group_by_field: 'price',
+          filter: null,
+          aggregator: 'Sum',
+          aggregateFieldName: 'id',
+          sourceCollectionName: 'books',
+          groupByFieldName: 'price',
         };
 
         const serverHash = hashServerCharts([serverChart]);
@@ -273,17 +273,17 @@ describe('HashChart', () => {
           type: ChartType.Pie,
           aggregator: 'Sum',
           aggregateFieldName: 'id',
-          sourceCollectionId: 'books',
+          sourceCollectionName: 'books',
           groupByFieldName: 'count',
         };
 
-        const requestChart = {
+        const requestChart: PieChart = {
           type: ChartType.Pie,
-          filters: null,
-          aggregate: 'Sum',
-          aggregate_field: 'id',
-          collection: 'books',
-          group_by_field: 'price',
+          filter: null,
+          aggregator: 'Sum',
+          aggregateFieldName: 'id',
+          sourceCollectionName: 'books',
+          groupByFieldName: 'price',
         };
 
         const serverHash = hashServerCharts([serverChart]);
@@ -300,15 +300,15 @@ describe('HashChart', () => {
           type: ChartType.Value,
           aggregator: 'Count',
           aggregateFieldName: 'id',
-          sourceCollectionId: 'books',
+          sourceCollectionName: 'books',
         };
 
-        const requestChart = {
+        const requestChart: ValueChart = {
           type: ChartType.Value,
-          filters: null,
-          aggregate: 'Count',
-          aggregate_field: 'id',
-          collection: 'books',
+          filter: null,
+          aggregator: 'Count',
+          aggregateFieldName: 'id',
+          sourceCollectionName: 'books',
         };
 
         const serverHash = hashServerCharts([serverChart]);
@@ -323,15 +323,15 @@ describe('HashChart', () => {
           type: ChartType.Value,
           aggregator: 'Count',
           aggregateFieldName: 'id',
-          sourceCollectionId: 'books',
+          sourceCollectionName: 'books',
         };
 
-        const requestChart = {
+        const requestChart: ValueChart = {
           type: ChartType.Value,
-          filters: null,
-          aggregate: 'Count',
-          aggregate_field: 'title',
-          collection: 'books',
+          filter: null,
+          aggregator: 'Count',
+          aggregateFieldName: 'title',
+          sourceCollectionName: 'books',
         };
 
         const serverHash = hashServerCharts([serverChart]);

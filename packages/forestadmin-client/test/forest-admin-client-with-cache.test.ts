@@ -18,6 +18,8 @@ describe('ForestAdminClientWithCache', () => {
         options,
         factories.permission.build(),
         factories.renderingPermission.build(),
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
       );
 
       verifyAndExtractApprovalMock.mockReturnValue(signedParameters);
@@ -36,6 +38,8 @@ describe('ForestAdminClientWithCache', () => {
         factories.forestAdminClientOptions.build(),
         factories.permission.build(),
         renderingPermissionService,
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
       );
 
       await forestAdminClient.markScopesAsUpdated(42);
@@ -51,6 +55,8 @@ describe('ForestAdminClientWithCache', () => {
         factories.forestAdminClientOptions.build(),
         factories.permission.build(),
         renderingPermissionService,
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
       );
 
       (renderingPermissionService.getScope as jest.Mock).mockResolvedValue('scope');

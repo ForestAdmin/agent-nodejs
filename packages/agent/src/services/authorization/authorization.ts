@@ -8,8 +8,15 @@ import {
   ConditionTreeFactory,
   Filter,
   GenericTree,
+  UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
-import { CollectionActionEvent, ForestAdminClient } from '@forestadmin/forestadmin-client';
+import {
+  ChainedSQLQueryError,
+  CollectionActionEvent,
+  EmptySQLQueryError,
+  ForestAdminClient,
+  NonSelectSQLQueryError,
+} from '@forestadmin/forestadmin-client';
 
 import { HttpCode } from '../../types';
 import ApprovalNotAllowedError from './errors/approvalNotAllowedError';
@@ -166,18 +173,30 @@ export default class AuthorizationService {
     }
   }
 
-  public async assertCanRetrieveChart(context: Context): Promise<void> {
+  public async assertCanExecuteChart(context: Context): Promise<void> {
     const { renderingId, id: userId } = context.state.user;
     const { body: chartRequest } = context.request;
 
-    const canRetrieve = await this.forestAdminClient.permissionService.canRetrieveChart({
-      renderingId,
-      userId,
-      chartRequest,
-    });
+    try {
+      const canRetrieve = await this.forestAdminClient.permissionService.canExecuteChart({
+        renderingId,
+        userId,
+        chartRequest,
+      });
 
-    if (!canRetrieve) {
-      context.throw(HttpCode.Forbidden, 'Forbidden');
+      if (!canRetrieve) {
+        context.throw(HttpCode.Forbidden, 'Forbidden');
+      }
+    } catch (error) {
+      if (
+        error instanceof EmptySQLQueryError ||
+        error instanceof ChainedSQLQueryError ||
+        error instanceof NonSelectSQLQueryError
+      ) {
+        throw new UnprocessableError(error.message);
+      }
+
+      throw error;
     }
   }
 

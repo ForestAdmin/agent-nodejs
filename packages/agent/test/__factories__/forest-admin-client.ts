@@ -5,7 +5,7 @@ export class ForestAdminClientFactory extends Factory<ForestAdminClient> {}
 
 const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   verifySignedActionParameters: jest.fn(),
-  canRetrieveChart: jest.fn(),
+  canExecuteChart: jest.fn(),
   getScope: jest.fn(),
   markScopesAsUpdated: jest.fn(),
   permissionService: {
@@ -13,8 +13,14 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
     canApproveCustomAction: jest.fn(),
     canOnCollection: jest.fn(),
     canRequestCustomActionParameters: jest.fn(),
-    canRetrieveChart: jest.fn(),
+    canExecuteChart: jest.fn(),
     canTriggerCustomAction: jest.fn(),
+  },
+  contextVariablesInstantiator: {
+    buildContextVariables: jest.fn(),
+  },
+  chartHandler: {
+    getChartWithContextInjected: jest.fn(),
   },
 }));
 
