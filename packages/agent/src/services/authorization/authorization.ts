@@ -22,7 +22,7 @@ import {
 } from './authorization-internal';
 import ApprovalNotAllowedError from './errors/approvalNotAllowedError';
 import ConditionTreeParser from '../../utils/condition-tree-parser';
-import CustomActionRequiresApprovalError from './errors/CustomActionRequiresApprovalError';
+import CustomActionRequiresApprovalError from './errors/customActionRequiresApprovalError';
 import CustomActionTriggerForbiddenError from './errors/customActionTriggerForbiddenError';
 
 type CanApproveCustomActionParams = {
