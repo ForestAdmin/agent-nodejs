@@ -54,6 +54,8 @@ describe('ActionPermissionService', () => {
         everythingAllowed: true,
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(),
+        actionsConditionByRoleId: new Map(),
+        users: [],
       });
 
       const can = await service.can('1', 'action');
@@ -74,6 +76,8 @@ describe('ActionPermissionService', () => {
         everythingAllowed: false,
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(['action']),
+        actionsConditionByRoleId: new Map(),
+        users: [],
       });
 
       const can = await service.can('1', 'action');
@@ -85,6 +89,8 @@ describe('ActionPermissionService', () => {
         everythingAllowed: false,
         actionsAllowedByUser: new Map([['action', new Set(['10'])]]),
         actionsGloballyAllowed: new Set(),
+        actionsConditionByRoleId: new Map(),
+        users: [],
       });
 
       const can = await service.can('10', 'action');
@@ -98,11 +104,15 @@ describe('ActionPermissionService', () => {
             everythingAllowed: false,
             actionsAllowedByUser: new Map(),
             actionsGloballyAllowed: new Set(),
+            actionsConditionByRoleId: new Map(),
+            users: [],
           },
           {
             everythingAllowed: true,
             actionsAllowedByUser: new Map([]),
             actionsGloballyAllowed: new Set(),
+            actionsConditionByRoleId: new Map(),
+            users: [],
           },
         );
 
@@ -120,11 +130,15 @@ describe('ActionPermissionService', () => {
             everythingAllowed: false,
             actionsAllowedByUser: new Map(),
             actionsGloballyAllowed: new Set(),
+            actionsConditionByRoleId: new Map(),
+            users: [],
           },
           {
             everythingAllowed: false,
             actionsAllowedByUser: new Map([]),
             actionsGloballyAllowed: new Set(),
+            actionsConditionByRoleId: new Map(),
+            users: [],
           },
         );
 
@@ -142,6 +156,8 @@ describe('ActionPermissionService', () => {
         everythingAllowed: false,
         actionsAllowedByUser: new Map([['action', new Set(['10'])]]),
         actionsGloballyAllowed: new Set(),
+        actionsConditionByRoleId: new Map(),
+        users: [],
       });
 
       jest.useFakeTimers();
@@ -165,11 +181,15 @@ describe('ActionPermissionService', () => {
           everythingAllowed: false,
           actionsAllowedByUser: new Map([['action', new Set(['10'])]]),
           actionsGloballyAllowed: new Set(),
+          actionsConditionByRoleId: new Map(),
+          users: [],
         },
         {
           everythingAllowed: false,
           actionsAllowedByUser: new Map([['action', new Set(['10'])]]),
           actionsGloballyAllowed: new Set(),
+          actionsConditionByRoleId: new Map(),
+          users: [],
         },
       );
 
@@ -195,6 +215,8 @@ describe('ActionPermissionService', () => {
         everythingAllowed: true,
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(),
+        actionsConditionByRoleId: new Map(),
+        users: [],
       });
 
       const can = await service.canOneOf('1', ['action1', 'action2']);
@@ -215,6 +237,8 @@ describe('ActionPermissionService', () => {
         everythingAllowed: false,
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
+        actionsConditionByRoleId: new Map(),
+        users: [],
       });
 
       const can = await service.canOneOf('1', ['action1', 'action2']);
@@ -231,6 +255,8 @@ describe('ActionPermissionService', () => {
         everythingAllowed: false,
         actionsAllowedByUser: new Map([['action2', new Set(['10'])]]),
         actionsGloballyAllowed: new Set(),
+        actionsConditionByRoleId: new Map(),
+        users: [],
       });
 
       const can = await service.canOneOf('10', ['action1', 'action2']);
@@ -249,11 +275,15 @@ describe('ActionPermissionService', () => {
             everythingAllowed: false,
             actionsAllowedByUser: new Map(),
             actionsGloballyAllowed: new Set(),
+            actionsConditionByRoleId: new Map(),
+            users: [],
           },
           {
             everythingAllowed: true,
             actionsAllowedByUser: new Map([]),
             actionsGloballyAllowed: new Set(),
+            actionsConditionByRoleId: new Map(),
+            users: [],
           },
         );
 
@@ -271,11 +301,15 @@ describe('ActionPermissionService', () => {
             everythingAllowed: false,
             actionsAllowedByUser: new Map(),
             actionsGloballyAllowed: new Set(),
+            actionsConditionByRoleId: new Map(),
+            users: [],
           },
           {
             everythingAllowed: false,
             actionsAllowedByUser: new Map([]),
             actionsGloballyAllowed: new Set(),
+            actionsConditionByRoleId: new Map(),
+            users: [],
           },
         );
 

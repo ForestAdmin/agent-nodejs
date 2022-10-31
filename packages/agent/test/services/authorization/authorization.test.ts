@@ -20,7 +20,7 @@ import {
 import ApprovalNotAllowedError from '../../../src/services/authorization/errors/approvalNotAllowedError';
 import AuthorizationService from '../../../src/services/authorization/authorization';
 import ConditionTreeParser from '../../../src/utils/condition-tree-parser';
-import CustomActionRequiresApprovalError from '../../../src/services/authorization/errors/CustomActionRequiresApprovalError';
+import CustomActionRequiresApprovalError from '../../../src/services/authorization/errors/customActionRequiresApprovalError';
 import CustomActionTriggerForbiddenError from '../../../src/services/authorization/errors/customActionTriggerForbiddenError';
 
 jest.mock('../../../src/utils/condition-tree-parser', () => ({

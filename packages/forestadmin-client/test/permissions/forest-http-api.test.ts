@@ -98,7 +98,7 @@ describe('ForestHttpApi', () => {
       const body = { foo: 'bar' };
       superagentMock.set.mockResolvedValue({ body });
 
-      const permissions = await ForestHttpApi.getRenderingPermissions(42, options);
+      const permissions = await ForestHttpApi.getRenderingPermissions('42', options);
 
       expect(permissions).toStrictEqual(body);
       expect(superagentMock.get).toHaveBeenCalledWith(
@@ -112,13 +112,13 @@ describe('ForestHttpApi', () => {
 
       superagentMock.set.mockRejectedValue(error);
 
-      return expect(ForestHttpApi.getRenderingPermissions(42, options)).rejects.toThrow(error);
+      return expect(ForestHttpApi.getRenderingPermissions('42', options)).rejects.toThrow(error);
     });
 
     it('should handle special errors', () => {
       superagentMock.set.mockRejectedValue({ response: { status: 404 } });
 
-      return expect(ForestHttpApi.getRenderingPermissions(42, options)).rejects.toThrow(
+      return expect(ForestHttpApi.getRenderingPermissions('42', options)).rejects.toThrow(
         /failed to find the project related to the envSecret you configured/,
       );
     });
