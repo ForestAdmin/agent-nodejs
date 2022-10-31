@@ -1,8 +1,7 @@
+import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
+import { ColumnSchema, DataSource } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
-
-import { ColumnSchema, DataSource } from '@forestadmin/datasource-toolkit';
 import { importFields } from '../src';
 
 describe('plugin importFields', () => {

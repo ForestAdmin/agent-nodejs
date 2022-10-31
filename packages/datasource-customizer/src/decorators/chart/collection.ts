@@ -1,8 +1,9 @@
 import { Caller, Chart, CollectionSchema, CompositeId } from '@forestadmin/datasource-toolkit';
-import { CollectionChartDefinition } from './types';
-import CollectionChartContext from './context';
+
 import CollectionDecorator from '../collection-decorator';
+import CollectionChartContext from './context';
 import ResultBuilder from './result-builder';
+import { CollectionChartDefinition } from './types';
 
 export default class ChartCollectionDecorator extends CollectionDecorator {
   private charts: Record<string, CollectionChartDefinition> = {};

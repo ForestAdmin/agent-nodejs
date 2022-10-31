@@ -4,8 +4,9 @@ import {
   CompositeId,
   ConditionTreeFactory,
 } from '@forestadmin/datasource-toolkit';
-import { TCollectionName, TConditionTree, TFieldName, TRow, TSchema } from '../../templates';
+
 import CollectionCustomizationContext from '../../context/collection-context';
+import { TCollectionName, TConditionTree, TFieldName, TRow, TSchema } from '../../templates';
 
 export default class CollectionChartContext<
   S extends TSchema = TSchema,
