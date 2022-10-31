@@ -7,6 +7,7 @@ import {
   LineChart,
   ObjectiveChart,
   PieChart,
+  QueryChart,
   ValueChart,
 } from '../../src/charts/types';
 import ContextVariablesInjector from '../../src/utils/context-variables-injector';
@@ -33,7 +34,7 @@ describe('ChartHandlerService', () => {
       { id: 1, roleId: 1 },
       { id: 2, roleId: 2 },
     ];
-    const contextVariables = { test: 'me' };
+    const contextVariables = { test: 'me', getValue: jest.fn() };
 
     const buildContextVariablesMock =
       contextVariablesInstantiator.buildContextVariables as jest.Mock;
@@ -380,6 +381,62 @@ describe('ChartHandlerService', () => {
           renderingId,
           requestContextVariables,
         });
+      });
+    });
+  });
+
+  describe('getQueryForChart', () => {
+    test('it should return the query with variables bindable to the database', async () => {
+      const { contextVariables, contextVariablesInstantiator, service } = setup();
+
+      jest.spyOn(ContextVariablesInjector, 'injectContextInValueCustom');
+      contextVariables.getValue.mockImplementation(variableName => {
+        switch (variableName) {
+          case 'powers.selectedRecord.name':
+            return 'electrocute';
+          case 'siths.selectedRecord.id':
+            return 'vadorId';
+          default:
+            return null;
+        }
+      });
+
+      const requestContextVariables = { you: 'are' };
+      const chartRequest: ChartRequest<QueryChart> = {
+        type: ChartType.Pie,
+        query: `SELECT count(*) as value
+        FROM siths
+        WHERE power = {{powers.selectedRecord.name}}
+          AND master = {{siths.selectedRecord.id}}`,
+        contextVariables: requestContextVariables,
+      };
+
+      const userId = 10;
+      const renderingId = 11;
+
+      const { query, contextVariables: usedContextVariables } = await service.getQueryForChart({
+        userId,
+        renderingId,
+        chartRequest,
+      });
+
+      expect(query).toStrictEqual(`SELECT count(*) as value
+        FROM siths
+        WHERE power = $$powers_selectedRecord_name
+          AND master = $$siths_selectedRecord_id`);
+      expect(usedContextVariables).toStrictEqual({
+        powers_selectedRecord_name: 'electrocute',
+        siths_selectedRecord_id: 'vadorId',
+      });
+
+      expect(ContextVariablesInjector.injectContextInValueCustom).toHaveBeenCalledWith(
+        chartRequest.query,
+        expect.any(Function),
+      );
+      expect(contextVariablesInstantiator.buildContextVariables).toHaveBeenCalledWith({
+        userId,
+        renderingId,
+        requestContextVariables,
       });
     });
   });

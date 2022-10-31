@@ -1,5 +1,5 @@
 import type { ChartRequest } from './charts/chart-handler';
-import type { Chart } from './charts/types';
+import type { Chart, QueryChart } from './charts/types';
 import type { CollectionActionEvent } from './permissions/types';
 import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
@@ -73,6 +73,11 @@ export interface ChartHandlerInterface {
     renderingId: string | number;
     chartRequest: ChartRequest;
   }): Promise<Chart>;
+  getQueryForChart(params: {
+    userId: string | number;
+    renderingId: string | number;
+    chartRequest: ChartRequest<QueryChart>;
+  }): Promise<{ query: string; contextVariables: Record<string, unknown> }>;
 }
 
 export interface ContextVariablesInstantiatorInterface {
