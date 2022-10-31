@@ -1,4 +1,7 @@
+import hashObject from 'object-hash';
+
 import { ForestAdminClientOptionsWithDefaults } from '../types';
+import { GenericTreeWithSources } from './types';
 import ForestHttpApi from './forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
@@ -127,7 +130,29 @@ export default class ActionPermissionService {
 
   public async getAllCustomActionConditions(actionName: string) {
     const permissions = await this.getPermissions();
+    const actionConditionsByRoleId = permissions.actionsConditionByRoleId.get(actionName);
 
-    return permissions.actionsConditionByRoleId.get(actionName);
+    const rolesIdsGroupByConditions = Array.from(
+      actionConditionsByRoleId,
+      ([roleId, filterGenericTree]) => {
+        return {
+          roleId,
+          filterGenericTree,
+          filterGenericTreeHash: hashObject(filterGenericTree, { respectType: false }),
+        };
+      },
+    ).reduce((acc, current) => {
+      const { roleId, filterGenericTree, filterGenericTreeHash } = current;
+
+      if (acc.has(filterGenericTreeHash)) {
+        acc.get(filterGenericTreeHash).roleIds.push(roleId);
+      } else {
+        acc.set(filterGenericTreeHash, { roleIds: [roleId], filterGenericTree });
+      }
+
+      return acc;
+    }, new Map<string, { roleIds: number[]; filterGenericTree: GenericTreeWithSources }>());
+
+    return Array.from(rolesIdsGroupByConditions.values());
   }
 }

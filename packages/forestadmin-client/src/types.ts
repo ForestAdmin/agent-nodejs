@@ -85,5 +85,5 @@ export interface PermissionService {
   getConditionalApproveFilters(params: {
     customActionName: string;
     collectionName: string;
-  }): Promise<Map<number, GenericTree>>;
+  }): Promise<Array<{ roleIds: number[]; filterGenericTree: GenericTree }>>;
 }

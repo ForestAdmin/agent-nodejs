@@ -55,25 +55,25 @@ export default class ActionRoute extends CollectionRoute {
     const filterForAllCaller = await this.getRecordSelection(context, false);
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
 
+    const canApproveCustomActionParams = {
+      context,
+      customActionName: this.actionName,
+      collection: this.collection,
+      requestConditionTreeForCaller: filterForCaller.conditionTree,
+      requestConditionTreeForAllCaller: filterForAllCaller.conditionTree,
+      caller,
+    };
+
+    // Should we use state to prevent forged request context.state.isCustomActionApprovalRequest
+    // Or forbid requester_id from default request as it's only retrieved from
+    // signed_approval_request
     if (requestBody?.data?.attributes?.requester_id) {
       await this.services.authorization.assertCanApproveCustomAction({
-        context,
-        customActionName: this.actionName,
-        collection: this.collection,
+        ...canApproveCustomActionParams,
         requesterId: requestBody.data.attributes.requester_id,
-        requestConditionTreeForCaller: filterForCaller.conditionTree,
-        requestConditionTreeForAllCaller: filterForAllCaller.conditionTree,
-        caller,
       });
     } else {
-      await this.services.authorization.assertCanTriggerCustomAction({
-        context,
-        customActionName: this.actionName,
-        collection: this.collection,
-        requestConditionTreeForCaller: filterForCaller.conditionTree,
-        requestConditionTreeForAllCaller: filterForAllCaller.conditionTree,
-        caller,
-      });
+      await this.services.authorization.assertCanTriggerCustomAction(canApproveCustomActionParams);
     }
 
     const rawData = context.request.body.data.attributes.values;
