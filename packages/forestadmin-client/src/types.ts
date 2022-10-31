@@ -71,26 +71,26 @@ export interface PermissionService {
     segmentQuery: string;
   }): Promise<boolean>;
 
-  getConditionalTriggerFilter(params: {
+  getConditionalTriggerCondition(params: {
     userId: number | string;
     customActionName: string;
     collectionName: string;
   }): Promise<GenericTree>;
-  getConditionalRequiresApprovalFilter(params: {
+  getConditionalRequiresApprovalCondition(params: {
     userId: number | string;
     customActionName: string;
     collectionName: string;
   }): Promise<GenericTree>;
-  getConditionalApproveFilter(params: {
+  getConditionalApproveCondition(params: {
     userId: number | string;
     customActionName: string;
     collectionName: string;
   }): Promise<GenericTree>;
 
-  getConditionalApproveFilters(params: {
+  getConditionalApproveConditions(params: {
     customActionName: string;
     collectionName: string;
-  }): Promise<Array<{ roleIds: number[]; filterGenericTree: GenericTree }>>;
+  }): Promise<Map<number, GenericTree>>;
 }
 
 export interface ChartHandlerInterface {

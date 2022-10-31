@@ -1,5 +1,6 @@
 import { Chart } from '../charts/types';
 import { CollectionActionEvent, CustomActionEvent } from './types';
+import { GenericTree } from '@forestadmin/datasource-toolkit';
 import { PermissionService } from '../types';
 import {
   generateCollectionActionIdentifier,
@@ -99,7 +100,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     return this.actionPermissionService.can(`${userId}`, actionIdentifier);
   }
 
-  public async getConditionalTriggerFilter({
+  public async getConditionalTriggerCondition({
     userId,
     collectionName,
     customActionName,
@@ -114,7 +115,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     );
   }
 
-  public async getConditionalRequiresApprovalFilter({
+  public async getConditionalRequiresApprovalCondition({
     userId,
     collectionName,
     customActionName,
@@ -133,7 +134,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     );
   }
 
-  public async getConditionalApproveFilter({
+  public async getConditionalApproveCondition({
     userId,
     collectionName,
     customActionName,
@@ -148,7 +149,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     );
   }
 
-  public async getConditionalApproveFilters({
+  public async getConditionalApproveConditions({
     collectionName,
     customActionName,
   }: {

@@ -1,13 +1,9 @@
 import { Context } from 'koa';
 
 import {
-  Aggregation,
   Caller,
   Collection,
   ConditionTree,
-  ConditionTreeFactory,
-  Filter,
-  GenericTree,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 import {
@@ -19,11 +15,15 @@ import {
 } from '@forestadmin/forestadmin-client';
 
 import { HttpCode } from '../../types';
+import {
+  canPerformConditionalCustomAction,
+  intersectCount,
+  transformToRolesIdsGroupByConditions,
+} from './authorization-internal';
 import ApprovalNotAllowedError from './errors/approvalNotAllowedError';
 import ConditionTreeParser from '../../utils/condition-tree-parser';
 import CustomActionRequiresApprovalError from './errors/CustomActionRequiresApprovalError';
 import CustomActionTriggerForbiddenError from './errors/customActionTriggerForbiddenError';
-import InvalidActionConditionError from './errors/invalidActionConditionError';
 
 type CanApproveCustomActionParams = {
   context: Context;
@@ -239,18 +239,18 @@ export default class AuthorizationService {
       return false;
     }
 
-    const conditionalTriggerRawFilter =
-      await this.forestAdminClient.permissionService.getConditionalTriggerFilter({
+    const conditionalTriggerRawCondition =
+      await this.forestAdminClient.permissionService.getConditionalTriggerCondition({
         userId,
         customActionName,
         collectionName: collection.name,
       });
 
-    return this.canPerformConditionalCustomAction(
+    return canPerformConditionalCustomAction(
       caller,
       collection,
       requestConditionTreeForCaller,
-      conditionalTriggerRawFilter,
+      conditionalTriggerRawCondition,
     );
   }
 
@@ -272,19 +272,19 @@ export default class AuthorizationService {
       return false;
     }
 
-    const conditionalRequiresApprovalRawFilter =
-      await this.forestAdminClient.permissionService.getConditionalRequiresApprovalFilter({
+    const conditionalRequiresApprovalRawCondition =
+      await this.forestAdminClient.permissionService.getConditionalRequiresApprovalCondition({
         userId,
         customActionName,
         collectionName: collection.name,
       });
 
-    if (conditionalRequiresApprovalRawFilter) {
-      const matchingRecordsCount = await this.intersectAggregate(
+    if (conditionalRequiresApprovalRawCondition) {
+      const matchingRecordsCount = await intersectCount(
         caller,
         collection,
         requestConditionTreeForCaller,
-        conditionalRequiresApprovalRawFilter,
+        conditionalRequiresApprovalRawCondition,
       );
 
       // No records match the condition, trigger does not require approval
@@ -315,41 +315,19 @@ export default class AuthorizationService {
       return false;
     }
 
-    const conditionalApproveRawFilter =
-      await this.forestAdminClient.permissionService.getConditionalApproveFilter({
+    const conditionalApproveRawCondition =
+      await this.forestAdminClient.permissionService.getConditionalApproveCondition({
         userId,
         customActionName,
         collectionName: collection.name,
       });
 
-    return this.canPerformConditionalCustomAction(
+    return canPerformConditionalCustomAction(
       caller,
       collection,
       requestConditionTreeForCaller,
-      conditionalApproveRawFilter,
+      conditionalApproveRawCondition,
     );
-  }
-
-  private async canPerformConditionalCustomAction(
-    caller: Caller,
-    collection: Collection,
-    requestConditionTree: ConditionTree,
-    conditionalRawFilter: GenericTree,
-  ) {
-    if (conditionalRawFilter) {
-      const [requestRecordsCount, matchingRecordsCount] = await Promise.all([
-        this.intersectAggregate(caller, collection, requestConditionTree),
-        this.intersectAggregate(caller, collection, requestConditionTree, conditionalRawFilter),
-      ]);
-
-      // If some records don't match the condition then the user
-      // is not allow to perform the conditional action
-      if (matchingRecordsCount !== requestRecordsCount) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   private async getRolesIdsAllowedToApprove(
@@ -358,21 +336,19 @@ export default class AuthorizationService {
     collection: Collection,
     requestConditionTreeForAllCaller: ConditionTree,
   ) {
-    const rolesIdsGroupByConditions =
-      await this.forestAdminClient.permissionService.getConditionalApproveFilters({
+    const actionConditionsByRoleId =
+      await this.forestAdminClient.permissionService.getConditionalApproveConditions({
         customActionName,
         collectionName: collection.name,
       });
 
+    const rolesIdsGroupByConditions =
+      transformToRolesIdsGroupByConditions(actionConditionsByRoleId);
+
     const [requestRecordsCount, ...conditionRecordsCounts]: number[] = await Promise.all([
-      this.intersectAggregate(caller, collection, requestConditionTreeForAllCaller),
-      ...rolesIdsGroupByConditions.map(({ filterGenericTree }) =>
-        this.intersectAggregate(
-          caller,
-          collection,
-          requestConditionTreeForAllCaller,
-          filterGenericTree,
-        ),
+      intersectCount(caller, collection, requestConditionTreeForAllCaller),
+      ...rolesIdsGroupByConditions.map(({ condition }) =>
+        intersectCount(caller, collection, requestConditionTreeForAllCaller, condition),
       ),
     ]);
 
@@ -386,36 +362,5 @@ export default class AuthorizationService {
       },
       [],
     );
-  }
-
-  private async intersectAggregate(
-    caller: Caller,
-    collection: Collection,
-    requestConditionTree: ConditionTree,
-    conditionalRawFilter?: GenericTree,
-  ) {
-    try {
-      // Build filter format with the right format
-      const conditionalFilter = new Filter({
-        conditionTree: conditionalRawFilter
-          ? ConditionTreeFactory.intersect(
-              ConditionTreeParser.fromPlainObject(collection, conditionalRawFilter),
-              requestConditionTree,
-            )
-          : requestConditionTree,
-      });
-
-      const rows = await collection.aggregate(
-        caller,
-        conditionalFilter,
-        new Aggregation({
-          operation: 'Count',
-        }),
-      );
-
-      return (rows?.[0]?.value as number) ?? 0;
-    } catch (error) {
-      throw new InvalidActionConditionError();
-    }
   }
 }
