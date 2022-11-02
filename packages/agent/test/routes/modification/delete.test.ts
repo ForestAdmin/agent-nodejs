@@ -47,6 +47,7 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleDelete(context);
 
+        expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -95,6 +96,7 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleDelete(context);
 
+        expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -138,6 +140,7 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleListDelete(context);
 
+        expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -183,6 +186,7 @@ describe('DeleteRoute', () => {
           });
           await deleteRoute.handleListDelete(context);
 
+          expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
           expect(bookCollection.delete).toHaveBeenCalledWith(
             { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             factories.filter.build({
@@ -229,6 +233,7 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleListDelete(context);
 
+        expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -307,6 +312,7 @@ describe('DeleteRoute', () => {
           });
           await deleteRoute.handleListDelete(context);
 
+          expect(services.permissions.can).toHaveBeenCalledWith(context, 'delete:books');
           expect(bookCollection.delete).toHaveBeenCalledWith(
             { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             factories.filter.build({
