@@ -25,7 +25,7 @@ import ConditionTreeParser from '../../utils/condition-tree-parser';
 import CustomActionRequiresApprovalError from './errors/customActionRequiresApprovalError';
 import CustomActionTriggerForbiddenError from './errors/customActionTriggerForbiddenError';
 
-type CanApproveCustomActionParams = {
+type CanPerformCustomActionParams = {
   context: Context;
   customActionName: string;
   collection: Collection;
@@ -86,7 +86,7 @@ export default class AuthorizationService {
     requestConditionTreeForCaller,
     requestConditionTreeForAllCaller,
     caller,
-  }: CanApproveCustomActionParams): Promise<void> {
+  }: CanPerformCustomActionParams): Promise<void> {
     const { id: userId } = context.state.user;
 
     const canTrigger = await this.canTriggerCustomAction(
@@ -129,7 +129,7 @@ export default class AuthorizationService {
     requestConditionTreeForCaller,
     requestConditionTreeForAllCaller,
     caller,
-  }: CanApproveCustomActionParams & {
+  }: CanPerformCustomActionParams & {
     requesterId: number | string;
   }): Promise<void> {
     const { id: userId } = context.state.user;

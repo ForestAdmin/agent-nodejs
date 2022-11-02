@@ -56,7 +56,7 @@ export default class ActionRoute extends CollectionRoute {
     const filterForAllCaller = await this.getRecordSelection(context, false);
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
 
-    const canApproveCustomActionParams = {
+    const canPerformCustomActionParams = {
       context,
       customActionName: this.actionName,
       collection: this.collection,
@@ -67,11 +67,11 @@ export default class ActionRoute extends CollectionRoute {
 
     if (requestBody?.data?.attributes?.requester_id) {
       await this.services.authorization.assertCanApproveCustomAction({
-        ...canApproveCustomActionParams,
+        ...canPerformCustomActionParams,
         requesterId: requestBody.data.attributes.requester_id,
       });
     } else {
-      await this.services.authorization.assertCanTriggerCustomAction(canApproveCustomActionParams);
+      await this.services.authorization.assertCanTriggerCustomAction(canPerformCustomActionParams);
     }
 
     const rawData = context.request.body.data.attributes.values;
