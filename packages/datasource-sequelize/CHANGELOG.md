@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.1.0-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.1-alpha.1...@forestadmin/datasource-sequelize@1.1.0-alpha.1) (2022-11-02)
+
+
+### Features
+
+* **chart:** add context variables to chart ([#507](https://github.com/ForestAdmin/agent-nodejs/issues/507)) ([6d003d6](https://github.com/ForestAdmin/agent-nodejs/commit/6d003d68d9e79d7690e68250ce8a003fdc2ea735))
+
 ## @forestadmin/datasource-sequelize [1.0.1-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0...@forestadmin/datasource-sequelize@1.0.1-alpha.1) (2022-10-14)
 
 
