@@ -1,3 +1,18 @@
+## example [1.1.9](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.8...example@1.1.9) (2022-11-02)
+
+
+### Bug Fixes
+
+* **export-csv:** remove the limit/skip arguments and adding a row delimiter after each chunk  ([#516](https://github.com/ForestAdmin/agent-nodejs/issues/516)) ([85507fd](https://github.com/ForestAdmin/agent-nodejs/commit/85507fd92f575e51c7dd99d42f715ce6ce8d12cc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.3.1
+
 ## example [1.1.8](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.7...example@1.1.8) (2022-10-27)
 
 
