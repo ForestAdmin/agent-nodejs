@@ -84,8 +84,7 @@ export default class ChartHandlerService implements ChartHandlerInterface {
       const contextVariableRenamed = contextVariableName.replace(/\./g, '_');
       contextVariablesUsed[contextVariableRenamed] = contextVariables.getValue(contextVariableName);
 
-      // $$ converts into a simple $, so to have 2 $ you actually need to write 4
-      return `$$$$${contextVariableRenamed}`;
+      return `$${contextVariableRenamed}`;
     };
 
     const query = ContextVariablesInjector.injectContextInValueCustom(

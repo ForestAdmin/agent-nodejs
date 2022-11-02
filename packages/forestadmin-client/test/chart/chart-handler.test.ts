@@ -422,8 +422,8 @@ describe('ChartHandlerService', () => {
 
       expect(query).toStrictEqual(`SELECT count(*) as value
         FROM siths
-        WHERE power = $$powers_selectedRecord_name
-          AND master = $$siths_selectedRecord_id`);
+        WHERE power = $powers_selectedRecord_name
+          AND master = $siths_selectedRecord_id`);
       expect(usedContextVariables).toStrictEqual({
         powers_selectedRecord_name: 'electrocute',
         siths_selectedRecord_id: 'vadorId',
