@@ -84,8 +84,7 @@ describe('OptionsValidator', () => {
         expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 60);
         expect(options.logger).toHaveBeenCalledWith(
           'Warn',
-          'options.permissionsCacheDurationInSeconds is getting ignore. ' +
-            'Set to minimum value 60 seconds',
+          'ignoring options.permissionsCacheDurationInSeconds: minimum value is 60 seconds',
         );
       });
 
