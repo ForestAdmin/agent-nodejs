@@ -12,8 +12,9 @@ import {
   RelationSchema,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import { ForestServerColumnType, ForestServerField } from './types';
+
 import FrontendFilterableUtils from './filterable';
+import { ForestServerColumnType, ForestServerField } from './types';
 import FrontendValidationUtils from './validation';
 
 export default class SchemaGeneratorFields {

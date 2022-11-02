@@ -1,5 +1,5 @@
-import * as factories from '../../__factories__';
 import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
+import * as factories from '../../__factories__';
 
 describe('SchemaGeneratorFields > One to Many', () => {
   const setupWithOneToManyRelation = () => {

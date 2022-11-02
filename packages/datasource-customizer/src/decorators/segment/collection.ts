@@ -6,9 +6,10 @@ import {
   ConditionTreeValidator,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
-import { SegmentDefinition } from './types';
+
 import CollectionCustomizationContext from '../../context/collection-context';
 import CollectionDecorator from '../collection-decorator';
+import { SegmentDefinition } from './types';
 
 export default class SegmentCollectionDecorator extends CollectionDecorator {
   private segments: { [name: string]: SegmentDefinition } = {};

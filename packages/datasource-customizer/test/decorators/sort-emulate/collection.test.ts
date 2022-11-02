@@ -1,4 +1,3 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Collection,
   ColumnSchema,
@@ -9,8 +8,9 @@ import {
   RecordData,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
+import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import SortEmulationDecorator from '../../../src/decorators/sort-emulate/collection';
 
 describe('SortEmulationDecoratorCollection', () => {

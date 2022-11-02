@@ -1,12 +1,12 @@
 /* eslint-disable max-classes-per-file */
 
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Caller,
   Collection,
   CollectionSchema,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import CollectionDecorator from '../../src/decorators/collection-decorator';
 

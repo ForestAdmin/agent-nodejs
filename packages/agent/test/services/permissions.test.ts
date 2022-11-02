@@ -2,9 +2,9 @@ import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import hashObject from 'object-hash';
 
-import * as factories from '../__factories__';
-import ForestHttpApi from '../../src/utils/forest-http-api';
 import PermissionService from '../../src/services/permissions';
+import ForestHttpApi from '../../src/utils/forest-http-api';
+import * as factories from '../__factories__';
 
 jest.mock('../../src/utils/forest-http-api', () => ({
   getPermissions: jest.fn(),

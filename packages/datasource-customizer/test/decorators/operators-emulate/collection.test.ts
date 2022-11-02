@@ -1,4 +1,3 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Collection,
   ColumnSchema,
@@ -8,6 +7,8 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import OperatorEmulationDecorator from '../../../src/decorators/operators-emulate/collection';
 

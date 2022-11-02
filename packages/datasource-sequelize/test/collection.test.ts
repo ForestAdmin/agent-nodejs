@@ -1,4 +1,3 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
   ConditionTreeLeaf,
@@ -9,6 +8,7 @@ import {
   RecordData,
   Sort,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from 'sequelize';
 
 import { SequelizeCollection } from '../src';

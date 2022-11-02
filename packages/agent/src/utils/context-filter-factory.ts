@@ -6,6 +6,7 @@ import {
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
+
 import QueryStringParser from './query-string';
 
 export default class ContextFilterFactory {

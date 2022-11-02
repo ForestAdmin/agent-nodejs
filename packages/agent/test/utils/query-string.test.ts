@@ -1,8 +1,8 @@
 import { Projection, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../__factories__';
 import QueryStringParser from '../../src/utils/query-string';
+import * as factories from '../__factories__';
 
 describe('QueryStringParser', () => {
   const collectionSimple = factories.collection.build({

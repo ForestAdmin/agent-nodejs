@@ -10,14 +10,14 @@ import {
   RelationSchema,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
+import Router from '@koa/router';
 import { Context } from 'koa';
 import { DateTime } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
-import Router from '@koa/router';
 
-import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import QueryStringParser from '../../utils/query-string';
+import CollectionRoute from '../collection-route';
 
 enum ChartType {
   Value = 'Value',

@@ -11,9 +11,9 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { validate as uuidValidate } from 'uuid';
 
-import { SearchDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
 import CollectionDecorator from '../collection-decorator';
+import { SearchDefinition } from './types';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   replacer: SearchDefinition = null;

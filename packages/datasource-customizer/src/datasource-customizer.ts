@@ -6,14 +6,14 @@ import {
   Logger,
 } from '@forestadmin/datasource-toolkit';
 
-import { DataSourceChartDefinition } from './decorators/chart/types';
-import { DataSourceOptions, Plugin } from './types';
-import { TCollectionName, TSchema } from './templates';
 import CollectionCustomizer from './collection-customizer';
+import { DataSourceChartDefinition } from './decorators/chart/types';
 import CompositeDatasource from './decorators/composite-datasource';
 import DecoratorsStack from './decorators/decorators-stack';
 import PublicationCollectionDataSourceDecorator from './decorators/publication-collection/datasource';
 import RenameCollectionDataSourceDecorator from './decorators/rename-collection/datasource';
+import { TCollectionName, TSchema } from './templates';
+import { DataSourceOptions, Plugin } from './types';
 import TypingGenerator from './typing-generator';
 
 /**

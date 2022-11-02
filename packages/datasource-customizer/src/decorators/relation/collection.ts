@@ -16,9 +16,9 @@ import {
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
-import { RelationDefinition } from './types';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
+import { RelationDefinition } from './types';
 
 export default class RelationCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<RelationCollectionDecorator>;

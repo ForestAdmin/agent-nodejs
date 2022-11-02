@@ -1,11 +1,11 @@
 /* eslint-disable no-underscore-dangle */
 
+import { Filter, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Connection, Types } from 'mongoose';
-import { Filter, Projection } from '@forestadmin/datasource-toolkit';
 
-import { setupReview, setupWith2ManyToManyRelations } from '../_helpers';
 import MongooseDatasource from '../../src/datasource';
+import { setupReview, setupWith2ManyToManyRelations } from '../_helpers';
 
 describe('MongooseCollection > update', () => {
   let connection: Connection;

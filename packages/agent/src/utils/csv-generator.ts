@@ -1,3 +1,4 @@
+import { writeToString } from '@fast-csv/format';
 import {
   Caller,
   Collection,
@@ -8,7 +9,6 @@ import {
   RecordUtils,
   SortFactory,
 } from '@forestadmin/datasource-toolkit';
-import { writeToString } from '@fast-csv/format';
 
 export const CHUNK_SIZE = 1000;
 

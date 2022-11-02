@@ -1,5 +1,6 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Collection, ColumnSchema, DataSource } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import ValidationDecorator from '../../../src/decorators/validation/collection';
 

@@ -1,4 +1,5 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import CollectionCustomizer from '../src/collection-customizer';
 import DataSourceCustomizer from '../src/datasource-customizer';
 

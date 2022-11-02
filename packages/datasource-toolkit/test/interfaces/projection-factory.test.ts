@@ -1,5 +1,5 @@
-import * as factories from '../__factories__';
 import { Projection, ProjectionFactory } from '../../src';
+import * as factories from '../__factories__';
 
 describe('ProjectionFactory', () => {
   describe('with one to one and many to one relations', () => {

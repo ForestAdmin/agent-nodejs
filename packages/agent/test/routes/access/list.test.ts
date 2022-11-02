@@ -1,8 +1,8 @@
 import { Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import List from '../../../src/routes/access/list';
+import * as factories from '../../__factories__';
 
 describe('ListRoute', () => {
   const setup = () => {

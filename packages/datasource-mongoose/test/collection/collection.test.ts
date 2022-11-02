@@ -2,6 +2,7 @@
 /* eslint-disable jest/no-disabled-tests */
 
 import { Connection, Schema, model } from 'mongoose';
+
 import MongooseCollection from '../../src/collection';
 import MongooseDatasource from '../../src/datasource';
 

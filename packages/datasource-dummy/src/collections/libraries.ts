@@ -1,4 +1,5 @@
 import { DataSource, FieldSchema, RecordData } from '@forestadmin/datasource-toolkit';
+
 import BaseDummyCollection from './base';
 
 export default class LibrariesCollection extends BaseDummyCollection {

@@ -1,4 +1,5 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
+
 import DataSourceDecorator from '../datasource-decorator';
 import PublicationFieldCollectionDecorator from '../publication-field/collection';
 

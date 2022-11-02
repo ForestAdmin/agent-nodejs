@@ -9,17 +9,17 @@ import {
   TSchema,
 } from '@forestadmin/datasource-customizer';
 import { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
+import cors from '@koa/cors';
 import Router from '@koa/router';
 import bodyParser from 'koa-bodyparser';
-import cors from '@koa/cors';
 
-import { AgentOptions, AgentOptionsWithDefaults } from './types';
-import ForestHttpApi from './utils/forest-http-api';
 import FrameworkMounter from './framework-mounter';
-import OptionsValidator from './utils/options-validator';
-import SchemaEmitter from './utils/forest-schema/emitter';
 import makeRoutes from './routes';
 import makeServices from './services';
+import { AgentOptions, AgentOptionsWithDefaults } from './types';
+import ForestHttpApi from './utils/forest-http-api';
+import SchemaEmitter from './utils/forest-schema/emitter';
+import OptionsValidator from './utils/options-validator';
 
 /**
  * Allow to create a new Forest Admin agent from scratch.

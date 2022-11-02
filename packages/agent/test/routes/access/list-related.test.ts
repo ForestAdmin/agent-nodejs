@@ -7,8 +7,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import ListRelatedRoute from '../../../src/routes/access/list-related';
+import * as factories from '../../__factories__';
 
 describe('ListRelatedRoute', () => {
   const setupWithOneToManyRelation = () => {

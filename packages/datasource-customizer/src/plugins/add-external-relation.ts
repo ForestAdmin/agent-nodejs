@@ -1,9 +1,9 @@
 import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 
-import { OneToManyEmbeddedDefinition } from '../types';
-import { TCollectionName, TFieldName, TSchema } from '../templates';
 import CollectionCustomizer from '../collection-customizer';
 import DataSourceCustomizer from '../datasource-customizer';
+import { TCollectionName, TFieldName, TSchema } from '../templates';
+import { OneToManyEmbeddedDefinition } from '../types';
 
 export default async function addExternalRelation<
   S extends TSchema = TSchema,

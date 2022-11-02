@@ -1,5 +1,5 @@
-import * as factories from '../../__factories__';
 import ForestValueConverter from '../../../src/utils/forest-schema/action-values';
+import * as factories from '../../__factories__';
 
 describe('ForestValueConverter', () => {
   const dataSource = factories.dataSource.buildWithCollections([

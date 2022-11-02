@@ -1,13 +1,13 @@
 /* eslint-disable max-classes-per-file */
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Logger } from '@forestadmin/datasource-toolkit';
+import Router from '@koa/router';
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import Fastify2 from 'fastify2';
-import Fastify3 from 'fastify';
-import Koa from 'koa';
-import Router from '@koa/router';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import express from 'express';
+import Fastify3 from 'fastify';
+import Fastify2 from 'fastify2';
+import Koa from 'koa';
 import superagent from 'superagent';
 
 import FrameworkMounter from '../src/framework-mounter';

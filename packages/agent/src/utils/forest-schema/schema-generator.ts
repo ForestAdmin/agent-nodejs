@@ -1,7 +1,7 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 
-import { ForestServerCollection } from './types';
 import SchemaGeneratorCollection from './generator-collection';
+import { ForestServerCollection } from './types';
 
 export default class SchemaGenerator {
   static async generate(dataSource: DataSource): Promise<ForestServerCollection[]> {

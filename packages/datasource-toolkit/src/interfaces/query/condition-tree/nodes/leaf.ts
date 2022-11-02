@@ -1,13 +1,13 @@
-import { Collection } from '../../../collection';
-import { ColumnSchema } from '../../../schema';
-import { Operator, allOperators, intervalOperators, uniqueOperators } from './operators';
-import { RecordData } from '../../../record';
 import CollectionUtils from '../../../../utils/collection';
-import ConditionTree, { PlainConditionTree } from './base';
+import RecordUtils from '../../../../utils/record';
+import { Collection } from '../../../collection';
+import { RecordData } from '../../../record';
+import { ColumnSchema } from '../../../schema';
+import Projection from '../../projection';
 import ConditionTreeEquivalent from '../equivalence';
 import ConditionTreeFactory from '../factory';
-import Projection from '../../projection';
-import RecordUtils from '../../../../utils/record';
+import ConditionTree, { PlainConditionTree } from './base';
+import { Operator, allOperators, intervalOperators, uniqueOperators } from './operators';
 
 export type PlainConditionTreeLeaf = { field: string; operator: Operator; value?: unknown };
 

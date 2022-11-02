@@ -2,10 +2,10 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Sequelize } from 'sequelize';
 
-import { Relation } from './types';
 import { Table } from '../introspection/types';
 import RelationExtractor from './helpers/relation-extractor';
 import RelationNameGenerator from './helpers/relation-name-generator';
+import { Relation } from './types';
 
 export default class RelationBuilder {
   static defineRelations(sequelize: Sequelize, logger: Logger, tables: Table[]): void {

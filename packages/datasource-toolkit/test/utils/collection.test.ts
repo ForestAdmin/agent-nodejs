@@ -1,9 +1,9 @@
-import * as factories from '../__factories__';
 import Aggregation from '../../src/interfaces/query/aggregation';
-import CollectionUtils from '../../src/utils/collection';
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import Projection from '../../src/interfaces/query/projection';
+import CollectionUtils from '../../src/utils/collection';
+import * as factories from '../__factories__';
 
 describe('CollectionUtils', () => {
   const setupWithUnsupportedRelation = () => {

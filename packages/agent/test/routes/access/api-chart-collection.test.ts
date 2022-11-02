@@ -1,7 +1,7 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import CollectionApiChartRoute from '../../../src/routes/access/api-chart-collection';
+import * as factories from '../../__factories__';
 
 describe('CollectionApiChartRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();

@@ -1,9 +1,9 @@
 import { ColumnSchema, RecordUtils } from '@forestadmin/datasource-toolkit';
 
-import { OperatorDefinition } from '../decorators/operators-emulate/types';
-import { TCollectionName, TColumnName, TFieldName, TSchema } from '../templates';
 import CollectionCustomizer from '../collection-customizer';
 import DataSourceCustomizer from '../datasource-customizer';
+import { OperatorDefinition } from '../decorators/operators-emulate/types';
+import { TCollectionName, TColumnName, TFieldName, TSchema } from '../templates';
 
 export default async function importField<
   S extends TSchema = TSchema,
