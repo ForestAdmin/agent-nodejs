@@ -3,6 +3,8 @@ import path from 'path';
 
 import { AgentOptions, AgentOptionsWithDefaults } from '../types';
 
+const DEFAULT_MINIMUM_CACHE_DURATION = 60;
+
 export default class OptionsValidator {
   private static loggerPrefix = {
     Debug: '\x1b[34mdebug:\x1b[0m',
@@ -29,9 +31,20 @@ export default class OptionsValidator {
     copyOptions.typingsMaxDepth = copyOptions.typingsMaxDepth ?? 5;
     copyOptions.prefix = copyOptions.prefix || '';
 
+    copyOptions.permissionsCacheDurationInSeconds =
+      copyOptions.permissionsCacheDurationInSeconds ?? 15 * DEFAULT_MINIMUM_CACHE_DURATION;
+
+    if (copyOptions.permissionsCacheDurationInSeconds < DEFAULT_MINIMUM_CACHE_DURATION) {
+      copyOptions.permissionsCacheDurationInSeconds = DEFAULT_MINIMUM_CACHE_DURATION;
+      copyOptions.logger(
+        'Warn',
+        'ignoring options.permissionsCacheDurationInSeconds: ' +
+          `minimum value is ${DEFAULT_MINIMUM_CACHE_DURATION} seconds`,
+      );
+    }
+
     return {
       loggerLevel: 'Info',
-      permissionsCacheDurationInSeconds: 15 * 60,
       ...copyOptions,
     } as AgentOptionsWithDefaults;
   }
