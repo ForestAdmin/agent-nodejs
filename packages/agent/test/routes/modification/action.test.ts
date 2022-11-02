@@ -103,7 +103,7 @@ describe('ActionRoute', () => {
 
     describe('middleware CustomActionApprovalRequestData', () => {
       describe('when the request is an approval', () => {
-        test('it should get the signed parameters, check rights and change body', async () => {
+        test('it should get the signed parameters and change body', async () => {
           const context = createMockContext({
             ...baseContext,
             requestBody: {
@@ -119,8 +119,8 @@ describe('ActionRoute', () => {
 
           const verifySignedActionParameters = services.authorization
             .verifySignedActionParameters as jest.Mock;
-          const assertCanApproveCustomAction = services.authorization
-            .assertCanApproveCustomAction as jest.Mock;
+          // const assertCanApproveCustomAction = services.authorization
+          //   .assertCanApproveCustomAction as jest.Mock;
 
           const signedParams = {
             data: {
@@ -139,12 +139,12 @@ describe('ActionRoute', () => {
           expect(nextMock).toHaveBeenCalled();
 
           expect(verifySignedActionParameters).toHaveBeenCalledWith('someSignedJWT');
-          expect(assertCanApproveCustomAction).toHaveBeenCalledWith({
-            context,
-            customActionName: 'My_Action',
-            collectionName: 'books',
-            requesterId: 42,
-          });
+          // expect(assertCanApproveCustomAction).toHaveBeenCalledWith({
+          //   context,
+          //   customActionName: 'My_Action',
+          //   collectionName: 'books',
+          //   requesterId: 42,
+          // });
           expect(context.request.body).toStrictEqual(signedParams);
         });
       });
@@ -163,8 +163,8 @@ describe('ActionRoute', () => {
             requestBody: originalBody,
           });
 
-          const assertCanTriggerCustomAction = services.authorization
-            .assertCanTriggerCustomAction as jest.Mock;
+          // const assertCanTriggerCustomAction = services.authorization
+          //   .assertCanTriggerCustomAction as jest.Mock;
           const nextMock = jest.fn();
 
           await middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
@@ -175,12 +175,108 @@ describe('ActionRoute', () => {
               ...baseContext.requestBody.data.attributes,
             },
           });
-          expect(assertCanTriggerCustomAction).toHaveBeenCalledWith({
-            context,
-            customActionName: 'My_Action',
-            collectionName: 'books',
-          });
+          // expect(assertCanTriggerCustomAction).toHaveBeenCalledWith({
+          //   context,
+          //   customActionName: 'My_Action',
+          //   collectionName: 'books',
+          // });
           expect(context.request.body).toStrictEqual(originalBody);
+        });
+      });
+    });
+
+    describe('when the request is an approval', () => {
+      test('should check if the user can approve this custom action request', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstName: 'John' },
+                requester_id: 42,
+              },
+            },
+          },
+        });
+
+        (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
+          type: 'Error',
+          message: 'the result does not matter',
+        });
+
+        const assertCanApproveCustomAction = services.authorization
+          .assertCanApproveCustomAction as jest.Mock;
+
+        await handleExecute.call(route, context);
+
+        expect(assertCanApproveCustomAction).toHaveBeenCalledOnce();
+        expect(assertCanApproveCustomAction).toHaveBeenCalledWith({
+          context,
+          customActionName: 'My_Action',
+          collection: dataSource.getCollection('books'),
+          caller: {
+            email: 'john.doe@domain.com',
+            timezone: 'Europe/Paris',
+          },
+          requestConditionTreeForAllCaller: {
+            field: 'id',
+            operator: 'Equal',
+            value: '123e4567-e89b-12d3-a456-426614174000',
+          },
+          requestConditionTreeForCaller: {
+            field: 'id',
+            operator: 'Equal',
+            value: '123e4567-e89b-12d3-a456-426614174000',
+          },
+          requesterId: 42,
+        });
+      });
+    });
+
+    describe('when the request is a trigger', () => {
+      test('should check if the user can trigger this custom action request', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstName: 'John' },
+              },
+            },
+          },
+        });
+
+        (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
+          type: 'Error',
+          message: 'the result does not matter',
+        });
+
+        const assertCanTriggerCustomAction = services.authorization
+          .assertCanTriggerCustomAction as jest.Mock;
+
+        await handleExecute.call(route, context);
+
+        expect(assertCanTriggerCustomAction).toHaveBeenCalledOnce();
+        expect(assertCanTriggerCustomAction).toHaveBeenCalledWith({
+          context,
+          customActionName: 'My_Action',
+          collection: dataSource.getCollection('books'),
+          caller: {
+            email: 'john.doe@domain.com',
+            timezone: 'Europe/Paris',
+          },
+          requestConditionTreeForAllCaller: {
+            field: 'id',
+            operator: 'Equal',
+            value: '123e4567-e89b-12d3-a456-426614174000',
+          },
+          requestConditionTreeForCaller: {
+            field: 'id',
+            operator: 'Equal',
+            value: '123e4567-e89b-12d3-a456-426614174000',
+          },
         });
       });
     });

@@ -120,7 +120,7 @@ export default class ActionPermissionService {
 
     const conditionFilter = permissions.actionsConditionByRoleId
       .get(actionName)
-      .get(userInfo.roleId);
+      ?.get(userInfo.roleId);
 
     return conditionFilter;
   }

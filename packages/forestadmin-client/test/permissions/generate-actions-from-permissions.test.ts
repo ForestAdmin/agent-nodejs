@@ -67,6 +67,8 @@ describe('generateActionsFromPermissions', () => {
               'collection:collection-id:export',
             ]),
             actionsAllowedByUser: new Map(),
+            actionsConditionByRoleId: new Map(),
+            users: [],
           });
 
           const generateCollectionActionIdentifierMock =
@@ -104,12 +106,21 @@ describe('generateActionsFromPermissions', () => {
             everythingAllowed: false,
             actionsGloballyAllowed: new Set(),
             actionsAllowedByUser: new Map(),
+            actionsConditionByRoleId: new Map(),
+            users: [],
           });
         });
       });
 
       describe('allowed by role', () => {
         it('should generate permissions with a list of users', () => {
+          const users = [
+            { id: 10, roleId: 1 },
+            { id: 20, roleId: 2 },
+            { id: 30, roleId: 3 },
+            { id: 40, roleId: 4 },
+          ];
+
           const result = generateActionsFromPermissions(
             {
               collections: {
@@ -126,12 +137,7 @@ describe('generateActionsFromPermissions', () => {
                 },
               },
             },
-            [
-              { id: 10, roleId: 1 },
-              { id: 20, roleId: 2 },
-              { id: 30, roleId: 3 },
-              { id: 40, roleId: 4 },
-            ] as UserPermissionV4[],
+            users as UserPermissionV4[],
           );
 
           expect(result).toEqual({
@@ -145,6 +151,8 @@ describe('generateActionsFromPermissions', () => {
               ['collection:collection-id:delete', new Set(['10', '20'])],
               ['collection:collection-id:export', new Set(['40'])],
             ]),
+            actionsConditionByRoleId: new Map(),
+            users,
           });
 
           const generateCollectionActionIdentifierMock =
@@ -159,6 +167,8 @@ describe('generateActionsFromPermissions', () => {
         });
 
         it('should correctly handle a role that is not defined', async () => {
+          const users = [{ id: 10, roleId: 1 }];
+
           const result = generateActionsFromPermissions(
             {
               collections: {
@@ -175,7 +185,7 @@ describe('generateActionsFromPermissions', () => {
                 },
               },
             },
-            [{ id: 10, roleId: 1 }] as UserPermissionV4[],
+            users as UserPermissionV4[],
           );
 
           expect(result).toEqual({
@@ -189,6 +199,8 @@ describe('generateActionsFromPermissions', () => {
               ['collection:collection-id:delete', new Set(['10'])],
               ['collection:collection-id:export', new Set(['10'])],
             ]),
+            actionsConditionByRoleId: new Map(),
+            users,
           });
         });
       });
@@ -235,6 +247,12 @@ describe('generateActionsFromPermissions', () => {
               'custom:collection-id:custom-action-id:require-approval',
             ]),
             actionsAllowedByUser: new Map(),
+            actionsConditionByRoleId: new Map([
+              ['custom:collection-id:custom-action-id:approve', new Map()],
+              ['custom:collection-id:custom-action-id:trigger', new Map()],
+              ['custom:collection-id:custom-action-id:require-approval', new Map()],
+            ]),
+            users: [],
           });
 
           const generateCustomActionIdentifierMock = generateCustomActionIdentifier as jest.Mock;
@@ -282,12 +300,25 @@ describe('generateActionsFromPermissions', () => {
             everythingAllowed: false,
             actionsGloballyAllowed: new Set(),
             actionsAllowedByUser: new Map(),
+            actionsConditionByRoleId: new Map([
+              ['custom:collection-id:custom-action-id:approve', new Map()],
+              ['custom:collection-id:custom-action-id:trigger', new Map()],
+              ['custom:collection-id:custom-action-id:require-approval', new Map()],
+            ]),
+            users: [],
           });
         });
       });
 
       describe('allowed by role', () => {
         it('should generate permissions with a list of users', () => {
+          const users = [
+            { id: 10, roleId: 1 },
+            { id: 20, roleId: 1 },
+            { id: 30, roleId: 2 },
+            { id: 40, roleId: 3 },
+          ];
+
           const result = generateActionsFromPermissions(
             {
               collections: {
@@ -314,12 +345,7 @@ describe('generateActionsFromPermissions', () => {
                 },
               },
             },
-            [
-              { id: 10, roleId: 1 },
-              { id: 20, roleId: 1 },
-              { id: 30, roleId: 2 },
-              { id: 40, roleId: 3 },
-            ] as UserPermissionV4[],
+            users as UserPermissionV4[],
           );
 
           expect(result).toEqual({
@@ -334,6 +360,151 @@ describe('generateActionsFromPermissions', () => {
                 new Set(['10', '20', '30']),
               ],
             ]),
+            actionsConditionByRoleId: new Map([
+              ['custom:collection-id:custom-action-id:approve', new Map()],
+              ['custom:collection-id:custom-action-id:trigger', new Map()],
+              ['custom:collection-id:custom-action-id:require-approval', new Map()],
+            ]),
+            users,
+          });
+
+          const generateCustomActionIdentifierMock = generateCustomActionIdentifier as jest.Mock;
+
+          Object.values(CustomActionEvent).forEach(action => {
+            expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
+              action,
+              'custom-action-id',
+              'collection-id',
+            );
+          });
+        });
+      });
+
+      describe('allowed by role with conditions', () => {
+        it('should generate permissions with a list of users', () => {
+          const users = [
+            { id: 10, roleId: 1 },
+            { id: 20, roleId: 1 },
+            { id: 30, roleId: 2 },
+            { id: 40, roleId: 3 },
+          ];
+
+          const result = generateActionsFromPermissions(
+            {
+              collections: {
+                'collection-id': {
+                  collection: {
+                    addEnabled: false,
+                    browseEnabled: false,
+                    deleteEnabled: false,
+                    editEnabled: false,
+                    exportEnabled: false,
+                    readEnabled: false,
+                  },
+                  actions: {
+                    'custom-action-id': {
+                      triggerEnabled: { roles: [1] },
+                      selfApprovalEnabled: { roles: [2] },
+                      approvalRequired: { roles: [1, 2] },
+                      userApprovalEnabled: { roles: [3] },
+                      triggerConditions: [
+                        {
+                          roleId: 1,
+                          filter: {
+                            field: 'filed',
+                            operator: 'Equal',
+                            value: 'value',
+                            source: 'data',
+                          },
+                        },
+                      ],
+                      approvalRequiredConditions: [
+                        {
+                          roleId: 2,
+                          filter: {
+                            field: 'filed2',
+                            operator: 'NotEqual',
+                            value: 'value',
+                            source: 'data',
+                          },
+                        },
+                      ],
+                      userApprovalConditions: [
+                        {
+                          roleId: 3,
+                          filter: {
+                            field: 'filed3',
+                            operator: 'GreaterThan',
+                            value: 'value',
+                            source: 'data',
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            users as UserPermissionV4[],
+          );
+
+          expect(result).toEqual({
+            everythingAllowed: false,
+            actionsGloballyAllowed: new Set(),
+            actionsAllowedByUser: new Map([
+              ['custom:collection-id:custom-action-id:approve', new Set(['40'])],
+              ['custom:collection-id:custom-action-id:self-approve', new Set(['30'])],
+              ['custom:collection-id:custom-action-id:trigger', new Set(['10', '20'])],
+              [
+                'custom:collection-id:custom-action-id:require-approval',
+                new Set(['10', '20', '30']),
+              ],
+            ]),
+            actionsConditionByRoleId: new Map([
+              [
+                'custom:collection-id:custom-action-id:trigger',
+                new Map([
+                  [
+                    1,
+                    {
+                      field: 'filed',
+                      operator: 'Equal',
+                      value: 'value',
+                      source: 'data',
+                    },
+                  ],
+                ]),
+              ],
+              [
+                'custom:collection-id:custom-action-id:require-approval',
+                new Map([
+                  [
+                    2,
+                    {
+                      field: 'filed2',
+                      operator: 'NotEqual',
+                      value: 'value',
+                      source: 'data',
+                    },
+                  ],
+                ]),
+              ],
+              [
+                'custom:collection-id:custom-action-id:approve',
+                new Map([
+                  [
+                    3,
+                    {
+                      field: 'filed3',
+                      operator: 'GreaterThan',
+                      value: 'value',
+                      source: 'data',
+                    },
+                  ],
+                ]),
+              ],
+            ]),
+            users,
           });
 
           const generateCustomActionIdentifierMock = generateCustomActionIdentifier as jest.Mock;

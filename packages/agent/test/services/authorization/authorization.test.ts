@@ -217,21 +217,27 @@ describe('AuthorizationService', () => {
       });
     });
 
-    describe('doesTriggerCustomActionRequiresApproval', () => {
-      describe('with trigger does not Requires Approval', () => {
-        it('should do nothing if the user trigger does not require approval', async () => {
+    describe('user is allowed to trigger the custom action', () => {
+      describe('but he cannot perform conditional trigger', () => {
+        it('should throw an error if the user cannot trigger', async () => {
           const context = { state: { user: { id: 42 } } } as Context;
+          const caller = factories.caller.build();
+          const collection = factories.collection.build({ name: 'actors' });
+          const requestConditionTreeForCaller = factories.conditionTreeLeaf.build();
+
+          const conditionalTriggerRawCondition = Symbol('conditionalTriggerRawCondition');
 
           const forestAdminClient = factories.forestAdminClient.build();
 
           (
             forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
           ).mockResolvedValue(true);
-          (canPerformConditionalCustomAction as jest.Mock).mockResolvedValue(true);
 
           (
-            forestAdminClient.permissionService.doesTriggerCustomActionRequiresApproval as jest.Mock
-          ).mockResolvedValue(false);
+            forestAdminClient.permissionService.getConditionalTriggerCondition as jest.Mock
+          ).mockResolvedValue(conditionalTriggerRawCondition);
+
+          (canPerformConditionalCustomAction as jest.Mock).mockResolvedValue(false);
 
           const authorization = new AuthorizationService(forestAdminClient);
 
@@ -239,30 +245,37 @@ describe('AuthorizationService', () => {
             authorization.assertCanTriggerCustomAction({
               context,
               customActionName: 'do-something',
-              collection: factories.collection.build({ name: 'actors' }),
-              requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+              collection,
+              requestConditionTreeForCaller,
               requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
-              caller: factories.caller.build(),
+              caller,
             }),
-          ).resolves.toBe(undefined);
+          ).rejects.toThrow(CustomActionTriggerForbiddenError);
 
           expect(
-            forestAdminClient.permissionService.doesTriggerCustomActionRequiresApproval,
+            forestAdminClient.permissionService.getConditionalTriggerCondition,
           ).toHaveBeenCalledWith({
             userId: 42,
             customActionName: 'do-something',
             collectionName: 'actors',
           });
+
+          expect(canPerformConditionalCustomAction).toHaveBeenCalledWith(
+            caller,
+            collection,
+            requestConditionTreeForCaller,
+            conditionalTriggerRawCondition,
+          );
         });
       });
 
-      describe('with trigger Requires Approval', () => {
+      describe('trigger does require approval', () => {
         describe('without "RequiresApproval" condition defined', () => {
           it('should throw an error CustomActionRequiresApprovalError', async () => {
-            const context = {
-              state: { user: { id: 42 } },
-              throw: jest.fn(),
-            } as unknown as Context;
+            const context = { state: { user: { id: 42 } } } as Context;
+            const caller = factories.caller.build();
+            const collection = factories.collection.build({ name: 'actors' });
+            const requestConditionTreeForCaller = factories.conditionTreeLeaf.build();
 
             const forestAdminClient = factories.forestAdminClient.build();
 
@@ -308,18 +321,36 @@ describe('AuthorizationService', () => {
               authorization.assertCanTriggerCustomAction({
                 context,
                 customActionName: 'do-something',
-                collection: factories.collection.build({ name: 'actors' }),
-                requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+                collection,
+                requestConditionTreeForCaller,
                 requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
-                caller: factories.caller.build(),
+                caller,
               }),
             ).rejects.toThrow(new CustomActionRequiresApprovalError([10]));
+
+            expect(
+              forestAdminClient.permissionService.getConditionalRequiresApprovalCondition,
+            ).toHaveBeenCalledWith({
+              userId: 42,
+              customActionName: 'do-something',
+              collectionName: 'actors',
+            });
+
+            // Only called during rolesIdsAllowedToApprove computation
+            expect(intersectCount).toHaveBeenCalledTimes(2);
           });
         });
 
         describe('with "RequiresApproval" condition defined', () => {
           it('should do nothing if no records match the "RequiresApproval" condition', async () => {
             const context = { state: { user: { id: 42 } } } as Context;
+            const caller = factories.caller.build();
+            const collection = factories.collection.build({ name: 'actors' });
+            const requestConditionTreeForCaller = factories.conditionTreeLeaf.build();
+
+            const conditionalRequiresApprovalRawCondition = Symbol(
+              'conditionalRequiresApprovalRawCondition',
+            );
 
             const forestAdminClient = factories.forestAdminClient.build();
 
@@ -336,11 +367,7 @@ describe('AuthorizationService', () => {
             (
               forestAdminClient.permissionService
                 .getConditionalRequiresApprovalCondition as jest.Mock
-            ).mockResolvedValue({
-              value: '42',
-              field: 'foo',
-              operator: 'Equal',
-            });
+            ).mockResolvedValue(conditionalRequiresApprovalRawCondition);
 
             (intersectCount as jest.Mock).mockResolvedValue(0);
 
@@ -350,10 +377,10 @@ describe('AuthorizationService', () => {
               authorization.assertCanTriggerCustomAction({
                 context,
                 customActionName: 'do-something',
-                collection: factories.collection.build({ name: 'actors' }),
-                requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+                collection,
+                requestConditionTreeForCaller,
                 requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
-                caller: factories.caller.build(),
+                caller,
               }),
             ).resolves.toBe(undefined);
 
@@ -364,6 +391,13 @@ describe('AuthorizationService', () => {
               customActionName: 'do-something',
               collectionName: 'actors',
             });
+
+            expect(intersectCount).toHaveBeenCalledWith(
+              caller,
+              collection,
+              requestConditionTreeForCaller,
+              conditionalRequiresApprovalRawCondition,
+            );
           });
 
           it(
@@ -429,6 +463,10 @@ describe('AuthorizationService', () => {
                   caller: factories.caller.build(),
                 }),
               ).rejects.toThrow(new CustomActionRequiresApprovalError([10]));
+
+              // Called twice during rolesIdsAllowedToApprove computation and
+              // one time during doesTriggerCustomActionRequiresApproval
+              expect(intersectCount).toHaveBeenCalledTimes(3);
             },
           );
         });
@@ -440,12 +478,19 @@ describe('AuthorizationService', () => {
     describe('canApproveCustomAction', () => {
       it('should do nothing if the user can approve a custom action', async () => {
         const context = { state: { user: { id: 42 } } } as Context;
+        const caller = factories.caller.build();
+        const collection = factories.collection.build({ name: 'actors' });
+        const requestConditionTreeForCaller = factories.conditionTreeLeaf.build();
 
         const forestAdminClient = factories.forestAdminClient.build();
 
         (forestAdminClient.permissionService.canApproveCustomAction as jest.Mock).mockResolvedValue(
           true,
         );
+
+        (
+          forestAdminClient.permissionService.getConditionalApproveCondition as jest.Mock
+        ).mockResolvedValue(null);
 
         (canPerformConditionalCustomAction as jest.Mock).mockResolvedValue(true);
 
@@ -455,10 +500,10 @@ describe('AuthorizationService', () => {
           authorization.assertCanApproveCustomAction({
             context,
             customActionName: 'do-something',
-            collection: factories.collection.build({ name: 'actors' }),
-            requestConditionTreeForCaller: factories.conditionTreeLeaf.build(),
+            collection,
+            requestConditionTreeForCaller,
             requestConditionTreeForAllCaller: factories.conditionTreeLeaf.build(),
-            caller: factories.caller.build(),
+            caller,
             requesterId: 30,
           }),
         ).resolves.toBe(undefined);
@@ -469,6 +514,21 @@ describe('AuthorizationService', () => {
           collectionName: 'actors',
           requesterId: 30,
         });
+
+        expect(
+          forestAdminClient.permissionService.getConditionalApproveCondition,
+        ).toHaveBeenCalledWith({
+          userId: 42,
+          customActionName: 'do-something',
+          collectionName: 'actors',
+        });
+
+        expect(canPerformConditionalCustomAction).toHaveBeenCalledWith(
+          caller,
+          collection,
+          requestConditionTreeForCaller,
+          null,
+        );
       });
 
       it('should throw an error if the user cannot approve', async () => {
