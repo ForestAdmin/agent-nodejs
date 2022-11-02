@@ -3,6 +3,7 @@ import {
   DataSource,
   Filter,
   FilterFactory,
+  UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 import { Context, Next } from 'koa';
 import Router from '@koa/router';
@@ -64,9 +65,6 @@ export default class ActionRoute extends CollectionRoute {
       caller,
     };
 
-    // Should we use state to prevent forged request context.state.isCustomActionApprovalRequest
-    // Or forbid requester_id from default request as it's only retrieved from
-    // signed_approval_request
     if (requestBody?.data?.attributes?.requester_id) {
       await this.services.authorization.assertCanApproveCustomAction({
         ...canApproveCustomActionParams,
@@ -142,6 +140,12 @@ export default class ActionRoute extends CollectionRoute {
 
   private async middlewareCustomActionApprovalRequestData(context: Context, next: Next) {
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
+
+    // We forbid requester_id from default request as it's only retrieved from
+    // signed_approval_request
+    if (requestBody?.data?.attributes?.requester_id) {
+      throw new UnprocessableError();
+    }
 
     if (requestBody?.data?.attributes?.signed_approval_request) {
       const signedParameters =

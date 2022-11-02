@@ -3,6 +3,7 @@ import {
   ConditionTreeFactory,
   DataSource,
   Filter,
+  UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 import { Readable } from 'stream';
 import { createMockContext } from '@shopify/jest-koa-mocks';
@@ -102,6 +103,34 @@ describe('ActionRoute', () => {
     });
 
     describe('middleware CustomActionApprovalRequestData', () => {
+      describe('when the request contains requester_id', () => {
+        test('it should reject with UnprocessableError', async () => {
+          const context = createMockContext({
+            ...baseContext,
+            requestBody: {
+              data: {
+                attributes: {
+                  ...baseContext.requestBody.data.attributes,
+                  requester_id: 'requesterId',
+                },
+              },
+            },
+          });
+
+          const verifySignedActionParameters = services.authorization
+            .verifySignedActionParameters as jest.Mock;
+          const nextMock = jest.fn();
+
+          await expect(
+            middlewareCustomActionApprovalRequestData.call(route, context, nextMock),
+          ).rejects.toThrow(UnprocessableError);
+
+          expect(nextMock).not.toHaveBeenCalled();
+
+          expect(verifySignedActionParameters).not.toHaveBeenCalled();
+        });
+      });
+
       describe('when the request is an approval', () => {
         test('it should get the signed parameters and change body', async () => {
           const context = createMockContext({
@@ -119,8 +148,6 @@ describe('ActionRoute', () => {
 
           const verifySignedActionParameters = services.authorization
             .verifySignedActionParameters as jest.Mock;
-          // const assertCanApproveCustomAction = services.authorization
-          //   .assertCanApproveCustomAction as jest.Mock;
 
           const signedParams = {
             data: {
@@ -139,12 +166,7 @@ describe('ActionRoute', () => {
           expect(nextMock).toHaveBeenCalled();
 
           expect(verifySignedActionParameters).toHaveBeenCalledWith('someSignedJWT');
-          // expect(assertCanApproveCustomAction).toHaveBeenCalledWith({
-          //   context,
-          //   customActionName: 'My_Action',
-          //   collectionName: 'books',
-          //   requesterId: 42,
-          // });
+
           expect(context.request.body).toStrictEqual(signedParams);
         });
       });
@@ -163,8 +185,6 @@ describe('ActionRoute', () => {
             requestBody: originalBody,
           });
 
-          // const assertCanTriggerCustomAction = services.authorization
-          //   .assertCanTriggerCustomAction as jest.Mock;
           const nextMock = jest.fn();
 
           await middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
@@ -175,11 +195,6 @@ describe('ActionRoute', () => {
               ...baseContext.requestBody.data.attributes,
             },
           });
-          // expect(assertCanTriggerCustomAction).toHaveBeenCalledWith({
-          //   context,
-          //   customActionName: 'My_Action',
-          //   collectionName: 'books',
-          // });
           expect(context.request.body).toStrictEqual(originalBody);
         });
       });
