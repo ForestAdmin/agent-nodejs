@@ -38,8 +38,8 @@ export default class OptionsValidator {
       copyOptions.permissionsCacheDurationInSeconds = DEFAULT_MINIMUM_CACHE_DURATION;
       copyOptions.logger(
         'Warn',
-        'options.permissionsCacheDurationInSeconds is getting ignore. ' +
-          `Set to minimum value ${DEFAULT_MINIMUM_CACHE_DURATION} seconds`,
+        'ignoring options.permissionsCacheDurationInSeconds: ' +
+          `minimum value is ${DEFAULT_MINIMUM_CACHE_DURATION} seconds`,
       );
     }
 
