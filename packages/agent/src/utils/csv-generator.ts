@@ -28,35 +28,34 @@ export default class CsvGenerator {
   ): AsyncGenerator<string> {
     yield writeToString([header.split(',')], { headers: true, includeEndRowDelimiter: true });
 
-    const limit = filter.page?.limit;
-    let skip = filter.page?.skip || 0;
-
-    let areAllRecordsFetched = false;
     const copiedFilter = { ...filter };
 
+    if (!copiedFilter.sort || copiedFilter.sort.length === 0) {
+      copiedFilter.sort = SortFactory.byPrimaryKeys(collection);
+    }
+
+    let currentIndex = 0;
+    let areAllRecordsFetched = false;
+
     while (!areAllRecordsFetched) {
-      let currentPageSize = CHUNK_SIZE;
-      if (limit < skip) currentPageSize = skip - limit;
-
-      copiedFilter.page = new Page(skip, currentPageSize);
-
-      if (!copiedFilter.sort || copiedFilter.sort.length === 0) {
-        copiedFilter.sort = SortFactory.byPrimaryKeys(collection);
-      }
+      // the first argument is included in the range, the second is excluded
+      copiedFilter.page = new Page(currentIndex, CHUNK_SIZE);
 
       // eslint-disable-next-line no-await-in-loop
       const records = await list(caller, new PaginatedFilter(copiedFilter), projection);
 
-      yield CsvGenerator.convert(records, projection);
+      if (records.length !== 0) yield CsvGenerator.convert(records, projection);
 
       areAllRecordsFetched = records.length < CHUNK_SIZE;
-      skip += currentPageSize;
+
+      currentIndex += CHUNK_SIZE;
     }
   }
 
   private static convert(records: RecordData[], projection: Projection): Promise<string> {
     return writeToString(
       records.map(record => projection.map(field => RecordUtils.getFieldValue(record, field))),
+      { includeEndRowDelimiter: true },
     );
   }
 }
