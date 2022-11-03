@@ -8,6 +8,14 @@
     "dist/src/**/*.js",
     "dist/src/**/*.d.ts"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/plugin-import-fields"
+  },
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
@@ -16,7 +24,7 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.4.1",
+    "@forestadmin/datasource-customizer": "1.4.0",
     "@forestadmin/datasource-toolkit": "1.1.0"
   }
 }
