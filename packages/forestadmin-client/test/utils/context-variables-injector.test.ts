@@ -1,6 +1,4 @@
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
-
-import { PermissionLevel } from '../../src/permissions/types';
+import { PermissionLevel, RawTree } from '../../src/permissions/types';
 import ContextVariables from '../../src/utils/context-variables';
 import ContextVariablesInjector from '../../src/utils/context-variables-injector';
 
@@ -87,10 +85,10 @@ describe('ContextVariablesInjector', () => {
       it.each([42, [42, 43], ['foo', 'bar'], null, '42'])(
         'should not modify the value %s when not related to the user',
         value => {
-          const condition: GenericTree = {
+          const condition: RawTree = {
             value,
             field: 'foo',
-            operator: 'Equal',
+            operator: 'equal',
           };
 
           const generated = ContextVariablesInjector.injectContextInFilter(
@@ -103,10 +101,10 @@ describe('ContextVariablesInjector', () => {
       );
 
       it("should replace the value by the user's id", () => {
-        const condition: GenericTree = {
+        const condition: RawTree = {
           value: '{{currentUser.id}}',
           field: 'foo',
-          operator: 'Equal',
+          operator: 'equal',
         };
 
         const generated = ContextVariablesInjector.injectContextInFilter(
@@ -121,10 +119,10 @@ describe('ContextVariablesInjector', () => {
       });
 
       it("should replace the value by the user's tag", () => {
-        const condition: GenericTree = {
+        const condition: RawTree = {
           value: '{{currentUser.tags.planet}}',
           field: 'foo',
-          operator: 'Equal',
+          operator: 'equal',
         };
 
         const generated = ContextVariablesInjector.injectContextInFilter(
@@ -140,10 +138,10 @@ describe('ContextVariablesInjector', () => {
 
       describe('with a value related to the team', () => {
         it("should replace the value by the team's property", () => {
-          const condition: GenericTree = {
+          const condition: RawTree = {
             value: '{{currentUser.team.name}}',
             field: 'foo',
-            operator: 'Equal',
+            operator: 'equal',
           };
 
           const generated = ContextVariablesInjector.injectContextInFilter(
@@ -160,10 +158,10 @@ describe('ContextVariablesInjector', () => {
 
       describe('when the field cannot be found', () => {
         it('should replace with undefined if the dynamic value does not exist', () => {
-          const condition: GenericTree = {
+          const condition: RawTree = {
             value: '{{currentUser.foo}}',
             field: 'foo',
-            operator: 'Equal',
+            operator: 'equal',
           };
 
           const generated = ContextVariablesInjector.injectContextInFilter(
@@ -181,13 +179,13 @@ describe('ContextVariablesInjector', () => {
 
     describe('with a branch containing multiple leafs', () => {
       it('should replace values in every leaf', () => {
-        const condition: GenericTree = {
+        const condition: RawTree = {
           aggregator: 'And',
           conditions: [
             {
               value: '{{currentUser.id}}',
               field: 'foo',
-              operator: 'Equal',
+              operator: 'equal',
             },
             {
               aggregator: 'Or',
@@ -195,12 +193,12 @@ describe('ContextVariablesInjector', () => {
                 {
                   value: '{{currentUser.tags.planet}}',
                   field: 'bar',
-                  operator: 'Equal',
+                  operator: 'equal',
                 },
                 {
                   value: '{{currentUser.firstName}}',
                   field: 'bar',
-                  operator: 'Equal',
+                  operator: 'equal',
                 },
               ],
             },
@@ -231,7 +229,7 @@ describe('ContextVariablesInjector', () => {
                 {
                   value: user.firstName,
                   field: 'bar',
-                  operator: 'Equal',
+                  operator: 'equal',
                 },
               ],
             },

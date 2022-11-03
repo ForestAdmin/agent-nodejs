@@ -1,10 +1,9 @@
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
-
 import {
   ForestAdminClient,
   ForestAdminClientOptionsWithDefaults,
   PermissionService,
 } from './types';
+import { RawTree } from './permissions/types';
 import ChartHandler from './charts/chart-handler';
 import ContextVariablesInstantiator from './utils/context-variables-instantiator';
 import RenderingPermissionService from './permissions/rendering-permission';
@@ -33,7 +32,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     renderingId: number | string;
     userId: number | string;
     collectionName: string;
-  }): Promise<GenericTree> {
+  }): Promise<RawTree> {
     return this.renderingPermissionService.getScope({
       renderingId,
       collectionName,

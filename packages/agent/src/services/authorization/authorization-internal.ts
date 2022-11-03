@@ -7,7 +7,6 @@ import {
   ConditionTree,
   ConditionTreeFactory,
   Filter,
-  GenericTree,
 } from '@forestadmin/datasource-toolkit';
 import ConditionTreeParser from '../../utils/condition-tree-parser';
 import InvalidActionConditionError from './errors/invalidActionConditionError';
@@ -65,32 +64,30 @@ export async function canPerformConditionalCustomAction(
   return true;
 }
 
-export function transformToRolesIdsGroupByConditions(
-  actionConditionsByRoleId: Map<number, GenericTree>,
-): {
+export function transformToRolesIdsGroupByConditions<T>(actionConditionsByRoleId: Map<number, T>): {
   roleIds: number[];
-  condition: GenericTree;
+  condition: T;
 }[] {
   const rolesIdsGroupByConditions = Array.from(
     actionConditionsByRoleId,
-    ([roleId, conditionGenericTree]) => {
+    ([roleId, conditionRawTree]) => {
       return {
         roleId,
-        conditionGenericTree,
-        conditionGenericTreeHash: hashObject(conditionGenericTree, { respectType: false }),
+        conditionRawTree,
+        conditionRawTreeHash: hashObject(conditionRawTree, { respectType: false }),
       };
     },
   ).reduce((acc, current) => {
-    const { roleId, conditionGenericTree, conditionGenericTreeHash } = current;
+    const { roleId, conditionRawTree, conditionRawTreeHash } = current;
 
-    if (acc.has(conditionGenericTreeHash)) {
-      acc.get(conditionGenericTreeHash).roleIds.push(roleId);
+    if (acc.has(conditionRawTreeHash)) {
+      acc.get(conditionRawTreeHash).roleIds.push(roleId);
     } else {
-      acc.set(conditionGenericTreeHash, { roleIds: [roleId], condition: conditionGenericTree });
+      acc.set(conditionRawTreeHash, { roleIds: [roleId], condition: conditionRawTree });
     }
 
     return acc;
-  }, new Map<string, { roleIds: number[]; condition: GenericTree }>());
+  }, new Map<string, { roleIds: number[]; condition: T }>());
 
   return Array.from(rolesIdsGroupByConditions.values());
 }

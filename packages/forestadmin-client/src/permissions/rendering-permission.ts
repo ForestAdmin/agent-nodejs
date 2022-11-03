@@ -1,8 +1,13 @@
 import LruCache from 'lru-cache';
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
 import { Chart, QueryChart } from '../charts/types';
-import { CollectionRenderingPermissionV4, PermissionLevel, Team, UserPermissionV4 } from './types';
+import {
+  CollectionRenderingPermissionV4,
+  PermissionLevel,
+  RawTree,
+  Team,
+  UserPermissionV4,
+} from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import { hashChartRequest, hashServerCharts } from './hash-chart';
 import ContextVariables from '../utils/context-variables';
@@ -40,7 +45,7 @@ export default class RenderingPermissionService {
     renderingId: number | string;
     collectionName: string;
     userId: number | string;
-  }): Promise<GenericTree> {
+  }): Promise<RawTree> {
     return this.getScopeOrRetry({ renderingId, collectionName, userId, allowRetry: true });
   }
 
@@ -54,7 +59,7 @@ export default class RenderingPermissionService {
     collectionName: string;
     userId: number | string;
     allowRetry: boolean;
-  }): Promise<GenericTree> {
+  }): Promise<RawTree> {
     const [permissions, userInfo]: [RenderingPermission, UserPermissionV4] = await Promise.all([
       this.permissionsByRendering.fetch(`${renderingId}`),
       this.userPermissions.getUserInfo(userId),

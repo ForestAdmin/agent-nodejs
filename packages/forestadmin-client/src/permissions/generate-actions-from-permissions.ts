@@ -5,7 +5,7 @@ import {
   EnvironmentCollectionsPermissionsV4,
   EnvironmentPermissionsV4,
   EnvironmentPermissionsV4Remote,
-  GenericTreeWithSources,
+  RawTreeWithSources,
   RightConditionByRolesV4,
   RightDescriptionV4,
   RightDescriptionWithRolesV4,
@@ -20,7 +20,7 @@ export type ActionPermissions = {
   everythingAllowed: boolean;
   actionsGloballyAllowed: Set<string>;
   actionsAllowedByUser: Map<string, Set<string>>;
-  actionsConditionByRoleId: Map<string, Map<number, GenericTreeWithSources>>;
+  actionsConditionByRoleId: Map<string, Map<number, RawTreeWithSources>>;
   users: UserPermissionV4[];
 };
 
@@ -155,7 +155,7 @@ function generateActionsAllowedByUser(
 
 function generateActionsConditionByRoleId(
   permissions: IntermediateRightsList,
-): Map<string, Map<number, GenericTreeWithSources>> {
+): Map<string, Map<number, RawTreeWithSources>> {
   return new Map(
     Object.entries(permissions)
       .filter(([, permission]) => permission.rightConditions)

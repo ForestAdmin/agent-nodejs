@@ -1,4 +1,4 @@
-import { GenericTreeWithSources, UserPermissionV4 } from '../../src/permissions/types';
+import { GenericPlainTreeWithSources, UserPermissionV4 } from '../../src/permissions/types';
 import ActionPermissionService from '../../src/permissions/action-permission';
 import ForestHttpApi from '../../src/permissions/forest-http-api';
 import generateActionsFromPermissions, {
@@ -329,10 +329,10 @@ describe('ActionPermissionService', () => {
     it('should return the custom action condition if it exists', async () => {
       const customActionCondition = {
         field: 'filed',
-        operator: 'Equal',
+        operator: 'equal',
         value: 'value',
         source: 'data',
-      } as GenericTreeWithSources;
+      } as GenericPlainTreeWithSources;
 
       const { service, options, permissions, users } = setup({
         everythingAllowed: true,
@@ -396,10 +396,10 @@ describe('ActionPermissionService', () => {
     it('should return all conditions for this custom action if it exists', async () => {
       const customActionCondition = {
         field: 'filed',
-        operator: 'Equal',
+        operator: 'not_equal',
         value: 'value',
         source: 'data',
-      } as GenericTreeWithSources;
+      } as GenericPlainTreeWithSources;
 
       const actionConditions = new Map([
         [42, customActionCondition],

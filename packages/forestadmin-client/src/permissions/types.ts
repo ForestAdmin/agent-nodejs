@@ -1,5 +1,3 @@
-import type { Aggregator, GenericTree, GenericTreeLeaf } from '@forestadmin/datasource-toolkit';
-
 import type { Chart } from '../charts/types';
 
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
@@ -7,17 +5,102 @@ export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
 export type RightDescriptionWithRolesV4 = { roles: number[] };
 export type RightDescriptionV4 = boolean | RightDescriptionWithRolesV4;
 
-export type GenericTreeBranchWithSource = {
-  aggregator: Aggregator;
-  conditions: Array<GenericTreeWithSources>;
+const UNIQUE_OPERATORS = [
+  // All types besides arrays
+  'equal',
+  'not_equal',
+  'less_than',
+  'greater_than',
+
+  // Strings
+  'not_contains',
+
+  // Arrays
+  'includes_all',
+] as const;
+
+const INTERVAL_OPERATORS = [
+  // Dates
+  'today',
+  'yesterday',
+  'previous_month',
+  'previous_quarter',
+  'previous_week',
+  'previous_year',
+  'previous_month_to_date',
+  'previous_quarter_to_date',
+  'previous_week_to_date',
+  'previous_x_days_to_date',
+  'previous_x_days',
+  'previous_year_to_date',
+] as const;
+
+const OTHER_OPERATORS = [
+  // All types
+  'present',
+  'blank',
+  'missing',
+
+  // All types besides arrays
+  'in',
+  'not_in',
+
+  // Strings
+  'starts_with',
+  'ends_with',
+  'contains',
+  'i_starts_with',
+  'i_ends_with',
+  'i_contains',
+
+  // Dates
+  'before',
+  'after',
+  'after_x_hours_ago',
+  'before_x_hours_ago',
+  'future',
+  'past',
+] as const;
+
+export const RAW_FILTER_OPERATORS = [
+  ...UNIQUE_OPERATORS,
+  ...INTERVAL_OPERATORS,
+  ...OTHER_OPERATORS,
+];
+
+export type RawOperator = typeof RAW_FILTER_OPERATORS[number];
+
+export const CUSTOM_ACTION_FILTER_LEAF_SOURCES = ['data', 'input'];
+
+export type CustomActionFilterLeafSource = typeof CUSTOM_ACTION_FILTER_LEAF_SOURCES[number];
+
+export const RAW_FILTER_TREE_AGGREGATORS = ['and', 'or'];
+
+export type FilterTreeAggregator = typeof RAW_FILTER_TREE_AGGREGATORS[number];
+
+export type RawTreeLeaf = {
+  field: string;
+  operator: RawOperator;
+  value?: unknown;
 };
-export type GenericTreeLeafWithSource = GenericTreeLeaf & { source: 'data' | 'input' };
-export type GenericTreeWithSources = GenericTreeBranchWithSource | GenericTreeLeafWithSource;
+
+export type GenericRawTreeBranch<T> = {
+  aggregator: FilterTreeAggregator;
+  conditions: Array<GenericRawTree<T>>;
+};
+export type GenericRawTree<T> = GenericRawTreeBranch<T> | T;
+
+export type RawTreeLeafWithSource = RawTreeLeaf & {
+  source: CustomActionFilterLeafSource;
+};
+export type RawTreeWithSources = GenericRawTree<RawTreeLeafWithSource>;
 
 export type RightConditionByRolesV4 = {
   roleId: number;
-  filter: GenericTreeWithSources;
+  filter: RawTreeWithSources;
 };
+
+export type RawTree = GenericRawTree<RawTreeLeaf>;
 
 export interface EnvironmentCollectionAccessPermissionsV4 {
   browseEnabled: RightDescriptionV4;
@@ -141,7 +224,7 @@ export type DynamicScopesValues = {
 };
 
 export type CollectionRenderingPermissionV4 = {
-  scope: GenericTree | null;
+  scope: RawTree | null;
   segments: string[];
 };
 

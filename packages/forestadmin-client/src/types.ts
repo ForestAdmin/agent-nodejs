@@ -1,9 +1,7 @@
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
-
 import ContextVariables, { RequestContextVariables } from './utils/context-variables';
 import type { Chart } from './charts/types';
 import type { ChartRequest } from './charts/chart-handler';
-import type { CollectionActionEvent } from './permissions/types';
+import type { CollectionActionEvent, RawTree, RawTreeWithSources } from './permissions/types';
 
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LoggerLevel, message: unknown) => void;
@@ -28,7 +26,7 @@ export interface ForestAdminClient {
     renderingId: number | string;
     userId: number | string;
     collectionName: string;
-  }): Promise<GenericTree>;
+  }): Promise<RawTree>;
   markScopesAsUpdated(renderingId: number | string): void;
 }
 
@@ -75,22 +73,22 @@ export interface PermissionService {
     userId: number | string;
     customActionName: string;
     collectionName: string;
-  }): Promise<GenericTree>;
+  }): Promise<RawTreeWithSources>;
   getConditionalRequiresApprovalCondition(params: {
     userId: number | string;
     customActionName: string;
     collectionName: string;
-  }): Promise<GenericTree>;
+  }): Promise<RawTreeWithSources>;
   getConditionalApproveCondition(params: {
     userId: number | string;
     customActionName: string;
     collectionName: string;
-  }): Promise<GenericTree>;
+  }): Promise<RawTreeWithSources>;
 
   getConditionalApproveConditions(params: {
     customActionName: string;
     collectionName: string;
-  }): Promise<Map<number, GenericTree>>;
+  }): Promise<Map<number, RawTreeWithSources>>;
 }
 
 export interface ChartHandlerInterface {

@@ -1,15 +1,9 @@
-import type {
-  PlainConditionTreeBranch,
-  PlainConditionTreeLeaf,
-} from '@forestadmin/datasource-toolkit';
-
+import { GenericRawTreeBranch, RawTree, RawTreeLeaf } from '../permissions/types';
 import ContextVariables from './context-variables';
 
 export default class ContextVariablesInjector {
-  private static isPlainConditionTreeBranch(
-    filter: PlainConditionTreeBranch | PlainConditionTreeLeaf,
-  ): filter is PlainConditionTreeBranch {
-    return 'aggregator' in filter;
+  private static isTreeBranch(filter: RawTree): filter is GenericRawTreeBranch<RawTreeLeaf> {
+    return 'aggregator' in File;
   }
 
   public static injectContextInValue<ValueType>(
@@ -38,14 +32,15 @@ export default class ContextVariablesInjector {
     return valueWithContextVariablesInjected as unknown as ValueType;
   }
 
-  public static injectContextInFilter<
-    PlainConditionTree extends PlainConditionTreeBranch | PlainConditionTreeLeaf | null,
-  >(filter: PlainConditionTree, contextVariables: ContextVariables): PlainConditionTree {
+  public static injectContextInFilter(
+    filter: RawTree,
+    contextVariables: ContextVariables,
+  ): RawTree {
     if (!filter) {
       return null;
     }
 
-    if (ContextVariablesInjector.isPlainConditionTreeBranch(filter)) {
+    if (ContextVariablesInjector.isTreeBranch(filter)) {
       return {
         ...filter,
         conditions: filter.conditions.map(condition => {
