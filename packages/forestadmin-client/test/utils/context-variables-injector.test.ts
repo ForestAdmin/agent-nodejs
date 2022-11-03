@@ -25,6 +25,51 @@ describe('ContextVariablesInjector', () => {
     team,
   });
 
+  describe('injectContextInValueCustom', () => {
+    describe('with a number', () => {
+      test('it should return it as it is', () => {
+        const replaceFunction = jest.fn();
+        const result = ContextVariablesInjector.injectContextInValueCustom(8, replaceFunction);
+
+        expect(result).toStrictEqual(8);
+        expect(replaceFunction).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('with an array', () => {
+      test('it should return it as it is', () => {
+        const replaceFunction = jest.fn();
+        const value = ['test', 'me'];
+        const result = ContextVariablesInjector.injectContextInValueCustom(value, replaceFunction);
+
+        expect(result).toStrictEqual(value);
+        expect(replaceFunction).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('with a string', () => {
+      test('it should replace all variables', () => {
+        const replaceFunction = jest
+          .fn()
+          .mockImplementation(key => key.split('.').pop().toUpperCase());
+        const firstValuePart =
+          'It should be {{siths.selectedRecord.power}} of rank {{siths.selectedRecord.rank}}.';
+        const secondValuePart = 'But {{siths.selectedRecord.power}} can be duplicated.';
+        const result = ContextVariablesInjector.injectContextInValueCustom(
+          `${firstValuePart} ${secondValuePart}`,
+          replaceFunction,
+        );
+
+        expect(result).toStrictEqual(
+          'It should be POWER of rank RANK. But POWER can be duplicated.',
+        );
+        expect(replaceFunction).toHaveBeenCalledTimes(2);
+        expect(replaceFunction).toHaveBeenCalledWith('siths.selectedRecord.power');
+        expect(replaceFunction).toHaveBeenCalledWith('siths.selectedRecord.rank');
+      });
+    });
+  });
+
   describe('injectContextInValue', () => {
     describe('with a number', () => {
       test('it should return it as it is', () => {

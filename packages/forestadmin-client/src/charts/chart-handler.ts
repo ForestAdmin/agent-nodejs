@@ -1,10 +1,10 @@
 import type { ChartHandlerInterface } from '../types';
 import type { RequestContextVariables } from '../utils/context-variables';
 import type ContextVariablesInstantiator from '../utils/context-variables-instantiator';
+import type { Chart, QueryChart } from './types';
 
 import ChartDetector from '../utils/chart-detector';
 import ContextVariablesInjector from '../utils/context-variables-injector';
-import { Chart } from './types';
 
 export type ChartRequest<C extends Chart = Chart> = C & {
   contextVariables?: RequestContextVariables;
@@ -62,5 +62,39 @@ export default class ChartHandlerService implements ChartHandlerInterface {
     }
 
     return chart;
+  }
+
+  public async getQueryForChart({
+    userId,
+    renderingId,
+    chartRequest,
+  }: {
+    userId: string | number;
+    renderingId: string | number;
+    chartRequest: ChartRequest<QueryChart>;
+  }) {
+    const contextVariables = await this.contextVariablesInstantiator.buildContextVariables({
+      userId,
+      renderingId,
+      requestContextVariables: chartRequest.contextVariables,
+    });
+    const contextVariablesUsed: Record<string, unknown> = {};
+
+    const replaceContextVariable = (contextVariableName: string) => {
+      const contextVariableRenamed = contextVariableName.replace(/\./g, '_');
+      contextVariablesUsed[contextVariableRenamed] = contextVariables.getValue(contextVariableName);
+
+      return `$${contextVariableRenamed}`;
+    };
+
+    const query = ContextVariablesInjector.injectContextInValueCustom(
+      chartRequest.query,
+      replaceContextVariable,
+    );
+
+    return {
+      query,
+      contextVariables: contextVariablesUsed,
+    };
   }
 }

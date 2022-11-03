@@ -110,7 +110,7 @@ describe('RenderingPermissionService', () => {
         userId: 42,
       });
 
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
       expect(getUserInfoMock).toHaveBeenCalledWith(42);
 
       expect(ContextVariablesInjector.injectContextInFilter).toHaveBeenCalledWith(
@@ -166,7 +166,7 @@ describe('RenderingPermissionService', () => {
       });
 
       expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
       expect(getUserInfoMock).toHaveBeenCalledWith('42');
 
       expect(ContextVariablesInjector.injectContextInFilter).toHaveBeenCalledWith(
@@ -254,7 +254,7 @@ describe('RenderingPermissionService', () => {
         expect(result).toBe(true);
 
         expect(getUserInfoMock).toHaveBeenCalledWith(42);
-        expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+        expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
       },
     );
 
@@ -302,7 +302,7 @@ describe('RenderingPermissionService', () => {
         expect(result).toBe(true);
 
         expect(getUserInfoMock).toHaveBeenCalledWith(42);
-        expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+        expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
         expect(hashChartRequestMock).toHaveBeenCalledWith({
           type: ChartType.Value,
           sourceCollectionName: 'jedi',
@@ -357,7 +357,7 @@ describe('RenderingPermissionService', () => {
             await expect(result).rejects.toThrowError(EmptySQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
-            expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+            expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
             expect(hashChartRequestMock).toHaveBeenCalledWith({
               type: ChartType.Value,
               query: '  ',
@@ -410,7 +410,7 @@ describe('RenderingPermissionService', () => {
             await expect(result).rejects.toThrowError(ChainedSQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
-            expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+            expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
             expect(hashChartRequestMock).toHaveBeenCalledWith({
               type: ChartType.Value,
               query: 'SELECT count(*) as value FROM jedis; SELECT count(*) as value FROM siths;',
@@ -463,7 +463,7 @@ describe('RenderingPermissionService', () => {
             await expect(result).rejects.toThrowError(NonSelectSQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
-            expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+            expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
             expect(hashChartRequestMock).toHaveBeenCalledWith({
               type: ChartType.Value,
               query: 'UPDATE jedis SET padawan_id = ?',
@@ -525,7 +525,7 @@ describe('RenderingPermissionService', () => {
 
           expect(getUserInfoMock).toHaveBeenCalledWith(42);
           expect(getUserInfoMock).toHaveBeenCalledTimes(2);
-          expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+          expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
           expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
 
           expect(hashChartRequestMock).toHaveBeenCalledWith({
@@ -584,7 +584,7 @@ describe('RenderingPermissionService', () => {
 
           expect(getUserInfoMock).toHaveBeenCalledWith(42);
           expect(getUserInfoMock).toHaveBeenCalledTimes(2);
-          expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+          expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
           expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
 
           expect(hashChartRequestMock).toHaveBeenCalledWith({
@@ -756,7 +756,7 @@ describe('RenderingPermissionService', () => {
         'SELECT * from actors',
         actorsPermissions.segments,
       );
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
     });
 
     it('should return false if the collection does not have an entry in permissions', async () => {
@@ -784,7 +784,7 @@ describe('RenderingPermissionService', () => {
       expect(result).toBe(false);
 
       expect(isSegmentQueryAllowedMock).not.toHaveBeenCalled();
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
     });
 
     it('should return false if the query is not allowed', async () => {
@@ -825,7 +825,7 @@ describe('RenderingPermissionService', () => {
         'SELECT * from actors',
         actorsPermissions.segments,
       );
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
     });
 
     it('should refresh the cache if the query is not allowed', async () => {
@@ -883,7 +883,7 @@ describe('RenderingPermissionService', () => {
         actorsPermissions2.segments,
       );
       expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
     });
   });
 });

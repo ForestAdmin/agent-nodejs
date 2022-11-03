@@ -29,7 +29,7 @@ export default class RenderingPermissionService {
     this.permissionsByRendering = new LruCache({
       max: 256,
       ttl: this.options.permissionsCacheDurationInSeconds * 1000,
-      fetchMethod: renderingId => this.loadPermissions(renderingId),
+      fetchMethod: renderingId => this.loadPermissions(Number(renderingId)),
     });
   }
 

@@ -9,5 +9,6 @@ export default Factory.define<ForestAdminHttpDriverServices>(() => ({
   authorization: factoryAuthorization.mockAllMethods().build(),
   chartHandler: {
     getChartWithContextInjected: jest.fn(),
+    getQueryForChart: jest.fn(),
   },
 }));
