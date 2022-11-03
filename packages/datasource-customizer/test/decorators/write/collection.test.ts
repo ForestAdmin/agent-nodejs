@@ -1,10 +1,10 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   ColumnSchema,
   Filter,
   PaginatedFilter,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import WriteDecorator from '../../../src/decorators/write/collection';

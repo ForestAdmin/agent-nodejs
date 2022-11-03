@@ -1,14 +1,14 @@
 import { Chart, DataSource } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
-import { v1 as uuidv1 } from 'uuid';
 import Router from '@koa/router';
+import { Context } from 'koa';
 import path from 'path';
+import { v1 as uuidv1 } from 'uuid';
 
-import { AgentOptionsWithDefaults } from '../../types';
 import { ForestAdminHttpDriverServices } from '../../services';
-import CollectionRoute from '../collection-route';
+import { AgentOptionsWithDefaults } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
+import CollectionRoute from '../collection-route';
 
 export default class CollectionApiChartRoute extends CollectionRoute {
   private chartName: string;

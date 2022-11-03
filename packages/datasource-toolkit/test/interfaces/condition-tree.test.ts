@@ -1,8 +1,8 @@
-import * as factories from '../__factories__';
+import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import { PlainConditionTree } from '../../src/interfaces/query/condition-tree/nodes/base';
 import ConditionTreeBranch from '../../src/interfaces/query/condition-tree/nodes/branch';
-import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import * as factories from '../__factories__';
 
 describe('ConditionTree', () => {
   describe('Factory', () => {

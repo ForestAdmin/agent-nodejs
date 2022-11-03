@@ -1,6 +1,6 @@
-import * as factories from './__factories__';
 import ForestAdminClient from '../src/forest-admin-client-with-cache';
 import verifyAndExtractApproval from '../src/permissions/verify-approval';
+import * as factories from './__factories__';
 
 jest.mock('../src/permissions/verify-approval', () => ({
   __esModule: true,

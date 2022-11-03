@@ -1,5 +1,5 @@
-import * as factories from '../__factories__';
 import ProjectionValidator from '../../src/validation/projection';
+import * as factories from '../__factories__';
 
 describe('ProjectionValidator', () => {
   describe('validate', () => {

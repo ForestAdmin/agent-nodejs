@@ -1,8 +1,8 @@
 import Router from '@koa/router';
 
-import * as factories from '../__factories__';
-import { RouteType } from '../../src/types';
 import BaseRoute from '../../src/routes/base-route';
+import { RouteType } from '../../src/types';
+import * as factories from '../__factories__';
 
 describe('Base routes', () => {
   const services = factories.forestAdminHttpDriverServices.build();

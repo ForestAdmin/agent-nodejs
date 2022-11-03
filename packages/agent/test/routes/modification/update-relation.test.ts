@@ -1,9 +1,9 @@
 import { Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import UpdateRelationRoute from '../../../src/routes/modification/update-relation';
+import { HttpCode } from '../../../src/types';
+import * as factories from '../../__factories__';
 
 describe('UpdateRelationRoute', () => {
   const setupWithManyToOneRelation = () => {

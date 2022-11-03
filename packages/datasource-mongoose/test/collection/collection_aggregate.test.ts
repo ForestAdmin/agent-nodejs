@@ -1,16 +1,16 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable jest/no-disabled-tests */
 
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Aggregation, Filter } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Connection, Types } from 'mongoose';
 
+import MongooseDatasource from '../../src/datasource';
 import {
   setupReview,
   setupWith2ManyToManyRelations,
   setupWithManyToOneRelation,
 } from '../_helpers';
-import MongooseDatasource from '../../src/datasource';
 
 describe('MongooseCollection', () => {
   let connection: Connection;

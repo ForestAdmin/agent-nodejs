@@ -1,5 +1,5 @@
-import * as factories from '../__factories__';
 import ForestHttpApi from '../../src/permissions/forest-http-api';
+import * as factories from '../__factories__';
 
 describe('ForestHttpApi', () => {
   const options = factories.forestAdminClientOptions.build({

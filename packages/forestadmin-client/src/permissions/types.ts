@@ -1,6 +1,5 @@
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
-
 import type { Chart } from '../charts/types';
+import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
 

@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
+import faker from '@faker-js/faker';
 import { Connection } from 'mongoose';
 import { Sequelize } from 'sequelize';
-import faker from '@faker-js/faker';
 
-import initMsSql from './mssql-init';
 import mongoose from '../src/connections/mongoose';
-import sequelizeMariaDb from './sequelize-mariadb';
 import sequelizeMsSql from '../src/connections/sequelize-mssql';
 import sequelizeMySql from '../src/connections/sequelize-mysql';
 import sequelizePostgres from '../src/connections/sequelize-postgres';
+import initMsSql from './mssql-init';
+import sequelizeMariaDb from './sequelize-mariadb';
 
 async function createOwnerRecords(connection: Sequelize): Promise<any[]> {
   const ownerRecords = [];

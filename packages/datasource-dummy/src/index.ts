@@ -1,5 +1,6 @@
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import { DataSourceFactory } from '@forestadmin/datasource-toolkit';
+
 import DummyDataSource from './datasource';
 
 // eslint-disable-next-line import/prefer-default-export

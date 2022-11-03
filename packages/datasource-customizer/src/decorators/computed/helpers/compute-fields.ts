@@ -1,10 +1,10 @@
 import { Projection, RecordData } from '@forestadmin/datasource-toolkit';
 
-import { ComputedDefinition } from '../types';
-import { flatten, unflatten } from '../utils/flattener';
 import CollectionCustomizationContext from '../../../context/collection-context';
 import ComputedCollection from '../collection';
+import { ComputedDefinition } from '../types';
 import transformUniqueValues from '../utils/deduplication';
+import { flatten, unflatten } from '../utils/flattener';
 
 async function computeField(
   ctx: CollectionCustomizationContext,

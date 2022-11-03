@@ -1,5 +1,6 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { ModelAttributes, Sequelize } from 'sequelize';
+
 import { Table } from '../introspection/types';
 import SequelizeTypeFactory from './helpers/sequelize-type';
 

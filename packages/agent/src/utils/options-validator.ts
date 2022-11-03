@@ -1,5 +1,5 @@
-import { existsSync } from 'fs';
 import createForestAdminClient from '@forestadmin/forestadmin-client';
+import { existsSync } from 'fs';
 import path from 'path';
 
 import { AgentOptions, AgentOptionsWithDefaults } from '../types';

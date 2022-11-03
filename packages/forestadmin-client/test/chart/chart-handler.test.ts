@@ -1,5 +1,6 @@
 import type { PlainConditionTreeBranch } from '@forestadmin/datasource-toolkit';
 
+import ChartHandlerService, { ChartRequest } from '../../src/charts/chart-handler';
 import {
   ChartType,
   LeaderboardChart,
@@ -8,7 +9,6 @@ import {
   PieChart,
   ValueChart,
 } from '../../src/charts/types';
-import ChartHandlerService, { ChartRequest } from '../../src/charts/chart-handler';
 import ContextVariablesInjector from '../../src/utils/context-variables-injector';
 import contextVariablesInstantiatorFactory from '../__factories__/utils/context-variables-instantiator';
 

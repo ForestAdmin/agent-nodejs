@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IssuerMetadata } from 'openid-client';
 import { JSONAPIDocument } from 'json-api-serializer';
+import { IssuerMetadata } from 'openid-client';
 import superagent, { Response, ResponseError } from 'superagent';
 
 import { AgentOptions } from '../types';

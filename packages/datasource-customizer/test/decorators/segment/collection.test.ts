@@ -1,5 +1,5 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { PlainConditionTree } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import SegmentCollectionDecorator from '../../../src/decorators/segment/collection';
 

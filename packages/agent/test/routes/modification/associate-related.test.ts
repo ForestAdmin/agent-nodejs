@@ -1,9 +1,9 @@
 import { Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import AssociateRelatedRoute from '../../../src/routes/modification/associate-related';
+import { HttpCode } from '../../../src/types';
+import * as factories from '../../__factories__';
 
 describe('AssociateRelatedRoute', () => {
   describe('when it is a one to many relation', () => {

@@ -1,4 +1,5 @@
 import { Factory } from 'fishery';
+
 import ActionPermissionService from '../../../src/permissions/action-permission';
 
 export class ActionPermissionsFactory extends Factory<ActionPermissionService> {

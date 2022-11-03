@@ -1,8 +1,8 @@
 import { ConditionTreeFactory, ConditionTreeLeaf, Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import CreateRoute from '../../../src/routes/modification/create';
+import * as factories from '../../__factories__';
 
 describe('CreateRoute', () => {
   const defaultContext = {

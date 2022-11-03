@@ -1,4 +1,5 @@
 import { ColumnSchema, Operator } from '@forestadmin/datasource-toolkit';
+
 import { ForestServerField, ValidationType } from './types';
 
 type FrontendValidation = ForestServerField['validations'][number];

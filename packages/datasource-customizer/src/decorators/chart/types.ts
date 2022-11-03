@@ -1,6 +1,7 @@
 import { Chart } from '@forestadmin/datasource-toolkit';
-import { TCollectionName, TSchema } from '../../templates';
+
 import AgentCustomizationContext from '../../context/agent-context';
+import { TCollectionName, TSchema } from '../../templates';
 import CollectionChartContext from './context';
 import ResultBuilder from './result-builder';
 

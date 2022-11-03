@@ -1,4 +1,5 @@
 import { Factory } from 'fishery';
+
 import { OneToManySchema } from '../../../src/interfaces/schema';
 
 export default Factory.define<OneToManySchema>(() => ({

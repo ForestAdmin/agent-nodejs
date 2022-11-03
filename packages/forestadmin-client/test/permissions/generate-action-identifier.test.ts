@@ -1,8 +1,8 @@
-import { CollectionActionEvent, CustomActionEvent } from '../../src/permissions/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
 } from '../../src/permissions/generate-action-identifier';
+import { CollectionActionEvent, CustomActionEvent } from '../../src/permissions/types';
 
 describe('generateActionIdentifier', () => {
   describe('generateCustomActionIdentifier', () => {

@@ -1,5 +1,5 @@
-import JSONAPISerializer from 'json-api-serializer';
 import crypto from 'crypto';
+import JSONAPISerializer from 'json-api-serializer';
 
 import { ForestServerCollection } from './types';
 

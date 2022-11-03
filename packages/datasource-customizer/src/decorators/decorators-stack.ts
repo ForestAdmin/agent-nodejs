@@ -1,4 +1,5 @@
 import { DataSource, Logger } from '@forestadmin/datasource-toolkit';
+
 import ActionCollectionDecorator from './actions/collection';
 import ChartDataSourceDecorator from './chart/datasource';
 import ComputedCollectionDecorator from './computed/collection';

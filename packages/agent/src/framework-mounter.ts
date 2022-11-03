@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Logger } from '@forestadmin/datasource-toolkit';
+import Router from '@koa/router';
 import { createServer } from 'http';
 import Koa from 'koa';
-import Router from '@koa/router';
 import path from 'path';
 
 import { HttpCallback } from './types';

@@ -1,13 +1,13 @@
 import { ActionField, ActionResult } from './interfaces/action';
-import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 import { Caller } from './interfaces/caller';
 import { Chart } from './interfaces/chart';
 import { Collection, DataSource } from './interfaces/collection';
-import { RecordData } from './interfaces/record';
 import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
-import Filter from './interfaces/query/filter/unpaginated';
 import PaginatedFilter from './interfaces/query/filter/paginated';
+import Filter from './interfaces/query/filter/unpaginated';
 import Projection from './interfaces/query/projection';
+import { RecordData } from './interfaces/record';
+import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 
 export default abstract class BaseCollection implements Collection {
   readonly dataSource: DataSource = null;

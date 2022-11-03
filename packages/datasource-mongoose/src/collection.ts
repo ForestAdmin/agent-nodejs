@@ -14,6 +14,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { Model, PipelineStage } from 'mongoose';
 
+import MongooseSchema from './mongoose/schema';
 import {
   buildSubdocumentPatch,
   compareIds,
@@ -22,14 +23,13 @@ import {
   replaceMongoTypes,
   splitId,
 } from './utils/helpers';
-import FieldsGenerator from './utils/schema/fields';
 import FilterGenerator from './utils/pipeline/filter';
 import GroupGenerator from './utils/pipeline/group';
 import LookupGenerator from './utils/pipeline/lookup';
-import MongooseSchema from './mongoose/schema';
 import ProjectionGenerator from './utils/pipeline/projection';
 import ReparentGenerator from './utils/pipeline/reparent';
 import VirtualFieldsGenerator from './utils/pipeline/virtual-fields';
+import FieldsGenerator from './utils/schema/fields';
 
 export default class MongooseCollection extends BaseCollection {
   model: Model<RecordData>;

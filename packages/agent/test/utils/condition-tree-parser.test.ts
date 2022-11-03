@@ -1,7 +1,7 @@
 import { ConditionTreeBranch, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 
-import * as factories from '../__factories__';
 import ConditionTreeParser from '../../src/utils/condition-tree-parser';
+import * as factories from '../__factories__';
 
 describe('ConditionTreeParser', () => {
   const collection = factories.collection.build({

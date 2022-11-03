@@ -1,8 +1,8 @@
 import { ConditionTreeFactory, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import Chart from '../../../src/routes/access/chart';
+import * as factories from '../../__factories__';
 
 describe('ChartRoute', () => {
   const defaultContext = {
@@ -623,8 +623,7 @@ describe('ChartRoute', () => {
           groupByFieldName: 'publication',
           timeRange: 'Week',
         },
-        customProperties: { query: { timezone: 'Europe/Paris' } },
-        state: { user: { email: 'john.doe@domain.com' } },
+        ...defaultContext,
       });
 
       const getScopeMock = services.authorization.getScope as jest.Mock;
@@ -639,7 +638,7 @@ describe('ChartRoute', () => {
       await chart.handleChart(context);
 
       expect(dataSource.getCollection('books').aggregate).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { ...user, timezone: 'Europe/Paris' },
         {
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',

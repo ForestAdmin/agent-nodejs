@@ -1,10 +1,10 @@
 import { CollectionUtils, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
+import CsvRoute from '../../../src/routes/access/csv-related';
 import ContextFilterFactory from '../../../src/utils/context-filter-factory';
 import CsvGenerator from '../../../src/utils/csv-generator';
-import CsvRoute from '../../../src/routes/access/csv-related';
+import * as factories from '../../__factories__';
 import readCsv from '../../__helper__/read-csv';
 
 describe('CsvRelatedRoute', () => {

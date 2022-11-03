@@ -1,7 +1,6 @@
-import { Col, Fn } from 'sequelize/types/utils';
-import { Dialect, Sequelize } from 'sequelize';
-
 import { DateOperation } from '@forestadmin/datasource-toolkit';
+import { Dialect, Sequelize } from 'sequelize';
+import { Col, Fn } from 'sequelize/types/utils';
 
 export default class DateAggregationConverter {
   private dialect: Dialect;

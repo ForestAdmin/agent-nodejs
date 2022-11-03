@@ -5,10 +5,10 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import Get from '../../../src/routes/access/get';
+import { HttpCode } from '../../../src/types';
 import QueryStringParser from '../../../src/utils/query-string';
+import * as factories from '../../__factories__';
 
 describe('GetRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();

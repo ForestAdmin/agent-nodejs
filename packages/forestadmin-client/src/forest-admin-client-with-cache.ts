@@ -1,14 +1,14 @@
 import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
+import ChartHandler from './charts/chart-handler';
+import RenderingPermissionService from './permissions/rendering-permission';
+import verifyAndExtractApproval from './permissions/verify-approval';
 import {
   ForestAdminClient,
   ForestAdminClientOptionsWithDefaults,
   PermissionService,
 } from './types';
-import ChartHandler from './charts/chart-handler';
 import ContextVariablesInstantiator from './utils/context-variables-instantiator';
-import RenderingPermissionService from './permissions/rendering-permission';
-import verifyAndExtractApproval from './permissions/verify-approval';
 
 export default class ForestAdminClientWithCache implements ForestAdminClient {
   constructor(

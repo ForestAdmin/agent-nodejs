@@ -1,5 +1,5 @@
-import Koa from 'koa';
 import Router from '@koa/router';
+import Koa from 'koa';
 
 export default function startKoaV2() {
   const app = new Koa();

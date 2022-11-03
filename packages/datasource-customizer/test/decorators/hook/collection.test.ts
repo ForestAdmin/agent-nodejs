@@ -1,5 +1,8 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
+import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
+import CollectionHookDecorator from '../../../src/decorators/hook/collection';
 import {
   HookAfterAggregateContext,
   HookBeforeAggregateContext,
@@ -20,8 +23,6 @@ import {
   HookAfterUpdateContext,
   HookBeforeUpdateContext,
 } from '../../../src/decorators/hook/context/update';
-import CollectionHookDecorator from '../../../src/decorators/hook/collection';
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 
 describe('CollectionHookDecorator', () => {
   let dataSource: DataSource;

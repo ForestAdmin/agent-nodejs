@@ -1,11 +1,11 @@
-import * as factories from '../__factories__';
 import { ChartType } from '../../src/charts/types';
-import { CollectionActionEvent, CustomActionEvent } from '../../src/permissions/types';
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
 } from '../../src/permissions/generate-action-identifier';
 import PermissionServiceWithCache from '../../src/permissions/permission-with-cache';
+import { CollectionActionEvent, CustomActionEvent } from '../../src/permissions/types';
+import * as factories from '../__factories__';
 
 jest.mock('../../src/permissions/generate-action-identifier', () => ({
   generateCollectionActionIdentifier: jest.fn(),

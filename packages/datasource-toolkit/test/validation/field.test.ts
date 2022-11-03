@@ -1,5 +1,5 @@
-import * as factories from '../__factories__';
 import FieldValidator from '../../src/validation/field';
+import * as factories from '../__factories__';
 
 describe('FieldValidator', () => {
   describe('validate', () => {

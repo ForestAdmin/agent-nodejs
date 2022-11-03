@@ -1,9 +1,9 @@
+import type { ChartRequest } from './charts/chart-handler';
+import type { Chart } from './charts/types';
+import type { CollectionActionEvent } from './permissions/types';
 import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
 import ContextVariables, { RequestContextVariables } from './utils/context-variables';
-import type { Chart } from './charts/types';
-import type { ChartRequest } from './charts/chart-handler';
-import type { CollectionActionEvent } from './permissions/types';
 
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LoggerLevel, message: unknown) => void;

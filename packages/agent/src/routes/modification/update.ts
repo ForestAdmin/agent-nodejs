@@ -4,12 +4,12 @@ import {
   ProjectionFactory,
   RecordValidator,
 } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
 import Router from '@koa/router';
+import { Context } from 'koa';
 
-import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
+import CollectionRoute from '../collection-route';
 
 export default class UpdateRoute extends CollectionRoute {
   setupRoutes(router: Router): void {

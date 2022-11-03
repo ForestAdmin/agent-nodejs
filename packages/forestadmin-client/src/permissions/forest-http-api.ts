@@ -1,7 +1,7 @@
 import superagent, { ResponseError } from 'superagent';
 
-import { EnvironmentPermissionsV4, RenderingPermissionV4, UserPermissionV4 } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
+import { EnvironmentPermissionsV4, RenderingPermissionV4, UserPermissionV4 } from './types';
 
 type HttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'envSecret' | 'forestServerUrl'>;
 
