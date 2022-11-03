@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.0...@forestadmin/datasource-customizer@1.4.1) (2022-11-03)
+
+
+### Bug Fixes
+
+* **sequelize:** fields of type "enum list" are missing "enumValues" ([#518](https://github.com/ForestAdmin/agent-nodejs/issues/518)) ([3c02bd8](https://github.com/ForestAdmin/agent-nodejs/commit/3c02bd867a6433004c018925f9564f0c00585987))
+
 ## @forestadmin/datasource-customizer [1.4.1-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.0...@forestadmin/datasource-customizer@1.4.1-alpha.1) (2022-11-03)
 
 
