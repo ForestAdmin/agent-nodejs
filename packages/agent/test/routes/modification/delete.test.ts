@@ -47,6 +47,7 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleDelete(context);
 
+        expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -169,6 +170,7 @@ describe('DeleteRoute', () => {
 
         await deleteRoute.handleDelete(context);
 
+        expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -220,6 +222,7 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleListDelete(context);
 
+        expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -265,6 +268,7 @@ describe('DeleteRoute', () => {
           });
           await deleteRoute.handleListDelete(context);
 
+          expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
           expect(bookCollection.delete).toHaveBeenCalledWith(
             { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             factories.filter.build({
@@ -311,6 +315,7 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleListDelete(context);
 
+        expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -389,6 +394,7 @@ describe('DeleteRoute', () => {
           });
           await deleteRoute.handleListDelete(context);
 
+          expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
           expect(bookCollection.delete).toHaveBeenCalledWith(
             { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             factories.filter.build({
