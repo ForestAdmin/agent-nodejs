@@ -3,9 +3,9 @@ import { readFile, writeFile } from 'fs/promises';
 import stringify from 'json-stringify-pretty-compact';
 
 import { AgentOptions } from '../../types';
-import { ForestServerCollection } from './types';
 import SchemaGenerator from './schema-generator';
 import SchemaSerializer from './schema-serializer';
+import { ForestServerCollection } from './types';
 
 type RawSchema = ForestServerCollection[];
 type SerializedSchema = { meta: { schemaFileHash: string } };

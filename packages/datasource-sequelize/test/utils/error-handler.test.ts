@@ -1,5 +1,6 @@
-import { ForeignKeyConstraintError, UniqueConstraintError } from 'sequelize';
 import { ValidationError } from '@forestadmin/datasource-toolkit';
+import { ForeignKeyConstraintError, UniqueConstraintError } from 'sequelize';
+
 import handleErrors from '../../src/utils/error-handler';
 
 describe('Utils > handleErrors', () => {

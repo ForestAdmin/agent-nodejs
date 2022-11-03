@@ -14,6 +14,7 @@ class STORE {
 class REVIEW {
   String title
   String message
+  Number storeId
 }
 
 class OWNER {
@@ -95,7 +96,7 @@ OWNER "1" -- "*" POST : has
 POST "1" -- "*" COMMENT : has
 STORE "*" -- "1" OWNER : has
 STORE "1" -- "*" DVD : has
-STORE "1" -- "*" REVIEW : has
+STORE "0-1" -- "*" REVIEW : has
 STORE "1" -- "*" ACCOUNT : has
 DVD "*" -- "*" RENTALS : has
 CUSTOMER "1" -- "*" CARD : has

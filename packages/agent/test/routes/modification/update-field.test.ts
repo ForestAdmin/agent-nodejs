@@ -6,8 +6,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import UpdateField from '../../../src/routes/modification/update-field';
+import * as factories from '../../__factories__';
 
 describe('UpdateField', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
@@ -36,9 +36,7 @@ describe('UpdateField', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
+              id: factories.columnSchema.numericPrimaryKey().build(),
               itemList: factories.columnSchema.build({
                 columnType: [{ key: 'String', value: 'String' }],
               }),

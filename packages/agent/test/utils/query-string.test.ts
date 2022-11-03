@@ -1,15 +1,15 @@
 import { Projection, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../__factories__';
 import QueryStringParser from '../../src/utils/query-string';
+import * as factories from '../__factories__';
 
 describe('QueryStringParser', () => {
   const collectionSimple = factories.collection.build({
     name: 'books',
     schema: factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.isPrimaryKey().build(),
+        id: factories.columnSchema.uuidPrimaryKey().build(),
         name: factories.columnSchema.build(),
       },
       segments: ['fake-segment'],
@@ -180,7 +180,7 @@ describe('QueryStringParser', () => {
           name: 'cars',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
               owner: factories.oneToOneSchema.build({
                 foreignCollection: 'owner',
@@ -194,7 +194,7 @@ describe('QueryStringParser', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
             },
           }),
@@ -235,7 +235,7 @@ describe('QueryStringParser', () => {
           name: 'cars',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
               owner: factories.oneToOneSchema.build({
                 foreignCollection: 'owner',
@@ -248,7 +248,7 @@ describe('QueryStringParser', () => {
           name: 'owner',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
             },
           }),

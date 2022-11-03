@@ -1,24 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  ChartDefinition,
   CollectionCustomizer,
+  DataSourceChartDefinition,
   DataSourceCustomizer,
   DataSourceOptions,
+  Plugin,
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-customizer';
 import { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
+import cors from '@koa/cors';
 import Router from '@koa/router';
 import bodyParser from 'koa-bodyparser';
-import cors from '@koa/cors';
 
-import { AgentOptions, AgentOptionsWithDefaults } from './types';
-import ForestHttpApi from './utils/forest-http-api';
 import FrameworkMounter from './framework-mounter';
-import OptionsValidator from './utils/options-validator';
-import SchemaEmitter from './utils/forest-schema/emitter';
 import makeRoutes from './routes';
 import makeServices from './services';
+import { AgentOptions, AgentOptionsWithDefaults } from './types';
+import ForestHttpApi from './utils/forest-http-api';
+import SchemaEmitter from './utils/forest-schema/emitter';
+import OptionsValidator from './utils/options-validator';
 
 /**
  * Allow to create a new Forest Admin agent from scratch.
@@ -99,7 +100,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *   }
    * })
    */
-  addChart(name: string, definition: ChartDefinition<S>): this {
+  addChart(name: string, definition: DataSourceChartDefinition<S>): this {
     this.customizer.addChart(name, definition);
 
     return this;
@@ -118,6 +119,21 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     handle: (collection: CollectionCustomizer<S, N>) => unknown,
   ): this {
     this.customizer.customizeCollection(name, handle);
+
+    return this;
+  }
+
+  /**
+   * Load a plugin across all collections
+   * @param plugin instance of the plugin
+   * @param options options which need to be passed to the plugin
+   * @example
+   * import advancedExportPlugin from '@forestadmin/plugin-advanced-export';
+   *
+   * agent.use(advancedExportPlugin, { format: 'xlsx' });
+   */
+  use<Options>(plugin: Plugin<Options>, options?: Options): this {
+    this.customizer.use(plugin, options);
 
     return this;
   }

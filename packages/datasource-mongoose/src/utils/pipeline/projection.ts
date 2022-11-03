@@ -1,5 +1,5 @@
-import { PipelineStage } from 'mongoose';
 import { Projection } from '@forestadmin/datasource-toolkit';
+import { PipelineStage } from 'mongoose';
 
 /** Generate a mongo pipeline which applies a forest admin projection */
 export default class ProjectionGenerator {

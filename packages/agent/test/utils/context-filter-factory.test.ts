@@ -7,8 +7,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../__factories__';
 import ContextFilterFactory from '../../src/utils/context-filter-factory';
+import * as factories from '../__factories__';
 
 describe('FilterFactory', () => {
   describe('buildPaginated', () => {
@@ -16,7 +16,7 @@ describe('FilterFactory', () => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
           },
           segments: ['a-valid-segment'],
         }),

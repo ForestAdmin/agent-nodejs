@@ -1,5 +1,5 @@
-import * as factories from '../../__factories__';
 import ForestValueConverter from '../../../src/utils/forest-schema/action-values';
+import * as factories from '../../__factories__';
 
 describe('ForestValueConverter', () => {
   const dataSource = factories.dataSource.buildWithCollections([
@@ -7,10 +7,7 @@ describe('ForestValueConverter', () => {
       name: 'reviews',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.build({
-            columnType: 'Number',
-            isPrimaryKey: true,
-          }),
+          id: factories.columnSchema.numericPrimaryKey().build(),
         },
       }),
     }),

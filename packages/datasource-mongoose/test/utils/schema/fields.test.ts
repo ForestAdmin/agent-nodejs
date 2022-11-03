@@ -1,9 +1,9 @@
 import { ColumnSchema, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import { Schema } from 'mongoose';
 
-import { buildModel } from '../../_helpers';
 import FieldsGenerator from '../../../src/utils/schema/fields';
 import FilterOperatorsGenerator from '../../../src/utils/schema/filter-operators';
+import { buildModel } from '../../_helpers';
 
 const defaultValues = {
   defaultValue: undefined,

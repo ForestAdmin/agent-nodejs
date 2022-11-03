@@ -1,7 +1,7 @@
 import Router from '@koa/router';
 
-import * as factories from '../../__factories__';
 import Logger from '../../../src/routes/system/logger';
+import * as factories from '../../__factories__';
 
 describe('Logger', () => {
   const router = factories.router.mockAllMethods().build();

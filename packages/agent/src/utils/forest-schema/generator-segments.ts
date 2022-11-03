@@ -1,4 +1,5 @@
 import { Collection, CollectionSchema } from '@forestadmin/datasource-toolkit';
+
 import { ForestServerSegment } from './types';
 
 export default class SchemaGeneratorSegments {

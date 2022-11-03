@@ -3,20 +3,22 @@ import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 
-import { Schema } from './typings';
-import createTypicode from './datasources/typicode';
+import mongoose from '../connections/mongoose';
+import sequelizeMsSql from '../connections/sequelize-mssql';
+import sequelizeMySql from '../connections/sequelize-mysql';
+import sequelizePostgres from '../connections/sequelize-postgres';
 import customizeAccount from './customizations/account';
+import customizeCard from './customizations/card';
 import customizeComment from './customizations/comment';
 import customizeCustomer from './customizations/customer';
 import customizeDvd from './customizations/dvd';
 import customizeOwner from './customizations/owner';
 import customizePost from './customizations/post';
 import customizeRental from './customizations/rental';
+import customizeReview from './customizations/review';
 import customizeStore from './customizations/store';
-import mongoose from '../connections/mongoose';
-import sequelizeMsSql from '../connections/sequelize-mssql';
-import sequelizeMySql from '../connections/sequelize-mysql';
-import sequelizePostgres from '../connections/sequelize-postgres';
+import createTypicode from './datasources/typicode';
+import { Schema } from './typings';
 
 export default function makeAgent() {
   const envOptions: AgentOptions = {
@@ -29,7 +31,22 @@ export default function makeAgent() {
   };
 
   return createAgent<Schema>(envOptions)
-    .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
+    .addDataSource(
+      // Using an URI
+      createSqlDataSource('mariadb://example:password@localhost:3808/example'),
+      { include: ['customer'] },
+    )
+    .addDataSource(
+      // Using a connection object
+      createSqlDataSource({
+        dialect: 'mariadb',
+        username: 'example',
+        password: 'password',
+        port: 3808,
+        database: 'example',
+      }),
+      { include: ['card'] },
+    )
     .addDataSource(createTypicode())
     .addDataSource(createSequelizeDataSource(sequelizePostgres))
     .addDataSource(createSequelizeDataSource(sequelizeMySql))
@@ -45,6 +62,7 @@ export default function makeAgent() {
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
 
+    .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('store', customizeStore)
@@ -52,5 +70,6 @@ export default function makeAgent() {
     .customizeCollection('dvd', customizeDvd)
     .customizeCollection('customer', customizeCustomer)
     .customizeCollection('post', customizePost)
-    .customizeCollection('comment', customizeComment);
+    .customizeCollection('comment', customizeComment)
+    .customizeCollection('review', customizeReview);
 }

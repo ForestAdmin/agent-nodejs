@@ -1,3 +1,4 @@
+import { Collection } from '@forestadmin/datasource-toolkit';
 import {
   ChainedSQLQueryError,
   ChartType,
@@ -5,15 +6,12 @@ import {
   EmptySQLQueryError,
   NonSelectSQLQueryError,
 } from '@forestadmin/forestadmin-client';
-import { Collection } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 
-import * as factories from '../../__factories__';
-
-import { HttpCode } from '../../../src/types';
-
 import AuthorizationService from '../../../src/services/authorization/authorization';
+import { HttpCode } from '../../../src/types';
 import ConditionTreeParser from '../../../src/utils/condition-tree-parser';
+import * as factories from '../../__factories__';
 
 jest.mock('../../../src/utils/condition-tree-parser', () => ({
   __esModule: true,

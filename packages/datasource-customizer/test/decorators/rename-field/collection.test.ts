@@ -1,4 +1,3 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
   Collection,
@@ -10,6 +9,8 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import RenameFieldCollectionDecorator from '../../../src/decorators/rename-field/collection';
 
@@ -46,7 +47,7 @@ describe('RenameFieldCollectionDecorator', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           myBookPerson: factories.oneToOneSchema.build({
             foreignCollection: 'bookPersons',
             originKey: 'personId',
@@ -59,8 +60,8 @@ describe('RenameFieldCollectionDecorator', () => {
       name: 'bookPersons',
       schema: factories.collectionSchema.build({
         fields: {
-          bookId: factories.columnSchema.isPrimaryKey().build(),
-          personId: factories.columnSchema.isPrimaryKey().build(),
+          bookId: factories.columnSchema.uuidPrimaryKey().build(),
+          personId: factories.columnSchema.uuidPrimaryKey().build(),
           myBook: factories.manyToOneSchema.build({
             foreignCollection: 'books',
             foreignKey: 'bookId',
@@ -78,7 +79,7 @@ describe('RenameFieldCollectionDecorator', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           myPersons: factories.manyToManySchema.build({
             foreignCollection: 'persons',
             foreignKey: 'personId',

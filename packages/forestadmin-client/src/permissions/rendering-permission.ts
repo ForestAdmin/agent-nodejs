@@ -1,15 +1,16 @@
-import LruCache from 'lru-cache';
 import type { GenericTree } from '@forestadmin/datasource-toolkit';
 
+import LruCache from 'lru-cache';
+
 import { Chart, QueryChart } from '../charts/types';
-import { CollectionRenderingPermissionV4, PermissionLevel, Team, UserPermissionV4 } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
-import { hashChartRequest, hashServerCharts } from './hash-chart';
 import ContextVariables from '../utils/context-variables';
 import ContextVariablesInjector from '../utils/context-variables-injector';
 import ForestHttpApi from './forest-http-api';
-import UserPermissionService from './user-permission';
+import { hashChartRequest, hashServerCharts } from './hash-chart';
 import isSegmentQueryAllowed from './is-segment-query-authorized';
+import { CollectionRenderingPermissionV4, PermissionLevel, Team, UserPermissionV4 } from './types';
+import UserPermissionService from './user-permission';
 import verifySQLQuery from './verify-sql-query';
 
 export type RenderingPermission = {

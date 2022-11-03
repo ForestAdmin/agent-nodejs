@@ -2,10 +2,10 @@ import { Factory } from 'fishery';
 
 import ForestAdminClient from '../../src/forest-admin-client-with-cache';
 import chartHandlerFactory from './chart/chart-handler';
-import contextVariablesInstantiatorFactory from './utils/context-variables-instantiator';
 import forestAdminClientOptionsFactory from './forest-admin-client-options';
 import permissionServiceFactory from './permissions/permission';
 import renderingPermissionsFactory from './permissions/rendering-permission';
+import contextVariablesInstantiatorFactory from './utils/context-variables-instantiator';
 
 export class ForestAdminClientFactory extends Factory<ForestAdminClient> {
   mockAllMethods() {

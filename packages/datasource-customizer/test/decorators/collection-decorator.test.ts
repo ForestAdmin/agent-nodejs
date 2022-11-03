@@ -1,12 +1,12 @@
 /* eslint-disable max-classes-per-file */
 
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Caller,
   Collection,
   CollectionSchema,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import CollectionDecorator from '../../src/decorators/collection-decorator';
 
@@ -218,6 +218,23 @@ describe('CollectionDecorator', () => {
 
       expect(result).toStrictEqual(response);
       expect(childExecute).toHaveBeenCalledWith(caller, 'an action name', {}, null);
+    });
+  });
+
+  describe('renderChart', () => {
+    it('calls the child renderChart method', async () => {
+      const response = { value: 123 };
+      const childRenderChart = jest.fn().mockReturnValue(response);
+      const decoratedCollection = new DecoratedCollection(
+        factories.collection.build({ renderChart: childRenderChart }),
+        factories.dataSource.build(),
+      );
+
+      const caller = factories.caller.build();
+      const result = await decoratedCollection.renderChart(caller, 'a chart name', [123]);
+
+      expect(result).toStrictEqual(response);
+      expect(childRenderChart).toHaveBeenCalledWith(caller, 'a chart name', [123]);
     });
   });
 

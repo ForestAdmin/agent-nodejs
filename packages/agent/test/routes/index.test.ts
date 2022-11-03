@@ -1,33 +1,33 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
+
 import makeRoutes, {
   COLLECTION_ROUTES_CTOR,
   RELATED_RELATION_ROUTES_CTOR,
   RELATED_ROUTES_CTOR,
   ROOT_ROUTES_CTOR,
 } from '../../src/routes';
-
-import * as factories from '../__factories__';
-import AssociateRelated from '../../src/routes/modification/associate-related';
-import Authentication from '../../src/routes/security/authentication';
 import Chart from '../../src/routes/access/chart';
 import Count from '../../src/routes/access/count';
 import CountRelated from '../../src/routes/access/count-related';
-import Create from '../../src/routes/modification/create';
 import Csv from '../../src/routes/access/csv';
 import CsvRelated from '../../src/routes/access/csv-related';
-import Delete from '../../src/routes/modification/delete';
-import DissociateDeleteRelated from '../../src/routes/modification/dissociate-delete-related';
-import ErrorHandling from '../../src/routes/system/error-handling';
 import Get from '../../src/routes/access/get';
-import HealthCheck from '../../src/routes/system/healthcheck';
-import IpWhitelist from '../../src/routes/security/ip-whitelist';
 import List from '../../src/routes/access/list';
 import ListRelated from '../../src/routes/access/list-related';
-import Logger from '../../src/routes/system/logger';
-import ScopeInvalidation from '../../src/routes/security/scope-invalidation';
+import AssociateRelated from '../../src/routes/modification/associate-related';
+import Create from '../../src/routes/modification/create';
+import Delete from '../../src/routes/modification/delete';
+import DissociateDeleteRelated from '../../src/routes/modification/dissociate-delete-related';
 import Update from '../../src/routes/modification/update';
 import UpdateField from '../../src/routes/modification/update-field';
 import UpdateRelation from '../../src/routes/modification/update-relation';
+import Authentication from '../../src/routes/security/authentication';
+import IpWhitelist from '../../src/routes/security/ip-whitelist';
+import ScopeInvalidation from '../../src/routes/security/scope-invalidation';
+import ErrorHandling from '../../src/routes/system/error-handling';
+import HealthCheck from '../../src/routes/system/healthcheck';
+import Logger from '../../src/routes/system/logger';
+import * as factories from '../__factories__';
 
 describe('Route index', () => {
   it('should declare all the routes', () => {
@@ -90,7 +90,7 @@ describe('Route index', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build(),
+                id: factories.columnSchema.uuidPrimaryKey().build(),
                 personId: factories.columnSchema.build(),
               },
             }),
@@ -100,7 +100,7 @@ describe('Route index', () => {
             name: 'persons',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build(),
+                id: factories.columnSchema.uuidPrimaryKey().build(),
                 books: factories.oneToManySchema.build(),
               },
             }),
@@ -131,7 +131,7 @@ describe('Route index', () => {
             name: 'libraries',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build(),
+                id: factories.columnSchema.uuidPrimaryKey().build(),
                 manyToManyRelationField: factories.manyToManySchema.build(),
               },
             }),
@@ -140,8 +140,8 @@ describe('Route index', () => {
             name: 'librariesBooks',
             schema: factories.collectionSchema.build({
               fields: {
-                bookId: factories.columnSchema.isPrimaryKey().build(),
-                libraryId: factories.columnSchema.isPrimaryKey().build(),
+                bookId: factories.columnSchema.uuidPrimaryKey().build(),
+                libraryId: factories.columnSchema.uuidPrimaryKey().build(),
                 myBook: factories.manyToOneSchema.build(),
                 myLibrary: factories.manyToOneSchema.build(),
               },
@@ -151,7 +151,7 @@ describe('Route index', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build(),
+                id: factories.columnSchema.uuidPrimaryKey().build(),
                 manyToManyRelationField: factories.manyToManySchema.build(),
               },
             }),
@@ -218,6 +218,14 @@ describe('Route index', () => {
       const setupWithChart = (): DataSource => {
         return factories.dataSource.build({
           schema: { charts: ['myChart'] },
+          collections: [
+            factories.collection.build({
+              name: 'books',
+              schema: factories.collectionSchema.build({
+                charts: ['myChart'],
+              }),
+            }),
+          ],
         });
       };
 
@@ -230,7 +238,8 @@ describe('Route index', () => {
           factories.forestAdminHttpDriverServices.build(),
         );
 
-        expect(routes.length).toEqual(ROOT_ROUTES_CTOR.length + 1);
+        // because there are two charts, there are two routes in addition to the basic ones
+        expect(routes.length).toEqual(ROOT_ROUTES_CTOR.length + COLLECTION_ROUTES_CTOR.length + 2);
       });
     });
   });

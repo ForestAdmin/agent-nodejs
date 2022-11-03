@@ -1,5 +1,5 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import PublicationFieldCollectionDecorator from '../../../src/decorators/publication-field/collection';
@@ -24,7 +24,7 @@ describe('PublicationFieldCollectionDecorator', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           myBookPerson: factories.oneToOneSchema.build({
             foreignCollection: 'bookPersons',
             originKey: 'personId',
@@ -37,7 +37,7 @@ describe('PublicationFieldCollectionDecorator', () => {
       name: 'bookPersons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           bookId: factories.columnSchema.build(),
           personId: factories.columnSchema.build(),
           myBook: factories.manyToOneSchema.build({
@@ -57,7 +57,7 @@ describe('PublicationFieldCollectionDecorator', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           myPersons: factories.manyToManySchema.build({
             foreignCollection: 'persons',
             foreignKey: 'personId',

@@ -2,8 +2,8 @@
 import { Factory } from 'fishery';
 
 import { ActionField } from '../../src/interfaces/action';
-import { ActionSchema } from '../../src/interfaces/schema';
 import { Collection } from '../../src/interfaces/collection';
+import { ActionSchema } from '../../src/interfaces/schema';
 import collectionSchemaFactory from './schema/collection-schema';
 
 export class CollectionFactory extends Factory<Collection> {
@@ -25,6 +25,7 @@ export default CollectionFactory.define(() => ({
   schema: collectionSchemaFactory.build(),
   execute: jest.fn(),
   getForm: jest.fn(),
+  renderChart: jest.fn(),
   create: jest.fn(),
   list: jest.fn(),
   update: jest.fn(),

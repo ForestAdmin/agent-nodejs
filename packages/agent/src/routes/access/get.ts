@@ -3,13 +3,13 @@ import {
   PaginatedFilter,
   ProjectionFactory,
 } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
 import Router from '@koa/router';
+import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
-import CollectionRoute from '../collection-route';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
+import CollectionRoute from '../collection-route';
 
 export default class GetRoute extends CollectionRoute {
   setupRoutes(router: Router): void {

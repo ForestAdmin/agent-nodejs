@@ -1,13 +1,13 @@
 import {
-  CollectionActionEvent,
-  CustomActionEvent,
-  UserPermissionV4,
-} from '../../src/permissions/types';
-import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
 } from '../../src/permissions/generate-action-identifier';
 import generateActionsFromPermissions from '../../src/permissions/generate-actions-from-permissions';
+import {
+  CollectionActionEvent,
+  CustomActionEvent,
+  UserPermissionV4,
+} from '../../src/permissions/types';
 
 jest.mock('../../src/permissions/generate-action-identifier', () => ({
   __esModule: true,

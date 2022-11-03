@@ -1,4 +1,3 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
   Collection,
@@ -6,6 +5,8 @@ import {
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import ComputedCollection from '../../../src/decorators/computed/collection';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 

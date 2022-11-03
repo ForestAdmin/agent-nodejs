@@ -1,6 +1,6 @@
 import { Aggregation, CollectionUtils } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
 import Router from '@koa/router';
+import { Context } from 'koa';
 
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';

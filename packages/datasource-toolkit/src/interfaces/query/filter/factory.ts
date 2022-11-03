@@ -1,17 +1,17 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
+import CollectionUtils from '../../../utils/collection';
+import SchemaUtils from '../../../utils/schema';
 import { Caller } from '../../caller';
 import { Collection } from '../../collection';
 import { CompositeId } from '../../record';
 import { ManyToManySchema } from '../../schema';
-import CollectionUtils from '../../../utils/collection';
-import ConditionTree from '../condition-tree/nodes/base';
 import ConditionTreeFactory from '../condition-tree/factory';
+import ConditionTree from '../condition-tree/nodes/base';
 import ConditionTreeLeaf from '../condition-tree/nodes/leaf';
-import Filter from './unpaginated';
-import PaginatedFilter from './paginated';
 import Projection from '../projection';
-import SchemaUtils from '../../../utils/schema';
+import PaginatedFilter from './paginated';
+import Filter from './unpaginated';
 
 export default class FilterFactory {
   private static getPreviousConditionTree(

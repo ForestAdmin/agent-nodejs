@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
+import faker from '@faker-js/faker';
 import { Connection } from 'mongoose';
 import { Sequelize } from 'sequelize';
-import faker from '@faker-js/faker';
 
-import initMsSql from './mssql-init';
 import mongoose from '../src/connections/mongoose';
-import sequelizeMariaDb from './sequelize-mariadb';
 import sequelizeMsSql from '../src/connections/sequelize-mssql';
 import sequelizeMySql from '../src/connections/sequelize-mysql';
 import sequelizePostgres from '../src/connections/sequelize-postgres';
+import initMsSql from './mssql-init';
+import sequelizeMariaDb from './sequelize-mariadb';
 
 async function createOwnerRecords(connection: Sequelize): Promise<any[]> {
   const ownerRecords = [];
@@ -19,6 +19,20 @@ async function createOwnerRecords(connection: Sequelize): Promise<any[]> {
   }
 
   return connection.model('owner').bulkCreate(ownerRecords);
+}
+
+async function createReviewRecords(connection: Sequelize, storeRecords: any[]): Promise<any[]> {
+  const reviewRecords = [];
+
+  for (let i = 0; i < 10; i += 1) {
+    reviewRecords.push({
+      message: faker.lorem.paragraph(1),
+      title: faker.name.title(),
+      storeId: faker.datatype.boolean() ? null : faker.random.arrayElement(storeRecords).id,
+    });
+  }
+
+  return connection.model('review').bulkCreate(reviewRecords);
 }
 
 async function createStoreRecords(connection: Sequelize, ownerRecords: any[]): Promise<any[]> {
@@ -72,7 +86,7 @@ async function createAccountRecords(connection: Connection, storeRecords: any[])
 async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> {
   let customerRecords = [];
 
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 5000; i += 1) {
     customerRecords.push({
       name: faker.name.lastName(),
       firstName: faker.name.firstName(),
@@ -172,6 +186,7 @@ async function seedData() {
     const customerRecords = await createCustomerCardRecords(sequelizeMariaDb);
     await createAccountRecords(mongoose, storeRecords);
     await createDvdRentalsRecords(sequelizeMsSql, storeRecords, customerRecords);
+    await createReviewRecords(sequelizePostgres, storeRecords);
   } catch (error) {
     console.error('---------------');
     console.error('The seed failed');

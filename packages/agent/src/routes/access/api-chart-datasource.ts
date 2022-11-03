@@ -1,15 +1,15 @@
-import { Context } from 'koa';
 import { DataSource } from '@forestadmin/datasource-toolkit';
-import { v1 as uuidv1 } from 'uuid';
 import Router from '@koa/router';
+import { Context } from 'koa';
 import path from 'path';
+import { v1 as uuidv1 } from 'uuid';
 
-import { AgentOptionsWithDefaults, RouteType } from '../../types';
 import { ForestAdminHttpDriverServices } from '../../services';
-import BaseRoute from '../base-route';
+import { AgentOptionsWithDefaults, RouteType } from '../../types';
 import QueryStringParser from '../../utils/query-string';
+import BaseRoute from '../base-route';
 
-export default class ApiChartRoute extends BaseRoute {
+export default class DataSourceApiChartRoute extends BaseRoute {
   readonly type = RouteType.PrivateRoute;
 
   private dataSource: DataSource;

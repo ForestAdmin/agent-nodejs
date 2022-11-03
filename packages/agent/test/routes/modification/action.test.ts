@@ -4,12 +4,12 @@ import {
   DataSource,
   Filter,
 } from '@forestadmin/datasource-toolkit';
-import { Readable } from 'stream';
-import { createMockContext } from '@shopify/jest-koa-mocks';
 import Router from '@koa/router';
+import { createMockContext } from '@shopify/jest-koa-mocks';
+import { Readable } from 'stream';
 
-import * as factories from '../../__factories__';
 import ActionRoute from '../../../src/routes/modification/action';
+import * as factories from '../../__factories__';
 
 describe('ActionRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
@@ -81,7 +81,7 @@ describe('ActionRoute', () => {
           name: 'books',
           schema: {
             actions: { My_Action: { scope: 'Single' } },
-            fields: { id: factories.columnSchema.isPrimaryKey().build() },
+            fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
           },
           getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
           execute: jest.fn(),
@@ -398,7 +398,7 @@ describe('ActionRoute', () => {
               name: 'reviews',
               schema: {
                 actions: { My_Action: { scope: 'Bulk' } },
-                fields: { id: factories.columnSchema.isPrimaryKey().build() },
+                fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
               },
               getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
               execute: jest.fn(),
@@ -407,7 +407,7 @@ describe('ActionRoute', () => {
               name: 'books',
               schema: {
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build(),
+                  id: factories.columnSchema.uuidPrimaryKey().build(),
                   reviews: factories.oneToManySchema.build({
                     foreignCollection: 'reviews',
                   }),

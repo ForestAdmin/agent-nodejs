@@ -1,4 +1,3 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Collection,
   ColumnSchema,
@@ -6,6 +5,8 @@ import {
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import OperatorsDecorator from '../../../src/decorators/operators-replace/collection';
 
 describe('ConditionTreeOperators', () => {

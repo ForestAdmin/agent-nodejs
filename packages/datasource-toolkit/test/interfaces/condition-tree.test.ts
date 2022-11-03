@@ -1,8 +1,8 @@
-import * as factories from '../__factories__';
+import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import { PlainConditionTree } from '../../src/interfaces/query/condition-tree/nodes/base';
 import ConditionTreeBranch from '../../src/interfaces/query/condition-tree/nodes/branch';
-import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import * as factories from '../__factories__';
 
 describe('ConditionTree', () => {
   describe('Factory', () => {
@@ -78,7 +78,7 @@ describe('ConditionTree', () => {
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              col1: factories.columnSchema.isPrimaryKey().build({
+              col1: factories.columnSchema.uuidPrimaryKey().build({
                 filterOperators: null,
               }),
             },
@@ -96,7 +96,7 @@ describe('ConditionTree', () => {
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              col1: factories.columnSchema.isPrimaryKey().build(),
+              col1: factories.columnSchema.uuidPrimaryKey().build(),
             },
           }),
         });
@@ -127,9 +127,9 @@ describe('ConditionTree', () => {
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              col1: factories.columnSchema.isPrimaryKey().build(),
-              col2: factories.columnSchema.isPrimaryKey().build(),
-              col3: factories.columnSchema.isPrimaryKey().build(),
+              col1: factories.columnSchema.uuidPrimaryKey().build(),
+              col2: factories.columnSchema.uuidPrimaryKey().build(),
+              col3: factories.columnSchema.uuidPrimaryKey().build(),
             },
           }),
         });

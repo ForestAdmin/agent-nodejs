@@ -1,4 +1,3 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Collection,
   ColumnSchema,
@@ -8,6 +7,8 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import OperatorEmulationDecorator from '../../../src/decorators/operators-emulate/collection';
 
@@ -27,8 +28,7 @@ describe('OperatorsEmulate', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build({
-              columnType: 'Number',
+            id: factories.columnSchema.numericPrimaryKey().build({
               filterOperators: new Set(), // note that 'id' does not support filtering
             }),
             title: factories.columnSchema.build(),
@@ -69,7 +69,7 @@ describe('OperatorsEmulate', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build({
+            id: factories.columnSchema.uuidPrimaryKey().build({
               columnType: 'Number',
               filterOperators: new Set(['Equal', 'In']),
             }),
@@ -87,8 +87,7 @@ describe('OperatorsEmulate', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build({
-              columnType: 'Number',
+            id: factories.columnSchema.numericPrimaryKey().build({
               filterOperators: new Set(['Equal', 'In']),
             }),
             firstName: factories.columnSchema.build({ filterOperators: new Set(['Equal']) }),

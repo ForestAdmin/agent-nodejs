@@ -1,5 +1,6 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import EmptyCollectionDecorator from '../../../src/decorators/empty/collection';
 
@@ -14,8 +15,8 @@ describe('EmptyCollectionDecorator', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build({}),
-          title: factories.columnSchema.build({}),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
+          title: factories.columnSchema.build(),
         },
       }),
     });

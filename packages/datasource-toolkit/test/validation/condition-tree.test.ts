@@ -1,8 +1,8 @@
-import * as factories from '../__factories__';
+import ConditionTree from '../../src/interfaces/query/condition-tree/nodes/base';
 import { Aggregator } from '../../src/interfaces/query/condition-tree/nodes/branch';
 import { Operator, allOperators } from '../../src/interfaces/query/condition-tree/nodes/operators';
-import ConditionTree from '../../src/interfaces/query/condition-tree/nodes/base';
 import ConditionTreeValidator from '../../src/validation/condition-tree';
+import * as factories from '../__factories__';
 
 describe('ConditionTreeValidation', () => {
   describe('validate', () => {
@@ -70,7 +70,7 @@ describe('ConditionTreeValidation', () => {
               name: 'books',
               schema: factories.collectionSchema.build({
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build(),
+                  id: factories.columnSchema.uuidPrimaryKey().build(),
                   author: factories.manyToOneSchema.build({
                     foreignCollection: 'persons',
                     foreignKey: 'authorId',
@@ -85,7 +85,7 @@ describe('ConditionTreeValidation', () => {
               name: 'persons',
               schema: factories.collectionSchema.build({
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build({
+                  id: factories.columnSchema.uuidPrimaryKey().build({
                     filterOperators: new Set(['Equal']),
                   }),
                 },

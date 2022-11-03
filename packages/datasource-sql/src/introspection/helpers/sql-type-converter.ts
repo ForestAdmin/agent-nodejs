@@ -1,4 +1,5 @@
 import { ColumnDescription, Sequelize } from 'sequelize';
+
 import { ColumnType } from '../types';
 import ArrayTypeGetter from './array-type-getter';
 

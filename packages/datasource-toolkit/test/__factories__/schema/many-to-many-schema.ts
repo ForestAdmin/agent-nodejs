@@ -1,4 +1,5 @@
 import { Factory } from 'fishery';
+
 import { ManyToManySchema } from '../../../src/interfaces/schema';
 
 export default Factory.define<ManyToManySchema>(() => ({

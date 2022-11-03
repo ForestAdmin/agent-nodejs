@@ -9,8 +9,8 @@ import {
   RecordUtils,
 } from '@forestadmin/datasource-toolkit';
 
-import { TCollectionName, TFieldName, TFilter, TRow, TSchema } from '../../../templates';
 import CollectionCustomizationContext from '../../../context/collection-context';
+import { TCollectionName, TFieldName, TFilter, TRow, TSchema } from '../../../templates';
 
 class Deferred<T> {
   promise: Promise<T>;

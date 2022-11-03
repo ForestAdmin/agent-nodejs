@@ -1,7 +1,7 @@
 import { Collection } from '@forestadmin/datasource-toolkit';
 
-import * as factories from '../../__factories__';
 import SchemaGeneratorActions from '../../../src/utils/forest-schema/generator-actions';
+import * as factories from '../../__factories__';
 
 describe('SchemaGeneratorActions', () => {
   describe('Without form', () => {
@@ -152,7 +152,7 @@ describe('SchemaGeneratorActions', () => {
         name: 'authors',
         schema: factories.collectionSchema.build({
           fields: {
-            primaryId: factories.columnSchema.isPrimaryKey().build(),
+            primaryId: factories.columnSchema.uuidPrimaryKey().build(),
           },
         }),
       }),

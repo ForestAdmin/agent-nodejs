@@ -1,3 +1,140 @@
+## example [1.1.9](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.8...example@1.1.9) (2022-11-02)
+
+
+### Bug Fixes
+
+* **export-csv:** remove the limit/skip arguments and adding a row delimiter after each chunk  ([#516](https://github.com/ForestAdmin/agent-nodejs/issues/516)) ([85507fd](https://github.com/ForestAdmin/agent-nodejs/commit/85507fd92f575e51c7dd99d42f715ce6ce8d12cc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.3.1
+
+## example [1.1.8](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.7...example@1.1.8) (2022-10-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.1.1
+
+## example [1.1.7](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.6...example@1.1.7) (2022-10-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.3.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.6
+* **@forestadmin/datasource-sequelize:** upgraded to 1.1.0
+* **@forestadmin/datasource-sql:** upgraded to 1.1.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.0
+* **@forestadmin/datasource-mongoose:** upgraded to 1.1.0
+
+## example [1.1.6](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.5...example@1.1.6) (2022-10-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.2.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.5
+
+## example [1.1.5](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.4...example@1.1.5) (2022-10-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.2
+
+## example [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.3...example@1.1.4) (2022-10-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.1.4
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.4
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.1
+* **@forestadmin/datasource-sql:** upgraded to 1.1.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.1
+* **@forestadmin/datasource-mongoose:** upgraded to 1.0.1
+
+## example [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.2...example@1.1.3) (2022-10-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.1.3
+
+## example [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.1...example@1.1.2) (2022-10-20)
+
+
+### Bug Fixes
+
+* allow to create a record when the client sends a null relation ([#502](https://github.com/ForestAdmin/agent-nodejs/issues/502)) ([700d94f](https://github.com/ForestAdmin/agent-nodejs/commit/700d94f208d8f0a6cba329d2dd14af93f203158a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.1.2
+
+## example [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.0...example@1.1.1) (2022-10-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.1.1
+
+# example [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.4...example@1.1.0) (2022-10-19)
+
+
+### Features
+
+* **datasource-sql:** add advanced options on createSqlDataSource ([#495](https://github.com/ForestAdmin/agent-nodejs/issues/495)) ([ce0ef64](https://github.com/ForestAdmin/agent-nodejs/commit/ce0ef643c385f15d4ecf689da1329319e99b6316))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.1.0
+
+## example [1.0.4](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.3...example@1.0.4) (2022-10-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.1.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.3
+
 ## example [1.0.4-alpha.4](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.0.4-alpha.3...example@1.0.4-alpha.4) (2022-11-02)
 
 

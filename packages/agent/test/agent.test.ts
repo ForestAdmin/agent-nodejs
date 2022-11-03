@@ -1,9 +1,9 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import Agent from '../src/agent';
 import * as factories from './__factories__';
 
-import Agent from '../src/agent';
 // Mock routes
 const mockSetupRoute = jest.fn();
 const mockBootstrap = jest.fn();
@@ -29,6 +29,7 @@ const mockAddChart = jest.fn();
 const mockGetDataSource = jest.fn();
 const mockCustomizeCollection = jest.fn();
 const mockUpdateTypesOnFileSystem = jest.fn();
+const mockUse = jest.fn();
 
 jest.mock('@forestadmin/datasource-customizer', () => ({
   DataSourceCustomizer: class {
@@ -37,6 +38,7 @@ jest.mock('@forestadmin/datasource-customizer', () => ({
     getDataSource = mockGetDataSource;
     customizeCollection = mockCustomizeCollection;
     updateTypesOnFileSystem = mockUpdateTypesOnFileSystem;
+    use = mockUse;
   },
 }));
 
@@ -78,6 +80,13 @@ describe('Agent', () => {
       agent.customizeCollection('name', () => {});
 
       expect(mockCustomizeCollection).toHaveBeenCalledTimes(1);
+    });
+
+    test('use should proxy the call', async () => {
+      const agent = new Agent(options);
+      agent.use(async () => {});
+
+      expect(mockUse).toHaveBeenCalledTimes(1);
     });
 
     test('start should upload apimap when unknown', async () => {

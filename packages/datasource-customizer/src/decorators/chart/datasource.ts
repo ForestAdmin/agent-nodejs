@@ -1,13 +1,13 @@
 import { Caller, Chart, DataSource, DataSourceSchema } from '@forestadmin/datasource-toolkit';
 
-import { ChartDefinition } from './types';
 import AgentCustomizationContext from '../../context/agent-context';
-import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
+import ChartCollectionDecorator from './collection';
 import ResultBuilder from './result-builder';
+import { DataSourceChartDefinition } from './types';
 
-export default class ChartDataSourceDecorator extends DataSourceDecorator {
-  private charts: Record<string, ChartDefinition> = {};
+export default class ChartDataSourceDecorator extends DataSourceDecorator<ChartCollectionDecorator> {
+  private charts: Record<string, DataSourceChartDefinition> = {};
 
   override get schema(): DataSourceSchema {
     const myCharts = Object.keys(this.charts);
@@ -20,10 +20,10 @@ export default class ChartDataSourceDecorator extends DataSourceDecorator {
   }
 
   constructor(childDataSource: DataSource) {
-    super(childDataSource, CollectionDecorator);
+    super(childDataSource, ChartCollectionDecorator);
   }
 
-  addChart(name: string, definition: ChartDefinition) {
+  addChart(name: string, definition: DataSourceChartDefinition) {
     if (this.schema.charts.includes(name)) {
       throw new Error(`Chart '${name}' already exists.`);
     }

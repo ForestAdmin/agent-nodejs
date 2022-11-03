@@ -1,8 +1,8 @@
 import { Collection, ManyToOneSchema } from '@forestadmin/datasource-toolkit';
 
-import { escape } from '../helpers';
 import MongooseCollection from '../../collection';
 import MongooseSchema from '../../mongoose/schema';
+import { escape } from '../helpers';
 
 /** Generate all relations which are not explicitly written in the mongoose schema using `ref` */
 export default class RelationGenerator {

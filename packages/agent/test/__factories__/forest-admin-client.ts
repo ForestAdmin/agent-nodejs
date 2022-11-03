@@ -1,5 +1,6 @@
-import { Factory } from 'fishery';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
+
+import { Factory } from 'fishery';
 
 export class ForestAdminClientFactory extends Factory<ForestAdminClient> {}
 

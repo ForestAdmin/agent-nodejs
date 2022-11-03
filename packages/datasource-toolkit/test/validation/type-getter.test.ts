@@ -1,5 +1,5 @@
-import { ValidationPrimaryTypes, ValidationTypesArray } from '../../src/validation/types';
 import TypeGetter from '../../src/validation/type-getter';
+import { ValidationPrimaryTypes, ValidationTypesArray } from '../../src/validation/types';
 
 describe('TypeGetter', () => {
   describe('get', () => {

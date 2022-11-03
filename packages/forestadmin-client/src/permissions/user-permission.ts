@@ -1,6 +1,6 @@
 import { ForestAdminClientOptionsWithDefaults } from '../types';
-import { UserPermissionV4 } from './types';
 import ForestHttpApi from './forest-http-api';
+import { UserPermissionV4 } from './types';
 
 export default class UserPermissionService {
   private cacheExpirationTimestamp = 0;

@@ -9,8 +9,8 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 import { Model, SchemaType } from 'mongoose';
-import MongooseSchema, { SchemaBranch, SchemaNode } from '../../mongoose/schema';
 
+import MongooseSchema, { SchemaBranch, SchemaNode } from '../../mongoose/schema';
 import { escape } from '../helpers';
 import FilterOperatorsGenerator from './filter-operators';
 

@@ -5,10 +5,10 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import Get from '../../../src/routes/access/get';
+import { HttpCode } from '../../../src/types';
 import QueryStringParser from '../../../src/utils/query-string';
+import * as factories from '../../__factories__';
 
 describe('GetRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
@@ -17,7 +17,7 @@ describe('GetRoute', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           name: factories.columnSchema.build({ columnType: 'String' }),
           author: factories.oneToOneSchema.build({
             foreignCollection: 'persons',
@@ -31,7 +31,7 @@ describe('GetRoute', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
         },
       }),

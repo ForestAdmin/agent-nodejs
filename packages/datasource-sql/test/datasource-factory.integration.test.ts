@@ -3,8 +3,8 @@ import { Dialect, Sequelize } from 'sequelize';
 import { buildSequelizeInstance, introspect } from '../src';
 import Introspector from '../src/introspection/introspector';
 import setupDatabaseWithIdNotPrimary from './_helpers/setup-id-is-not-a-pk';
-import setupDatabaseWithRelations, { RELATION_MAPPING } from './_helpers/setup-using-relations';
 import setupDatabaseWithTypes, { getAttributeMapping } from './_helpers/setup-using-all-types';
+import setupDatabaseWithRelations, { RELATION_MAPPING } from './_helpers/setup-using-relations';
 
 describe('SqlDataSourceFactory > Integration', () => {
   describe('when the table has an "id" without primary key constraint', () => {

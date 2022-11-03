@@ -1,12 +1,12 @@
-import * as factories from '../__factories__';
 import ProjectionValidator from '../../src/validation/projection';
+import * as factories from '../__factories__';
 
 describe('ProjectionValidator', () => {
   describe('validate', () => {
     const collection = factories.collection.build({
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
             foreignKey: 'authorId',

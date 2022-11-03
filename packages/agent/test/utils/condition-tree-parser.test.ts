@@ -1,13 +1,13 @@
 import { ConditionTreeBranch, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 
-import * as factories from '../__factories__';
 import ConditionTreeParser from '../../src/utils/condition-tree-parser';
+import * as factories from '../__factories__';
 
 describe('ConditionTreeParser', () => {
   const collection = factories.collection.build({
     schema: factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.isPrimaryKey().build(),
+        id: factories.columnSchema.uuidPrimaryKey().build(),
         string: factories.columnSchema.build({ columnType: 'String' }),
         number: factories.columnSchema.build({ columnType: 'Number' }),
         boolean: factories.columnSchema.build({ columnType: 'Boolean' }),

@@ -1,10 +1,10 @@
-import { Chart } from './types';
-import ChartDetector from '../utils/chart-detector';
-import ContextVariablesInjector from '../utils/context-variables-injector';
-
 import type { ChartHandlerInterface } from '../types';
 import type { RequestContextVariables } from '../utils/context-variables';
 import type ContextVariablesInstantiator from '../utils/context-variables-instantiator';
+
+import ChartDetector from '../utils/chart-detector';
+import ContextVariablesInjector from '../utils/context-variables-injector';
+import { Chart } from './types';
 
 export type ChartRequest<C extends Chart = Chart> = C & {
   contextVariables?: RequestContextVariables;

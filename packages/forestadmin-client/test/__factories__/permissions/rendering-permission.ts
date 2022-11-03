@@ -1,4 +1,5 @@
 import { Factory } from 'fishery';
+
 import RenderingPermissionService from '../../../src/permissions/rendering-permission';
 import userPermissionsFactory from './user-permission';
 

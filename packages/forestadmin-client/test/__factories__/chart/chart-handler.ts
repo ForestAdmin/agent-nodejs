@@ -1,4 +1,5 @@
 import { Factory } from 'fishery';
+
 import ChartHandlerService from '../../../src/charts/chart-handler';
 import contextVariablesInstantiatorFactory from '../utils/context-variables-instantiator';
 

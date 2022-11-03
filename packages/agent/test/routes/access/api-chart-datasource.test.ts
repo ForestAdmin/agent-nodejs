@@ -1,10 +1,9 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import Router from '@koa/router';
 
+import DataSourceApiChartRoute from '../../../src/routes/access/api-chart-datasource';
 import * as factories from '../../__factories__';
-import ApiChartRoute from '../../../src/routes/access/api-chart';
 
-describe('ApiChartRoute', () => {
+describe('DataSourceApiChartRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
   const services = factories.forestAdminHttpDriverServices.build();
@@ -18,7 +17,7 @@ describe('ApiChartRoute', () => {
   });
 
   test('should register "/_charts/myChart" GET and POST route', () => {
-    const route = new ApiChartRoute(services, options, dataSource, 'myChart');
+    const route = new DataSourceApiChartRoute(services, options, dataSource, 'myChart');
     route.setupRoutes(router);
 
     expect(router.get).toHaveBeenCalledWith('/_charts/myChart', expect.any(Function));
@@ -26,24 +25,10 @@ describe('ApiChartRoute', () => {
   });
 
   describe('with the route mounted', () => {
-    let route: ApiChartRoute;
-    let handleApiChart: Router.Middleware;
-    let handleSmartChart: Router.Middleware;
+    let route: DataSourceApiChartRoute;
 
     beforeEach(() => {
-      route = new ApiChartRoute(services, options, dataSource, 'myChart');
-      route.setupRoutes({
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        post: (_: string, handler: Router.Middleware) => {
-          handleApiChart = handler;
-        },
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        get: (_: string, handler: Router.Middleware) => {
-          handleSmartChart = handler;
-        },
-      });
+      route = new DataSourceApiChartRoute(services, options, dataSource, 'myChart');
     });
 
     test('handleApiChart should return the chart in a JSON-API response', async () => {
@@ -51,7 +36,9 @@ describe('ApiChartRoute', () => {
         customProperties: { query: { timezone: 'Europe/Paris' } },
         state: { user: { email: 'marty@doclabs.com' } },
       });
-      await handleApiChart.call(route, context);
+
+      // @ts-expect-error: testing private method
+      await route.handleApiChart(context);
 
       expect(dataSource.renderChart).toHaveBeenCalledWith(
         { email: 'marty@doclabs.com', timezone: 'Europe/Paris' },
@@ -72,7 +59,8 @@ describe('ApiChartRoute', () => {
         state: { user: { email: 'marty@doclabs.com' } },
       });
 
-      await handleSmartChart.call(route, context);
+      // @ts-expect-error: testing private method
+      await route.handleSmartChart(context);
 
       expect(dataSource.renderChart).toHaveBeenCalledWith(
         { email: 'marty@doclabs.com', timezone: 'Europe/Paris' },

@@ -1,3 +1,93 @@
+## @forestadmin/agent [1.3.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.3.0...@forestadmin/agent@1.3.1) (2022-11-02)
+
+
+### Bug Fixes
+
+* **export-csv:** remove the limit/skip arguments and adding a row delimiter after each chunk  ([#516](https://github.com/ForestAdmin/agent-nodejs/issues/516)) ([85507fd](https://github.com/ForestAdmin/agent-nodejs/commit/85507fd92f575e51c7dd99d42f715ce6ce8d12cc))
+
+# @forestadmin/agent [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.2.0...@forestadmin/agent@1.3.0) (2022-10-27)
+
+
+### Features
+
+* allow creating collection charts ([#506](https://github.com/ForestAdmin/agent-nodejs/issues/506)) ([e707757](https://github.com/ForestAdmin/agent-nodejs/commit/e707757376990888a1d037abf477537f513728ac))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.4.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.0
+
+# @forestadmin/agent [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.4...@forestadmin/agent@1.2.0) (2022-10-27)
+
+
+### Features
+
+* **plugin:** import all fields from a relation ([#510](https://github.com/ForestAdmin/agent-nodejs/issues/510)) ([77f54c6](https://github.com/ForestAdmin/agent-nodejs/commit/77f54c6ef3359ac39f11e76c6881a246db42817c))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.3.0
+
+## @forestadmin/agent [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.3...@forestadmin/agent@1.1.4) (2022-10-24)
+
+
+### Bug Fixes
+
+* **schema-emitter:** better handling of schema edge-cases ([#496](https://github.com/ForestAdmin/agent-nodejs/issues/496)) ([53c9cea](https://github.com/ForestAdmin/agent-nodejs/commit/53c9cea190b017aa16b3691972d21d07fdf549d6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.2.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.1
+
+## @forestadmin/agent [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.2...@forestadmin/agent@1.1.3) (2022-10-24)
+
+
+### Bug Fixes
+
+* **security:** update openid-client to latest version ([#511](https://github.com/ForestAdmin/agent-nodejs/issues/511)) ([ed06c54](https://github.com/ForestAdmin/agent-nodejs/commit/ed06c54c44d050d20ef30d039df2cb4c932978b6))
+
+## @forestadmin/agent [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.1...@forestadmin/agent@1.1.2) (2022-10-20)
+
+
+### Bug Fixes
+
+* allow to create a record when the client sends a null relation ([#502](https://github.com/ForestAdmin/agent-nodejs/issues/502)) ([700d94f](https://github.com/ForestAdmin/agent-nodejs/commit/700d94f208d8f0a6cba329d2dd14af93f203158a))
+
+## @forestadmin/agent [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.0...@forestadmin/agent@1.1.1) (2022-10-20)
+
+
+### Bug Fixes
+
+* **line-chart:** line chart with null value on group by should return some values   ([#501](https://github.com/ForestAdmin/agent-nodejs/issues/501)) ([2925ebf](https://github.com/ForestAdmin/agent-nodejs/commit/2925ebf59b667515f2be485282729c5c64a1e322))
+
+# @forestadmin/agent [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.0.3...@forestadmin/agent@1.1.0) (2022-10-18)
+
+
+### Features
+
+* **customization:** plugin system ([#397](https://github.com/ForestAdmin/agent-nodejs/issues/397)) ([06d4de7](https://github.com/ForestAdmin/agent-nodejs/commit/06d4de76a42233511a1741cb9a77c6f36d13c249))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.2.0
+
 # @forestadmin/agent [1.1.0-alpha.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.1.0-alpha.3...@forestadmin/agent@1.1.0-alpha.4) (2022-11-02)
 
 

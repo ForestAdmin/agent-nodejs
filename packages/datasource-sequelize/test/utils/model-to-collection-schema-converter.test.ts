@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Association, DataTypes, ModelDefined, Sequelize } from 'sequelize';
 import { CollectionSchema } from '@forestadmin/datasource-toolkit';
+import { Association, DataTypes, ModelDefined, Sequelize } from 'sequelize';
+
 import ModelToCollectionSchemaConverter from '../../src/utils/model-to-collection-schema-converter';
 import TypeConverter from '../../src/utils/type-converter';
 
@@ -26,6 +27,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
       // "ID" column is added by Sequelize when no primary key is explicitely defined.
       const schema: CollectionSchema = {
         actions: {},
+        charts: [],
         countable: true,
         fields: {
           id: {
@@ -52,6 +54,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
       const schema: CollectionSchema = {
         actions: {},
+        charts: [],
         countable: true,
         fields: {
           myPk: {
@@ -88,6 +91,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
       const schema: CollectionSchema = {
         actions: {},
+        charts: [],
         countable: true,
         fields: {
           myPk: {
@@ -146,6 +150,17 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             validation: [],
             type: 'Column',
           },
+          myEnumList: {
+            columnType: ['Enum'],
+            filterOperators: new Set([
+              ...TypeConverter.operatorsForColumnType('Enum'),
+              'IncludesAll',
+            ]),
+            enumValues: ['enum1', 'enum2', 'enum3'],
+            isSortable: true,
+            validation: [],
+            type: 'Column',
+          },
           myJson: {
             columnType: 'Json',
             filterOperators: TypeConverter.operatorsForColumnType('Json'),
@@ -180,6 +195,9 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           myEnum: {
             type: DataTypes.ENUM('enum1', 'enum2', 'enum3'),
           },
+          myEnumList: {
+            type: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2', 'enum3')),
+          },
           myJson: {
             type: DataTypes.JSON,
             defaultValue: { defautProperty: 'the value' },
@@ -202,6 +220,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            charts: [],
             countable: true,
             fields: {
               Model2Id: {
@@ -254,6 +273,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            charts: [],
             countable: true,
             fields: {
               __model2__s: {
@@ -293,6 +313,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            charts: [],
             countable: true,
             fields: {
               __model2__s: {
@@ -329,6 +350,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
           const schema: CollectionSchema = {
             actions: {},
+            charts: [],
             countable: true,
             fields: {
               __model2__: {

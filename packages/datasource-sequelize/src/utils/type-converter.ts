@@ -1,6 +1,5 @@
-import { AbstractDataType, AbstractDataTypeConstructor, ArrayDataType, DataTypes } from 'sequelize';
-
 import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { AbstractDataType, AbstractDataTypeConstructor, ArrayDataType, DataTypes } from 'sequelize';
 
 export default class TypeConverter {
   // TODO: Allow to differentiate NUMBER and INTEGER.

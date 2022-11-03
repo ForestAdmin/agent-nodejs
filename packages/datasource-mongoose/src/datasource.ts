@@ -1,9 +1,9 @@
 import { BaseDataSource, Projection } from '@forestadmin/datasource-toolkit';
 import { Connection, Model } from 'mongoose';
 
-import { MongooseOptions } from './types';
 import MongooseCollection from './collection';
 import MongooseSchema from './mongoose/schema';
+import { MongooseOptions } from './types';
 import RelationGenerator from './utils/schema/relations';
 
 export default class MongooseDatasource extends BaseDataSource<MongooseCollection> {
