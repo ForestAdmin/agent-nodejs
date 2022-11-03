@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.4.0-alpha.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.0-alpha.2...@forestadmin/agent@1.4.0-alpha.3) (2022-11-03)
+
+
+### Features
+
+* **chart:** add support for context variables inside SQL query ([#522](https://github.com/ForestAdmin/agent-nodejs/issues/522)) ([280a868](https://github.com/ForestAdmin/agent-nodejs/commit/280a86869cb1e03f4e7c7aae66664f24a535029d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.0.0-alpha.5
+
 # @forestadmin/agent [1.4.0-alpha.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.0-alpha.1...@forestadmin/agent@1.4.0-alpha.2) (2022-11-03)
 
 
