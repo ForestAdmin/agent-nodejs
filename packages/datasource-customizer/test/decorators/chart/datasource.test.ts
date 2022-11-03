@@ -18,8 +18,10 @@ describe('ChartDataSourceDecorator', () => {
       });
 
       test('renderChart should proxy call', async () => {
-        decorator.renderChart(null, 'myChart');
-        expect(dataSource.renderChart).toHaveBeenCalledWith(null, 'myChart');
+        const caller = factories.caller.build();
+
+        decorator.renderChart(caller, 'myChart');
+        expect(dataSource.renderChart).toHaveBeenCalledWith(caller, 'myChart');
       });
     });
 
@@ -41,7 +43,8 @@ describe('ChartDataSourceDecorator', () => {
       });
 
       test('renderChart should not proxy call', async () => {
-        const result = await decorator.renderChart(null, 'myChart');
+        const caller = factories.caller.build();
+        const result = await decorator.renderChart(caller, 'myChart');
 
         expect(result).toStrictEqual({ countCurrent: 34, countPrevious: 45 });
         expect(dataSource.renderChart).not.toHaveBeenCalled();

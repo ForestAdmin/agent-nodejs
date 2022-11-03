@@ -1,35 +1,32 @@
+import { Chart, DataSource } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
-import { DataSource } from '@forestadmin/datasource-toolkit';
 import { v1 as uuidv1 } from 'uuid';
 import Router from '@koa/router';
 import path from 'path';
 
-import { AgentOptionsWithDefaults, RouteType } from '../../types';
+import { AgentOptionsWithDefaults } from '../../types';
 import { ForestAdminHttpDriverServices } from '../../services';
-import BaseRoute from '../base-route';
+import CollectionRoute from '../collection-route';
+import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 
-export default class ApiChartRoute extends BaseRoute {
-  readonly type = RouteType.PrivateRoute;
-
-  private dataSource: DataSource;
+export default class CollectionApiChartRoute extends CollectionRoute {
   private chartName: string;
 
   constructor(
     services: ForestAdminHttpDriverServices,
     options: AgentOptionsWithDefaults,
     dataSource: DataSource,
+    collectionName: string,
     chartName: string,
   ) {
-    super(services, options);
-
-    this.dataSource = dataSource;
+    super(services, options, dataSource, collectionName);
     this.chartName = chartName;
   }
 
   setupRoutes(router: Router): void {
     // Mount both GET and POST, respectively for smart and api charts.
-    const suffix = `/_charts/${this.chartName}`;
+    const suffix = `/_charts/${this.collection.name}/${this.chartName}`;
     router.get(suffix, this.handleSmartChart.bind(this));
     router.post(suffix, this.handleApiChart.bind(this));
 
@@ -47,10 +44,7 @@ export default class ApiChartRoute extends BaseRoute {
         id: uuidv1(),
         type: 'stats',
         attributes: {
-          value: await this.dataSource.renderChart(
-            QueryStringParser.parseCaller(context),
-            this.chartName,
-          ),
+          value: await this.renderChart(context),
         },
       },
     };
@@ -58,9 +52,17 @@ export default class ApiChartRoute extends BaseRoute {
 
   private async handleSmartChart(context: Context) {
     // Smart charts need the data to be unformatted
-    context.response.body = await this.dataSource.renderChart(
+    context.response.body = await this.renderChart(context);
+  }
+
+  private async renderChart(context: Context): Promise<Chart> {
+    return this.collection.renderChart(
       QueryStringParser.parseCaller(context),
       this.chartName,
+      IdUtils.unpackId(
+        this.collection.schema,
+        String(context.request.body?.record_id ?? context.request.query?.record_id),
+      ),
     );
   }
 }

@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  ChartDefinition,
   CollectionCustomizer,
+  DataSourceChartDefinition,
   DataSourceCustomizer,
   DataSourceOptions,
+  Plugin,
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-customizer';
@@ -99,7 +100,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *   }
    * })
    */
-  addChart(name: string, definition: ChartDefinition<S>): this {
+  addChart(name: string, definition: DataSourceChartDefinition<S>): this {
     this.customizer.addChart(name, definition);
 
     return this;
@@ -118,6 +119,21 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     handle: (collection: CollectionCustomizer<S, N>) => unknown,
   ): this {
     this.customizer.customizeCollection(name, handle);
+
+    return this;
+  }
+
+  /**
+   * Load a plugin across all collections
+   * @param plugin instance of the plugin
+   * @param options options which need to be passed to the plugin
+   * @example
+   * import advancedExportPlugin from '@forestadmin/plugin-advanced-export';
+   *
+   * agent.use(advancedExportPlugin, { format: 'xlsx' });
+   */
+  use<Options>(plugin: Plugin<Options>, options?: Options): this {
+    this.customizer.use(plugin, options);
 
     return this;
   }

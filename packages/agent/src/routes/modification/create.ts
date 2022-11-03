@@ -88,7 +88,7 @@ export default class CreateRoute extends CollectionRoute {
 
     const promises = Object.entries(relations).map(async ([field, linked]) => {
       const relation = this.collection.schema.fields[field];
-      if (relation.type !== 'OneToOne') return;
+      if (linked === null || relation.type !== 'OneToOne') return;
 
       // Permissions
       const foreignCollection = this.dataSource.getCollection(relation.foreignCollection);
@@ -119,6 +119,8 @@ export default class CreateRoute extends CollectionRoute {
   }
 
   private getRelationRecord(field: string, id: CompositeId): RecordData {
+    if (id === null) return null;
+
     const schema = this.collection.schema.fields[field] as RelationSchema;
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
     const pkName = SchemaUtils.getPrimaryKeys(foreignCollection.schema);
@@ -131,6 +133,8 @@ export default class CreateRoute extends CollectionRoute {
     field: string,
     id: CompositeId,
   ): Promise<unknown> {
+    if (id === null) return null;
+
     const caller = QueryStringParser.parseCaller(context);
     const schema = this.collection.schema.fields[field] as ManyToOneSchema;
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);

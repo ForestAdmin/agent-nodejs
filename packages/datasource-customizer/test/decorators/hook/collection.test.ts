@@ -35,9 +35,9 @@ describe('CollectionHookDecorator', () => {
       name: 'transactions',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build({}),
-          description: factories.columnSchema.build({}),
-          amountInEur: factories.columnSchema.build({}),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
+          description: factories.columnSchema.build(),
+          amountInEur: factories.columnSchema.build(),
         },
       }),
     });

@@ -12,7 +12,7 @@ describe('PublicationCollectionDataSourceDecorator', () => {
         name: 'libraries',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             myBooks: factories.manyToManySchema.build({
               throughCollection: 'librariesBooks',
               foreignCollection: 'books',
@@ -28,8 +28,8 @@ describe('PublicationCollectionDataSourceDecorator', () => {
         name: 'librariesBooks',
         schema: factories.collectionSchema.build({
           fields: {
-            bookId: factories.columnSchema.isPrimaryKey().build(),
-            libraryId: factories.columnSchema.isPrimaryKey().build(),
+            bookId: factories.columnSchema.uuidPrimaryKey().build(),
+            libraryId: factories.columnSchema.uuidPrimaryKey().build(),
             myBook: factories.manyToOneSchema.build({
               foreignCollection: 'books',
               foreignKey: 'bookId',
@@ -47,7 +47,7 @@ describe('PublicationCollectionDataSourceDecorator', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build(),
+            id: factories.columnSchema.uuidPrimaryKey().build(),
             myLibraries: factories.manyToManySchema.build({
               throughCollection: 'librariesBooks',
               foreignCollection: 'libraries',

@@ -2,11 +2,13 @@ import { CollectionSchema, ManyToManySchema, OneToManySchema } from '../interfac
 
 export default class SchemaUtils {
   static getPrimaryKeys(schema: CollectionSchema): string[] {
-    return Object.keys(schema.fields).filter(fieldName => {
-      const field = schema.fields[fieldName];
+    return Object.keys(schema.fields).filter(name => this.isPrimaryKey(schema, name));
+  }
 
-      return field.type === 'Column' && field.isPrimaryKey;
-    });
+  static isPrimaryKey(schema: CollectionSchema, fieldName: string): boolean {
+    const field = schema.fields[fieldName];
+
+    return field.type === 'Column' && field.isPrimaryKey;
   }
 
   static isForeignKey(schema: CollectionSchema, name: string): boolean {

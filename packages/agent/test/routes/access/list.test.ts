@@ -11,7 +11,7 @@ describe('ListRoute', () => {
       list: jest.fn(),
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
         },
       }),
     });

@@ -1,6 +1,7 @@
 import { ActionField, ActionResult } from './interfaces/action';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 import { Caller } from './interfaces/caller';
+import { Chart } from './interfaces/chart';
 import { Collection, DataSource } from './interfaces/collection';
 import { RecordData } from './interfaces/record';
 import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
@@ -18,6 +19,7 @@ export default abstract class BaseCollection implements Collection {
     this.name = name;
     this.schema = {
       actions: {},
+      charts: [],
       countable: false,
       fields: {},
       searchable: false,
@@ -31,6 +33,14 @@ export default abstract class BaseCollection implements Collection {
     if (action !== undefined) throw new Error(`Action "${name}" already defined in collection`);
 
     this.schema.actions[name] = schema;
+  }
+
+  protected addChart(name: string): void {
+    if (this.schema.charts.includes(name)) {
+      throw new Error(`Chart "${name}" already defined in collection`);
+    }
+
+    this.schema.charts.push(name);
   }
 
   protected addField(name: string, schema: FieldSchema): void {
@@ -79,14 +89,14 @@ export default abstract class BaseCollection implements Collection {
   ): Promise<AggregateResult[]>;
 
   async execute(caller: Caller, name: string): Promise<ActionResult> {
-    throw new Error(
-      this.schema.actions[name]
-        ? `Action ${name} is not implemented.`
-        : `No action named ${name} was added`,
-    );
+    throw new Error(`Action ${name} is not implemented.`);
   }
 
   async getForm(): Promise<ActionField[]> {
     return [];
+  }
+
+  async renderChart(caller: Caller, name: string): Promise<Chart> {
+    throw new Error(`Chart ${name} is not implemented.`);
   }
 }

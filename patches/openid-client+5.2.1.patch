@@ -1,8 +1,8 @@
 diff --git a/node_modules/openid-client/types/index.d.ts b/node_modules/openid-client/types/index.d.ts
-index 4fcd4b6..876cad8 100644
+index d54f98a..adbb05d 100644
 --- a/node_modules/openid-client/types/index.d.ts
 +++ b/node_modules/openid-client/types/index.d.ts
-@@ -430,6 +430,7 @@ export interface MtlsEndpointAliases {
+@@ -433,6 +433,7 @@ export interface MtlsEndpointAliases {
  
  export interface TypeOfGenericClient<TClient extends BaseClient = BaseClient> {
    new (metadata: ClientMetadata, jwks?: { keys: jose.JWK[] }, options?: ClientOptions): TClient;

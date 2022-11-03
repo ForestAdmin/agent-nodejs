@@ -1,15 +1,20 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import Router from '@koa/router';
 
 import * as factories from '../../__factories__';
-import ApiChartRoute from '../../../src/routes/access/api-chart';
+import CollectionApiChartRoute from '../../../src/routes/access/api-chart-collection';
 
-describe('ApiChartRoute', () => {
+describe('CollectionApiChartRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
   const services = factories.forestAdminHttpDriverServices.build();
-  const dataSource = factories.dataSource.build({
-    schema: { charts: ['myChart'] },
+  const dataSource = factories.dataSource.buildWithCollection({
+    name: 'books',
+    schema: factories.collectionSchema.build({
+      charts: ['myChart'],
+      fields: {
+        id: factories.columnSchema.numericPrimaryKey().build(),
+      },
+    }),
     renderChart: jest.fn().mockResolvedValue({ countCurrent: 12 }),
   });
 
@@ -17,45 +22,35 @@ describe('ApiChartRoute', () => {
     jest.clearAllMocks();
   });
 
-  test('should register "/_charts/myChart" GET and POST route', () => {
-    const route = new ApiChartRoute(services, options, dataSource, 'myChart');
+  test('should register "/_charts/books/myChart" GET and POST route', () => {
+    const route = new CollectionApiChartRoute(services, options, dataSource, 'books', 'myChart');
     route.setupRoutes(router);
 
-    expect(router.get).toHaveBeenCalledWith('/_charts/myChart', expect.any(Function));
-    expect(router.post).toHaveBeenCalledWith('/_charts/myChart', expect.any(Function));
+    expect(router.get).toHaveBeenCalledWith('/_charts/books/myChart', expect.any(Function));
+    expect(router.post).toHaveBeenCalledWith('/_charts/books/myChart', expect.any(Function));
   });
 
   describe('with the route mounted', () => {
-    let route: ApiChartRoute;
-    let handleApiChart: Router.Middleware;
-    let handleSmartChart: Router.Middleware;
+    let route: CollectionApiChartRoute;
 
     beforeEach(() => {
-      route = new ApiChartRoute(services, options, dataSource, 'myChart');
-      route.setupRoutes({
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        post: (_: string, handler: Router.Middleware) => {
-          handleApiChart = handler;
-        },
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        get: (_: string, handler: Router.Middleware) => {
-          handleSmartChart = handler;
-        },
-      });
+      route = new CollectionApiChartRoute(services, options, dataSource, 'books', 'myChart');
     });
 
     test('handleApiChart should return the chart in a JSON-API response', async () => {
       const context = createMockContext({
         customProperties: { query: { timezone: 'Europe/Paris' } },
         state: { user: { email: 'marty@doclabs.com' } },
+        requestBody: { record_id: 123 },
       });
-      await handleApiChart.call(route, context);
 
-      expect(dataSource.renderChart).toHaveBeenCalledWith(
+      // @ts-expect-error: testing private method
+      await route.handleApiChart(context);
+
+      expect(dataSource.getCollection('books').renderChart).toHaveBeenCalledWith(
         { email: 'marty@doclabs.com', timezone: 'Europe/Paris' },
         'myChart',
+        [123],
       );
       expect(context.response.body).toMatchObject({
         data: {
@@ -68,15 +63,17 @@ describe('ApiChartRoute', () => {
 
     test('handleSmartChart should return the chart in the body', async () => {
       const context = createMockContext({
-        customProperties: { query: { timezone: 'Europe/Paris' } },
+        customProperties: { query: { timezone: 'Europe/Paris', record_id: 123 } },
         state: { user: { email: 'marty@doclabs.com' } },
       });
 
-      await handleSmartChart.call(route, context);
+      // @ts-expect-error: testing private method
+      await route.handleSmartChart(context);
 
-      expect(dataSource.renderChart).toHaveBeenCalledWith(
+      expect(dataSource.getCollection('books').renderChart).toHaveBeenCalledWith(
         { email: 'marty@doclabs.com', timezone: 'Europe/Paris' },
         'myChart',
+        [123],
       );
       expect(context.response.body).toStrictEqual({ countCurrent: 12 });
     });

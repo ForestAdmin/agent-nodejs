@@ -3,16 +3,17 @@ import { DataSource } from '@forestadmin/datasource-toolkit';
 import { AgentOptionsWithDefaults as Options } from '../types';
 import { ForestAdminHttpDriverServices as Services } from '../services';
 import ActionRoute from './modification/action';
-import ApiChartRoute from './access/api-chart';
 import AssociateRelated from './modification/associate-related';
 import Authentication from './security/authentication';
 import BaseRoute from './base-route';
 import Chart from './access/chart';
+import CollectionApiChartRoute from './access/api-chart-collection';
 import Count from './access/count';
 import CountRelated from './access/count-related';
 import Create from './modification/create';
 import Csv from './access/csv';
 import CsvRelated from './access/csv-related';
+import DataSourceApiChartRoute from './access/api-chart-datasource';
 import Delete from './modification/delete';
 import DissociateDeleteRelated from './modification/dissociate-delete-related';
 import ErrorHandling from './system/error-handling';
@@ -64,9 +65,17 @@ function getApiChartRoutes(
   options: Options,
   services: Services,
 ): BaseRoute[] {
-  return dataSource.schema.charts.map(chartName => {
-    return new ApiChartRoute(services, options, dataSource, chartName);
-  });
+  return [
+    ...dataSource.schema.charts.map(
+      chartName => new DataSourceApiChartRoute(services, options, dataSource, chartName),
+    ),
+    ...dataSource.collections.flatMap(collection =>
+      collection.schema.charts.map(
+        chartName =>
+          new CollectionApiChartRoute(services, options, dataSource, collection.name, chartName),
+      ),
+    ),
+  ];
 }
 
 function getCrudRoutes(dataSource: DataSource, options: Options, services: Services): BaseRoute[] {

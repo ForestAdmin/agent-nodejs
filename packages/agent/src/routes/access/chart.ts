@@ -3,6 +3,8 @@ import {
   Caller,
   CollectionUtils,
   ConditionTreeBranch,
+  ConditionTreeFactory,
+  ConditionTreeLeaf,
   DateOperation,
   Filter,
   FilterFactory,
@@ -138,9 +140,16 @@ export default class ChartRoute extends CollectionRoute {
       timeRange,
     } = <LineChart>context.request.body;
 
+    const filter = await this.getFilter(context);
+    const filterOnlyWithValues = filter.override({
+      conditionTree: ConditionTreeFactory.intersect(
+        filter.conditionTree,
+        new ConditionTreeLeaf(groupByDateField, 'Present'),
+      ),
+    });
     const rows = await this.collection.aggregate(
       QueryStringParser.parseCaller(context),
-      await this.getFilter(context),
+      filterOnlyWithValues,
       new Aggregation({
         operation: aggregator,
         field: aggregateField,

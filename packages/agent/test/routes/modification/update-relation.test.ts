@@ -15,7 +15,7 @@ describe('UpdateRelationRoute', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           name: factories.columnSchema.build({ columnType: 'String' }),
         },
       }),
@@ -25,7 +25,7 @@ describe('UpdateRelationRoute', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           personId: factories.columnSchema.build({ columnType: 'Uuid' }),
           myPersons: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
@@ -146,7 +146,7 @@ describe('UpdateRelationRoute', () => {
             name: 'book',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build(),
+                id: factories.columnSchema.uuidPrimaryKey().build(),
                 owner: factories.oneToOneSchema.build({
                   foreignCollection: 'owner',
                   originKey: 'bookId',
@@ -159,7 +159,7 @@ describe('UpdateRelationRoute', () => {
             name: 'owner',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build(),
+                id: factories.columnSchema.uuidPrimaryKey().build(),
                 bookId: factories.columnSchema.build(),
                 book: factories.manyToOneSchema.build({
                   foreignCollection: 'book',

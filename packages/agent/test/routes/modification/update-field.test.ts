@@ -36,9 +36,7 @@ describe('UpdateField', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
+              id: factories.columnSchema.numericPrimaryKey().build(),
               itemList: factories.columnSchema.build({
                 columnType: [{ key: 'String', value: 'String' }],
               }),

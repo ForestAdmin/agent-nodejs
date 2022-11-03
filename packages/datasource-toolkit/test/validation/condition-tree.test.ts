@@ -70,7 +70,7 @@ describe('ConditionTreeValidation', () => {
               name: 'books',
               schema: factories.collectionSchema.build({
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build(),
+                  id: factories.columnSchema.uuidPrimaryKey().build(),
                   author: factories.manyToOneSchema.build({
                     foreignCollection: 'persons',
                     foreignKey: 'authorId',
@@ -85,7 +85,7 @@ describe('ConditionTreeValidation', () => {
               name: 'persons',
               schema: factories.collectionSchema.build({
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build({
+                  id: factories.columnSchema.uuidPrimaryKey().build({
                     filterOperators: new Set(['Equal']),
                   }),
                 },

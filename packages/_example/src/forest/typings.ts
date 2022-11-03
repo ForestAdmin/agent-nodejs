@@ -283,6 +283,27 @@ export type Schema = {
       'customer:deletedAt': string;
     };
   };
+  'review': {
+    plain: {
+      'id': number;
+      'title': string;
+      'message': string;
+      'storeId': number;
+    };
+    nested: {
+      'store': Schema['store']['plain'] & Schema['store']['nested'];
+    };
+    flat: {
+      'store:id': number;
+      'store:name': string;
+      'store:ownerId': number;
+      'store:ownerFullName': string;
+      'store:owner:id': number;
+      'store:owner:firstName': string;
+      'store:owner:lastName': string;
+      'store:owner:fullName': string;
+    };
+  };
   'store': {
     plain: {
       'id': number;

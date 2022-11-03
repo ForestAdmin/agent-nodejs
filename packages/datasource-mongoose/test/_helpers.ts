@@ -26,7 +26,7 @@ export const setupReview = async (dbName = 'test') => {
       modificationDates: { type: [Date] },
       editorIds: { type: [Types.ObjectId] },
       authorId: { type: Types.ObjectId },
-      nestedField: new Schema({ nested: [new Schema({ level: Number })] }),
+      nestedField: new Schema({ nested: [new Schema({ level: Number })], other: String }),
     }),
   );
   await connection.dropDatabase();
