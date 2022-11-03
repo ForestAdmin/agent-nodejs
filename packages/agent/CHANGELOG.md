@@ -1,3 +1,44 @@
+# @forestadmin/agent [1.4.0-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.3.1...@forestadmin/agent@1.4.0-alpha.1) (2022-11-03)
+
+
+### Bug Fixes
+
+* **chart/segment:** check that query is valid before executing it ([#508](https://github.com/ForestAdmin/agent-nodejs/issues/508)) ([84b1042](https://github.com/ForestAdmin/agent-nodejs/commit/84b104263ed6e94a538080318533043f812b27bf))
+* **charts:** allow editors to retrieve any chart ([#457](https://github.com/ForestAdmin/agent-nodejs/issues/457)) ([cd51d63](https://github.com/ForestAdmin/agent-nodejs/commit/cd51d630f96ad4caa1f87792adf819bc6c4aa9b9))
+* handle permissions of query charts ([#483](https://github.com/ForestAdmin/agent-nodejs/issues/483)) ([8c880d2](https://github.com/ForestAdmin/agent-nodejs/commit/8c880d24f87fd1d205b147fcba8c8b5e5b230563))
+* **options:** set minimum permissions cache duration ([#453](https://github.com/ForestAdmin/agent-nodejs/issues/453)) ([550779a](https://github.com/ForestAdmin/agent-nodejs/commit/550779a6a7a2dbc8ba39d1bf71c28ba11ed0b5cb))
+* **security:** add missing permission check on list-delete ([#524](https://github.com/ForestAdmin/agent-nodejs/issues/524)) ([a0300b0](https://github.com/ForestAdmin/agent-nodejs/commit/a0300b0955f8318db7d1bb6da46cabe4f92e9cd7))
+
+
+### Features
+
+* **chart:** add context variables to chart ([#507](https://github.com/ForestAdmin/agent-nodejs/issues/507)) ([6d003d6](https://github.com/ForestAdmin/agent-nodejs/commit/6d003d68d9e79d7690e68250ce8a003fdc2ea735))
+* handle correctly custom action approval request ([#463](https://github.com/ForestAdmin/agent-nodejs/issues/463)) ([c0b8195](https://github.com/ForestAdmin/agent-nodejs/commit/c0b8195384c91ab5360a1119c26411cc9202c5ec))
+* **permissions:** add some logging ([#454](https://github.com/ForestAdmin/agent-nodejs/issues/454)) ([002e83a](https://github.com/ForestAdmin/agent-nodejs/commit/002e83ab0c189547a83b091d39b70df31a4f5083))
+* support custom errors with data and add more information about error ([#497](https://github.com/ForestAdmin/agent-nodejs/issues/497)) ([8f66c97](https://github.com/ForestAdmin/agent-nodejs/commit/8f66c97000e52115e8ed13e0d5c99f1f26b2bc57))
+
+
+### Performance Improvements
+
+* **permissions:** check permission to retrieve chart data using the new permission endpoints ([#439](https://github.com/ForestAdmin/agent-nodejs/issues/439)) ([fb53fc1](https://github.com/ForestAdmin/agent-nodejs/commit/fb53fc1a6582e4e91396d9a3c004962a6631383c))
+* **permissions:** use a lighter endpoint to retrieve scope configuration ([#432](https://github.com/ForestAdmin/agent-nodejs/issues/432)) ([f3d3834](https://github.com/ForestAdmin/agent-nodejs/commit/f3d3834e312e00844da85966f102e59e4c499524))
+* **permissions:** use lighter endpoint for permissions ([#421](https://github.com/ForestAdmin/agent-nodejs/issues/421)) ([7ed8b22](https://github.com/ForestAdmin/agent-nodejs/commit/7ed8b224ed116563cc6bc7533bd1939ddaa1ee37))
+
+
+### Reverts
+
+* remove unused canOneOf internal authorisation function ([#477](https://github.com/ForestAdmin/agent-nodejs/issues/477)) ([fd972b8](https://github.com/ForestAdmin/agent-nodejs/commit/fd972b84745514a04c89750e1a2c02076a37bd08))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.4.1-alpha.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.1-alpha.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.0.0-alpha.4
+
 ## @forestadmin/agent [1.3.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.3.0...@forestadmin/agent@1.3.1) (2022-11-02)
 
 
