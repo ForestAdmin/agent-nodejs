@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/plugin-import-fields",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A plugin that import all fields from a relation",
   "main": "dist/index.js",
   "license": "GPL-3.0",
