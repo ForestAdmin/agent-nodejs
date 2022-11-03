@@ -10,6 +10,7 @@ import {
   Association,
   BelongsTo,
   BelongsToMany,
+  DataTypes,
   HasMany,
   HasOne,
   Model,
@@ -118,8 +119,11 @@ export default class ModelToCollectionSchemaConverter {
       column.defaultValue = attribute.defaultValue;
     }
 
-    if (attribute.values) {
+    if (columnType === 'Enum') {
       column.enumValues = [...attribute.values];
+    } else if (Array.isArray(columnType) && columnType.length === 1 && columnType[0] === 'Enum') {
+      const arrayType = attribute.type as DataTypes.ArrayDataType<DataTypes.EnumDataType<string>>;
+      column.enumValues = [...arrayType.options.type.values];
     }
 
     return column;
