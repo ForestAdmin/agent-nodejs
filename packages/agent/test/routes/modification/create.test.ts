@@ -1,4 +1,4 @@
-import { ConditionTreeFactory, ConditionTreeLeaf, Filter } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeLeaf, Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import CreateRoute from '../../../src/routes/modification/create';
@@ -25,7 +25,7 @@ describe('CreateRoute', () => {
   });
 
   describe('simple case', () => {
-    function setup() {
+    test('should call create and serializer implementation', async () => {
       const attributes = {
         name: 'Harry potter and thegoblet of fire',
         publishedAt: '2000-07-07T21:00:00.000Z',
@@ -60,12 +60,6 @@ describe('CreateRoute', () => {
         requestBody: { data: { attributes, type: 'books' } },
       });
 
-      return { context, create, collection, attributes };
-    }
-
-    test('should call create and serializer implementation', async () => {
-      const { context, create, collection, attributes } = setup();
-
       await create.handleCreate(context);
 
       expect(collection.create).toHaveBeenCalledWith(
@@ -86,14 +80,6 @@ describe('CreateRoute', () => {
           },
         },
       });
-    });
-
-    test('should check that the user is allowed to create an element', async () => {
-      const { context, create } = setup();
-
-      await create.handleCreate(context);
-
-      expect(services.authorization.assertCanAdd).toHaveBeenCalledWith(context, 'books');
     });
   });
 
@@ -229,126 +215,8 @@ describe('CreateRoute', () => {
       });
     });
 
-    test('it should apply the scope to relations', async () => {
-      const create = new CreateRoute(services, options, dataSource, 'persons');
-      const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
-        customProperties: { query: { timezone: 'Europe/Paris' } },
-        requestBody: {
-          data: {
-            type: 'persons',
-            attributes: { name: 'John' },
-            relationships: {
-              passport: { data: { type: 'passports', id: '1d162304-78bf-599e-b197-93590ac3d314' } },
-            },
-          },
-          jsonapi: { version: '1.0' },
-        },
-      });
-
-      const spy = jest.spyOn(dataSource.getCollection('passports'), 'update');
-
-      const getScopeMock = services.authorization.getScope as jest.Mock;
-      getScopeMock.mockResolvedValueOnce(
-        ConditionTreeFactory.fromPlainObject({
-          field: 'name',
-          operator: 'NotContains',
-          value: '[test]',
-        }),
-      );
-
-      await create.handleCreate(context);
-
-      expect(dataSource.getCollection('persons').create).toHaveBeenCalled();
-      expect(spy).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
-        new Filter({
-          conditionTree: ConditionTreeFactory.fromPlainObject({
-            aggregator: 'And',
-            conditions: [
-              {
-                field: 'personId',
-                operator: 'Equal',
-                value: 1,
-              },
-              {
-                field: 'name',
-                operator: 'NotContains',
-                value: '[test]',
-              },
-            ],
-          }),
-        }),
-        { personId: null },
-      );
-
-      expect(spy).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
-        new Filter({
-          conditionTree: ConditionTreeFactory.fromPlainObject({
-            aggregator: 'And',
-            conditions: [
-              {
-                field: 'id',
-                operator: 'Equal',
-                value: '1d162304-78bf-599e-b197-93590ac3d314',
-              },
-              {
-                field: 'name',
-                operator: 'NotContains',
-                value: '[test]',
-              },
-            ],
-          }),
-        }),
-        { personId: 1 },
-      );
-
-      expect(getScopeMock).toHaveBeenCalledWith(dataSource.getCollection('passports'), context);
-    });
-
-    test('should work with a many to one relation', async () => {
-      (dataSource.getCollection('passports').create as jest.Mock).mockImplementation((_, records) =>
-        records.map(r => ({ id: '123', ...r })),
-      );
-
-      const create = new CreateRoute(services, options, dataSource, 'passports');
-      const context = createMockContext({
-        ...defaultContext,
-        requestBody: {
-          data: {
-            type: 'persons',
-            attributes: {},
-            relationships: {
-              person: { data: { type: 'persons', id: '1d162304-78bf-599e-b197-000000000000' } },
-            },
-          },
-          jsonapi: { version: '1.0' },
-        },
-      });
-
-      await create.handleCreate(context);
-
-      expect(dataSource.getCollection('passports').create).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
-        [{ personId: '1d162304-78bf-599e-b197-000000000000' }],
-      );
-
-      expect(context.response.body).toMatchObject({
-        data: {
-          type: 'passports',
-          id: '123',
-          attributes: {},
-          relationships: {
-            person: { data: { type: 'persons', id: '1d162304-78bf-599e-b197-000000000000' } },
-          },
-        },
-        jsonapi: { version: '1.0' },
-      });
-    });
-
-    describe('when the given relation is null', () => {
-      test('should return null value in the body', async () => {
+    describe('with a many to one relation', () => {
+      test('calls the create method and returns the correct body', async () => {
         (dataSource.getCollection('passports').create as jest.Mock).mockImplementation(
           (_, records) => records.map(r => ({ id: '123', ...r })),
         );
@@ -361,7 +229,7 @@ describe('CreateRoute', () => {
               type: 'persons',
               attributes: {},
               relationships: {
-                person: { data: null },
+                person: { data: { type: 'persons', id: '1d162304-78bf-599e-b197-000000000000' } },
               },
             },
             jsonapi: { version: '1.0' },
@@ -370,16 +238,58 @@ describe('CreateRoute', () => {
 
         await create.handleCreate(context);
 
+        expect(dataSource.getCollection('passports').create).toHaveBeenCalledWith(
+          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          [{ personId: '1d162304-78bf-599e-b197-000000000000' }],
+        );
+
         expect(context.response.body).toMatchObject({
           data: {
             type: 'passports',
             id: '123',
             attributes: {},
             relationships: {
-              person: { data: null },
+              person: { data: { type: 'persons', id: '1d162304-78bf-599e-b197-000000000000' } },
             },
           },
           jsonapi: { version: '1.0' },
+        });
+      });
+
+      describe('when the given relation is null', () => {
+        test('should return null value in the body', async () => {
+          (dataSource.getCollection('passports').create as jest.Mock).mockImplementation(
+            (_, records) => records.map(r => ({ id: '123', ...r })),
+          );
+
+          const create = new CreateRoute(services, options, dataSource, 'passports');
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: {
+              data: {
+                type: 'persons',
+                attributes: {},
+                relationships: {
+                  person: { data: null },
+                },
+              },
+              jsonapi: { version: '1.0' },
+            },
+          });
+
+          await create.handleCreate(context);
+
+          expect(context.response.body).toMatchObject({
+            data: {
+              type: 'passports',
+              id: '123',
+              attributes: {},
+              relationships: {
+                person: { data: null },
+              },
+            },
+            jsonapi: { version: '1.0' },
+          });
         });
       });
     });

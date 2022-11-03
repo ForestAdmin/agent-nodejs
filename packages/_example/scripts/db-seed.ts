@@ -86,7 +86,7 @@ async function createAccountRecords(connection: Connection, storeRecords: any[])
 async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> {
   let customerRecords = [];
 
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 5000; i += 1) {
     customerRecords.push({
       name: faker.name.lastName(),
       firstName: faker.name.firstName(),
