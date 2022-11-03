@@ -1,3 +1,19 @@
+## @forestadmin/agent [1.3.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.3.1...@forestadmin/agent@1.3.2) (2022-11-03)
+
+
+### Bug Fixes
+
+* **options:** set minimum permissions cache duration ([#453](https://github.com/ForestAdmin/agent-nodejs/issues/453)) ([550779a](https://github.com/ForestAdmin/agent-nodejs/commit/550779a6a7a2dbc8ba39d1bf71c28ba11ed0b5cb))
+* **security:** add missing permission check on list-delete ([#524](https://github.com/ForestAdmin/agent-nodejs/issues/524)) ([a0300b0](https://github.com/ForestAdmin/agent-nodejs/commit/a0300b0955f8318db7d1bb6da46cabe4f92e9cd7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.4.1
+
 ## @forestadmin/agent [1.3.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.3.0...@forestadmin/agent@1.3.1) (2022-11-02)
 
 
