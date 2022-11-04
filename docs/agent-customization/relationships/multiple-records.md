@@ -1,12 +1,12 @@
-Relation that points to multiple records are displayed in the frontend in the `Related Data` and in the `Explorer` sections.
+Relationships that point to multiple records are displayed in the frontend in the `Related Data` and `Explorer` sections.
 
 ![Explorer section](../../assets/relationships-multiple-explorer.png)
 
 ## One-to-Many relations
 
-In a one-to-many relation, one record from a collection is connected to multiple record in another.
+In a one-to-many relationship, one record from a collection is connected to multiple records in another.
 
-Think about countries and towns: a country have multiple towns, each towns belongs to a country.
+Think about countries and towns: a country has multiple towns, and each town belongs to a country.
 
 ```javascript
 // Link 'countries' to 'towns'
@@ -24,8 +24,8 @@ In a many-to-many relation, three collections are used instead of two to build t
 
 This allows multiple records from one collection to be connected to multiple records from another.
 
-For instance, in a movie recommendation website, each user can rate many movies, and each movie can be rated by many users.
-The three collections which are being used are `users` (the "origin" collection), `ratings` (the "throught" collection) and `movies` (the "foreign" collection).
+For instance, on a movie recommendation website, each user can rate many movies, and each movie can be rated by many users.
+The three collections which are being used are `users` (the "origin" collection), `ratings` (the "through" collection), and `movies` (the "foreign" collection).
 
 ```javascript
 // Create one side of the relation ...
@@ -49,7 +49,7 @@ agent.customizeCollection('movies', collection => {
 
 ## External relations
 
-External relations allow to define collection which will only be available through the "Related Data" section or a given model.
+External relations allow defining collection which will only be available through the "Related Data" section or a given model.
 
 Note that external relations do not support pagination.
 

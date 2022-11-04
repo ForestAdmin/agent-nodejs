@@ -20,11 +20,11 @@
 
 ## Data Sources
 
-- [Connecting datasources](datasources/connection/README.md)
+- [Connecting data sources](datasources/connection/README.md)
   - [Collection selection](datasources/connection/partial-imports.md)
   - [Naming conflicts](datasources/connection/naming-conflicts.md)
-  - [Cross-datasource relationships](datasources/connection/relationships.md)
-- Provided datasources
+  - [Cross-data source relationships](datasources/connection/relationships.md)
+- Provided data sources
   - [SQL (without ORM)](datasources/provided/sql.md)
   - [Sequelize](datasources/provided/sequelize.md)
   - [Mongoose](datasources/provided/mongoose.md)
@@ -33,7 +33,7 @@
   - [Capabilities declaration](datasources/custom/capabilities.md)
   - [Read implementation](datasources/custom/read-only.md)
   - [Write implementation](datasources/custom/read-write.md)
-  - [Intra-datasource Relationships](datasources/custom/relationships.md)
+  - [Intra-data source Relationships](datasources/custom/relationships.md)
   - [Contribute](datasources/contribute.md)
 
 ## Agent customization

@@ -1,6 +1,6 @@
-The mongoose data source allows to import collections from a mongoose instance.
+The mongoose data source allows importing collections from a mongoose instance.
 
-In order to make everything work as expected, you need to install the package `@forestadmin/datasource-mongoose`.
+To make everything work as expected, you need to install the package `@forestadmin/datasource-mongoose`.
 
 {% tabs %} {% tab title="agent.js" %}
 
@@ -45,9 +45,9 @@ module.exports = connection;
 By default:
 
 - Each mongoose model will be mapped to a single forest admin collection.
-- Fields and arrays of fields at the root of models which use the mongoose `ref` keyword will be converted into a two-way relations.
+- Fields and arrays of fields at the root of models which use the mongoose `ref` keyword will be converted into a two-way relation.
 
-As models in mongoose can be deeply nested, that may not be what you want: the mongoose connector allows to map a single mongoose model to multiple forest admin collections.
+As models in mongoose can be deeply nested, that may not be what you want: the mongoose connector allows mapping individual mongoose models to multiple forest admin collections.
 
 ### Example
 
@@ -73,7 +73,7 @@ Supposing that `account` records have the following format:
 }
 ```
 
-You can split the mongoose model in four forest admin collections using the following code.
+You can split the mongoose model into four forest admin collections using the following code.
 
 ```javascript
 const dataSource = createMongooseDataSource(mongoose.connection, {
@@ -85,4 +85,4 @@ const dataSource = createMongooseDataSource(mongoose.connection, {
 
 That will give the following result:
 
-![One Mongoose collection splitted into four Forest-Admin collections](../../assets/datasource-mongo.png)
+![One Mongoose collection split into four Forest-Admin collections](../../assets/datasource-mongo.png)

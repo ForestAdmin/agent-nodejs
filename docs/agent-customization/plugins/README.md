@@ -1,12 +1,12 @@
 When customizing collections, it can be quite common to need to perform the same tasks on multiple fields and collections.
 
-Plugins are the answer to that need, and you are strongly encouraged to use them everywhere you notice that your customization files could benefit from factorization.
+Plugins are the answer to that need, and you are strongly encouraged to use them everywhere you notice that your customization files could benefit from code factorization.
 
 ## Minimal example
 
 ### Using plugins
 
-Plugin are used by either importing a module, or installing the relevant package, and then calling the `.use()` method.
+Plugins are used by either importing a module, or installing the relevant package, and then calling the `.use()` method.
 
 Depending on the plugin, options may be provided.
 
@@ -28,7 +28,7 @@ createAgent()
 
 ### Writing plugins
 
-A plugin is nothing more than an `async function` which performs customizations.
+A plugin is nothing more than an `async function` that performs customizations.
 
 The full documentation can be found in the ["Write your own plugin" section](./custom.md).
 

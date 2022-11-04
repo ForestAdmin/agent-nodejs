@@ -1,16 +1,16 @@
-Relation that points to a single record are displayed in the frontend as links.
+Relationships that point to a single record are displayed in the frontend as links.
 
 Once configured, they can be used in
 [charts](https://docs.forestadmin.com/user-guide/dashboards/charts),
 [filters](https://docs.forestadmin.com/user-guide/getting-started/master-your-ui/the-table-view#add-one-or-several-filters),
-[scopes](https://docs.forestadmin.com/user-guide/collections/scopes) and
+[scopes](https://docs.forestadmin.com/user-guide/collections/scopes), and
 [segments](https://docs.forestadmin.com/user-guide/collections/segments).
 
 ![Many-to-One relation in the table view](../../assets/relationships-single-link.png)
 
 ## Many-to-One relations
 
-Many-to-One relations are by far the most common type of relation: many records from a collection are connected to a one record in another.
+Many-to-One relations are by far the most common type of relation: many records from a collection are connected to one record in another.
 
 Think about countries and towns: a town belongs to a single country, but each country can have multiple towns.
 
@@ -27,12 +27,12 @@ agent.customizeCollection('towns', collection =>
 
 In a one-to-one relation, there is a one-to-one mapping between records in two collections. The relation can be unset for some records, but no record from the first collection can be linked to more than one record in the other collection.
 
-Think about persons and passports: A person can have at most one passport, and each passport belong to a single person.
+Think about persons and passports: A person can have at most one passport, and each passport belongs to a single person.
 
 {% hint style="warning" %}
-Take note that the inverse of a `OneToOne` is a `ManyToOne`.
+Take note that the inverse of a `one-to-one` is a `many-to-one`.
 
-This may seem counter-intuitive: the side of the relation which should be configured as `ManyToOne` is the one which carries the foreign key.
+This may seem counter-intuitive: the side of the relation which should be configured as `many-to-one` is the one that carries the foreign key.
 {% endhint %}
 
 ```javascript

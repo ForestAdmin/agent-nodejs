@@ -1,12 +1,12 @@
-We've seen that when building datasources, collections must fulfill the contract they defined [when declaring their capabilities](./capabilities.md).
+We've seen that when building data sources, collections must fulfill the contract they defined [when declaring their capabilities](./capabilities.md).
 
-The same is also true for [Intra-datasource relationships](./structure.md#relationships) which are declared on the structure of a collection: declared relations must be handled when processing `filters`, `projection` and `aggregations`.
+The same is also true for [Intra-data source relationships](./structure.md#relationships) which are declared on the structure of a collection: declared relations must be handled when processing `filters`, `projection`, and `aggregations`.
 
 # In practice
 
-"One to many" and "many to many" relationships do not require additional work: Forest Admin will automatically call the destination collection with a valid filter.
+`one-to-many` and `many-to-many` relationships do not require additional work: Forest Admin will automatically call the destination collection with a valid filter.
 
-On the other hand, "Many to one" and "one to one" relationships require the implementer to make all fields from the target collection available on the source collection (under a prefix).
+On the other hand, `many-to-one` and `one-to-one` relationships require the implementer to make all fields from the target collection available on the source collection (under a prefix).
 
 ## Example
 

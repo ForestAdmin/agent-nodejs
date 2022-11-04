@@ -1,14 +1,14 @@
-The SQL data source allows to import tables from SQL databases.
+The SQL data source allows importing tables from SQL databases.
 
 Each table in the database will be mapped to a collection in Forest Admin.
 
-Note that, to be able to work, the credentials which are provided to the data source must be able to access the `information_schema`, as the agent will need it to extract the list of tables, columns and relations when the agent starts.
+Note that, to be able to work, the credentials which are provided to the data source must be able to access the `information_schema`, as the agent will need it to extract the list of tables, columns, and relations when the agent starts.
 
 Taking database structure changes into account will require restarting the agent.
 
 ## Installation
 
-In order to make everything work as expected, you need to:
+To make everything work as expected, you need to:
 
 - install the package `@forestadmin/datasource-sql`.
 - install the native drivers for the vendors you are aiming to connect to. For example, if you want to connect to a MySQL database, you need to install `mysql2`.
@@ -27,7 +27,7 @@ In order to make everything work as expected, you need to:
 
 ## Configuration
 
-Configuration can be as simple as passing an URI to the data source constructor:
+Configuration can be as simple as passing a URI to the data source constructor:
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
