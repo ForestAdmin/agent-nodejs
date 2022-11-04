@@ -1,5 +1,3 @@
-import type { PlainConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
-
 import { ChartType } from '../../src/charts/types';
 import ChainedSQLQueryError from '../../src/permissions/errors/chained-sql-query-error';
 import EmptySQLQueryError from '../../src/permissions/errors/empty-sql-query-error';
@@ -8,7 +6,7 @@ import ForestHttpApi from '../../src/permissions/forest-http-api';
 import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
 import isSegmentQueryAllowed from '../../src/permissions/is-segment-query-authorized';
 import RenderingPermissionService from '../../src/permissions/rendering-permission';
-import { PermissionLevel } from '../../src/permissions/types';
+import { PermissionLevel, RawTree } from '../../src/permissions/types';
 import verifySQLQuery from '../../src/permissions/verify-sql-query';
 import ContextVariablesInjector from '../../src/utils/context-variables-injector';
 import userPermissionsFactory from '../__factories__/permissions/user-permission';
@@ -101,7 +99,7 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValueOnce(renderingPermissions);
       getUserInfoMock.mockResolvedValueOnce(userInfo);
 
-      const expected: PlainConditionTreeLeaf = { field: 'test', operator: 'Equal', value: 'me' };
+      const expected: RawTree = { field: 'test', operator: 'equal', value: 'me' };
       jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(expected);
 
       const actual = await renderingPermission.getScope({
@@ -156,7 +154,7 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValueOnce(renderingPermissions2);
       getUserInfoMock.mockResolvedValue(userInfo);
 
-      const expected: PlainConditionTreeLeaf = { field: 'test', operator: 'Equal', value: 'me' };
+      const expected: RawTree = { field: 'test', operator: 'equal', value: 'me' };
       jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValueOnce(expected);
 
       const actual = await renderingPermission.getScope({
@@ -200,7 +198,7 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValue(renderingPermissions);
       getUserInfoMock.mockResolvedValue(userInfo);
 
-      const expected: PlainConditionTreeLeaf = { field: 'test', operator: 'Equal', value: 'me' };
+      const expected: RawTree = { field: 'test', operator: 'equal', value: 'me' };
       jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(expected);
 
       const actual = await renderingPermission.getScope({

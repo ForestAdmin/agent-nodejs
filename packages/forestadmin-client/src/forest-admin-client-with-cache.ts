@@ -1,5 +1,6 @@
 import ChartHandler from './charts/chart-handler';
 import RenderingPermissionService from './permissions/rendering-permission';
+import { RawTree } from './permissions/types';
 import verifyAndExtractApproval from './permissions/verify-approval';
 import {
   ForestAdminClient,
@@ -31,7 +32,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     renderingId: number | string;
     userId: number | string;
     collectionName: string;
-  }): Promise<GenericTree> {
+  }): Promise<RawTree> {
     return this.renderingPermissionService.getScope({
       renderingId,
       collectionName,

@@ -46,7 +46,7 @@ export default class ContextVariablesInjector {
   }
 
   public static injectContextInFilter(
-    filter: RawTree,
+    filter: RawTree | null,
     contextVariables: ContextVariables,
   ): RawTree {
     if (!filter) {
