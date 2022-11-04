@@ -256,7 +256,7 @@ describe('ContextVariablesInjector', () => {
         );
 
         expect(generated).toEqual({
-          ...condition,
+          aggregator: 'and',
           conditions: [
             {
               value: `${user.id}`,
@@ -264,7 +264,7 @@ describe('ContextVariablesInjector', () => {
               operator: 'equal',
             },
             {
-              aggregator: 'Or',
+              aggregator: 'or',
               conditions: [
                 {
                   value: user.tags.planet,
