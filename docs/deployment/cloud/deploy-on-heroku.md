@@ -1,6 +1,6 @@
 # Deploy your admin backend on Heroku
 
-This tutorial is designed to assist people who want to have a step-by-step guide to deploy the Lumber-generated admin backend to Heroku.
+This tutorial is designed to assist people who want to have a step-by-step guide to deploying the Lumber-generated admin backend to Heroku.
 
 If you don’t have a Heroku account yet, [sign up here](https://signup.heroku.com/). Then, create your first Heroku application **(1)** **(2)**.
 

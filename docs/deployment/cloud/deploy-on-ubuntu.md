@@ -1,10 +1,9 @@
 ---
 description: >-
-  The goal of this tutorial is to help people deploy their admin backend to
-  Ubuntu server.
+  The goal of this tutorial is to help people deploy their admin backend to an Ubuntu server.
 ---
 
-# Deploy your admin backend to Ubuntu server
+# Deploy your admin backend to an Ubuntu server
 
 ### Connect to your Ubuntu server using SSH
 
@@ -36,7 +35,7 @@ ubuntu@ip-172-31-83-152:~$
 There are many ways to copy the code of your admin backend to a remote server. For example, you can use `rsync` command, or use a versioning system like `git`.
 
 {% hint style="warning" %}
-We **strongly advise** to version the code of your admin backend using **git** and host it to a **private repository** on Github, Bitbucket, Gitlab or other providers.
+We **strongly advise** versioning the code of your admin backend using **git** and hosting it to a **private repository** on Github, Bitbucket, Gitlab, or other providers.
 {% endhint %}
 
 #### rsync
@@ -52,7 +51,7 @@ The syntax used is `rsync OPTIONS SOURCE TARGET`.
 rsync -avz -e "ssh -i ~/.ssh/aws.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --exclude=node_modules --exclude=.git --progress QuickStart ubuntu@ec2-18-204-18-81.compute-1.amazonaws.com:~/
 ```
 
-In the example above, we use a SSH connection to transfer the file and we connect to the remote server using an identity_file (a private key).
+In the example above, we use an SSH connection to transfer the file and we connect to the remote server using an identity_file (a private key).
 
 | Option            | Description                            |
 | ----------------- | -------------------------------------- |
@@ -113,7 +112,7 @@ git add .
 git commit -am "First commit"
 ```
 
-Finally, you can add your git remote and push the code on your favorite platform. To do so, **first** create a new QuickStart repository on your github account. **Then** run the following command after changing `YourAccount` to your account name:
+Finally, you can add your git remote and push the code on your favorite platform. To do so, **first**, create a new QuickStart repository on your GitHub account. **Then** run the following command after changing `YourAccount` to your account name:
 
 ```bash
 git remote add origin git@github.com:YourAccount/QuickStart.git
@@ -233,7 +232,7 @@ postgres=
 
 Now, we can export the database from your local environment (your computer) to import it to your Ubuntu server.
 
-For security reason, we will not allow remote connections to this database. This is why transfer the database dump to the remote server using `rsync.`
+For security reasons, we will not allow remote connections to this database. This is why transfer the database dump to the remote server using `rsync.`
 
 From your computer:
 
@@ -252,7 +251,7 @@ postgres=# GRANT ALL PRIVILEGES ON DATABASE forest_demo TO forest;
 postgres=# \q
 ```
 
-And finally import the dump:
+And finally, import the dump:
 
 ```bash
 PGPASSWORD=secret psql -U forest -h 127.0.0.1 forest_demo < database.dump

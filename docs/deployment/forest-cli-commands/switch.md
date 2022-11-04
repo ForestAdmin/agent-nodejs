@@ -18,12 +18,14 @@ OPTIONS
 
 #### Branch selection
 
-You can switch directly to a specific branch by using `forest branch <my_branch_name>`, while omitting the branch name will allow you to easy select one:
+You can switch directly to a specific branch by using `forest branch <my_branch_name>`.
+
+Omitting the branch name will allow you to easily select one:
 
 ```
 $ forest switch
 [? Select the branch you want to set-current:
 feature/add-new-smart-view-with-information
 hotfix/fix-dropdown-issue
-feature/implement-refund-smart-action 
+feature/implement-refund-smart-action
 ```
