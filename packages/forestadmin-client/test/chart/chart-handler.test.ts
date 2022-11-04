@@ -52,7 +52,7 @@ describe('ChartHandlerService', () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
 
         const injectedFilter: RawTree = {
-          aggregator: 'Or',
+          aggregator: 'or',
           conditions: [{ field: 'name', operator: 'equal', value: 'me' }],
         };
         jest
@@ -61,7 +61,7 @@ describe('ChartHandlerService', () => {
         jest.spyOn(ContextVariablesInjector, 'injectContextInValue').mockReturnValue('Sum');
 
         const filter: RawTree = {
-          aggregator: 'Or',
+          aggregator: 'or',
           conditions: [
             {
               field: 'name',
@@ -119,7 +119,7 @@ describe('ChartHandlerService', () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
 
         const injectedFilter: RawTree = {
-          aggregator: 'Or',
+          aggregator: 'or',
           conditions: [{ field: 'name', operator: 'equal', value: 'me' }],
         };
         jest
@@ -128,7 +128,7 @@ describe('ChartHandlerService', () => {
         jest.spyOn(ContextVariablesInjector, 'injectContextInValue').mockReturnValue('Sum');
 
         const filter: RawTree = {
-          aggregator: 'Or',
+          aggregator: 'or',
           conditions: [
             {
               field: 'name',
@@ -184,7 +184,7 @@ describe('ChartHandlerService', () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
 
         const injectedFilter: RawTree = {
-          aggregator: 'Or',
+          aggregator: 'or',
           conditions: [{ field: 'name', operator: 'equal', value: 'me' }],
         };
         jest
@@ -195,7 +195,7 @@ describe('ChartHandlerService', () => {
           .mockImplementation(value => (value === '{{aggregators.selectedValue}}' ? 'Sum' : 134));
 
         const filter: RawTree = {
-          aggregator: 'Or',
+          aggregator: 'or',
           conditions: [
             {
               field: 'name',
@@ -257,7 +257,7 @@ describe('ChartHandlerService', () => {
         const { contextVariables, contextVariablesInstantiator, service } = setup();
 
         const injectedFilter: RawTree = {
-          aggregator: 'Or',
+          aggregator: 'or',
           conditions: [{ field: 'name', operator: 'equal', value: 'me' }],
         };
         jest
@@ -270,7 +270,7 @@ describe('ChartHandlerService', () => {
           );
 
         const filter: RawTree = {
-          aggregator: 'Or',
+          aggregator: 'or',
           conditions: [
             {
               field: 'name',
