@@ -217,6 +217,49 @@ describe('RenderingPermissionService', () => {
     });
   });
 
+  describe('getUser', () => {
+    it('should return the user info', async () => {
+      const { renderingPermission, getUserInfoMock } = setup();
+      const userInfo = {
+        id: 42,
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'janedoe@forestadmin.com',
+        permissionLevel: 'Admin',
+        tags: {},
+        roleId: 33,
+      };
+
+      getUserInfoMock.mockResolvedValueOnce(userInfo);
+
+      const user = await renderingPermission.getUser(123);
+
+      expect(getUserInfoMock).toHaveBeenCalledWith(123);
+      expect(user).toBe(userInfo);
+    });
+  });
+
+  describe('getTeam', () => {
+    it('should return the team', async () => {
+      const { renderingPermission, getRenderingPermissionsMock } = setup();
+
+      const team = {
+        name: 'team 1',
+        id: 23,
+      };
+      getRenderingPermissionsMock.mockResolvedValueOnce({
+        collections: {},
+        stats: {},
+        team,
+      });
+      getRenderingPermissionsMock.mockResolvedValueOnce(getRenderingPermissionsMock);
+
+      const teamReceived = await renderingPermission.getTeam(123);
+
+      expect(teamReceived).toBe(team);
+    });
+  });
+
   describe('canExecuteChart', () => {
     it.each([PermissionLevel.Admin, PermissionLevel.Developer, PermissionLevel.Editor])(
       'should return true if the user is a %d',
