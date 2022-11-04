@@ -1,8 +1,8 @@
-import { GenericRawTreeBranch, RawTree, RawTreeLeaf } from '../permissions/types';
+import { RawTree, RawTreeBranch } from '../permissions/types';
 import ContextVariables from './context-variables';
 
 export default class ContextVariablesInjector {
-  private static isTreeBranch(filter: RawTree): filter is GenericRawTreeBranch<RawTreeLeaf> {
+  private static isTreeBranch(filter: RawTree): filter is RawTreeBranch {
     return 'aggregator' in filter;
   }
 

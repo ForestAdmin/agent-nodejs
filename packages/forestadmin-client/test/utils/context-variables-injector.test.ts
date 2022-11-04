@@ -225,7 +225,7 @@ describe('ContextVariablesInjector', () => {
     describe('with a branch containing multiple leafs', () => {
       it('should replace values in every leaf', () => {
         const condition: RawTree = {
-          aggregator: 'And',
+          aggregator: 'and',
           conditions: [
             {
               value: '{{currentUser.id}}',
@@ -233,7 +233,7 @@ describe('ContextVariablesInjector', () => {
               operator: 'equal',
             },
             {
-              aggregator: 'Or',
+              aggregator: 'or',
               conditions: [
                 {
                   value: '{{currentUser.tags.planet}}',
