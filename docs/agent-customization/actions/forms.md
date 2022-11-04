@@ -4,37 +4,35 @@ For example, you might want to specify a reason if you want to block a user acco
 In the following example, an action form will be displayed for the "Charge credit card" action.
 
 ```javascript
-agent.customizeCollection('myCollection', collection =>
-  collection.addAction('Charge credit card', {
-    scope: 'Bulk',
-    form: [
-      {
-        label: 'Amount',
-        description: 'The amount (USD) to charge the credit card. Example: 42.50',
-        type: 'Number',
-      },
-      {
-        label: 'description',
-        description: 'Explain the reason why you want to charge manually the customer here',
-        isRequired: true,
-        type: 'String',
-      },
-      {
-        label: 'stripe_id',
-        isRequired: true,
-        type: 'String',
-      },
-    ],
-    execute: async (context, resultBuilder) => {
-      try {
-        // Add your business logic here
-        return resultBuilder.success(`Amount charged!`);
-      } catch (error) {
-        return resultBuilder.error(`Failed to charge amount: ${error}`);
-      }
+collection.addAction('Charge credit card', {
+  scope: 'Bulk',
+  form: [
+    {
+      label: 'Amount',
+      description: 'The amount (USD) to charge the credit card. Example: 42.50',
+      type: 'Number',
     },
-  }),
-);
+    {
+      label: 'description',
+      description: 'Explain the reason why you want to charge manually the customer here',
+      isRequired: true,
+      type: 'String',
+    },
+    {
+      label: 'stripe_id',
+      isRequired: true,
+      type: 'String',
+    },
+  ],
+  execute: async (context, resultBuilder) => {
+    try {
+      // Add your business logic here
+      return resultBuilder.success(`Amount charged!`);
+    } catch (error) {
+      return resultBuilder.error(`Failed to charge amount: ${error}`);
+    }
+  },
+});
 ```
 
 ![](../../assets/actions-forms-charge-cc.png)
@@ -84,39 +82,21 @@ This can be done by using the `context` parameter of the `execute` function.
 {% tabs %} {% tab title="Using a single action" %}
 
 ```javascript
-agent.customizeCollection('myCollection', collection =>
-  collection.addAction('Charge credit card', {
-    scope: 'Single',
-    execute: async (context, resultBuilder) => {
-      // Get the record with the wanted field
-      const record = await context.getRecord(['firstName']);
+// Get the record with the wanted field
+const record = await context.getRecord(['firstName']);
 
-      // Get id of selected record
-      const recordId = await context.getId();
-
-      // [...]
-    },
-  }),
-);
+// Get id of selected record
+const recordId = await context.getId();
 ```
 
 {% endtab %} {% tab title="Using a bulk action" %}
 
 ```javascript
-agent.customizeCollection('myCollection', collection =>
-  collection.addAction('Charge credit card', {
-    scope: 'Single',
-    execute: async (context, resultBuilder) => {
-      // Get records with the wanted field
-      const records = await context.getRecords(['firstName']);
+// Get records with the wanted field
+const records = await context.getRecords(['firstName']);
 
-      // Get ids of selected records
-      const recordIds = await context.getIds();
-
-      // [...]
-    },
-  }),
-);
+// Get ids of selected records
+const recordIds = await context.getIds();
 ```
 
 {% endtab %} {% endtabs %}
