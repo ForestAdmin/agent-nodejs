@@ -40,6 +40,6 @@ Renamed and removed fields are renamed and removed ONLY in the admin panel.
 In your code:
 
 - Removed fields are still accessible (for instance, as dependencies to compute new fields)
-- Renamed fields should still be refered by using their original name.
+- Renamed fields should still be referred to by using their original name.
 
 {% endhint %}

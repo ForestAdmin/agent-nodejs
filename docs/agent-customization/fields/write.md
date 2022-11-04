@@ -1,12 +1,12 @@
-Forest Admin allows to replace the field writing by your own.
+Forest Admin allows replacing the field writing behavior with your own.
 
 This is useful when you want to change how a given field behaves, but also to make [computed fields](./computed.md) writable.
 
-## How does it works
+## How does it work
 
-The `replaceFieldWriting` function allows to change the behavior of any change by creating a new patch that will be applied on the record.
+The `replaceFieldWriting` function allows changing the behavior of any change by creating a new patch that will be applied to the record.
 
-You should refrain from using handlers which have side effects (to perform error handling, validation, ...) and [use hooks instead](../hooks/README.md).
+You should refrain from using handlers that have side effects (to perform error handling, validation, ...) and [use hooks instead](../hooks/README.md).
 
 ## Examples
 
@@ -36,7 +36,7 @@ collection.replaceFieldWriting('fullName', value => {
 
 ### Having specific behavior only for updates
 
-You may trigger different code when the field is `created` or `updated`.
+You can have different behavior for `creations` and `updates`.
 
 In this example, each time the `firstName` field is edited, we also want to update a timestamp field.
 
@@ -61,12 +61,12 @@ collection.replaceFieldWriting('firstName', async (value, context) => {
 Handling relationships inside a `replaceFieldWriting` will only work for `ManyToOne` and `OneToOne` relationships.
 {% endhint %}
 
-In this simple example, we have two collections which are linked together:
+In this simple example, we have two collections that are linked together:
 
-- `Users` has a `job` and a `portfolioId` as foreignKey
-- `Portfolios` has a `title`
+- `Users` have a `job` and a `portfolioId` as foreignKey
+- `Portfolios` have a `title`
 
-When the user updates his `job` field we want also update the `title` of the portfolio by the `job` name.
+When the user updates his `job` field we want also to update the `title` of the portfolio by the `job` name.
 
 ```javascript
 collection.replaceFieldWriting('job', (job, { action }) => {
@@ -75,10 +75,10 @@ collection.replaceFieldWriting('job', (job, { action }) => {
 ```
 
 {% hint style="info" %}
-If the relationships does not exist it will create it with the given fields values.
+If the relationships do not exist it will create them with the given field values.
 {% endhint %}
 
-You can also provide another `portfolioId` to update the relationships and its fields:
+You can also provide another `portfolioId` to update the relationships and their fields:
 
 ```javascript
 collection.replaceFieldWriting('job', (job, { action }) => {
@@ -86,7 +86,7 @@ collection.replaceFieldWriting('job', (job, { action }) => {
 });
 ```
 
-Of course you can chain the relationships. For example, if a portfolio has a `one to one` relationship
+Of course, you can chain the relationships. For example, if a portfolio has a `one-to-one` relationship
 with the `formats` collection, you can update it by writing the right path.
 
 ```javascript

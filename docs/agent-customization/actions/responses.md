@@ -1,6 +1,6 @@
 Aside from their actual behavior in the agent, actions can be configured to achieve different results in the frontend.
 
-Most actions will simply perform work on the agent, and display a notification in the admin-panel user, however other behaviors are possible.
+Most actions will simply perform work on the agent and display a notification in the admin-panel user, however other behaviors are possible.
 
 The default behavior, when no exception is thrown in the handler is to display a generic notification.
 
@@ -26,7 +26,7 @@ return resultBuilder.error('The company was already live!');
 
 ### HTML response
 
-You can also return a HTML page as a response to give more feedback to the user who triggered your Action.
+You can also return an HTML page as a response to give more feedback to the user who triggered your Action.
 
 For instance in case of success:
 
@@ -43,7 +43,7 @@ return resultBuilder.success('Success', {
 
 ![](../../assets/actions-html-response-success.png)
 
-For instance in case of error:
+For instance in case of an error:
 
 ```javascript
 const record = await context.getRecord();
@@ -62,9 +62,9 @@ return resultBuilder.error('An error occured', {
 
 ### File generation
 
-[On our Live Demo](https://app.forestadmin.com/livedemo), the collection customers has an action Generate invoice. In this use case, we want to download the generated PDF invoice after clicking on the action. To indicate an action returns something to download, you have to enable the option `generateFile`.
+[On our Live Demo](https://app.forestadmin.com/livedemo), the collection `customers` has an action Generate invoice. In this use case, we want to download the generated PDF invoice after clicking on the action. To indicate that an action returns something to download, you have to enable the option `generateFile`.
 
-The example code below will trigger a file download (With the file named `filename.txt`, containing `StringThatWillBeInTheFile` using `text/plain` mimetype).
+The example code below will trigger a file download (With the file named `filename.txt`, containing `StringThatWillBeInTheFile` using `text/plain` mime-type).
 
 ```javascript
 collection.addAction('Download a file', {
@@ -104,7 +104,7 @@ return resultBuilder.redirectTo(
 
 ### Webhooks
 
-After an action you can set up a HTTP (or HTTPS) callback - a webhook - to forward information to other applications.
+After an action you can set up an HTTP (or HTTPS) callback - a webhook - to forward information to other applications.
 
 ```javascript
 return resultBuilder.webhook(

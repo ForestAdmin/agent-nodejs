@@ -1,10 +1,10 @@
-Forest Admin allows to create new fields on any collection, either computationally, by fetching data on an external API, or based on other data that is available on the connected data sources.
+Forest Admin allows creating new fields on any collection, either computationally, by fetching data on an external API, or based on other data that is available on the connected data sources.
 
-By default, the fields that you create will be readonly, but you can make them [filterable](./filter.md), [sortable](./sort.md) and [writable](./write.md) by using the relevant methods.
+By default, the fields that you create will be read-only, but you can make them [filterable](./filter.md), [sortable](./sort.md), and [writable](./write.md) by using the relevant methods.
 
-## How does it works
+## How does it work?
 
-When creating new field you will need to provide:
+When creating a new field you will need to provide:
 
 | Field                 | Description                                                                                                                                                                                  |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -15,9 +15,9 @@ When creating new field you will need to provide:
 
 ## Examples
 
-### Adding a field by concatening other fields
+### Adding a field by concatenating other fields
 
-This examples add a `user.displayName` field, which is computed by concatenating the first and last name.
+This example adds a `user.displayName` field, which is computed by concatenating the first and last names.
 
 ```javascript
 // User collection has the following structure: { id, firstName, lastName }
@@ -37,9 +37,9 @@ agent.customizeCollection('user', collection => {
 });
 ```
 
-### Adding a field which depend on a many to one relation
+### Adding a field that depends on a many-to-one relationship
 
-We can improve the previous example by adding the city of the user in the display name.
+We can improve the previous example by adding the city of the user to the display name.
 
 ```javascript
 // Structure:
@@ -61,7 +61,7 @@ agent.customizeCollection('user', collection => {
 });
 ```
 
-### Adding a field which depend on one to many relation
+### Adding a field that depends on a one-to-many relationship
 
 Let's now add a `user.totalSpending` field by summing the amount of all `orders`.
 
@@ -93,7 +93,7 @@ agent.customizeCollection('user', collection => {
 
 ### Adding a field fetching data from an API
 
-Let's imagine that we want to check if the email address of our users are deliverable.
+Let's imagine that we want to check if the email address of our users is deliverable.
 We can use a verification API to perform that work.
 
 ```javascript
@@ -133,6 +133,6 @@ When adding many fields, keep in mind that:
   - Use relationships in the `dependencies` array when that is possible
   - Use batch APIs instead of performing queries inside of the `records.map()` handler.
 - Only add fields you need in the `dependencies` list
-  - This will reduce the pressure on your datasources (less columns to fetch)
+  - This will reduce the pressure on your data sources (fewer columns to fetch)
   - And increase the probability of reducing the number of records that will be passed to your handler (records are deduplicated).
-- Do not duplicate code between handlers of different fields: fields can depend on each others (no cycles allowed).
+- Do not duplicate code between handlers of different fields: fields can depend on each other (no cycles allowed).

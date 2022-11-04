@@ -1,45 +1,47 @@
-Very often, you will need to ask user inputs before triggering the logic behind an action.
+Very often, you will need to ask for user inputs before triggering the logic behind an action.
 For example, you might want to specify a reason if you want to block a user account. Or set the amount to charge a user’s credit card.
 
 In the following example, an action form will be displayed for the "Charge credit card" action.
 
 ```javascript
-collection.addAction('Charge credit card', {
-  scope: 'Bulk',
-  form: [
-    {
-      label: 'Amount',
-      description: 'The amount (USD) to charge the credit card. Example: 42.50',
-      type: 'Number',
+agent.customizeCollection('myCollection', collection =>
+  collection.addAction('Charge credit card', {
+    scope: 'Bulk',
+    form: [
+      {
+        label: 'Amount',
+        description: 'The amount (USD) to charge the credit card. Example: 42.50',
+        type: 'Number',
+      },
+      {
+        label: 'description',
+        description: 'Explain the reason why you want to charge manually the customer here',
+        isRequired: true,
+        type: 'String',
+      },
+      {
+        label: 'stripe_id',
+        isRequired: true,
+        type: 'String',
+      },
+    ],
+    execute: async (context, resultBuilder) => {
+      try {
+        // Add your business logic here
+        return resultBuilder.success(`Amount charged!`);
+      } catch (error) {
+        return resultBuilder.error(`Failed to charge amount: ${error}`);
+      }
     },
-    {
-      label: 'description',
-      description: 'Explain the reason why you want to charge manually the customer here',
-      isRequired: true,
-      type: 'String',
-    },
-    {
-      label: 'stripe_id',
-      isRequired: true,
-      type: 'String',
-    },
-  ],
-  execute: async (context, resultBuilder) => {
-    try {
-      // Add your business logic here
-      return resultBuilder.success(`Amount charged!`);
-    } catch (error) {
-      return resultBuilder.error(`Failed to charge amount: ${error}`);
-    }
-  },
-});
+  }),
+);
 ```
 
 ![](../../assets/actions-forms-charge-cc.png)
 
 ## Form entries
 
-Here is the list of available options to customize the input form. More informations can be found on our [API Reference](https://forestadmin.github.io/agent-nodejs/interfaces/_forestadmin_datasource_toolkit.ActionField.html).
+Here is the list of available options to customize the input form. More information can be found on our [API Reference](https://forestadmin.github.io/agent-nodejs/interfaces/_forestadmin_datasource_toolkit.ActionField.html).
 
 | name         | type                                     | description                                                                                                                                                     |
 | ------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -69,35 +71,52 @@ Note that:
 ## Dynamic forms
 
 Business logic often requires your forms to adapt to their context. Forest Admin makes this possible through a powerful way to extend your form's logic.
-To make action form dynamic, you can use a `ContextHandler` instead of static value on the compatible properties.
+To make action form dynamic, you can use a `ContextHandler` instead of a static value on the compatible properties.
 
-`ContextHandler` let you interact with record or the form values to make your form dynamic.
+`ContextHandler` let you interact with the record or the form values to make your form dynamic.
 
 ### Interacting with selected records
 
-When using action, you'll probably need te get the values or ids of the selected records. See below how this can be achieved.
-Obviously this feature is only available for `Single` or `Bulk` action.
+When programming `Single` or `Bulk` actions, you'll need to interact with the selected records.
 
-To do that, you just need to use the `context` provided object to `ContextHandler` you can defined on each compatible properties of the action.
+This can be done by using the `context` parameter of the `execute` function.
 
 {% tabs %} {% tab title="Using a single action" %}
 
 ```javascript
-// Get the record with the wanted field
-const record = await context.getRecord(['firstName']);
+agent.customizeCollection('myCollection', collection =>
+  collection.addAction('Charge credit card', {
+    scope: 'Single',
+    execute: async (context, resultBuilder) => {
+      // Get the record with the wanted field
+      const record = await context.getRecord(['firstName']);
 
-// Get id of selected record
-const recordId = await context.getId();
+      // Get id of selected record
+      const recordId = await context.getId();
+
+      // [...]
+    },
+  }),
+);
 ```
 
 {% endtab %} {% tab title="Using a bulk action" %}
 
 ```javascript
-// Get records with the wanted field
-const records = await context.getRecords(['firstName']);
+agent.customizeCollection('myCollection', collection =>
+  collection.addAction('Charge credit card', {
+    scope: 'Single',
+    execute: async (context, resultBuilder) => {
+      // Get records with the wanted field
+      const records = await context.getRecords(['firstName']);
 
-// Get ids of selected records
-const recordIds = await context.getIds();
+      // Get ids of selected records
+      const recordIds = await context.getIds();
+
+      // [...]
+    },
+  }),
+);
 ```
 
 {% endtab %} {% endtabs %}
@@ -150,7 +169,7 @@ collection.addAction('Tell me a greeting', {
 
 Here, the form field `How should we refer to you?` will only be displayed if the action was triggered on a record with either a `firstName` or `fullName`.
 When displayed, a widget "Dropdown" will be displayed, and the only available values are returned in the `enumValues` function.
-Finally, executing the action will display a notification based on the user choice.
+Finally, executing the action will display a notification based on the user's choice.
 
 ### Add/remove fields dynamically
 
