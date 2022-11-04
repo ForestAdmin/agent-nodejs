@@ -241,7 +241,7 @@ describe('RenderingPermissionService', () => {
 
   describe('getTeam', () => {
     it('should return the team', async () => {
-      const { renderingPermission, getRenderingPermissionsMock } = setup();
+      const { renderingPermission, getRenderingPermissionsMock, options } = setup();
 
       const team = {
         name: 'team 1',
@@ -252,11 +252,11 @@ describe('RenderingPermissionService', () => {
         stats: {},
         team,
       });
-      getRenderingPermissionsMock.mockResolvedValueOnce(getRenderingPermissionsMock);
 
       const teamReceived = await renderingPermission.getTeam(123);
 
       expect(teamReceived).toBe(team);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(123, options);
     });
   });
 
