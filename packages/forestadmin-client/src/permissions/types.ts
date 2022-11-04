@@ -65,10 +65,6 @@ export const RAW_FILTER_OPERATORS = [
 
 export type RawOperator = typeof RAW_FILTER_OPERATORS[number];
 
-export const CUSTOM_ACTION_FILTER_LEAF_SOURCES = ['data', 'input'];
-
-export type CustomActionFilterLeafSource = typeof CUSTOM_ACTION_FILTER_LEAF_SOURCES[number];
-
 export const RAW_FILTER_TREE_AGGREGATORS = ['and', 'or'];
 
 export type FilterTreeAggregator = typeof RAW_FILTER_TREE_AGGREGATORS[number];
