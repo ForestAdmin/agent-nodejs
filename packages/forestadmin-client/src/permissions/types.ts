@@ -1,5 +1,29 @@
 import type { Chart } from '../charts/types';
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
+import type {
+  PlainConditionTreeBranch,
+  PlainConditionTreeLeaf,
+} from '@forestadmin/datasource-toolkit';
+
+type CamelToSnakeCase<S extends string> = S extends `${infer T}${infer U}`
+  ? `${T extends Capitalize<T> ? '_' : ''}${Lowercase<T>}${CamelToSnakeCase<U>}`
+  : S;
+
+type PascalToSnakeCase<S extends string> = S extends `${infer T}${infer U}`
+  ? `${Lowercase<T>}${CamelToSnakeCase<U>}`
+  : S;
+
+type KeysToSnakeCase<T> = T extends object
+  ? {
+      [K in keyof T]: T[K] extends string ? PascalToSnakeCase<T[K]> : KeysToSnakeCase<T[K]>;
+    }
+  : T;
+
+type GenericRawTree<RawLeaf, RawBranch> = RawBranch | RawLeaf;
+
+export type RawTreeBranch = KeysToSnakeCase<PlainConditionTreeBranch>;
+export type RawTreeLeaf = KeysToSnakeCase<PlainConditionTreeLeaf>;
+
+export type RawTree = GenericRawTree<RawTreeLeaf, RawTreeBranch>;
 
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
 
@@ -125,7 +149,7 @@ export type DynamicScopesValues = {
 };
 
 export type CollectionRenderingPermissionV4 = {
-  scope: GenericTree | null;
+  scope: RawTree | null;
   segments: string[];
 };
 

@@ -20,11 +20,11 @@ describe('ChartDetector', () => {
     aggregator: 'Sum',
     sourceCollectionName: 'siths',
     filter: {
-      aggregator: 'Or',
+      aggregator: 'or',
       conditions: [
         {
           field: 'name',
-          operator: 'Equal',
+          operator: 'equal',
           value: 'Vador',
         },
       ],
@@ -37,11 +37,11 @@ describe('ChartDetector', () => {
     aggregator: 'Sum',
     sourceCollectionName: 'siths',
     filter: {
-      aggregator: 'Or',
+      aggregator: 'or',
       conditions: [
         {
           field: 'name',
-          operator: 'Equal',
+          operator: 'equal',
           value: 'Vador',
         },
       ],
@@ -55,11 +55,11 @@ describe('ChartDetector', () => {
     aggregator: 'Sum',
     sourceCollectionName: 'siths',
     filter: {
-      aggregator: 'Or',
+      aggregator: 'or',
       conditions: [
         {
           field: 'name',
-          operator: 'Equal',
+          operator: 'equal',
           value: 'Vador',
         },
       ],
@@ -72,11 +72,11 @@ describe('ChartDetector', () => {
     aggregator: 'Sum',
     sourceCollectionName: 'siths',
     filter: {
-      aggregator: 'Or',
+      aggregator: 'or',
       conditions: [
         {
           field: 'name',
-          operator: 'Equal',
+          operator: 'equal',
           value: 'Vador',
         },
       ],

@@ -32,7 +32,7 @@ describe('HashChart', () => {
         const charts: Chart[] = [
           {
             type,
-            filter: { aggregator: 'Or', conditions: [] },
+            filter: { aggregator: 'or', conditions: [] },
             aggregator: 'Count',
             aggregateFieldName: 'Year',
             sourceCollectionName: 'books',
