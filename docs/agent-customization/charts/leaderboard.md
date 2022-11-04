@@ -1,6 +1,6 @@
 ![Leaderboard chart example](../../assets/chart-leaderboard.png)
 
-Leaderboard chart display a list of records sorted by their value.
+Leaderboard charts display a list of records sorted by their value.
 
 ```javascript
 agent.addChart('companiesLive', async (context, resultBuilder) => {

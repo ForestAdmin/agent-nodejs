@@ -1,12 +1,12 @@
-When relationships are defined during the customization step, Forest Admin collections acts as if the two collections were natively linked at the datasource level.
+When relationships are defined during the customization step, Forest Admin collections act as if the two collections were natively linked at the data source level.
 
-You may have noticed that relationships within a datasource are configured out of the box, so you won't need to define those.
+You may have noticed that relationships within a data source are configured out of the box, so you won't need to define those.
 
-However, you may want to create additional intra-datasource and cross-datasource relationships in order to:
+However, you may want to create additional intra and cross-data source relationships to:
 
-- Help users navigate within your admin-panel.
-- Create charts which use data from multiple datasources.
-- Let users filter, use scopes or segment with conditions which cross data-source boundaries.
+- Help users navigate within your admin panel.
+- Create charts that use data from multiple data sources.
+- Let users filter, use scopes, or segment with conditions that cross data-source boundaries.
 
 ## Minimal example
 

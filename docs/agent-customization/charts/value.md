@@ -1,6 +1,6 @@
 ![Value chart example](../../assets/chart-value.png)
 
-Value chart simply are charts that display a single value.
+Value charts simply are charts that display a single value.
 
 They can be added to the _Dashboard_ using the `addChart` method on the agent object
 

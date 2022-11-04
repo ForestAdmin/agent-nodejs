@@ -1,8 +1,8 @@
-Forest Admin allows to customize at a very low-level the behavior of any given collection via the usage of Collection Hooks.
+Forest Admin allows customizing at a very low level the behavior of any given collection via the usage of Collection Hooks.
 
 {% hint style="info" %}
 
-Collection Hooks is a very powerful feature and require special care when using it.
+Collection Hooks are a very powerful feature and require special care when using them.
 
 {% endhint %}
 
@@ -16,9 +16,9 @@ As visible [here](../../under-the-hood/queries/README.md), any given collection 
 - `delete`
 - `aggregate`
 
-The Collection Hooks feature allow to run any code before and/or after any of these function, providing an easy way to interact with your collections.
+The Collection Hooks feature allows executing code before and/or after any of these functions, providing an easy way to interact with your collections.
 
-To declare a hook on a collection, the following informations are required:
+To declare a hook on a collection, the following information is required:
 
 - A hook position (`Before` | `After`)
 - A hook type (`List` | `Create` | `Update` | `Delete` | `Aggregate`)

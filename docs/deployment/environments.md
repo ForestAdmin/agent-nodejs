@@ -14,10 +14,10 @@ Click "Deploy to production" on the top banner or in the _Environments_ tab of y
 
 #### Deploy your agent
 
-On the first step, you need to input your agent's URL. This is the URL of the server onto which you have deployed (or will soon deploy) your agent's code base:
+In the first step, you need to input your agent's URL. This is the URL of the server onto which you have deployed (or will soon deploy) your agent's code base:
 
 {% hint style="info" %}
-If you need help deploying your agent's codebase, here are step-by-step guides showing how it can be done [on Heroku](cloud/deploy-on-heroku.md), [on Google Cloud Platform](cloud/deploy-on-gcp.md) or [on a standard ubuntu server](cloud/deploy-on-ubuntu.md).
+If you need help deploying your agent's codebase, here are step-by-step guides showing how it can be done [on Heroku](cloud/deploy-on-heroku.md), [on Google Cloud Platform](cloud/deploy-on-gcp.md), or [on a standard ubuntu server](cloud/deploy-on-ubuntu.md).
 {% endhint %}
 
 ![](../assets/environment-deploy-step-1.png)
@@ -32,7 +32,7 @@ The URL must not end with a trailing `/`.
 
 #### Connect to your database
 
-On the next step, you need to fill out your Production database credentials:
+In the next step, you need to fill out your Production database credentials:
 
 ![](../assets/environment-deploy-step-2.png)
 
@@ -42,7 +42,7 @@ Your **database credentials** never leave your browser and are solely used to ge
 
 #### Set your environment variables
 
-The final step requires that you add environment variables to your server. Follow on-screen instructions:
+The final step requires that you add environment variables to your server. Follow the on-screen instructions:
 
 ![](../assets/environment-deploy-step-3.png)
 
@@ -90,7 +90,7 @@ Your **database credentials** never leave your browser and are solely used to ge
 
 #### Set your environment variables
 
-The final step requires that you add environment variables to your server. Follow on-screen instructions:
+The final step requires that you add environment variables to your server. Follow the on-screen instructions:
 
 ![](../assets/environment-remote-step-4.png)
 
@@ -98,31 +98,31 @@ Once your node server is successfully detected and running with the indicated en
 
 ### Change environment origin
 
-You can change the origins of your environments to create complexe workflows - for instance dev > staging > preprod > production.
-All the layout of an environment will be generated based on its parent's layout.
+You can change the origins of your environments to create complex workflows, for instance, `dev > staging > preprod > production`.
+All the layouts of an environment will be generated based on its parent's layout.
 
-To do so, click on the environment you wish to change the origin of and from its details page, select the desired origin in the _Set Origin_ section.
+To do so, click on the environment you wish to change the origin of, and from its details page, select the desired origin in the _Set Origin_ section.
 
 ![](../assets/environment-set-origin.png)
 
 {% hint style="warning" %}
-All child environment will be refreshed based on the new architectures.
+All child environments will be refreshed based on the new architectures.
 {% endhint %}
 
 ### Set an environment as production
 
-A standard project usually has a production and at least a staging environment, but you may be using other remote enviroments. At some point you may feel the need to set another environment as your production environment (a.k.a reference).
+A standard project usually has a production and at least a staging environment, but you may be using other remote environments. At some point, you may feel the need to set another environment as your production environment (a.k.a reference).
 
 {% hint style="info" %}
-To set as production an environment it should have as origin the actual reference.
+To set as production an environment it should have the actual reference as origin.
 {% endhint %}
 
-To do so, click on the enviroment you wish to set as production and from its details page, click "Set as production".
+To do so, click on the environment you wish to set as production, and from its details page, click "Set as production".
 
 ![](../assets/environment-set-as-production.png)
 
 {% hint style="warning" %}
-The actual reference will take the new production as origin. All children layout will be refreshed. Any layout change that is not applicable will be ignored.
+The actual reference will take the new production as the origin. All children layouts will be refreshed. Any layout change that is not applicable will be ignored.
 {% endhint %}
 
 ### Delete an environment

@@ -1,4 +1,4 @@
-Adding as many datasources as you need is good, inter-connecting them together is better.
+Adding as many data sources as you need is good, inter-connecting them together is better.
 
 The relation mechanism allows you to add a relation between different data sources, regardless of their type.
 

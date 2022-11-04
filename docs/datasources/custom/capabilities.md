@@ -1,8 +1,8 @@
-As a data source implementer, **you won't have to translate every possible query**: on most datasources, it is **not feasible**, as you will be restricted by the API that you will be translating queries for.
+As a data source implementer, **you won't have to translate every possible query**: on most data sources, it is **not feasible**, as you will be restricted by the API that you will be translating queries for.
 
-On construction each of your collections will declare per-field capabilities.
+On construction, each of your collections will declare per-field capabilities.
 
-Forest Admin will then ensure that only queries using features that you have explicitely enabled are used.
+Forest Admin will then ensure that only queries using features that you have explicitly enabled are used.
 
 # Required features
 
@@ -15,16 +15,16 @@ All data sources need to be able to
 - Understand paging (`skip`, `limit`)
 
 {% hint style="warning" %}
-Translating the `Or` node is a strong constraint, as many backends will not allow it and providing a working implementation requires making multiple queries and recombining the results.
+Translating the `Or` node is a strong constraint, as many backends will not allow it: providing a working implementation may require making multiple queries and recombining the results.
 {% endhint %}
 
 # Optional features
 
-All optional features are opt-in, and need to be specified when constructing a data source, so that Forest Admin can know that they are available.
+All optional features are opt-in and need to be specified when constructing a data source so that Forest Admin can know that they are available.
 
 ## How to unlock features
 
-The more complete your query translator is, the most forest admin features will be unlocked
+The more complete your query translator is, the more features will be unlocked
 
 | Unlocked feature                                             | Needed capabilities                                              |
 | ------------------------------------------------------------ | ---------------------------------------------------------------- |
@@ -36,9 +36,9 @@ The more complete your query translator is, the most forest admin features will 
 | Using operator emulation                                     | `In` on primary keys                                             |
 | Using search emulation                                       | `Contains` on string fields, `Equal` on numbers, uuids and enums |
 
-## Unlock filtering, scopes and segments on the UI
+## Unlock filtering, scopes, and segments on the UI
 
-Forest Admin UI implements filtering, scopes and segments with a "per-field", not on a "per-field-and-operator" granularity.
+Forest Admin UI implements filtering, scopes, and segments with a "per-field", not on a "per-field-and-operator" granularity.
 
 This means that filtering for a given field is either enabled or not from the UI perspective. Forest Admin admin panel will enable the feature only once enough operators are supported depending on the type of the field.
 
@@ -57,7 +57,7 @@ This means that filtering for a given field is either enabled or not from the UI
 
 ![Pagination widget](../../assets/customdatasource-count-capability.png)
 
-Enabling this features allows the pagination widget to display the total number of pages in a collections while browsing records.
+Enabling this feature allows the pagination widget to display the total number of pages in a collection while browsing records.
 
 Once enabled, your collections must implement the [`aggregate method`](../../under-the-hood/queries/README.md#interface).
 
@@ -80,10 +80,10 @@ If this feature is not enabled in the data source definition, users of your data
 
 Enabling this feature allows you to either:
 
-- Gain control on how search works for your data source instead of relying on the default implementation
-- Allow full text search on data sources were the condition tree implementation is not strong enought
+- Gain control over how search works for your data source instead of relying on the default implementation
+- Allow full-text search on data sources where the condition tree implementation is not strong enough
 
-This is relevant mostly for data sources which target data sources which have native full text search capabilities (ElasticSearch, ...)
+This is relevant mostly for data sources that target data sources that have native full-text search capabilities (ElasticSearch, ...)
 
 ```javascript
 class MyCollection extends BaseCollection {
@@ -102,10 +102,10 @@ class MyCollection extends BaseCollection {
 If this feature is not enabled in the data source definition, users of your data source can still create segments in both their admin panels and agent customization.
 {% endhint %}
 
-Defining segments from your data sources can be relevant on three situations:
+Defining segments from your data sources can be relevant in three situations:
 
-- Implementing segments in the data source can be more efficient than using the default condition tree based segments, at the cost of configurability (i.e. using complex SQL queries which cannot be expressed as a condition tree)
-- The underlying datasource has a concept which maps to forest admin segments (i.e. ["scopes" in Sequelize](https://sequelize.org/master/manual/scopes.html))
+- Implementing segments in the data source can be more efficient than using the default condition tree-based segments (i.e. using complex SQL queries which cannot be expressed as a condition tree)
+- The underlying data source has a concept that maps to forest admin segments (i.e. ["scopes" in Sequelize](https://sequelize.org/master/manual/scopes.html))
 - Your data source is used in multiple Forest Admin projects, and the segment should be shared across all deployments (i.e. segments coming from a public SaaS)
 
 ```javascript
@@ -143,9 +143,9 @@ class MyCollection extends BaseCollection {
 
 ## Filtering operators
 
-When declaring a field, the `filterOperators` set allows to tell Forest Admin which operators are supported by any given field.
+When declaring a field, the `filterOperators` set allows telling Forest Admin which operators are supported by any given field.
 
-Operators which are not explicitely enabled in that declaration won't be available.
+Operators which are not explicitly enabled in that declaration won't be available.
 
 ```javascript
 class MyCollection extends BaseCollection {
@@ -165,7 +165,7 @@ class MyCollection extends BaseCollection {
 
 ## Sort
 
-Not all fields need to be sortable. Fields which are sortable should be flagged in the following way.
+Not all fields need to be sortable. Sortable fields should be flagged in the following way.
 
 ```javascript
 class MyCollection extends BaseCollection {

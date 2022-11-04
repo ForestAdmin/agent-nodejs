@@ -3,7 +3,7 @@
 On server start, a `.forestadmin-schema.json` file will be auto-generated in **local (development) environments only.** It reflects:
 
 - the **state of your collections.**
-- your **Forest Admin customisation**.
+- your **Forest Admin customization**.
 
 {% hint style="info" %}
 This file **must be versioned and deployed** for any remote environment (staging, production, etc.), as it will be used to generate your Forest UI.

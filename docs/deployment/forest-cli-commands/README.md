@@ -14,7 +14,7 @@ For further details on the package, check out [this page](https://www.npmjs.com/
 
 ### Using Forest CLI
 
-In the following pages, we'll cover all available Forest CLI commands in details, from introduction to advanced usage. For now, there are 6 commands:
+In the following pages, we'll cover all available Forest CLI commands in detail, from introduction to advanced usage. For now, there are 6 commands:
 
 - [login](login.md)
 - [init](init.md)
@@ -28,5 +28,5 @@ In the following pages, we'll cover all available Forest CLI commands in details
 Some additional commands might be added in the future. In the meantime, those should be largely sufficient to manage your development workflow.
 
 {% hint style="info" %}
-Be aware that almost all commands take the `FOREST_ENV_SECRET` env variable, provided on the command or inside your _.env_ file, to know on which environment the command is run.
+Be aware that almost all commands take the `FOREST_ENV_SECRET` env variable, provided on the command or inside your _.env_ file, to know in which environment the command is run.
 {% endhint %}

@@ -1,4 +1,4 @@
-Each plugin is nothing more than an `async function` which can perform customizations at either agent level, collection level or both.
+Each plugin is nothing more than an `async function` that can perform customizations at either agent level, collection level, or both.
 
 ```javascript
 export async function removeTimestamps(dataSource, collection, options) {
@@ -10,7 +10,7 @@ Three parameters are provided:
 
 | Name                                                                                                                                             | Description                                                                                                                                                                                             |
 | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| dataSource<br>([api-reference](https://forestadmin.github.io/agent-nodejs/classes/_forestadmin_datasource_customizer.DataSourceCustomizer.html))      | An object that allows customizing the whole agent. It has the same interface than the `Agent` you manipulate outside of plugins                                                                         |
+| dataSource<br>([api-reference](https://forestadmin.github.io/agent-nodejs/classes/_forestadmin_datasource_customizer.DataSourceCustomizer.html)) | An object that allows customizing the whole agent. It has the same interface than the `Agent` you manipulate outside of plugins                                                                         |
 | collection<br>([api-reference](https://forestadmin.github.io/agent-nodejs/classes/_forestadmin_datasource_customizer.CollectionCustomizer.html)) | An object that allows customizing the collection that the plugin was called from (null if the plugin was called on the agent). It is the same object than is passed when you call `customizeCollection` |
 | options                                                                                                                                          | Options which are provided to the plugin. There is no set structure for this parameter, as each plugin can use different options.                                                                       |
 

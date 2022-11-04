@@ -1,6 +1,6 @@
 # Create a custom moderation view
 
-This example shows you how you can implement a moderations view with a custom Approve/Reject workflow.
+This example shows you how you can implement a moderation view with a custom Approve/Reject workflow.
 
 ![](../../assets/smart-view-moderation.png)
 
@@ -13,8 +13,8 @@ In our example, we want to Approve or Reject products to moderate content on our
 
 ### Smart view definition
 
-Learn more about [smart views](./).\
-\
+Learn more about [smart views](./README.md).
+
 **File template.hbs**
 
 This file contains the HTML and CSS needed to build the view.

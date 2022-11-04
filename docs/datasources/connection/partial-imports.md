@@ -1,4 +1,4 @@
-You may not want to import all collections from a datasource.
+You may not want to import all collections from a data source.
 
 This can be achieved by providing a whitelist or a blacklist in the options of the `agent.addDataSource` method.
 

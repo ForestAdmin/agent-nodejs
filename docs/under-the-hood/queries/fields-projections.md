@@ -4,7 +4,7 @@ Field identifiers simply are strings that identify a column in the context of a 
 
 If we consider the following collections:
 
-![books, authors and reviews](../../assets/collection-relations.png)
+![books, authors, and reviews](../../assets/collection-relations.png)
 
 | Context | Field                | Valid ?                                                               |
 | ------- | -------------------- | --------------------------------------------------------------------- |
@@ -16,7 +16,7 @@ If we consider the following collections:
 
 ## Projections
 
-Projections are mainly used to fetch partials records and automatically fetch linked records.
+Projections are mainly used to fetch partial records and automatically fetch linked records.
 
 Projections simply are an array of fields.
 

@@ -14,7 +14,7 @@ Forest Admin offers a lot of flexibility in terms of installation. The following
 
 {% hint style='notice' %}
 
-This guide will help you to setup Forest Admin as a standalone process, using an example Postgres database.
+This guide will help you to set up Forest Admin as a standalone process, using an example Postgres database.
 
 {% endhint %}
 
@@ -28,17 +28,9 @@ This guide will help you to setup Forest Admin as a standalone process, using an
 
 Go to [https://app.forestadmin.com/signup](https://app.forestadmin.com/signup), and create an account and a new project.
 
-## Optional - Make sure you have a database running, or use our example
-
-If you want to test Forest Admin but don't have a database on hand, here is one!
-
-`docker run -p 5432:5432 --name forest_demo_database forestadmin/meals-database`
-
-The associated connection string will be `postgres://lumber:secret@localhost:5432/meals`.
-
 ## Create a new JavaScript (Or TypeScript) project
 
-Let's create a new folder and init a new JavaScript project.
+Let's create a new folder and initiate a new JavaScript project.
 
 ```bash
 mkdir ForestExample && cd ForestExample
@@ -88,13 +80,22 @@ Running
 node index.js
 ```
 
-should be enough to be redirected to the "rate-install" page. However, Forest Admin currently don't have any collections to display.
+should be enough to be redirected to the "rate-install" page. However, Forest Admin currently doesn't have any collections to display.
 
 ![](../assets/quickstart-no-collections.png)
 
-## Add a datasource
+## Add a data source
 
-Now that you are fully onboarded, the only missing part is to add a data source. Forest Admin provide a way to [create your own](../datasources/custom/README.md), but for this example we will add a [SQL Datasource](../datasources/provided/sql.md).
+{% hint style="info" %}
+
+If you want to test Forest Admin but don't have a database on hand, here is one!
+
+`docker run -p 5432:5432 --name forest_demo_database forestadmin/meals-database`
+
+The associated connection string will be `postgres://lumber:secret@localhost:5432/meals`.
+{% endhint %}
+
+Now that you are fully onboarded, the only missing part is to add a data source. Forest Admin provides a way to [create your own](../datasources/custom/README.md), but for this example, we will add a [SQL Datasource](../datasources/provided/sql.md).
 
 To install the SQL Datasource package, you can run the following command
 

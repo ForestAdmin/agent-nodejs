@@ -1,7 +1,7 @@
 Creating a custom data source always starts with declaring the structure of the data
 
 - Which collections are present?
-- What fields to they contain?
+- What fields do they contain?
 - What are their types?
 
 # Columns
@@ -44,15 +44,15 @@ class MovieCollection extends BaseCollection {
 
 ## Typing
 
-The typing system for columns is the same than the one used when declaring fields in the agent customization step.
+The typing system for columns is the same as the one used when declaring fields in the agent customization step.
 
 You can read all about it in ["Under the hood > Data Model > Typing"](../../under-the-hood/data-model/typing.md).
 
 ## Validation
 
-When using primitive type fields, Forest Admin supports declaring a validation clause, which will be imported into the UI of the admin panel to validate records before creating / updating them.
+When using primitive type fields, Forest Admin supports declaring a validation clause, which will be imported into the UI of the admin panel to validate records before creating/updating them.
 
-The API for validation is the same than with [condition trees](../../under-the-hood/queries/filters.md#condition-trees), besides the fact than their is no `"field"` entry.
+The API for validation is the same as with [condition trees](../../under-the-hood/queries/filters.md#condition-trees), besides the fact that there is no `"field"` entry.
 
 ```json
 {
@@ -68,14 +68,14 @@ The API for validation is the same than with [condition trees](../../under-the-h
 # Relationships
 
 {% hint style='warning' %}
-Only **intra**-datasource relationships should be declared at the collection level.
+Only **intra**-data source relationships should be declared at the collection level.
 
-For **inter**-datasource relationships, you should use [jointures at the customization step](../../agent-customization/relationships/README.md)
+For **inter**-data source relationships, you should use [jointures at the customization step](../../agent-customization/relationships/README.md)
 {% endhint %}
 
-You can declare relationships at the collection level, but that means that the datasource you are making is responsible from handling them.
+You can declare relationships at the collection level, but that means that the data source you are making is responsible for handling them.
 
-This will work out of the box for datasources using the "local-cache" strategy, however please read ["Intra-datasource Relationships"](./relationships.md), before starting for the "query translation" strategy.
+This will work out of the box for data sources using the "local-cache" strategy, however, please read ["Intra-data source Relationships"](./relationships.md), before starting with the "query translation" strategy.
 
 ## Examples
 
@@ -109,6 +109,6 @@ class MovieCollection extends BaseCollection {
 
 ## Typing
 
-The typing system for relationships is the same than the one used when declaring jointures in the agent customization step.
+The typing system for relationships is the same as the one used when declaring jointures in the agent customization step.
 
 You can read all about it in ["Under the hood > Data Model > Relationships"](../../under-the-hood/data-model/relationships.md).

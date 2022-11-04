@@ -12,7 +12,7 @@ This is documented in the [User Guide](https://docs.forestadmin.com/user-guide/d
 
 # From your agent
 
-Sometimes, charts data are closely tied to your business. Forest Admin allows you to code how the data fueling any given chart is computed.
+Sometimes, chart data are closely tied to your business. Forest Admin allows you to code how the data fueling any given chart is computed.
 
 This is done in three steps:
 
@@ -26,11 +26,11 @@ This is done in three steps:
 
 Note that, when defining a chart from your agent:
 
-- The type of the chart defined in your agent must match your selection when adding it to a dashboard or record.
+- The type of chart defined in your agent must match your selection when adding it to a dashboard or record.
 - The name of the chart must be URL-safe.
 
 ## Relation to smart charts
 
-[Smart charts](../../frontend-customization/smart-charts/README.md) is a forest admin feature which allow to implement types of charts which are not supported natively (density maps, cohorts, ...).
+[Smart charts](../../frontend-customization/smart-charts/README.md) allow the implementation of charts that are not supported natively (density maps, cohorts, ...).
 
-Coding a chart handler from your agent, in the other hand, give your freedom in how the data powering a native chart is computed.
+Coding a chart handler from your agent, on the other hand, gives your freedom in how the data powering a native chart is computed.

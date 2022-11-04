@@ -1,14 +1,14 @@
-In order to connect to different backends, Forest Admin abstracts away their differences.
+To connect to different backends, Forest Admin abstracts away their differences.
 
-Each one of the availables data sources "speaks" the language of the API it is targeting from one side, and exposes the Forest Admin Query Interface on the other one.
+Each one of the available data sources "speaks" the language of the API it is targeting from one side and exposes the Forest Admin Query Interface on the other one.
 
-This API is by far _not_ a full featured ORM: its objective is too be "just enough" to fuel Forest Admin.
+This API is by far _not_ a full-featured ORM: its objective is to be "just enough" to fuel Forest Admin.
 
 Writing an abstraction layer is full of compromises: small enough so that it can be written on top of APIs which may not be very capable but large enough so that all Forest Admin features can be implemented on top of them.
 
-# When to use?
+# When to use it?
 
-When customizing your Forest Admin with custom code (creating new actions, fields, ...), you can either access your data using the Forest Admin Query Interface, or using the native driver. It makes no difference for the admin panel.
+When customizing your Forest Admin with custom code (creating new actions, fields, ...), you can either access your data using the Forest Admin Query Interface or using the native driver. It makes no difference for the admin panel.
 
 | -                        | Forest Admin Query Interface              | Native Driver                          |
 | ------------------------ | ----------------------------------------- | -------------------------------------- |
@@ -54,7 +54,7 @@ collection.addSegment('mySegment', async context => {
 
 More detail about those methods can be found in the [API Reference](https://forestadmin.github.io/agent-nodejs/interfaces/_forestadmin_datasource_toolkit.Collection.html).
 
-All parameters are explained in depth in the following pages:
+All parameters are explained in depth on the following pages:
 
 - [Fields and projections](./fields-projections.md)
 - [Filters](./filters.md)

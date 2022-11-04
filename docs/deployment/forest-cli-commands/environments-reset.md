@@ -1,6 +1,6 @@
 # environments:reset
 
-The `forest environments` command is very useful as it allows you to manage your environments. But the sub command that we're more specifically interested in when it comes to developing on Forest Admin is:
+The `forest environments` command is very useful as it allows you to manage your environments. But the subcommand that we're more specifically interested in when it comes to developing on Forest Admin is:
 
 ```
 $ forest environments:reset --help
@@ -15,7 +15,7 @@ OPTIONS
   --force                        Skip reset changes confirmation.
 ```
 
-As you've learnt in [previous pages](push.md), the `forest push` command lets you push changes made in the layout to a remote environments and later `deploy` them to your production.
+As you've learned in [previous pages](push.md), the `forest push` command lets you push changes made in the layout to a remote environment and later `deploy` them to your production.
 
 Sometimes though, there comes a time when you've stacked too many layout changes on a remote environment and just want to get rid of them.
 
