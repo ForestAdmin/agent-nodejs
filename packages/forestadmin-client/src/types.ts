@@ -1,7 +1,6 @@
 import type { ChartRequest } from './charts/chart-handler';
 import type { Chart, QueryChart } from './charts/types';
-import type { CollectionActionEvent } from './permissions/types';
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
+import type { CollectionActionEvent, RawTree } from './permissions/types';
 
 import ContextVariables, { RequestContextVariables } from './utils/context-variables';
 
@@ -28,7 +27,7 @@ export interface ForestAdminClient {
     renderingId: number | string;
     userId: number | string;
     collectionName: string;
-  }): Promise<GenericTree>;
+  }): Promise<RawTree>;
   markScopesAsUpdated(renderingId: number | string): void;
 }
 

@@ -1,5 +1,3 @@
-import type { GenericTree } from '@forestadmin/datasource-toolkit';
-
 import ChartHandler from './charts/chart-handler';
 import RenderingPermissionService from './permissions/rendering-permission';
 import verifyAndExtractApproval from './permissions/verify-approval';

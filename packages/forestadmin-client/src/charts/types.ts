@@ -1,4 +1,4 @@
-import type { PlainConditionTreeBranch } from '@forestadmin/datasource-toolkit';
+import { RawTree } from '../permissions/types';
 
 export type KeysOfUnion<T> = T extends T ? keyof T : never;
 
@@ -22,7 +22,7 @@ export interface QueryChart extends BaseChart {
 }
 
 export interface FilterableChart extends BaseChart {
-  filter?: PlainConditionTreeBranch | null;
+  filter?: RawTree | null;
 }
 
 export interface AggregatedChart extends BaseChart {
