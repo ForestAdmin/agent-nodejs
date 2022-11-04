@@ -21,7 +21,7 @@ Or to the _Analytics_ page of a collection using the `addChart` method on the co
 
 ```javascript
 // Add a chart to the Analytics page of the collection "customers"
-agent.customizerCollection('customers', collection => {
+agent.customizeCollection('customers', collection => {
   collection.addChart('monthlyRecuringRevenue', async (context, resultBuilder) => {
     // Request the sum of the "amount" field of the records in the "payments" collection matching
     // current customer
