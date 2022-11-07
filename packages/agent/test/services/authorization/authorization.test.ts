@@ -473,6 +473,36 @@ describe('AuthorizationService', () => {
         },
       });
     });
+
+    it('should rethrow other errors', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      const context = {
+        state: {
+          user: {
+            id: 35,
+            renderingId: 42,
+          },
+        },
+        request: {
+          body: {
+            type: ChartType.Value,
+            query: 'UPDATE jedis SET padawan_id = ?',
+          },
+        },
+        throw: jest.fn(),
+      } as unknown as Context;
+
+      (forestAdminClient.permissionService.canExecuteChart as jest.Mock).mockRejectedValue(
+        new Error('unknown'),
+      );
+
+      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrowError(
+        'unknown',
+      );
+    });
   });
 
   describe('invalidateScopeCache', () => {
