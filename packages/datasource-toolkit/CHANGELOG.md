@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.0...@forestadmin/datasource-toolkit@1.1.1) (2022-11-07)
+
+
+### Performance Improvements
+
+* **permissions:** use a lighter endpoint to retrieve scope configuration ([#432](https://github.com/ForestAdmin/agent-nodejs/issues/432)) ([f3d3834](https://github.com/ForestAdmin/agent-nodejs/commit/f3d3834e312e00844da85966f102e59e4c499524))
+
 ## @forestadmin/datasource-toolkit [1.1.1-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.0...@forestadmin/datasource-toolkit@1.1.1-alpha.1) (2022-11-03)
 
 
