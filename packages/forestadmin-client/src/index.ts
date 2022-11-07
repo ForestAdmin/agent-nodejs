@@ -6,6 +6,7 @@ import RenderingPermissionService from './permissions/rendering-permission';
 import UserPermissionService from './permissions/user-permission';
 import { ForestAdminClientOptions, ForestAdminClientOptionsWithDefaults } from './types';
 import ContextVariablesInstantiator from './utils/context-variables-instantiator';
+import defaultLogger from './utils/default-logger';
 
 export { default as JTWTokenExpiredError } from './permissions/errors/jwt-token-expired-error';
 export { default as JTWUnableToVerifyError } from './permissions/errors/jwt-unable-to-verify-error';
@@ -29,7 +30,7 @@ export default function createForestAdminClient(
     forestServerUrl: 'https://api.forestadmin.com',
     permissionsCacheDurationInSeconds: 15 * 60,
     // eslint-disable-next-line no-console
-    logger: (level, ...args) => console[level.toLowerCase()](...args),
+    logger: defaultLogger,
     ...options,
   };
 
