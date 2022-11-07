@@ -61,10 +61,13 @@
 
 - [Hooks](agent-customization/hooks/README.md)
 - [Plugins](agent-customization/plugins/README.md)
+
   - Provided plugins
     - [AWS S3](agent-customization/plugins/provided/aws-s3.md)
+    - [Avanced Export](agent-customization/plugins/provided/export-advanced.md)
     - [Flattener](agent-customization/plugins/provided/flattener.md)
   - [Write your own](agent-customization/plugins/custom.md)
+
 - [Relationships](agent-customization/relationships/README.md)
   - [To a single record](agent-customization/relationships/single-record.md)
   - [To multiple records](agent-customization/relationships/multiple-records.md)
