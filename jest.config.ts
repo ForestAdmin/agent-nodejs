@@ -9,5 +9,6 @@ const config: Config.InitialOptions = {
   ],
   testMatch: ['<rootDir>/packages/*/test/**/*.test.ts'],
   setupFilesAfterEnv: ['jest-extended/all'],
+  coverageReporters: ['json', 'lcov', 'text', 'clover', 'html'],
 };
 export default config;
