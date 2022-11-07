@@ -34,4 +34,11 @@ describe('isSegmentQueryAuthorized', () => {
       expect(isSegmentQueryAllowed('SELECT * from users;', ['SELECT * from admins;'])).toBe(false);
     });
   });
+
+  describe('when the list of authorized segments is falsy', () => {
+    it('should return false', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(isSegmentQueryAllowed('SELECT * from users;', undefined as any)).toBe(false);
+    });
+  });
 });
