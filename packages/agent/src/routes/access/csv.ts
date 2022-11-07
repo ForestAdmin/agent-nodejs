@@ -14,14 +14,14 @@ export default class CsvRoute extends CollectionRoute {
   }
 
   async handleCsv(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `browse:${this.collection.name}`);
-    await this.services.permissions.can(context, `export:${this.collection.name}`);
+    await this.services.authorization.assertCanBrowse(context, this.collection.name);
+    await this.services.authorization.assertCanExport(context, this.collection.name);
 
     const { header } = context.request.query as Record<string, string>;
     CsvRouteContext.buildResponse(context);
 
     const projection = QueryStringParser.parseProjection(this.collection, context);
-    const scope = await this.services.permissions.getScope(this.collection, context);
+    const scope = await this.services.authorization.getScope(this.collection, context);
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
 

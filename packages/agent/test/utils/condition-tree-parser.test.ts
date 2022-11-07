@@ -8,6 +8,7 @@ describe('ConditionTreeParser', () => {
     schema: factories.collectionSchema.build({
       fields: {
         id: factories.columnSchema.uuidPrimaryKey().build(),
+        string: factories.columnSchema.build({ columnType: 'String' }),
         number: factories.columnSchema.build({ columnType: 'Number' }),
         boolean: factories.columnSchema.build({ columnType: 'Boolean' }),
       },
@@ -77,5 +78,25 @@ describe('ConditionTreeParser', () => {
     expect(tree).toStrictEqual(
       new ConditionTreeLeaf('boolean', 'In', [true, false, false, true, false]),
     );
+  });
+
+  test('should work with ShorterThan and string', () => {
+    const tree = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'string',
+      operator: 'ShorterThan',
+      value: '12',
+    });
+
+    expect(tree).toStrictEqual(new ConditionTreeLeaf('string', 'ShorterThan', 12));
+  });
+
+  test('should work with Equal string when passing number', () => {
+    const tree = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'string',
+      operator: 'Equal',
+      value: 134,
+    });
+
+    expect(tree).toStrictEqual(new ConditionTreeLeaf('string', 'Equal', '134'));
   });
 });

@@ -1,5 +1,6 @@
 import {
   Aggregation,
+  Caller,
   CollectionUtils,
   ConditionTreeBranch,
   ConditionTreeFactory,
@@ -10,6 +11,15 @@ import {
   RelationSchema,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
+import {
+  Chart,
+  ChartType,
+  LeaderboardChart,
+  LineChart,
+  ObjectiveChart,
+  PieChart,
+  ValueChart,
+} from '@forestadmin/forestadmin-client';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import { DateTime } from 'luxon';
@@ -19,15 +29,7 @@ import ContextFilterFactory from '../../utils/context-filter-factory';
 import QueryStringParser from '../../utils/query-string';
 import CollectionRoute from '../collection-route';
 
-enum ChartType {
-  Value = 'Value',
-  Objective = 'Objective',
-  Pie = 'Pie',
-  Line = 'Line',
-  Leaderboard = 'Leaderboard',
-}
-
-export default class Chart extends CollectionRoute {
+export default class ChartRoute extends CollectionRoute {
   private static readonly formats: Record<DateOperation, string> = {
     Day: 'dd/MM/yyyy',
     Week: "'W'W-yyyy",
@@ -40,7 +42,7 @@ export default class Chart extends CollectionRoute {
   }
 
   async handleChart(context: Context) {
-    await this.services.permissions.canChart(context);
+    await this.services.authorization.assertCanExecuteChart(context);
 
     context.response.body = {
       data: {
@@ -52,9 +54,16 @@ export default class Chart extends CollectionRoute {
   }
 
   private async makeChart(context: Context) {
-    const { body } = context.request;
+    const { type } = <Chart>context.request.body;
+    const { renderingId, id: userId } = <Caller>context.state.user;
 
-    switch (body.type) {
+    context.request.body = await this.services.chartHandler.getChartWithContextInjected({
+      userId,
+      renderingId,
+      chartRequest: context.request.body,
+    });
+
+    switch (type) {
       case ChartType.Value:
         return this.makeValueChart(context);
       case ChartType.Leaderboard:
@@ -66,7 +75,7 @@ export default class Chart extends CollectionRoute {
       case ChartType.Line:
         return this.makeLineChart(context);
       default:
-        throw new ValidationError(`Invalid Chart type "${body.type}"`);
+        throw new ValidationError(`Invalid Chart type "${type}"`);
     }
   }
 
@@ -102,16 +111,16 @@ export default class Chart extends CollectionRoute {
 
   private async makePieChart(context: Context): Promise<Array<{ key: string; value: number }>> {
     const {
-      group_by_field: groupByField,
-      aggregate,
-      aggregate_field: aggregateField,
-    } = context.request.body;
+      groupByFieldName: groupByField,
+      aggregator,
+      aggregateFieldName: aggregateField,
+    } = <PieChart>context.request.body;
 
     const rows = await this.collection.aggregate(
       QueryStringParser.parseCaller(context),
       await this.getFilter(context),
       new Aggregation({
-        operation: aggregate,
+        operation: aggregator,
         field: aggregateField,
         groups: [{ field: groupByField }],
       }),
@@ -125,11 +134,11 @@ export default class Chart extends CollectionRoute {
 
   private async makeLineChart(context: Context): Promise<Array<{ label: string; value: number }>> {
     const {
-      aggregate,
-      aggregate_field: aggregateField,
-      group_by_date_field: groupByDateField,
-      time_range: timeRange,
-    } = context.request.body;
+      aggregator,
+      aggregateFieldName: aggregateField,
+      groupByFieldName: groupByDateField,
+      timeRange,
+    } = <LineChart>context.request.body;
 
     const filter = await this.getFilter(context);
     const filterOnlyWithValues = filter.override({
@@ -142,7 +151,7 @@ export default class Chart extends CollectionRoute {
       QueryStringParser.parseCaller(context),
       filterOnlyWithValues,
       new Aggregation({
-        operation: aggregate,
+        operation: aggregator,
         field: aggregateField,
         groups: [{ field: groupByDateField, operation: timeRange }],
       }),
@@ -159,7 +168,7 @@ export default class Chart extends CollectionRoute {
     const last = DateTime.fromISO(dates[dates.length - 1]);
 
     const dataPoints = [];
-    const format = Chart.formats[timeRange];
+    const format = ChartRoute.formats[timeRange];
 
     for (
       let current = DateTime.fromISO(dates[0]);
@@ -177,38 +186,41 @@ export default class Chart extends CollectionRoute {
   private async makeLeaderboardChart(
     context: Context,
   ): Promise<Array<{ key: string; value: number }>> {
-    const { body } = context.request;
-    const field = this.collection.schema.fields[body.relationship_field] as RelationSchema;
+    const body = <LeaderboardChart>context.request.body;
+    const field = this.collection.schema.fields[body.relationshipFieldName] as RelationSchema;
 
     let collection: string;
     let filter: Filter;
     let aggregation: Aggregation;
 
     if (field?.type === 'OneToMany') {
-      const inverse = CollectionUtils.getInverseRelation(this.collection, body.relationship_field);
+      const inverse = CollectionUtils.getInverseRelation(
+        this.collection,
+        body.relationshipFieldName,
+      );
 
       if (inverse) {
         collection = field.foreignCollection;
         filter = (await this.getFilter(context)).nest(inverse);
         aggregation = new Aggregation({
-          operation: body.aggregate,
-          field: body.aggregate_field,
-          groups: [{ field: `${inverse}:${body.label_field}` }],
+          operation: body.aggregator,
+          field: body.aggregateFieldName,
+          groups: [{ field: `${inverse}:${body.labelFieldName}` }],
         });
       }
     }
 
     if (field?.type === 'ManyToMany') {
-      const origin = CollectionUtils.getThroughOrigin(this.collection, body.relationship_field);
-      const target = CollectionUtils.getThroughTarget(this.collection, body.relationship_field);
+      const origin = CollectionUtils.getThroughOrigin(this.collection, body.relationshipFieldName);
+      const target = CollectionUtils.getThroughTarget(this.collection, body.relationshipFieldName);
 
       if (origin && target) {
         collection = field.throughCollection;
         filter = (await this.getFilter(context)).nest(origin);
         aggregation = new Aggregation({
-          operation: body.aggregate,
-          field: body.aggregate_field ? `${target}:${body.aggregate_field}` : null,
-          groups: [{ field: `${origin}:${body.label_field}` }],
+          operation: body.aggregator,
+          field: body.aggregateFieldName ? `${target}:${body.aggregateFieldName}` : null,
+          groups: [{ field: `${origin}:${body.labelFieldName}` }],
         });
       }
     }
@@ -230,8 +242,10 @@ export default class Chart extends CollectionRoute {
   }
 
   private async computeValue(context: Context, filter: Filter): Promise<number> {
-    const { aggregate, aggregate_field: aggregateField } = context.request.body;
-    const aggregation = new Aggregation({ operation: aggregate, field: aggregateField });
+    const { aggregator, aggregateFieldName: aggregateField } = <ValueChart | ObjectiveChart>(
+      context.request.body
+    );
+    const aggregation = new Aggregation({ operation: aggregator, field: aggregateField });
 
     const rows = await this.collection.aggregate(
       QueryStringParser.parseCaller(context),
@@ -243,7 +257,7 @@ export default class Chart extends CollectionRoute {
   }
 
   private async getFilter(context: Context): Promise<Filter> {
-    const scope = await this.services.permissions.getScope(this.collection, context);
+    const scope = await this.services.authorization.getScope(this.collection, context);
 
     return ContextFilterFactory.build(this.collection, context, scope);
   }

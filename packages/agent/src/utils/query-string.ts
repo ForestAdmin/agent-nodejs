@@ -25,11 +25,12 @@ export default class QueryStringParser {
       const filters =
         context.request.body?.data?.attributes?.all_records_subset_query?.filters ??
         context.request.body?.filters ??
+        context.request.body?.filter ??
         context.request.query?.filters;
 
       if (!filters) return null;
 
-      const json = JSON.parse(filters.toString());
+      const json = typeof filters === 'object' ? filters : JSON.parse(filters.toString());
       const conditionTree = ConditionTreeParser.fromPlainObject(collection, json);
       ConditionTreeValidator.validate(conditionTree, collection);
 

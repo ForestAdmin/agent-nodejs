@@ -27,13 +27,13 @@ export default class AssociateRelatedRoute extends RelationRoute {
   }
 
   public async handleAssociateRelatedRoute(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `edit:${this.collection.name}`);
+    await this.services.authorization.assertCanEdit(context, this.collection.name);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const targetedRelationId = IdUtils.unpackId(
       this.foreignCollection.schema,
       context.request.body?.data[0].id,
     );
-    const scope = await this.services.permissions.getScope(this.foreignCollection, context);
+    const scope = await this.services.authorization.getScope(this.foreignCollection, context);
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
     const caller = QueryStringParser.parseCaller(context);
 

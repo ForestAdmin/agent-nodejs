@@ -1,3 +1,13 @@
+## @forestadmin/plugin-import-fields [1.0.4-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-import-fields@1.0.3...@forestadmin/plugin-import-fields@1.0.4-alpha.1) (2022-11-03)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.4.2-alpha.1
+
 ## @forestadmin/plugin-import-fields [1.0.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-import-fields@1.0.2...@forestadmin/plugin-import-fields@1.0.3) (2022-11-03)
 
 
@@ -12,6 +22,22 @@
 ### Dependencies
 
 * **@forestadmin/datasource-customizer:** upgraded to 1.4.1
+
+## @forestadmin/plugin-import-fields [1.0.3-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-import-fields@1.0.2...@forestadmin/plugin-import-fields@1.0.3-alpha.1) (2022-11-03)
+
+
+### Bug Fixes
+
+* build broken because of missing properties in package.json ([#525](https://github.com/ForestAdmin/agent-nodejs/issues/525)) ([e86edbe](https://github.com/ForestAdmin/agent-nodejs/commit/e86edbea0a8a6ccb1e48e43c0259fc044e85b02e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.4.1-alpha.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.1-alpha.1
 
 ## @forestadmin/plugin-import-fields [1.0.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-import-fields@1.0.1...@forestadmin/plugin-import-fields@1.0.2) (2022-11-02)
 

@@ -50,8 +50,8 @@ export default class UpdateRelation extends RelationRoute {
     caller: Caller,
   ): Promise<void> {
     // Perms
-    const scope = await this.services.permissions.getScope(this.collection, context);
-    await this.services.permissions.can(context, `edit:${this.collection.name}`);
+    const scope = await this.services.authorization.getScope(this.collection, context);
+    await this.services.authorization.assertCanEdit(context, this.collection.name);
 
     // Load the value that will be used as foreignKey (=== linkedId[0] most of the time)
     const foreignValue = linkedId
@@ -81,8 +81,8 @@ export default class UpdateRelation extends RelationRoute {
     caller: Caller,
   ): Promise<void> {
     // Permissions
-    const scope = await this.services.permissions.getScope(this.foreignCollection, context);
-    await this.services.permissions.can(context, `edit:${this.foreignCollection.name}`);
+    const scope = await this.services.authorization.getScope(this.foreignCollection, context);
+    await this.services.authorization.assertCanEdit(context, this.foreignCollection.name);
 
     // Load the value that will be used as originKey (=== parentId[0] most of the time)
     const originValue = await CollectionUtils.getValue(

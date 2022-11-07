@@ -11,9 +11,9 @@ export default class ListRoute extends CollectionRoute {
   }
 
   public async handleList(context: Context) {
-    await this.services.permissions.can(context, `browse:${this.collection.name}`);
+    await this.services.authorization.assertCanBrowse(context, this.collection.name);
 
-    const scope = await this.services.permissions.getScope(this.collection, context);
+    const scope = await this.services.authorization.getScope(this.collection, context);
     const paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
 
     const records = await this.collection.list(

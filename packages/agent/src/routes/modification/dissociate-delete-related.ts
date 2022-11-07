@@ -28,7 +28,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
   }
 
   public async handleDissociateDeleteRelatedRoute(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `delete:${this.collection.name}`);
+    await this.services.authorization.assertCanDelete(context, this.collection.name);
 
     // Parse route params
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
@@ -111,7 +111,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
 
     return ContextFilterFactory.build(this.foreignCollection, context, null, {
       conditionTree: ConditionTreeFactory.intersect(
-        await this.services.permissions.getScope(this.foreignCollection, context),
+        await this.services.authorization.getScope(this.foreignCollection, context),
         QueryStringParser.parseConditionTree(this.foreignCollection, context),
         selectedIds,
       ),

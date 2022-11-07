@@ -5,9 +5,13 @@ import {
   FilterFactory,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
-import { Context } from 'koa';
+import { Context, Next } from 'koa';
 
 import { ForestAdminHttpDriverServices } from '../../services';
+import {
+  SmartActionApprovalRequestBody,
+  SmartActionRequestBody,
+} from '../../services/authorization/types';
 import { AgentOptionsWithDefaults, HttpCode } from '../../types';
 import BodyParser from '../../utils/body-parser';
 import ContextFilterFactory from '../../utils/context-filter-factory';
@@ -35,14 +39,16 @@ export default class ActionRoute extends CollectionRoute {
     const actionIndex = Object.keys(this.collection.schema.actions).indexOf(this.actionName);
     const path = `/_actions/${this.collection.name}/${actionIndex}`;
 
-    router.post(`${path}/:slug`, this.handleExecute.bind(this));
+    router.post(
+      `${path}/:slug`,
+      this.middlewareCustomActionApprovalRequestData.bind(this),
+      this.handleExecute.bind(this),
+    );
     router.post(`${path}/:slug/hooks/load`, this.handleHook.bind(this));
     router.post(`${path}/:slug/hooks/change`, this.handleHook.bind(this));
   }
 
   private async handleExecute(context: Context): Promise<void> {
-    await this.checkPermissions(context);
-
     const { dataSource } = this.collection;
     const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);
@@ -82,7 +88,11 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async handleHook(context: Context): Promise<void> {
-    await this.checkPermissions(context);
+    await this.services.authorization.assertCanRequestCustomActionParameters(
+      context,
+      this.actionName,
+      this.collection.name,
+    );
 
     const { dataSource } = this.collection;
     const forestFields = context.request.body?.data?.attributes?.fields;
@@ -101,11 +111,30 @@ export default class ActionRoute extends CollectionRoute {
     };
   }
 
-  private async checkPermissions(context: Context): Promise<void> {
-    await this.services.permissions.can(
-      context,
-      `custom:${this.actionName}:${this.collection.name}`,
-    );
+  private async middlewareCustomActionApprovalRequestData(context: Context, next: Next) {
+    const requestBody = context.request.body as SmartActionApprovalRequestBody;
+
+    if (requestBody?.data?.attributes?.signed_approval_request) {
+      const signedParameters =
+        this.services.authorization.verifySignedActionParameters<SmartActionRequestBody>(
+          requestBody.data.attributes.signed_approval_request,
+        );
+      await this.services.authorization.assertCanApproveCustomAction({
+        context,
+        customActionName: this.actionName,
+        collectionName: this.collection.name,
+        requesterId: signedParameters?.data?.attributes?.requester_id,
+      });
+      context.request.body = signedParameters;
+    } else {
+      await this.services.authorization.assertCanTriggerCustomAction({
+        context,
+        customActionName: this.actionName,
+        collectionName: this.collection.name,
+      });
+    }
+
+    return next();
   }
 
   private async getRecordSelection(context: Context): Promise<Filter> {
@@ -116,7 +145,7 @@ export default class ActionRoute extends CollectionRoute {
     const conditionTree = ConditionTreeFactory.intersect(
       selectedIds,
       QueryStringParser.parseConditionTree(this.collection, context),
-      await this.services.permissions.getScope(this.collection, context),
+      await this.services.authorization.getScope(this.collection, context),
     );
 
     const caller = QueryStringParser.parseCaller(context);

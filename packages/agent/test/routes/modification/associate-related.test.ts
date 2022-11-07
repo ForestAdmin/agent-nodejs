@@ -71,7 +71,7 @@ describe('AssociateRelatedRoute', () => {
       );
 
       const scope = factories.conditionTreeLeaf.build();
-      services.permissions.getScope = jest.fn().mockResolvedValue(scope);
+      services.authorization.getScope = jest.fn().mockResolvedValue(scope);
 
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -106,7 +106,7 @@ describe('AssociateRelatedRoute', () => {
         }),
         { bookId: '123e4567-e89b-12d3-a456-111111111111' },
       );
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:books');
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });
   });
@@ -192,7 +192,7 @@ describe('AssociateRelatedRoute', () => {
       );
 
       const scope = factories.conditionTreeLeaf.build();
-      services.permissions.getScope = jest.fn().mockResolvedValue(scope);
+      services.authorization.getScope = jest.fn().mockResolvedValue(scope);
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },
@@ -215,7 +215,7 @@ describe('AssociateRelatedRoute', () => {
           },
         ],
       );
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:books');
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });
   });

@@ -1,4 +1,9 @@
-import { DataSource, Projection, ValidationError } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeFactory,
+  DataSource,
+  Projection,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import UpdateField from '../../../src/routes/modification/update-field';
@@ -116,6 +121,79 @@ describe('UpdateField', () => {
         },
       );
       expect(context.response.status).toEqual(204);
+    });
+
+    it('should apply the scope', async () => {
+      const updateRoute = new UpdateField(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: { attributes: { key: 'newKey', value: 'newValue' } } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { id: '1523', field: 'itemList', index: '1' },
+        },
+      });
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      getScopeMock.mockReturnValueOnce({
+        field: 'title',
+        operator: 'NotContains',
+        value: '[test]',
+      });
+
+      await updateRoute.handleUpdate(context);
+
+      const expectedFilter = factories.filter.build({
+        conditionTree: ConditionTreeFactory.fromPlainObject({
+          aggregator: 'And',
+          conditions: [
+            {
+              operator: 'Equal',
+              value: 1523,
+              field: 'id',
+            },
+            {
+              field: 'title',
+              operator: 'NotContains',
+              value: '[test]',
+            },
+          ],
+        }),
+      });
+
+      expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        expectedFilter,
+        new Projection('itemList'),
+      );
+      expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        expectedFilter,
+        {
+          itemList: [
+            { key: 'key1', value: 'value1' },
+            { key: 'newKey', value: 'newValue' },
+          ],
+        },
+      );
+      expect(context.response.status).toEqual(204);
+      expect(getScopeMock).toHaveBeenCalledWith(dataSource.getCollection('books'), context);
+    });
+
+    it('should check that the user is authorized', async () => {
+      const updateRoute = new UpdateField(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: { attributes: { key: 'newKey', value: 'newValue' } } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { id: '1523', field: 'itemList', index: '1' },
+        },
+      });
+
+      await updateRoute.handleUpdate(context);
+
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
     });
   });
 });

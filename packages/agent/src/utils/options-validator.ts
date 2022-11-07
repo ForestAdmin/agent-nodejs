@@ -1,3 +1,4 @@
+import createForestAdminClient from '@forestadmin/forestadmin-client';
 import { existsSync } from 'fs';
 import path from 'path';
 
@@ -30,6 +31,18 @@ export default class OptionsValidator {
     copyOptions.forestServerUrl = copyOptions.forestServerUrl || 'https://api.forestadmin.com';
     copyOptions.typingsMaxDepth = copyOptions.typingsMaxDepth ?? 5;
     copyOptions.prefix = copyOptions.prefix || '';
+    copyOptions.permissionsCacheDurationInSeconds =
+      copyOptions.permissionsCacheDurationInSeconds ?? 15 * 60;
+    copyOptions.loggerLevel = copyOptions.loggerLevel || 'Info';
+
+    copyOptions.forestAdminClient =
+      copyOptions.forestAdminClient ||
+      createForestAdminClient({
+        envSecret: copyOptions.envSecret,
+        forestServerUrl: copyOptions.forestServerUrl,
+        logger: copyOptions.logger,
+        permissionsCacheDurationInSeconds: copyOptions.permissionsCacheDurationInSeconds,
+      });
 
     copyOptions.permissionsCacheDurationInSeconds =
       copyOptions.permissionsCacheDurationInSeconds ?? 15 * DEFAULT_MINIMUM_CACHE_DURATION;

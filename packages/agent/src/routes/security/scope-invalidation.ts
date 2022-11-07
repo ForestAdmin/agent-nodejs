@@ -20,7 +20,7 @@ export default class ScopeInvalidation extends BaseRoute {
       throw new ValidationError('Malformed body');
     }
 
-    this.services.permissions.invalidateCache(renderingId);
+    this.services.authorization.invalidateScopeCache(renderingId);
 
     context.response.status = HttpCode.NoContent;
   }

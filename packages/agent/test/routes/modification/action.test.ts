@@ -1,4 +1,9 @@
-import { ActionResult, DataSource, Filter } from '@forestadmin/datasource-toolkit';
+import {
+  ActionResult,
+  ConditionTreeFactory,
+  DataSource,
+  Filter,
+} from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import { Readable } from 'stream';
@@ -34,7 +39,11 @@ describe('ActionRoute', () => {
     const route = new ActionRoute(services, options, dataSource, 'books', 'My_Action');
     route.setupRoutes(router);
 
-    expect(router.post).toHaveBeenCalledWith('/_actions/books/0/:slug', expect.any(Function));
+    expect(router.post).toHaveBeenCalledWith(
+      '/_actions/books/0/:slug',
+      expect.any(Function),
+      expect.any(Function),
+    );
     expect(router.post).toHaveBeenCalledWith(
       '/_actions/books/0/:slug/hooks/load',
       expect.any(Function),
@@ -49,6 +58,7 @@ describe('ActionRoute', () => {
     let dataSource: DataSource;
     let route: ActionRoute;
     let handleExecute: Router.Middleware;
+    let middlewareCustomActionApprovalRequestData: Router.Middleware;
     let handleHook: Router.Middleware;
 
     const baseContext = {
@@ -82,34 +92,97 @@ describe('ActionRoute', () => {
       route.setupRoutes({
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        post: (path: string, handler: Router.Middleware) => {
-          if (path === '/_actions/books/0/:slug') handleExecute = handler;
-          else handleHook = handler;
+        post: (path: string, middleware: Router.Middleware, handler: Router.Middleware) => {
+          if (path === '/_actions/books/0/:slug') {
+            middlewareCustomActionApprovalRequestData = middleware;
+            handleExecute = handler;
+          } else handleHook = middleware;
         },
       });
     });
 
-    test('handleExecute should check permissions', async () => {
-      const context = createMockContext({
-        ...baseContext,
-        requestBody: {
-          data: {
+    describe('middleware CustomActionApprovalRequestData', () => {
+      describe('when the request is an approval', () => {
+        test('it should get the signed parameters, check rights and change body', async () => {
+          const context = createMockContext({
+            ...baseContext,
+            requestBody: {
+              data: {
+                attributes: {
+                  ...baseContext.requestBody.data.attributes,
+                  values: { firstname: 'John' },
+                  signed_approval_request: 'someSignedJWT',
+                },
+              },
+            },
+          });
+
+          const verifySignedActionParameters = services.authorization
+            .verifySignedActionParameters as jest.Mock;
+          const assertCanApproveCustomAction = services.authorization
+            .assertCanApproveCustomAction as jest.Mock;
+
+          const signedParams = {
+            data: {
+              attributes: {
+                values: { valueFrom: 'JWT' },
+                requester_id: 42,
+              },
+              type: 'typeFromJWT',
+            },
+          };
+          verifySignedActionParameters.mockReturnValue(signedParams);
+          const nextMock = jest.fn();
+
+          await middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
+
+          expect(nextMock).toHaveBeenCalled();
+
+          expect(verifySignedActionParameters).toHaveBeenCalledWith('someSignedJWT');
+          expect(assertCanApproveCustomAction).toHaveBeenCalledWith({
+            context,
+            customActionName: 'My_Action',
+            collectionName: 'books',
+            requesterId: 42,
+          });
+          expect(context.request.body).toStrictEqual(signedParams);
+        });
+      });
+
+      describe('when the request is a trigger', () => {
+        test('should not change data request when approval request is not detected', async () => {
+          const originalBody = {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+              },
+            },
+          };
+          const context = createMockContext({
+            ...baseContext,
+            requestBody: originalBody,
+          });
+
+          const assertCanTriggerCustomAction = services.authorization
+            .assertCanTriggerCustomAction as jest.Mock;
+          const nextMock = jest.fn();
+
+          await middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
+
+          expect(nextMock).toHaveBeenCalled();
+          expect(context.request.body.data).toStrictEqual({
             attributes: {
               ...baseContext.requestBody.data.attributes,
-              values: { firstname: 'John' },
             },
-          },
-        },
+          });
+          expect(assertCanTriggerCustomAction).toHaveBeenCalledWith({
+            context,
+            customActionName: 'My_Action',
+            collectionName: 'books',
+          });
+          expect(context.request.body).toStrictEqual(originalBody);
+        });
       });
-
-      (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
-        type: 'Error',
-        message: 'the result does not matter',
-      });
-
-      await handleExecute.call(route, context);
-
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'custom:My_Action:books');
     });
 
     test('handleExecute should delegate to collection with good params', async () => {
@@ -147,6 +220,62 @@ describe('ActionRoute', () => {
           segment: null,
         },
       );
+    });
+
+    test('handleExecute should apply the scope', async () => {
+      const context = createMockContext({
+        ...baseContext,
+        requestBody: {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+              values: { firstname: 'John' },
+            },
+          },
+        },
+      });
+
+      (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
+        type: 'Error',
+        message: 'the result does not matter',
+      });
+
+      const getScopeMock = services.authorization.getScope as jest.Mock;
+      getScopeMock.mockResolvedValueOnce({
+        field: 'title',
+        operator: 'NotContains',
+        value: '[test]',
+      });
+
+      await handleExecute.call(route, context);
+
+      expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        'My_Action',
+        { firstname: 'John' },
+        {
+          conditionTree: ConditionTreeFactory.fromPlainObject({
+            aggregator: 'And',
+            conditions: [
+              {
+                field: 'id',
+                operator: 'Equal',
+                value: '123e4567-e89b-12d3-a456-426614174000',
+              },
+              {
+                field: 'title',
+                operator: 'NotContains',
+                value: '[test]',
+              },
+            ],
+          }),
+          search: null,
+          searchExtended: false,
+          segment: null,
+        },
+      );
+
+      expect(getScopeMock).toHaveBeenCalledWith(dataSource.getCollection('books'), context);
     });
 
     test.each([
@@ -294,9 +423,9 @@ describe('ActionRoute', () => {
           route.setupRoutes({
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            post: (path: string, handler: Router.Middleware) => {
+            post: (path: string, middleware: Router.Middleware, handler: Router.Middleware) => {
               if (path === '/_actions/reviews/0/:slug') handleExecute = handler;
-              else handleHook = handler;
+              else handleHook = middleware;
             },
           });
         });

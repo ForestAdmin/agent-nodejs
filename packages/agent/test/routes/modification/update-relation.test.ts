@@ -67,7 +67,7 @@ describe('UpdateRelationRoute', () => {
         });
 
         const scopeCondition = factories.conditionTreeLeaf.build();
-        services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
+        services.authorization.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
         await update.handleUpdateRelationRoute(context);
 
@@ -90,7 +90,7 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:books');
+        expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
       });
 
       test('should change the many-to-one association', async () => {
@@ -109,7 +109,7 @@ describe('UpdateRelationRoute', () => {
         });
 
         const scopeCondition = factories.conditionTreeLeaf.build();
-        services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
+        services.authorization.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
         await update.handleUpdateRelationRoute(context);
 
@@ -132,7 +132,7 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:books');
+        expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
       });
     });
 
@@ -202,7 +202,7 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:owner');
+        expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'owner');
       });
 
       test('should change the one-to-one association', async () => {
@@ -249,7 +249,7 @@ describe('UpdateRelationRoute', () => {
         );
 
         expect(context.response.status).toEqual(HttpCode.NoContent);
-        expect(services.permissions.can).toHaveBeenCalledWith(context, 'edit:owner');
+        expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'owner');
       });
     });
   });

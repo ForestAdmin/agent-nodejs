@@ -131,6 +131,7 @@ export default class SequelizeCollection extends BaseCollection {
       aggregation.operation.toUpperCase(),
       this.col(aggregationField),
     );
+
     const aggregationAttribute: ProjectionAlias = [
       aggregationFunction,
       this.aggregationUtils.aggregateFieldName,

@@ -24,14 +24,14 @@ export default class CsvRelatedRoute extends RelationRoute {
   }
 
   async handleRelatedCsv(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `browse:${this.collection.name}`);
-    await this.services.permissions.can(context, `export:${this.collection.name}`);
+    await this.services.authorization.assertCanBrowse(context, this.collection.name);
+    await this.services.authorization.assertCanExport(context, this.collection.name);
 
     const { header } = context.request.query as Record<string, string>;
     CsvRouteContext.buildResponse(context);
 
     const projection = QueryStringParser.parseProjection(this.foreignCollection, context);
-    const scope = await this.services.permissions.getScope(this.foreignCollection, context);
+    const scope = await this.services.authorization.getScope(this.foreignCollection, context);
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.foreignCollection, context, scope);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);

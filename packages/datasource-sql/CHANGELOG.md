@@ -1,3 +1,5 @@
+## @forestadmin/datasource-sql [1.1.4-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.3...@forestadmin/datasource-sql@1.1.4-alpha.1) (2022-11-03)
+
 ## @forestadmin/datasource-sql [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.2...@forestadmin/datasource-sql@1.1.3) (2022-11-03)
 
 
@@ -7,6 +9,17 @@
 ### Dependencies
 
 * **@forestadmin/datasource-sequelize:** upgraded to 1.1.1
+
+## @forestadmin/datasource-sql [1.1.3-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.2...@forestadmin/datasource-sql@1.1.3-alpha.1) (2022-11-03)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.2.0-alpha.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.1-alpha.1
 
 ## @forestadmin/datasource-sql [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.1...@forestadmin/datasource-sql@1.1.2) (2022-10-27)
 
@@ -36,6 +49,27 @@
 ### Features
 
 * **datasource-sql:** add advanced options on createSqlDataSource ([#495](https://github.com/ForestAdmin/agent-nodejs/issues/495)) ([ce0ef64](https://github.com/ForestAdmin/agent-nodejs/commit/ce0ef643c385f15d4ecf689da1329319e99b6316))
+
+## @forestadmin/datasource-sql [1.0.1-alpha.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.1-alpha.1...@forestadmin/datasource-sql@1.0.1-alpha.2) (2022-11-02)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.1.0-alpha.1
+
+## @forestadmin/datasource-sql [1.0.1-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0...@forestadmin/datasource-sql@1.0.1-alpha.1) (2022-10-14)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.1-alpha.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.1-alpha.1
 
 # @forestadmin/datasource-sql 1.0.0 (2022-10-07)
 
@@ -87,6 +121,17 @@
 * **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.46
 * **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.36
 
+# @forestadmin/datasource-sql [1.0.0-alpha.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-alpha.2...@forestadmin/datasource-sql@1.0.0-alpha.3) (2022-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-alpha.3
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-alpha.3
+
 # @forestadmin/datasource-sql [1.0.0-beta.54](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.53...@forestadmin/datasource-sql@1.0.0-beta.54) (2022-10-05)
 
 
@@ -97,6 +142,56 @@
 
 * **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-beta.45
 * **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-beta.35
+
+# @forestadmin/datasource-sql [1.0.0-alpha.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-alpha.1...@forestadmin/datasource-sql@1.0.0-alpha.2) (2022-09-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-alpha.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-alpha.2
+
+# @forestadmin/datasource-sql 1.0.0-alpha.1 (2022-09-28)
+
+
+### Bug Fixes
+
+* **datasource-sql:** skip models which do not have primary keys ([#393](https://github.com/ForestAdmin/agent-nodejs/issues/393)) ([820fbe9](https://github.com/ForestAdmin/agent-nodejs/commit/820fbe9087ec9977fc998363016ce1728438c8f2))
+* update code and sequelize version to avoid crash ([#374](https://github.com/ForestAdmin/agent-nodejs/issues/374)) ([e003416](https://github.com/ForestAdmin/agent-nodejs/commit/e0034166b86e48781ea099086fd93aa7c68dba03))
+* **datasource sql:** has one detection ([#254](https://github.com/ForestAdmin/agent-nodejs/issues/254)) ([68e68b3](https://github.com/ForestAdmin/agent-nodejs/commit/68e68b33063ba7bbfb9cfc747572f59953b64050))
+* **datasource sql:** throw an user friendly error when the provided connection uri is invalid ([#297](https://github.com/ForestAdmin/agent-nodejs/issues/297)) ([db1ac83](https://github.com/ForestAdmin/agent-nodejs/commit/db1ac83d3ef023c7875e4affbaecdc52de1e5fc3))
+* **patch-package:** remove feature change on sequelize patch ([#356](https://github.com/ForestAdmin/agent-nodejs/issues/356)) ([ac3d7d5](https://github.com/ForestAdmin/agent-nodejs/commit/ac3d7d583c65b392fe668225ebcd9b63729f9f23))
+* correct versions in package.json of all datasources ([540d395](https://github.com/ForestAdmin/agent-nodejs/commit/540d395bc5e42bdd7edb3dce5806ade8554f3d7a))
+* datasource naming consistency ([#292](https://github.com/ForestAdmin/agent-nodejs/issues/292)) ([ff50a1f](https://github.com/ForestAdmin/agent-nodejs/commit/ff50a1f02aa65b3d99824c2bc9fb19d729a4e465))
+* enable npm, git and github distribution ([bd91825](https://github.com/ForestAdmin/agent-nodejs/commit/bd91825f4d185874a259da28b0f7a6c7f557196d))
+* fix semantic release ([3a2fa73](https://github.com/ForestAdmin/agent-nodejs/commit/3a2fa738af84a50b9563db6ac039c922b77f55cc))
+* import packages from js ([#260](https://github.com/ForestAdmin/agent-nodejs/issues/260)) ([de00886](https://github.com/ForestAdmin/agent-nodejs/commit/de008862971ea5d3559e5a4c3136b0dd2161d760))
+* switched from qiwi to dhoulb version of msr ([020c3e0](https://github.com/ForestAdmin/agent-nodejs/commit/020c3e04c64164c3f26aae293989db7842f82e8c))
+
+
+### Features
+
+* **datasource-sql:** allow skipping database introspection ([#434](https://github.com/ForestAdmin/agent-nodejs/issues/434)) ([a5c70d1](https://github.com/ForestAdmin/agent-nodejs/commit/a5c70d113b6c2d28b56ce803be7c1851b99a2db9))
+* harmonize datasource creation and pass logger to it ([#257](https://github.com/ForestAdmin/agent-nodejs/issues/257)) ([82cb4ea](https://github.com/ForestAdmin/agent-nodejs/commit/82cb4ea37ac0a9fe83423d917226dfd8fad7d0a6))
+* **datasource sql:** handle primitive fields and default values ([#215](https://github.com/ForestAdmin/agent-nodejs/issues/215)) ([59a56da](https://github.com/ForestAdmin/agent-nodejs/commit/59a56da2721f39d0487b14d72b11d71b38b83a1f))
+* **datasource sql:** handle relations ([#224](https://github.com/ForestAdmin/agent-nodejs/issues/224)) ([275cf7e](https://github.com/ForestAdmin/agent-nodejs/commit/275cf7ed6835933fce418f92a6a4e2521a9721fe))
+
+
+### Performance Improvements
+
+* **datasource-sql:** query structure, indexes and references in parallel ([#419](https://github.com/ForestAdmin/agent-nodejs/issues/419)) ([f08e48a](https://github.com/ForestAdmin/agent-nodejs/commit/f08e48a948c5f85b37ba85e165299ea44fda9fb6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.0.0-alpha.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.0-alpha.1
 
 # @forestadmin/datasource-sql [1.0.0-beta.53](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.0.0-beta.52...@forestadmin/datasource-sql@1.0.0-beta.53) (2022-09-27)
 

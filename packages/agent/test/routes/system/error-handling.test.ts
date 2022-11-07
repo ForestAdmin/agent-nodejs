@@ -10,6 +10,17 @@ import ErrorHandling from '../../../src/routes/system/error-handling';
 import { HttpCode } from '../../../src/types';
 import * as factories from '../../__factories__';
 
+class FakePayloadError extends ForbiddenError {
+  private readonly data: { property: string };
+
+  constructor(...args) {
+    super(...args);
+
+    this.data = {
+      property: 'value',
+    };
+  }
+}
 describe('ErrorHandling', () => {
   const router = factories.router.mockAllMethods().build();
   const services = factories.forestAdminHttpDriverServices.build();
@@ -64,7 +75,9 @@ describe('ErrorHandling', () => {
       await handleError.call(route, context, next);
 
       expect(context.response.status).toStrictEqual(HttpCode.BadRequest);
-      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'hello' }] });
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'hello', name: 'ValidationError', status: 400 }],
+      });
       expect(console.error).not.toHaveBeenCalled();
     });
 
@@ -75,7 +88,9 @@ describe('ErrorHandling', () => {
       await handleError.call(route, context, next);
 
       expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
-      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'forbidden' }] });
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'forbidden', name: 'ForbiddenError', status: 403 }],
+      });
       expect(console.error).not.toHaveBeenCalled();
     });
 
@@ -86,7 +101,9 @@ describe('ErrorHandling', () => {
       await handleError.call(route, context, next);
 
       expect(context.response.status).toStrictEqual(HttpCode.Unprocessable);
-      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'unprocessable' }] });
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'unprocessable', name: 'UnprocessableError', status: 422 }],
+      });
       expect(console.error).not.toHaveBeenCalled();
     });
 
@@ -97,7 +114,9 @@ describe('ErrorHandling', () => {
       await handleError.call(route, context, next);
 
       expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
-      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'Unexpected error' }] });
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],
+      });
       expect(console.error).not.toHaveBeenCalled();
     });
 
@@ -108,7 +127,33 @@ describe('ErrorHandling', () => {
       await handleError.call(route, context, next);
 
       expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
-      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'My Custom Error' }] });
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'My Custom Error', name: 'Error', status: 500 }],
+      });
+    });
+
+    describe('with an error that supports data (payload)', () => {
+      test('it should add data to the body', async () => {
+        const context = createMockContext();
+        const next = jest.fn().mockRejectedValue(new FakePayloadError('message'));
+
+        await handleError.call(route, context, next);
+
+        expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
+        expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
+        expect(context.response.body).toStrictEqual({
+          errors: [
+            {
+              detail: 'message',
+              name: 'FakePayloadError',
+              status: 403,
+              data: {
+                property: 'value',
+              },
+            },
+          ],
+        });
+      });
     });
   });
 
@@ -137,7 +182,9 @@ describe('ErrorHandling', () => {
 
       expect(console.error).toHaveBeenCalled();
       expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
-      expect(context.response.body).toStrictEqual({ errors: [{ detail: 'Unexpected error' }] });
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],
+      });
     });
   });
 });

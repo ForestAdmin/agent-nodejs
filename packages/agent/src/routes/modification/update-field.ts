@@ -22,7 +22,7 @@ export default class UpdateField extends CollectionRoute {
   }
 
   public async handleUpdate(context: Context): Promise<void> {
-    await this.services.permissions.can(context, `edit:${this.collection.name}`);
+    await this.services.authorization.assertCanEdit(context, this.collection.name);
 
     const { field, index, id } = context.params;
     const subRecord = context.request.body?.data?.attributes;
@@ -35,7 +35,7 @@ export default class UpdateField extends CollectionRoute {
     const unpackedId = IdUtils.unpackId(this.collection.schema, id);
     const conditionTree = ConditionTreeFactory.intersect(
       ConditionTreeFactory.matchIds(this.collection.schema, [unpackedId]),
-      await this.services.permissions.getScope(this.collection, context),
+      await this.services.authorization.getScope(this.collection, context),
     );
 
     const caller = QueryStringParser.parseCaller(context);

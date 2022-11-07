@@ -62,7 +62,7 @@ describe('CsvRoute', () => {
       const csvRoute = new CsvRoute(services, options, dataSource, 'books');
 
       const scopeCondition = factories.conditionTreeLeaf.build();
-      services.permissions.getScope = jest.fn().mockResolvedValue(scopeCondition);
+      services.authorization.getScope = jest.fn().mockResolvedValue(scopeCondition);
 
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -84,8 +84,8 @@ describe('CsvRoute', () => {
       await csvRoute.handleCsv(context);
 
       // then
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'browse:books');
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'export:books');
+      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
+      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'books');
 
       expect(buildPaginated).toHaveBeenCalledWith(booksCollection, context, scopeCondition);
 
