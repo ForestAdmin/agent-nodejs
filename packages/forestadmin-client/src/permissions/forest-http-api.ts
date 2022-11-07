@@ -70,11 +70,6 @@ export default class ForestHttpApi {
           'Forest is in maintenance for a few minutes. We are upgrading your experience in ' +
             'the forest. We just need a few more minutes to get it right.',
         );
-
-      throw new Error(
-        'An unexpected error occurred while contacting the ForestAdmin server. ' +
-          'Please contact support@forestadmin.com for further investigations.',
-      );
     }
 
     throw e;
