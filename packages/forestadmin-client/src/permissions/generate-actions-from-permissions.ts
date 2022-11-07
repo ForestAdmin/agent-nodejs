@@ -98,11 +98,7 @@ function getUsersForRoles(roles: number[], userIdsByRole: Map<number, number[]>)
     roles.reduce((acc, roleId) => {
       const userIds = (userIdsByRole.get(roleId) || []).map(userId => `${userId}`);
 
-      if (userIds) {
-        return [...acc, ...userIds];
-      }
-
-      return acc;
+      return [...acc, ...userIds];
     }, []),
   );
 }
