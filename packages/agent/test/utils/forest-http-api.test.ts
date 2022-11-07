@@ -247,5 +247,13 @@ describe('ForestHttpApi', () => {
       superagentMock.set.mockRejectedValue(new Error('i am unexpected'));
       await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow('i am unexpected');
     });
+
+    test('should throw an error with an unmanaged status', async () => {
+      superagentMock.set.mockRejectedValue({ response: { status: 418 } });
+
+      await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(
+        /An unexpected error occurred while contacting the ForestAdmin server./,
+      );
+    });
   });
 });
