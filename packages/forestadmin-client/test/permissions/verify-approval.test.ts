@@ -1,3 +1,5 @@
+import jsonwebtoken from 'jsonwebtoken';
+
 import JTWTokenExpiredError from '../../src/permissions/errors/jwt-token-expired-error';
 import JTWUnableToVerifyError from '../../src/permissions/errors/jwt-unable-to-verify-error';
 import verifyAndExtractApproval from '../../src/permissions/verify-approval';
@@ -20,23 +22,41 @@ const EXPIRED_TOKEN =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7ImlkIjoiZm9yZXN0LXRlc3Qtb2sifSwiZXhwIjoxNTE2MjM5MDIyfQ.7t9zLeE_wffl6j6cb6EbAQj02eYDZ1IQ5fPJeT1sNzo';
 
 describe('verifyAndExtractApproval', () => {
-  describe('invalid approval request token', () => {
-    it('should throw a JTWUnableToVerifyError error', () => {
-      expect(() => verifyAndExtractApproval('token', 'privateKey')).toThrow(JTWUnableToVerifyError);
+  describe('in case of an error', () => {
+    describe('invalid approval request token', () => {
+      it('should throw a JTWUnableToVerifyError error', () => {
+        expect(() => verifyAndExtractApproval('token', 'privateKey')).toThrow(
+          JTWUnableToVerifyError,
+        );
+      });
     });
-  });
 
-  describe('invalid secretKey', () => {
-    it('should throw a JTWUnableToVerifyError error', () => {
-      expect(() => verifyAndExtractApproval(TOKEN, 'privateKey')).toThrow(JTWUnableToVerifyError);
+    describe('invalid secretKey', () => {
+      it('should throw a JTWUnableToVerifyError error', () => {
+        expect(() => verifyAndExtractApproval(TOKEN, 'privateKey')).toThrow(JTWUnableToVerifyError);
+      });
     });
-  });
 
-  describe('expired token', () => {
-    it('should throw a JTWTokenExpiredError error', () => {
-      expect(() => verifyAndExtractApproval(EXPIRED_TOKEN, 'my-secret')).toThrow(
-        JTWTokenExpiredError,
-      );
+    describe('expired token', () => {
+      it('should throw a JTWTokenExpiredError error', () => {
+        expect(() => verifyAndExtractApproval(EXPIRED_TOKEN, 'my-secret')).toThrow(
+          JTWTokenExpiredError,
+        );
+      });
+    });
+
+    describe('with unknown errors', () => {
+      it('should rethrow unknown errors', () => {
+        const mock = jest.spyOn(jsonwebtoken, 'verify').mockImplementation(() => {
+          throw new Error('Unknown error');
+        });
+
+        try {
+          expect(() => verifyAndExtractApproval(TOKEN, 'my-secret')).toThrow('Unknown error');
+        } finally {
+          mock.mockRestore();
+        }
+      });
     });
   });
 
