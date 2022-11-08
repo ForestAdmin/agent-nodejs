@@ -2,6 +2,7 @@ import type { ChartRequest } from './charts/chart-handler';
 import type { Chart, QueryChart } from './charts/types';
 import type { CollectionActionEvent, RawTree } from './permissions/types';
 
+import { IpWhitelistConfiguration } from './ip-whitelist/types';
 import ContextVariables, { RequestContextVariables } from './utils/context-variables';
 
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
@@ -23,11 +24,14 @@ export interface ForestAdminClient {
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
+  getIpWhitelistConfiguration(): Promise<IpWhitelistConfiguration>;
+
   getScope(params: {
     renderingId: number | string;
     userId: number | string;
     collectionName: string;
   }): Promise<RawTree>;
+
   markScopesAsUpdated(renderingId: number | string): void;
 }
 
