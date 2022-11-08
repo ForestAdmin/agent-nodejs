@@ -2,7 +2,7 @@ import defaultLogger from '../../src/utils/default-logger';
 
 describe('defaultLogger', () => {
   it.each(['Debug', 'INFO', 'Warn', 'ERROR'])('should log at the right level', level => {
-    const logger = jest.spyOn(console, level.toLowerCase() as any).mockImplementation();
+    const logger = jest.spyOn(console, level.toLowerCase() as 'info').mockImplementation();
     defaultLogger(level, 'foo');
     expect(logger).toHaveBeenCalledWith('foo');
     logger.mockRestore();

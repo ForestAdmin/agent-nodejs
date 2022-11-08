@@ -26,7 +26,6 @@
     "test": "jest"
   },
   "devDependencies": {
-    "fishery": "^2.1.0",
     "sequelize": "6.21.3"
   },
   "peerDependencies": {

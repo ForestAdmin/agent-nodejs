@@ -42,8 +42,6 @@
     "db:seed": "ts-node scripts/db-seed.ts"
   },
   "devDependencies": {
-    "fishery": "^2.1.0",
-    "nock": "^13.2.2",
     "nodemon": "^2.0.15"
   }
 }
