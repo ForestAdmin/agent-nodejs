@@ -2,7 +2,7 @@
 
 import { Filter, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
-import { Connection, Types } from 'mongoose';
+import { Connection, Schema, Types } from 'mongoose';
 
 import MongooseDatasource from '../../src/datasource';
 import { setupReview, setupWith2ManyToManyRelations } from '../_helpers';
@@ -122,5 +122,37 @@ describe('MongooseCollection > update', () => {
       new Projection('_pid', 'content'),
     );
     expect(expectedOwnerStore).toEqual([{ _pid: ownerRecordA._id, content: storeRecordB._id }]);
+  });
+
+  describe('when update only one record', () => {
+    it('should call updateOne hook', async () => {
+      connection = await setupReview('collection_update');
+
+      const modelSchema = new Schema({
+        prop: { type: String },
+      });
+      const spy = jest.fn();
+      modelSchema.pre('updateOne', spy);
+      connection.model('aModel', modelSchema);
+
+      const dataSource = new MongooseDatasource(connection);
+      const aModel = dataSource.getCollection('aModel');
+      const record = { _id: new Types.ObjectId(), prop: 'a old prop' };
+      await aModel.create(factories.caller.build(), [record]);
+
+      const filter = factories.filter.build({
+        conditionTree: factories.conditionTreeLeaf.build({
+          field: '_id',
+          value: record._id,
+          operator: 'Equal',
+        }),
+      });
+
+      // when
+      await aModel.update(factories.caller.build(), filter, { prop: 'new prop' });
+
+      // then
+      expect(spy).toHaveBeenCalled();
+    });
   });
 });
