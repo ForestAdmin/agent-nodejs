@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import { Factory } from 'fishery';
 
-import Collection from '../../src/implementations/collection/collection';
+import Collection from '../../src/collection';
 import { ActionField } from '../../src/interfaces/action';
 import { ActionSchema } from '../../src/interfaces/schema';
 import collectionSchemaFactory from './schema/collection-schema';

@@ -1,6 +1,6 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
-import Collection from '../../../implementations/collection/collection';
+import Collection from '../../../collection';
 import { Caller } from '../../caller';
 import { CompositeId } from '../../record';
 import { ManyToManySchema } from '../../schema';

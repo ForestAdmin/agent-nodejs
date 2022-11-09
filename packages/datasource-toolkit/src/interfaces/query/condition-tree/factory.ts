@@ -1,4 +1,4 @@
-import CollectionSchema from '../../../implementations/collection/collection-schema';
+import CollectionSchema from '../../../collection-schema';
 import RecordUtils from '../../../utils/record';
 import { CompositeId, RecordData } from '../../record';
 import { ColumnSchema } from '../../schema';

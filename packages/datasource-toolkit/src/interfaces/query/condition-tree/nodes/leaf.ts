@@ -1,4 +1,4 @@
-import Collection from '../../../../implementations/collection/collection';
+import Collection from '../../../../collection';
 import RecordUtils from '../../../../utils/record';
 import { RecordData } from '../../../record';
 import { ColumnSchema } from '../../../schema';

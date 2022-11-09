@@ -1,5 +1,5 @@
+import Collection from '../collection';
 import { ValidationError } from '../errors';
-import Collection from '../implementations/collection/collection';
 import { RecordData } from '../interfaces/record';
 import FieldValidator from './field';
 

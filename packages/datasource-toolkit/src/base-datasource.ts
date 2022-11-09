@@ -1,7 +1,7 @@
-import { Caller } from '../../interfaces/caller';
-import { Chart } from '../../interfaces/chart';
-import { DataSourceSchema } from '../../interfaces/schema';
-import Collection from '../collection/collection';
+import Collection from './collection';
+import { Caller } from './interfaces/caller';
+import { Chart } from './interfaces/chart';
+import { DataSourceSchema } from './interfaces/schema';
 
 export default class BaseDataSource<T extends Collection = Collection> {
   protected _collections: { [collectionName: string]: T } = {};

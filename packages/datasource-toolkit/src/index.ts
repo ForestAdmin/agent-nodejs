@@ -4,11 +4,11 @@ export * from './factory';
 export { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE as allowedOperatorsForColumnType } from './validation/rules';
 
 // Base Collection & DataSource
-export { default as Collection } from './implementations/collection/collection';
-export { default as CollectionSchema } from './implementations/collection/collection-schema';
-export { default as DataSource } from './implementations/datasource/datasource';
-export { default as BaseCollection } from './implementations/collection/base-collection';
-export { default as BaseDataSource } from './implementations/datasource/base-datasource';
+export { default as BaseCollection } from './base-collection';
+export { default as BaseDataSource } from './base-datasource';
+export { default as Collection } from './collection';
+export { default as CollectionSchema } from './collection-schema';
+export { default as DataSource } from './datasource';
 
 // Query Interface
 export { default as Aggregation } from './interfaces/query/aggregation';

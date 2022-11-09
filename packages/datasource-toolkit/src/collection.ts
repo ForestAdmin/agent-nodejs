@@ -1,16 +1,16 @@
-import { ActionField, ActionResult } from '../../interfaces/action';
-import { Caller } from '../../interfaces/caller';
-import { Chart } from '../../interfaces/chart';
-import Aggregation, { AggregateResult } from '../../interfaces/query/aggregation';
-import ConditionTreeFactory from '../../interfaces/query/condition-tree/factory';
-import FilterFactory from '../../interfaces/query/filter/factory';
-import PaginatedFilter from '../../interfaces/query/filter/paginated';
-import Filter from '../../interfaces/query/filter/unpaginated';
-import Projection from '../../interfaces/query/projection';
-import { CompositeId, RecordData } from '../../interfaces/record';
-import { FieldSchema, RelationSchema } from '../../interfaces/schema';
-import DataSource from '../datasource/datasource';
 import CollectionSchema from './collection-schema';
+import DataSource from './datasource';
+import { ActionField, ActionResult } from './interfaces/action';
+import { Caller } from './interfaces/caller';
+import { Chart } from './interfaces/chart';
+import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
+import ConditionTreeFactory from './interfaces/query/condition-tree/factory';
+import FilterFactory from './interfaces/query/filter/factory';
+import PaginatedFilter from './interfaces/query/filter/paginated';
+import Filter from './interfaces/query/filter/unpaginated';
+import Projection from './interfaces/query/projection';
+import { CompositeId, RecordData } from './interfaces/record';
+import { FieldSchema, RelationSchema } from './interfaces/schema';
 
 export default abstract class Collection {
   abstract get dataSource(): DataSource;

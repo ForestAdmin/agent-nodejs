@@ -1,7 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import { Factory } from 'fishery';
 
-import CollectionSchema from '../../../src/implementations/collection/collection-schema';
+import CollectionSchema from '../../../src/collection-schema';
 
 export class CollectionSchemaFactory extends Factory<CollectionSchema> {
   unsearchable(): CollectionSchemaFactory {

@@ -1,9 +1,4 @@
-import {
-  ActionSchema,
-  FieldSchema,
-  ManyToManySchema,
-  OneToManySchema,
-} from '../../interfaces/schema';
+import { ActionSchema, FieldSchema, ManyToManySchema, OneToManySchema } from './interfaces/schema';
 
 export default class CollectionSchema {
   actions: { [actionName: string]: ActionSchema } = {};

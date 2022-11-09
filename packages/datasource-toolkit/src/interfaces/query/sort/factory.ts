@@ -1,5 +1,5 @@
 import Sort from '.';
-import Collection from '../../../implementations/collection/collection';
+import Collection from '../../../collection';
 
 export default class SortFactory {
   static byPrimaryKeys(collection: Collection): Sort {

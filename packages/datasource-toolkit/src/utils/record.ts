@@ -1,4 +1,4 @@
-import CollectionSchema from '../implementations/collection/collection-schema';
+import CollectionSchema from '../collection-schema';
 import { CompositeId, RecordData } from '../interfaces/record';
 
 export default class RecordUtils {

@@ -1,7 +1,7 @@
-import { Caller } from '../../interfaces/caller';
-import { Chart } from '../../interfaces/chart';
-import { DataSourceSchema } from '../../interfaces/schema';
-import Collection from '../collection/collection';
+import Collection from './collection';
+import { Caller } from './interfaces/caller';
+import { Chart } from './interfaces/chart';
+import { DataSourceSchema } from './interfaces/schema';
 
 export default interface DataSource {
   get collections(): Collection[];

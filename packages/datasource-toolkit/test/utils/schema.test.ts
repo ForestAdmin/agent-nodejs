@@ -1,4 +1,3 @@
-import SchemaUtils from '../../src/utils/schema';
 import * as factories from '../__factories__';
 
 describe('SchemaUtils', () => {
@@ -12,11 +11,11 @@ describe('SchemaUtils', () => {
     });
 
     test('should return true when it is a pk', () => {
-      expect(SchemaUtils.isPrimaryKey(schema, 'id')).toBe(true);
+      expect(schema.isPrimaryKey('id')).toBe(true);
     });
 
     test('should return false when it is not a pk', () => {
-      expect(SchemaUtils.isPrimaryKey(schema, 'notId')).toBe(false);
+      expect(schema.isPrimaryKey('notId')).toBe(false);
     });
   });
 
@@ -30,9 +29,7 @@ describe('SchemaUtils', () => {
     });
 
     test('should find the pks', () => {
-      const result = SchemaUtils.getPrimaryKeys(schema);
-
-      expect(result).toStrictEqual(['id', 'otherId']);
+      expect(schema.primaryKeys).toStrictEqual(['id', 'otherId']);
     });
   });
 
@@ -61,25 +58,25 @@ describe('SchemaUtils', () => {
     });
 
     test('id is a fk', () => {
-      const result = SchemaUtils.isForeignKey(schema, 'id');
+      const result = schema.isForeignKey('id');
 
       expect(result).toBe(true);
     });
 
     test('bookId is a fk', () => {
-      const result = SchemaUtils.isForeignKey(schema, 'bookId');
+      const result = schema.isForeignKey('bookId');
 
       expect(result).toBe(true);
     });
 
     test('name is not a fk', () => {
-      const result = SchemaUtils.isForeignKey(schema, 'name');
+      const result = schema.isForeignKey('name');
 
       expect(result).toBe(false);
     });
 
     test('book is not a fk', () => {
-      const result = SchemaUtils.isForeignKey(schema, 'book');
+      const result = schema.isForeignKey('book');
 
       expect(result).toBe(false);
     });
@@ -93,9 +90,7 @@ describe('SchemaUtils', () => {
         },
       });
 
-      expect(SchemaUtils.getToManyRelation(schema, 'field')).toEqual(
-        factories.manyToManySchema.build(),
-      );
+      expect(schema.getToManyRelation('field')).toEqual(factories.manyToManySchema.build());
     });
 
     test('should returns the relation when the relation is a one to many', () => {
@@ -105,9 +100,7 @@ describe('SchemaUtils', () => {
         },
       });
 
-      expect(SchemaUtils.getToManyRelation(schema, 'field')).toEqual(
-        factories.oneToManySchema.build(),
-      );
+      expect(schema.getToManyRelation('field')).toEqual(factories.oneToManySchema.build());
     });
 
     test('should throw an error when the relation is not expected', () => {
@@ -117,7 +110,7 @@ describe('SchemaUtils', () => {
         },
       });
 
-      expect(() => SchemaUtils.getToManyRelation(schema, 'field')).toThrow(
+      expect(() => schema.getToManyRelation('field')).toThrow(
         'Relation field has invalid type should be one of OneToMany or ManyToMany.',
       );
     });
@@ -125,7 +118,7 @@ describe('SchemaUtils', () => {
     test('should throw an error when the relation is not inside model', () => {
       const schema = factories.collectionSchema.build({});
 
-      expect(() => SchemaUtils.getToManyRelation(schema, 'anUnknownRelation')).toThrow(
+      expect(() => schema.getToManyRelation('anUnknownRelation')).toThrow(
         `Relation 'anUnknownRelation' not found`,
       );
     });

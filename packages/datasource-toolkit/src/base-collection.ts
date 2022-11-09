@@ -1,10 +1,10 @@
-import { ActionField, ActionResult } from '../../interfaces/action';
-import { Caller } from '../../interfaces/caller';
-import { Chart } from '../../interfaces/chart';
-import { ActionSchema, FieldSchema } from '../../interfaces/schema';
-import DataSource from '../datasource/datasource';
 import Collection from './collection';
 import CollectionSchema from './collection-schema';
+import DataSource from './datasource';
+import { ActionField, ActionResult } from './interfaces/action';
+import { Caller } from './interfaces/caller';
+import { Chart } from './interfaces/chart';
+import { ActionSchema, FieldSchema } from './interfaces/schema';
 
 export default abstract class BaseCollection extends Collection {
   readonly dataSource: DataSource;

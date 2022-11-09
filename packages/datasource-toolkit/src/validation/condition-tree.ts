@@ -1,5 +1,5 @@
+import Collection from '../collection';
 import { ValidationError } from '../errors';
-import Collection from '../implementations/collection/collection';
 import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeBranch from '../interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeLeaf from '../interfaces/query/condition-tree/nodes/leaf';
