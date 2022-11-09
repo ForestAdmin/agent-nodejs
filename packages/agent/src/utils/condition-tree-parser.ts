@@ -1,7 +1,6 @@
 import {
   Aggregator,
   Collection,
-  CollectionUtils,
   ColumnSchema,
   ColumnType,
   ConditionTree,
@@ -44,7 +43,7 @@ export default class ConditionTreeParser {
   }
 
   private static parseValue(collection: Collection, leaf: PlainConditionTreeLeaf): unknown {
-    const schema = CollectionUtils.getFieldSchema(collection, leaf.field) as ColumnSchema;
+    const schema = collection.getFieldSchema(leaf.field) as ColumnSchema;
     const expectedType = this.getExpectedTypeForCondition(leaf, schema);
 
     return this.castToType(leaf.value, expectedType);

@@ -1,7 +1,6 @@
 import {
   Caller,
   CollectionSchema,
-  CollectionUtils,
   ColumnSchema,
   ConditionTreeEquivalent,
   FieldSchema,
@@ -34,7 +33,7 @@ export default class OperatorsDecorator extends CollectionDecorator {
       }
     }
 
-    return { ...childSchema, fields };
+    return Object.assign(new CollectionSchema(), { ...childSchema, fields });
   }
 
   protected override async refineFilter(
@@ -43,10 +42,7 @@ export default class OperatorsDecorator extends CollectionDecorator {
   ): Promise<PaginatedFilter> {
     return filter?.override({
       conditionTree: filter.conditionTree?.replaceLeafs(leaf => {
-        const schema = CollectionUtils.getFieldSchema(
-          this.childCollection,
-          leaf.field,
-        ) as ColumnSchema;
+        const schema = this.childCollection.getFieldSchema(leaf.field) as ColumnSchema;
 
         return ConditionTreeEquivalent.getEquivalentTree(
           leaf,

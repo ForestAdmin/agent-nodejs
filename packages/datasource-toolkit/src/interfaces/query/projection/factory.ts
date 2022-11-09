@@ -1,5 +1,5 @@
 import Projection from '.';
-import { Collection } from '../../collection';
+import Collection from '../../../implementations/collection/collection';
 
 export default class ProjectionFactory {
   static all(collection: Collection): Projection {

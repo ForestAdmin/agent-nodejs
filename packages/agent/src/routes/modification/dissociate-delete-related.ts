@@ -6,7 +6,6 @@ import {
   FilterFactory,
   ManyToManySchema,
   OneToManySchema,
-  SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
@@ -37,7 +36,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     const filter = await this.getBaseForeignFilter(context);
 
     // Dissociating a one to many or many many is quite a different job => delegate
-    const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
+    const relation = this.collection.schema.getToManyRelation(this.relationName);
 
     if (relation.type === 'OneToMany') {
       await this.dissociateOrDeleteOneToMany(caller, relation, parentId, isDeleteMode, filter);

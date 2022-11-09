@@ -1,6 +1,5 @@
 import {
   Collection,
-  CollectionUtils,
   ColumnSchema,
   ColumnType,
   FieldTypes,
@@ -10,7 +9,6 @@ import {
   OneToOneSchema,
   PrimitiveTypes,
   RelationSchema,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
 import FrontendFilterableUtils from './filterable';
@@ -57,7 +55,7 @@ export default class SchemaGeneratorFields {
 
   private static buildColumnSchema(collection: Collection, name: string): ForestServerField {
     const column = collection.schema.fields[name] as ColumnSchema;
-    const isForeignKey = SchemaUtils.isForeignKey(collection.schema, name);
+    const isForeignKey = collection.schema.isForeignKey(name);
 
     return {
       defaultValue: column.defaultValue ?? null,
@@ -201,7 +199,7 @@ export default class SchemaGeneratorFields {
       enums: null,
       integration: null,
       isVirtual: false,
-      inverseOf: CollectionUtils.getInverseRelation(collection, name),
+      inverseOf: collection.getInverseRelation(name),
       relationship: SchemaGeneratorFields.relationMap[relation.type],
     };
 

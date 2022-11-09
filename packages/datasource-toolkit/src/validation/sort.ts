@@ -1,5 +1,5 @@
 import { ValidationError } from '../errors';
-import { Collection } from '../interfaces/collection';
+import Collection from '../implementations/collection/collection';
 import { PlainSortClause } from '../interfaces/query/sort';
 import FieldValidator from './field';
 

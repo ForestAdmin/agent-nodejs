@@ -23,7 +23,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   }
 
   public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    return { ...subSchema, searchable: true };
+    return Object.assign(new CollectionSchema(), { ...subSchema, searchable: true });
   }
 
   public override async refineFilter(

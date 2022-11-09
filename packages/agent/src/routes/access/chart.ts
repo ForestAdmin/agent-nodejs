@@ -1,7 +1,6 @@
 import {
   Aggregation,
   Caller,
-  CollectionUtils,
   ConditionTreeBranch,
   ConditionTreeFactory,
   ConditionTreeLeaf,
@@ -194,10 +193,7 @@ export default class ChartRoute extends CollectionRoute {
     let aggregation: Aggregation;
 
     if (field?.type === 'OneToMany') {
-      const inverse = CollectionUtils.getInverseRelation(
-        this.collection,
-        body.relationshipFieldName,
-      );
+      const inverse = this.collection.getInverseRelation(body.relationshipFieldName);
 
       if (inverse) {
         collection = field.foreignCollection;
@@ -211,8 +207,8 @@ export default class ChartRoute extends CollectionRoute {
     }
 
     if (field?.type === 'ManyToMany') {
-      const origin = CollectionUtils.getThroughOrigin(this.collection, body.relationshipFieldName);
-      const target = CollectionUtils.getThroughTarget(this.collection, body.relationshipFieldName);
+      const origin = this.collection.getThroughOrigin(body.relationshipFieldName);
+      const target = this.collection.getThroughTarget(body.relationshipFieldName);
 
       if (origin && target) {
         collection = field.throughCollection;

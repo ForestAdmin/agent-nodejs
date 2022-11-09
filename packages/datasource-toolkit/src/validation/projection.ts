@@ -1,4 +1,4 @@
-import { Collection } from '../interfaces/collection';
+import Collection from '../implementations/collection/collection';
 import FieldValidator from './field';
 
 export default class ProjectionValidator {

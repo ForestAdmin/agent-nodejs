@@ -5,7 +5,6 @@ import {
   ColumnSchema,
   DataSource,
   PrimitiveTypes,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import path from 'path';
 
@@ -72,7 +71,7 @@ export default class SchemaGeneratorActions {
 
     if (type === 'Collection') {
       const collection = dataSource.getCollection(field.collectionName);
-      const [pk] = SchemaUtils.getPrimaryKeys(collection.schema);
+      const [pk] = collection.schema.primaryKeys;
       const pkSchema = collection.schema.fields[pk] as ColumnSchema;
 
       output.type = pkSchema.columnType;

@@ -1,9 +1,4 @@
-import {
-  Collection,
-  CollectionSchema,
-  RecordData,
-  SchemaUtils,
-} from '@forestadmin/datasource-toolkit';
+import { Collection, CollectionSchema, RecordData } from '@forestadmin/datasource-toolkit';
 import JsonApiSerializer from 'json-api-serializer';
 import path from 'path';
 
@@ -89,8 +84,8 @@ export default class Serializer {
 
         if (data.forestId) {
           const parts = IdUtils.unpackId(collection.schema, data.forestId as string);
-          const primaryKeys = SchemaUtils.getPrimaryKeys(collection.schema);
-          primaryKeys.forEach((field, index) => {
+
+          collection.schema.primaryKeys.forEach((field, index) => {
             copy[field] = parts[index];
           });
         }

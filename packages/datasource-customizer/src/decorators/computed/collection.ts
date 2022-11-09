@@ -80,7 +80,10 @@ export default class ComputedCollection extends CollectionDecorator {
   }
 
   protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
-    const schema = { ...childSchema, fields: { ...childSchema.fields } };
+    const schema = Object.assign(new CollectionSchema(), {
+      ...childSchema,
+      fields: { ...childSchema.fields },
+    });
 
     for (const [name, computed] of Object.entries(this.computeds)) {
       schema.fields[name] = {

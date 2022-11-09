@@ -1,10 +1,4 @@
-import {
-  Caller,
-  CollectionSchema,
-  FieldSchema,
-  RecordData,
-  SchemaUtils,
-} from '@forestadmin/datasource-toolkit';
+import { Caller, CollectionSchema, FieldSchema, RecordData } from '@forestadmin/datasource-toolkit';
 
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
@@ -22,7 +16,7 @@ export default class PublicationFieldCollectionDecorator extends CollectionDecor
       throw new Error(`No such field '${name}'`);
     }
 
-    if (SchemaUtils.isPrimaryKey(this.childCollection.schema, name)) {
+    if (this.childCollection.schema.isPrimaryKey(name)) {
       throw new Error(`Cannot hide primary key`);
     }
 
@@ -52,7 +46,7 @@ export default class PublicationFieldCollectionDecorator extends CollectionDecor
       }
     }
 
-    return { ...childSchema, fields };
+    return Object.assign(new CollectionSchema(), { ...childSchema, fields });
   }
 
   private isPublished(name: string): boolean {

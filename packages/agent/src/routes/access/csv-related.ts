@@ -1,9 +1,4 @@
-import {
-  Caller,
-  CollectionUtils,
-  PaginatedFilter,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
+import { Caller, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import { Readable } from 'stream';
@@ -43,7 +38,7 @@ export default class CsvRelatedRoute extends RelationRoute {
       filter,
       this.foreignCollection,
       async (cal: Caller, fil: PaginatedFilter, proj: Projection) =>
-        CollectionUtils.listRelation(this.collection, parentId, this.relationName, cal, fil, proj),
+        this.collection.listRelation(parentId, this.relationName, cal, fil, proj),
     );
     context.response.body = Readable.from(gen);
   }

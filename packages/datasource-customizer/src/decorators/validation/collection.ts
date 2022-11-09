@@ -44,7 +44,10 @@ export default class ValidationDecorator extends CollectionDecorator {
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    const schema = { ...subSchema, fields: { ...subSchema.fields } };
+    const schema = Object.assign(new CollectionSchema(), {
+      ...subSchema,
+      fields: { ...subSchema.fields },
+    });
 
     for (const [name, rules] of Object.entries(this.validation)) {
       const field = { ...schema.fields[name] } as ColumnSchema;

@@ -1,5 +1,4 @@
-import SchemaUtils from '../../../utils/schema';
-import { Collection } from '../../collection';
+import Collection from '../../../implementations/collection/collection';
 import { RecordData } from '../../record';
 import { RelationSchema } from '../../schema';
 
@@ -45,7 +44,7 @@ export default class Projection extends Array<string> {
   withPks(collection: Collection): Projection {
     const result = new Projection(...this);
 
-    for (const pk of SchemaUtils.getPrimaryKeys(collection.schema)) {
+    for (const pk of collection.schema.primaryKeys) {
       if (!result.includes(pk)) result.push(pk);
     }
 

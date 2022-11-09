@@ -1,4 +1,4 @@
-import { Aggregation, CollectionUtils } from '@forestadmin/datasource-toolkit';
+import { Aggregation } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 
@@ -24,8 +24,7 @@ export default class CountRelatedRoute extends RelationRoute {
       const caller = QueryStringParser.parseCaller(context);
       const filter = ContextFilterFactory.build(this.foreignCollection, context, scope);
 
-      const aggregationResult = await CollectionUtils.aggregateRelation(
-        this.collection,
+      const aggregationResult = await this.collection.aggregateRelation(
         parentId,
         this.relationName,
         caller,

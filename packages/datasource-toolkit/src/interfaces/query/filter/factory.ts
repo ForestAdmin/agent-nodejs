@@ -1,9 +1,7 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
-import CollectionUtils from '../../../utils/collection';
-import SchemaUtils from '../../../utils/schema';
+import Collection from '../../../implementations/collection/collection';
 import { Caller } from '../../caller';
-import { Collection } from '../../collection';
 import { CompositeId } from '../../record';
 import { ManyToManySchema } from '../../schema';
 import ConditionTreeFactory from '../condition-tree/factory';
@@ -103,13 +101,8 @@ export default class FilterFactory {
     baseForeignFilter: PaginatedFilter,
   ): Promise<PaginatedFilter> {
     const relation = collection.schema.fields[relationName] as ManyToManySchema;
-    const originValue = await CollectionUtils.getValue(
-      collection,
-      caller,
-      id,
-      relation.originKeyTarget,
-    );
-    const foreignRelation = CollectionUtils.getThroughTarget(collection, relationName);
+    const originValue = await collection.getValue(caller, id, relation.originKeyTarget);
+    const foreignRelation = collection.getThroughTarget(relationName);
 
     // Optimization for many to many when there is not search/segment (saves one query)
     if (foreignRelation && baseForeignFilter.isNestable) {
@@ -166,13 +159,8 @@ export default class FilterFactory {
     caller: Caller,
     baseForeignFilter: PaginatedFilter,
   ): Promise<Filter> {
-    const relation = SchemaUtils.getToManyRelation(collection.schema, relationName);
-    const originValue = await CollectionUtils.getValue(
-      collection,
-      caller,
-      id,
-      relation.originKeyTarget,
-    );
+    const relation = collection.schema.getToManyRelation(relationName);
+    const originValue = await collection.getValue(caller, id, relation.originKeyTarget);
 
     // Compute condition tree to match parent record.
     let originTree: ConditionTree;

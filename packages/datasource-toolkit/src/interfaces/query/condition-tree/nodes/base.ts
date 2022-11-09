@@ -1,4 +1,4 @@
-import { Collection } from '../../../collection';
+import Collection from '../../../../implementations/collection/collection';
 import { RecordData } from '../../../record';
 import Projection from '../../projection';
 import { PlainConditionTreeBranch } from './branch';

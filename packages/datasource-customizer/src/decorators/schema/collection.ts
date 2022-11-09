@@ -16,6 +16,6 @@ export default class SchemaCollectionDecorator extends CollectionDecorator {
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    return { ...subSchema, ...this.schemaOverride };
+    return Object.assign(new CollectionSchema(), { ...subSchema, ...this.schemaOverride });
   }
 }

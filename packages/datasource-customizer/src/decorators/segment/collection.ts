@@ -20,10 +20,10 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    return {
+    return Object.assign(new CollectionSchema(), {
       ...subSchema,
       segments: [...subSchema.segments, ...Object.keys(this.segments)],
-    };
+    });
   }
 
   public override async refineFilter(

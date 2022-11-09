@@ -1,8 +1,8 @@
 // eslint-disable-next-line max-classes-per-file
 import { Factory } from 'fishery';
 
+import Collection from '../../src/implementations/collection/collection';
 import { ActionField } from '../../src/interfaces/action';
-import { Collection } from '../../src/interfaces/collection';
 import { ActionSchema } from '../../src/interfaces/schema';
 import collectionSchemaFactory from './schema/collection-schema';
 
@@ -19,16 +19,18 @@ export class CollectionFactory extends Factory<Collection> {
   }
 }
 
-export default CollectionFactory.define(() => ({
-  dataSource: null,
-  name: 'a collection',
-  schema: collectionSchemaFactory.build(),
-  execute: jest.fn(),
-  getForm: jest.fn(),
-  renderChart: jest.fn(),
-  create: jest.fn(),
-  list: jest.fn(),
-  update: jest.fn(),
-  delete: jest.fn(),
-  aggregate: jest.fn(),
-}));
+export default CollectionFactory.define(() => {
+  return new (class extends Collection {
+    dataSource = null;
+    name = 'a collection';
+    schema = collectionSchemaFactory.build();
+    execute = jest.fn();
+    getForm = jest.fn();
+    renderChart = jest.fn();
+    create = jest.fn();
+    list = jest.fn();
+    update = jest.fn();
+    delete = jest.fn();
+    aggregate = jest.fn();
+  })();
+});

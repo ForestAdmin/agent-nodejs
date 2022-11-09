@@ -1,5 +1,5 @@
 import { ValidationError } from '../errors';
-import { Collection } from '../interfaces/collection';
+import Collection from '../implementations/collection/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 import TypeGetter from './type-getter';
 import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';

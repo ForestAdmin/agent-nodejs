@@ -1,6 +1,5 @@
-import CollectionUtils from '../../../../utils/collection';
+import Collection from '../../../../implementations/collection/collection';
 import RecordUtils from '../../../../utils/record';
-import { Collection } from '../../../collection';
 import { RecordData } from '../../../record';
 import { ColumnSchema } from '../../../schema';
 import Projection from '../../projection';
@@ -82,7 +81,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
 
   match(record: RecordData, collection: Collection, timezone: string): boolean {
     const fieldValue = RecordUtils.getFieldValue(record, this.field);
-    const { columnType } = CollectionUtils.getFieldSchema(collection, this.field) as ColumnSchema;
+    const { columnType } = collection.getFieldSchema(this.field) as ColumnSchema;
 
     switch (this.operator) {
       case 'Equal':

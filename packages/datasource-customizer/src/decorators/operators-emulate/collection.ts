@@ -11,7 +11,6 @@ import {
   Operator,
   PaginatedFilter,
   RelationSchema,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizationContext from '../../context/collection-context';
@@ -29,8 +28,7 @@ export default class OperatorsEmulate extends CollectionDecorator {
 
   replaceFieldOperator(name: string, operator: Operator, replaceBy: OperatorDefinition): void {
     // Check that the collection can actually support our rewriting
-    const pks = SchemaUtils.getPrimaryKeys(this.childCollection.schema);
-    pks.forEach(pk => {
+    this.childCollection.schema.primaryKeys.forEach(pk => {
       const schema = this.childCollection.schema.fields[pk] as ColumnSchema;
       const operators = schema.filterOperators;
 
@@ -71,7 +69,7 @@ export default class OperatorsEmulate extends CollectionDecorator {
       }
     }
 
-    return { ...childSchema, fields };
+    return Object.assign(new CollectionSchema(), { ...childSchema, fields });
   }
 
   protected override async refineFilter(

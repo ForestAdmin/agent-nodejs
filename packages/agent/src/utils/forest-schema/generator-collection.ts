@@ -1,4 +1,4 @@
-import { Collection, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { Collection } from '@forestadmin/datasource-toolkit';
 
 import SchemaGeneratorActions from './generator-actions';
 import SchemaGeneratorFields from './generator-fields';
@@ -42,11 +42,7 @@ export default class SchemaGeneratorCollection {
     // Do not export foreign keys as those will be edited using the many to one relationship.
     // Note that we always keep primary keys as not having them breaks reference fields in the UI.
     return Object.keys(collection.schema.fields)
-      .filter(
-        name =>
-          SchemaUtils.isPrimaryKey(collection.schema, name) ||
-          !SchemaUtils.isForeignKey(collection.schema, name),
-      )
+      .filter(name => collection.schema.isPrimaryKey(name) || !collection.schema.isForeignKey(name))
       .sort()
       .map(name => SchemaGeneratorFields.buildSchema(collection, name));
   }

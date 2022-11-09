@@ -1,10 +1,4 @@
-import {
-  Collection,
-  CollectionUtils,
-  ColumnSchema,
-  ColumnType,
-  DataSource,
-} from '@forestadmin/datasource-toolkit';
+import { Collection, ColumnSchema, ColumnType, DataSource } from '@forestadmin/datasource-toolkit';
 import { readFile, writeFile } from 'fs/promises';
 
 export default class TypingGenerator {
@@ -104,7 +98,7 @@ export default class TypingGenerator {
       if (schema.type !== 'ManyToOne' && schema.type !== 'OneToOne') return memo;
 
       const subCollection = collection.dataSource.getCollection(schema.foreignCollection);
-      const inverse = CollectionUtils.getInverseRelation(collection, name);
+      const inverse = collection.getInverseRelation(name);
 
       // Do not expand inverse relations, as those create useless cycles
       const expand =

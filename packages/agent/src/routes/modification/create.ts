@@ -1,5 +1,4 @@
 import {
-  CollectionUtils,
   CompositeId,
   ConditionTreeFactory,
   ConditionTreeLeaf,
@@ -8,7 +7,6 @@ import {
   RecordData,
   RecordValidator,
   RelationSchema,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
@@ -123,7 +121,7 @@ export default class CreateRoute extends CollectionRoute {
 
     const schema = this.collection.schema.fields[field] as RelationSchema;
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
-    const pkName = SchemaUtils.getPrimaryKeys(foreignCollection.schema);
+    const pkName = foreignCollection.schema.primaryKeys;
 
     return pkName.reduce((memo, key, index) => ({ ...memo, [key]: id[index] }), {});
   }
@@ -139,6 +137,6 @@ export default class CreateRoute extends CollectionRoute {
     const schema = this.collection.schema.fields[field] as ManyToOneSchema;
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
 
-    return CollectionUtils.getValue(foreignCollection, caller, id, schema.foreignKeyTarget);
+    return foreignCollection.getValue(caller, id, schema.foreignKeyTarget);
   }
 }

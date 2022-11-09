@@ -83,7 +83,10 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    const newSchema = { ...subSchema, actions: { ...subSchema.actions } };
+    const newSchema = Object.assign(new CollectionSchema(), {
+      ...subSchema,
+      actions: { ...subSchema.actions },
+    });
 
     for (const [name, { form, scope, generateFile }] of Object.entries(this.actions)) {
       // An action form can be send in the schema to avoid calling the load handler

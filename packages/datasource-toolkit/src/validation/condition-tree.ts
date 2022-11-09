@@ -1,10 +1,9 @@
 import { ValidationError } from '../errors';
-import { Collection } from '../interfaces/collection';
+import Collection from '../implementations/collection/collection';
 import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeBranch from '../interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeLeaf from '../interfaces/query/condition-tree/nodes/leaf';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
-import CollectionUtils from '../utils/collection';
 import FieldValidator from './field';
 import {
   MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE,
@@ -44,7 +43,7 @@ export default class ConditionTreeValidator {
   }
 
   private static validateLeaf(leaf: ConditionTreeLeaf, collection: Collection): void {
-    const fieldSchema = CollectionUtils.getFieldSchema(collection, leaf.field) as ColumnSchema;
+    const fieldSchema = collection.getFieldSchema(leaf.field) as ColumnSchema;
 
     ConditionTreeValidator.throwIfOperatorNotAllowedWithColumn(leaf, fieldSchema);
     ConditionTreeValidator.throwIfValueNotAllowedWithOperator(leaf, fieldSchema);

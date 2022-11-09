@@ -13,7 +13,6 @@ import {
   RecordData,
   RecordUtils,
   RelationSchema,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
 import CollectionDecorator from '../collection-decorator';
@@ -69,7 +68,10 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    const schema = { ...subSchema, fields: { ...subSchema.fields } };
+    const schema = Object.assign(new CollectionSchema(), {
+      ...subSchema,
+      fields: { ...subSchema.fields },
+    });
 
     for (const [name, relation] of Object.entries(this.relations)) {
       schema.fields[name] = relation;
@@ -107,12 +109,12 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     const target = this.dataSource.getCollection(relation.foreignCollection);
 
     if (relation.type === 'ManyToOne') {
-      relation.foreignKeyTarget ??= SchemaUtils.getPrimaryKeys(target.schema)[0];
+      relation.foreignKeyTarget ??= target.schema.primaryKeys[0];
     } else if (relation.type === 'OneToOne' || relation.type === 'OneToMany') {
-      relation.originKeyTarget ??= SchemaUtils.getPrimaryKeys(this.schema)[0];
+      relation.originKeyTarget ??= this.schema.primaryKeys[0];
     } else if (relation.type === 'ManyToMany') {
-      relation.originKeyTarget ??= SchemaUtils.getPrimaryKeys(this.schema)[0];
-      relation.foreignKeyTarget ??= SchemaUtils.getPrimaryKeys(target.schema)[0];
+      relation.originKeyTarget ??= this.schema.primaryKeys[0];
+      relation.foreignKeyTarget ??= target.schema.primaryKeys[0];
     }
 
     return relation as RelationSchema;

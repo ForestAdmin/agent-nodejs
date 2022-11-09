@@ -29,9 +29,9 @@ export default class ChartCollectionDecorator extends CollectionDecorator {
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    return {
+    return Object.assign(new CollectionSchema(), {
       ...subSchema,
       charts: [...subSchema.charts, ...Object.keys(this.charts)],
-    };
+    });
   }
 }

@@ -11,7 +11,6 @@ import {
   RecordData,
   RecordValidator,
   RelationSchema,
-  SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
@@ -36,7 +35,10 @@ export default class WriteDecorator extends CollectionDecorator {
   }
 
   protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
-    const schema = { ...childSchema, fields: { ...childSchema.fields } };
+    const schema = Object.assign(new CollectionSchema(), {
+      ...childSchema,
+      fields: { ...childSchema.fields },
+    });
 
     for (const name of Object.keys(this.replacedDefinitions)) {
       (schema.fields[name] as ColumnSchema).isReadOnly = false;
@@ -106,7 +108,7 @@ export default class WriteDecorator extends CollectionDecorator {
       delete refinedPatch[relationName];
 
       const relation = this.dataSource.getCollection(relationSchema.foreignCollection);
-      const [pk] = SchemaUtils.getPrimaryKeys(relation.schema);
+      const [pk] = relation.schema.primaryKeys;
       refinedPatch[relationSchema.foreignKey] = record[pk];
     }
 
@@ -142,7 +144,7 @@ export default class WriteDecorator extends CollectionDecorator {
         const update = relation.update(caller, filter, relationRecord);
         requests.push(update);
       } else {
-        const [pk] = SchemaUtils.getPrimaryKeys(this.schema);
+        const [pk] = this.schema.primaryKeys;
         requests.push(relation.create(caller, [{ ...relationRecord, [fk]: createdRecord[pk] }]));
       }
     }
@@ -161,7 +163,7 @@ export default class WriteDecorator extends CollectionDecorator {
       const relation = this.dataSource.getCollection(relationSchema.foreignCollection);
 
       if (patch[fk]) {
-        const [pk] = SchemaUtils.getPrimaryKeys(relation.schema);
+        const [pk] = relation.schema.primaryKeys;
 
         const updateWrapper = async (): Promise<RecordData[]> => {
           const conditionTree = new ConditionTreeLeaf(pk, 'Equal', patch[fk]);
@@ -198,7 +200,7 @@ export default class WriteDecorator extends CollectionDecorator {
       if (relationSchema.type === 'OneToOne') {
         key = relationSchema.originKey;
       } else {
-        [key] = SchemaUtils.getPrimaryKeys(relation.schema);
+        [key] = relation.schema.primaryKeys;
       }
 
       const idsFilter = new Filter({ conditionTree: new ConditionTreeLeaf(key, 'In', ids) });
@@ -220,7 +222,7 @@ export default class WriteDecorator extends CollectionDecorator {
       let projection: Projection;
 
       if (relationSchema.type === 'OneToOne') {
-        projection = new Projection(...SchemaUtils.getPrimaryKeys(this.schema));
+        projection = new Projection(...this.schema.primaryKeys);
       } else if (relationSchema.type === 'ManyToOne') {
         projection = new Projection(relationSchema.foreignKey);
       }

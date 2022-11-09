@@ -4,7 +4,6 @@ import {
   CompositeId,
   FieldValidator,
   RecordData,
-  SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
@@ -14,7 +13,7 @@ export default class IdUtils {
   }
 
   static packId(schema: CollectionSchema, record: RecordData): string {
-    const pkNames = SchemaUtils.getPrimaryKeys(schema);
+    const pkNames = schema.primaryKeys;
 
     if (!pkNames.length) {
       throw new Error('This collection has no primary key');
@@ -40,7 +39,7 @@ export default class IdUtils {
       throw new ValidationError(`Expected string, received: ${typeof packedId}`);
     }
 
-    const pkNames = SchemaUtils.getPrimaryKeys(schema);
+    const pkNames = schema.primaryKeys;
     const pkValues = packedId.split('|');
 
     if (pkValues.length !== pkNames.length) {

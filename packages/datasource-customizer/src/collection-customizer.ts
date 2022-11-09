@@ -1,6 +1,5 @@
 import {
   CollectionSchema,
-  CollectionUtils,
   ColumnSchema,
   Operator,
   allowedOperatorsForColumnType,
@@ -161,7 +160,7 @@ export default class CollectionCustomizer<
       const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
       const canBeComputedBeforeRelations = definition.dependencies.every(field => {
         try {
-          return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
+          return !!collectionBeforeRelations.getFieldSchema(field);
         } catch {
           return false;
         }

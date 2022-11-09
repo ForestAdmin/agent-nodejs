@@ -1,7 +1,7 @@
+import CollectionSchema from '../../../implementations/collection/collection-schema';
 import RecordUtils from '../../../utils/record';
-import SchemaUtils from '../../../utils/schema';
 import { CompositeId, RecordData } from '../../record';
-import { CollectionSchema, ColumnSchema } from '../../schema';
+import { ColumnSchema } from '../../schema';
 import ConditionTree from './nodes/base';
 import ConditionTreeBranch, { Aggregator } from './nodes/branch';
 import ConditionTreeLeaf from './nodes/leaf';
@@ -22,7 +22,7 @@ export default class ConditionTreeFactory {
   }
 
   static matchIds(schema: CollectionSchema, ids: CompositeId[]): ConditionTree {
-    const primaryKeyNames = SchemaUtils.getPrimaryKeys(schema);
+    const primaryKeyNames = schema.primaryKeys;
 
     if (primaryKeyNames.length === 0) {
       throw new Error('Collection must have at least one primary key');

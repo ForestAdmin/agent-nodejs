@@ -1,4 +1,3 @@
-import { CollectionUtils } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 
@@ -26,8 +25,7 @@ export default class ListRelatedRoute extends RelationRoute {
       scope,
     );
 
-    const records = await CollectionUtils.listRelation(
-      this.collection,
+    const records = await this.collection.listRelation(
       parentId,
       this.relationName,
       QueryStringParser.parseCaller(context),

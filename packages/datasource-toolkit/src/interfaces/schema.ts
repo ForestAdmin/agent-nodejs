@@ -12,15 +12,6 @@ export type DataSourceSchema = {
   charts: string[];
 };
 
-export type CollectionSchema = {
-  actions: { [actionName: string]: ActionSchema };
-  charts: string[];
-  countable: boolean;
-  fields: { [fieldName: string]: FieldSchema };
-  searchable: boolean;
-  segments: string[];
-};
-
 export type RelationSchema = ManyToOneSchema | OneToManySchema | OneToOneSchema | ManyToManySchema;
 export type FieldSchema = ColumnSchema | RelationSchema;
 

@@ -151,16 +151,12 @@ export default class ModelToCollectionSchemaConverter {
   public static convert(model: ModelDefined<any, any>, logger: Logger): CollectionSchema {
     if (!model) throw new Error('Invalid (null) model.');
 
-    return {
-      actions: {},
-      charts: [],
-      countable: true,
-      fields: {
-        ...this.convertAttributes(model.name, model.getAttributes(), logger),
-        ...this.convertAssociations(model.name, model.associations, logger),
-      },
-      searchable: false,
-      segments: [],
+    const schema = new CollectionSchema();
+    schema.fields = {
+      ...this.convertAttributes(model.name, model.getAttributes(), logger),
+      ...this.convertAssociations(model.name, model.associations, logger),
     };
+
+    return schema;
   }
 }

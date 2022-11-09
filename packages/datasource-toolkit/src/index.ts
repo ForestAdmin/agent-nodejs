@@ -4,8 +4,11 @@ export * from './factory';
 export { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE as allowedOperatorsForColumnType } from './validation/rules';
 
 // Base Collection & DataSource
-export { default as BaseCollection } from './base-collection';
-export { default as BaseDataSource } from './base-datasource';
+export { default as Collection } from './implementations/collection/collection';
+export { default as CollectionSchema } from './implementations/collection/collection-schema';
+export { default as DataSource } from './implementations/datasource/datasource';
+export { default as BaseCollection } from './implementations/collection/base-collection';
+export { default as BaseDataSource } from './implementations/datasource/base-datasource';
 
 // Query Interface
 export { default as Aggregation } from './interfaces/query/aggregation';
@@ -28,7 +31,6 @@ export { default as SortFactory } from './interfaces/query/sort/factory';
 export * from './interfaces/action';
 export * from './interfaces/caller';
 export * from './interfaces/chart';
-export * from './interfaces/collection';
 export * from './interfaces/query/aggregation';
 export * from './interfaces/query/condition-tree/nodes/base';
 export * from './interfaces/query/condition-tree/nodes/branch';
@@ -55,6 +57,4 @@ export { default as RecordValidator } from './validation/record';
 export { default as SortValidator } from './validation/sort';
 
 // Utils
-export { default as CollectionUtils } from './utils/collection';
 export { default as RecordUtils } from './utils/record';
-export { default as SchemaUtils } from './utils/schema';

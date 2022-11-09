@@ -72,7 +72,7 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
       fields[this.fromChildCollection[oldName] ?? oldName] = schema;
     }
 
-    return { ...childSchema, fields };
+    return Object.assign(new CollectionSchema(), { ...childSchema, fields });
   }
 
   protected override async refineFilter(

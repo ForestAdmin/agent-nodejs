@@ -1,9 +1,9 @@
-import { Caller } from './interfaces/caller';
-import { Chart } from './interfaces/chart';
-import { Collection, DataSource } from './interfaces/collection';
-import { DataSourceSchema } from './interfaces/schema';
+import { Caller } from '../../interfaces/caller';
+import { Chart } from '../../interfaces/chart';
+import { DataSourceSchema } from '../../interfaces/schema';
+import Collection from '../collection/collection';
 
-export default class BaseDataSource<T extends Collection = Collection> implements DataSource {
+export default class BaseDataSource<T extends Collection = Collection> {
   protected _collections: { [collectionName: string]: T } = {};
 
   get collections(): T[] {

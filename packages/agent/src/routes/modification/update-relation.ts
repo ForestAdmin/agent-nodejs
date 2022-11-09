@@ -1,6 +1,5 @@
 import {
   Caller,
-  CollectionUtils,
   CompositeId,
   ConditionTreeFactory,
   ConditionTreeLeaf,
@@ -55,12 +54,7 @@ export default class UpdateRelation extends RelationRoute {
 
     // Load the value that will be used as foreignKey (=== linkedId[0] most of the time)
     const foreignValue = linkedId
-      ? await CollectionUtils.getValue(
-          this.foreignCollection,
-          caller,
-          linkedId,
-          relation.foreignKeyTarget,
-        )
+      ? await this.foreignCollection.getValue(caller, linkedId, relation.foreignKeyTarget)
       : null;
 
     // Overwrite old foreign key with new one (only one query needed).
@@ -85,12 +79,7 @@ export default class UpdateRelation extends RelationRoute {
     await this.services.authorization.assertCanEdit(context, this.foreignCollection.name);
 
     // Load the value that will be used as originKey (=== parentId[0] most of the time)
-    const originValue = await CollectionUtils.getValue(
-      this.collection,
-      caller,
-      parentId,
-      relation.originKeyTarget,
-    );
+    const originValue = await this.collection.getValue(caller, parentId, relation.originKeyTarget);
 
     // Break old relation (may update zero or one records).
     const oldFkOwner = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);

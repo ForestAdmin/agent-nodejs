@@ -44,7 +44,7 @@ export default class RenameCollectionCollectionDecorator extends CollectionDecor
       fields[name] = schema;
     }
 
-    return { ...childSchema, fields };
+    return Object.assign(new CollectionSchema(), { ...childSchema, fields });
   }
 
   private getNewName(oldName: string): string {

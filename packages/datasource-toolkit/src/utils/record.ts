@@ -1,10 +1,9 @@
+import CollectionSchema from '../implementations/collection/collection-schema';
 import { CompositeId, RecordData } from '../interfaces/record';
-import { CollectionSchema } from '../interfaces/schema';
-import SchemaUtils from './schema';
 
 export default class RecordUtils {
   static getPrimaryKey(schema: CollectionSchema, record: RecordData): CompositeId {
-    return SchemaUtils.getPrimaryKeys(schema).map(pk => {
+    return schema.primaryKeys.map(pk => {
       if (record[pk] === undefined) throw new Error(`Missing primary key: ${pk}`);
 
       return record[pk] as number | string;

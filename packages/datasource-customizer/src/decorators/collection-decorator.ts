@@ -15,7 +15,7 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-export default class CollectionDecorator implements Collection {
+export default class CollectionDecorator extends Collection {
   readonly dataSource: DataSource;
   protected childCollection: Collection;
 
@@ -38,6 +38,8 @@ export default class CollectionDecorator implements Collection {
   }
 
   constructor(childCollection: Collection, dataSource: DataSource) {
+    super();
+
     this.childCollection = childCollection;
     this.dataSource = dataSource;
   }

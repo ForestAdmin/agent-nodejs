@@ -80,7 +80,7 @@ export default class SortEmulate extends CollectionDecorator {
         this.sorts.has(name) && schema.type === 'Column' ? { ...schema, isSortable: true } : schema;
     }
 
-    return { ...childSchema, fields };
+    return Object.assign(new CollectionSchema(), { ...childSchema, fields });
   }
 
   private sortRecords(referenceRecords: RecordData[], records: RecordData[]): RecordData[] {
