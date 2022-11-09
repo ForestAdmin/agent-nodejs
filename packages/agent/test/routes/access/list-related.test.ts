@@ -1,5 +1,4 @@
 import {
-  CollectionUtils,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   Page,
@@ -65,13 +64,12 @@ describe('ListRelatedRoute', () => {
       test('should return the record result', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
         dataSource.getCollection('persons').schema.segments = ['a-valid-segment'];
-
-        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
-
-        jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([
+        dataSource.getCollection('books').listRelation = jest.fn().mockResolvedValue([
           { id: 1, name: 'aName' },
           { id: 2, name: 'aName2' },
         ]);
+
+        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
 
         const searchParams = { search: 'aName' };
         const conditionTreeParams = {
@@ -99,8 +97,7 @@ describe('ListRelatedRoute', () => {
         });
         await count.handleListRelated(context);
 
-        expect(CollectionUtils.listRelation).toHaveBeenCalledWith(
-          dataSource.getCollection('books'),
+        expect(dataSource.getCollection('books').listRelation).toHaveBeenCalledWith(
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
@@ -136,13 +133,12 @@ describe('ListRelatedRoute', () => {
       test('should check that the user has permission to list related elements', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
         dataSource.getCollection('persons').schema.segments = ['a-valid-segment'];
-
-        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
-
-        jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([
+        dataSource.getCollection('books').listRelation = jest.fn().mockResolvedValue([
           { id: 1, name: 'aName' },
           { id: 2, name: 'aName2' },
         ]);
+
+        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
 
         const context = createMockContext({
           state: { user: { email: 'john.doe@domain.com' } },
@@ -162,13 +158,12 @@ describe('ListRelatedRoute', () => {
       test('it should apply the scope', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
         dataSource.getCollection('persons').schema.segments = ['a-valid-segment'];
-
-        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
-
-        jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([
+        dataSource.getCollection('books').listRelation = jest.fn().mockResolvedValue([
           { id: 1, name: 'aName' },
           { id: 2, name: 'aName2' },
         ]);
+
+        const count = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
 
         const searchParams = { search: 'aName' };
         const conditionTreeParams = {
@@ -204,8 +199,7 @@ describe('ListRelatedRoute', () => {
 
         await count.handleListRelated(context);
 
-        expect(CollectionUtils.listRelation).toHaveBeenCalledWith(
-          dataSource.getCollection('books'),
+        expect(dataSource.getCollection('books').listRelation).toHaveBeenCalledWith(
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },

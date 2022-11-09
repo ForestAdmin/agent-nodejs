@@ -1,6 +1,5 @@
 import {
   Aggregation,
-  CollectionUtils,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   Filter,
@@ -81,6 +80,9 @@ describe('CountRelatedRoute', () => {
       test('should aggregate the relation and return the result', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
         dataSource.getCollection('bookPersons').schema.segments = ['a-valid-segment'];
+        dataSource.getCollection('books').aggregateRelation = jest
+          .fn()
+          .mockResolvedValue([{ value: 1568, group: {} }]);
 
         const oneToManyRelationName = 'myBookPersons';
         const count = new CountRelatedRoute(
@@ -90,10 +92,6 @@ describe('CountRelatedRoute', () => {
           'books',
           oneToManyRelationName,
         );
-
-        jest
-          .spyOn(CollectionUtils, 'aggregateRelation')
-          .mockResolvedValue([{ value: 1568, group: {} }]);
 
         const searchParams = { search: 'searched argument' };
         const conditionTreeParams = {
@@ -120,8 +118,7 @@ describe('CountRelatedRoute', () => {
         });
         await count.handleCountRelated(context);
 
-        expect(CollectionUtils.aggregateRelation).toHaveBeenCalledWith(
-          dataSource.getCollection('books'),
+        expect(dataSource.getCollection('books').aggregateRelation).toHaveBeenCalledWith(
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myBookPersons',
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
@@ -144,6 +141,10 @@ describe('CountRelatedRoute', () => {
       test("should check the user's permission", async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
 
+        dataSource.getCollection('books').aggregateRelation = jest
+          .fn()
+          .mockResolvedValue([{ value: 1568, group: {} }]);
+
         const oneToManyRelationName = 'myBookPersons';
         const count = new CountRelatedRoute(
           services,
@@ -152,10 +153,6 @@ describe('CountRelatedRoute', () => {
           'books',
           oneToManyRelationName,
         );
-
-        jest
-          .spyOn(CollectionUtils, 'aggregateRelation')
-          .mockResolvedValue([{ value: 1568, group: {} }]);
 
         const context = setupContext();
         await count.handleCountRelated(context);
@@ -170,6 +167,9 @@ describe('CountRelatedRoute', () => {
       test('it should apply the scope', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
         dataSource.getCollection('bookPersons').schema.segments = ['a-valid-segment'];
+        dataSource.getCollection('books').aggregateRelation = jest
+          .fn()
+          .mockResolvedValue([{ value: 1568, group: {} }]);
 
         const oneToManyRelationName = 'myBookPersons';
         const count = new CountRelatedRoute(
@@ -179,10 +179,6 @@ describe('CountRelatedRoute', () => {
           'books',
           oneToManyRelationName,
         );
-
-        jest
-          .spyOn(CollectionUtils, 'aggregateRelation')
-          .mockResolvedValue([{ value: 1568, group: {} }]);
 
         const searchParams = { search: 'searched argument' };
         const conditionTreeParams = {
@@ -219,8 +215,7 @@ describe('CountRelatedRoute', () => {
 
         await count.handleCountRelated(context);
 
-        expect(CollectionUtils.aggregateRelation).toHaveBeenCalledWith(
-          dataSource.getCollection('books'),
+        expect(dataSource.getCollection('books').aggregateRelation).toHaveBeenCalledWith(
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myBookPersons',
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
@@ -258,6 +253,7 @@ describe('CountRelatedRoute', () => {
       describe('when there is empty aggregate result', () => {
         test('should return 0', async () => {
           const { services, dataSource, options } = setupWithOneToManyRelation();
+          dataSource.getCollection('books').aggregateRelation = jest.fn().mockResolvedValue(null);
 
           const oneToManyRelationName = 'myBookPersons';
           const count = new CountRelatedRoute(
@@ -267,8 +263,6 @@ describe('CountRelatedRoute', () => {
             'books',
             oneToManyRelationName,
           );
-
-          jest.spyOn(CollectionUtils, 'aggregateRelation').mockResolvedValue(null);
 
           const context = setupContext();
           await count.handleCountRelated(context);
@@ -303,6 +297,9 @@ describe('CountRelatedRoute', () => {
 
       test('should return an HTTP 500 response when the aggregate has a problem', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
+        dataSource.getCollection('books').aggregateRelation = jest.fn().mockImplementation(() => {
+          throw new Error('an error');
+        });
 
         const oneToManyRelationName = 'myBookPersons';
         const count = new CountRelatedRoute(
@@ -312,10 +309,6 @@ describe('CountRelatedRoute', () => {
           'books',
           oneToManyRelationName,
         );
-
-        jest.spyOn(CollectionUtils, 'aggregateRelation').mockImplementation(() => {
-          throw new Error('an error');
-        });
 
         const context = setupContext();
         await expect(count.handleCountRelated(context)).rejects.toThrow('an error');

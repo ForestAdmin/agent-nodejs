@@ -1,4 +1,4 @@
-import { CollectionUtils, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
+import { PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import CsvRoute from '../../../src/routes/access/csv-related';
@@ -103,7 +103,9 @@ describe('CsvRelatedRoute', () => {
         },
       });
 
-      const listRelation = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
+      const listRelation = jest
+        .spyOn(dataSource.getCollection('books'), 'listRelation')
+        .mockResolvedValue([]);
       const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
 
       const paginatedFilter = factories.filter.build();
@@ -131,7 +133,6 @@ describe('CsvRelatedRoute', () => {
       );
 
       expect(listRelation).toHaveBeenCalledWith(
-        dataSource.getCollection('books'),
         ['123e4567-e89b-12d3-a456-111111111111'],
         'myPersons',
         { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
@@ -157,7 +158,7 @@ describe('CsvRelatedRoute', () => {
 
       const context = createMockContext({ customProperties });
 
-      jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([
+      jest.spyOn(dataSource.getCollection('books'), 'listRelation').mockResolvedValue([
         { id: 1, name: 'a' },
         { id: 2, name: 'ab' },
         { id: 3, name: 'abc' },
@@ -189,7 +190,9 @@ describe('CsvRelatedRoute', () => {
         },
       });
 
-      const listRelation = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
+      const listRelation = jest
+        .spyOn(dataSource.getCollection('books'), 'listRelation')
+        .mockResolvedValue([]);
       const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
 
       const paginatedFilter = factories.filter.build();
@@ -225,7 +228,6 @@ describe('CsvRelatedRoute', () => {
       );
 
       expect(listRelation).toHaveBeenCalledWith(
-        dataSource.getCollection('books'),
         ['123e4567-e89b-12d3-a456-111111111111'],
         'myPersons',
         { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
