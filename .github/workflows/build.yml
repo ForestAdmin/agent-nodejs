@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   build:
-    name: Build
+    name: Building
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
@@ -48,8 +48,6 @@ jobs:
     needs: [build]
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
@@ -190,7 +188,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    needs: [release]
+    needs: [doc-build, doc-link-validation, release]
     steps:
       - name: Setup Pages
         uses: actions/configure-pages@v2
