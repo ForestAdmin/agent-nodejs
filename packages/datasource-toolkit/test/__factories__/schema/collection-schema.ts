@@ -9,14 +9,13 @@ export class CollectionSchemaFactory extends Factory<CollectionSchema> {
   }
 }
 
-export default CollectionSchemaFactory.define(
-  () =>
-    new (class extends CollectionSchema {
-      override actions = {};
-      override countable = true;
-      override charts = [];
-      override fields = {};
-      override searchable = true;
-      override segments = [];
-    })(),
+export default CollectionSchemaFactory.define(() =>
+  Object.assign(new CollectionSchema(), {
+    actions: {},
+    countable: true,
+    charts: [],
+    fields: {},
+    searchable: true,
+    segments: [],
+  }),
 );
