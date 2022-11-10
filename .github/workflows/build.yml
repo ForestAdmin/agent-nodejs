@@ -73,6 +73,11 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
       - name: Download build
         uses: actions/download-artifact@v3
         with:
@@ -186,7 +191,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     needs: [release]
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Setup Pages
         uses: actions/configure-pages@v2
