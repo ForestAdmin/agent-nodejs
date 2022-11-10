@@ -1,6 +1,5 @@
 import { Collection, CollectionSchema } from '@forestadmin/datasource-toolkit';
-
-import { ForestServerSegment } from './types';
+import { ForestServerSegment } from '@forestadmin/forestadmin-client';
 
 export default class SchemaGeneratorSegments {
   static buildSchema(

@@ -1,4 +1,4 @@
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import type { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export type ForestServerColumnType =
   | PrimitiveTypes

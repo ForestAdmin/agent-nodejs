@@ -4,6 +4,8 @@ import { IpWhitelistConfiguration } from './ip-whitelist/types';
 import RenderingPermissionService from './permissions/rendering-permission';
 import { RawTree } from './permissions/types';
 import verifyAndExtractApproval from './permissions/verify-approval';
+import SchemaService from './schema';
+import { ForestServerCollection } from './schema/types';
 import {
   ForestAdminClient,
   ForestAdminClientOptionsWithDefaults,
@@ -19,6 +21,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     public readonly contextVariablesInstantiator: ContextVariablesInstantiator,
     public readonly chartHandler: ChartHandler,
     protected readonly ipWhitelistService: IpWhiteListService,
+    protected readonly schemaService: SchemaService,
   ) {}
 
   public verifySignedActionParameters<TSignedParameters>(
@@ -29,6 +32,14 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
 
   async getIpWhitelistConfiguration(): Promise<IpWhitelistConfiguration> {
     return this.ipWhitelistService.getConfiguration();
+  }
+
+  async postSchema(
+    schema: ForestServerCollection[],
+    agentName: string,
+    agentVersion: string,
+  ): Promise<boolean> {
+    return this.schemaService.postSchema(schema, agentName, agentVersion);
   }
 
   public async getScope({
