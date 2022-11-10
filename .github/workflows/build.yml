@@ -58,11 +58,6 @@ jobs:
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
-      - name: Download build
-        uses: actions/download-artifact@v3
-        with:
-          name: build
-          path: 'packages/'
       - name: Lint commit message
         uses: wagoid/commitlint-github-action@v2
       - name: lint Javascript
@@ -83,11 +78,6 @@ jobs:
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
-      - name: Download build
-        uses: actions/download-artifact@v3
-        with:
-          name: build
-          path: 'packages/'
       - name: Start docker datasource-sql containers
         run: docker-compose -f ./packages/datasource-sql/docker-compose.yml up -d; sleep 20
       - name: Start docker datasource-mongoose containers
