@@ -129,7 +129,7 @@ describe('MongooseCollection > update', () => {
       connection = await setupReview('collection_update');
 
       const modelSchema = new Schema({
-        prop: { type: String },
+        prop: String,
       });
       const spy = jest.fn();
       modelSchema.pre('updateOne', spy);
@@ -152,6 +152,47 @@ describe('MongooseCollection > update', () => {
       await aModel.update(factories.caller.build(), filter, { prop: 'new prop' });
 
       // then
+      expect(spy).toHaveBeenCalled();
+    });
+  });
+
+  describe('when update more than one record', () => {
+    it('should call updateMany hook', async () => {
+      connection = await setupReview('collection_update');
+
+      const modelSchema = new Schema({
+        prop: String,
+        key: String,
+      });
+      const spy = jest.fn();
+      modelSchema.pre('updateMany', spy);
+      connection.model('aModel', modelSchema);
+
+      const dataSource = new MongooseDatasource(connection);
+      const aModel = dataSource.getCollection('aModel');
+      const record = { _id: new Types.ObjectId(), prop: 'a old prop', key: 'the key' };
+      const record2 = { _id: new Types.ObjectId(), prop: 'another old prop', key: 'the key' };
+      await aModel.create(factories.caller.build(), [record, record2]);
+
+      const filter = factories.filter.build({
+        conditionTree: factories.conditionTreeLeaf.build({
+          field: 'key',
+          value: record.key,
+          operator: 'Equal',
+        }),
+      });
+
+      // when
+      await aModel.update(factories.caller.build(), filter, { prop: 'new prop' });
+
+      // then
+      const updatedRecords = await aModel.list(
+        factories.caller.build(),
+        filter,
+        new Projection('prop'),
+      );
+      expect(updatedRecords).toEqual([{ prop: 'new prop' }, { prop: 'new prop' }]);
+
       expect(spy).toHaveBeenCalled();
     });
   });
