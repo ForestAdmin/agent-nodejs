@@ -48,6 +48,8 @@ jobs:
     needs: [build]
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
@@ -58,7 +60,7 @@ jobs:
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
       - name: Lint commit message
         uses: wagoid/commitlint-github-action@v2
-      - name: lint Javascript
+      - name: Lint Typescript
         run: yarn lint
 
   test:
