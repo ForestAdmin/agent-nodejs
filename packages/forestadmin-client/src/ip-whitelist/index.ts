@@ -11,12 +11,12 @@ type RawIpWhiteList = {
   };
 };
 
-export default class IpWhiteListLoader {
-  static async getIpWhitelistConfiguration(
-    options: ForestAdminClientOptionsWithDefaults,
-  ): Promise<IpWhitelistConfiguration> {
+export default class IpWhiteListService {
+  constructor(private options: ForestAdminClientOptionsWithDefaults) {}
+
+  async getConfiguration(): Promise<IpWhitelistConfiguration> {
     const body = await ServerUtils.query<RawIpWhiteList>(
-      options,
+      this.options,
       'get',
       '/liana/v1/ip-whitelist-rules',
     );
