@@ -152,10 +152,12 @@ export default class ModelToCollectionSchemaConverter {
     if (!model) throw new Error('Invalid (null) model.');
 
     const schema = new CollectionSchema();
+    schema.countable = true;
     schema.fields = {
       ...this.convertAttributes(model.name, model.getAttributes(), logger),
       ...this.convertAssociations(model.name, model.associations, logger),
     };
+    schema.searchable = false;
 
     return schema;
   }

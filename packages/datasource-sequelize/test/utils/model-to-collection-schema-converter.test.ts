@@ -25,7 +25,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
       const { sequelize } = setup();
 
       // "ID" column is added by Sequelize when no primary key is explicitely defined.
-      const schema: CollectionSchema = {
+      const schema = Object.assign(new CollectionSchema(), {
         actions: {},
         charts: [],
         countable: true,
@@ -42,7 +42,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         },
         searchable: false,
         segments: [],
-      };
+      });
 
       const model = sequelize.define('__model__', {}, { timestamps: false });
 
@@ -52,7 +52,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
     it('should honor primary key definition', () => {
       const { sequelize } = setup();
 
-      const schema: CollectionSchema = {
+      const schema = Object.assign(new CollectionSchema(), {
         actions: {},
         charts: [],
         countable: true,
@@ -69,7 +69,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         },
         searchable: false,
         segments: [],
-      };
+      });
 
       const model = sequelize.define(
         '__model__',
@@ -89,7 +89,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
     it('should convert all model attributes to collection fields', () => {
       const { sequelize } = setup();
 
-      const schema: CollectionSchema = {
+      const schema = Object.assign(new CollectionSchema(), {
         actions: {},
         charts: [],
         countable: true,
@@ -172,7 +172,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         },
         searchable: false,
         segments: [],
-      };
+      });
 
       const model = sequelize.define(
         '__model__',
@@ -218,7 +218,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           const model2 = sequelize.define('__model2__', {}, { timestamps: false });
           model.belongsTo(model2);
 
-          const schema: CollectionSchema = {
+          const schema = Object.assign(new CollectionSchema(), {
             actions: {},
             charts: [],
             countable: true,
@@ -248,7 +248,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             },
             searchable: false,
             segments: [],
-          };
+          });
 
           expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
@@ -271,7 +271,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           model.belongsToMany(model2, { through: 'ss' });
           model2.belongsToMany(model, { through: 'ss' });
 
-          const schema: CollectionSchema = {
+          const schema = Object.assign(new CollectionSchema(), {
             actions: {},
             charts: [],
             countable: true,
@@ -297,7 +297,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             },
             searchable: false,
             segments: [],
-          };
+          });
 
           expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
@@ -311,7 +311,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           const model2 = sequelize.define('__model2__', {}, { timestamps: false });
           model.hasMany(model2);
 
-          const schema: CollectionSchema = {
+          const schema = Object.assign(new CollectionSchema(), {
             actions: {},
             charts: [],
             countable: true,
@@ -334,7 +334,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             },
             searchable: false,
             segments: [],
-          };
+          });
 
           expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
@@ -348,7 +348,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           const model2 = sequelize.define('__model2__', {}, { timestamps: false });
           model.hasOne(model2);
 
-          const schema: CollectionSchema = {
+          const schema = Object.assign(new CollectionSchema(), {
             actions: {},
             charts: [],
             countable: true,
@@ -371,7 +371,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             },
             searchable: false,
             segments: [],
-          };
+          });
 
           expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
         });
