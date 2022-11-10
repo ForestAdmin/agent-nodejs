@@ -151,7 +151,7 @@ describe('RenameFieldCollectionDecorator', () => {
   });
 
   describe('when not renaming anything', () => {
-    test.only('the schemas should be the same', () => {
+    test('the schemas should be the same', () => {
       expect(newPersons.schema).toStrictEqual(persons.schema);
       expect(newBookPersons.schema).toStrictEqual(bookPersons.schema);
       expect(newBooks.schema).toStrictEqual(books.schema);
