@@ -73,11 +73,11 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-      - name: Cache node_modules
-        uses: actions/cache@v3
+      - name: Download build
+        uses: actions/download-artifact@v3
         with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
+          name: build
+          path: 'packages/'
       - name: Start docker datasource-sql containers
         run: docker-compose -f ./packages/datasource-sql/docker-compose.yml up -d; sleep 20
       - name: Start docker datasource-mongoose containers
