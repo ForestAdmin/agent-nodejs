@@ -73,7 +73,7 @@ export default class MongooseSchema {
     // If we want parent to be included, re-add the rootSchema
     if (withParent && !prefix.endsWith('__manyToOne')) {
       const id = new Schema.Types.String(prefix, {}, 'String');
-      child = { ...child, _id: id, _pid: this.fields._id, parent: this.fields };
+      child = { ...child, _id: id, parentId: this.fields._id, parent: this.fields };
     }
 
     return new MongooseSchema(this.models, child, isArray, isLeaf).getSubSchema(suffix, withParent);

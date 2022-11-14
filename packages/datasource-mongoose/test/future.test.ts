@@ -68,7 +68,7 @@ describe('Tests for future versions', () => {
               factories.conditionTreeLeaf.build({
                 value: ownerRecordA._id,
                 operator: 'Equal',
-                field: '_pid',
+                field: 'parentId',
               }),
               factories.conditionTreeLeaf.build({
                 value: storeRecordA._id,
@@ -79,7 +79,7 @@ describe('Tests for future versions', () => {
           }),
         }),
 
-        { _pid: ownerRecordA._id, content: storeRecordB._id },
+        { parentId: ownerRecordA._id, content: storeRecordB._id },
       );
 
       // then
@@ -87,9 +87,11 @@ describe('Tests for future versions', () => {
       const expectedOwnerStore = await ownerStore.list(
         factories.caller.build(),
         factories.filter.build(),
-        new Projection('content', '_pid'),
+        new Projection('content', 'parentId'),
       );
-      expect(expectedOwnerStore).toEqual([{ _pid: ownerRecordA._id, content: storeRecordB._id }]);
+      expect(expectedOwnerStore).toEqual([
+        { parentId: ownerRecordA._id, content: storeRecordB._id },
+      ]);
     });
 
     it.skip('update parentId and content on virtual model', async () => {
@@ -118,7 +120,7 @@ describe('Tests for future versions', () => {
               factories.conditionTreeLeaf.build({
                 value: ownerRecordA._id,
                 operator: 'Equal',
-                field: '_pid',
+                field: 'parentId',
               }),
               factories.conditionTreeLeaf.build({
                 value: storeRecordA._id,
@@ -129,7 +131,7 @@ describe('Tests for future versions', () => {
           }),
         }),
 
-        { _pid: ownerRecordB._id, content: storeRecordB._id },
+        { parentId: ownerRecordB._id, content: storeRecordB._id },
       );
 
       // then
@@ -137,9 +139,11 @@ describe('Tests for future versions', () => {
       const expectedOwnerStore = await ownerStore.list(
         factories.caller.build(),
         factories.filter.build(),
-        new Projection('_pid', 'content'),
+        new Projection('parentId', 'content'),
       );
-      expect(expectedOwnerStore).toEqual([{ _pid: ownerRecordB._id, content: storeRecordB._id }]);
+      expect(expectedOwnerStore).toEqual([
+        { parentId: ownerRecordB._id, content: storeRecordB._id },
+      ]);
     });
   });
 });
