@@ -157,7 +157,11 @@ export default class MongooseCollection extends BaseCollection {
         const subdocPatch = buildSubdocumentPatch(path, patch, isLeaf);
 
         if (Object.keys(subdocPatch).length) {
-          await this.model.updateMany({ _id: rootIds }, subdocPatch, { rawResult: true });
+          if (rootIds.length > 1) {
+            await this.model.updateMany({ _id: rootIds }, subdocPatch, { rawResult: true });
+          } else {
+            await this.model.updateOne({ _id: rootIds }, subdocPatch, { rawResult: true });
+          }
         }
       });
 

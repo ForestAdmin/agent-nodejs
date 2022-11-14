@@ -139,20 +139,39 @@ describe('MongooseCollection > update', () => {
       const aModel = dataSource.getCollection('aModel');
       const record = { _id: new Types.ObjectId(), prop: 'a old prop' };
       await aModel.create(factories.caller.build(), [record]);
-
-      const filter = factories.filter.build({
-        conditionTree: factories.conditionTreeLeaf.build({
-          field: '_id',
-          value: record._id,
-          operator: 'Equal',
-        }),
-      });
-
       // when
-      await aModel.update(factories.caller.build(), filter, { prop: 'new prop' });
+      await aModel.update(factories.caller.build(), new Filter({}), { prop: 'new prop' });
 
       // then
       expect(spy).toHaveBeenCalled();
+    });
+
+    describe('on a flattened model', () => {
+      it('should call updateOne hook of the parent model', async () => {
+        connection = await setupReview('collection_update');
+
+        const modelSchema = new Schema({
+          nested: {
+            nestProp: String,
+          },
+        });
+        const spy = jest.fn();
+        modelSchema.pre('updateOne', spy);
+        connection.model('aModel', modelSchema);
+
+        const dataSource = new MongooseDatasource(connection, { asModels: { aModel: ['nested'] } });
+        await connection.models.aModel.create({
+          nested: { nestProp: 'a old nested prop' },
+        });
+
+        // when
+        await dataSource
+          .getCollection('aModel_nested')
+          .update(factories.caller.build(), new Filter({}), { nestProp: 'new nested prop' });
+
+        // then
+        expect(spy).toHaveBeenCalled();
+      });
     });
   });
 
@@ -174,26 +193,60 @@ describe('MongooseCollection > update', () => {
       const record2 = { _id: new Types.ObjectId(), prop: 'another old prop', key: 'the key' };
       await aModel.create(factories.caller.build(), [record, record2]);
 
-      const filter = factories.filter.build({
-        conditionTree: factories.conditionTreeLeaf.build({
-          field: 'key',
-          value: record.key,
-          operator: 'Equal',
-        }),
-      });
-
       // when
-      await aModel.update(factories.caller.build(), filter, { prop: 'new prop' });
+      await aModel.update(factories.caller.build(), new Filter({}), { prop: 'new prop' });
 
       // then
       const updatedRecords = await aModel.list(
         factories.caller.build(),
-        filter,
+        new Filter({}),
         new Projection('prop'),
       );
       expect(updatedRecords).toEqual([{ prop: 'new prop' }, { prop: 'new prop' }]);
 
       expect(spy).toHaveBeenCalled();
+    });
+
+    describe('on a flattened model', () => {
+      it('should call updateMany hook of the parent model', async () => {
+        connection = await setupReview('collection_update');
+
+        const modelSchema = new Schema({
+          nested: {
+            nestProp: String,
+          },
+        });
+        const spy = jest.fn();
+        modelSchema.pre('updateMany', spy);
+        connection.model('aModel', modelSchema);
+
+        const dataSource = new MongooseDatasource(connection, { asModels: { aModel: ['nested'] } });
+        await connection.models.aModel.create({
+          nested: { nestProp: 'a old nested prop' },
+        });
+        await connection.models.aModel.create({
+          nested: { nestProp: 'another old nested prop' },
+        });
+
+        const collection = dataSource.getCollection('aModel_nested');
+        // when
+        await collection.update(factories.caller.build(), new Filter({}), {
+          nestProp: 'new nested prop',
+        });
+
+        // then
+        const updatedRecords = await collection.list(
+          factories.caller.build(),
+          new Filter({}),
+          new Projection('nestProp'),
+        );
+        expect(updatedRecords).toEqual([
+          { nestProp: 'new nested prop' },
+          { nestProp: 'new nested prop' },
+        ]);
+
+        expect(spy).toHaveBeenCalled();
+      });
     });
   });
 });
