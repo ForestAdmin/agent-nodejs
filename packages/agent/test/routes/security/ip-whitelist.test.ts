@@ -92,10 +92,14 @@ describe('IpWhitelist', () => {
 
     describe('when the feature is enabled', () => {
       describe('when x-forwarded-for is missing', () => {
-        test('should take the ip from the request', async () => {
+        test.each([
+          { type: 0, ip: '10.20.15.10' },
+          { type: 1, ipMinimum: '10.20.15.10', ipMaximum: '10.20.15.11' },
+          { type: 2, range: '10.20.15.0/24' },
+        ])('should let pass a valid query', async rule => {
           const ipWhitelistService = await setupIpWhitelistService({
             isFeatureEnabled: true,
-            ipRules: [{ type: 0, ip: '10.20.15.10' }],
+            ipRules: [rule],
           });
 
           // The ip property of the koa context is not supposed to be changed
@@ -112,10 +116,14 @@ describe('IpWhitelist', () => {
       });
 
       describe('when the ip is not allowed', () => {
-        test('should throw error when the ip is not allowed and not call next', async () => {
+        test.each([
+          { type: 0, ip: '10.10.15.1' },
+          { type: 1, ipMinimum: '10.10.15.1', ipMaximum: '10.10.15.2' },
+          { type: 2, range: '10.10.15.0/24' },
+        ])('should throw when the ip is not allowed', async rule => {
           const ipWhitelistService = await setupIpWhitelistService({
             isFeatureEnabled: true,
-            ipRules: [{ type: 0, ip: '10.20.15.10' }],
+            ipRules: [rule],
           });
 
           const notAllowedIp = '10.20.15.1';

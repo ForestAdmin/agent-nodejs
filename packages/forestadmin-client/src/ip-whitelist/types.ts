@@ -1,10 +1,8 @@
 export type IpWhitelistConfiguration = {
   isFeatureEnabled: boolean;
-  ipRules: Array<{
-    type: number;
-    ipMinimum?: string;
-    ipMaximum?: string;
-    ip?: string;
-    range?: string;
-  }>;
+  ipRules: Array<
+    | { type: 0; ip: string }
+    | { type: 1; range: string }
+    | { type: 2; ipMinimum: string; ipMaximum: string }
+  >;
 };
