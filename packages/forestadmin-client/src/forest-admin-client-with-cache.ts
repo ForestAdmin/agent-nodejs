@@ -1,4 +1,6 @@
 import ChartHandler from './charts/chart-handler';
+import IpWhiteListService from './ip-whitelist';
+import { IpWhitelistConfiguration } from './ip-whitelist/types';
 import RenderingPermissionService from './permissions/rendering-permission';
 import { RawTree } from './permissions/types';
 import verifyAndExtractApproval from './permissions/verify-approval';
@@ -16,12 +18,17 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     protected readonly renderingPermissionService: RenderingPermissionService,
     public readonly contextVariablesInstantiator: ContextVariablesInstantiator,
     public readonly chartHandler: ChartHandler,
+    protected readonly ipWhitelistService: IpWhiteListService,
   ) {}
 
   public verifySignedActionParameters<TSignedParameters>(
     signedParameters: string,
   ): TSignedParameters {
     return verifyAndExtractApproval(signedParameters, this.options.envSecret);
+  }
+
+  async getIpWhitelistConfiguration(): Promise<IpWhitelistConfiguration> {
+    return this.ipWhitelistService.getConfiguration();
   }
 
   public async getScope({
