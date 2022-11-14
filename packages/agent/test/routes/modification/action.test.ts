@@ -25,12 +25,139 @@ describe('ActionRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
   const services = factories.forestAdminHttpDriverServices.build();
-
   let dataSource: DataSource;
   let route: ActionRoute;
 
   beforeEach(() => {
     jest.resetAllMocks();
+  });
+
+  test('setupRoutes should register three routes', () => {
+    dataSource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'books',
+        schema: { actions: { MySingleAction: null } },
+        getForm: jest.fn(),
+        execute: jest.fn(),
+      }),
+    ]);
+
+    route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
+
+    route.setupRoutes(router);
+
+    expect(router.post).toHaveBeenCalledWith(
+      '/_actions/books/0/:slug',
+      expect.any(Function), // middlewareCustomActionApprovalRequestData
+      expect.any(Function),
+    );
+    expect(router.post).toHaveBeenCalledWith(
+      '/_actions/books/0/:slug/hooks/load',
+      expect.any(Function),
+    );
+    expect(router.post).toHaveBeenCalledWith(
+      '/_actions/books/0/:slug/hooks/change',
+      expect.any(Function),
+    );
+  });
+
+  describe('middleware CustomActionApprovalRequestData', () => {
+    beforeEach(() => {
+      dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'books',
+          schema: { actions: { My_Action: null } },
+          getForm: jest.fn(),
+          execute: jest.fn(),
+        }),
+      ]);
+
+      route = new ActionRoute(services, options, dataSource, 'books', 'My_Action');
+    });
+
+    describe('when the request is an approval', () => {
+      test('it should get the signed parameters, check rights and change body', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+                signed_approval_request: 'someSignedJWT',
+              },
+            },
+          },
+        });
+
+        const verifySignedActionParameters = services.authorization
+          .verifySignedActionParameters as jest.Mock;
+        const assertCanApproveCustomAction = services.authorization
+          .assertCanApproveCustomAction as jest.Mock;
+
+        const signedParams = {
+          data: {
+            attributes: {
+              values: { valueFrom: 'JWT' },
+              requester_id: 42,
+            },
+            type: 'typeFromJWT',
+          },
+        };
+        verifySignedActionParameters.mockReturnValue(signedParams);
+        const nextMock = jest.fn();
+
+        // @ts-expect-error: test private method
+        await route.middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
+
+        expect(nextMock).toHaveBeenCalled();
+
+        expect(verifySignedActionParameters).toHaveBeenCalledWith('someSignedJWT');
+        expect(assertCanApproveCustomAction).toHaveBeenCalledWith({
+          context,
+          customActionName: 'My_Action',
+          collectionName: 'books',
+          requesterId: 42,
+        });
+        expect(context.request.body).toStrictEqual(signedParams);
+      });
+    });
+
+    describe('when the request is a trigger', () => {
+      test('should not change data request when approval request is not detected', async () => {
+        const originalBody = {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+            },
+          },
+        };
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: originalBody,
+        });
+
+        const assertCanTriggerCustomAction = services.authorization
+          .assertCanTriggerCustomAction as jest.Mock;
+        const nextMock = jest.fn();
+
+        // @ts-expect-error: test private method
+        await route.middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
+
+        expect(nextMock).toHaveBeenCalled();
+        expect(context.request.body.data).toStrictEqual({
+          attributes: {
+            ...baseContext.requestBody.data.attributes,
+          },
+        });
+        expect(assertCanTriggerCustomAction).toHaveBeenCalledWith({
+          context,
+          customActionName: 'My_Action',
+          collectionName: 'books',
+        });
+        expect(context.request.body).toStrictEqual(originalBody);
+      });
+    });
   });
 
   describe('with a single action used from list-view, detail-view & summary', () => {
@@ -51,39 +178,6 @@ describe('ActionRoute', () => {
       ]);
 
       route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
-    });
-
-    test('setupRoutes should register three routes', () => {
-      route.setupRoutes(router);
-
-      expect(router.post).toHaveBeenCalledWith('/_actions/books/0/:slug', expect.any(Function));
-      expect(router.post).toHaveBeenCalledWith(
-        '/_actions/books/0/:slug/hooks/load',
-        expect.any(Function),
-      );
-      expect(router.post).toHaveBeenCalledWith(
-        '/_actions/books/0/:slug/hooks/change',
-        expect.any(Function),
-      );
-    });
-
-    test('handleExecute should check permissions', async () => {
-      const context = createMockContext({
-        ...baseContext,
-        requestBody: {
-          data: {
-            attributes: {
-              ...baseContext.requestBody.data.attributes,
-              values: { firstname: 'John' },
-            },
-          },
-        },
-      });
-
-      // @ts-expect-error: test private method
-      await route.handleExecute(context);
-
-      expect(services.permissions.can).toHaveBeenCalledWith(context, 'custom:MySingleAction:books');
     });
 
     test('handleExecute should delegate to collection with good params', async () => {
@@ -323,7 +417,62 @@ describe('ActionRoute', () => {
     });
   });
 
-  describe('with a global action used from from list-view, detail-view & summary', () => {
+  describe('with a bulk action used from list-view, detail-view & summary', () => {
+    beforeEach(() => {
+      dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'books',
+          schema: {
+            actions: { MyBulkAction: { scope: 'Bulk' } },
+            fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+          },
+          getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
+          execute: jest.fn().mockResolvedValue({
+            type: 'Error',
+            message: 'the result does not matter',
+          }),
+        }),
+      ]);
+
+      route = new ActionRoute(services, options, dataSource, 'books', 'MyBulkAction');
+    });
+
+    test('handleExecute should delegate to collection with good params', async () => {
+      const context = createMockContext({
+        ...baseContext,
+        requestBody: {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+              ids: ['123e4567-e89b-12d3-a456-426614174000', '123e4567-e89b-12d3-a456-426614174001'],
+              values: { firstname: 'John' },
+            },
+          },
+        },
+      });
+
+      // @ts-expect-error: test private method
+      await route.handleExecute(context);
+
+      expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        'MyBulkAction',
+        { firstname: 'John' },
+        {
+          conditionTree: {
+            field: 'id',
+            operator: 'In',
+            value: ['123e4567-e89b-12d3-a456-426614174000', '123e4567-e89b-12d3-a456-426614174001'],
+          },
+          search: null,
+          searchExtended: false,
+          segment: null,
+        },
+      );
+    });
+  });
+
+  describe('with a global action used from list-view, detail-view & summary', () => {
     beforeEach(() => {
       dataSource = factories.dataSource.buildWithCollections([
         factories.collection.build({
@@ -344,7 +493,17 @@ describe('ActionRoute', () => {
     });
 
     test('should ignore record selection', async () => {
-      const context = createMockContext({ ...baseContext });
+      const context = createMockContext({
+        ...baseContext,
+        requestBody: {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+              all_records: true,
+            },
+          },
+        },
+      });
 
       // @ts-expect-error: test private method
       await route.handleExecute(context);
@@ -370,7 +529,7 @@ describe('ActionRoute', () => {
         factories.collection.build({
           name: 'reviews',
           schema: {
-            actions: { MySingleAction: { scope: 'Bulk' } },
+            actions: { MySingleAction: { scope: 'Single' } },
             fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
           },
           getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
@@ -404,7 +563,6 @@ describe('ActionRoute', () => {
               parent_association_name: 'reviews',
               parent_collection_name: 'books',
               parent_collection_id: '00000000-0000-4000-8000-000000000000',
-              all_records: true,
               values: { firstname: 'John' },
             },
           },
@@ -422,10 +580,104 @@ describe('ActionRoute', () => {
         'MySingleAction',
         expect.any(Object),
         new Filter({
-          conditionTree: factories.conditionTreeLeaf.build({
-            field: 'reviewId',
-            operator: 'Equal',
-            value: '00000000-0000-4000-8000-000000000000',
+          conditionTree: factories.conditionTreeBranch.build({
+            aggregator: 'And',
+            conditions: [
+              factories.conditionTreeLeaf.build({
+                field: 'id',
+                operator: 'Equal',
+                value: '123e4567-e89b-12d3-a456-426614174000',
+              }),
+              factories.conditionTreeLeaf.build({
+                field: 'reviewId',
+                operator: 'Equal',
+                value: '00000000-0000-4000-8000-000000000000',
+              }),
+            ],
+          }),
+          search: null,
+          searchExtended: false,
+          segment: null,
+        }),
+      );
+    });
+  });
+
+  describe('with a bulk action used from related-data', () => {
+    beforeEach(() => {
+      dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'reviews',
+          schema: {
+            actions: { MyBulkAction: { scope: 'Bulk' } },
+            fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+          },
+          getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
+          execute: jest.fn(),
+        }),
+        factories.collection.build({
+          name: 'books',
+          schema: {
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              reviews: factories.oneToManySchema.build({
+                foreignCollection: 'reviews',
+              }),
+            },
+          },
+          getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
+          execute: jest.fn(),
+        }),
+      ]);
+
+      route = new ActionRoute(services, options, dataSource, 'reviews', 'MyBulkAction');
+    });
+
+    test('should apply the handler only on the related data', async () => {
+      const context = createMockContext({
+        ...baseContext,
+        requestBody: {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+              ids: ['123e4567-e89b-12d3-a456-426614174000', '123e4567-e89b-12d3-a456-426614174001'],
+              parent_association_name: 'reviews',
+              parent_collection_name: 'books',
+              parent_collection_id: '00000000-0000-4000-8000-000000000000',
+              values: { firstname: 'John' },
+            },
+          },
+        },
+      });
+      dataSource.getCollection('reviews').execute = jest.fn().mockReturnValue({
+        type: 'Webhook',
+      });
+
+      // @ts-expect-error: test private method
+      await route.handleExecute(context);
+
+      expect(dataSource.getCollection('reviews').execute).toHaveBeenCalledWith(
+        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        'MyBulkAction',
+        expect.any(Object),
+        new Filter({
+          conditionTree: factories.conditionTreeBranch.build({
+            aggregator: 'And',
+            conditions: [
+              factories.conditionTreeLeaf.build({
+                field: 'id',
+                operator: 'In',
+                value: [
+                  '123e4567-e89b-12d3-a456-426614174000',
+                  '123e4567-e89b-12d3-a456-426614174001',
+                ],
+              }),
+              factories.conditionTreeLeaf.build({
+                field: 'reviewId',
+                operator: 'Equal',
+                value: '00000000-0000-4000-8000-000000000000',
+              }),
+            ],
           }),
           search: null,
           searchExtended: false,
