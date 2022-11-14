@@ -150,12 +150,9 @@ export default class ActionRoute extends CollectionRoute {
       let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
       if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
 
-      const conditionTree = ConditionTreeFactory.intersect(
-        selectedIds,
-        QueryStringParser.parseConditionTree(this.collection, context),
-        await this.services.authorization.getScope(this.collection, context),
-      );
-      filter = filter.override({ conditionTree });
+      filter = filter.override({
+        conditionTree: ConditionTreeFactory.intersect(filter.conditionTree, selectedIds),
+      });
     }
 
     // Restrict the filter further for the "related data" page.
