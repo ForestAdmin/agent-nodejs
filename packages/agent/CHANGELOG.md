@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.0...@forestadmin/agent@1.4.1) (2022-11-14)
+
+
+### Bug Fixes
+
+* **actions:** global actions should ignore record selection ([#520](https://github.com/ForestAdmin/agent-nodejs/issues/520)) ([d2b57bd](https://github.com/ForestAdmin/agent-nodejs/commit/d2b57bdb9db3206b800a35d46b64c29feddaa27d))
+
 # @forestadmin/agent [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.3.2...@forestadmin/agent@1.4.0) (2022-11-07)
 
 
