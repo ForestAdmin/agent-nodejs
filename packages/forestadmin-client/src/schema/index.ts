@@ -37,14 +37,21 @@ export default class SchemaService {
     const meta = {
       liana: agentName,
       liana_version: agentVersion,
-      schemaFileHash: crypto.createHash('sha1').update(JSON.stringify(schema)).digest('hex'),
       stack: {
         engine: 'nodejs',
         engine_version: process.versions && process.versions.node,
       },
     };
 
-    return this.serializer.serialize('collections', data, meta) as SerializedSchema;
+    const schemaFileHash = crypto
+      .createHash('sha1')
+      .update(JSON.stringify({ ...schema, meta }))
+      .digest('hex');
+
+    return this.serializer.serialize('collections', data, {
+      ...meta,
+      schemaFileHash,
+    }) as SerializedSchema;
   }
 
   private getSerializer(): JSONAPISerializer {
