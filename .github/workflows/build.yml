@@ -184,7 +184,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
-  doc-publish:
+  publish-api-reference:
     name: Publish API Reference
     runs-on: ubuntu-latest
     environment:
