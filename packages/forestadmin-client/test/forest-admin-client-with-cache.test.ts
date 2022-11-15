@@ -32,6 +32,28 @@ describe('ForestAdminClientWithCache', () => {
     });
   });
 
+  describe('postSchema', () => {
+    it('should delegate to the given service', async () => {
+      const schemaService = factories.schema.build({
+        postSchema: jest.fn().mockResolvedValueOnce(true),
+      });
+
+      const forestAdminClient = new ForestAdminClient(
+        factories.forestAdminClientOptions.build(),
+        factories.permission.build(),
+        factories.renderingPermission.build(),
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
+        factories.ipWhiteList.build(),
+        schemaService,
+      );
+
+      const result = await forestAdminClient.postSchema([], 'forest-nodejs-agent', '1.0.0');
+      expect(result).toBe(true);
+      expect(schemaService.postSchema).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('verifySignedActionParameters', () => {
     it('should return the signed parameter with the env secret', () => {
       const signedParameters = 'signedParameters';

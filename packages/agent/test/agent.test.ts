@@ -108,6 +108,17 @@ describe('Agent', () => {
       forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
     });
 
+    test('start should throw if the schema does not exists', async () => {
+      const agent = new Agent({
+        ...options,
+        schemaPath: '/tmp/does_not_exists.json',
+      });
+
+      await expect(() => agent.start()).rejects.toThrow(
+        'Providing a schema is mandatory in production',
+      );
+    });
+
     test('start should upload apimap when unknown', async () => {
       const agent = new Agent(options);
       await agent.start();

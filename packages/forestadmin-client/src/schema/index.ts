@@ -19,7 +19,10 @@ export default class SchemaService {
     agentVersion: string,
   ): Promise<boolean> {
     const apimap = this.serialize(schema, agentName, agentVersion);
-    const shouldSend = await this.shouldSendSchema(apimap.meta.schemaFileHash);
+    const hash = apimap.meta.schemaFileHash;
+    const shouldSend = this.lastHash !== hash && (await this.doServerWantsSchema(hash));
+
+    this.lastHash = hash;
 
     if (shouldSend) {
       await ServerUtils.query(this.options, 'post', '/forest/apimaps', {}, apimap);
@@ -70,12 +73,7 @@ export default class SchemaService {
     return serializer;
   }
 
-  private async shouldSendSchema(hash: string): Promise<boolean> {
-    // Check if we already sent this schema
-    if (this.lastHash === hash) {
-      return false;
-    }
-
+  private async doServerWantsSchema(hash: string): Promise<boolean> {
     // Check if the schema was already sent by another agent
     const { sendSchema } = await ServerUtils.query<{ sendSchema: boolean }>(
       this.options,
