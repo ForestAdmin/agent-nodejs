@@ -15,7 +15,11 @@ export default class SchemaSerializer {
   };
 
   static serialize(schema: ForestServerCollection[], lianaVersion: string): SerializedSchema {
-    const hash = crypto.createHash('sha1').update(JSON.stringify(schema)).digest('hex');
+    const meta = { ...SchemaSerializer.meta, liana_version: lianaVersion };
+    const hash = crypto
+      .createHash('sha1')
+      .update(JSON.stringify({ ...schema, meta }))
+      .digest('hex');
 
     // Build serializer
     const serializer = new JSONAPISerializer();
@@ -35,7 +39,7 @@ export default class SchemaSerializer {
     return serializer.serialize(
       'collections',
       schema.map(c => ({ id: c.name, ...c })),
-      { ...SchemaSerializer.meta, liana_version: lianaVersion, schemaFileHash: hash },
+      { ...meta, schemaFileHash: hash },
     ) as SerializedSchema;
   }
 }
