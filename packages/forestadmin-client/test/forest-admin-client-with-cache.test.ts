@@ -23,6 +23,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.contextVariablesInstantiator.build(),
         factories.chartHandler.build(),
         whiteListService,
+        factories.schema.build(),
       );
 
       const config = await forestAdminClient.getIpWhitelistConfiguration();
@@ -42,6 +43,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.contextVariablesInstantiator.build(),
         factories.chartHandler.build(),
         factories.ipWhiteList.build(),
+        factories.schema.build(),
       );
 
       verifyAndExtractApprovalMock.mockReturnValue(signedParameters);
@@ -63,6 +65,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.contextVariablesInstantiator.build(),
         factories.chartHandler.build(),
         factories.ipWhiteList.build(),
+        factories.schema.build(),
       );
 
       await forestAdminClient.markScopesAsUpdated(42);
@@ -81,6 +84,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.contextVariablesInstantiator.build(),
         factories.chartHandler.build(),
         factories.ipWhiteList.build(),
+        factories.schema.build(),
       );
 
       (renderingPermissionService.getScope as jest.Mock).mockResolvedValue('scope');
