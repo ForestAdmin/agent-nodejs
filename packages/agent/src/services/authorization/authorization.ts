@@ -110,14 +110,14 @@ export default class AuthorizationService {
     );
 
     if (triggerRequiresApproval) {
-      const rolesIdsAllowedToApprove = await this.getRolesIdsAllowedToApprove(
+      const roleIdsAllowedToApprove = await this.getRoleIdsAllowedToApprove(
         caller,
         customActionName,
         collection,
         requestConditionTreeForAllCaller,
       );
 
-      throw new CustomActionRequiresApprovalError(rolesIdsAllowedToApprove);
+      throw new CustomActionRequiresApprovalError(roleIdsAllowedToApprove);
     }
   }
 
@@ -143,14 +143,14 @@ export default class AuthorizationService {
     );
 
     if (!canApprove) {
-      const rolesIdsAllowedToApprove = await this.getRolesIdsAllowedToApprove(
+      const roleIdsAllowedToApprove = await this.getRoleIdsAllowedToApprove(
         caller,
         customActionName,
         collection,
         requestConditionTreeForAllCaller,
       );
 
-      throw new ApprovalNotAllowedError(rolesIdsAllowedToApprove);
+      throw new ApprovalNotAllowedError(roleIdsAllowedToApprove);
     }
   }
 
@@ -330,7 +330,7 @@ export default class AuthorizationService {
     );
   }
 
-  private async getRolesIdsAllowedToApprove(
+  private async getRoleIdsAllowedToApprove(
     caller: Caller,
     customActionName: string,
     collection: Collection,
@@ -353,12 +353,12 @@ export default class AuthorizationService {
     ]);
 
     return rolesIdsGroupByConditions.reduce(
-      (rolesIdsAllowedToApprove, { roleIds }, currentIndex) => {
+      (roleIdsAllowedToApprove, { roleIds }, currentIndex) => {
         if (requestRecordsCount === conditionRecordsCounts[currentIndex]) {
-          rolesIdsAllowedToApprove.push(...roleIds);
+          roleIdsAllowedToApprove.push(...roleIds);
         }
 
-        return rolesIdsAllowedToApprove;
+        return roleIdsAllowedToApprove;
       },
       [],
     );

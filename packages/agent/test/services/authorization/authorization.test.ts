@@ -336,7 +336,7 @@ describe('AuthorizationService', () => {
               collectionName: 'actors',
             });
 
-            // Only called during rolesIdsAllowedToApprove computation
+            // Only called during roleIdsAllowedToApprove computation
             expect(intersectCount).toHaveBeenCalledTimes(2);
           });
         });
@@ -464,7 +464,7 @@ describe('AuthorizationService', () => {
                 }),
               ).rejects.toThrow(new CustomActionRequiresApprovalError([10]));
 
-              // Called twice during rolesIdsAllowedToApprove computation and
+              // Called twice during roleIdsAllowedToApprove computation and
               // one time during doesTriggerCustomActionRequiresApproval
               expect(intersectCount).toHaveBeenCalledTimes(3);
             },
