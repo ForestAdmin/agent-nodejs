@@ -23,6 +23,51 @@ describe('ContextVariablesInjector', () => {
     team,
   });
 
+  describe('injectContextInValueCustom', () => {
+    describe('with a number', () => {
+      test('it should return it as it is', () => {
+        const replaceFunction = jest.fn();
+        const result = ContextVariablesInjector.injectContextInValueCustom(8, replaceFunction);
+
+        expect(result).toStrictEqual(8);
+        expect(replaceFunction).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('with an array', () => {
+      test('it should return it as it is', () => {
+        const replaceFunction = jest.fn();
+        const value = ['test', 'me'];
+        const result = ContextVariablesInjector.injectContextInValueCustom(value, replaceFunction);
+
+        expect(result).toStrictEqual(value);
+        expect(replaceFunction).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('with a string', () => {
+      test('it should replace all variables', () => {
+        const replaceFunction = jest
+          .fn()
+          .mockImplementation(key => key.split('.').pop().toUpperCase());
+        const firstValuePart =
+          'It should be {{siths.selectedRecord.power}} of rank {{siths.selectedRecord.rank}}.';
+        const secondValuePart = 'But {{siths.selectedRecord.power}} can be duplicated.';
+        const result = ContextVariablesInjector.injectContextInValueCustom(
+          `${firstValuePart} ${secondValuePart}`,
+          replaceFunction,
+        );
+
+        expect(result).toStrictEqual(
+          'It should be POWER of rank RANK. But POWER can be duplicated.',
+        );
+        expect(replaceFunction).toHaveBeenCalledTimes(2);
+        expect(replaceFunction).toHaveBeenCalledWith('siths.selectedRecord.power');
+        expect(replaceFunction).toHaveBeenCalledWith('siths.selectedRecord.rank');
+      });
+    });
+  });
+
   describe('injectContextInValue', () => {
     describe('with a number', () => {
       test('it should return it as it is', () => {
@@ -180,7 +225,7 @@ describe('ContextVariablesInjector', () => {
     describe('with a branch containing multiple leafs', () => {
       it('should replace values in every leaf', () => {
         const condition: RawTree = {
-          aggregator: 'And',
+          aggregator: 'and',
           conditions: [
             {
               value: '{{currentUser.id}}',
@@ -188,7 +233,7 @@ describe('ContextVariablesInjector', () => {
               operator: 'equal',
             },
             {
-              aggregator: 'Or',
+              aggregator: 'or',
               conditions: [
                 {
                   value: '{{currentUser.tags.planet}}',
@@ -211,20 +256,20 @@ describe('ContextVariablesInjector', () => {
         );
 
         expect(generated).toEqual({
-          ...condition,
+          aggregator: 'and',
           conditions: [
             {
               value: `${user.id}`,
               field: 'foo',
-              operator: 'Equal',
+              operator: 'equal',
             },
             {
-              aggregator: 'Or',
+              aggregator: 'or',
               conditions: [
                 {
                   value: user.tags.planet,
                   field: 'bar',
-                  operator: 'Equal',
+                  operator: 'equal',
                 },
                 {
                   value: user.firstName,

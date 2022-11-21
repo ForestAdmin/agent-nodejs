@@ -1,5 +1,6 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Collection, Filter } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import ActionContext from '../../../src/decorators/actions/context/base';
 import ActionContextSingle from '../../../src/decorators/actions/context/single';
 

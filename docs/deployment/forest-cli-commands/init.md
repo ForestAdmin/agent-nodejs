@@ -1,9 +1,9 @@
 # init
 
-The `forest init` command provides an all-in-one initialisation command that will:
+The `forest init` command provides an all-in-one initialization command that will:
 
 - allow you to log in if you haven't already done so with [forest login](login.md)
-- set up your own development environment on a given project.
+- set up your development environment on a given project.
 
 ```
 $ forest init --help
@@ -53,7 +53,7 @@ If you're seeing the above message, please refer to this [migration guide](https
 
 If you're using `forest init`, it means your agent should already be running **locally**. If you used the default values used during installation, your endpoint should be _http://localhost:3310_. <!-- markdown-link-check-disable-line -->
 
-Since we need to know your project's local endpoint in order to create your development environment, we've left the same default values. You can just hit "Enter" to use those; otherwise simply fill the _host_ and _port_ to fit your situation.
+Since we need to know your project's local endpoint to create your development environment, we've left the same default values. You can just hit "Enter" to use those; otherwise, simply fill in the _host_ and _port_ to fit your situation.
 
 ```
 [? Enter your local agent host: (localhost) localhost
@@ -65,7 +65,7 @@ At this point, your **development environment** will be **created**! 🎉
 {% endhint %}
 
 {% hint style="info" %}
-Note that your new development environnment is identified by the `FOREST_ENV_SECRET` in your `.env` file. If you had no such file, it will have been automatically created.
+Note that your new development environment is identified by the `FOREST_ENV_SECRET` in your `.env` file. If you had no such file, it will have been automatically created.
 {% endhint %}
 
 #### (Optional) Connecting your database

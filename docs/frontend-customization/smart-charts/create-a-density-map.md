@@ -1,11 +1,11 @@
 ![](../../assets/smart-chart-density.png)
 
-This last example shows how you can achieve virtually anything, since you are basically coding in a sandbox. There's no limit to what you can do with Smart charts.
+This last example shows how you can achieve virtually anything since you are coding in a sandbox. There's no limit to what you can do with Smart charts.
 
 In this snippet, notice how we import the **D3js** library. Of course, you can choose to use any other library of your choice.
 
 {% hint style="info" %}
-This density map chart is inspired from [this one](https://observablehq.com/@d3/bubble-map).
+This density map chart is inspired by [this one](https://observablehq.com/@d3/bubble-map).
 {% endhint %}
 
 The resulting chart can be resized to fit your use.

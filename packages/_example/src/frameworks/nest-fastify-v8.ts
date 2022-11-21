@@ -1,7 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import { Controller, Get, Module } from '@nestjs/common';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { NestFactory } from '@nestjs/core';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 
 @Controller('/')
 class BasicController {

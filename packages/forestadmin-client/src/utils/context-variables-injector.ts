@@ -1,15 +1,15 @@
-import { GenericRawTreeBranch, RawTree, RawTreeLeaf } from '../permissions/types';
+import { RawTree, RawTreeBranch } from '../permissions/types';
 import ContextVariables from './context-variables';
 
 export default class ContextVariablesInjector {
-  private static isTreeBranch(filter: RawTree): filter is GenericRawTreeBranch<RawTreeLeaf> {
-    return 'aggregator' in File;
+  private static isTreeBranch(filter: RawTree): filter is RawTreeBranch {
+    return 'aggregator' in filter;
   }
 
-  public static injectContextInValue<ValueType>(
+  public static injectContextInValueCustom<ValueType>(
     value: ValueType,
-    contextVariables: ContextVariables,
-  ): ValueType {
+    replaceFunction: (contextVariableName: string) => string,
+  ) {
     if (typeof value !== 'string') {
       return value;
     }
@@ -17,23 +17,36 @@ export default class ContextVariablesInjector {
     let valueWithContextVariablesInjected: string = value;
     const regex = /{{([^}]+)}}/g;
     let match = regex.exec(value);
+    const encounteredVariables = [];
 
     while (match) {
       const contextVariableKey = match[1];
-      const contextValue = contextVariables.getValue(contextVariableKey);
 
-      valueWithContextVariablesInjected = valueWithContextVariablesInjected.replace(
-        new RegExp(`{{${contextVariableKey}}}`, 'g'),
-        String(contextValue),
-      );
+      if (!encounteredVariables.includes(contextVariableKey)) {
+        valueWithContextVariablesInjected = valueWithContextVariablesInjected.replace(
+          new RegExp(`{{${contextVariableKey}}}`, 'g'),
+          replaceFunction(contextVariableKey),
+        );
+      }
+
+      encounteredVariables.push(contextVariableKey);
       match = regex.exec(value);
     }
 
     return valueWithContextVariablesInjected as unknown as ValueType;
   }
 
+  public static injectContextInValue<ValueType>(
+    value: ValueType,
+    contextVariables: ContextVariables,
+  ): ValueType {
+    return this.injectContextInValueCustom(value, contextVariableKey =>
+      String(contextVariables.getValue(contextVariableKey)),
+    );
+  }
+
   public static injectContextInFilter(
-    filter: RawTree,
+    filter: RawTree | null,
     contextVariables: ContextVariables,
   ): RawTree {
     if (!filter) {

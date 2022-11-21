@@ -1,13 +1,13 @@
-import { Client, ClientAuthMethod, Issuer } from 'openid-client';
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import jsonwebtoken from 'jsonwebtoken';
-import jwt from 'koa-jwt';
-
 import { Context } from 'koa';
+import jwt from 'koa-jwt';
+import { Client, ClientAuthMethod, Issuer } from 'openid-client';
+
 import { RouteType } from '../../types';
-import BaseRoute from '../base-route';
 import ForestHttpApi from '../../utils/forest-http-api';
+import BaseRoute from '../base-route';
 
 export default class Authentication extends BaseRoute {
   readonly type = RouteType.Authentication;

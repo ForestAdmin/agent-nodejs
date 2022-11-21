@@ -1,11 +1,13 @@
-import { ForestAdminClientOptions, ForestAdminClientOptionsWithDefaults } from './types';
-import ActionPermissionService from './permissions/action-permission';
 import ChartHandler from './charts/chart-handler';
-import ContextVariablesInstantiator from './utils/context-variables-instantiator';
 import ForestAdminClient from './forest-admin-client-with-cache';
+import IpWhiteListService from './ip-whitelist';
+import ActionPermissionService from './permissions/action-permission';
 import PermissionService from './permissions/permission-with-cache';
 import RenderingPermissionService from './permissions/rendering-permission';
 import UserPermissionService from './permissions/user-permission';
+import { ForestAdminClientOptions, ForestAdminClientOptionsWithDefaults } from './types';
+import ContextVariablesInstantiator from './utils/context-variables-instantiator';
+import defaultLogger from './utils/default-logger';
 
 export { default as JTWTokenExpiredError } from './permissions/errors/jwt-token-expired-error';
 export { default as JTWUnableToVerifyError } from './permissions/errors/jwt-unable-to-verify-error';
@@ -20,6 +22,7 @@ export {
   ChartHandlerInterface,
   ContextVariablesInstantiatorInterface,
 } from './types';
+export { IpWhitelistConfiguration } from './ip-whitelist/types';
 export { CollectionActionEvent } from './permissions/types';
 
 export default function createForestAdminClient(
@@ -29,7 +32,7 @@ export default function createForestAdminClient(
     forestServerUrl: 'https://api.forestadmin.com',
     permissionsCacheDurationInSeconds: 15 * 60,
     // eslint-disable-next-line no-console
-    logger: (level, ...args) => console[level.toLowerCase()](...args),
+    logger: defaultLogger,
     ...options,
   };
 
@@ -39,6 +42,7 @@ export default function createForestAdminClient(
   const permissionService = new PermissionService(actionPermission, renderingPermission);
   const contextVariablesInstantiator = new ContextVariablesInstantiator(renderingPermission);
   const chartHandler = new ChartHandler(contextVariablesInstantiator);
+  const ipWhitelistPermission = new IpWhiteListService(optionsWithDefaults);
 
   return new ForestAdminClient(
     optionsWithDefaults,
@@ -46,6 +50,7 @@ export default function createForestAdminClient(
     renderingPermission,
     contextVariablesInstantiator,
     chartHandler,
+    ipWhitelistPermission,
   );
 }
 

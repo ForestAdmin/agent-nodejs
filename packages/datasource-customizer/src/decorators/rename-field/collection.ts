@@ -10,6 +10,7 @@ import {
   RecordData,
   RelationSchema,
 } from '@forestadmin/datasource-toolkit';
+
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 

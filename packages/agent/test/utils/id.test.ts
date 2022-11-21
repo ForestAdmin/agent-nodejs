@@ -1,7 +1,7 @@
 import { CollectionSchema } from '@forestadmin/datasource-toolkit';
 
-import * as factories from '../__factories__';
 import IdUtils from '../../src/utils/id';
+import * as factories from '../__factories__';
 
 describe('IdUtils', () => {
   describe('with a schema with no pk', () => {
@@ -21,9 +21,7 @@ describe('IdUtils', () => {
   describe('with a schema with an integer id field', () => {
     const numberSchema = factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.isPrimaryKey().build({
-          columnType: 'Number',
-        }),
+        id: factories.columnSchema.numericPrimaryKey().build(),
       },
     });
 
@@ -69,9 +67,7 @@ describe('IdUtils', () => {
   describe('with a schema with a string id field', () => {
     const stringSchema = factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.isPrimaryKey().build({
-          columnType: 'String',
-        }),
+        id: factories.columnSchema.build({ columnType: 'String', isPrimaryKey: true }),
       },
     });
 
@@ -92,12 +88,8 @@ describe('IdUtils', () => {
   describe('with a schema with a composite id field', () => {
     const compositeSchema = factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.isPrimaryKey().build({
-          columnType: 'Number',
-        }),
-        otherId: factories.columnSchema.isPrimaryKey().build({
-          columnType: 'String',
-        }),
+        id: factories.columnSchema.numericPrimaryKey().build(),
+        otherId: factories.columnSchema.build({ columnType: 'String', isPrimaryKey: true }),
       },
     });
 
@@ -113,7 +105,7 @@ describe('IdUtils', () => {
     describe('with a schema with an uuid id', () => {
       const uuidSchema = factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
         },
       });
 

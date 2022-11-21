@@ -1,3 +1,31 @@
+## @forestadmin/datasource-toolkit [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.0...@forestadmin/datasource-toolkit@1.1.1) (2022-11-07)
+
+
+### Performance Improvements
+
+* **permissions:** use a lighter endpoint to retrieve scope configuration ([#432](https://github.com/ForestAdmin/agent-nodejs/issues/432)) ([f3d3834](https://github.com/ForestAdmin/agent-nodejs/commit/f3d3834e312e00844da85966f102e59e4c499524))
+
+## @forestadmin/datasource-toolkit [1.1.1-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.0...@forestadmin/datasource-toolkit@1.1.1-alpha.1) (2022-11-03)
+
+
+### Performance Improvements
+
+* **permissions:** use a lighter endpoint to retrieve scope configuration ([#432](https://github.com/ForestAdmin/agent-nodejs/issues/432)) ([f3d3834](https://github.com/ForestAdmin/agent-nodejs/commit/f3d3834e312e00844da85966f102e59e4c499524))
+
+# @forestadmin/datasource-toolkit [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.1...@forestadmin/datasource-toolkit@1.1.0) (2022-10-27)
+
+
+### Features
+
+* allow creating collection charts ([#506](https://github.com/ForestAdmin/agent-nodejs/issues/506)) ([e707757](https://github.com/ForestAdmin/agent-nodejs/commit/e707757376990888a1d037abf477537f513728ac))
+
+## @forestadmin/datasource-toolkit [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0...@forestadmin/datasource-toolkit@1.0.1) (2022-10-24)
+
+
+### Bug Fixes
+
+* **schema-emitter:** better handling of schema edge-cases ([#496](https://github.com/ForestAdmin/agent-nodejs/issues/496)) ([53c9cea](https://github.com/ForestAdmin/agent-nodejs/commit/53c9cea190b017aa16b3691972d21d07fdf549d6))
+
 ## @forestadmin/datasource-toolkit [1.0.1-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.0.0...@forestadmin/datasource-toolkit@1.0.1-alpha.1) (2022-10-14)
 
 

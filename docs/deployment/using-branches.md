@@ -4,7 +4,7 @@ As we've explained in the previous page, your Admin panel's frontend is saved on
 
 ### What is a layout?
 
-The notion of branch cannot be explained without first explaining what a _layout_ is.
+The notion of a branch cannot be explained without first explaining what a _layout_ is.
 
 A **layout** is all the settings that **define your user interface (UI)**. In Forest Admin, there is 1 layout per environment and per team:
 
@@ -32,13 +32,13 @@ Imagine the following situation where you have 3 environments:
 
 ![](../assets/branch-how-it-works.png)
 
-The branch `my-branch` is based on the production layout. Any changes made on it are saved in your branch's layout and can later be [applied](forest-cli-commands/deploy.md) on it.
+The branch `my-branch` is based on the production layout. Any changes made to it are saved in your branch's layout and can later be [applied](forest-cli-commands/deploy.md) to it.
 
 ![](../assets/branch-example.png)
 
 {% hint style="warning" %}
-This also means that any changes made to the origin of your branch will instantly reflect on your branch.\
-\
+This also means that any changes made to the origin of your branch will instantly reflect on your branch.
+
 For those familiar with git's _rebase_, this means you will **never have to** **rebase** your branch on its origin.
 {% endhint %}
 
@@ -68,4 +68,4 @@ Your **current** branch will be displayed at the top.
 To switch your _current_ branch to another existing branch, check out the [switch](forest-cli-commands/switch.md) command.
 {% endhint %}
 
-Now that you've mastered branch creation and management, let's dive into the next step of the development workflow: deployment
+Now that you've mastered branch creation and management, let's dive into the next step of the development workflow: deployment.

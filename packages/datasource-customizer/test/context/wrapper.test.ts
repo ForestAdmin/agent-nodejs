@@ -1,4 +1,3 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
   Caller,
@@ -11,6 +10,8 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import RelatedCollection from '../../src/context/relaxed-wrappers/collection';
 import RelaxedDataSource from '../../src/context/relaxed-wrappers/datasource';
 

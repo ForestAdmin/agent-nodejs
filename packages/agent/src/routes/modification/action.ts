@@ -5,22 +5,22 @@ import {
   FilterFactory,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
-import { Context, Next } from 'koa';
 import Router from '@koa/router';
+import { Context, Next } from 'koa';
 
-import { AgentOptionsWithDefaults, HttpCode } from '../../types';
 import { ForestAdminHttpDriverServices } from '../../services';
 import {
   SmartActionApprovalRequestBody,
   SmartActionRequestBody,
 } from '../../services/authorization/types';
+import { AgentOptionsWithDefaults, HttpCode } from '../../types';
 import BodyParser from '../../utils/body-parser';
-import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import ForestValueConverter from '../../utils/forest-schema/action-values';
+import SchemaGeneratorActions from '../../utils/forest-schema/generator-actions';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
-import SchemaGeneratorActions from '../../utils/forest-schema/generator-actions';
+import CollectionRoute from '../collection-route';
 
 export default class ActionRoute extends CollectionRoute {
   private readonly actionName: string;
@@ -159,27 +159,34 @@ export default class ActionRoute extends CollectionRoute {
     return next();
   }
 
-  private async getRecordSelection(context: Context, withScope = true): Promise<Filter> {
-    const selectionIds = BodyParser.parseSelectionIds(this.collection.schema, context);
-    let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
-    if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
-
-    const conditionTree = ConditionTreeFactory.intersect(
-      selectedIds,
-      QueryStringParser.parseConditionTree(this.collection, context),
-      withScope ? await this.services.authorization.getScope(this.collection, context) : null,
-    );
-
-    const caller = QueryStringParser.parseCaller(context);
-    const filter = ContextFilterFactory.build(this.collection, context, null, { conditionTree });
+  private async getRecordSelection(context: Context, includeUserScope = true): Promise<Filter> {
     const attributes = context.request?.body?.data?.attributes;
 
-    if (attributes?.parent_association_name) {
-      const relation = attributes?.parent_association_name;
-      const parentCollection = this.dataSource.getCollection(attributes.parent_collection_name);
-      const parentId = IdUtils.unpackId(parentCollection.schema, attributes.parent_collection_id);
+    // Match user filter + search + scope? + segment.
+    const scope = includeUserScope
+      ? await this.services.authorization.getScope(this.collection, context)
+      : null;
+    let filter = ContextFilterFactory.build(this.collection, context, scope);
 
-      return FilterFactory.makeForeignFilter(parentCollection, parentId, relation, caller, filter);
+    // Restrict the filter to the selected records for single or bulk actions.
+    if (this.collection.schema.actions[this.actionName].scope !== 'Global') {
+      const selectionIds = BodyParser.parseSelectionIds(this.collection.schema, context);
+      let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
+      if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
+
+      filter = filter.override({
+        conditionTree: ConditionTreeFactory.intersect(filter.conditionTree, selectedIds),
+      });
+    }
+
+    // Restrict the filter further for the "related data" page.
+    if (attributes?.parent_association_name) {
+      const caller = QueryStringParser.parseCaller(context);
+      const relation = attributes?.parent_association_name;
+      const parent = this.dataSource.getCollection(attributes.parent_collection_name);
+      const parentId = IdUtils.unpackId(parent.schema, attributes.parent_collection_id);
+
+      filter = await FilterFactory.makeForeignFilter(parent, parentId, relation, caller, filter);
     }
 
     return filter;

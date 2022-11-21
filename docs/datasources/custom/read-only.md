@@ -2,7 +2,7 @@ Developing your query translation layer is much easier when you can preview your
 
 Emulation comes to the rescue: all features which are to be implemented when making a translating data source can be emulated inside your Node.js, at the cost of performance.
 
-This enables to be up and running in minutes, and then optimizing your code as you go.
+This enables you to be up and running in minutes and then optimize your code as you go.
 
 ```javascript
 const { BaseCollection } = require('@forestadmin/datasource-toolkit');
@@ -46,7 +46,7 @@ class MyCollection extends BaseCollection {
 
 The `aggregate` method is used by forest admin both to count records and to extract the data which is needed to generate charts.
 
-If the API/Database you are targeting have an efficient API which is made for counting records, you may want to handle this case first.
+If the API/Database you are targeting has an efficient API that is made for counting records, you may want to handle this case first.
 
 ```javascript
 const { BaseCollection } = require('@forestadmin/datasource-toolkit');

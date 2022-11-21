@@ -1,7 +1,7 @@
 import Router from '@koa/router';
 
-import { AgentOptionsWithDefaults, RouteType } from '../types';
 import { ForestAdminHttpDriverServices } from '../services';
+import { AgentOptionsWithDefaults, RouteType } from '../types';
 
 export default abstract class BaseRoute {
   protected readonly services: ForestAdminHttpDriverServices;

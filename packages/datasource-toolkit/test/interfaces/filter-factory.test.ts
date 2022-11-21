@@ -1,10 +1,10 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
-import * as factories from '../__factories__';
-import { Operator } from '../../src/interfaces/query/condition-tree/nodes/operators';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
-import Filter from '../../src/interfaces/query/filter/unpaginated';
+import { Operator } from '../../src/interfaces/query/condition-tree/nodes/operators';
 import FilterFactory from '../../src/interfaces/query/filter/factory';
+import Filter from '../../src/interfaces/query/filter/unpaginated';
+import * as factories from '../__factories__';
 
 const TEST_TIMEZONE = 'Europe/Dublin';
 const TEST_DATE = '2022-02-16T10:00:00.000Z';
@@ -15,10 +15,7 @@ function setup() {
       name: 'books',
       schema: {
         fields: {
-          id: factories.columnSchema.build({
-            isPrimaryKey: true,
-            columnType: 'Number',
-          }),
+          id: factories.columnSchema.numericPrimaryKey().build(),
           reviews: factories.manyToManySchema.build({
             foreignCollection: 'reviews',
             originKey: 'bookId',
@@ -39,10 +36,7 @@ function setup() {
       name: 'reviews',
       schema: {
         fields: {
-          id: factories.columnSchema.build({
-            isPrimaryKey: true,
-            columnType: 'Number',
-          }),
+          id: factories.columnSchema.numericPrimaryKey().build(),
         },
       },
     }),
@@ -50,14 +44,8 @@ function setup() {
       name: 'bookReview',
       schema: {
         fields: {
-          bookId: factories.columnSchema.build({
-            isPrimaryKey: true,
-            columnType: 'Number',
-          }),
-          reviewId: factories.columnSchema.build({
-            isPrimaryKey: true,
-            columnType: 'Number',
-          }),
+          bookId: factories.columnSchema.numericPrimaryKey().build(),
+          reviewId: factories.columnSchema.numericPrimaryKey().build(),
           review: factories.manyToOneSchema.build({
             foreignCollection: 'reviews',
             foreignKey: 'reviewId',

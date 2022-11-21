@@ -1,5 +1,6 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Aggregation, Page, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import BookCollection from '../../src/collections/books';
 import DummyDataSource from '../../src/datasource';
 

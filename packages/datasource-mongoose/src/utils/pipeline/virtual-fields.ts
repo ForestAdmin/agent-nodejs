@@ -1,5 +1,5 @@
-import { Model, PipelineStage } from 'mongoose';
 import { Projection } from '@forestadmin/datasource-toolkit';
+import { Model, PipelineStage } from 'mongoose';
 
 import MongooseSchema from '../../mongoose/schema';
 

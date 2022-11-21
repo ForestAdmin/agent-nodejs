@@ -10,9 +10,11 @@ import {
   OneToOneSchema,
   PrimitiveTypes,
   RelationSchema,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import { ForestServerColumnType, ForestServerField } from './types';
+
 import FrontendFilterableUtils from './filterable';
+import { ForestServerColumnType, ForestServerField } from './types';
 import FrontendValidationUtils from './validation';
 
 export default class SchemaGeneratorFields {
@@ -55,6 +57,7 @@ export default class SchemaGeneratorFields {
 
   private static buildColumnSchema(collection: Collection, name: string): ForestServerField {
     const column = collection.schema.fields[name] as ColumnSchema;
+    const isForeignKey = SchemaUtils.isForeignKey(collection.schema, name);
 
     return {
       defaultValue: column.defaultValue ?? null,
@@ -64,7 +67,11 @@ export default class SchemaGeneratorFields {
       inverseOf: null,
       isFilterable: FrontendFilterableUtils.isFilterable(column.columnType, column.filterOperators),
       isPrimaryKey: Boolean(column.isPrimaryKey),
-      isReadOnly: Boolean(column.isReadOnly),
+
+      // When a column is a foreign key, it is readonly.
+      // This may sound counter-intuitive: it is so that the user don't have two fields which
+      // allow updating the same foreign key in the detail-view form (fk + many to one)
+      isReadOnly: isForeignKey || Boolean(column.isReadOnly),
       isRequired: column.validation?.some(v => v.operator === 'Present') ?? false,
       isSortable: Boolean(column.isSortable),
       isVirtual: false,
@@ -173,7 +180,10 @@ export default class SchemaGeneratorFields {
       type: keyField.columnType as PrimitiveTypes,
       defaultValue: keyField.defaultValue ?? null,
       isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
-      isPrimaryKey: Boolean(keyField.isPrimaryKey),
+
+      // Always set false even if the foreign key is the primary key.
+      // Doing otherwise breaks the frontend when no reference field is set.
+      isPrimaryKey: false,
       isRequired: keyField.validation?.some(v => v.operator === 'Present') ?? false,
       isReadOnly: Boolean(keyField.isReadOnly),
       isSortable: Boolean(keyField.isSortable),

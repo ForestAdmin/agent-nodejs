@@ -1,4 +1,5 @@
 import { Factory } from 'fishery';
+
 import RenderingPermissionService from '../../../src/permissions/rendering-permission';
 import userPermissionsFactory from './user-permission';
 
@@ -9,6 +10,8 @@ export class RenderingPermissionsFactory extends Factory<RenderingPermissionServ
       permissions.canExecuteChart = jest.fn();
       permissions.invalidateCache = jest.fn();
       permissions.canExecuteSegmentQuery = jest.fn();
+      permissions.getUser = jest.fn();
+      permissions.getTeam = jest.fn();
     });
   }
 }

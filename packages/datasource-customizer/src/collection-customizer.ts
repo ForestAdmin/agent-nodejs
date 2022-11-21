@@ -1,34 +1,58 @@
 import {
+  CollectionSchema,
   CollectionUtils,
   ColumnSchema,
   Operator,
-  RecordUtils,
-  SchemaUtils,
   allowedOperatorsForColumnType,
 } from '@forestadmin/datasource-toolkit';
 
+import DataSourceCustomizer from './datasource-customizer';
 import { ActionDefinition } from './decorators/actions/types/actions';
+import { CollectionChartDefinition } from './decorators/chart/types';
 import { ComputedDefinition } from './decorators/computed/types';
+import DecoratorsStack from './decorators/decorators-stack';
 import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
-import { OneToManyEmbeddedDefinition } from './types';
 import { OperatorDefinition } from './decorators/operators-emulate/types';
 import { RelationDefinition } from './decorators/relation/types';
 import { SearchDefinition } from './decorators/search/types';
 import { SegmentDefinition } from './decorators/segment/types';
-import { TCollectionName, TColumnName, TFieldName, TSchema, TSortClause } from './templates';
 import { WriteDefinition } from './decorators/write/types';
-import DecoratorsStack from './decorators/decorators-stack';
+import addExternalRelation from './plugins/add-external-relation';
+import importField from './plugins/import-field';
+import { TCollectionName, TColumnName, TFieldName, TSchema, TSortClause } from './templates';
+import { OneToManyEmbeddedDefinition, Plugin } from './types';
 
 export default class CollectionCustomizer<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > {
-  private readonly name: string;
+  private readonly dataSourceCustomizer: DataSourceCustomizer<S>;
   private readonly stack: DecoratorsStack;
+  readonly name: string;
 
-  constructor(stack: DecoratorsStack, name: string) {
+  get schema(): CollectionSchema {
+    return this.stack.hook.getCollection(this.name).schema;
+  }
+
+  constructor(dataSourceCustomizer: DataSourceCustomizer<S>, stack: DecoratorsStack, name: string) {
+    this.dataSourceCustomizer = dataSourceCustomizer;
     this.name = name;
     this.stack = stack;
+  }
+
+  /**
+   * Load a plugin on the collection.
+   * @param plugin reference to the plugin function
+   * @param options options to pass to the plugin
+   * @example
+   * import { createFileField } from '@forestadmin/plugin-s3';
+   *
+   * collection.use(createFileField, { fieldname: 'avatar' }),
+   */
+  use<Options>(plugin: Plugin<Options>, options?: Options): this {
+    return this.pushCustomization(async () => {
+      await plugin(this.dataSourceCustomizer, this, options);
+    });
   }
 
   /**
@@ -38,9 +62,9 @@ export default class CollectionCustomizer<
    * .disableCount()
    */
   disableCount(): this {
-    this.stack.schema.getCollection(this.name).overrideSchema({ countable: false });
-
-    return this;
+    return this.pushCustomization(async () => {
+      this.stack.schema.getCollection(this.name).overrideSchema({ countable: false });
+    });
   }
 
   /**
@@ -52,53 +76,7 @@ export default class CollectionCustomizer<
    * .importField('authorName', { path: 'author:fullName' })
    */
   importField(name: string, options: { path: TFieldName<S, N>; readonly?: boolean }): this {
-    const collection = this.stack.lateComputed.getCollection(this.name);
-    const schema = CollectionUtils.getFieldSchema(collection, options.path) as ColumnSchema;
-
-    this.addField(name, {
-      columnType: schema.columnType,
-      defaultValue: schema.defaultValue,
-      dependencies: [options.path],
-      getValues: records => records.map(r => RecordUtils.getFieldValue(r, options.path)),
-      enumValues: schema.enumValues,
-    });
-
-    if (!schema.isReadOnly && !options.readonly) {
-      this.stack.write.getCollection(this.name).replaceFieldWriting(name, value => {
-        const path = options.path.split(':');
-        const writingPath = {};
-        path.reduce((nestedPath, currentPath, index) => {
-          nestedPath[currentPath] = index === path.length - 1 ? value : {};
-
-          return nestedPath[currentPath];
-        }, writingPath);
-
-        return writingPath;
-      });
-    }
-
-    if (schema.isReadOnly && options.readonly === false) {
-      throw new Error(
-        `Readonly option should not be false because the field "${options.path}" is not writable`,
-      );
-    }
-
-    for (const operator of schema.filterOperators) {
-      const handler = value => ({ field: options.path, operator, value });
-      this.replaceFieldOperator(
-        name as TFieldName<S, N>,
-        operator,
-        handler as OperatorDefinition<S, N>,
-      );
-    }
-
-    if (schema.isSortable) {
-      this.replaceFieldSorting(name as TFieldName<S, N>, [
-        { field: options.path, ascending: true },
-      ]);
-    }
-
-    return this;
+    return this.use(importField, { name, ...options });
   }
 
   /**
@@ -109,9 +87,9 @@ export default class CollectionCustomizer<
    * .renameField('theCurrentNameOfTheField', 'theNewNameOfTheField');
    */
   renameField(oldName: TColumnName<S, N>, newName: string): this {
-    this.stack.renameField.getCollection(this.name).renameField(oldName, newName);
-
-    return this;
+    return this.pushCustomization(async () => {
+      this.stack.renameField.getCollection(this.name).renameField(oldName, newName);
+    });
   }
 
   /**
@@ -121,10 +99,10 @@ export default class CollectionCustomizer<
    * .removeField('aFieldToRemove', 'anotherFieldToRemove');
    */
   removeField(...names: TColumnName<S, N>[]): this {
-    const collection = this.stack.publication.getCollection(this.name);
-    for (const name of names) collection.changeFieldVisibility(name, false);
-
-    return this;
+    return this.pushCustomization(async () => {
+      const collection = this.stack.publication.getCollection(this.name);
+      for (const name of names) collection.changeFieldVisibility(name, false);
+    });
   }
 
   /**
@@ -140,12 +118,30 @@ export default class CollectionCustomizer<
    *  })
    */
   addAction(name: string, definition: ActionDefinition<S, N>): this {
-    this.stack.action
-      .getCollection(this.name)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .addAction(name, definition as ActionDefinition<any, any>);
+    return this.pushCustomization(async () => {
+      this.stack.action
+        .getCollection(this.name)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .addAction(name, definition as ActionDefinition<any, any>);
+    });
+  }
 
-    return this;
+  /**
+   * Create a new API chart
+   * @param name name of the chart
+   * @param definition definition of the chart
+   * @example
+   * .addChart('numCustomers', {
+   *   type: 'Value',
+   *   render: (context, resultBuilder) => {
+   *     return resultBuilder.value(123);
+   *   }
+   * })
+   */
+  addChart(name: string, definition: CollectionChartDefinition<S, N>): this {
+    return this.pushCustomization(async () => {
+      this.stack.chart.getCollection(this.name).addChart(name, definition);
+    });
   }
 
   /**
@@ -160,23 +156,23 @@ export default class CollectionCustomizer<
    * });
    */
   addField(name: string, definition: ComputedDefinition<S, N>): this {
-    const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
-    const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
-    const canBeComputedBeforeRelations = definition.dependencies.every(field => {
-      try {
-        return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
-      } catch {
-        return false;
-      }
+    return this.pushCustomization(async () => {
+      const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
+      const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
+      const canBeComputedBeforeRelations = definition.dependencies.every(field => {
+        try {
+          return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
+        } catch {
+          return false;
+        }
+      });
+
+      const collection = canBeComputedBeforeRelations
+        ? collectionBeforeRelations
+        : collectionAfterRelations;
+
+      collection.registerComputed(name, definition as ComputedDefinition);
     });
-
-    const collection = canBeComputedBeforeRelations
-      ? collectionBeforeRelations
-      : collectionAfterRelations;
-
-    collection.registerComputed(name, definition as ComputedDefinition);
-
-    return this;
   }
 
   /**
@@ -188,9 +184,9 @@ export default class CollectionCustomizer<
    * .addFieldValidation('firstName', 'LongerThan', 2);
    */
   addFieldValidation(name: TColumnName<S, N>, operator: Operator, value?: unknown): this {
-    this.stack.validation.getCollection(this.name).addValidation(name, { operator, value });
-
-    return this;
+    return this.pushCustomization(async () => {
+      this.stack.validation.getCollection(this.name).addValidation(name, { operator, value });
+    });
   }
 
   /**
@@ -206,14 +202,12 @@ export default class CollectionCustomizer<
     foreignCollection: T,
     options: { foreignKey: TColumnName<S, N>; foreignKeyTarget?: TColumnName<S, T> },
   ): this {
-    this.addRelation(name, {
+    return this.pushRelation(name, {
       type: 'ManyToOne',
       foreignCollection,
       foreignKey: options.foreignKey,
       foreignKeyTarget: options.foreignKeyTarget,
     });
-
-    return this;
   }
 
   /**
@@ -229,14 +223,12 @@ export default class CollectionCustomizer<
     foreignCollection: T,
     options: { originKey: TColumnName<S, T>; originKeyTarget?: TColumnName<S, N> },
   ): this {
-    this.addRelation(name, {
+    return this.pushRelation(name, {
       type: 'OneToMany',
       foreignCollection,
       originKey: options.originKey,
       originKeyTarget: options.originKeyTarget,
     });
-
-    return this;
   }
 
   /**
@@ -252,14 +244,12 @@ export default class CollectionCustomizer<
     foreignCollection: T,
     options: { originKey: TColumnName<S, T>; originKeyTarget?: TColumnName<S, N> },
   ): this {
-    this.addRelation(name, {
+    return this.pushRelation(name, {
       type: 'OneToOne',
       foreignCollection,
       originKey: options.originKey,
       originKeyTarget: options.originKeyTarget,
     });
-
-    return this;
   }
 
   /**
@@ -285,7 +275,7 @@ export default class CollectionCustomizer<
       foreignKeyTarget?: TColumnName<S, Foreign>;
     },
   ): this {
-    this.addRelation(name, {
+    return this.pushRelation(name, {
       type: 'ManyToMany',
       foreignCollection,
       throughCollection,
@@ -294,8 +284,6 @@ export default class CollectionCustomizer<
       foreignKey: options.foreignKey,
       foreignKeyTarget: options.foreignKeyTarget,
     });
-
-    return this;
   }
 
   /**
@@ -314,15 +302,7 @@ export default class CollectionCustomizer<
    * })
    */
   addExternalRelation(name: string, definition: OneToManyEmbeddedDefinition<S, N>): this {
-    const { schema } = this.stack.action.getCollection(this.name);
-    const primaryKeys = SchemaUtils.getPrimaryKeys(schema) as TFieldName<S, N>[];
-
-    return this.addField(name, {
-      dependencies: definition.dependencies ?? primaryKeys,
-      columnType: [definition.schema],
-      getValues: async (records, context) =>
-        Promise.all(records.map(async record => definition.listRecords(record, context))),
-    });
+    return this.use(addExternalRelation, { name, ...definition });
   }
 
   /**
@@ -337,9 +317,9 @@ export default class CollectionCustomizer<
    * );
    */
   addSegment(name: string, definition: SegmentDefinition<S, N>): this {
-    this.stack.segment.getCollection(this.name).addSegment(name, definition as SegmentDefinition);
-
-    return this;
+    return this.pushCustomization(async () => {
+      this.stack.segment.getCollection(this.name).addSegment(name, definition as SegmentDefinition);
+    });
   }
 
   /**
@@ -350,9 +330,9 @@ export default class CollectionCustomizer<
    * .emulateFieldSorting('fullName');
    */
   emulateFieldSorting(name: TColumnName<S, N>): this {
-    this.stack.sortEmulate.getCollection(this.name).emulateFieldSorting(name);
-
-    return this;
+    return this.pushCustomization(async () => {
+      this.stack.sortEmulate.getCollection(this.name).emulateFieldSorting(name);
+    });
   }
 
   /**
@@ -370,11 +350,11 @@ export default class CollectionCustomizer<
    * )
    */
   replaceFieldSorting(name: TColumnName<S, N>, equivalentSort: TSortClause<S, N>[]): this {
-    this.stack.sortEmulate
-      .getCollection(this.name)
-      .replaceFieldSorting(name, equivalentSort as TSortClause[]);
-
-    return this;
+    return this.pushCustomization(async () => {
+      this.stack.sortEmulate
+        .getCollection(this.name)
+        .replaceFieldSorting(name, equivalentSort as TSortClause[]);
+    });
   }
 
   /**
@@ -385,20 +365,20 @@ export default class CollectionCustomizer<
    * .emulateFieldFiltering('aField');
    */
   emulateFieldFiltering(name: TColumnName<S, N>): this {
-    const collection = this.stack.lateOpEmulate.getCollection(this.name);
-    const field = collection.schema.fields[name] as ColumnSchema;
+    return this.pushCustomization(async () => {
+      const collection = this.stack.lateOpEmulate.getCollection(this.name);
+      const field = collection.schema.fields[name] as ColumnSchema;
 
-    if (typeof field.columnType === 'string') {
-      const operators = allowedOperatorsForColumnType[field.columnType];
+      if (typeof field.columnType === 'string') {
+        const operators = allowedOperatorsForColumnType[field.columnType];
 
-      for (const operator of operators) {
-        if (!field.filterOperators?.has(operator)) {
-          this.emulateFieldOperator(name, operator);
+        for (const operator of operators) {
+          if (!field.filterOperators?.has(operator)) {
+            this.emulateFieldOperator(name, operator);
+          }
         }
       }
-    }
-
-    return this;
+    });
   }
 
   /**
@@ -410,13 +390,13 @@ export default class CollectionCustomizer<
    * .emulateFieldOperator('aField', 'In');
    */
   emulateFieldOperator(name: TColumnName<S, N>, operator: Operator): this {
-    const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
-      ? this.stack.earlyOpEmulate.getCollection(this.name)
-      : this.stack.lateOpEmulate.getCollection(this.name);
+    return this.pushCustomization(async () => {
+      const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
+        ? this.stack.earlyOpEmulate.getCollection(this.name)
+        : this.stack.lateOpEmulate.getCollection(this.name);
 
-    collection.emulateFieldOperator(name, operator);
-
-    return this;
+      collection.emulateFieldOperator(name, operator);
+    });
   }
 
   /**
@@ -446,13 +426,13 @@ export default class CollectionCustomizer<
     operator: Operator,
     replacer: OperatorDefinition<S, N, C>,
   ): this {
-    const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
-      ? this.stack.earlyOpEmulate.getCollection(this.name)
-      : this.stack.lateOpEmulate.getCollection(this.name);
+    return this.pushCustomization(async () => {
+      const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
+        ? this.stack.earlyOpEmulate.getCollection(this.name)
+        : this.stack.lateOpEmulate.getCollection(this.name);
 
-    collection.replaceFieldOperator(name, operator, replacer as OperatorDefinition);
-
-    return this;
+      collection.replaceFieldOperator(name, operator, replacer as OperatorDefinition);
+    });
   }
 
   /**
@@ -469,9 +449,9 @@ export default class CollectionCustomizer<
     name: C,
     definition: WriteDefinition<S, N, C>,
   ): this {
-    this.stack.write.getCollection(this.name).replaceFieldWriting(name, definition);
-
-    return this;
+    return this.pushCustomization(async () => {
+      this.stack.write.getCollection(this.name).replaceFieldWriting(name, definition);
+    });
   }
 
   /**
@@ -483,12 +463,12 @@ export default class CollectionCustomizer<
    * });
    */
   replaceSearch(definition: SearchDefinition<S, N>): this {
-    this.stack.search
-      .getCollection(this.name)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .replaceSearch(definition as SearchDefinition<any, any>);
-
-    return this;
+    return this.pushCustomization(async () => {
+      this.stack.search
+        .getCollection(this.name)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .replaceSearch(definition as SearchDefinition<any, any>);
+    });
   }
 
   addHook<P extends HookPosition, T extends HookType>(
@@ -496,26 +476,21 @@ export default class CollectionCustomizer<
     type: T,
     handler: HookHandler<HooksContext<S, N>[P][T]>,
   ): this {
-    this.stack.hook
-      .getCollection(this.name)
-      .addHook(position, type, handler as unknown as HookHandler<HooksContext[P][T]>);
-
-    return this;
+    return this.pushCustomization(async () => {
+      this.stack.hook
+        .getCollection(this.name)
+        .addHook(position, type, handler as unknown as HookHandler<HooksContext[P][T]>);
+    });
   }
 
-  /**
-   * Add a relation between two collections.
-   * @param name name of the new relation
-   * @param definition definition of the new relation
-   * @example
-   * .addRelation('author', {
-   *   type: 'ManyToOne',
-   *   foreignCollection: 'persons',
-   *   foreignKey: 'authorId'
-   * });
-   */
-  private addRelation(name: string, definition: RelationDefinition): this {
-    this.stack.relation.getCollection(this.name).addRelation(name, definition);
+  private pushRelation(name: string, definition: RelationDefinition): this {
+    return this.pushCustomization(async () => {
+      this.stack.relation.getCollection(this.name).addRelation(name, definition);
+    });
+  }
+
+  private pushCustomization(customization: () => Promise<void>): this {
+    this.stack.queueCustomization(customization);
 
     return this;
   }

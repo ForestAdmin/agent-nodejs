@@ -1,6 +1,6 @@
 When importing collections to an admin panel, you may encounter naming collisions.
 
-You can tackle them by renaming the collection that are causing issues.
+You can tackle them by renaming the collection that is causing issues.
 
 Don't worry if you leave naming collisions, your development agent will warn you while starting.
 

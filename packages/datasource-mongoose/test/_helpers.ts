@@ -1,6 +1,6 @@
 /* eslint-disable import/prefer-default-export */
-import { Model, Schema, Types, createConnection, deleteModel, model } from 'mongoose';
 import { RecordData } from '@forestadmin/datasource-toolkit';
+import { Model, Schema, Types, createConnection, deleteModel, model } from 'mongoose';
 
 export const buildModel = (schema: Schema, modelName = 'aModel'): Model<RecordData> => {
   try {
@@ -26,7 +26,7 @@ export const setupReview = async (dbName = 'test') => {
       modificationDates: { type: [Date] },
       editorIds: { type: [Types.ObjectId] },
       authorId: { type: Types.ObjectId },
-      nestedField: new Schema({ nested: [new Schema({ level: Number })] }),
+      nestedField: new Schema({ nested: [new Schema({ level: Number })], other: String }),
     }),
   );
   await connection.dropDatabase();

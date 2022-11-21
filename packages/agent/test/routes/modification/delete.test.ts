@@ -1,8 +1,8 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
-import { HttpCode } from '../../../src/types';
 import DeleteRoute from '../../../src/routes/modification/delete';
+import { HttpCode } from '../../../src/types';
+import * as factories from '../../__factories__';
 
 describe('DeleteRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
@@ -27,12 +27,8 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              idField1: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
-              idField2: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
+              idField1: factories.columnSchema.numericPrimaryKey().build(),
+              idField2: factories.columnSchema.numericPrimaryKey().build(),
               notIdField: factories.columnSchema.build({
                 columnType: 'Number',
               }),
@@ -51,6 +47,7 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleDelete(context);
 
+        expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -81,10 +78,10 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              idField1: factories.columnSchema.isPrimaryKey().build({
+              idField1: factories.columnSchema.numericPrimaryKey().build({
                 columnType: 'Number',
               }),
-              idField2: factories.columnSchema.isPrimaryKey().build({
+              idField2: factories.columnSchema.numericPrimaryKey().build({
                 columnType: 'Number',
               }),
               notIdField: factories.columnSchema.build({
@@ -150,9 +147,7 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
+              id: factories.columnSchema.numericPrimaryKey().build(),
             },
           }),
         });
@@ -175,6 +170,7 @@ describe('DeleteRoute', () => {
 
         await deleteRoute.handleDelete(context);
 
+        expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -208,9 +204,7 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
+              id: factories.columnSchema.numericPrimaryKey().build(),
             },
           }),
         });
@@ -228,6 +222,7 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleListDelete(context);
 
+        expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -250,9 +245,7 @@ describe('DeleteRoute', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                id: factories.columnSchema.isPrimaryKey().build({
-                  columnType: 'Number',
-                }),
+                id: factories.columnSchema.numericPrimaryKey().build(),
               },
             }),
           });
@@ -275,6 +268,7 @@ describe('DeleteRoute', () => {
           });
           await deleteRoute.handleListDelete(context);
 
+          expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
           expect(bookCollection.delete).toHaveBeenCalledWith(
             { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             factories.filter.build({
@@ -299,12 +293,8 @@ describe('DeleteRoute', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              idField1: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
-              idField2: factories.columnSchema.isPrimaryKey().build({
-                columnType: 'Number',
-              }),
+              idField1: factories.columnSchema.numericPrimaryKey().build(),
+              idField2: factories.columnSchema.numericPrimaryKey().build(),
               notIdField: factories.columnSchema.build({
                 columnType: 'Number',
               }),
@@ -325,6 +315,7 @@ describe('DeleteRoute', () => {
         });
         await deleteRoute.handleListDelete(context);
 
+        expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
           factories.filter.build({
@@ -376,12 +367,8 @@ describe('DeleteRoute', () => {
             name: 'books',
             schema: factories.collectionSchema.build({
               fields: {
-                idField1: factories.columnSchema.isPrimaryKey().build({
-                  columnType: 'Number',
-                }),
-                idField2: factories.columnSchema.isPrimaryKey().build({
-                  columnType: 'Number',
-                }),
+                idField1: factories.columnSchema.numericPrimaryKey().build(),
+                idField2: factories.columnSchema.numericPrimaryKey().build(),
                 notIdField: factories.columnSchema.build({
                   columnType: 'Number',
                 }),
@@ -407,6 +394,7 @@ describe('DeleteRoute', () => {
           });
           await deleteRoute.handleListDelete(context);
 
+          expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
           expect(bookCollection.delete).toHaveBeenCalledWith(
             { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
             factories.filter.build({

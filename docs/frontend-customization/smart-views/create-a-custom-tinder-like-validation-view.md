@@ -4,7 +4,7 @@ This example shows you how you can implement a time-saving profile validation vi
 
 In our example, we want to Approve or Reject new customers profiles and more specifically:
 
-- We want to preview informations from the user's profile
+- We want to preview information from the user's profile
 - We want to approve a customer by pressing the ArrowRight key
 - We want to reject a customer by pressing the ArrowLeft key
 
@@ -52,7 +52,7 @@ module.exports = (sequelize, DataTypes) => {
 
 ### Smart view definition
 
-This file contains the HTML, JS and CSS needed to build the view.
+This file contains the HTML, JS, and CSS needed to build the view.
 
 {% tabs %}
 {% tab title="Template" %}

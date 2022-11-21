@@ -1,5 +1,5 @@
-import * as factories from '../__factories__';
 import Serializer from '../../src/services/serializer';
+import * as factories from '../__factories__';
 
 describe('Serializer', () => {
   const setupSerializer = (): Serializer => {
@@ -11,9 +11,9 @@ describe('Serializer', () => {
       name: 'person',
       schema: factories.collectionSchema.build({
         fields: {
-          idA: factories.columnSchema.isPrimaryKey().build(),
+          idA: factories.columnSchema.uuidPrimaryKey().build(),
           firstName: factories.columnSchema.build(),
-          idB: factories.columnSchema.isPrimaryKey().build(),
+          idB: factories.columnSchema.uuidPrimaryKey().build(),
         },
       }),
     });
@@ -301,7 +301,7 @@ describe('Serializer', () => {
           name: 'book',
           schema: factories.collectionSchema.build({
             fields: {
-              isbn: factories.columnSchema.isPrimaryKey().build(),
+              isbn: factories.columnSchema.uuidPrimaryKey().build(),
               authorId: factories.columnSchema.build(),
               author: factories.manyToOneSchema.build({
                 foreignCollection: 'person',
@@ -314,7 +314,7 @@ describe('Serializer', () => {
           name: 'person',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
               books: factories.oneToManySchema.build({
                 foreignCollection: 'book',
@@ -375,7 +375,7 @@ describe('Serializer', () => {
               name: 'person',
               schema: factories.collectionSchema.build({
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build(),
+                  id: factories.columnSchema.uuidPrimaryKey().build(),
                 },
               }),
             }),
@@ -425,9 +425,7 @@ describe('Serializer', () => {
               name: 'editor',
               schema: factories.collectionSchema.build({
                 fields: {
-                  id: factories.columnSchema.isPrimaryKey().build({
-                    columnType: 'Number',
-                  }),
+                  id: factories.columnSchema.numericPrimaryKey().build(),
                 },
               }),
             }),

@@ -1,9 +1,9 @@
 import { ChartHandlerInterface } from '@forestadmin/forestadmin-client';
 
 import { AgentOptionsWithDefaults } from '../types';
+import authorizationServiceFactory from './authorization';
 import AuthorizationService from './authorization/authorization';
 import Serializer from './serializer';
-import authorizationServiceFactory from './authorization';
 
 export type ForestAdminHttpDriverServices = {
   serializer: Serializer;

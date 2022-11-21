@@ -1,17 +1,15 @@
-import type { PlainConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
-
 import { ChartType } from '../../src/charts/types';
-import { PermissionLevel } from '../../src/permissions/types';
-import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
 import ChainedSQLQueryError from '../../src/permissions/errors/chained-sql-query-error';
-import ContextVariablesInjector from '../../src/utils/context-variables-injector';
 import EmptySQLQueryError from '../../src/permissions/errors/empty-sql-query-error';
-import ForestHttpApi from '../../src/permissions/forest-http-api';
 import NonSelectSQLQueryError from '../../src/permissions/errors/non-select-sql-query-error';
-import RenderingPermissionService from '../../src/permissions/rendering-permission';
+import ForestHttpApi from '../../src/permissions/forest-http-api';
+import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
 import isSegmentQueryAllowed from '../../src/permissions/is-segment-query-authorized';
-import userPermissionsFactory from '../__factories__/permissions/user-permission';
+import RenderingPermissionService from '../../src/permissions/rendering-permission';
+import { PermissionLevel, RawTree } from '../../src/permissions/types';
 import verifySQLQuery from '../../src/permissions/verify-sql-query';
+import ContextVariablesInjector from '../../src/utils/context-variables-injector';
+import userPermissionsFactory from '../__factories__/permissions/user-permission';
 
 jest.mock('../../src/permissions/forest-http-api', () => ({
   getRenderingPermissions: jest.fn(),
@@ -101,7 +99,7 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValueOnce(renderingPermissions);
       getUserInfoMock.mockResolvedValueOnce(userInfo);
 
-      const expected: PlainConditionTreeLeaf = { field: 'test', operator: 'Equal', value: 'me' };
+      const expected: RawTree = { field: 'test', operator: 'equal', value: 'me' };
       jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(expected);
 
       const actual = await renderingPermission.getScope({
@@ -110,7 +108,7 @@ describe('RenderingPermissionService', () => {
         userId: 42,
       });
 
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
       expect(getUserInfoMock).toHaveBeenCalledWith(42);
 
       expect(ContextVariablesInjector.injectContextInFilter).toHaveBeenCalledWith(
@@ -156,7 +154,7 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValueOnce(renderingPermissions2);
       getUserInfoMock.mockResolvedValue(userInfo);
 
-      const expected: PlainConditionTreeLeaf = { field: 'test', operator: 'Equal', value: 'me' };
+      const expected: RawTree = { field: 'test', operator: 'equal', value: 'me' };
       jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValueOnce(expected);
 
       const actual = await renderingPermission.getScope({
@@ -166,7 +164,7 @@ describe('RenderingPermissionService', () => {
       });
 
       expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
       expect(getUserInfoMock).toHaveBeenCalledWith('42');
 
       expect(ContextVariablesInjector.injectContextInFilter).toHaveBeenCalledWith(
@@ -200,7 +198,7 @@ describe('RenderingPermissionService', () => {
       getRenderingPermissionsMock.mockResolvedValue(renderingPermissions);
       getUserInfoMock.mockResolvedValue(userInfo);
 
-      const expected: PlainConditionTreeLeaf = { field: 'test', operator: 'Equal', value: 'me' };
+      const expected: RawTree = { field: 'test', operator: 'equal', value: 'me' };
       jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(expected);
 
       const actual = await renderingPermission.getScope({
@@ -214,6 +212,49 @@ describe('RenderingPermissionService', () => {
       expect(ContextVariablesInjector.injectContextInFilter).not.toHaveBeenCalled();
 
       expect(actual).toBe(null);
+    });
+  });
+
+  describe('getUser', () => {
+    it('should return the user info', async () => {
+      const { renderingPermission, getUserInfoMock } = setup();
+      const userInfo = {
+        id: 42,
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'janedoe@forestadmin.com',
+        permissionLevel: 'Admin',
+        tags: {},
+        roleId: 33,
+      };
+
+      getUserInfoMock.mockResolvedValueOnce(userInfo);
+
+      const user = await renderingPermission.getUser(123);
+
+      expect(getUserInfoMock).toHaveBeenCalledWith(123);
+      expect(user).toBe(userInfo);
+    });
+  });
+
+  describe('getTeam', () => {
+    it('should return the team', async () => {
+      const { renderingPermission, getRenderingPermissionsMock, options } = setup();
+
+      const team = {
+        name: 'team 1',
+        id: 23,
+      };
+      getRenderingPermissionsMock.mockResolvedValueOnce({
+        collections: {},
+        stats: {},
+        team,
+      });
+
+      const teamReceived = await renderingPermission.getTeam(123);
+
+      expect(teamReceived).toBe(team);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(123, options);
     });
   });
 
@@ -254,7 +295,7 @@ describe('RenderingPermissionService', () => {
         expect(result).toBe(true);
 
         expect(getUserInfoMock).toHaveBeenCalledWith(42);
-        expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+        expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
       },
     );
 
@@ -302,7 +343,7 @@ describe('RenderingPermissionService', () => {
         expect(result).toBe(true);
 
         expect(getUserInfoMock).toHaveBeenCalledWith(42);
-        expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+        expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
         expect(hashChartRequestMock).toHaveBeenCalledWith({
           type: ChartType.Value,
           sourceCollectionName: 'jedi',
@@ -357,7 +398,7 @@ describe('RenderingPermissionService', () => {
             await expect(result).rejects.toThrowError(EmptySQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
-            expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+            expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
             expect(hashChartRequestMock).toHaveBeenCalledWith({
               type: ChartType.Value,
               query: '  ',
@@ -410,7 +451,7 @@ describe('RenderingPermissionService', () => {
             await expect(result).rejects.toThrowError(ChainedSQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
-            expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+            expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
             expect(hashChartRequestMock).toHaveBeenCalledWith({
               type: ChartType.Value,
               query: 'SELECT count(*) as value FROM jedis; SELECT count(*) as value FROM siths;',
@@ -463,7 +504,7 @@ describe('RenderingPermissionService', () => {
             await expect(result).rejects.toThrowError(NonSelectSQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
-            expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+            expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
             expect(hashChartRequestMock).toHaveBeenCalledWith({
               type: ChartType.Value,
               query: 'UPDATE jedis SET padawan_id = ?',
@@ -525,7 +566,7 @@ describe('RenderingPermissionService', () => {
 
           expect(getUserInfoMock).toHaveBeenCalledWith(42);
           expect(getUserInfoMock).toHaveBeenCalledTimes(2);
-          expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+          expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
           expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
 
           expect(hashChartRequestMock).toHaveBeenCalledWith({
@@ -584,7 +625,7 @@ describe('RenderingPermissionService', () => {
 
           expect(getUserInfoMock).toHaveBeenCalledWith(42);
           expect(getUserInfoMock).toHaveBeenCalledTimes(2);
-          expect(getRenderingPermissionsMock).toHaveBeenCalledWith('60', options);
+          expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
           expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
 
           expect(hashChartRequestMock).toHaveBeenCalledWith({
@@ -756,7 +797,7 @@ describe('RenderingPermissionService', () => {
         'SELECT * from actors',
         actorsPermissions.segments,
       );
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
     });
 
     it('should return false if the collection does not have an entry in permissions', async () => {
@@ -784,7 +825,7 @@ describe('RenderingPermissionService', () => {
       expect(result).toBe(false);
 
       expect(isSegmentQueryAllowedMock).not.toHaveBeenCalled();
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
     });
 
     it('should return false if the query is not allowed', async () => {
@@ -825,7 +866,7 @@ describe('RenderingPermissionService', () => {
         'SELECT * from actors',
         actorsPermissions.segments,
       );
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
     });
 
     it('should refresh the cache if the query is not allowed', async () => {
@@ -883,7 +924,7 @@ describe('RenderingPermissionService', () => {
         actorsPermissions2.segments,
       );
       expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith('42', options);
+      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
     });
   });
 });

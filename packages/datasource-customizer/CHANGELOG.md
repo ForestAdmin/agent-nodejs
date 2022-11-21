@@ -1,3 +1,81 @@
+## @forestadmin/datasource-customizer [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.1...@forestadmin/datasource-customizer@1.4.2) (2022-11-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.1
+
+## @forestadmin/datasource-customizer [1.4.2-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.1...@forestadmin/datasource-customizer@1.4.2-alpha.1) (2022-11-03)
+
+## @forestadmin/datasource-customizer [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.0...@forestadmin/datasource-customizer@1.4.1) (2022-11-03)
+
+
+### Bug Fixes
+
+* **sequelize:** fields of type "enum list" are missing "enumValues" ([#518](https://github.com/ForestAdmin/agent-nodejs/issues/518)) ([3c02bd8](https://github.com/ForestAdmin/agent-nodejs/commit/3c02bd867a6433004c018925f9564f0c00585987))
+
+## @forestadmin/datasource-customizer [1.4.1-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.0...@forestadmin/datasource-customizer@1.4.1-alpha.1) (2022-11-03)
+
+
+### Bug Fixes
+
+* **sequelize:** fields of type "enum list" are missing "enumValues" ([#518](https://github.com/ForestAdmin/agent-nodejs/issues/518)) ([3c02bd8](https://github.com/ForestAdmin/agent-nodejs/commit/3c02bd867a6433004c018925f9564f0c00585987))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.1-alpha.1
+
+# @forestadmin/datasource-customizer [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.3.0...@forestadmin/datasource-customizer@1.4.0) (2022-10-27)
+
+
+### Features
+
+* allow creating collection charts ([#506](https://github.com/ForestAdmin/agent-nodejs/issues/506)) ([e707757](https://github.com/ForestAdmin/agent-nodejs/commit/e707757376990888a1d037abf477537f513728ac))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.0
+
+# @forestadmin/datasource-customizer [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.2.1...@forestadmin/datasource-customizer@1.3.0) (2022-10-27)
+
+
+### Features
+
+* **plugin:** import all fields from a relation ([#510](https://github.com/ForestAdmin/agent-nodejs/issues/510)) ([77f54c6](https://github.com/ForestAdmin/agent-nodejs/commit/77f54c6ef3359ac39f11e76c6881a246db42817c))
+
+## @forestadmin/datasource-customizer [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.2.0...@forestadmin/datasource-customizer@1.2.1) (2022-10-24)
+
+
+### Bug Fixes
+
+* **schema-emitter:** better handling of schema edge-cases ([#496](https://github.com/ForestAdmin/agent-nodejs/issues/496)) ([53c9cea](https://github.com/ForestAdmin/agent-nodejs/commit/53c9cea190b017aa16b3691972d21d07fdf549d6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.1
+
+# @forestadmin/datasource-customizer [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.1.1...@forestadmin/datasource-customizer@1.2.0) (2022-10-18)
+
+
+### Features
+
+* **customization:** plugin system ([#397](https://github.com/ForestAdmin/agent-nodejs/issues/397)) ([06d4de7](https://github.com/ForestAdmin/agent-nodejs/commit/06d4de76a42233511a1741cb9a77c6f36d13c249))
+
 ## @forestadmin/datasource-customizer [1.1.2-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.1.1...@forestadmin/datasource-customizer@1.1.2-alpha.1) (2022-10-14)
 
 

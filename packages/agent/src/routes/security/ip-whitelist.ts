@@ -1,10 +1,10 @@
-import { Context, Next } from 'koa';
-import IpUtil from 'forest-ip-utils';
+import { IpWhitelistConfiguration } from '@forestadmin/forestadmin-client';
 import Router from '@koa/router';
+import IpUtil from 'forest-ip-utils';
+import { Context, Next } from 'koa';
 
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
-import ForestHttpApi, { IpWhitelistConfiguration } from '../../utils/forest-http-api';
 
 export default class IpWhitelist extends BaseRoute {
   type = RouteType.Authentication;
@@ -17,7 +17,7 @@ export default class IpWhitelist extends BaseRoute {
 
   /** Load whitelist */
   override async bootstrap(): Promise<void> {
-    this.configuration = await ForestHttpApi.getIpWhitelistConfiguration(this.options);
+    this.configuration = await this.options.forestAdminClient.getIpWhitelistConfiguration();
   }
 
   async checkIp(context: Context, next: Next): Promise<boolean> {

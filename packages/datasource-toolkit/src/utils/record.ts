@@ -1,5 +1,5 @@
-import { CollectionSchema } from '../interfaces/schema';
 import { CompositeId, RecordData } from '../interfaces/record';
+import { CollectionSchema } from '../interfaces/schema';
 import SchemaUtils from './schema';
 
 export default class RecordUtils {

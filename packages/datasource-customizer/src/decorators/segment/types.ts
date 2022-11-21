@@ -1,5 +1,5 @@
-import { TCollectionName, TConditionTree, TSchema } from '../../templates';
 import CollectionCustomizationContext from '../../context/collection-context';
+import { TCollectionName, TConditionTree, TSchema } from '../../templates';
 
 export type SegmentDefinition<
   S extends TSchema = TSchema,

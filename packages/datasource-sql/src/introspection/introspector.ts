@@ -1,9 +1,9 @@
-import { Dialect, Sequelize } from 'sequelize';
 import { Logger } from '@forestadmin/datasource-toolkit';
+import { Dialect, Sequelize } from 'sequelize';
 
-import { SequelizeColumn, SequelizeIndex, SequelizeReference, Table } from './types';
 import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
+import { SequelizeColumn, SequelizeIndex, SequelizeReference, Table } from './types';
 
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {

@@ -1,4 +1,5 @@
 import { Caller, Collection } from '@forestadmin/datasource-toolkit';
+
 import { TCollectionName, TSchema } from '../templates';
 import AgentCustomizationContext from './agent-context';
 import RelaxedCollection from './relaxed-wrappers/collection';

@@ -3,6 +3,8 @@ import {
   Caller,
   CollectionUtils,
   ConditionTreeBranch,
+  ConditionTreeFactory,
+  ConditionTreeLeaf,
   DateOperation,
   Filter,
   FilterFactory,
@@ -18,14 +20,14 @@ import {
   PieChart,
   ValueChart,
 } from '@forestadmin/forestadmin-client';
+import Router from '@koa/router';
 import { Context } from 'koa';
 import { DateTime } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
-import Router from '@koa/router';
 
-import CollectionRoute from '../collection-route';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import QueryStringParser from '../../utils/query-string';
+import CollectionRoute from '../collection-route';
 
 export default class ChartRoute extends CollectionRoute {
   private static readonly formats: Record<DateOperation, string> = {
@@ -138,9 +140,16 @@ export default class ChartRoute extends CollectionRoute {
       timeRange,
     } = <LineChart>context.request.body;
 
+    const filter = await this.getFilter(context);
+    const filterOnlyWithValues = filter.override({
+      conditionTree: ConditionTreeFactory.intersect(
+        filter.conditionTree,
+        new ConditionTreeLeaf(groupByDateField, 'Present'),
+      ),
+    });
     const rows = await this.collection.aggregate(
       QueryStringParser.parseCaller(context),
-      await this.getFilter(context),
+      filterOnlyWithValues,
       new Aggregation({
         operation: aggregator,
         field: aggregateField,

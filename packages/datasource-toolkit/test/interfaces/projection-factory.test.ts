@@ -1,5 +1,5 @@
-import * as factories from '../__factories__';
 import { Projection, ProjectionFactory } from '../../src';
+import * as factories from '../__factories__';
 
 describe('ProjectionFactory', () => {
   describe('with one to one and many to one relations', () => {
@@ -9,7 +9,7 @@ describe('ProjectionFactory', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               myAuthor: factories.oneToOneSchema.build({
                 foreignCollection: 'authors',
                 originKey: 'bookId',
@@ -27,7 +27,7 @@ describe('ProjectionFactory', () => {
           name: 'authors',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               bookId: factories.columnSchema.build(),
               name: factories.columnSchema.build(),
             },
@@ -37,7 +37,7 @@ describe('ProjectionFactory', () => {
           name: 'formats',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
             },
           }),
@@ -80,7 +80,7 @@ describe('ProjectionFactory', () => {
           name: 'bookPersons',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
             },
           }),
         }),
@@ -88,7 +88,7 @@ describe('ProjectionFactory', () => {
           name: 'books',
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.isPrimaryKey().build(),
+              id: factories.columnSchema.uuidPrimaryKey().build(),
               name: factories.columnSchema.build(),
               myBookPersons: factories.oneToManySchema.build({
                 foreignCollection: 'bookPersons',

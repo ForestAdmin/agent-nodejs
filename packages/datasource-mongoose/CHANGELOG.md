@@ -1,3 +1,62 @@
+## @forestadmin/datasource-mongoose [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.1.1...@forestadmin/datasource-mongoose@1.1.2) (2022-11-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.1
+
+## @forestadmin/datasource-mongoose [1.1.2-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.1.1...@forestadmin/datasource-mongoose@1.1.2-alpha.1) (2022-11-03)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.1-alpha.1
+
+## @forestadmin/datasource-mongoose [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.1.0...@forestadmin/datasource-mongoose@1.1.1) (2022-10-27)
+
+
+### Bug Fixes
+
+* **mongoose:** when updating a field on flattened collections, all fields are overwritten ([#514](https://github.com/ForestAdmin/agent-nodejs/issues/514)) ([6204327](https://github.com/ForestAdmin/agent-nodejs/commit/620432747fb26c0f03784a88ac4a53d64f878df4))
+
+# @forestadmin/datasource-mongoose [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.2...@forestadmin/datasource-mongoose@1.1.0) (2022-10-27)
+
+
+### Features
+
+* allow creating collection charts ([#506](https://github.com/ForestAdmin/agent-nodejs/issues/506)) ([e707757](https://github.com/ForestAdmin/agent-nodejs/commit/e707757376990888a1d037abf477537f513728ac))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.0
+
+## @forestadmin/datasource-mongoose [1.0.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.1...@forestadmin/datasource-mongoose@1.0.2) (2022-10-25)
+
+
+### Bug Fixes
+
+* mongoose connector broken for all versions besides 6.6.3 ([#509](https://github.com/ForestAdmin/agent-nodejs/issues/509)) ([9cece2c](https://github.com/ForestAdmin/agent-nodejs/commit/9cece2c2adf5b7edfcad515e6c3c340faa757f79))
+
+## @forestadmin/datasource-mongoose [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.0...@forestadmin/datasource-mongoose@1.0.1) (2022-10-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.1
+
 ## @forestadmin/datasource-mongoose [1.0.1-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.0.0...@forestadmin/datasource-mongoose@1.0.1-alpha.1) (2022-10-14)
 
 

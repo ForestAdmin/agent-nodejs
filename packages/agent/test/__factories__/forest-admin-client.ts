@@ -1,5 +1,6 @@
-import { Factory } from 'fishery';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
+
+import { Factory } from 'fishery';
 
 export class ForestAdminClientFactory extends Factory<ForestAdminClient> {}
 
@@ -8,6 +9,7 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   canExecuteChart: jest.fn(),
   getScope: jest.fn(),
   markScopesAsUpdated: jest.fn(),
+  getIpWhitelistConfiguration: jest.fn(),
   permissionService: {
     canExecuteSegmentQuery: jest.fn(),
     canApproveCustomAction: jest.fn(),
@@ -26,6 +28,7 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   },
   chartHandler: {
     getChartWithContextInjected: jest.fn(),
+    getQueryForChart: jest.fn(),
   },
 }));
 

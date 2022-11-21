@@ -8,6 +8,7 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
+import CollectionDecorator from '../collection-decorator';
 import {
   HookAfterAggregateContext,
   HookBeforeAggregateContext,
@@ -23,6 +24,7 @@ import {
   HookBeforeDeleteContext,
   InternalHookBeforeDeleteContext,
 } from './context/delete';
+import HookContext from './context/hook';
 import {
   HookAfterListContext,
   HookBeforeListContext,
@@ -33,10 +35,8 @@ import {
   HookBeforeUpdateContext,
   InternalHookBeforeUpdateContext,
 } from './context/update';
-import { HookHandler, HookPosition, HookType, HooksContext } from './types';
-import CollectionDecorator from '../collection-decorator';
-import HookContext from './context/hook';
 import Hooks from './hook';
+import { HookHandler, HookPosition, HookType, HooksContext } from './types';
 
 export default class CollectionHookDecorator extends CollectionDecorator {
   private hooks: { [type in HookType<'After'>]: Hooks<HookContext, HookContext> } = {

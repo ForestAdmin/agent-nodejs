@@ -1,12 +1,12 @@
 import { ActionField, ActionResult } from './action';
 import { Caller } from './caller';
 import { Chart } from './chart';
-import { CollectionSchema, DataSourceSchema } from './schema';
-import { RecordData } from './record';
 import Aggregation, { AggregateResult } from './query/aggregation';
-import Filter from './query/filter/unpaginated';
 import PaginatedFilter from './query/filter/paginated';
+import Filter from './query/filter/unpaginated';
 import Projection from './query/projection';
+import { CompositeId, RecordData } from './record';
+import { CollectionSchema, DataSourceSchema } from './schema';
 
 export interface DataSource {
   get collections(): Collection[];
@@ -51,4 +51,6 @@ export interface Collection {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]>;
+
+  renderChart(caller: Caller, name: string, recordId: CompositeId): Promise<Chart>;
 }

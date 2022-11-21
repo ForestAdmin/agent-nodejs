@@ -1,3 +1,4 @@
+import { Collection, GenericTree } from '@forestadmin/datasource-toolkit';
 import {
   ChainedSQLQueryError,
   ChartType,
@@ -5,23 +6,20 @@ import {
   EmptySQLQueryError,
   NonSelectSQLQueryError,
 } from '@forestadmin/forestadmin-client';
-import { Collection, GenericTree } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
 
-import * as factories from '../../__factories__';
-
-import { HttpCode } from '../../../src/types';
-
+import AuthorizationService from '../../../src/services/authorization/authorization';
 import {
   canPerformConditionalCustomAction,
   intersectCount,
   transformToRolesIdsGroupByConditions,
 } from '../../../src/services/authorization/authorization-internal';
 import ApprovalNotAllowedError from '../../../src/services/authorization/errors/approvalNotAllowedError';
-import AuthorizationService from '../../../src/services/authorization/authorization';
-import ConditionTreeParser from '../../../src/utils/condition-tree-parser';
 import CustomActionRequiresApprovalError from '../../../src/services/authorization/errors/customActionRequiresApprovalError';
 import CustomActionTriggerForbiddenError from '../../../src/services/authorization/errors/customActionTriggerForbiddenError';
+import { HttpCode } from '../../../src/types';
+import ConditionTreeParser from '../../../src/utils/condition-tree-parser';
+import * as factories from '../../__factories__';
 
 jest.mock('../../../src/utils/condition-tree-parser', () => ({
   __esModule: true,
@@ -878,6 +876,36 @@ describe('AuthorizationService', () => {
           query: 'UPDATE jedis SET padawan_id = ?',
         },
       });
+    });
+
+    it('should rethrow other errors', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      const context = {
+        state: {
+          user: {
+            id: 35,
+            renderingId: 42,
+          },
+        },
+        request: {
+          body: {
+            type: ChartType.Value,
+            query: 'UPDATE jedis SET padawan_id = ?',
+          },
+        },
+        throw: jest.fn(),
+      } as unknown as Context;
+
+      (forestAdminClient.permissionService.canExecuteChart as jest.Mock).mockRejectedValue(
+        new Error('unknown'),
+      );
+
+      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrowError(
+        'unknown',
+      );
     });
   });
 

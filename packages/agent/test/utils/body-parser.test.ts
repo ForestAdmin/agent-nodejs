@@ -1,15 +1,15 @@
 import { CollectionSchema } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../__factories__';
 import BodyParser from '../../src/utils/body-parser';
+import * as factories from '../__factories__';
 
 describe('BodyParser', () => {
   describe('parseSelectionIds', () => {
     const setupSchema = (): CollectionSchema => {
       return factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
         },
       });
     };

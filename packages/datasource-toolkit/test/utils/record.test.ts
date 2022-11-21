@@ -1,5 +1,5 @@
-import * as factories from '../__factories__';
 import RecordUtils from '../../src/utils/record';
+import * as factories from '../__factories__';
 
 describe('RecordUtils', () => {
   const dataSource = factories.dataSource.buildWithCollections([
@@ -7,7 +7,7 @@ describe('RecordUtils', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
             foreignKey: 'authorId',
@@ -20,7 +20,7 @@ describe('RecordUtils', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
         },
       }),
     }),

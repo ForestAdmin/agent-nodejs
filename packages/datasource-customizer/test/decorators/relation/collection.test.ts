@@ -1,4 +1,3 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Aggregation,
   Collection,
@@ -11,6 +10,8 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import RelationCollectionDecorator from '../../../src/decorators/relation/collection';
 
@@ -66,10 +67,7 @@ describe('RelationCollectionDecorator', () => {
         name: 'pictures',
         schema: factories.collectionSchema.build({
           fields: {
-            pictureId: factories.columnSchema.build({
-              isPrimaryKey: true,
-              columnType: 'Number',
-            }),
+            pictureId: factories.columnSchema.numericPrimaryKey().build(),
             filename: factories.columnSchema.build(),
             otherId: factories.columnSchema.build({
               columnType: 'Number',
@@ -84,11 +82,7 @@ describe('RelationCollectionDecorator', () => {
         name: 'passports',
         schema: factories.collectionSchema.build({
           fields: {
-            passportId: factories.columnSchema.build({
-              isPrimaryKey: true,
-              columnType: 'Number',
-              filterOperators: new Set(['In']),
-            }),
+            passportId: factories.columnSchema.numericPrimaryKey().build(),
             issueDate: factories.columnSchema.build({ columnType: 'Dateonly' }),
             ownerId: factories.columnSchema.build({
               columnType: 'Number',
@@ -118,11 +112,7 @@ describe('RelationCollectionDecorator', () => {
         name: 'persons',
         schema: factories.collectionSchema.build({
           fields: {
-            personId: factories.columnSchema.build({
-              isPrimaryKey: true,
-              columnType: 'Number',
-              filterOperators: new Set(['In']),
-            }),
+            personId: factories.columnSchema.numericPrimaryKey().build(),
             otherId: factories.columnSchema.build({
               columnType: 'Number',
               filterOperators: new Set(['In']),

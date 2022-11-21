@@ -1,4 +1,5 @@
 import { allOperators } from '@forestadmin/datasource-toolkit/dist/src/interfaces/query/condition-tree/nodes/operators';
+
 import FilterableUtils from '../../../src/utils/forest-schema/filterable';
 
 describe('FrontendFilterableUtils', () => {

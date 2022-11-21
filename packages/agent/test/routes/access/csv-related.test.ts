@@ -1,10 +1,10 @@
 import { CollectionUtils, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
+import CsvRoute from '../../../src/routes/access/csv-related';
 import ContextFilterFactory from '../../../src/utils/context-filter-factory';
 import CsvGenerator from '../../../src/utils/csv-generator';
-import CsvRoute from '../../../src/routes/access/csv-related';
+import * as factories from '../../__factories__';
 import readCsv from '../../__helper__/read-csv';
 
 describe('CsvRelatedRoute', () => {
@@ -17,7 +17,7 @@ describe('CsvRelatedRoute', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           name: factories.columnSchema.build({ columnType: 'String' }),
         },
       }),
@@ -27,7 +27,7 @@ describe('CsvRelatedRoute', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           myPersons: factories.oneToManySchema.build({
             foreignCollection: 'persons',
           }),
@@ -166,7 +166,7 @@ describe('CsvRelatedRoute', () => {
       await csvRoute.handleRelatedCsv(context);
 
       const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
-      expect(csvResult).toEqual(['name,id\n', 'a,1\nab,2\nabc,3']);
+      expect(csvResult).toEqual(['name,id\n', 'a,1\nab,2\nabc,3\n']);
     });
 
     it('should apply the scope', async () => {

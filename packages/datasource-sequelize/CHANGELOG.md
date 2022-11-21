@@ -1,3 +1,77 @@
+# @forestadmin/datasource-sequelize [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.1.1...@forestadmin/datasource-sequelize@1.2.0) (2022-11-07)
+
+
+### Features
+
+* **chart:** add context variables to chart ([#507](https://github.com/ForestAdmin/agent-nodejs/issues/507)) ([6d003d6](https://github.com/ForestAdmin/agent-nodejs/commit/6d003d68d9e79d7690e68250ce8a003fdc2ea735))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.1
+
+## @forestadmin/datasource-sequelize [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.1.0...@forestadmin/datasource-sequelize@1.1.1) (2022-11-03)
+
+
+### Bug Fixes
+
+* **sequelize:** fields of type "enum list" are missing "enumValues" ([#518](https://github.com/ForestAdmin/agent-nodejs/issues/518)) ([3c02bd8](https://github.com/ForestAdmin/agent-nodejs/commit/3c02bd867a6433004c018925f9564f0c00585987))
+
+# @forestadmin/datasource-sequelize [1.2.0-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.1.0...@forestadmin/datasource-sequelize@1.2.0-alpha.1) (2022-11-03)
+
+
+### Bug Fixes
+
+* **sequelize:** fields of type "enum list" are missing "enumValues" ([#518](https://github.com/ForestAdmin/agent-nodejs/issues/518)) ([3c02bd8](https://github.com/ForestAdmin/agent-nodejs/commit/3c02bd867a6433004c018925f9564f0c00585987))
+
+
+### Features
+
+* **chart:** add context variables to chart ([#507](https://github.com/ForestAdmin/agent-nodejs/issues/507)) ([6d003d6](https://github.com/ForestAdmin/agent-nodejs/commit/6d003d68d9e79d7690e68250ce8a003fdc2ea735))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.1-alpha.1
+
+# @forestadmin/datasource-sequelize [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.1...@forestadmin/datasource-sequelize@1.1.0) (2022-10-27)
+
+
+### Features
+
+* allow creating collection charts ([#506](https://github.com/ForestAdmin/agent-nodejs/issues/506)) ([e707757](https://github.com/ForestAdmin/agent-nodejs/commit/e707757376990888a1d037abf477537f513728ac))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.0
+
+## @forestadmin/datasource-sequelize [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0...@forestadmin/datasource-sequelize@1.0.1) (2022-10-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.0.1
+
+# @forestadmin/datasource-sequelize [1.1.0-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.1-alpha.1...@forestadmin/datasource-sequelize@1.1.0-alpha.1) (2022-11-02)
+
+
+### Features
+
+* **chart:** add context variables to chart ([#507](https://github.com/ForestAdmin/agent-nodejs/issues/507)) ([6d003d6](https://github.com/ForestAdmin/agent-nodejs/commit/6d003d68d9e79d7690e68250ce8a003fdc2ea735))
+
 ## @forestadmin/datasource-sequelize [1.0.1-alpha.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.0.0...@forestadmin/datasource-sequelize@1.0.1-alpha.1) (2022-10-14)
 
 

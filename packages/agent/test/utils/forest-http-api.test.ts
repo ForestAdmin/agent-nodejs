@@ -1,5 +1,5 @@
-import * as factories from '../__factories__';
 import ForestHttpApi from '../../src/utils/forest-http-api';
+import * as factories from '../__factories__';
 
 describe('ForestHttpApi', () => {
   const options = factories.forestAdminHttpDriverOptions.build({
@@ -17,74 +17,6 @@ describe('ForestHttpApi', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
-  });
-
-  describe('getIpWhitelist', () => {
-    describe('the syntax of the rules', () => {
-      it.each([
-        { ipMinimum: '10.10.1.2', ipMaximum: '10.10.1.3' },
-        { ip: '10.10.1.2' },
-        { range: '10.10.1.2/24' },
-      ])(`%s should be supported`, async rule => {
-        const ipRules = [{ type: 1, ...rule }];
-        const isFeatureEnabled = true;
-
-        superagentMock.set.mockResolvedValue({
-          body: {
-            data: {
-              attributes: {
-                use_ip_whitelist: isFeatureEnabled,
-                rules: ipRules,
-              },
-            },
-          },
-        });
-
-        const result = await ForestHttpApi.getIpWhitelistConfiguration(options);
-
-        expect(result).toStrictEqual({ isFeatureEnabled, ipRules });
-      });
-    });
-
-    test('should fetch the correct end point with the env secret', async () => {
-      superagentMock.set.mockResolvedValue({
-        body: {
-          data: {
-            attributes: {
-              use_ip_whitelist: true,
-              rules: [],
-            },
-          },
-        },
-      });
-
-      await ForestHttpApi.getIpWhitelistConfiguration(options);
-
-      expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
-      expect(superagentMock.get).toHaveBeenCalledWith(
-        'https://api.url/liana/v1/ip-whitelist-rules',
-      );
-    });
-
-    test('should return the ip rules and the isFeatureEnabled attributes', async () => {
-      const ipRules = [{ type: 1, ip: '10.20.15.10' }];
-      const isFeatureEnabled = true;
-
-      superagentMock.set.mockResolvedValue({
-        body: {
-          data: {
-            attributes: {
-              use_ip_whitelist: isFeatureEnabled,
-              rules: ipRules,
-            },
-          },
-        },
-      });
-
-      const result = await ForestHttpApi.getIpWhitelistConfiguration(options);
-
-      expect(result).toStrictEqual({ isFeatureEnabled, ipRules });
-    });
   });
 
   describe('getOpenIdIssuerMetadata', () => {
@@ -210,7 +142,7 @@ describe('ForestHttpApi', () => {
         async status => {
           superagentMock.set.mockRejectedValue({ response: { status } });
 
-          await expect(ForestHttpApi.getIpWhitelistConfiguration(options)).rejects.toThrow(
+          await expect(ForestHttpApi.getOpenIdIssuerMetadata(options)).rejects.toThrow(
             /Are you online/,
           );
         },
@@ -246,6 +178,14 @@ describe('ForestHttpApi', () => {
     test('should rethrow unexpected errors', async () => {
       superagentMock.set.mockRejectedValue(new Error('i am unexpected'));
       await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow('i am unexpected');
+    });
+
+    test('should throw an error with an unmanaged status', async () => {
+      superagentMock.set.mockRejectedValue({ response: { status: 418 } });
+
+      await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(
+        /An unexpected error occurred while contacting the ForestAdmin server./,
+      );
     });
   });
 });

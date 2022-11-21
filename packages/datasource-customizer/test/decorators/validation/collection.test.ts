@@ -1,5 +1,6 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Collection, ColumnSchema, DataSource } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import ValidationDecorator from '../../../src/decorators/validation/collection';
 
@@ -18,7 +19,7 @@ describe('SortEmulationDecoratorCollection', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build({ isReadOnly: true }),
+          id: factories.columnSchema.uuidPrimaryKey().build({ isReadOnly: true }),
           title: factories.columnSchema.build({
             filterOperators: new Set(['LongerThan', 'Present']),
           }),

@@ -1,6 +1,7 @@
 import { CollectionCustomizer } from '@forestadmin/agent';
-import { Schema } from '../typings';
+
 import sequelizeMsSql from '../../connections/sequelize-mssql';
+import { Schema } from '../typings';
 
 export default (collection: CollectionCustomizer<Schema, 'dvd'>) =>
   collection

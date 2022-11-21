@@ -1,7 +1,9 @@
-import ContextVariables, { RequestContextVariables } from './utils/context-variables';
-import type { Chart } from './charts/types';
 import type { ChartRequest } from './charts/chart-handler';
+import type { Chart, QueryChart } from './charts/types';
 import type { CollectionActionEvent, RawTree, RawTreeWithSources } from './permissions/types';
+
+import { IpWhitelistConfiguration } from './ip-whitelist/types';
+import ContextVariables, { RequestContextVariables } from './utils/context-variables';
 
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LoggerLevel, message: unknown) => void;
@@ -21,6 +23,8 @@ export interface ForestAdminClient {
   readonly chartHandler: ChartHandlerInterface;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
+
+  getIpWhitelistConfiguration(): Promise<IpWhitelistConfiguration>;
 
   getScope(params: {
     renderingId: number | string;
@@ -97,6 +101,11 @@ export interface ChartHandlerInterface {
     renderingId: string | number;
     chartRequest: ChartRequest;
   }): Promise<Chart>;
+  getQueryForChart(params: {
+    userId: string | number;
+    renderingId: string | number;
+    chartRequest: ChartRequest<QueryChart>;
+  }): Promise<{ query: string; contextVariables: Record<string, unknown> }>;
 }
 
 export interface ContextVariablesInstantiatorInterface {

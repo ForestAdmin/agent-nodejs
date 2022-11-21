@@ -1,12 +1,12 @@
 Custom data sources are the answer to the need to import collections from either
 
-- Your own in-house APIs.
+- Your in-house APIs.
 - Unsupported databases.
 - Unsupported SaaS providers.
 
-Forest Admin is built so that it does not need know to the nature of the datasource it is speaking to, as long as it exposes a given interface.
+Forest Admin is built so that it does not need to know the nature of the data source it is speaking to, as long as it exposes a given interface.
 
-That interface is only there to abstract away differences between backends so that they can be used as forest admin collections. It was built to allow for the minimal feature set which allow forest admin to work.
+That interface is only there to abstract away differences between backends so that they can be used as forest admin collections. It was built to allow for the minimal feature set which allows forest admin to work.
 
 # Getting started
 
@@ -20,7 +20,7 @@ When creating a custom data source, you can use the "Query Translation" strategy
 
 ## Steps
 
-Creating a custom datasource will require you to work on these 3 following steps:
+Creating a custom data source will require you to work on the three following steps:
 
 1. Declare the structure of the data
 2. Declare the API capabilities
@@ -99,7 +99,7 @@ const agent = createAgent(options).addDataSource(myDataSourceFactory);
 
 Implementing a data source using the "query translation" strategy is an advanced concept: you will need to have a deep understanding of forest admin internals.
 
-This strategy is a good match when writing data sources to full featured databases.
+This strategy is a good match when writing data sources for full-featured databases.
 
 Before starting, it is highly advised to read and understand the following section:
 

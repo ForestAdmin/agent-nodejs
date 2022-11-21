@@ -5,15 +5,20 @@ import NonSelectSQLQueryError from './errors/non-select-sql-query-error';
 const QUERY_SELECT = /^SELECT\s[^]*FROM\s[^]*$/i;
 
 export default function verifySQLQuery(inputQuery: string | null): boolean {
-  if (!inputQuery?.trim()) {
+  const inputQueryTrimmed = inputQuery?.trim();
+
+  if (!inputQueryTrimmed) {
     throw new EmptySQLQueryError();
   }
 
-  if (inputQuery.includes(';') && inputQuery.indexOf(';') < inputQuery.length - 1) {
+  if (
+    inputQueryTrimmed.includes(';') &&
+    inputQueryTrimmed.indexOf(';') < inputQueryTrimmed.length - 1
+  ) {
     throw new ChainedSQLQueryError();
   }
 
-  if (!QUERY_SELECT.test(inputQuery)) {
+  if (!QUERY_SELECT.test(inputQueryTrimmed)) {
     throw new NonSelectSQLQueryError();
   }
 

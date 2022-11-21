@@ -6,7 +6,7 @@ In Forest Admin, relations are defined as fields and are traversable in only one
 
 ## Join Types
 
-Four join types are available: `ManyToOne`, `ManyToMany`, `OneToMany` and `OneToOne`.
+Four join types are available: `ManyToOne`, `ManyToMany`, `OneToMany`, and `OneToOne`.
 
 | Type       | Where are the common keys?                                                                         |
 | ---------- | -------------------------------------------------------------------------------------------------- |

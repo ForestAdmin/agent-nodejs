@@ -8,8 +8,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import CountRelatedRoute from '../../../src/routes/access/count-related';
+import * as factories from '../../__factories__';
 
 describe('CountRelatedRoute', () => {
   const setupWithOneToManyRelation = (countable = true) => {
@@ -22,7 +22,7 @@ describe('CountRelatedRoute', () => {
       schema: factories.collectionSchema.build({
         countable,
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
         },
       }),
     });
@@ -31,7 +31,7 @@ describe('CountRelatedRoute', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           myBookPersons: factories.oneToManySchema.build({
             foreignCollection: 'bookPersons',
           }),

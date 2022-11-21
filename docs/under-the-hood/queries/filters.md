@@ -1,5 +1,5 @@
 A filter represents a subset of records _within a collection_.
-As such, a filter always exists on the context of a given collection.
+As such, a filter always exists in the context of a given collection.
 
 It is used to restrict the records which will be targeted by specific actions (list, update, aggregate, ...).
 
@@ -24,11 +24,11 @@ It is used to restrict the records which will be targeted by specific actions (l
 }
 ```
 
-This is quite complex! Let's break it down to small understandable pieces.
+This is quite complex! Let's break it down into small understandable pieces.
 
 # Condition trees
 
-A condition tree, as it names imply, is a set of conditions which apply on the records themselves and tells which records should be included or excluded from a given query.
+A condition tree, as its names imply, is a set of conditions that applies to the records themselves and tells which records should be included or excluded from a given query.
 
 ## Examples
 
@@ -50,11 +50,11 @@ A condition tree, as it names imply, is a set of conditions which apply on the r
 }
 ```
 
-### With relations
+### With relationships
 
-`one to one` and the `many to one` are supported.
+`one-to-one` and `many-to-one` relationships are supported.
 
-In this example, we want to apply a condition tree on a relation field value.
+In this example, we want to apply a condition tree to a related field value.
 
 ```json
 { "field": "book:title", "operator": "Equal", "value": "Foundation" }
@@ -119,7 +119,7 @@ Here is the list of operators which are supported by forest admin.
 
 ## Operator equivalence
 
-You may have noticed that many operators overlap. In order to make data sources quicker to implement, Forest Admin supports automatic operator replacement.
+You may have noticed that many operators overlap. To make data sources quicker to implement, Forest Admin supports automatic operator replacement.
 
 What that means is that when an operator can be expressed using a combination of other operators, Forest Admin will perform the substitution automatically using the following table.
 
@@ -156,16 +156,16 @@ What that means is that when an operator can be expressed using a combination of
 
 In practice:
 
-- if a field supports `Equal`, it will automatically support `Blank`, `Missing` and `In`
-- if a field support `LessThan`, it will automatically support `Before`, `BeforeXHoursAgo` and `Past`
+- if a field supports `Equal`, it will automatically support `Blank`, `Missing`, and `In`
+- if a field supports `LessThan`, it will automatically support `Before`, `BeforeXHoursAgo` and `Past`
 - ... and so on
 
 The minimal list of operators which is sufficient to have them all is the following:
 
-- `In` and `NotIn` (unlocks `Present`, `Blank`, `Missing`, `Equal` and `NotEqual`)
+- `In` and `NotIn` (unlocks `Present`, `Blank`, `Missing`, `Equal`, and `NotEqual`)
 - `LessThan` and `GreaterThan` (unlocks all dates operators)
-- `Like` (unlocks `StartsWith`, `EndsWith` and `Contains`)
-- `NotContains`, `LongerThan`, `ShorterThan` and `IncludesAll`
+- `Like` (unlocks `StartsWith`, `EndsWith`, and `Contains`)
+- `NotContains`, `LongerThan`, `ShorterThan`, and `IncludesAll`
 
 # Paging
 
@@ -185,15 +185,15 @@ A paging clause tells the data source which page of the data should be retrieved
 
 # Search
 
-The `search` field is a simple filter that the final user typed in the search bar in the admin panel, and can be used to restrict records.
+The `search` field is a simple filter that the final user types in the search bar in the admin panel, and can be used to restrict records.
 
-Likewise `searchExtended` boolean is an action which can be triggered by end-users and its implementation can vary between data sources.
+Likewise `searchExtended` boolean is an action that can be triggered by end-users and its implementation can vary between data sources.
 
-For instance, in `@forestadmin/datasource-sql`, the `searchExtended` flag is used to also search content into all collections which are linked with a `many to one` or `one to one` relation to the current one.
+For instance, in `@forestadmin/datasource-sql`, the `searchExtended` flag is used to also search content into all collections which are linked with a `many-to-one` or `one-to-one` relation to the current one.
 
 ## Examples
 
-Search into current collection:
+Search into the current collection:
 
 ```json
 { "search": "Isaac", "searchExtended": false }

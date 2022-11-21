@@ -1,8 +1,8 @@
 import { ConditionTreeFactory, Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import UpdateRoute from '../../../src/routes/modification/update';
+import * as factories from '../../__factories__';
 
 describe('UpdateRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
@@ -26,9 +26,7 @@ describe('UpdateRoute', () => {
         update: jest.fn(),
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build({
-              columnType: 'Number',
-            }),
+            id: factories.columnSchema.numericPrimaryKey().build(),
             name: factories.columnSchema.build({
               columnType: 'String',
             }),
@@ -80,7 +78,7 @@ describe('UpdateRoute', () => {
         update: jest.fn(),
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build({
+            id: factories.columnSchema.numericPrimaryKey().build({
               columnType: 'Number',
             }),
             name: factories.columnSchema.build({
@@ -142,9 +140,7 @@ describe('UpdateRoute', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build({
-              columnType: 'Number',
-            }),
+            id: factories.columnSchema.numericPrimaryKey().build(),
           },
         }),
       });
@@ -178,7 +174,7 @@ describe('UpdateRoute', () => {
         update: jest.fn(),
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.isPrimaryKey().build({
+            id: factories.columnSchema.numericPrimaryKey().build({
               columnType: 'Number',
             }),
             name: factories.columnSchema.build({

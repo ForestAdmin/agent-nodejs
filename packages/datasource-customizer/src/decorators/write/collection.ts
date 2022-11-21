@@ -14,10 +14,11 @@ import {
   SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import { WriteDefinition } from './types';
+
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 import WriteCustomizationContext from './context';
+import { WriteDefinition } from './types';
 
 export default class WriteDecorator extends CollectionDecorator {
   private replacedDefinitions: Record<string, WriteDefinition> = {};

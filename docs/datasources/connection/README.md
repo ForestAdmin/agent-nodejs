@@ -13,7 +13,7 @@ Forest Admin collections map to any of those concepts:
 
 ## Example
 
-In this example, we import tables from a PostgreSQL, MariaDB and Mongo database into Forest Admin.
+In this example, we import tables from a PostgreSQL, MariaDB, and Mongo database into Forest Admin.
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');

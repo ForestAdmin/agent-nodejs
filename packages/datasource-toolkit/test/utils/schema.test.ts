@@ -1,13 +1,31 @@
-import * as factories from '../__factories__';
 import SchemaUtils from '../../src/utils/schema';
+import * as factories from '../__factories__';
 
 describe('SchemaUtils', () => {
+  describe('isPrimaryKey', () => {
+    const schema = factories.collectionSchema.build({
+      fields: {
+        id: factories.columnSchema.uuidPrimaryKey().build(),
+        notId: factories.columnSchema.build({ isPrimaryKey: false }),
+        otherId: factories.columnSchema.uuidPrimaryKey().build(),
+      },
+    });
+
+    test('should return true when it is a pk', () => {
+      expect(SchemaUtils.isPrimaryKey(schema, 'id')).toBe(true);
+    });
+
+    test('should return false when it is not a pk', () => {
+      expect(SchemaUtils.isPrimaryKey(schema, 'notId')).toBe(false);
+    });
+  });
+
   describe('getPrimaryKeys', () => {
     const schema = factories.collectionSchema.build({
       fields: {
-        id: factories.columnSchema.isPrimaryKey().build(),
+        id: factories.columnSchema.uuidPrimaryKey().build(),
         notId: factories.columnSchema.build({ isPrimaryKey: false }),
-        otherId: factories.columnSchema.isPrimaryKey().build(),
+        otherId: factories.columnSchema.uuidPrimaryKey().build(),
       },
     });
 
@@ -22,7 +40,7 @@ describe('SchemaUtils', () => {
     const schema = factories.collectionSchema.build({
       fields: {
         // pk + used in relation
-        id: factories.columnSchema.isPrimaryKey().build(),
+        id: factories.columnSchema.uuidPrimaryKey().build(),
 
         // used in relation
         bookId: factories.columnSchema.build({}),

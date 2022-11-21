@@ -1,7 +1,7 @@
 import { plural, singular } from 'pluralize';
 
-import { Relation } from '../types';
 import { Table } from '../../introspection/types';
+import { Relation } from '../types';
 
 export default class RelationNameGenerator {
   static getUniqueRelationNames(table: Table, relations: Relation[]): string[] {

@@ -1,12 +1,12 @@
-The sequelize data source allows to import collections from a sequelize instance.
+The sequelize data source allows importing collections from a sequelize instance.
 
-In order to make everything work as expected, you need to install the package `@forestadmin/datasource-sequelize`.
+To make everything work as expected, you need to install the package `@forestadmin/datasource-sequelize`.
 
 Note that:
 
 - Sequelize scopes will be mapped to Forest Admin segments
 - Sequelize hooks will run
-- Sequelize association, field aliasing, relationships and validation will be respected
+- Sequelize association, field aliasing, relationships, and validation will be respected
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');

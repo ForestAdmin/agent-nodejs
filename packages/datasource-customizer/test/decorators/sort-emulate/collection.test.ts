@@ -1,4 +1,3 @@
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import {
   Collection,
   ColumnSchema,
@@ -9,8 +8,9 @@ import {
   RecordData,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
+import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import SortEmulationDecorator from '../../../src/decorators/sort-emulate/collection';
 
 describe('SortEmulationDecoratorCollection', () => {
@@ -51,7 +51,7 @@ describe('SortEmulationDecoratorCollection', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           authorId: factories.columnSchema.build(),
           author: factories.manyToOneSchema.build({
             foreignCollection: 'persons',
@@ -74,7 +74,7 @@ describe('SortEmulationDecoratorCollection', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           firstName: factories.columnSchema.build(),
           lastName: factories.columnSchema.build({ isSortable: false }),
         },

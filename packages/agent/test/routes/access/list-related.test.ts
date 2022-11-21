@@ -8,8 +8,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import * as factories from '../../__factories__';
 import ListRelatedRoute from '../../../src/routes/access/list-related';
+import * as factories from '../../__factories__';
 
 describe('ListRelatedRoute', () => {
   const setupWithOneToManyRelation = () => {
@@ -21,7 +21,7 @@ describe('ListRelatedRoute', () => {
       name: 'persons',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           name: factories.columnSchema.build({ columnType: 'String' }),
         },
       }),
@@ -31,7 +31,7 @@ describe('ListRelatedRoute', () => {
       name: 'books',
       schema: factories.collectionSchema.build({
         fields: {
-          id: factories.columnSchema.isPrimaryKey().build(),
+          id: factories.columnSchema.uuidPrimaryKey().build(),
           myPersons: factories.oneToManySchema.build({
             foreignCollection: 'persons',
           }),

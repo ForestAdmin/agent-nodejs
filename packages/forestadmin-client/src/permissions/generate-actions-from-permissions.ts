@@ -1,4 +1,8 @@
 import {
+  generateCollectionActionIdentifier,
+  generateCustomActionIdentifier,
+} from './generate-action-identifier';
+import {
   CollectionActionEvent,
   CustomActionEvent,
   EnvironmentCollectionActionPermissionsV4,
@@ -11,10 +15,6 @@ import {
   RightDescriptionWithRolesV4,
   UserPermissionV4,
 } from './types';
-import {
-  generateCollectionActionIdentifier,
-  generateCustomActionIdentifier,
-} from './generate-action-identifier';
 
 export type ActionPermissions = {
   everythingAllowed: boolean;
@@ -121,12 +121,8 @@ function getUsersForRoles(roles: number[], userIdsByRole: Map<number, number[]>)
     roles.reduce((acc, roleId) => {
       const userIds = (userIdsByRole.get(roleId) || []).map(userId => `${userId}`);
 
-      if (userIds) {
-        return [...acc, ...userIds];
-      }
-
-      return acc;
-    }, new Array<string>()),
+      return [...acc, ...userIds];
+    }, []),
   );
 }
 

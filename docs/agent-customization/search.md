@@ -1,6 +1,6 @@
 In Forest Admin, pages which show lists of records have a free-text search widget on top of them.
 
-![Search bar on main list-view](../assets/search-bar.png)
+![A search bar on the main list-view](../assets/search-bar.png)
 
 ## Search modes
 
@@ -13,7 +13,7 @@ Two search modes are supported: normal and extended.
 
 ## Default behavior
 
-When not defined otherwise by the [datasource](../datasources/connection/README.md), the search behavior is to attempt to search within columns of the collection (in normal mode), or columns of the collection of direct relations (in extended mode).
+When not defined otherwise by the [data source](../datasources/connection/README.md), the search behavior is to attempt to search within columns of the collection (in normal mode), or columns of the collection of direct relations (in extended mode).
 
 By default, Forest Admin will search only on some columns, depending on their respective types.
 
@@ -27,18 +27,18 @@ By default, Forest Admin will search only on some columns, depending on their re
 
 ## Customization
 
-You may want to change how the search bar behaves in your admin-panel.
+You may want to change how the search bar behaves in your admin panel.
 
 For instance:
 
-- Search only on the columns which are relevant to your use-case.
-- Use a full-text indexes of your data (i.e Postgres `tsquery` and `tsvector`, Algolia, Elastic search, ...)
+- Search only on the columns which are relevant to your use case.
+- Use full-text indexes of your data (i.e Postgres `tsquery` and `tsvector`, Algolia, Elastic search, ...)
 
-In order to customize the search bar, you must define a handler which returns a [`ConditionTree`](../under-the-hood/queries/filters.md#condition-trees).
+To customize the search bar, you must define a handler that returns a [`ConditionTree`](../under-the-hood/queries/filters.md#condition-trees).
 
 ### Making the search case-sensitive by default
 
-In this example, we use the `searchExtended` condition to toggle between case-sensitive and insensitive search.
+In this example, we use the `searchExtended` condition to toggle between case-sensitive and insensitive searches.
 
 ```javascript
 agent.customizeCollection('people', collection =>
@@ -88,9 +88,9 @@ agent.customizeCollection('products', collection =>
 );
 ```
 
-### Calling an external API to implement search
+### Calling an external API
 
-If you data is indexed using a SaaS, external store or full-text index, you can call it in the search handler.
+If your data is indexed using a SaaS, external store, or full-text index, you can call it in the search handler.
 
 ```javascript
 const algoliasearch = require('algoliasearch');

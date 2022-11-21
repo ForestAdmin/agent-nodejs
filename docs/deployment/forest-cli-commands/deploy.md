@@ -35,7 +35,7 @@ To be able to deploy the origin of the branch should be the reference environmen
 
 ### Deploy from the UI
 
-This is possible **only from a remote** which have the reference environment as origin:
+This is possible **only from a remote** which has the reference environment as origin:
 
 ![](../../assets/deploy-ui.png)
 

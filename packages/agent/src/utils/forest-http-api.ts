@@ -1,20 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IssuerMetadata } from 'openid-client';
 import { JSONAPIDocument } from 'json-api-serializer';
+import { IssuerMetadata } from 'openid-client';
 import superagent, { Response, ResponseError } from 'superagent';
 
 import { AgentOptions } from '../types';
-
-export type IpWhitelistConfiguration = {
-  isFeatureEnabled: boolean;
-  ipRules: Array<{
-    type: number;
-    ipMinimum?: string;
-    ipMaximum?: string;
-    ip?: string;
-    range?: string;
-  }>;
-};
 
 export type UserInfo = {
   id: number;
@@ -31,22 +20,6 @@ export type UserInfo = {
 type HttpOptions = Pick<AgentOptions, 'envSecret' | 'forestServerUrl' | 'isProduction'>;
 
 export default class ForestHttpApi {
-  static async getIpWhitelistConfiguration(
-    options: HttpOptions,
-  ): Promise<IpWhitelistConfiguration> {
-    try {
-      const response: Response = await superagent
-        .get(new URL('/liana/v1/ip-whitelist-rules', options.forestServerUrl).toString())
-        .set('forest-secret-key', options.envSecret);
-
-      const { attributes } = response.body.data;
-
-      return { isFeatureEnabled: attributes.use_ip_whitelist, ipRules: attributes.rules };
-    } catch (e) {
-      this.handleResponseError(e);
-    }
-  }
-
   static async getOpenIdIssuerMetadata(options: HttpOptions): Promise<IssuerMetadata> {
     try {
       const response: Response = await superagent

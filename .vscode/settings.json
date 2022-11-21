@@ -22,6 +22,7 @@
   "debug.javascript.terminalOptions": {
     "skipFiles": ["<node_internals>/**", "**/node_modules"]
   },
+  "typescript.preferences.autoImportFileExcludePatterns": ["**/dist/*"],
 
   // Remove build & configuration files from the sidebar
   "files.exclude": {
@@ -50,5 +51,12 @@
     "**/node_modules/**": true
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "grammarly.config.documentDialect": "american",
+  "grammarly.selectors": [
+    {
+      "language": "markdown",
+      "scheme": "file"
+    }
+  ]
 }

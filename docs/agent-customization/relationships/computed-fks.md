@@ -1,12 +1,12 @@
-It may happen that you want to create a relationship between two collection, but you don't have a foreign key which is ready to use in order to connect them together.
+You may want to create a relationship between two collections, but you don't have a foreign key that is ready to use to connect them.
 
-To solve that use-case, you should use both [computed fields](../fields/computed.md) and relationships.
+To solve that use case, you should use both [computed fields](../fields/computed.md) and relationships.
 
 ## Displaying a link to the last message sent by a customer
 
-We have two collections: `Customers` and `Messages` which are linked together by a `OneToMany` relationships.
+We have two collections: `Customers` and `Messages` which are linked together by a `one-to-many` relationship.
 
-We want to create a `ManyToOne` relationship to the last message sent by a given customer.
+We want to create a `ManyToOne` relationship with the last message sent by a given customer.
 
 This is done in two steps:
 
@@ -53,7 +53,7 @@ agent.customizeCollection('customers', collection => {
 
 You have two collections which both contain users: one comes from your database, and the other one is connected to the CRM that your company uses.
 
-There is no common id between them that can be used to tell Forest Admin how to link them together, however both collection have `firstName`, `lastName` and `birthDate` fields, which taken together, are unique enough.
+There is no common id between them that can be used to tell Forest Admin how to link them together, however, both collections have `firstName`, `lastName`, and `birthDate` fields, which taken together, are unique enough.
 
 ```javascript
 agent

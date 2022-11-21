@@ -1,6 +1,6 @@
+import { ValidationError } from '../errors';
 import { Collection } from '../interfaces/collection';
 import { PlainSortClause } from '../interfaces/query/sort';
-import { ValidationError } from '../errors';
 import FieldValidator from './field';
 
 export default class SortValidator {

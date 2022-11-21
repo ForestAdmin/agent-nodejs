@@ -1,6 +1,6 @@
-A **Segment** is a subset of a collection: it's basically a saved filter of your collection.
+A **Segment** is a subset of a collection: it's a saved filter of your collection.
 
-Segments are designed for those who want to _systematically_ visualize data according to specific sets of filters. It allows you to save your filters configuration so you don’t have to compute the same actions every day.
+Segments are designed for those who want to _systematically_ visualize data according to specific sets of filters. It allows you to save your filter configuration so you don’t have to compute the same actions every day.
 
 ![](../assets/segment-example.png)
 
@@ -14,14 +14,14 @@ This is documented in the [User Guide](https://docs.forestadmin.com/user-guide/c
 
 Sometimes, segment filters are complicated and closely tied to your business. Forest Admin allows you to code how the segment is computed.
 
-For instance, on our [Live Demo example](https://app.forestadmin.com/livedemo), we’ve implemented a Segment on the collection `products` to allow admin users to see the bestsellers at a glance.
+For instance, in our [Live Demo example](https://app.forestadmin.com/livedemo), we’ve implemented a Segment on the collection `products` to allow admin users to see the bestsellers at a glance.
 
 ## Example
 
 {% hint style='info' %}
 In the following example, we are making queries using the [Forest Admin Query Interface](../under-the-hood/queries/README.md).
 
-As Forest Admin does not impose any restriction on the handler, you are free to call external APIs, or query your database directly instead.
+As Forest Admin does not impose any restriction on the handler, you are free to call external APIs or query your database directly instead.
 {% endhint %}
 
 The only requirement when implementing a segment from your agent is to return a valid `ConditionTree` (see [Understanding Filters](../under-the-hood/queries/filters.md)).

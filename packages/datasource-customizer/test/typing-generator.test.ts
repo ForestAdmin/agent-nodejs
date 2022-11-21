@@ -1,4 +1,5 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
 import TypingGenerator from '../src/typing-generator';
 
 describe('TypingGenerator', () => {
@@ -12,7 +13,14 @@ describe('TypingGenerator', () => {
             boolean: factories.columnSchema.build({ columnType: 'Boolean' }),
             string: factories.columnSchema.build({ columnType: 'String' }),
             point: factories.columnSchema.build({ columnType: 'Point' }),
-            enum: factories.columnSchema.build({ columnType: 'Enum', enumValues: ['a', 'b', 'c'] }),
+            enumWithValues: factories.columnSchema.build({
+              columnType: 'Enum',
+              enumValues: ['a', 'b', 'c'],
+            }),
+            enumWithoutValues: factories.columnSchema.build({
+              columnType: 'Enum',
+              enumValues: undefined,
+            }),
 
             complex: factories.columnSchema.build({
               columnType: { firstname: 'String', lastname: 'String' },
@@ -33,7 +41,8 @@ describe('TypingGenerator', () => {
             'boolean': boolean;
             'string': string;
             'point': [number, number];
-            'enum': 'a' | 'b' | 'c';
+            'enumWithValues': 'a' | 'b' | 'c';
+            'enumWithoutValues': string;
             'complex': { firstname: string; lastname: string };
             'array': Array<string>;
           };

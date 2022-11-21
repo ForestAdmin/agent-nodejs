@@ -1,4 +1,5 @@
 import { Projection } from '@forestadmin/datasource-toolkit';
+
 import ProjectionGenerator from '../../../src/utils/pipeline/projection';
 
 describe('ProjectionGenerator', () => {

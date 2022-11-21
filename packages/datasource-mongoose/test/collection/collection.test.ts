@@ -2,6 +2,7 @@
 /* eslint-disable jest/no-disabled-tests */
 
 import { Connection, Schema, model } from 'mongoose';
+
 import MongooseCollection from '../../src/collection';
 import MongooseDatasource from '../../src/datasource';
 
@@ -24,6 +25,7 @@ describe('MongooseCollection', () => {
     expect(mongooseCollection.name).toEqual('aModel');
     expect(mongooseCollection.schema).toEqual({
       actions: {},
+      charts: [],
       countable: true,
       fields: {
         aField: expect.any(Object),

@@ -4,8 +4,8 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
-import { TCollectionName, TSchema } from '../../../templates';
 import CollectionCustomizationContext from '../../../context/collection-context';
+import { TCollectionName, TSchema } from '../../../templates';
 
 export default abstract class HookContext<
   S extends TSchema = TSchema,

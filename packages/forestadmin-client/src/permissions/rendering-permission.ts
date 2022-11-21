@@ -1,6 +1,12 @@
 import LruCache from 'lru-cache';
 
 import { Chart, QueryChart } from '../charts/types';
+import { ForestAdminClientOptionsWithDefaults } from '../types';
+import ContextVariables from '../utils/context-variables';
+import ContextVariablesInjector from '../utils/context-variables-injector';
+import ForestHttpApi from './forest-http-api';
+import { hashChartRequest, hashServerCharts } from './hash-chart';
+import isSegmentQueryAllowed from './is-segment-query-authorized';
 import {
   CollectionRenderingPermissionV4,
   PermissionLevel,
@@ -8,13 +14,7 @@ import {
   Team,
   UserPermissionV4,
 } from './types';
-import { ForestAdminClientOptionsWithDefaults } from '../types';
-import { hashChartRequest, hashServerCharts } from './hash-chart';
-import ContextVariables from '../utils/context-variables';
-import ContextVariablesInjector from '../utils/context-variables-injector';
-import ForestHttpApi from './forest-http-api';
 import UserPermissionService from './user-permission';
-import isSegmentQueryAllowed from './is-segment-query-authorized';
 import verifySQLQuery from './verify-sql-query';
 
 export type RenderingPermission = {
@@ -33,7 +33,7 @@ export default class RenderingPermissionService {
     this.permissionsByRendering = new LruCache({
       max: 256,
       ttl: this.options.permissionsCacheDurationInSeconds * 1000,
-      fetchMethod: renderingId => this.loadPermissions(renderingId),
+      fetchMethod: renderingId => this.loadPermissions(Number(renderingId)),
     });
   }
 
@@ -144,7 +144,7 @@ export default class RenderingPermissionService {
     return true;
   }
 
-  private async loadPermissions(renderingId: string): Promise<RenderingPermission> {
+  private async loadPermissions(renderingId: number): Promise<RenderingPermission> {
     this.options.logger('Debug', `Loading rendering permissions for rendering ${renderingId}`);
 
     const rawPermissions = await ForestHttpApi.getRenderingPermissions(renderingId, this.options);

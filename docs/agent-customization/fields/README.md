@@ -1,10 +1,10 @@
-Forest Admin is an admin-panel, not a WYSIWYG on top of your database.
+Forest Admin is an admin panel, not a WYSIWYG on top of your database.
 
 When designing databases and APIs, the way to go is usually to push for _normalization_. This means ensuring there is no redundancy of data (all data is stored in only one place), and that data dependencies are logical.
 
-On the other hand graphical user interfaces usually need duplication and shortcuts to be user-friendly.
+On the other hand, graphical user interfaces usually need duplication and shortcuts to be user-friendly.
 
-In order to bridge that gap, Forest Admin allows to add, move, remove and override behaviors from fields.
+To bridge that gap, Forest Admin allows adding, moving, removing, and overriding behaviors from fields.
 
 ## Minimal example
 

@@ -1,4 +1,5 @@
 import { CollectionSchema, FieldSchema } from '@forestadmin/datasource-toolkit';
+
 import CollectionDecorator from '../collection-decorator';
 import CollectionRenameDataSourceDecorator from './datasource';
 

@@ -127,11 +127,14 @@ export default class TypingGenerator {
 
   private static getType(field: { columnType: ColumnType; enumValues?: string[] }): string {
     if (Array.isArray(field.columnType)) {
-      return `Array<${this.getType({ columnType: field.columnType[0] })}>`;
+      return `Array<${this.getType({
+        columnType: field.columnType[0],
+        enumValues: field.enumValues,
+      })}>`;
     }
 
     if (field.columnType === 'Enum') {
-      return field.enumValues.map(v => `'${v.replace(/'/g, "\\'")}'`).join(' | ');
+      return field.enumValues?.map(v => `'${v.replace(/'/g, "\\'")}'`).join(' | ') ?? 'string';
     }
 
     if (typeof field.columnType === 'string') {
