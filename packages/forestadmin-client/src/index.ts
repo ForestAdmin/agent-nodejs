@@ -23,7 +23,11 @@ export {
   ContextVariablesInstantiatorInterface,
 } from './types';
 export { IpWhitelistConfiguration } from './ip-whitelist/types';
-export { CollectionActionEvent } from './permissions/types';
+export {
+  CollectionActionEvent,
+  RenderingPermissionV4,
+  UserPermissionV4,
+} from './permissions/types';
 
 export default function createForestAdminClient(
   options: ForestAdminClientOptions,
