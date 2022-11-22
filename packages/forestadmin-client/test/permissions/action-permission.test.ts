@@ -1,9 +1,9 @@
-import { GenericPlainTreeWithSources, UserPermissionV4 } from '../../src/permissions/types';
 import ActionPermissionService from '../../src/permissions/action-permission';
 import ForestHttpApi from '../../src/permissions/forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
 } from '../../src/permissions/generate-actions-from-permissions';
+import { RawTreeWithSources, UserPermissionV4 } from '../../src/permissions/types';
 
 jest.mock('../../src/permissions/forest-http-api', () => ({
   getUsers: jest.fn(),
@@ -332,7 +332,7 @@ describe('ActionPermissionService', () => {
         operator: 'equal',
         value: 'value',
         source: 'data',
-      } as GenericPlainTreeWithSources;
+      } as RawTreeWithSources;
 
       const { service, options, permissions, users } = setup({
         everythingAllowed: true,
@@ -399,7 +399,7 @@ describe('ActionPermissionService', () => {
         operator: 'not_equal',
         value: 'value',
         source: 'data',
-      } as GenericPlainTreeWithSources;
+      } as RawTreeWithSources;
 
       const actionConditions = new Map([
         [42, customActionCondition],

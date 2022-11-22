@@ -25,11 +25,14 @@ export type RawTreeLeaf = KeysToSnakeCase<PlainConditionTreeLeaf>;
 
 export type RawTree = GenericRawTree<RawTreeLeaf, RawTreeBranch>;
 
-export const CUSTOM_ACTION_FILTER_LEAF_SOURCES = ['data', 'input'];
+export type CustomActionRawTreeLeafSource = 'data' | 'input';
+export type RawTreeLeafWithSources = RawTreeLeaf & { source: CustomActionRawTreeLeafSource };
+export type RawTreeBranchWithSources = {
+  aggregator: RawTreeBranch['aggregator'];
+  conditions: Array<RawTreeBranchWithSources | RawTreeLeafWithSources>;
+};
 
-export type CustomActionFilterLeafSource = typeof CUSTOM_ACTION_FILTER_LEAF_SOURCES[number];
-
-export type RawTreeWithSources = GenericRawTree<RawTreeLeaf & { source: CustomActionFilterLeafSource }, RawTreeBranch>;
+export type RawTreeWithSources = GenericRawTree<RawTreeLeafWithSources, RawTreeBranchWithSources>;
 
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
 

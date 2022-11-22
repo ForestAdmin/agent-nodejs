@@ -1,5 +1,3 @@
-import hashObject from 'object-hash';
-
 import {
   Aggregation,
   Caller,
@@ -8,6 +6,8 @@ import {
   ConditionTreeFactory,
   Filter,
 } from '@forestadmin/datasource-toolkit';
+import hashObject from 'object-hash';
+
 import ConditionTreeParser from '../../utils/condition-tree-parser';
 import InvalidActionConditionError from './errors/invalidActionConditionError';
 

@@ -344,6 +344,10 @@ export default class AuthorizationService {
     const rolesIdsGroupByConditions =
       transformToRolesIdsGroupByConditions(actionConditionsByRoleId);
 
+    // TODO: Handle no conditions use case
+    // Roles without conditions but with userApprovalEnabled should be in the list by default
+
+    // Should only be computed when rolesIdsGroupByConditions not null
     const [requestRecordsCount, ...conditionRecordsCounts]: number[] = await Promise.all([
       intersectCount(caller, collection, requestConditionTreeForAllCaller),
       ...rolesIdsGroupByConditions.map(({ condition }) =>
@@ -351,6 +355,7 @@ export default class AuthorizationService {
       ),
     ]);
 
+    // Default array should be [roleIdsAllowedWithoutCondition]
     return rolesIdsGroupByConditions.reduce(
       (roleIdsAllowedToApprove, { roleIds }, currentIndex) => {
         if (requestRecordsCount === conditionRecordsCounts[currentIndex]) {

@@ -1,13 +1,12 @@
 import { Aggregation, GenericTree } from '@forestadmin/datasource-toolkit';
 
-import * as factories from '../../__factories__';
-
 import {
   canPerformConditionalCustomAction,
   intersectCount,
   transformToRolesIdsGroupByConditions,
 } from '../../../src/services/authorization/authorization-internal';
 import InvalidActionConditionError from '../../../src/services/authorization/errors/invalidActionConditionError';
+import * as factories from '../../__factories__';
 
 describe('AuthorizationService', () => {
   beforeEach(() => {
