@@ -1,3 +1,18 @@
+## example [1.1.13](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.12...example@1.1.13) (2022-11-22)
+
+
+### Bug Fixes
+
+* **datasource mongoose:** replace _pid by parentId more understandable error ([#550](https://github.com/ForestAdmin/agent-nodejs/issues/550)) ([b4c1fe7](https://github.com/ForestAdmin/agent-nodejs/commit/b4c1fe7e347004ffe46de8841698578d3a4efb58))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.1.3
+
 ## example [1.1.12](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.11...example@1.1.12) (2022-11-14)
 
 
