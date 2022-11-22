@@ -17,7 +17,7 @@ export type Schema = {
       'address:city': string;
       'address:country': string;
       'address:_id': string;
-      'address:_pid': string;
+      'address:parentId': string;
       'store:id': number;
       'store:name': string;
       'store:ownerId': number;
@@ -35,7 +35,7 @@ export type Schema = {
       'city': string;
       'country': string;
       '_id': string;
-      '_pid': string;
+      'parentId': string;
     };
     nested: {
       'parent': Schema['account']['plain'] & Schema['account']['nested'];
@@ -61,7 +61,7 @@ export type Schema = {
       'amount': number;
       'issueDate': string;
       '_id': string;
-      '_pid': string;
+      'parentId': string;
     };
     nested: {
       'parent': Schema['account']['plain'] & Schema['account']['nested'];
@@ -76,7 +76,7 @@ export type Schema = {
       'parent:address:city': string;
       'parent:address:country': string;
       'parent:address:_id': string;
-      'parent:address:_pid': string;
+      'parent:address:parentId': string;
       'parent:store:id': number;
       'parent:store:name': string;
       'parent:store:ownerId': number;
@@ -93,7 +93,7 @@ export type Schema = {
       'title': string;
       'amount': number;
       '_id': string;
-      '_pid': string;
+      'parentId': string;
     };
     nested: {
       'parent': Schema['account_bills']['plain'] & Schema['account_bills']['nested'];
@@ -103,7 +103,7 @@ export type Schema = {
       'parent:amount': number;
       'parent:issueDate': string;
       'parent:_id': string;
-      'parent:_pid': string;
+      'parent:parentId': string;
       'parent:parent:firstname': string;
       'parent:parent:lastname': string;
       'parent:parent:storeId': number;
@@ -113,7 +113,7 @@ export type Schema = {
       'parent:parent:address:city': string;
       'parent:parent:address:country': string;
       'parent:parent:address:_id': string;
-      'parent:parent:address:_pid': string;
+      'parent:parent:address:parentId': string;
       'parent:parent:store:id': number;
       'parent:parent:store:name': string;
       'parent:parent:store:ownerId': number;

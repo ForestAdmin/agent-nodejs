@@ -66,10 +66,10 @@ export default class MongooseCollection extends BaseCollection {
     const results = [];
 
     for (const record of data) {
-      const { _pid, ...rest } = record;
-      if (!_pid) throw new ValidationError('Trying to create a subrecord with no parent');
+      const { parentId, ...rest } = record;
+      if (!parentId) throw new ValidationError('Trying to create a subrecord with no parent');
 
-      const [rootId, path] = splitId(`${_pid}.${fieldName}`);
+      const [rootId, path] = splitId(`${parentId}.${fieldName}`);
       if (!updates.has(rootId)) updates.set(rootId, { path, records: [] });
 
       // unwrap 'content' on leafs

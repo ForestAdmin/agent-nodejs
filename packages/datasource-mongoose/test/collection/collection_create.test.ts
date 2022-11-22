@@ -128,18 +128,18 @@ describe('MongooseCollection', () => {
 
           // when
           await ownerStore.create(factories.caller.build(), [
-            { _pid: ownerRecordB._id, content: storeRecordB._id },
+            { parentId: ownerRecordB._id, content: storeRecordB._id },
           ]);
 
           // then
           const expectedOwnerStore = await ownerStore.list(
             factories.caller.build(),
             factories.filter.build(),
-            new Projection('content', '_pid'),
+            new Projection('content', 'parentId'),
           );
           expect(expectedOwnerStore).toEqual([
-            { _pid: ownerRecordA._id, content: storeRecordA._id },
-            { _pid: ownerRecordB._id, content: storeRecordB._id },
+            { parentId: ownerRecordA._id, content: storeRecordA._id },
+            { parentId: ownerRecordB._id, content: storeRecordB._id },
           ]);
         });
       });

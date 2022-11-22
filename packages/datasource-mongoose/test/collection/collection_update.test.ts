@@ -101,7 +101,7 @@ describe('MongooseCollection > update', () => {
             factories.conditionTreeLeaf.build({
               value: ownerRecordA._id,
               operator: 'Equal',
-              field: '_pid',
+              field: 'parentId',
             }),
             factories.conditionTreeLeaf.build({
               value: storeRecordA._id,
@@ -111,7 +111,7 @@ describe('MongooseCollection > update', () => {
           ],
         }),
       }),
-      { _pid: ownerRecordA._id, content: storeRecordB._id },
+      { parentId: ownerRecordA._id, content: storeRecordB._id },
     );
 
     // then
@@ -119,9 +119,9 @@ describe('MongooseCollection > update', () => {
     const expectedOwnerStore = await ownerStore.list(
       factories.caller.build(),
       factories.filter.build(),
-      new Projection('_pid', 'content'),
+      new Projection('parentId', 'content'),
     );
-    expect(expectedOwnerStore).toEqual([{ _pid: ownerRecordA._id, content: storeRecordB._id }]);
+    expect(expectedOwnerStore).toEqual([{ parentId: ownerRecordA._id, content: storeRecordB._id }]);
   });
 
   describe('when update only one record', () => {
