@@ -9,7 +9,6 @@ type SerializedSchema = { meta: { schemaFileHash: string } };
 
 export default class SchemaService {
   private serializer: JSONAPISerializer = this.getSerializer();
-  private lastHash: string | null = null;
 
   constructor(private options: ForestAdminClientOptionsWithDefaults) {}
 
@@ -19,10 +18,7 @@ export default class SchemaService {
     agentVersion: string,
   ): Promise<boolean> {
     const apimap = this.serialize(schema, agentName, agentVersion);
-    const hash = apimap.meta.schemaFileHash;
-    const shouldSend = this.lastHash !== hash && (await this.doServerWantsSchema(hash));
-
-    this.lastHash = hash;
+    const shouldSend = await this.doServerWantsSchema(apimap.meta.schemaFileHash);
 
     if (shouldSend) {
       await ServerUtils.query(this.options, 'post', '/forest/apimaps', {}, apimap);

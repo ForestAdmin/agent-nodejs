@@ -53,17 +53,6 @@ describe('SchemaService', () => {
         }),
       );
     });
-
-    test('should post the same schema only once', async () => {
-      const options = factories.forestAdminClientOptions.build();
-      const schemaService = new SchemaService(options);
-      const sentOnce = await schemaService.postSchema([], 'forest-nodejs-agent', '1.0.0');
-      const sentTwice = await schemaService.postSchema([], 'forest-nodejs-agent', '1.0.0');
-
-      expect(ServerUtils.query).toHaveBeenCalledTimes(2);
-      expect(sentOnce).toBe(true);
-      expect(sentTwice).toBe(false);
-    });
   });
 
   describe('the server knows the schema', () => {
@@ -91,17 +80,6 @@ describe('SchemaService', () => {
         {},
         expect.objectContaining({}),
       );
-    });
-
-    test('should not attempt to post the same schema multiple times', async () => {
-      const options = factories.forestAdminClientOptions.build();
-      const schemaService = new SchemaService(options);
-      const sentOnce = await schemaService.postSchema([], 'forest-nodejs-agent', '1.0.0');
-      const sentTwice = await schemaService.postSchema([], 'forest-nodejs-agent', '1.0.0');
-
-      expect(ServerUtils.query).toHaveBeenCalledTimes(1);
-      expect(sentOnce).toBe(false);
-      expect(sentTwice).toBe(false);
     });
   });
 });
