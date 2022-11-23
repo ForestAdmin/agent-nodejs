@@ -56,6 +56,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(),
         actionsConditionByRoleId: new Map(),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [],
       });
 
@@ -78,6 +80,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(['action']),
         actionsConditionByRoleId: new Map(),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [],
       });
 
@@ -91,6 +95,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map([['action', new Set(['10'])]]),
         actionsGloballyAllowed: new Set(),
         actionsConditionByRoleId: new Map(),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [],
       });
 
@@ -106,6 +112,8 @@ describe('ActionPermissionService', () => {
             actionsAllowedByUser: new Map(),
             actionsGloballyAllowed: new Set(),
             actionsConditionByRoleId: new Map(),
+            actionsRawDescriptionV4: {},
+            allRoleIds: [],
             users: [],
           },
           {
@@ -113,6 +121,8 @@ describe('ActionPermissionService', () => {
             actionsAllowedByUser: new Map([]),
             actionsGloballyAllowed: new Set(),
             actionsConditionByRoleId: new Map(),
+            actionsRawDescriptionV4: {},
+            allRoleIds: [],
             users: [],
           },
         );
@@ -132,6 +142,8 @@ describe('ActionPermissionService', () => {
             actionsAllowedByUser: new Map(),
             actionsGloballyAllowed: new Set(),
             actionsConditionByRoleId: new Map(),
+            actionsRawDescriptionV4: {},
+            allRoleIds: [],
             users: [],
           },
           {
@@ -139,6 +151,8 @@ describe('ActionPermissionService', () => {
             actionsAllowedByUser: new Map([]),
             actionsGloballyAllowed: new Set(),
             actionsConditionByRoleId: new Map(),
+            actionsRawDescriptionV4: {},
+            allRoleIds: [],
             users: [],
           },
         );
@@ -158,6 +172,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map([['action', new Set(['10'])]]),
         actionsGloballyAllowed: new Set(),
         actionsConditionByRoleId: new Map(),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [],
       });
 
@@ -183,6 +199,8 @@ describe('ActionPermissionService', () => {
           actionsAllowedByUser: new Map([['action', new Set(['10'])]]),
           actionsGloballyAllowed: new Set(),
           actionsConditionByRoleId: new Map(),
+          actionsRawDescriptionV4: {},
+          allRoleIds: [],
           users: [],
         },
         {
@@ -190,6 +208,8 @@ describe('ActionPermissionService', () => {
           actionsAllowedByUser: new Map([['action', new Set(['10'])]]),
           actionsGloballyAllowed: new Set(),
           actionsConditionByRoleId: new Map(),
+          actionsRawDescriptionV4: {},
+          allRoleIds: [],
           users: [],
         },
       );
@@ -217,6 +237,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(),
         actionsConditionByRoleId: new Map(),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [],
       });
 
@@ -239,6 +261,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
         actionsConditionByRoleId: new Map(),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [],
       });
 
@@ -257,6 +281,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map([['action2', new Set(['10'])]]),
         actionsGloballyAllowed: new Set(),
         actionsConditionByRoleId: new Map(),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [],
       });
 
@@ -277,6 +303,8 @@ describe('ActionPermissionService', () => {
             actionsAllowedByUser: new Map(),
             actionsGloballyAllowed: new Set(),
             actionsConditionByRoleId: new Map(),
+            actionsRawDescriptionV4: {},
+            allRoleIds: [],
             users: [],
           },
           {
@@ -284,6 +312,8 @@ describe('ActionPermissionService', () => {
             actionsAllowedByUser: new Map([]),
             actionsGloballyAllowed: new Set(),
             actionsConditionByRoleId: new Map(),
+            actionsRawDescriptionV4: {},
+            allRoleIds: [],
             users: [],
           },
         );
@@ -303,6 +333,8 @@ describe('ActionPermissionService', () => {
             actionsAllowedByUser: new Map(),
             actionsGloballyAllowed: new Set(),
             actionsConditionByRoleId: new Map(),
+            actionsRawDescriptionV4: {},
+            allRoleIds: [],
             users: [],
           },
           {
@@ -310,6 +342,8 @@ describe('ActionPermissionService', () => {
             actionsAllowedByUser: new Map([]),
             actionsGloballyAllowed: new Set(),
             actionsConditionByRoleId: new Map(),
+            actionsRawDescriptionV4: {},
+            allRoleIds: [],
             users: [],
           },
         );
@@ -341,6 +375,8 @@ describe('ActionPermissionService', () => {
         actionsConditionByRoleId: new Map([
           ['action1Identifier', new Map([[42, customActionCondition]])],
         ]),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [{ id: 1, roleId: 42 } as UserPermissionV4],
       });
 
@@ -363,6 +399,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
         actionsConditionByRoleId: new Map(),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [],
       });
 
@@ -380,6 +418,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
         actionsConditionByRoleId: new Map([['action1Identifier', new Map()]]),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [{ id: 1, roleId: 42 } as UserPermissionV4],
       });
 
@@ -411,6 +451,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(),
         actionsConditionByRoleId: new Map([['action1Identifier', actionConditions]]),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [{ id: 1, roleId: 42 } as UserPermissionV4],
       });
 
@@ -433,6 +475,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
         actionsConditionByRoleId: new Map(),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [],
       });
 
@@ -450,6 +494,8 @@ describe('ActionPermissionService', () => {
         actionsAllowedByUser: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
         actionsConditionByRoleId: new Map([['action1Identifier', new Map()]]),
+        actionsRawDescriptionV4: {},
+        allRoleIds: [],
         users: [{ id: 1, roleId: 42 } as UserPermissionV4],
       });
 

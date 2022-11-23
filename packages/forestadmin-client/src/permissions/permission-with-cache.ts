@@ -160,6 +160,18 @@ export default class PermissionServiceWithCache implements PermissionService {
     );
   }
 
+  public async getRoleIdsAllowedToApproveWithoutConditions({
+    collectionName,
+    customActionName,
+  }: {
+    customActionName: string;
+    collectionName: string;
+  }) {
+    return this.actionPermissionService.getRoleIdsAllowedToApproveWithoutConditions(
+      generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
+    );
+  }
+
   public async canRequestCustomActionParameters({
     userId,
     collectionName,

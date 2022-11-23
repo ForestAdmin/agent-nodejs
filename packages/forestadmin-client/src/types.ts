@@ -93,6 +93,10 @@ export interface PermissionService {
     customActionName: string;
     collectionName: string;
   }): Promise<Map<number, RawTreeWithSources>>;
+  getRoleIdsAllowedToApproveWithoutConditions(params: {
+    customActionName: string;
+    collectionName: string;
+  }): Promise<Array<number>>;
 }
 
 export interface ChartHandlerInterface {

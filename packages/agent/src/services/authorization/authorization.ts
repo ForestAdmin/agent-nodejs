@@ -340,14 +340,17 @@ export default class AuthorizationService {
         customActionName,
         collectionName: collection.name,
       });
+    const roleIdsAllowedToApproveWithoutConditions =
+      await this.forestAdminClient.permissionService.getRoleIdsAllowedToApproveWithoutConditions({
+        customActionName,
+        collectionName: collection.name,
+      });
 
     const rolesIdsGroupByConditions =
       transformToRolesIdsGroupByConditions(actionConditionsByRoleId);
 
-    // TODO: Handle no conditions use case
-    // Roles without conditions but with userApprovalEnabled should be in the list by default
-
-    // Should only be computed when rolesIdsGroupByConditions not null
+    // TODO: @perf: Should only be computed when rolesIdsGroupByConditions.length > 0
+    // Currently we are making one call for nothing in this case
     const [requestRecordsCount, ...conditionRecordsCounts]: number[] = await Promise.all([
       intersectCount(caller, collection, requestConditionTreeForAllCaller),
       ...rolesIdsGroupByConditions.map(({ condition }) =>
@@ -355,7 +358,6 @@ export default class AuthorizationService {
       ),
     ]);
 
-    // Default array should be [roleIdsAllowedWithoutCondition]
     return rolesIdsGroupByConditions.reduce(
       (roleIdsAllowedToApprove, { roleIds }, currentIndex) => {
         if (requestRecordsCount === conditionRecordsCounts[currentIndex]) {
@@ -364,7 +366,9 @@ export default class AuthorizationService {
 
         return roleIdsAllowedToApprove;
       },
-      [],
+      // Roles  with userApprovalEnabled excluding the one with conditions
+      // are allowed to approve by default
+      roleIdsAllowedToApproveWithoutConditions,
     );
   }
 }

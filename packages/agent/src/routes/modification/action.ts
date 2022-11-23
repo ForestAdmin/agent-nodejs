@@ -191,4 +191,10 @@ export default class ActionRoute extends CollectionRoute {
 
     return filter;
   }
+
+  // Question should we intersectCount here (I know I've already done it then move the code but..)
+  // Intersect count is really thigh to collection and the context
+  // e.g (caller, requestConditionTree: getRecordSelection)
+  // IntersectCountHandler (conditionalRawCondition?: unknown) =>
+  // prebakeCount.bind(this), call() or prebakeCount.apply()
 }
