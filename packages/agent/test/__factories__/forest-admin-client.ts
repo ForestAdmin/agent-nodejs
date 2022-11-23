@@ -22,6 +22,7 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
     getConditionalRequiresApprovalCondition: jest.fn(),
     getConditionalApproveCondition: jest.fn(),
     getConditionalApproveConditions: jest.fn(),
+    getRoleIdsAllowedToApproveWithoutConditions: jest.fn(),
   },
   contextVariablesInstantiator: {
     buildContextVariables: jest.fn(),

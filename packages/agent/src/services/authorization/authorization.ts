@@ -15,14 +15,7 @@ import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
 import ConditionTreeParser from '../../utils/condition-tree-parser';
-import {
-  canPerformConditionalCustomAction,
-  intersectCount,
-  transformToRolesIdsGroupByConditions,
-} from './authorization-internal';
-import ApprovalNotAllowedError from './errors/approvalNotAllowedError';
-import CustomActionRequiresApprovalError from './errors/customActionRequiresApprovalError';
-import CustomActionTriggerForbiddenError from './errors/customActionTriggerForbiddenError';
+import ActionAuthorizationService from './action-authorization';
 
 type CanPerformCustomActionParams = {
   context: Context;
@@ -34,7 +27,11 @@ type CanPerformCustomActionParams = {
 };
 
 export default class AuthorizationService {
-  constructor(private readonly forestAdminClient: ForestAdminClient) {}
+  private actionAuthorizationService: ActionAuthorizationService;
+
+  constructor(private readonly forestAdminClient: ForestAdminClient) {
+    this.actionAuthorizationService = new ActionAuthorizationService(forestAdminClient);
+  }
 
   public async assertCanBrowse(context: Context, collectionName: string) {
     await this.assertCanOnCollection(CollectionActionEvent.Browse, context, collectionName);
@@ -88,36 +85,14 @@ export default class AuthorizationService {
   }: CanPerformCustomActionParams): Promise<void> {
     const { id: userId } = context.state.user;
 
-    const canTrigger = await this.canTriggerCustomAction(
+    return this.actionAuthorizationService.assertCanTriggerCustomAction({
       userId,
       customActionName,
       collection,
       requestConditionTreeForCaller,
+      requestConditionTreeForAllCaller,
       caller,
-    );
-
-    if (!canTrigger) {
-      throw new CustomActionTriggerForbiddenError();
-    }
-
-    const triggerRequiresApproval = await this.doesTriggerCustomActionRequiresApproval(
-      userId,
-      customActionName,
-      collection,
-      requestConditionTreeForCaller,
-      caller,
-    );
-
-    if (triggerRequiresApproval) {
-      const roleIdsAllowedToApprove = await this.getRoleIdsAllowedToApprove(
-        caller,
-        customActionName,
-        collection,
-        requestConditionTreeForAllCaller,
-      );
-
-      throw new CustomActionRequiresApprovalError(roleIdsAllowedToApprove);
-    }
+    });
   }
 
   public async assertCanApproveCustomAction({
@@ -132,25 +107,16 @@ export default class AuthorizationService {
     requesterId: number | string;
   }): Promise<void> {
     const { id: userId } = context.state.user;
-    const canApprove = await this.canApproveCustomAction(
+
+    return this.actionAuthorizationService.assertCanApproveCustomAction({
       userId,
       customActionName,
+      requesterId,
       collection,
       requestConditionTreeForCaller,
+      requestConditionTreeForAllCaller,
       caller,
-      requesterId,
-    );
-
-    if (!canApprove) {
-      const roleIdsAllowedToApprove = await this.getRoleIdsAllowedToApprove(
-        caller,
-        customActionName,
-        collection,
-        requestConditionTreeForAllCaller,
-      );
-
-      throw new ApprovalNotAllowedError(roleIdsAllowedToApprove);
-    }
+    });
   }
 
   public async assertCanRequestCustomActionParameters(
@@ -160,16 +126,11 @@ export default class AuthorizationService {
   ) {
     const { id: userId } = context.state.user;
 
-    const canRequest =
-      await this.forestAdminClient.permissionService.canRequestCustomActionParameters({
-        userId,
-        customActionName,
-        collectionName,
-      });
-
-    if (!canRequest) {
-      context.throw(HttpCode.Forbidden, 'Forbidden');
-    }
+    return this.actionAuthorizationService.assertCanRequestCustomActionParameters(
+      userId,
+      customActionName,
+      collectionName,
+    );
   }
 
   public async assertCanExecuteChart(context: Context): Promise<void> {
@@ -219,156 +180,5 @@ export default class AuthorizationService {
 
   public verifySignedActionParameters<TSignedParameters>(signedToken: string): TSignedParameters {
     return this.forestAdminClient.verifySignedActionParameters(signedToken);
-  }
-
-  private async canTriggerCustomAction(
-    userId: string | number,
-    customActionName: string,
-    collection: Collection,
-    requestConditionTreeForCaller: ConditionTree,
-    caller: Caller,
-  ): Promise<boolean> {
-    const canTrigger = await this.forestAdminClient.permissionService.canTriggerCustomAction({
-      userId,
-      customActionName,
-      collectionName: collection.name,
-    });
-
-    if (!canTrigger) {
-      return false;
-    }
-
-    const conditionalTriggerRawCondition =
-      await this.forestAdminClient.permissionService.getConditionalTriggerCondition({
-        userId,
-        customActionName,
-        collectionName: collection.name,
-      });
-
-    return canPerformConditionalCustomAction(
-      caller,
-      collection,
-      requestConditionTreeForCaller,
-      conditionalTriggerRawCondition,
-    );
-  }
-
-  private async doesTriggerCustomActionRequiresApproval(
-    userId: string | number,
-    customActionName: string,
-    collection: Collection,
-    requestConditionTreeForCaller: ConditionTree,
-    caller: Caller,
-  ): Promise<boolean> {
-    const doesTriggerRequiresApproval =
-      await this.forestAdminClient.permissionService.doesTriggerCustomActionRequiresApproval({
-        userId,
-        customActionName,
-        collectionName: collection.name,
-      });
-
-    if (!doesTriggerRequiresApproval) {
-      return false;
-    }
-
-    const conditionalRequiresApprovalRawCondition =
-      await this.forestAdminClient.permissionService.getConditionalRequiresApprovalCondition({
-        userId,
-        customActionName,
-        collectionName: collection.name,
-      });
-
-    if (conditionalRequiresApprovalRawCondition) {
-      const matchingRecordsCount = await intersectCount(
-        caller,
-        collection,
-        requestConditionTreeForCaller,
-        conditionalRequiresApprovalRawCondition,
-      );
-
-      // No records match the condition, trigger does not require approval
-      if (matchingRecordsCount === 0) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  private async canApproveCustomAction(
-    userId: string | number,
-    customActionName: string,
-    collection: Collection,
-    requestConditionTreeForCaller: ConditionTree,
-    caller: Caller,
-    requesterId: number | string,
-  ): Promise<boolean> {
-    const canApprove = await this.forestAdminClient.permissionService.canApproveCustomAction({
-      userId,
-      customActionName,
-      collectionName: collection.name,
-      requesterId,
-    });
-
-    if (!canApprove) {
-      return false;
-    }
-
-    const conditionalApproveRawCondition =
-      await this.forestAdminClient.permissionService.getConditionalApproveCondition({
-        userId,
-        customActionName,
-        collectionName: collection.name,
-      });
-
-    return canPerformConditionalCustomAction(
-      caller,
-      collection,
-      requestConditionTreeForCaller,
-      conditionalApproveRawCondition,
-    );
-  }
-
-  private async getRoleIdsAllowedToApprove(
-    caller: Caller,
-    customActionName: string,
-    collection: Collection,
-    requestConditionTreeForAllCaller: ConditionTree,
-  ) {
-    const actionConditionsByRoleId =
-      await this.forestAdminClient.permissionService.getConditionalApproveConditions({
-        customActionName,
-        collectionName: collection.name,
-      });
-    const roleIdsAllowedToApproveWithoutConditions =
-      await this.forestAdminClient.permissionService.getRoleIdsAllowedToApproveWithoutConditions({
-        customActionName,
-        collectionName: collection.name,
-      });
-
-    const rolesIdsGroupByConditions =
-      transformToRolesIdsGroupByConditions(actionConditionsByRoleId);
-
-    // TODO: @perf: Should only be computed when rolesIdsGroupByConditions.length > 0
-    // Currently we are making one call for nothing in this case
-    const [requestRecordsCount, ...conditionRecordsCounts]: number[] = await Promise.all([
-      intersectCount(caller, collection, requestConditionTreeForAllCaller),
-      ...rolesIdsGroupByConditions.map(({ condition }) =>
-        intersectCount(caller, collection, requestConditionTreeForAllCaller, condition),
-      ),
-    ]);
-
-    return rolesIdsGroupByConditions.reduce(
-      (roleIdsAllowedToApprove, { roleIds }, currentIndex) => {
-        if (requestRecordsCount === conditionRecordsCounts[currentIndex]) {
-          roleIdsAllowedToApprove.push(...roleIds);
-        }
-
-        return roleIdsAllowedToApprove;
-      },
-      // Roles  with userApprovalEnabled excluding the one with conditions
-      // are allowed to approve by default
-      roleIdsAllowedToApproveWithoutConditions,
-    );
   }
 }
