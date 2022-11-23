@@ -24,6 +24,8 @@ export {
   ContextVariablesInstantiatorInterface,
 } from './types';
 export { IpWhitelistConfiguration } from './ip-whitelist/types';
+
+// These types are used for the agent-generator package
 export {
   CollectionActionEvent,
   RenderingPermissionV4,
