@@ -1,219 +1,136 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import openidClient, { Issuer } from 'openid-client';
+import { ClientAuthMethod, Issuer } from 'openid-client';
 
 import Authentication from '../../../src/routes/security/authentication';
-import ForestHttpApi from '../../../src/utils/forest-http-api';
+import { AgentOptionsWithDefaults } from '../../../src/types';
 import * as factories from '../../__factories__';
-
-jest.mock('openid-client', () => ({ Issuer: jest.fn() }));
-jest.mock('../../../src/utils/forest-http-api', () => ({
-  getOpenIdIssuerMetadata: jest.fn(),
-  getUserInformation: jest.fn(),
-}));
 
 describe('Authentication', () => {
   const services = factories.forestAdminHttpDriverServices.build();
   const router = factories.router.mockAllMethods().build();
-  const options = factories.forestAdminHttpDriverOptions.build();
+  let options: AgentOptionsWithDefaults;
+  let route: Authentication;
 
-  async function createAuthenticationRoutesUsingIssuerClientMock(mock: Record<string, jest.Mock>) {
-    const authentication = new Authentication(services, options);
-
-    (openidClient.Issuer as unknown as jest.Mock).mockImplementation(() => ({
-      Client: {
-        register: jest.fn().mockReturnValue(mock),
-      },
-    }));
-
-    await authentication.bootstrap();
-
-    return authentication;
-  }
-
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+
+    options = factories.forestAdminHttpDriverOptions.build();
+    route = new Authentication(services, options);
   });
 
-  describe('bootstrap', () => {
-    describe('when the openid configuration cannot be fetched', () => {
-      test('should throw an error', async () => {
-        (ForestHttpApi.getOpenIdIssuerMetadata as jest.Mock).mockRejectedValue(
-          new Error('Failed to fetch openid-configuration.'),
-        );
+  test('setupRoutes should register two routes and one middleware', async () => {
+    route.setupRoutes(router);
 
-        const authentication = new Authentication(services, options);
-
-        await expect(authentication.bootstrap()).rejects.toThrow(
-          'Failed to fetch openid-configuration.',
-        );
-      });
-    });
-
-    describe('register openid client', () => {
-      beforeEach(() => {
-        (ForestHttpApi.getOpenIdIssuerMetadata as jest.Mock).mockResolvedValue({
-          registration_endpoint: 'http://fake-registration-endpoint',
-        });
-      });
-
-      describe('when the openid client cannot be created', () => {
-        test('should throw an error', async () => {
-          const clientRegisterSpy = jest.fn().mockImplementation(() => {
-            throw new Error('Error thrown during register.');
-          });
-
-          openidClient.Issuer = jest.fn().mockImplementation(() => ({
-            Client: {
-              register: clientRegisterSpy,
-            },
-          })) as unknown as typeof Issuer;
-          const authentication = new Authentication(services, options);
-
-          await expect(authentication.bootstrap()).rejects.toThrow('Error thrown during register.');
-          expect(clientRegisterSpy).toHaveBeenCalledTimes(1);
-        });
-      });
-
-      describe('when the openid client can be created', () => {
-        test('should resolve', async () => {
-          const clientRegisterSpy = jest.fn().mockReturnValue({});
-          openidClient.Issuer = jest.fn().mockImplementation(() => ({
-            Client: {
-              register: clientRegisterSpy,
-            },
-          })) as unknown as typeof Issuer;
-
-          const authentication = new Authentication(services, options);
-
-          await expect(authentication.bootstrap()).resolves.not.toThrow();
-          expect(clientRegisterSpy).toHaveBeenCalledTimes(1);
-        });
-      });
-    });
-
-    describe('setupRoutes', () => {
-      test('should register authentication related public routes', async () => {
-        const authentication = new Authentication(services, options);
-        authentication.setupRoutes(router);
-
-        expect(router.post).toHaveBeenCalledWith('/authentication', expect.any(Function));
-        expect(router.get).toHaveBeenCalledWith('/authentication/callback', expect.any(Function));
-      });
-    });
+    expect(router.post).toHaveBeenCalledWith('/authentication', expect.any(Function));
+    expect(router.get).toHaveBeenCalledWith('/authentication/callback', expect.any(Function));
+    expect(router.use).toHaveBeenCalledWith(expect.any(Function));
   });
 
-  describe('handleAuthentication', () => {
-    describe('when the given renderingId is correct', () => {
-      test('should respond with an authorization url', async () => {
-        const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
-          authorizationUrl: jest.fn().mockReturnValue('authorizationUrl'),
-        });
-        const context = createMockContext({
-          requestBody: { renderingId: '1' },
-        });
+  test('bootstrap should retrieve the openId client', async () => {
+    options.forestAdminClient.getOpenIdClient = jest.fn().mockResolvedValue('value');
+    await route.bootstrap();
 
-        await authentication.handleAuthentication(context);
-
-        expect(context.response.body).toEqual({
-          authorizationUrl: 'authorizationUrl',
-        });
-      });
-    });
-
-    describe('when the given renderingId is incorrect', () => {
-      test('should response with a 400 error', async () => {
-        const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
-          authorizationUrl: jest.fn().mockReturnValue('authorizationUrl'),
-        });
-
-        const context = createMockContext({
-          requestBody: {
-            renderingId: 'somethingInvalid',
-          },
-        });
-
-        await expect(authentication.handleAuthentication(context)).rejects.toThrow(
-          'Rendering id must be a number',
-        );
-      });
-    });
+    expect(options.forestAdminClient.getOpenIdClient).toHaveBeenCalled();
   });
 
-  describe('handleAuthenticationCallback', () => {
-    describe('when authentication is successful', () => {
-      test('should response with a token', async () => {
-        const user = {
-          id: 1,
-          email: 'hello@forest.admin',
-          firstName: 'erlich',
-          lastName: 'bachman',
-          team: 'admin',
-          renderingId: '1',
-        };
-        (ForestHttpApi.getUserInformation as jest.Mock).mockReturnValue(user);
-        const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
-          callback: jest.fn().mockReturnValue({}),
-        });
+  test('bootstrap should throw if the openid configuration cannot be fetched', async () => {
+    options.forestAdminClient.getOpenIdClient = jest
+      .fn()
+      .mockRejectedValue(new Error('Cannot fetch openid configuration'));
 
-        const context = createMockContext({
-          customProperties: { query: { state: '{"renderingId": 1}' } },
-        });
-        await authentication.handleAuthenticationCallback(context);
+    await expect(route.bootstrap()).rejects.toThrow('Cannot fetch openid configuration');
+  });
 
-        expect(context.response.body).toContainAllKeys(['token', 'tokenData']);
+  describe('when the route is bootstraped', () => {
+    beforeEach(async () => {
+      const issuer = await Issuer.discover('https://accounts.google.com');
+      const client = new issuer.Client({
+        client_id: '123',
+        token_endpoint_auth_method: 'none' as ClientAuthMethod,
+        redirect_uris: ['https://localhost/authentication/callback'],
+      });
+
+      options.forestAdminClient.getOpenIdClient = jest.fn().mockResolvedValue(client);
+
+      await route.bootstrap();
+    });
+
+    test('/authentication responds with auth url if renderingId is correct', async () => {
+      const context = createMockContext({ requestBody: { renderingId: '1' } });
+
+      // @ts-expect-error: testing private method
+      await route.handleAuthentication(context);
+
+      expect(context.response.body).toEqual({
+        authorizationUrl: expect.stringContaining('https://accounts.google.com/o/oauth2/v2/auth'),
       });
     });
 
-    describe('when authentication failed', () => {
-      describe('when the request state is not a valid json', () => {
-        it('should respond with an error', async () => {
-          const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
-            callback: jest.fn().mockReturnValue({}),
-          });
+    test('/authentication throws if renderingId is incorrect', async () => {
+      const context = createMockContext({ requestBody: { renderingId: 'somethingInvalid' } });
 
-          const context = createMockContext({
-            customProperties: { query: { state: '{"rendeId":' } },
-          });
+      // @ts-expect-error: testing private method
+      const fn = () => route.handleAuthentication(context);
 
-          await expect(authentication.handleAuthenticationCallback(context)).rejects.toThrow(
-            'Failed to retrieve renderingId from query[state]',
-          );
-        });
+      await expect(fn).rejects.toThrow('Rendering id must be a number');
+    });
+
+    test('/authentication/callback responds with token if auth is successful', async () => {
+      const context = createMockContext({
+        customProperties: { query: { state: '{"renderingId": 1}' } },
       });
 
-      describe('when the fetch of user informations failed', () => {
-        it('should respond with an error', async () => {
-          (ForestHttpApi.getUserInformation as jest.Mock).mockRejectedValue(new Error('Failed !'));
-
-          const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
-            callback: jest.fn().mockReturnValue({}),
-          });
-
-          const context = createMockContext({
-            customProperties: { query: { state: '{"renderingId": 1}' } },
-          });
-
-          await expect(authentication.handleAuthenticationCallback(context)).rejects.toThrow(
-            'Failed !',
-          );
-        });
+      options.forestAdminClient.getUserInfo = jest.fn().mockResolvedValue({
+        id: 1,
+        email: 'hello@forest.admin',
+        firstName: 'erlich',
+        lastName: 'bachman',
+        team: 'admin',
+        renderingId: '1',
       });
 
-      describe('when the provided user does not allow to sign a token', () => {
-        it('should respond with an error', async () => {
-          (ForestHttpApi.getUserInformation as jest.Mock) = jest.fn().mockResolvedValue(null);
+      // @ts-expect-error: testing private method
+      await route.handleAuthenticationCallback(context);
 
-          const authentication = await createAuthenticationRoutesUsingIssuerClientMock({
-            callback: jest.fn().mockReturnValue({}),
-          });
+      expect(context.response.body).toContainAllKeys(['token', 'tokenData']);
+    });
 
-          const context = createMockContext({
-            customProperties: { query: { state: '{"renderingId": 1}' } },
-          });
-
-          await expect(authentication.handleAuthenticationCallback(context)).rejects.toThrow();
-        });
+    test('/authentication/callback throws if request.state is invalid', async () => {
+      const context = createMockContext({
+        customProperties: { query: { state: '{"rendeId":' } },
       });
+
+      // @ts-expect-error: testing private method
+      const fn = () => route.handleAuthenticationCallback(context);
+      await expect(fn).rejects.toThrow('Failed to retrieve renderingId from query[state]');
+    });
+
+    test('/authentication/callback throws if it fails to fetch userinfo (exception)', async () => {
+      options.forestAdminClient.getUserInfo = jest
+        .fn()
+        .mockRejectedValue(new Error('Failed to fetch userinfo'));
+
+      const context = createMockContext({
+        customProperties: { query: { state: '{"renderingId": 1}' } },
+      });
+
+      // @ts-expect-error: testing private method
+      const fn = () => route.handleAuthenticationCallback(context);
+
+      await expect(fn).rejects.toThrow('Failed to fetch userinfo');
+    });
+
+    test('/authentication/callback throws if it fails to fetch userinfo (null)', async () => {
+      options.forestAdminClient.getUserInfo = jest.fn().mockResolvedValue(null);
+
+      const context = createMockContext({
+        customProperties: { query: { state: '{"renderingId": 1}' } },
+      });
+
+      // @ts-expect-error: testing private method
+      const fn = () => route.handleAuthenticationCallback(context);
+
+      await expect(fn).rejects.toThrow();
     });
   });
 });

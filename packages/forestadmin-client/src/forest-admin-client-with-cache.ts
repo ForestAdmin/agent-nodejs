@@ -1,3 +1,7 @@
+import { Client } from 'openid-client';
+
+import AuthService from './auth';
+import { UserInfo } from './auth/types';
 import ChartHandler from './charts/chart-handler';
 import IpWhiteListService from './ip-whitelist';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
@@ -22,15 +26,14 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     public readonly chartHandler: ChartHandler,
     protected readonly ipWhitelistService: IpWhiteListService,
     protected readonly schemaService: SchemaService,
+    protected readonly authService: AuthService,
   ) {}
 
-  public verifySignedActionParameters<TSignedParameters>(
-    signedParameters: string,
-  ): TSignedParameters {
+  verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {
     return verifyAndExtractApproval(signedParameters, this.options.envSecret);
   }
 
-  async getIpWhitelistConfiguration(): Promise<IpWhitelistConfiguration> {
+  getIpWhitelistConfiguration(): Promise<IpWhitelistConfiguration> {
     return this.ipWhitelistService.getConfiguration();
   }
 
@@ -40,6 +43,14 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     agentVersion: string,
   ): Promise<boolean> {
     return this.schemaService.postSchema(schema, agentName, agentVersion);
+  }
+
+  getOpenIdClient(): Promise<Client> {
+    return this.authService.getOpenIdClient();
+  }
+
+  getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo> {
+    return this.authService.getUserInfo(renderingId, accessToken);
   }
 
   public async getScope({

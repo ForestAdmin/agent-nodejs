@@ -24,6 +24,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.chartHandler.build(),
         whiteListService,
         factories.schema.build(),
+        factories.auth.build(),
       );
 
       const config = await forestAdminClient.getIpWhitelistConfiguration();
@@ -46,6 +47,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.chartHandler.build(),
         factories.ipWhiteList.build(),
         schemaService,
+        factories.auth.build(),
       );
 
       const result = await forestAdminClient.postSchema([], 'forest-nodejs-agent', '1.0.0');
@@ -66,6 +68,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.chartHandler.build(),
         factories.ipWhiteList.build(),
         factories.schema.build(),
+        factories.auth.build(),
       );
 
       verifyAndExtractApprovalMock.mockReturnValue(signedParameters);
@@ -74,6 +77,52 @@ describe('ForestAdminClientWithCache', () => {
 
       expect(result).toBe(signedParameters);
       expect(verifyAndExtractApprovalMock).toHaveBeenCalledWith(signedParameters, 'secret');
+    });
+  });
+
+  describe('Auth', () => {
+    it('getUserInfo should delegate to the given service', async () => {
+      const authService = factories.auth.build({
+        getUserInfo: jest.fn().mockResolvedValue({ id: 1 }),
+      });
+
+      const forestAdminClient = new ForestAdminClient(
+        factories.forestAdminClientOptions.build(),
+        factories.permission.build(),
+        factories.renderingPermission.build(),
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
+        factories.ipWhiteList.build(),
+        factories.schema.build(),
+        authService,
+      );
+
+      const result = await forestAdminClient.getUserInfo(1, 'token');
+      expect(result).toStrictEqual({ id: 1 });
+      expect(authService.getUserInfo).toHaveBeenCalledTimes(1);
+      expect(authService.getUserInfo).toHaveBeenCalledWith(1, 'token');
+    });
+
+    it('getOpenIdClient should delegate to the given service', async () => {
+      const authService = factories.auth.build({
+        getOpenIdClient: jest.fn().mockResolvedValue({ sign: true }),
+      });
+
+      const forestAdminClient = new ForestAdminClient(
+        factories.forestAdminClientOptions.build(),
+        factories.permission.build(),
+        factories.renderingPermission.build(),
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
+        factories.ipWhiteList.build(),
+        factories.schema.build(),
+        authService,
+      );
+
+      const result = await forestAdminClient.getOpenIdClient();
+      expect(result).toStrictEqual({ sign: true });
+      expect(authService.getOpenIdClient).toHaveBeenCalledTimes(1);
+      expect(authService.getOpenIdClient).toHaveBeenCalledWith();
     });
   });
 
@@ -88,6 +137,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.chartHandler.build(),
         factories.ipWhiteList.build(),
         factories.schema.build(),
+        factories.auth.build(),
       );
 
       await forestAdminClient.markScopesAsUpdated(42);
@@ -107,6 +157,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.chartHandler.build(),
         factories.ipWhiteList.build(),
         factories.schema.build(),
+        factories.auth.build(),
       );
 
       (renderingPermissionService.getScope as jest.Mock).mockResolvedValue('scope');
