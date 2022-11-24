@@ -1,9 +1,4 @@
-import {
-  Caller,
-  Collection,
-  ConditionTree,
-  UnprocessableError,
-} from '@forestadmin/datasource-toolkit';
+import { Collection, ConditionTree, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import {
   ChainedSQLQueryError,
   CollectionActionEvent,
@@ -15,23 +10,9 @@ import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
 import ConditionTreeParser from '../../utils/condition-tree-parser';
-import ActionAuthorizationService from './action-authorization';
-
-type CanPerformCustomActionParams = {
-  context: Context;
-  customActionName: string;
-  collection: Collection;
-  requestConditionTreeForCaller: ConditionTree;
-  requestConditionTreeForAllCaller: ConditionTree;
-  caller: Caller;
-};
 
 export default class AuthorizationService {
-  private actionAuthorizationService: ActionAuthorizationService;
-
-  constructor(private readonly forestAdminClient: ForestAdminClient) {
-    this.actionAuthorizationService = new ActionAuthorizationService(forestAdminClient);
-  }
+  constructor(private readonly forestAdminClient: ForestAdminClient) {}
 
   public async assertCanBrowse(context: Context, collectionName: string) {
     await this.assertCanOnCollection(CollectionActionEvent.Browse, context, collectionName);
@@ -73,64 +54,6 @@ export default class AuthorizationService {
     if (!canOnCollection) {
       context.throw(HttpCode.Forbidden, 'Forbidden');
     }
-  }
-
-  public async assertCanTriggerCustomAction({
-    context,
-    customActionName,
-    collection,
-    requestConditionTreeForCaller,
-    requestConditionTreeForAllCaller,
-    caller,
-  }: CanPerformCustomActionParams): Promise<void> {
-    const { id: userId } = context.state.user;
-
-    return this.actionAuthorizationService.assertCanTriggerCustomAction({
-      userId,
-      customActionName,
-      collection,
-      requestConditionTreeForCaller,
-      requestConditionTreeForAllCaller,
-      caller,
-    });
-  }
-
-  public async assertCanApproveCustomAction({
-    context,
-    customActionName,
-    requesterId,
-    collection,
-    requestConditionTreeForCaller,
-    requestConditionTreeForAllCaller,
-    caller,
-  }: CanPerformCustomActionParams & {
-    requesterId: number | string;
-  }): Promise<void> {
-    const { id: userId } = context.state.user;
-
-    return this.actionAuthorizationService.assertCanApproveCustomAction({
-      userId,
-      customActionName,
-      requesterId,
-      collection,
-      requestConditionTreeForCaller,
-      requestConditionTreeForAllCaller,
-      caller,
-    });
-  }
-
-  public async assertCanRequestCustomActionParameters(
-    context: Context,
-    customActionName: string,
-    collectionName: string,
-  ) {
-    const { id: userId } = context.state.user;
-
-    return this.actionAuthorizationService.assertCanRequestCustomActionParameters(
-      userId,
-      customActionName,
-      collectionName,
-    );
   }
 
   public async assertCanExecuteChart(context: Context): Promise<void> {
@@ -176,9 +99,5 @@ export default class AuthorizationService {
 
   public invalidateScopeCache(renderingId: number | string) {
     this.forestAdminClient.markScopesAsUpdated(renderingId);
-  }
-
-  public verifySignedActionParameters<TSignedParameters>(signedToken: string): TSignedParameters {
-    return this.forestAdminClient.verifySignedActionParameters(signedToken);
   }
 }

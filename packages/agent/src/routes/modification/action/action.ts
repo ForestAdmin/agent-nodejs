@@ -8,22 +8,25 @@ import {
 import Router from '@koa/router';
 import { Context, Next } from 'koa';
 
-import { ForestAdminHttpDriverServices } from '../../services';
+import { ForestAdminHttpDriverServices } from '../../../services';
 import {
   SmartActionApprovalRequestBody,
   SmartActionRequestBody,
-} from '../../services/authorization/types';
-import { AgentOptionsWithDefaults, HttpCode } from '../../types';
-import BodyParser from '../../utils/body-parser';
-import ContextFilterFactory from '../../utils/context-filter-factory';
-import ForestValueConverter from '../../utils/forest-schema/action-values';
-import SchemaGeneratorActions from '../../utils/forest-schema/generator-actions';
-import IdUtils from '../../utils/id';
-import QueryStringParser from '../../utils/query-string';
-import CollectionRoute from '../collection-route';
+} from '../../../services/authorization/types';
+import { AgentOptionsWithDefaults, HttpCode } from '../../../types';
+import BodyParser from '../../../utils/body-parser';
+import ContextFilterFactory from '../../../utils/context-filter-factory';
+import ForestValueConverter from '../../../utils/forest-schema/action-values';
+import SchemaGeneratorActions from '../../../utils/forest-schema/generator-actions';
+import IdUtils from '../../../utils/id';
+import QueryStringParser from '../../../utils/query-string';
+import CollectionRoute from '../../collection-route';
+import ActionAuthorizationService from './action-authorization';
 
 export default class ActionRoute extends CollectionRoute {
   private readonly actionName: string;
+
+  private actionAuthorizationService: ActionAuthorizationService;
 
   constructor(
     services: ForestAdminHttpDriverServices,
@@ -34,6 +37,8 @@ export default class ActionRoute extends CollectionRoute {
   ) {
     super(services, options, dataSource, collectionName);
     this.actionName = actionName;
+
+    this.actionAuthorizationService = new ActionAuthorizationService(options.forestAdminClient);
   }
 
   setupRoutes(router: Router): void {
@@ -51,13 +56,14 @@ export default class ActionRoute extends CollectionRoute {
 
   private async handleExecute(context: Context): Promise<void> {
     const { dataSource } = this.collection;
+    const { id: userId } = context.state.user;
     const caller = QueryStringParser.parseCaller(context);
     const filterForCaller = await this.getRecordSelection(context);
     const filterForAllCaller = await this.getRecordSelection(context, false);
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
 
     const canPerformCustomActionParams = {
-      context,
+      userId,
       customActionName: this.actionName,
       collection: this.collection,
       requestConditionTreeForCaller: filterForCaller.conditionTree,
@@ -66,12 +72,14 @@ export default class ActionRoute extends CollectionRoute {
     };
 
     if (requestBody?.data?.attributes?.requester_id) {
-      await this.services.authorization.assertCanApproveCustomAction({
+      await this.actionAuthorizationService.assertCanApproveCustomAction({
         ...canPerformCustomActionParams,
         requesterId: requestBody.data.attributes.requester_id,
       });
     } else {
-      await this.services.authorization.assertCanTriggerCustomAction(canPerformCustomActionParams);
+      await this.actionAuthorizationService.assertCanTriggerCustomAction(
+        canPerformCustomActionParams,
+      );
     }
 
     const rawData = context.request.body.data.attributes.values;
@@ -115,8 +123,10 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async handleHook(context: Context): Promise<void> {
-    await this.services.authorization.assertCanRequestCustomActionParameters(
-      context,
+    const { id: userId } = context.state.user;
+
+    await this.actionAuthorizationService.assertCanRequestCustomActionParameters(
+      userId,
       this.actionName,
       this.collection.name,
     );
@@ -149,7 +159,7 @@ export default class ActionRoute extends CollectionRoute {
 
     if (requestBody?.data?.attributes?.signed_approval_request) {
       const signedParameters =
-        this.services.authorization.verifySignedActionParameters<SmartActionRequestBody>(
+        this.options.forestAdminClient.verifySignedActionParameters<SmartActionRequestBody>(
           requestBody.data.attributes.signed_approval_request,
         );
 

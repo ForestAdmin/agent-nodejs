@@ -10,7 +10,7 @@ import {
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import hashObject from 'object-hash';
 
-import ConditionTreeParser from '../../utils/condition-tree-parser';
+import ConditionTreeParser from '../../../utils/condition-tree-parser';
 import ApprovalNotAllowedError from './errors/approvalNotAllowedError';
 import CustomActionRequiresApprovalError from './errors/customActionRequiresApprovalError';
 import CustomActionTriggerForbiddenError from './errors/customActionTriggerForbiddenError';

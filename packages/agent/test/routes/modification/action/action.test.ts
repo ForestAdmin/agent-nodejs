@@ -7,8 +7,8 @@ import {
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import { Readable } from 'stream';
 
-import ActionRoute from '../../../src/routes/modification/action';
-import * as factories from '../../__factories__';
+import ActionRoute from '../../../../src/routes/modification/action/action';
+import * as factories from '../../../__factories__';
 
 // This part of the context is the same in all tests.
 const baseContext = {
@@ -30,11 +30,21 @@ describe('ActionRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
   const services = factories.forestAdminHttpDriverServices.build();
+
   let dataSource: DataSource;
   let route: ActionRoute;
 
   beforeEach(() => {
     jest.resetAllMocks();
+    (
+      options.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+    ).mockResolvedValue(true);
+    (
+      options.forestAdminClient.permissionService.canApproveCustomAction as jest.Mock
+    ).mockResolvedValue(true);
+    (
+      options.forestAdminClient.permissionService.canRequestCustomActionParameters as jest.Mock
+    ).mockResolvedValue(true);
   });
 
   test('setupRoutes should register three routes', () => {
@@ -94,7 +104,7 @@ describe('ActionRoute', () => {
           },
         });
 
-        const verifySignedActionParameters = services.authorization
+        const verifySignedActionParameters = options.forestAdminClient
           .verifySignedActionParameters as jest.Mock;
         const nextMock = jest.fn();
 
@@ -124,7 +134,7 @@ describe('ActionRoute', () => {
           },
         });
 
-        const verifySignedActionParameters = services.authorization
+        const verifySignedActionParameters = options.forestAdminClient
           .verifySignedActionParameters as jest.Mock;
 
         const signedParams = {
@@ -184,32 +194,16 @@ describe('ActionRoute', () => {
           },
         });
 
-        const assertCanApproveCustomAction = services.authorization
-          .assertCanApproveCustomAction as jest.Mock;
+        const assertCanApproveCustomAction = jest.spyOn(
+          // @ts-expect-error: test private attributes
+          route.actionAuthorizationService,
+          'assertCanApproveCustomAction',
+        );
 
         // @ts-expect-error: test private method
         await route.handleExecute.call(route, context);
 
-        expect(assertCanApproveCustomAction).toHaveBeenCalledWith({
-          context,
-          customActionName: 'MySingleAction',
-          collection: dataSource.getCollection('books'),
-          requesterId: 42,
-          caller: {
-            email: 'john.doe@domain.com',
-            timezone: 'Europe/Paris',
-          },
-          requestConditionTreeForAllCaller: {
-            field: 'id',
-            operator: 'Equal',
-            value: '123e4567-e89b-12d3-a456-426614174000',
-          },
-          requestConditionTreeForCaller: {
-            field: 'id',
-            operator: 'Equal',
-            value: '123e4567-e89b-12d3-a456-426614174000',
-          },
-        });
+        expect(assertCanApproveCustomAction).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -227,8 +221,11 @@ describe('ActionRoute', () => {
           requestBody: originalBody,
         });
 
-        const assertCanTriggerCustomAction = services.authorization
-          .assertCanTriggerCustomAction as jest.Mock;
+        const assertCanTriggerCustomAction = jest.spyOn(
+          // @ts-expect-error: test private attributes
+          route.actionAuthorizationService,
+          'assertCanTriggerCustomAction',
+        );
 
         // @ts-expect-error: test private method
         await route.handleExecute.call(route, context);
@@ -238,25 +235,7 @@ describe('ActionRoute', () => {
             ...baseContext.requestBody.data.attributes,
           },
         });
-        expect(assertCanTriggerCustomAction).toHaveBeenCalledWith({
-          context,
-          customActionName: 'MySingleAction',
-          collection: dataSource.getCollection('books'),
-          caller: {
-            email: 'john.doe@domain.com',
-            timezone: 'Europe/Paris',
-          },
-          requestConditionTreeForAllCaller: {
-            field: 'id',
-            operator: 'Equal',
-            value: '123e4567-e89b-12d3-a456-426614174000',
-          },
-          requestConditionTreeForCaller: {
-            field: 'id',
-            operator: 'Equal',
-            value: '123e4567-e89b-12d3-a456-426614174000',
-          },
-        });
+        expect(assertCanTriggerCustomAction).toHaveBeenCalledTimes(1);
         expect(context.request.body).toStrictEqual(originalBody);
       });
     });
