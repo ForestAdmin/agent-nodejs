@@ -5,10 +5,6 @@ import IpWhitelist from '../../../src/routes/security/ip-whitelist';
 import { HttpCode } from '../../../src/types';
 import * as factories from '../../__factories__';
 
-jest.mock('../../../src/utils/forest-http-api', () => ({
-  getIpWhitelistConfiguration: jest.fn(),
-}));
-
 describe('IpWhitelist', () => {
   describe('setupRoutes', () => {
     test('should attach the checkIp method to the router', () => {
