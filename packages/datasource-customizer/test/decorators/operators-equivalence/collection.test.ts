@@ -7,9 +7,9 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import OperatorsDecorator from '../../../src/decorators/operators-replace/collection';
+import OperatorsDecorator from '../../../src/decorators/operators-equivalence/collection';
 
-describe('ConditionTreeOperators', () => {
+describe('OperatorsEquivalenceCollectionDecorator', () => {
   describe('with a date field which support only "<", "==" and ">"', () => {
     let collectionList: jest.Mock;
     let collection: Collection;

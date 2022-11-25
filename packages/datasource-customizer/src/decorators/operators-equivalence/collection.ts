@@ -12,9 +12,12 @@ import {
 import CollectionDecorator from '../collection-decorator';
 
 /**
- * Decorator which emulates filter operators from others.
+ * Replace unsupported operators in conditions trees by an equivalent subtree which is supported.
+ *
+ * For example, the "IContains" operator is not supported by most driver, so it is replaced by a
+ * "ILike" operator.
  */
-export default class OperatorsDecorator extends CollectionDecorator {
+export default class OperatorsEquivalenceCollectionDecorator extends CollectionDecorator {
   protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
     const fields: Record<string, FieldSchema> = {};
 
