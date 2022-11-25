@@ -56,19 +56,18 @@ export default class ActionRoute extends CollectionRoute {
 
   private async handleExecute(context: Context): Promise<void> {
     const { dataSource } = this.collection;
-    const { id: userId } = context.state.user;
+
     const caller = QueryStringParser.parseCaller(context);
     const filterForCaller = await this.getRecordSelection(context);
     const filterForAllCaller = await this.getRecordSelection(context, false);
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
 
     const canPerformCustomActionParams = {
-      userId,
+      caller,
       customActionName: this.actionName,
       collection: this.collection,
-      requestConditionTreeForCaller: filterForCaller.conditionTree,
-      requestConditionTreeForAllCaller: filterForAllCaller.conditionTree,
-      caller,
+      filterForCaller,
+      filterForAllCaller,
     };
 
     if (requestBody?.data?.attributes?.requester_id) {
