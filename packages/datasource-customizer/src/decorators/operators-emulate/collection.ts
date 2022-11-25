@@ -19,8 +19,8 @@ import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 import { OperatorDefinition } from './types';
 
-export default class OpEmulateCollectionDecorator extends CollectionDecorator {
-  override readonly dataSource: DataSourceDecorator<OpEmulateCollectionDecorator>;
+export default class OperatorsEmulateCollectionDecorator extends CollectionDecorator {
+  override readonly dataSource: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   private readonly fields: Map<string, Map<Operator, OperatorDefinition>> = new Map();
 
   emulateFieldOperator(name: string, operator: Operator): void {

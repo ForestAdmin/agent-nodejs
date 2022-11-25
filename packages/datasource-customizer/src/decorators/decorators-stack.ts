@@ -6,7 +6,7 @@ import ComputedCollectionDecorator from './computed/collection';
 import DataSourceDecorator from './datasource-decorator';
 import EmptyCollectionDecorator from './empty/collection';
 import HookCollectionDecorator from './hook/collection';
-import OpEmulateCollectionDecorator from './operators-emulate/collection';
+import OperatorsEmulateCollectionDecorator from './operators-emulate/collection';
 import OperatorsEquivalenceCollectionDecorator from './operators-equivalence/collection';
 import PublicationFieldCollectionDecorator from './publication-field/collection';
 import RelationCollectionDecorator from './relation/collection';
@@ -22,10 +22,10 @@ export default class DecoratorsStack {
   action: DataSourceDecorator<ActionCollectionDecorator>;
   chart: ChartDataSourceDecorator;
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
-  earlyOpEmulate: DataSourceDecorator<OpEmulateCollectionDecorator>;
+  earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   relation: DataSourceDecorator<RelationCollectionDecorator>;
   lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
-  lateOpEmulate: DataSourceDecorator<OpEmulateCollectionDecorator>;
+  lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   publication: DataSourceDecorator<PublicationFieldCollectionDecorator>;
   renameField: DataSourceDecorator<RenameFieldCollectionDecorator>;
   schema: DataSourceDecorator<SchemaCollectionDecorator>;
@@ -51,11 +51,11 @@ export default class DecoratorsStack {
     // on computed fields, and some computed fields depend on relation...)
     // Note that replacement goes before emulation, as replacements may use emulated operators.
     last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
-    last = this.earlyOpEmulate = new DataSourceDecorator(last, OpEmulateCollectionDecorator);
+    last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = new DataSourceDecorator(last, OperatorsEquivalenceCollectionDecorator);
     last = this.relation = new DataSourceDecorator(last, RelationCollectionDecorator);
     last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
-    last = this.lateOpEmulate = new DataSourceDecorator(last, OpEmulateCollectionDecorator);
+    last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = new DataSourceDecorator(last, OperatorsEquivalenceCollectionDecorator);
 
     // Step 2: Those need access to all fields. They can be loaded in any order.
