@@ -68,6 +68,27 @@ describe('generateActionsFromPermissions', () => {
             ]),
             actionsAllowedByUser: new Map(),
             actionsConditionByRoleId: new Map(),
+            actionsRawRights: {
+              'collection:collection-id:add': {
+                description: true,
+              },
+              'collection:collection-id:browse': {
+                description: true,
+              },
+              'collection:collection-id:delete': {
+                description: true,
+              },
+              'collection:collection-id:edit': {
+                description: true,
+              },
+              'collection:collection-id:export': {
+                description: true,
+              },
+              'collection:collection-id:read': {
+                description: true,
+              },
+            },
+            allRoleIds: [],
             users: [],
           });
 
@@ -107,6 +128,27 @@ describe('generateActionsFromPermissions', () => {
             actionsGloballyAllowed: new Set(),
             actionsAllowedByUser: new Map(),
             actionsConditionByRoleId: new Map(),
+            actionsRawRights: {
+              'collection:collection-id:add': {
+                description: false,
+              },
+              'collection:collection-id:browse': {
+                description: false,
+              },
+              'collection:collection-id:delete': {
+                description: false,
+              },
+              'collection:collection-id:edit': {
+                description: false,
+              },
+              'collection:collection-id:export': {
+                description: false,
+              },
+              'collection:collection-id:read': {
+                description: false,
+              },
+            },
+            allRoleIds: [],
             users: [],
           });
         });
@@ -151,6 +193,39 @@ describe('generateActionsFromPermissions', () => {
               ['collection:collection-id:delete', new Set(['10', '20'])],
               ['collection:collection-id:export', new Set(['40'])],
             ]),
+            actionsRawRights: {
+              'collection:collection-id:add': {
+                description: {
+                  roles: [1],
+                },
+              },
+              'collection:collection-id:browse': {
+                description: {
+                  roles: [2],
+                },
+              },
+              'collection:collection-id:delete': {
+                description: {
+                  roles: [1, 2],
+                },
+              },
+              'collection:collection-id:edit': {
+                description: {
+                  roles: [3],
+                },
+              },
+              'collection:collection-id:export': {
+                description: {
+                  roles: [4],
+                },
+              },
+              'collection:collection-id:read': {
+                description: {
+                  roles: [3, 4],
+                },
+              },
+            },
+            allRoleIds: [1, 2, 3, 4],
             actionsConditionByRoleId: new Map(),
             users,
           });
@@ -193,14 +268,47 @@ describe('generateActionsFromPermissions', () => {
             actionsGloballyAllowed: new Set(),
             actionsAllowedByUser: new Map([
               ['collection:collection-id:browse', new Set(['10'])],
-              ['collection:collection-id:add', new Set(['10'])],
               ['collection:collection-id:read', new Set(['10'])],
               ['collection:collection-id:edit', new Set(['10'])],
+              ['collection:collection-id:add', new Set(['10'])],
               ['collection:collection-id:delete', new Set(['10'])],
               ['collection:collection-id:export', new Set(['10'])],
             ]),
+            actionsRawRights: {
+              'collection:collection-id:add': {
+                description: {
+                  roles: [1, 2],
+                },
+              },
+              'collection:collection-id:browse': {
+                description: {
+                  roles: [1, 2],
+                },
+              },
+              'collection:collection-id:delete': {
+                description: {
+                  roles: [1, 2],
+                },
+              },
+              'collection:collection-id:edit': {
+                description: {
+                  roles: [1, 2],
+                },
+              },
+              'collection:collection-id:export': {
+                description: {
+                  roles: [1, 2],
+                },
+              },
+              'collection:collection-id:read': {
+                description: {
+                  roles: [1, 2],
+                },
+              },
+            },
             actionsConditionByRoleId: new Map(),
             users,
+            allRoleIds: [1],
           });
         });
       });
@@ -252,6 +360,42 @@ describe('generateActionsFromPermissions', () => {
               ['custom:collection-id:custom-action-id:trigger', new Map()],
               ['custom:collection-id:custom-action-id:require-approval', new Map()],
             ]),
+            actionsRawRights: {
+              'collection:collection-id:browse': {
+                description: false,
+              },
+              'collection:collection-id:read': {
+                description: false,
+              },
+              'collection:collection-id:edit': {
+                description: false,
+              },
+              'collection:collection-id:add': {
+                description: false,
+              },
+              'collection:collection-id:delete': {
+                description: false,
+              },
+              'collection:collection-id:export': {
+                description: false,
+              },
+              'custom:collection-id:custom-action-id:approve': {
+                description: true,
+                conditions: [],
+              },
+              'custom:collection-id:custom-action-id:self-approve': {
+                description: true,
+              },
+              'custom:collection-id:custom-action-id:trigger': {
+                description: true,
+                conditions: [],
+              },
+              'custom:collection-id:custom-action-id:require-approval': {
+                description: true,
+                conditions: [],
+              },
+            },
+            allRoleIds: [],
             users: [],
           });
 
@@ -305,6 +449,42 @@ describe('generateActionsFromPermissions', () => {
               ['custom:collection-id:custom-action-id:trigger', new Map()],
               ['custom:collection-id:custom-action-id:require-approval', new Map()],
             ]),
+            actionsRawRights: {
+              'collection:collection-id:browse': {
+                description: false,
+              },
+              'collection:collection-id:read': {
+                description: false,
+              },
+              'collection:collection-id:edit': {
+                description: false,
+              },
+              'collection:collection-id:add': {
+                description: false,
+              },
+              'collection:collection-id:delete': {
+                description: false,
+              },
+              'collection:collection-id:export': {
+                description: false,
+              },
+              'custom:collection-id:custom-action-id:approve': {
+                description: false,
+                conditions: [],
+              },
+              'custom:collection-id:custom-action-id:self-approve': {
+                description: false,
+              },
+              'custom:collection-id:custom-action-id:trigger': {
+                description: false,
+                conditions: [],
+              },
+              'custom:collection-id:custom-action-id:require-approval': {
+                description: false,
+                conditions: [],
+              },
+            },
+            allRoleIds: [],
             users: [],
           });
         });
@@ -365,6 +545,50 @@ describe('generateActionsFromPermissions', () => {
               ['custom:collection-id:custom-action-id:trigger', new Map()],
               ['custom:collection-id:custom-action-id:require-approval', new Map()],
             ]),
+            actionsRawRights: {
+              'collection:collection-id:browse': {
+                description: false,
+              },
+              'collection:collection-id:read': {
+                description: false,
+              },
+              'collection:collection-id:edit': {
+                description: false,
+              },
+              'collection:collection-id:add': {
+                description: false,
+              },
+              'collection:collection-id:delete': {
+                description: false,
+              },
+              'collection:collection-id:export': {
+                description: false,
+              },
+              'custom:collection-id:custom-action-id:approve': {
+                description: {
+                  roles: [3],
+                },
+                conditions: [],
+              },
+              'custom:collection-id:custom-action-id:self-approve': {
+                description: {
+                  roles: [2],
+                },
+              },
+              'custom:collection-id:custom-action-id:trigger': {
+                description: {
+                  roles: [1],
+                },
+                conditions: [],
+              },
+              'custom:collection-id:custom-action-id:require-approval': {
+                description: {
+                  roles: [1, 2],
+                },
+                conditions: [],
+              },
+            },
+            allRoleIds: [1, 2, 3],
             users,
           });
 
@@ -388,7 +612,6 @@ describe('generateActionsFromPermissions', () => {
             { id: 30, roleId: 2 },
             { id: 40, roleId: 3 },
           ];
-
           const result = generateActionsFromPermissions(
             {
               collections: {
@@ -412,7 +635,7 @@ describe('generateActionsFromPermissions', () => {
                           roleId: 1,
                           filter: {
                             field: 'filed',
-                            operator: 'Equal',
+                            operator: 'equal',
                             value: 'value',
                             source: 'data',
                           },
@@ -423,7 +646,7 @@ describe('generateActionsFromPermissions', () => {
                           roleId: 2,
                           filter: {
                             field: 'filed2',
-                            operator: 'NotEqual',
+                            operator: 'not_equal',
                             value: 'value',
                             source: 'data',
                           },
@@ -434,7 +657,7 @@ describe('generateActionsFromPermissions', () => {
                           roleId: 3,
                           filter: {
                             field: 'filed3',
-                            operator: 'GreaterThan',
+                            operator: 'greater_than',
                             value: 'value',
                             source: 'data',
                           },
@@ -468,7 +691,7 @@ describe('generateActionsFromPermissions', () => {
                     1,
                     {
                       field: 'filed',
-                      operator: 'Equal',
+                      operator: 'equal',
                       value: 'value',
                       source: 'data',
                     },
@@ -482,7 +705,7 @@ describe('generateActionsFromPermissions', () => {
                     2,
                     {
                       field: 'filed2',
-                      operator: 'NotEqual',
+                      operator: 'not_equal',
                       value: 'value',
                       source: 'data',
                     },
@@ -496,7 +719,7 @@ describe('generateActionsFromPermissions', () => {
                     3,
                     {
                       field: 'filed3',
-                      operator: 'GreaterThan',
+                      operator: 'greater_than',
                       value: 'value',
                       source: 'data',
                     },
@@ -505,6 +728,80 @@ describe('generateActionsFromPermissions', () => {
               ],
             ]),
             users,
+            allRoleIds: [1, 2, 3],
+            actionsRawRights: {
+              'collection:collection-id:browse': {
+                description: false,
+              },
+              'collection:collection-id:read': {
+                description: false,
+              },
+              'collection:collection-id:edit': {
+                description: false,
+              },
+              'collection:collection-id:add': {
+                description: false,
+              },
+              'collection:collection-id:delete': {
+                description: false,
+              },
+              'collection:collection-id:export': {
+                description: false,
+              },
+              'custom:collection-id:custom-action-id:approve': {
+                description: {
+                  roles: [3],
+                },
+                conditions: [
+                  {
+                    roleId: 3,
+                    filter: {
+                      field: 'filed3',
+                      operator: 'greater_than',
+                      value: 'value',
+                      source: 'data',
+                    },
+                  },
+                ],
+              },
+              'custom:collection-id:custom-action-id:self-approve': {
+                description: {
+                  roles: [2],
+                },
+              },
+              'custom:collection-id:custom-action-id:trigger': {
+                description: {
+                  roles: [1],
+                },
+                conditions: [
+                  {
+                    roleId: 1,
+                    filter: {
+                      field: 'filed',
+                      operator: 'equal',
+                      value: 'value',
+                      source: 'data',
+                    },
+                  },
+                ],
+              },
+              'custom:collection-id:custom-action-id:require-approval': {
+                description: {
+                  roles: [1, 2],
+                },
+                conditions: [
+                  {
+                    roleId: 2,
+                    filter: {
+                      field: 'filed2',
+                      operator: 'not_equal',
+                      value: 'value',
+                      source: 'data',
+                    },
+                  },
+                ],
+              },
+            },
           });
 
           const generateCustomActionIdentifierMock = generateCustomActionIdentifier as jest.Mock;
