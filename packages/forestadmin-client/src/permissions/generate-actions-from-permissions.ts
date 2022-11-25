@@ -13,17 +13,19 @@ import {
   RightConditionByRolesV4,
   RightDescriptionV4,
   RightDescriptionWithRolesV4,
-  UserPermissionV4,
 } from './types';
 
 export type ActionPermissions = {
   everythingAllowed: boolean;
   actionsGloballyAllowed: Set<string>;
-  actionsAllowedByUser: Map<string, Set<string>>;
-  actionsConditionByRoleId: Map<string, Map<number, RawTreeWithSources>>;
-  actionsRawRights: IntermediateRightsList;
-  allRoleIds: number[];
-  users: UserPermissionV4[];
+  actionsByRole: Map<string, ActionPermission>;
+};
+
+export type ActionPermission = {
+  allowedRoles: Set<number>;
+  // specificToRole: Map<number, {
+  //   actionCondition: RawTreeWithSource
+  // }>;
 };
 
 type IntermediateRightsList = {
@@ -118,75 +120,28 @@ function generateActionsGloballyAllowed(permissions: IntermediateRightsList): Se
   );
 }
 
-function getUsersForRoles(roles: number[], userIdsByRole: Map<number, number[]>): Set<string> {
-  return new Set(
-    roles.reduce((acc, roleId) => {
-      const userIds = (userIdsByRole.get(roleId) || []).map(userId => `${userId}`);
-
-      return [...acc, ...userIds];
-    }, []),
-  );
-}
-
-function generateActionsAllowedByUser(
-  permissions: IntermediateRightsList,
-  users: UserPermissionV4[],
-): Map<string, Set<string>> {
-  const userIdsByRole = users.reduce((acc, { id, roleId }) => {
-    acc.set(roleId, [...(acc.get(roleId) || []), id]);
-
-    return acc;
-  }, new Map<number, number[]>());
-
+function generateActionsByRole(permissions: IntermediateRightsList): Map<string, ActionPermission> {
   return new Map(
     Object.entries(permissions)
       .filter(([, permission]) => typeof permission.description !== 'boolean')
       .map(([name, permission]) => [
         name,
-        getUsersForRoles(
-          (permission.description as RightDescriptionWithRolesV4).roles,
-          userIdsByRole,
-        ),
+        {
+          allowedRoles: new Set((permission.description as RightDescriptionWithRolesV4).roles),
+          // TODO permission conditions
+        },
       ]),
-  );
-}
-
-function generateActionsConditionByRoleId(
-  permissions: IntermediateRightsList,
-): Map<string, Map<number, RawTreeWithSources>> {
-  return new Map(
-    Object.entries(permissions)
-      .filter(([, permission]) => permission.conditions)
-      .map(([name, permission]) => [
-        name,
-        new Map(permission.conditions?.map(({ roleId, filter }) => [roleId, filter])),
-      ]),
-  );
-}
-
-function generateAllRoleIds(users: UserPermissionV4[]) {
-  return Array.from(
-    users.reduce((acc, { roleId }) => {
-      acc.add(roleId);
-
-      return acc;
-    }, new Set<number>()),
   );
 }
 
 export default function generateActionsFromPermissions(
   environmentPermissions: EnvironmentPermissionsV4,
-  users: UserPermissionV4[],
 ): ActionPermissions {
   if (environmentPermissions === true) {
     return {
       everythingAllowed: true,
       actionsGloballyAllowed: new Set(),
-      actionsAllowedByUser: new Map(),
-      actionsConditionByRoleId: new Map(),
-      actionsRawRights: {},
-      allRoleIds: [],
-      users: [],
+      actionsByRole: new Map(),
     };
   }
 
@@ -200,10 +155,6 @@ export default function generateActionsFromPermissions(
   return {
     everythingAllowed: false,
     actionsGloballyAllowed: generateActionsGloballyAllowed(allPermissions),
-    actionsAllowedByUser: generateActionsAllowedByUser(allPermissions, users),
-    actionsConditionByRoleId: generateActionsConditionByRoleId(allPermissions),
-    actionsRawRights: allPermissions,
-    allRoleIds: generateAllRoleIds(users),
-    users,
+    actionsByRole: generateActionsByRole(allPermissions),
   };
 }

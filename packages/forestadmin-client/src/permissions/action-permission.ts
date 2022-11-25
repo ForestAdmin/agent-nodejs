@@ -10,40 +10,40 @@ export default class ActionPermissionService {
 
   constructor(private readonly options: ForestAdminClientOptionsWithDefaults) {}
 
-  public canOneOf(userId: string, actionNames: string[]): Promise<boolean> {
+  public canOneOf(roleId: number, actionNames: string[]): Promise<boolean> {
     return this.hasPermissionOrRefetch({
-      userId,
+      roleId,
       actionNames,
       allowRefetch: true,
     });
   }
 
-  public can(userId: string, actionName: string): Promise<boolean> {
+  public can(roleId: number, actionName: string): Promise<boolean> {
     return this.hasPermissionOrRefetch({
-      userId,
+      roleId,
       actionNames: [actionName],
       allowRefetch: true,
     });
   }
 
   private async hasPermissionOrRefetch({
-    userId,
+    roleId,
     actionNames,
     allowRefetch,
   }: {
-    userId: string;
+    roleId: number;
     actionNames: string[];
     allowRefetch: boolean;
   }): Promise<boolean> {
     const permissions = await this.getPermissions();
-    const isAllowed = this.isAllowedOneOf({ permissions, actionNames, userId });
+    const isAllowed = this.isAllowedOneOf({ permissions, actionNames, roleId });
 
     if (!isAllowed && allowRefetch) {
       this.permissionsPromise = undefined;
       this.permissionExpirationTimestamp = undefined;
 
       return this.hasPermissionOrRefetch({
-        userId,
+        roleId,
         actionNames,
         allowRefetch: false,
       });
@@ -51,7 +51,7 @@ export default class ActionPermissionService {
 
     this.options.logger(
       'Debug',
-      `User ${userId} is ${isAllowed ? '' : 'not '}allowed to perform ${
+      `User ${roleId} is ${isAllowed ? '' : 'not '}allowed to perform ${
         actionNames.length > 1 ? ' one of ' : ''
       }${actionNames.join(', ')}`,
     );
@@ -62,28 +62,28 @@ export default class ActionPermissionService {
   private isAllowedOneOf({
     permissions,
     actionNames,
-    userId,
+    roleId,
   }: {
     permissions: ActionPermissions;
     actionNames: string[];
-    userId: string;
+    roleId: number;
   }): boolean {
-    return actionNames.some(actionName => this.isAllowed({ permissions, actionName, userId }));
+    return actionNames.some(actionName => this.isAllowed({ permissions, actionName, roleId }));
   }
 
   private isAllowed({
     permissions,
     actionName,
-    userId,
+    roleId,
   }: {
     permissions: ActionPermissions;
     actionName: string;
-    userId: string;
+    roleId: number;
   }): boolean {
     return Boolean(
       permissions.everythingAllowed ||
         permissions.actionsGloballyAllowed.has(actionName) ||
-        permissions.actionsAllowedByUser.get(actionName)?.has(userId),
+        permissions.actionsByRole.get(actionName)?.allowedRoles.has(roleId),
     );
   }
 
@@ -106,12 +106,9 @@ export default class ActionPermissionService {
   private async fetchEnvironmentPermissions(): Promise<ActionPermissions> {
     this.options.logger('Debug', 'Fetching environment permissions');
 
-    const [rawPermissions, users] = await Promise.all([
-      ForestHttpApi.getEnvironmentPermissions(this.options),
-      ForestHttpApi.getUsers(this.options),
-    ]);
+    const rawPermissions = await ForestHttpApi.getEnvironmentPermissions(this.options);
 
-    return generateActionsFromPermissions(rawPermissions, users);
+    return generateActionsFromPermissions(rawPermissions);
   }
 
   public async getCustomActionConditionForUser(userId: string, actionName: string) {
