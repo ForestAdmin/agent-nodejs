@@ -41,7 +41,7 @@ export default class ReparentGenerator {
               inDoc ? { content: `$${prefix}` } : `$${prefix}`,
               {
                 _id: { $concat: [{ $toString: '$_id' }, `.${prefix}.`, { $toString: '$index' }] },
-                _pid: '$_id',
+                parentId: '$_id',
                 parent: '$$ROOT',
               },
             ],
@@ -60,7 +60,7 @@ export default class ReparentGenerator {
               inDoc ? { content: `$${prefix}` } : `$${prefix}`,
               {
                 _id: { $concat: [{ $toString: '$_id' }, `.${prefix}`] },
-                _pid: '$_id',
+                parentId: '$_id',
                 parent: '$$ROOT',
               },
             ],

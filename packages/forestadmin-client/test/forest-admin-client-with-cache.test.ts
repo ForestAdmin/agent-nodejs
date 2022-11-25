@@ -23,11 +23,34 @@ describe('ForestAdminClientWithCache', () => {
         factories.contextVariablesInstantiator.build(),
         factories.chartHandler.build(),
         whiteListService,
+        factories.schema.build(),
       );
 
       const config = await forestAdminClient.getIpWhitelistConfiguration();
       expect(config).toStrictEqual({ isFeatureEnabled: true, ipRules: [] });
       expect(whiteListService.getConfiguration).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('postSchema', () => {
+    it('should delegate to the given service', async () => {
+      const schemaService = factories.schema.build({
+        postSchema: jest.fn().mockResolvedValueOnce(true),
+      });
+
+      const forestAdminClient = new ForestAdminClient(
+        factories.forestAdminClientOptions.build(),
+        factories.permission.build(),
+        factories.renderingPermission.build(),
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
+        factories.ipWhiteList.build(),
+        schemaService,
+      );
+
+      const result = await forestAdminClient.postSchema([], 'forest-nodejs-agent', '1.0.0');
+      expect(result).toBe(true);
+      expect(schemaService.postSchema).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -42,6 +65,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.contextVariablesInstantiator.build(),
         factories.chartHandler.build(),
         factories.ipWhiteList.build(),
+        factories.schema.build(),
       );
 
       verifyAndExtractApprovalMock.mockReturnValue(signedParameters);
@@ -63,6 +87,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.contextVariablesInstantiator.build(),
         factories.chartHandler.build(),
         factories.ipWhiteList.build(),
+        factories.schema.build(),
       );
 
       await forestAdminClient.markScopesAsUpdated(42);
@@ -81,6 +106,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.contextVariablesInstantiator.build(),
         factories.chartHandler.build(),
         factories.ipWhiteList.build(),
+        factories.schema.build(),
       );
 
       (renderingPermissionService.getScope as jest.Mock).mockResolvedValue('scope');

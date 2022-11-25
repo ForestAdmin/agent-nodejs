@@ -40,7 +40,7 @@ export default class FieldsGenerator {
         : null;
 
       ourSchema._id = this.buildVirtualPrimaryKey();
-      ourSchema._pid = {
+      ourSchema.parentId = {
         ...this.buildColumnSchema((childSchema.fields.parent as SchemaBranch)._id),
         isPrimaryKey: false,
         validation: [{ operator: 'Present' }],
@@ -48,7 +48,7 @@ export default class FieldsGenerator {
 
       ourSchema.parent = this.buildManyToOne(
         escape(parentPrefix ? `${model.modelName}.${parentPrefix}` : model.modelName),
-        '_pid',
+        'parentId',
       );
     }
 

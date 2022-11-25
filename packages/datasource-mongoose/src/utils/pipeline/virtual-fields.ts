@@ -4,7 +4,7 @@ import { Model, PipelineStage } from 'mongoose';
 import MongooseSchema from '../../mongoose/schema';
 
 /**
- * When using the `asModel` options, users can request/filter on the virtual _id and _pid fields
+ * When using the `asModel` options, users can request/filter on the virtual _id and parentId fields
  * of children (using the generated OneToOne relation).
  *
  * As those fields are not written to mongo, they are injected here so that they can be used like
@@ -55,10 +55,10 @@ export default class VirtualFieldsGenerator {
       result[`${path}._id`] = { $concat: [{ $toString: '$_id' }, `.${path}`] };
     }
 
-    if (projection.columns.includes('_pid')) {
+    if (projection.columns.includes('parentId')) {
       const dotIndex = path.lastIndexOf('.');
       const parentPath = dotIndex !== -1 ? path.substring(0, dotIndex) : null;
-      result[`${path}._pid`] = parentPath
+      result[`${path}.parentId`] = parentPath
         ? { $concat: [{ $toString: '$_id' }, `.${parentPath}`] }
         : '$_id';
     }

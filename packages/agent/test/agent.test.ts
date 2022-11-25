@@ -14,14 +14,8 @@ jest.mock('../src/routes', () => ({
   default: (...args) => mockMakeRoutes(...args),
 }));
 
-// Mock Forest admin Server
-const mockHasSchema = jest.fn();
-const mockUploadSchema = jest.fn();
-
-jest.mock('../src/utils/forest-http-api', () => ({
-  hasSchema: (...args) => mockHasSchema(...args),
-  uploadSchema: (...args) => mockUploadSchema(...args),
-}));
+// Mock options
+const mockPostSchema = jest.fn();
 
 // Mock customizer
 const mockAddDataSource = jest.fn();
@@ -46,7 +40,6 @@ beforeEach(() => {
   jest.resetAllMocks();
 
   mockMakeRoutes.mockReturnValue([{ setupRoutes: mockSetupRoute, bootstrap: mockBootstrap }]);
-  mockHasSchema.mockReturnValue(false);
   mockGetDataSource.mockResolvedValue(factories.dataSource.build());
 });
 
@@ -55,6 +48,7 @@ describe('Agent', () => {
     const options = factories.forestAdminHttpDriverOptions.build({
       isProduction: false,
       typingsPath: '/tmp/test_typings.ts',
+      forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
     });
 
     test('addDataSource should proxy the call', async () => {
@@ -89,26 +83,21 @@ describe('Agent', () => {
       expect(mockUse).toHaveBeenCalledTimes(1);
     });
 
-    test('start should upload apimap when unknown', async () => {
+    test('start should upload apimap', async () => {
       const agent = new Agent(options);
       await agent.start();
 
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
       expect(mockBootstrap).toHaveBeenCalledTimes(1);
       expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
-      expect(mockHasSchema).toHaveBeenCalledTimes(1);
-      expect(mockUploadSchema).toHaveBeenCalledTimes(1);
       expect(mockGetDataSource).toHaveBeenCalledTimes(1);
       expect(mockUpdateTypesOnFileSystem).toHaveBeenCalledTimes(1);
-    });
 
-    test('start should not upload apimap when already known', async () => {
-      mockHasSchema.mockReturnValue(true);
-
-      const agent = new Agent(options);
-      await agent.start();
-
-      expect(mockUploadSchema).not.toHaveBeenCalled();
+      expect(mockPostSchema).toHaveBeenCalledWith(
+        [],
+        'forest-nodejs-agent',
+        expect.stringMatching(/\d+\.\d+\.\d+.*/),
+      );
     });
   });
 
@@ -116,6 +105,18 @@ describe('Agent', () => {
     const options = factories.forestAdminHttpDriverOptions.build({
       isProduction: true,
       typingsPath: '/tmp/test_typings.ts',
+      forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
+    });
+
+    test('start should throw if the schema does not exists', async () => {
+      const agent = new Agent({
+        ...options,
+        schemaPath: '/tmp/does_not_exists.json',
+      });
+
+      await expect(() => agent.start()).rejects.toThrow(
+        'Providing a schema is mandatory in production',
+      );
     });
 
     test('start should upload apimap when unknown', async () => {
@@ -125,10 +126,14 @@ describe('Agent', () => {
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
       expect(mockBootstrap).toHaveBeenCalledTimes(1);
       expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
-      expect(mockHasSchema).toHaveBeenCalledTimes(1);
-      expect(mockUploadSchema).toHaveBeenCalledTimes(1);
       expect(mockGetDataSource).toHaveBeenCalledTimes(1);
       expect(mockUpdateTypesOnFileSystem).not.toHaveBeenCalled();
+
+      expect(mockPostSchema).toHaveBeenCalledWith(
+        [],
+        'forest-nodejs-agent',
+        expect.stringMatching(/\d+\.\d+\.\d+.*/),
+      );
     });
   });
 });

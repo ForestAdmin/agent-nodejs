@@ -1,16 +1,16 @@
 import { Collection, SchemaUtils } from '@forestadmin/datasource-toolkit';
-
-import SchemaGeneratorActions from './generator-actions';
-import SchemaGeneratorFields from './generator-fields';
-import SchemaGeneratorSegments from './generator-segments';
 import {
   ForestServerAction,
   ForestServerCollection,
   ForestServerField,
   ForestServerSegment,
-} from './types';
+} from '@forestadmin/forestadmin-client';
 
-export default class SchemaGeneratorCollection {
+import SchemaGeneratorActions from './generator-actions';
+import SchemaGeneratorFields from './generator-fields';
+import SchemaGeneratorSegments from './generator-segments';
+
+export default class SchemaGenerator {
   /** Build forest-server schema for a collection */
   static async buildSchema(collection: Collection): Promise<ForestServerCollection> {
     return {

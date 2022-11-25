@@ -1,3 +1,11 @@
+## @forestadmin/datasource-mongoose [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.1.2...@forestadmin/datasource-mongoose@1.1.3) (2022-11-22)
+
+
+### Bug Fixes
+
+* **datasource mongoose:** replace _pid by parentId more understandable error ([#550](https://github.com/ForestAdmin/agent-nodejs/issues/550)) ([b4c1fe7](https://github.com/ForestAdmin/agent-nodejs/commit/b4c1fe7e347004ffe46de8841698578d3a4efb58))
+* **datasource mongoose:** use updateOne when there are only one record to allow mongoose hook ([#547](https://github.com/ForestAdmin/agent-nodejs/issues/547)) ([837f727](https://github.com/ForestAdmin/agent-nodejs/commit/837f7279451caaffb736e9a0532acffcfd99e93f))
+
 ## @forestadmin/datasource-mongoose [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.1.1...@forestadmin/datasource-mongoose@1.1.2) (2022-11-07)
 
 

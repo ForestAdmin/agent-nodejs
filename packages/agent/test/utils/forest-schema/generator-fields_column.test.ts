@@ -1,7 +1,7 @@
 import { FieldTypes } from '@forestadmin/datasource-toolkit';
+import { ValidationType } from '@forestadmin/forestadmin-client';
 
 import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
-import { ValidationType } from '../../../src/utils/forest-schema/types';
 import * as factories from '../../__factories__';
 
 describe('SchemaGeneratorFields > Column', () => {
@@ -51,7 +51,7 @@ describe('SchemaGeneratorFields > Column', () => {
             isPrimaryKey: false,
             isReadOnly: false,
             isSortable: false,
-            validation: null,
+            validation: undefined,
           }),
           composite: factories.columnSchema.build({
             columnType: { firstname: 'String', lastname: 'String' },

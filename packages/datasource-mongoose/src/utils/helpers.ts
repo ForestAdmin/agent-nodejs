@@ -130,7 +130,7 @@ export function buildSubdocumentPatch(
     cleanPatch[path] = patch.content;
   } else {
     for (const [key, value] of Object.entries(patch)) {
-      if (key !== '_id' && key !== '_pid') {
+      if (key !== '_id' && key !== 'parentId') {
         cleanPatch[`${path}.${key}`] = value;
       }
     }

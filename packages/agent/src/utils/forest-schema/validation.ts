@@ -1,6 +1,5 @@
 import { ColumnSchema, Operator } from '@forestadmin/datasource-toolkit';
-
-import { ForestServerField, ValidationType } from './types';
+import { ForestServerField, ValidationType } from '@forestadmin/forestadmin-client';
 
 type FrontendValidation = ForestServerField['validations'][number];
 type Validation = ColumnSchema['validation'][number];
