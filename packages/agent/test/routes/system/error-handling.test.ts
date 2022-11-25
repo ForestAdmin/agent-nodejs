@@ -21,6 +21,7 @@ class FakePayloadError extends ForbiddenError {
     };
   }
 }
+
 describe('ErrorHandling', () => {
   const router = factories.router.mockAllMethods().build();
   const services = factories.forestAdminHttpDriverServices.build();
@@ -133,25 +134,56 @@ describe('ErrorHandling', () => {
     });
 
     describe('with an error that supports data (payload)', () => {
-      test('it should add data to the body', async () => {
-        const context = createMockContext();
-        const next = jest.fn().mockRejectedValue(new FakePayloadError('message'));
+      describe('whe the error is internal', () => {
+        test('it should add data to the body', async () => {
+          const context = createMockContext();
+          const next = jest.fn().mockRejectedValue(new FakePayloadError('message'));
 
-        await handleError.call(route, context, next);
+          await handleError.call(route, context, next);
 
-        expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
-        expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
-        expect(context.response.body).toStrictEqual({
-          errors: [
-            {
-              detail: 'message',
-              name: 'FakePayloadError',
-              status: 403,
-              data: {
-                property: 'value',
+          expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
+          expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
+          expect(context.response.body).toStrictEqual({
+            errors: [
+              {
+                detail: 'message',
+                name: 'FakePayloadError',
+                status: 403,
+                data: {
+                  property: 'value',
+                },
               },
-            },
-          ],
+            ],
+          });
+        });
+      });
+
+      describe('whe the error is not internal', () => {
+        test('it should not add anything to prevent information leak', async () => {
+          const context = createMockContext();
+
+          const fakeErrorFromDependency = new Error('message');
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          fakeErrorFromDependency.data = {
+            property: 'value',
+          };
+
+          const next = jest.fn().mockRejectedValue(fakeErrorFromDependency);
+
+          await handleError.call(route, context, next);
+
+          expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
+          expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
+          expect(context.response.body).toStrictEqual({
+            errors: [
+              {
+                detail: 'Unexpected error',
+                name: 'Error',
+                status: 500,
+              },
+            ],
+          });
         });
       });
     });
