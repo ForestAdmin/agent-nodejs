@@ -136,6 +136,7 @@ export default class ActionPermissionService {
 
     const rawActionPermission = permissions.actionsRawRights[actionName];
 
+    // I was wrong this cannot happen
     if (typeof rawActionPermission.description === 'boolean') {
       if (rawActionPermission.description === true) {
         // All roles are allowed
@@ -145,6 +146,16 @@ export default class ActionPermissionService {
       return []; // No allowed roles
     }
 
+    // roleByUser .get(userId) => roleId
+
+    // actions.get(actionName + ':approval') => {
+    // rolesAllowed: Set<number>()
+
+    // specificToRoleId only exist is there's a condition for this action for a specific role
+    // specificToRoleId: new Map<roleId, specific>
+    // }
+
+    // This is true
     if (!rawActionPermission.conditions) {
       // Without condition allowed roles are simply the role allowed to approve
       return rawActionPermission.description.roles;
