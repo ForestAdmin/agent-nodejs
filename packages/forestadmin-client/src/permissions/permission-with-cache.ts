@@ -116,8 +116,10 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }) {
-    return this.actionPermissionService.getCustomActionConditionForUser(
-      `${userId}`,
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.getCustomActionCondition(
+      roleId,
       generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
     );
   }
@@ -131,8 +133,10 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }) {
-    return this.actionPermissionService.getCustomActionConditionForUser(
-      `${userId}`,
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.getCustomActionCondition(
+      roleId,
       generateCustomActionIdentifier(
         CustomActionEvent.RequireApproval,
         customActionName,
@@ -150,8 +154,10 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }) {
-    return this.actionPermissionService.getCustomActionConditionForUser(
-      `${userId}`,
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.getCustomActionCondition(
+      roleId,
       generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
     );
   }

@@ -3,7 +3,7 @@ import ForestHttpApi from '../../src/permissions/forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
 } from '../../src/permissions/generate-actions-from-permissions';
-import { RawTreeWithSources, UserPermissionV4 } from '../../src/permissions/types';
+import { RawTreeWithSources } from '../../src/permissions/types';
 
 jest.mock('../../src/permissions/forest-http-api', () => ({
   getEnvironmentPermissions: jest.fn(),
@@ -48,10 +48,6 @@ describe('ActionPermissionService', () => {
         everythingAllowed: true,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(),
-        actionsConditionByRoleId: new Map(),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [],
       });
 
       const can = await service.can(1, 'action');
@@ -69,10 +65,6 @@ describe('ActionPermissionService', () => {
         everythingAllowed: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(['action']),
-        actionsConditionByRoleId: new Map(),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [],
       });
 
       const can = await service.can(1, 'action');
@@ -84,10 +76,6 @@ describe('ActionPermissionService', () => {
         everythingAllowed: false,
         actionsByRole: new Map([['action', { allowedRoles: new Set([10]) }]]),
         actionsGloballyAllowed: new Set(),
-        actionsConditionByRoleId: new Map(),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [],
       });
 
       const can = await service.can(10, 'action');
@@ -101,19 +89,11 @@ describe('ActionPermissionService', () => {
             everythingAllowed: false,
             actionsByRole: new Map(),
             actionsGloballyAllowed: new Set(),
-            actionsConditionByRoleId: new Map(),
-            actionsRawRights: {},
-            allRoleIds: [],
-            users: [],
           },
           {
             everythingAllowed: true,
             actionsByRole: new Map([]),
             actionsGloballyAllowed: new Set(),
-            actionsConditionByRoleId: new Map(),
-            actionsRawRights: {},
-            allRoleIds: [],
-            users: [],
           },
         );
 
@@ -130,19 +110,11 @@ describe('ActionPermissionService', () => {
             everythingAllowed: false,
             actionsByRole: new Map(),
             actionsGloballyAllowed: new Set(),
-            actionsConditionByRoleId: new Map(),
-            actionsRawRights: {},
-            allRoleIds: [],
-            users: [],
           },
           {
             everythingAllowed: false,
             actionsByRole: new Map([]),
             actionsGloballyAllowed: new Set(),
-            actionsConditionByRoleId: new Map(),
-            actionsRawRights: {},
-            allRoleIds: [],
-            users: [],
           },
         );
 
@@ -159,10 +131,6 @@ describe('ActionPermissionService', () => {
         everythingAllowed: false,
         actionsByRole: new Map([['action', { allowedRoles: new Set([10]) }]]),
         actionsGloballyAllowed: new Set(),
-        actionsConditionByRoleId: new Map(),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [],
       });
 
       jest.useFakeTimers();
@@ -185,19 +153,11 @@ describe('ActionPermissionService', () => {
           everythingAllowed: false,
           actionsByRole: new Map([['action', { allowedRoles: new Set([10]) }]]),
           actionsGloballyAllowed: new Set(),
-          actionsConditionByRoleId: new Map(),
-          actionsRawRights: {},
-          allRoleIds: [],
-          users: [],
         },
         {
           everythingAllowed: false,
           actionsByRole: new Map([['action', { allowedRoles: new Set([10]) }]]),
           actionsGloballyAllowed: new Set(),
-          actionsConditionByRoleId: new Map(),
-          actionsRawRights: {},
-          allRoleIds: [],
-          users: [],
         },
       );
 
@@ -222,10 +182,6 @@ describe('ActionPermissionService', () => {
         everythingAllowed: true,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(),
-        actionsConditionByRoleId: new Map(),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [],
       });
 
       const can = await service.canOneOf(1, ['action1', 'action2']);
@@ -243,10 +199,6 @@ describe('ActionPermissionService', () => {
         everythingAllowed: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
-        actionsConditionByRoleId: new Map(),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [],
       });
 
       const can = await service.canOneOf(1, ['action1', 'action2']);
@@ -262,10 +214,6 @@ describe('ActionPermissionService', () => {
         everythingAllowed: false,
         actionsByRole: new Map([['action2', { allowedRoles: new Set([10]) }]]),
         actionsGloballyAllowed: new Set(),
-        actionsConditionByRoleId: new Map(),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [],
       });
 
       const can = await service.canOneOf(10, ['action1', 'action2']);
@@ -283,19 +231,11 @@ describe('ActionPermissionService', () => {
             everythingAllowed: false,
             actionsByRole: new Map(),
             actionsGloballyAllowed: new Set(),
-            actionsConditionByRoleId: new Map(),
-            actionsRawRights: {},
-            allRoleIds: [],
-            users: [],
           },
           {
             everythingAllowed: true,
             actionsByRole: new Map([]),
             actionsGloballyAllowed: new Set(),
-            actionsConditionByRoleId: new Map(),
-            actionsRawRights: {},
-            allRoleIds: [],
-            users: [],
           },
         );
 
@@ -312,19 +252,11 @@ describe('ActionPermissionService', () => {
             everythingAllowed: false,
             actionsByRole: new Map(),
             actionsGloballyAllowed: new Set(),
-            actionsConditionByRoleId: new Map(),
-            actionsRawRights: {},
-            allRoleIds: [],
-            users: [],
           },
           {
             everythingAllowed: false,
             actionsByRole: new Map([]),
             actionsGloballyAllowed: new Set(),
-            actionsConditionByRoleId: new Map(),
-            actionsRawRights: {},
-            allRoleIds: [],
-            users: [],
           },
         );
 
@@ -338,7 +270,7 @@ describe('ActionPermissionService', () => {
     });
   });
 
-  describe('getCustomActionConditionForUser', () => {
+  describe('getCustomActionCondition', () => {
     it('should return the custom action condition if it exists', async () => {
       const customActionCondition = {
         field: 'filed',
@@ -347,46 +279,36 @@ describe('ActionPermissionService', () => {
         source: 'data',
       } as RawTreeWithSources;
 
-      const { service, options, permissions, users } = setup({
+      const actionConditions = new Map([[10, customActionCondition]]);
+
+      const { service, options, permissions } = setup({
         everythingAllowed: true,
-        actionsAllowedByUser: new Map(),
-        actionsGloballyAllowed: new Set(),
-        actionsConditionByRoleId: new Map([
-          ['action1Identifier', new Map([[42, customActionCondition]])],
+        actionsByRole: new Map([
+          ['action1Identifier', { allowedRoles: new Set([]), conditionsByRole: actionConditions }],
         ]),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [{ id: 1, roleId: 42 } as UserPermissionV4],
+        actionsGloballyAllowed: new Set(),
       });
 
-      const condition = await service.getCustomActionConditionForUser('1', 'action1Identifier');
+      const condition = await service.getCustomActionCondition(10, 'action1Identifier');
       expect(condition).toBe(customActionCondition);
-
-      expect(getUsersMock).toHaveBeenCalledTimes(1);
-      expect(getUsersMock).toHaveBeenCalledWith(options);
 
       expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
       expect(getEnvironmentPermissionsMock).toHaveBeenCalledWith(options);
 
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
-      expect(generateActionsFromPermissionsMock).toHaveBeenCalledWith(permissions, users);
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledWith(permissions);
     });
 
-    it('should return null the custom action condition if it does not exist', async () => {
+    it('should return undefined the custom action condition if it does not exist', async () => {
       const { service } = setup({
         everythingAllowed: false,
-        actionsAllowedByUser: new Map(),
+        actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
-        actionsConditionByRoleId: new Map(),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [],
       });
 
-      const condition = await service.getCustomActionConditionForUser('1', 'action1Identifier');
+      const condition = await service.getCustomActionCondition(10, 'action1Identifier');
       expect(condition).toBeUndefined();
 
-      expect(getUsersMock).toHaveBeenCalledTimes(1);
       expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });
@@ -394,18 +316,13 @@ describe('ActionPermissionService', () => {
     it('should return null if we cannot found any condition for this role', async () => {
       const { service } = setup({
         everythingAllowed: false,
-        actionsAllowedByUser: new Map(),
+        actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
-        actionsConditionByRoleId: new Map([['action1Identifier', new Map()]]),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [{ id: 1, roleId: 42 } as UserPermissionV4],
       });
 
-      const condition = await service.getCustomActionConditionForUser('1', 'action1Identifier');
+      const condition = await service.getCustomActionCondition(10, 'action1Identifier');
       expect(condition).toBeUndefined();
 
-      expect(getUsersMock).toHaveBeenCalledTimes(1);
       expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });
@@ -425,63 +342,48 @@ describe('ActionPermissionService', () => {
         [43, customActionCondition],
       ]);
 
-      const { service, options, permissions, users } = setup({
+      const { service, options, permissions } = setup({
         everythingAllowed: true,
-        actionsAllowedByUser: new Map(),
+        actionsByRole: new Map([
+          ['action1Identifier', { allowedRoles: new Set([]), conditionsByRole: actionConditions }],
+        ]),
         actionsGloballyAllowed: new Set(),
-        actionsConditionByRoleId: new Map([['action1Identifier', actionConditions]]),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [{ id: 1, roleId: 42 } as UserPermissionV4],
       });
 
       const conditions = await service.getAllCustomActionConditions('action1Identifier');
       expect(conditions).toBe(actionConditions);
 
-      expect(getUsersMock).toHaveBeenCalledTimes(1);
-      expect(getUsersMock).toHaveBeenCalledWith(options);
-
       expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
       expect(getEnvironmentPermissionsMock).toHaveBeenCalledWith(options);
 
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
-      expect(generateActionsFromPermissionsMock).toHaveBeenCalledWith(permissions, users);
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledWith(permissions);
     });
 
-    it('should return null the custom action identifier does not exist', async () => {
+    it('should return undefined the custom action identifier does not exist', async () => {
       const { service } = setup({
         everythingAllowed: false,
-        actionsAllowedByUser: new Map(),
-        actionsGloballyAllowed: new Set(['action2']),
-        actionsConditionByRoleId: new Map(),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [],
+        actionsByRole: new Map(),
+        actionsGloballyAllowed: new Set(),
       });
 
       const conditions = await service.getAllCustomActionConditions('action1Identifier');
       expect(conditions).toBeUndefined();
 
-      expect(getUsersMock).toHaveBeenCalledTimes(1);
       expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });
 
-    it('should return empty map if we cannot found any conditions', async () => {
+    it('should return undefined if we cannot found any conditions', async () => {
       const { service } = setup({
         everythingAllowed: false,
-        actionsAllowedByUser: new Map(),
-        actionsGloballyAllowed: new Set(['action2']),
-        actionsConditionByRoleId: new Map([['action1Identifier', new Map()]]),
-        actionsRawRights: {},
-        allRoleIds: [],
-        users: [{ id: 1, roleId: 42 } as UserPermissionV4],
+        actionsByRole: new Map([['action1Identifier', { allowedRoles: new Set([]) }]]),
+        actionsGloballyAllowed: new Set(),
       });
 
-      const condition = await service.getAllCustomActionConditions('action1Identifier');
-      expect(condition).toEqual(new Map());
+      const conditions = await service.getAllCustomActionConditions('action1Identifier');
+      expect(conditions).toBeUndefined();
 
-      expect(getUsersMock).toHaveBeenCalledTimes(1);
       expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });

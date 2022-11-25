@@ -111,13 +111,10 @@ export default class ActionPermissionService {
     return generateActionsFromPermissions(rawPermissions);
   }
 
-  public async getCustomActionConditionForUser(userId: string, actionName: string) {
+  public async getCustomActionCondition(roleId: number, actionName: string) {
     const permissions = await this.getPermissions();
-    const userInfo = permissions.users.find(user => `${user.id}` === userId);
 
-    const conditionFilter = permissions.actionsConditionByRoleId
-      .get(actionName)
-      ?.get(userInfo.roleId);
+    const conditionFilter = permissions.actionsByRole.get(actionName)?.conditionsByRole.get(roleId);
 
     return conditionFilter;
   }
@@ -125,42 +122,26 @@ export default class ActionPermissionService {
   public async getAllCustomActionConditions(actionName: string) {
     const permissions = await this.getPermissions();
 
-    return permissions.actionsConditionByRoleId.get(actionName);
+    return permissions.actionsByRole.get(actionName)?.conditionsByRole;
   }
 
   public async getRoleIdsAllowedToApproveWithoutConditions(actionName: string) {
     const permissions = await this.getPermissions();
 
-    const rawActionPermission = permissions.actionsRawRights[actionName];
+    const approvalPermission = permissions.actionsByRole.get(actionName);
 
-    // I was wrong this cannot happen
-    if (typeof rawActionPermission.description === 'boolean') {
-      if (rawActionPermission.description === true) {
-        // All roles are allowed
-        return permissions.allRoleIds;
-      }
-
-      return []; // No allowed roles
+    if (!approvalPermission) {
+      return [];
     }
 
-    // roleByUser .get(userId) => roleId
-
-    // actions.get(actionName + ':approval') => {
-    // rolesAllowed: Set<number>()
-
-    // specificToRoleId only exist is there's a condition for this action for a specific role
-    // specificToRoleId: new Map<roleId, specific>
-    // }
-
-    // This is true
-    if (!rawActionPermission.conditions) {
+    if (!approvalPermission.conditionsByRole) {
       // Without condition allowed roles are simply the role allowed to approve
-      return rawActionPermission.description.roles;
+      return Array.from(approvalPermission.allowedRoles);
     }
 
     // All allowed roles excluding the one with conditions
-    return rawActionPermission.description.roles.filter(
-      roleId => !rawActionPermission.conditions.find(item => item.roleId === roleId),
+    return Array.from(approvalPermission.allowedRoles).filter(
+      roleId => !approvalPermission.conditionsByRole.has(roleId),
     );
   }
 }

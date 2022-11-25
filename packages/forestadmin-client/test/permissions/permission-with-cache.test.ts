@@ -292,16 +292,17 @@ describe('PermissionService', () => {
     it('should get the trigger condition for a specific custom action', async () => {
       const condition = Symbol('condition');
       const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
       const permissionService = new PermissionServiceWithCache(
         actionPermissionService,
-        factories.renderingPermission.build(),
+        renderingPermissionService,
       );
 
       generateCustomActionIdentifierMock.mockReturnValue('identifier');
 
-      (actionPermissionService.getCustomActionConditionForUser as jest.Mock).mockResolvedValue(
-        condition,
-      );
+      (actionPermissionService.getCustomActionCondition as jest.Mock).mockResolvedValue(condition);
+
+      (renderingPermissionService.getUser as jest.Mock).mockResolvedValue({ roleId: 10 });
 
       const result = await permissionService.getConditionalTriggerCondition({
         userId: 42,
@@ -309,8 +310,8 @@ describe('PermissionService', () => {
         collectionName: 'actors',
       });
 
-      expect(actionPermissionService.getCustomActionConditionForUser).toHaveBeenCalledWith(
-        '42',
+      expect(actionPermissionService.getCustomActionCondition).toHaveBeenCalledWith(
+        10,
         'identifier',
       );
       expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
@@ -327,16 +328,17 @@ describe('PermissionService', () => {
     it('should get the trigger condition for a specific custom action', async () => {
       const condition = Symbol('condition');
       const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
       const permissionService = new PermissionServiceWithCache(
         actionPermissionService,
-        factories.renderingPermission.build(),
+        renderingPermissionService,
       );
 
       generateCustomActionIdentifierMock.mockReturnValue('identifier');
 
-      (actionPermissionService.getCustomActionConditionForUser as jest.Mock).mockResolvedValue(
-        condition,
-      );
+      (actionPermissionService.getCustomActionCondition as jest.Mock).mockResolvedValue(condition);
+
+      (renderingPermissionService.getUser as jest.Mock).mockResolvedValue({ roleId: 10 });
 
       const result = await permissionService.getConditionalRequiresApprovalCondition({
         userId: 42,
@@ -344,8 +346,8 @@ describe('PermissionService', () => {
         collectionName: 'actors',
       });
 
-      expect(actionPermissionService.getCustomActionConditionForUser).toHaveBeenCalledWith(
-        '42',
+      expect(actionPermissionService.getCustomActionCondition).toHaveBeenCalledWith(
+        10,
         'identifier',
       );
       expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
@@ -362,16 +364,17 @@ describe('PermissionService', () => {
     it('should get the trigger condition for a specific custom action', async () => {
       const condition = Symbol('condition');
       const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
       const permissionService = new PermissionServiceWithCache(
         actionPermissionService,
-        factories.renderingPermission.build(),
+        renderingPermissionService,
       );
 
       generateCustomActionIdentifierMock.mockReturnValue('identifier');
 
-      (actionPermissionService.getCustomActionConditionForUser as jest.Mock).mockResolvedValue(
-        condition,
-      );
+      (actionPermissionService.getCustomActionCondition as jest.Mock).mockResolvedValue(condition);
+
+      (renderingPermissionService.getUser as jest.Mock).mockResolvedValue({ roleId: 10 });
 
       const result = await permissionService.getConditionalApproveCondition({
         userId: 42,
@@ -379,8 +382,8 @@ describe('PermissionService', () => {
         collectionName: 'actors',
       });
 
-      expect(actionPermissionService.getCustomActionConditionForUser).toHaveBeenCalledWith(
-        '42',
+      expect(actionPermissionService.getCustomActionCondition).toHaveBeenCalledWith(
+        10,
         'identifier',
       );
       expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(

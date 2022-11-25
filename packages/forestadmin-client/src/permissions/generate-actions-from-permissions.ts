@@ -23,9 +23,7 @@ export type ActionPermissions = {
 
 export type ActionPermission = {
   allowedRoles: Set<number>;
-  // specificToRole: Map<number, {
-  //   actionCondition: RawTreeWithSource
-  // }>;
+  conditionsByRole?: Map<number, RawTreeWithSources>;
 };
 
 type IntermediateRightsList = {
@@ -128,7 +126,13 @@ function generateActionsByRole(permissions: IntermediateRightsList): Map<string,
         name,
         {
           allowedRoles: new Set((permission.description as RightDescriptionWithRolesV4).roles),
-          // TODO permission conditions
+          ...(permission.conditions
+            ? {
+                conditionsByRole: new Map(
+                  permission.conditions?.map(({ roleId, filter }) => [roleId, filter]),
+                ),
+              }
+            : {}),
         },
       ]),
   );

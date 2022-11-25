@@ -260,15 +260,21 @@ describe('generateActionsFromPermissions', () => {
             everythingAllowed: false,
             actionsGloballyAllowed: new Set(),
             actionsByRole: new Map([
-              ['custom:collection-id:custom-action-id:approve', { allowedRoles: new Set([3]) }],
+              [
+                'custom:collection-id:custom-action-id:approve',
+                { allowedRoles: new Set([3]), conditionsByRole: new Map() },
+              ],
               [
                 'custom:collection-id:custom-action-id:self-approve',
                 { allowedRoles: new Set([2]) },
               ],
-              ['custom:collection-id:custom-action-id:trigger', { allowedRoles: new Set([1]) }],
+              [
+                'custom:collection-id:custom-action-id:trigger',
+                { allowedRoles: new Set([1]), conditionsByRole: new Map() },
+              ],
               [
                 'custom:collection-id:custom-action-id:require-approval',
-                { allowedRoles: new Set([1, 2]) },
+                { allowedRoles: new Set([1, 2]), conditionsByRole: new Map() },
               ],
             ]),
           });
@@ -346,16 +352,61 @@ describe('generateActionsFromPermissions', () => {
           expect(result).toEqual({
             everythingAllowed: false,
             actionsGloballyAllowed: new Set(),
-            actionsAllowedByUser: new Map([
-              ['custom:collection-id:custom-action-id:approve', { allowedRoles: new Set([3]) }],
+            actionsByRole: new Map([
+              [
+                'custom:collection-id:custom-action-id:approve',
+                {
+                  allowedRoles: new Set([3]),
+                  conditionsByRole: new Map([
+                    [
+                      3,
+                      {
+                        field: 'filed3',
+                        operator: 'greater_than',
+                        source: 'data',
+                        value: 'value',
+                      },
+                    ],
+                  ]),
+                },
+              ],
               [
                 'custom:collection-id:custom-action-id:self-approve',
                 { allowedRoles: new Set([2]) },
               ],
-              ['custom:collection-id:custom-action-id:trigger', { allowedRoles: new Set([1]) }],
+              [
+                'custom:collection-id:custom-action-id:trigger',
+                {
+                  allowedRoles: new Set([1]),
+                  conditionsByRole: new Map([
+                    [
+                      1,
+                      {
+                        field: 'filed',
+                        operator: 'equal',
+                        source: 'data',
+                        value: 'value',
+                      },
+                    ],
+                  ]),
+                },
+              ],
               [
                 'custom:collection-id:custom-action-id:require-approval',
-                { allowedRoles: new Set([1, 2]) },
+                {
+                  allowedRoles: new Set([1, 2]),
+                  conditionsByRole: new Map([
+                    [
+                      2,
+                      {
+                        field: 'filed2',
+                        operator: 'not_equal',
+                        source: 'data',
+                        value: 'value',
+                      },
+                    ],
+                  ]),
+                },
               ],
             ]),
           });
