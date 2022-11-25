@@ -90,7 +90,7 @@ describe('MongooseCollection', () => {
             factories.conditionTreeLeaf.build({
               value: ownerRecordA._id,
               operator: 'Equal',
-              field: '_pid',
+              field: 'parentId',
             }),
             factories.conditionTreeLeaf.build({
               value: storeRecordA._id,

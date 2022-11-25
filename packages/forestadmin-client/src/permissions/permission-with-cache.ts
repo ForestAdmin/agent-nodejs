@@ -23,8 +23,10 @@ export default class PermissionServiceWithCache implements PermissionService {
     event: CollectionActionEvent;
     collectionName: string;
   }): Promise<boolean> {
+    const roleId = await this.getRoleIdForUserId(userId);
+
     return this.actionPermissionService.can(
-      `${userId}`,
+      roleId,
       generateCollectionActionIdentifier(event, collectionName),
     );
   }
@@ -47,8 +49,10 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }): Promise<boolean> {
+    const roleId = await this.getRoleIdForUserId(userId);
+
     return this.actionPermissionService.can(
-      `${userId}`,
+      roleId,
       generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
     );
   }
@@ -62,8 +66,10 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }): Promise<boolean> {
+    const roleId = await this.getRoleIdForUserId(userId);
+
     return this.actionPermissionService.can(
-      `${userId}`,
+      roleId,
       generateCustomActionIdentifier(
         CustomActionEvent.RequireApproval,
         customActionName,
@@ -96,7 +102,9 @@ export default class PermissionServiceWithCache implements PermissionService {
             collectionName,
           );
 
-    return this.actionPermissionService.can(`${userId}`, actionIdentifier);
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.can(roleId, actionIdentifier);
   }
 
   public async getConditionalTriggerCondition({
@@ -108,8 +116,10 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }) {
-    return this.actionPermissionService.getCustomActionConditionForUser(
-      `${userId}`,
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.getCustomActionCondition(
+      roleId,
       generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
     );
   }
@@ -123,8 +133,10 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }) {
-    return this.actionPermissionService.getCustomActionConditionForUser(
-      `${userId}`,
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.getCustomActionCondition(
+      roleId,
       generateCustomActionIdentifier(
         CustomActionEvent.RequireApproval,
         customActionName,
@@ -142,8 +154,10 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }) {
-    return this.actionPermissionService.getCustomActionConditionForUser(
-      `${userId}`,
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.getCustomActionCondition(
+      roleId,
       generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
     );
   }
@@ -181,7 +195,9 @@ export default class PermissionServiceWithCache implements PermissionService {
     collectionName: string;
     customActionName: string;
   }): Promise<boolean> {
-    return this.actionPermissionService.canOneOf(`${userId}`, [
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.canOneOf(roleId, [
       generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
       generateCustomActionIdentifier(
         CustomActionEvent.RequireApproval,
@@ -205,5 +221,9 @@ export default class PermissionServiceWithCache implements PermissionService {
       userId,
       chartRequest,
     });
+  }
+
+  private async getRoleIdForUserId(userId: number) {
+    return (await this.renderingPermissionService.getUser(userId))?.roleId;
   }
 }

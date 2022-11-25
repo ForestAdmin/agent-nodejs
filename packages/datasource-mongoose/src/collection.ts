@@ -66,10 +66,10 @@ export default class MongooseCollection extends BaseCollection {
     const results = [];
 
     for (const record of data) {
-      const { _pid, ...rest } = record;
-      if (!_pid) throw new ValidationError('Trying to create a subrecord with no parent');
+      const { parentId, ...rest } = record;
+      if (!parentId) throw new ValidationError('Trying to create a subrecord with no parent');
 
-      const [rootId, path] = splitId(`${_pid}.${fieldName}`);
+      const [rootId, path] = splitId(`${parentId}.${fieldName}`);
       if (!updates.has(rootId)) updates.set(rootId, { path, records: [] });
 
       // unwrap 'content' on leafs
@@ -126,7 +126,11 @@ export default class MongooseCollection extends BaseCollection {
 
     if (!this.prefix) {
       // We are updating a real document, we can delegate the work to mongoose directly.
-      await this.model.updateMany({ _id: ids }, patch, { rawResult: true });
+      if (ids.length > 1) {
+        await this.model.updateMany({ _id: ids }, patch, { rawResult: true });
+      } else {
+        await this.model.updateOne({ _id: ids }, patch, { rawResult: true });
+      }
     } else {
       // We are updating a subdocument (this.prefix is set).
 
@@ -153,7 +157,11 @@ export default class MongooseCollection extends BaseCollection {
         const subdocPatch = buildSubdocumentPatch(path, patch, isLeaf);
 
         if (Object.keys(subdocPatch).length) {
-          await this.model.updateMany({ _id: rootIds }, subdocPatch, { rawResult: true });
+          if (ids.length > 1 || rootIds.length > 1) {
+            await this.model.updateMany({ _id: rootIds }, subdocPatch, { rawResult: true });
+          } else {
+            await this.model.updateOne({ _id: rootIds }, subdocPatch, { rawResult: true });
+          }
         }
       });
 

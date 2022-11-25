@@ -31,28 +31,28 @@ describe('VirtualFieldsGenerator', () => {
   });
 
   it('should add virtual fields fake many to one', () => {
-    const projection = new Projection('author:_id', 'author:_pid');
+    const projection = new Projection('author:_id', 'author:parentId');
     const pipeline = VirtualFieldsGenerator.addVirtual(model, null, ['author'], projection);
 
     expect(pipeline).toEqual([
       {
         $addFields: {
           'author._id': { $concat: [{ $toString: '$_id' }, '.author'] },
-          'author._pid': '$_id',
+          'author.parentId': '$_id',
         },
       },
     ]);
   });
 
   it('should add virtual fields on boxed many to one', () => {
-    const projection = new Projection('title:_id', 'title:_pid', 'title:content');
+    const projection = new Projection('title:_id', 'title:parentId', 'title:content');
     const pipeline = VirtualFieldsGenerator.addVirtual(model, null, ['title'], projection);
 
     expect(pipeline).toEqual([
       {
         $addFields: {
           'title._id': { $concat: [{ $toString: '$_id' }, '.title'] },
-          'title._pid': '$_id',
+          'title.parentId': '$_id',
           'title.content': '$title',
         },
       },
@@ -62,7 +62,7 @@ describe('VirtualFieldsGenerator', () => {
   it('should add nested dependencies (for server-side queries only)', () => {
     const projection = new Projection(
       'author:country:_id',
-      'author:country:_pid',
+      'author:country:parentId',
       'author:country:name',
     );
     const pipeline = VirtualFieldsGenerator.addVirtual(model, null, ['author'], projection);
@@ -71,7 +71,7 @@ describe('VirtualFieldsGenerator', () => {
       {
         $addFields: {
           'author.country._id': { $concat: [{ $toString: '$_id' }, '.author.country'] },
-          'author.country._pid': { $concat: [{ $toString: '$_id' }, '.author'] },
+          'author.country.parentId': { $concat: [{ $toString: '$_id' }, '.author'] },
         },
       },
     ]);

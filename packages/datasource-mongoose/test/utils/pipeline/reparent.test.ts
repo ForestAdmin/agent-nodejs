@@ -36,7 +36,7 @@ describe('ReparentGenerator', () => {
               '$author',
               {
                 _id: { $concat: [{ $toString: '$_id' }, '.author'] },
-                _pid: '$_id',
+                parentId: '$_id',
                 parent: '$$ROOT',
               },
             ],
@@ -57,7 +57,7 @@ describe('ReparentGenerator', () => {
               '$editions',
               {
                 _id: { $concat: [{ $toString: '$_id' }, '.editions.', { $toString: '$index' }] },
-                _pid: '$_id',
+                parentId: '$_id',
                 parent: '$$ROOT',
               },
             ],
@@ -77,7 +77,7 @@ describe('ReparentGenerator', () => {
               { content: '$title' },
               {
                 _id: { $concat: [{ $toString: '$_id' }, '.title'] },
-                _pid: '$_id',
+                parentId: '$_id',
                 parent: '$$ROOT',
               },
             ],
@@ -97,7 +97,7 @@ describe('ReparentGenerator', () => {
               '$author',
               {
                 _id: { $concat: [{ $toString: '$_id' }, '.author'] },
-                _pid: '$_id',
+                parentId: '$_id',
                 parent: '$$ROOT',
               },
             ],
@@ -111,7 +111,7 @@ describe('ReparentGenerator', () => {
               { content: '$lastname' },
               {
                 _id: { $concat: [{ $toString: '$_id' }, '.lastname'] },
-                _pid: '$_id',
+                parentId: '$_id',
                 parent: '$$ROOT',
               },
             ],
@@ -133,7 +133,7 @@ describe('ReparentGenerator', () => {
               { content: '$publishers' },
               {
                 _id: { $concat: [{ $toString: '$_id' }, '.publishers.', { $toString: '$index' }] },
-                _pid: '$_id',
+                parentId: '$_id',
                 parent: '$$ROOT',
               },
             ],

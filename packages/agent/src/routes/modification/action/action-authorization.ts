@@ -340,11 +340,15 @@ export default class ActionAuthorizationService {
    * @returns
    */
   private static transformToRolesIdsGroupByConditions<T>(
-    actionConditionsByRoleId: Map<number, T>,
+    actionConditionsByRoleId?: Map<number, T>,
   ): {
     roleIds: number[];
     condition: T;
   }[] {
+    if (!actionConditionsByRoleId) {
+      return [];
+    }
+
     const rolesIdsGroupByConditions = Array.from(
       actionConditionsByRoleId,
       ([roleId, condition]) => {

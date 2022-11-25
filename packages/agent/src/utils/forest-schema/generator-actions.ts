@@ -7,10 +7,10 @@ import {
   PrimitiveTypes,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
+import { ForestServerAction, ForestServerActionField } from '@forestadmin/forestadmin-client';
 import path from 'path';
 
 import ForestValueConverter from './action-values';
-import { ForestServerAction, ForestServerActionField } from './types';
 
 export default class SchemaGeneratorActions {
   /**

@@ -1,4 +1,5 @@
-import { ValidationType } from '../../../src/utils/forest-schema/types';
+import { ValidationType } from '@forestadmin/forestadmin-client';
+
 import FrontendValidationUtils from '../../../src/utils/forest-schema/validation';
 
 describe('FrontendValidationUtils', () => {

@@ -5,6 +5,7 @@ import ActionPermissionService from './permissions/action-permission';
 import PermissionService from './permissions/permission-with-cache';
 import RenderingPermissionService from './permissions/rendering-permission';
 import UserPermissionService from './permissions/user-permission';
+import SchemaService from './schema';
 import { ForestAdminClientOptions, ForestAdminClientOptionsWithDefaults } from './types';
 import ContextVariablesInstantiator from './utils/context-variables-instantiator';
 import defaultLogger from './utils/default-logger';
@@ -23,7 +24,13 @@ export {
   ContextVariablesInstantiatorInterface,
 } from './types';
 export { IpWhitelistConfiguration } from './ip-whitelist/types';
-export { CollectionActionEvent } from './permissions/types';
+
+// These types are used for the agent-generator package
+export {
+  CollectionActionEvent,
+  RenderingPermissionV4,
+  UserPermissionV4,
+} from './permissions/types';
 
 export default function createForestAdminClient(
   options: ForestAdminClientOptions,
@@ -43,6 +50,7 @@ export default function createForestAdminClient(
   const contextVariablesInstantiator = new ContextVariablesInstantiator(renderingPermission);
   const chartHandler = new ChartHandler(contextVariablesInstantiator);
   const ipWhitelistPermission = new IpWhiteListService(optionsWithDefaults);
+  const schemaService = new SchemaService(optionsWithDefaults);
 
   return new ForestAdminClient(
     optionsWithDefaults,
@@ -51,10 +59,12 @@ export default function createForestAdminClient(
     contextVariablesInstantiator,
     chartHandler,
     ipWhitelistPermission,
+    schemaService,
   );
 }
 
 export * from './charts/types';
+export * from './schema/types';
 export { default as ContextVariablesInjector } from './utils/context-variables-injector';
 export { default as ContextVariables } from './utils/context-variables';
 export { default as ChartHandler } from './charts/chart-handler';

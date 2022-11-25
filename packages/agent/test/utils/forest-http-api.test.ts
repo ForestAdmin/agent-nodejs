@@ -95,46 +95,6 @@ describe('ForestHttpApi', () => {
     });
   });
 
-  describe('hasSchema', () => {
-    test('should fetch the correct end point with the env secret', async () => {
-      superagentMock.set.mockResolvedValue({ body: {} });
-
-      await ForestHttpApi.hasSchema(options, '123456abcdef');
-
-      expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
-      expect(superagentMock.send).toHaveBeenCalledWith({ schemaFileHash: '123456abcdef' });
-      expect(superagentMock.post).toHaveBeenCalledWith('https://api.url/forest/apimaps/hashcheck');
-    });
-
-    test('should return the correct value', async () => {
-      superagentMock.set.mockResolvedValue({ body: { sendSchema: true } });
-
-      const result = await ForestHttpApi.hasSchema(options, 'myHash');
-
-      expect(result).toStrictEqual(false);
-    });
-  });
-
-  describe('uploadSchema', () => {
-    test('should fetch the correct end point with the env secret', async () => {
-      superagentMock.set.mockResolvedValue({ body: {} });
-
-      await ForestHttpApi.uploadSchema(options, { meta: { info: 'i am a schema!' } });
-
-      expect(superagentMock.set).toHaveBeenCalledWith('forest-secret-key', 'myEnvSecret');
-      expect(superagentMock.send).toHaveBeenCalledWith({ meta: { info: 'i am a schema!' } });
-      expect(superagentMock.post).toHaveBeenCalledWith('https://api.url/forest/apimaps');
-    });
-
-    describe('when the call succeeds', () => {
-      test('should neither crash and nor print a warning', async () => {
-        superagentMock.set.mockResolvedValue({ body: {} });
-
-        await expect(ForestHttpApi.uploadSchema(options, {})).resolves.not.toThrowError();
-      });
-    });
-  });
-
   describe('Forest server error handling', () => {
     describe('Failed to reach error', () => {
       test.each([0, 502])(
@@ -170,20 +130,22 @@ describe('ForestHttpApi', () => {
     test('should throw an error if a certificate error is dispatched', async () => {
       superagentMock.set.mockRejectedValue(new Error('invalid certificate'));
 
-      await expect(ForestHttpApi.hasSchema(options, '')).rejects.toThrow(
+      await expect(ForestHttpApi.getOpenIdIssuerMetadata(options)).rejects.toThrow(
         /ForestAdmin server TLS certificate cannot be verified/,
       );
     });
 
     test('should rethrow unexpected errors', async () => {
       superagentMock.set.mockRejectedValue(new Error('i am unexpected'));
-      await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow('i am unexpected');
+      await expect(ForestHttpApi.getOpenIdIssuerMetadata(options)).rejects.toThrow(
+        'i am unexpected',
+      );
     });
 
     test('should throw an error with an unmanaged status', async () => {
       superagentMock.set.mockRejectedValue({ response: { status: 418 } });
 
-      await expect(ForestHttpApi.uploadSchema(options, {})).rejects.toThrow(
+      await expect(ForestHttpApi.getOpenIdIssuerMetadata(options)).rejects.toThrow(
         /An unexpected error occurred while contacting the ForestAdmin server./,
       );
     });

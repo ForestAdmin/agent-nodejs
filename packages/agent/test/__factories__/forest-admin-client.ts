@@ -10,6 +10,7 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   getScope: jest.fn(),
   markScopesAsUpdated: jest.fn(),
   getIpWhitelistConfiguration: jest.fn(),
+  postSchema: jest.fn(),
   permissionService: {
     canExecuteSegmentQuery: jest.fn(),
     canApproveCustomAction: jest.fn(),
