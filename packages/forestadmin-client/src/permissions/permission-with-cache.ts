@@ -23,8 +23,10 @@ export default class PermissionServiceWithCache implements PermissionService {
     event: CollectionActionEvent;
     collectionName: string;
   }): Promise<boolean> {
+    const roleId = await this.getRoleIdForUserId(userId);
+
     return this.actionPermissionService.can(
-      `${userId}`,
+      roleId,
       generateCollectionActionIdentifier(event, collectionName),
     );
   }
@@ -38,7 +40,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     return this.renderingPermissionService.canExecuteSegmentQuery(params);
   }
 
-  public canTriggerCustomAction({
+  public async canTriggerCustomAction({
     userId,
     collectionName,
     customActionName,
@@ -47,13 +49,15 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }): Promise<boolean> {
+    const roleId = await this.getRoleIdForUserId(userId);
+
     return this.actionPermissionService.can(
-      `${userId}`,
+      roleId,
       generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
     );
   }
 
-  public canApproveCustomAction({
+  public async canApproveCustomAction({
     userId,
     collectionName,
     customActionName,
@@ -77,7 +81,9 @@ export default class PermissionServiceWithCache implements PermissionService {
             collectionName,
           );
 
-    return this.actionPermissionService.can(`${userId}`, actionIdentifier);
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.can(roleId, actionIdentifier);
   }
 
   public async canRequestCustomActionParameters({
@@ -89,7 +95,9 @@ export default class PermissionServiceWithCache implements PermissionService {
     collectionName: string;
     customActionName: string;
   }): Promise<boolean> {
-    return this.actionPermissionService.canOneOf(`${userId}`, [
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.canOneOf(roleId, [
       generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
       generateCustomActionIdentifier(
         CustomActionEvent.RequireApproval,
@@ -113,5 +121,9 @@ export default class PermissionServiceWithCache implements PermissionService {
       userId,
       chartRequest,
     });
+  }
+
+  private async getRoleIdForUserId(userId: number) {
+    return (await this.renderingPermissionService.getUser(userId))?.roleId;
   }
 }

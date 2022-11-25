@@ -11,13 +11,19 @@ import {
   EnvironmentPermissionsV4Remote,
   RightDescriptionV4,
   RightDescriptionWithRolesV4,
-  UserPermissionV4,
 } from './types';
 
 export type ActionPermissions = {
   everythingAllowed: boolean;
   actionsGloballyAllowed: Set<string>;
-  actionsAllowedByUser: Map<string, Set<string>>;
+  actionsByRole: Map<string, ActionPermission>;
+};
+
+export type ActionPermission = {
+  allowedRoles: Set<number>;
+  // specificToRole: Map<number, {
+  //   actionCondition: RawTreeWithSource
+  // }>;
 };
 
 type IntermediateRightsList = {
@@ -93,45 +99,27 @@ function generateActionsGloballyAllowed(permissions: IntermediateRightsList): Se
   );
 }
 
-function getUsersForRoles(roles: number[], userIdsByRole: Map<number, number[]>): Set<string> {
-  return new Set(
-    roles.reduce((acc, roleId) => {
-      const userIds = (userIdsByRole.get(roleId) || []).map(userId => `${userId}`);
-
-      return [...acc, ...userIds];
-    }, []),
-  );
-}
-
-function generateActionsAllowedByUser(
-  permissions: IntermediateRightsList,
-  users: UserPermissionV4[],
-): Map<string, Set<string>> {
-  const userIdsByRole = users.reduce((acc, { id, roleId }) => {
-    acc.set(roleId, [...(acc.get(roleId) || []), id]);
-
-    return acc;
-  }, new Map<number, number[]>());
-
+function generateActionsByRole(permissions: IntermediateRightsList): Map<string, ActionPermission> {
   return new Map(
     Object.entries(permissions)
       .filter(([, permission]) => typeof permission !== 'boolean')
       .map(([name, permission]) => [
         name,
-        getUsersForRoles((permission as RightDescriptionWithRolesV4).roles, userIdsByRole),
+        {
+          allowedRoles: new Set((permission as RightDescriptionWithRolesV4).roles),
+        },
       ]),
   );
 }
 
 export default function generateActionsFromPermissions(
   environmentPermissions: EnvironmentPermissionsV4,
-  users: UserPermissionV4[],
 ): ActionPermissions {
   if (environmentPermissions === true) {
     return {
       everythingAllowed: true,
       actionsGloballyAllowed: new Set(),
-      actionsAllowedByUser: new Map(),
+      actionsByRole: new Map(),
     };
   }
 
@@ -145,6 +133,6 @@ export default function generateActionsFromPermissions(
   return {
     everythingAllowed: false,
     actionsGloballyAllowed: generateActionsGloballyAllowed(allPermissions),
-    actionsAllowedByUser: generateActionsAllowedByUser(allPermissions, users),
+    actionsByRole: generateActionsByRole(allPermissions),
   };
 }
