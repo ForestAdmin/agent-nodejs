@@ -3,11 +3,7 @@ import {
   generateCustomActionIdentifier,
 } from '../../src/permissions/generate-action-identifier';
 import generateActionsFromPermissions from '../../src/permissions/generate-actions-from-permissions';
-import {
-  CollectionActionEvent,
-  CustomActionEvent,
-  UserPermissionV4,
-} from '../../src/permissions/types';
+import { CollectionActionEvent, CustomActionEvent } from '../../src/permissions/types';
 
 jest.mock('../../src/permissions/generate-action-identifier', () => ({
   __esModule: true,
@@ -25,7 +21,7 @@ jest.mock('../../src/permissions/generate-action-identifier', () => ({
 describe('generateActionsFromPermissions', () => {
   describe('when everything is allowed', () => {
     it('should return a permission where everything is allowed', () => {
-      const result = generateActionsFromPermissions(true, []);
+      const result = generateActionsFromPermissions(true);
 
       expect(result).toMatchObject({
         everythingAllowed: true,
@@ -37,24 +33,21 @@ describe('generateActionsFromPermissions', () => {
     describe('collection access rights', () => {
       describe('globally allowed', () => {
         it('should generate permissions as globally allowed when actions are permitted', () => {
-          const result = generateActionsFromPermissions(
-            {
-              collections: {
-                'collection-id': {
-                  collection: {
-                    addEnabled: true,
-                    browseEnabled: true,
-                    deleteEnabled: true,
-                    editEnabled: true,
-                    exportEnabled: true,
-                    readEnabled: true,
-                  },
-                  actions: {},
+          const result = generateActionsFromPermissions({
+            collections: {
+              'collection-id': {
+                collection: {
+                  addEnabled: true,
+                  browseEnabled: true,
+                  deleteEnabled: true,
+                  editEnabled: true,
+                  exportEnabled: true,
+                  readEnabled: true,
                 },
+                actions: {},
               },
             },
-            [],
-          );
+          });
 
           expect(result).toEqual({
             everythingAllowed: false,
@@ -66,7 +59,7 @@ describe('generateActionsFromPermissions', () => {
               'collection:collection-id:delete',
               'collection:collection-id:export',
             ]),
-            actionsAllowedByUser: new Map(),
+            actionsByRole: new Map(),
           });
 
           const generateCollectionActionIdentifierMock =
@@ -81,69 +74,58 @@ describe('generateActionsFromPermissions', () => {
         });
 
         it('should not add rights when access is forbidden for everyone', () => {
-          const result = generateActionsFromPermissions(
-            {
-              collections: {
-                'collection-id': {
-                  collection: {
-                    addEnabled: false,
-                    browseEnabled: false,
-                    deleteEnabled: false,
-                    editEnabled: false,
-                    exportEnabled: false,
-                    readEnabled: false,
-                  },
-                  actions: {},
+          const result = generateActionsFromPermissions({
+            collections: {
+              'collection-id': {
+                collection: {
+                  addEnabled: false,
+                  browseEnabled: false,
+                  deleteEnabled: false,
+                  editEnabled: false,
+                  exportEnabled: false,
+                  readEnabled: false,
                 },
+                actions: {},
               },
             },
-            [],
-          );
+          });
 
           expect(result).toEqual({
             everythingAllowed: false,
             actionsGloballyAllowed: new Set(),
-            actionsAllowedByUser: new Map(),
+            actionsByRole: new Map(),
           });
         });
       });
 
       describe('allowed by role', () => {
         it('should generate permissions with a list of users', () => {
-          const result = generateActionsFromPermissions(
-            {
-              collections: {
-                'collection-id': {
-                  collection: {
-                    addEnabled: { roles: [1] },
-                    browseEnabled: { roles: [2] },
-                    deleteEnabled: { roles: [1, 2] },
-                    editEnabled: { roles: [3] },
-                    exportEnabled: { roles: [4] },
-                    readEnabled: { roles: [3, 4] },
-                  },
-                  actions: {},
+          const result = generateActionsFromPermissions({
+            collections: {
+              'collection-id': {
+                collection: {
+                  addEnabled: { roles: [1] },
+                  browseEnabled: { roles: [2] },
+                  deleteEnabled: { roles: [1, 2] },
+                  editEnabled: { roles: [3] },
+                  exportEnabled: { roles: [4] },
+                  readEnabled: { roles: [3, 4] },
                 },
+                actions: {},
               },
             },
-            [
-              { id: 10, roleId: 1 },
-              { id: 20, roleId: 2 },
-              { id: 30, roleId: 3 },
-              { id: 40, roleId: 4 },
-            ] as UserPermissionV4[],
-          );
+          });
 
           expect(result).toEqual({
             everythingAllowed: false,
             actionsGloballyAllowed: new Set(),
-            actionsAllowedByUser: new Map([
-              ['collection:collection-id:browse', new Set(['20'])],
-              ['collection:collection-id:read', new Set(['30', '40'])],
-              ['collection:collection-id:edit', new Set(['30'])],
-              ['collection:collection-id:add', new Set(['10'])],
-              ['collection:collection-id:delete', new Set(['10', '20'])],
-              ['collection:collection-id:export', new Set(['40'])],
+            actionsByRole: new Map([
+              ['collection:collection-id:browse', { allowedRoles: new Set([2]) }],
+              ['collection:collection-id:read', { allowedRoles: new Set([3, 4]) }],
+              ['collection:collection-id:edit', { allowedRoles: new Set([3]) }],
+              ['collection:collection-id:add', { allowedRoles: new Set([1]) }],
+              ['collection:collection-id:delete', { allowedRoles: new Set([1, 2]) }],
+              ['collection:collection-id:export', { allowedRoles: new Set([4]) }],
             ]),
           });
 
@@ -159,35 +141,32 @@ describe('generateActionsFromPermissions', () => {
         });
 
         it('should correctly handle a role that is not defined', async () => {
-          const result = generateActionsFromPermissions(
-            {
-              collections: {
-                'collection-id': {
-                  collection: {
-                    addEnabled: { roles: [1, 2] },
-                    browseEnabled: { roles: [1, 2] },
-                    deleteEnabled: { roles: [1, 2] },
-                    editEnabled: { roles: [1, 2] },
-                    exportEnabled: { roles: [1, 2] },
-                    readEnabled: { roles: [1, 2] },
-                  },
-                  actions: {},
+          const result = generateActionsFromPermissions({
+            collections: {
+              'collection-id': {
+                collection: {
+                  addEnabled: { roles: [1, 2] },
+                  browseEnabled: { roles: [1, 2] },
+                  deleteEnabled: { roles: [1, 2] },
+                  editEnabled: { roles: [1, 2] },
+                  exportEnabled: { roles: [1, 2] },
+                  readEnabled: { roles: [1, 2] },
                 },
+                actions: {},
               },
             },
-            [{ id: 10, roleId: 1 }] as UserPermissionV4[],
-          );
+          });
 
           expect(result).toEqual({
             everythingAllowed: false,
             actionsGloballyAllowed: new Set(),
-            actionsAllowedByUser: new Map([
-              ['collection:collection-id:browse', new Set(['10'])],
-              ['collection:collection-id:add', new Set(['10'])],
-              ['collection:collection-id:read', new Set(['10'])],
-              ['collection:collection-id:edit', new Set(['10'])],
-              ['collection:collection-id:delete', new Set(['10'])],
-              ['collection:collection-id:export', new Set(['10'])],
+            actionsByRole: new Map([
+              ['collection:collection-id:browse', { allowedRoles: new Set([1, 2]) }],
+              ['collection:collection-id:add', { allowedRoles: new Set([1, 2]) }],
+              ['collection:collection-id:read', { allowedRoles: new Set([1, 2]) }],
+              ['collection:collection-id:edit', { allowedRoles: new Set([1, 2]) }],
+              ['collection:collection-id:delete', { allowedRoles: new Set([1, 2]) }],
+              ['collection:collection-id:export', { allowedRoles: new Set([1, 2]) }],
             ]),
           });
         });
@@ -197,31 +176,28 @@ describe('generateActionsFromPermissions', () => {
     describe('custom action rights', () => {
       describe('globally allowed', () => {
         it('should add the custom action to the list of global permission', () => {
-          const result = generateActionsFromPermissions(
-            {
-              collections: {
-                'collection-id': {
-                  collection: {
-                    addEnabled: false,
-                    browseEnabled: false,
-                    deleteEnabled: false,
-                    editEnabled: false,
-                    exportEnabled: false,
-                    readEnabled: false,
-                  },
-                  actions: {
-                    'custom-action-id': {
-                      triggerEnabled: true,
-                      selfApprovalEnabled: true,
-                      approvalRequired: true,
-                      userApprovalEnabled: true,
-                    },
+          const result = generateActionsFromPermissions({
+            collections: {
+              'collection-id': {
+                collection: {
+                  addEnabled: false,
+                  browseEnabled: false,
+                  deleteEnabled: false,
+                  editEnabled: false,
+                  exportEnabled: false,
+                  readEnabled: false,
+                },
+                actions: {
+                  'custom-action-id': {
+                    triggerEnabled: true,
+                    selfApprovalEnabled: true,
+                    approvalRequired: true,
+                    userApprovalEnabled: true,
                   },
                 },
               },
             },
-            [],
-          );
+          });
 
           expect(result).toEqual({
             everythingAllowed: false,
@@ -231,7 +207,7 @@ describe('generateActionsFromPermissions', () => {
               'custom:collection-id:custom-action-id:trigger',
               'custom:collection-id:custom-action-id:require-approval',
             ]),
-            actionsAllowedByUser: new Map(),
+            actionsByRole: new Map(),
           });
 
           const generateCustomActionIdentifierMock = generateCustomActionIdentifier as jest.Mock;
@@ -246,83 +222,75 @@ describe('generateActionsFromPermissions', () => {
         });
 
         it('should not add permissions when nothing is allowed', () => {
-          const result = generateActionsFromPermissions(
-            {
-              collections: {
-                'collection-id': {
-                  collection: {
-                    addEnabled: false,
-                    browseEnabled: false,
-                    deleteEnabled: false,
-                    editEnabled: false,
-                    exportEnabled: false,
-                    readEnabled: false,
-                  },
-                  actions: {
-                    'custom-action-id': {
-                      triggerEnabled: false,
-                      selfApprovalEnabled: false,
-                      approvalRequired: false,
-                      userApprovalEnabled: false,
-                    },
+          const result = generateActionsFromPermissions({
+            collections: {
+              'collection-id': {
+                collection: {
+                  addEnabled: false,
+                  browseEnabled: false,
+                  deleteEnabled: false,
+                  editEnabled: false,
+                  exportEnabled: false,
+                  readEnabled: false,
+                },
+                actions: {
+                  'custom-action-id': {
+                    triggerEnabled: false,
+                    selfApprovalEnabled: false,
+                    approvalRequired: false,
+                    userApprovalEnabled: false,
                   },
                 },
               },
             },
-            [],
-          );
+          });
 
           expect(result).toEqual({
             everythingAllowed: false,
             actionsGloballyAllowed: new Set(),
-            actionsAllowedByUser: new Map(),
+            actionsByRole: new Map(),
           });
         });
       });
 
       describe('allowed by role', () => {
         it('should generate permissions with a list of users', () => {
-          const result = generateActionsFromPermissions(
-            {
-              collections: {
-                'collection-id': {
-                  collection: {
-                    addEnabled: false,
-                    browseEnabled: false,
-                    deleteEnabled: false,
-                    editEnabled: false,
-                    exportEnabled: false,
-                    readEnabled: false,
-                  },
-                  actions: {
-                    'custom-action-id': {
-                      triggerEnabled: { roles: [1] },
-                      selfApprovalEnabled: { roles: [2] },
-                      approvalRequired: { roles: [1, 2] },
-                      userApprovalEnabled: { roles: [3] },
-                    },
+          const result = generateActionsFromPermissions({
+            collections: {
+              'collection-id': {
+                collection: {
+                  addEnabled: false,
+                  browseEnabled: false,
+                  deleteEnabled: false,
+                  editEnabled: false,
+                  exportEnabled: false,
+                  readEnabled: false,
+                },
+                actions: {
+                  'custom-action-id': {
+                    triggerEnabled: { roles: [1] },
+                    selfApprovalEnabled: { roles: [2] },
+                    approvalRequired: { roles: [1, 2] },
+                    userApprovalEnabled: { roles: [3] },
                   },
                 },
               },
             },
-            [
-              { id: 10, roleId: 1 },
-              { id: 20, roleId: 1 },
-              { id: 30, roleId: 2 },
-              { id: 40, roleId: 3 },
-            ] as UserPermissionV4[],
-          );
+          });
 
           expect(result).toEqual({
             everythingAllowed: false,
             actionsGloballyAllowed: new Set(),
-            actionsAllowedByUser: new Map([
-              ['custom:collection-id:custom-action-id:approve', new Set(['40'])],
-              ['custom:collection-id:custom-action-id:self-approve', new Set(['30'])],
-              ['custom:collection-id:custom-action-id:trigger', new Set(['10', '20'])],
+            actionsByRole: new Map([
+              ['custom:collection-id:custom-action-id:approve', { allowedRoles: new Set([3]) }],
+              [
+                'custom:collection-id:custom-action-id:self-approve',
+                { allowedRoles: new Set([2]) },
+              ],
+              ['custom:collection-id:custom-action-id:trigger', { allowedRoles: new Set([1]) }],
               [
                 'custom:collection-id:custom-action-id:require-approval',
-                new Set(['10', '20', '30']),
+                { allowedRoles: new Set([1, 2]) },
               ],
             ]),
           });
