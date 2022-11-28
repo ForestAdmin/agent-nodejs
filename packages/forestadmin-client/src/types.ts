@@ -89,22 +89,22 @@ export interface PermissionService {
     userId: number | string;
     customActionName: string;
     collectionName: string;
-  }): Promise<RawTreeWithSources>;
+  }): Promise<RawTreeWithSources | undefined>;
   getConditionalRequiresApprovalCondition(params: {
     userId: number | string;
     customActionName: string;
     collectionName: string;
-  }): Promise<RawTreeWithSources>;
+  }): Promise<RawTreeWithSources | undefined>;
   getConditionalApproveCondition(params: {
     userId: number | string;
     customActionName: string;
     collectionName: string;
-  }): Promise<RawTreeWithSources>;
+  }): Promise<RawTreeWithSources | undefined>;
 
   getConditionalApproveConditions(params: {
     customActionName: string;
     collectionName: string;
-  }): Promise<Map<number, RawTreeWithSources>>;
+  }): Promise<Map<number, RawTreeWithSources> | undefined>;
   getRoleIdsAllowedToApproveWithoutConditions(params: {
     customActionName: string;
     collectionName: string;

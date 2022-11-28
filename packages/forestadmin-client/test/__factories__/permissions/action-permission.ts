@@ -9,6 +9,7 @@ export class ActionPermissionsFactory extends Factory<ActionPermissionService> {
       permissions.canOneOf = jest.fn();
       permissions.getCustomActionCondition = jest.fn();
       permissions.getAllCustomActionConditions = jest.fn();
+      permissions.getRoleIdsAllowedToApproveWithoutConditions = jest.fn();
     });
   }
 }

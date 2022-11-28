@@ -5,6 +5,7 @@ import ActionAuthorizationService from '../../../../src/routes/modification/acti
 import ApprovalNotAllowedError from '../../../../src/routes/modification/action/errors/approvalNotAllowedError';
 import CustomActionRequiresApprovalError from '../../../../src/routes/modification/action/errors/customActionRequiresApprovalError';
 import CustomActionTriggerForbiddenError from '../../../../src/routes/modification/action/errors/customActionTriggerForbiddenError';
+import InvalidActionConditionError from '../../../../src/routes/modification/action/errors/invalidActionConditionError';
 import * as factories from '../../../__factories__';
 
 describe('ActionAuthorizationService', () => {
@@ -251,6 +252,57 @@ describe('ActionAuthorizationService', () => {
             expect(collection.aggregate).toHaveBeenCalledTimes(1);
           },
         );
+
+        // Those tests all InvalidActionConditionError errors
+        it(
+          'should throw an error InvalidActionConditionError when we cannot compute the ' +
+            ' filter',
+          async () => {
+            (
+              forestAdminClient.permissionService
+                .getConditionalRequiresApprovalCondition as jest.Mock
+            ).mockResolvedValue({
+              value: 'invalidField',
+              field: 'invalid',
+              operator: 'equal',
+              source: 'data',
+            });
+
+            const authorization = new ActionAuthorizationService(forestAdminClient);
+
+            await expect(
+              authorization.assertCanTriggerCustomAction({
+                customActionName: 'do-something',
+                collection,
+                filterForCaller,
+                filterForAllCaller,
+                caller,
+              }),
+            ).rejects.toThrowError(new InvalidActionConditionError());
+          },
+        );
+
+        it(
+          'should throw an error InvalidActionConditionError when we cannot compute the ' +
+            ' aggregate count',
+          async () => {
+            (collection.aggregate as jest.Mock).mockRejectedValue(
+              new Error('Some internal driver error'),
+            );
+
+            const authorization = new ActionAuthorizationService(forestAdminClient);
+
+            await expect(
+              authorization.assertCanTriggerCustomAction({
+                customActionName: 'do-something',
+                collection,
+                filterForCaller,
+                filterForAllCaller,
+                caller,
+              }),
+            ).rejects.toThrowError(new InvalidActionConditionError());
+          },
+        );
       });
     });
   });
@@ -373,6 +425,15 @@ describe('ActionAuthorizationService', () => {
                 source: 'data',
               },
             ],
+            [
+              20,
+              {
+                value: 'some',
+                field: 'name',
+                operator: 'Equal',
+                source: 'data',
+              },
+            ],
           ]),
         );
 
@@ -415,8 +476,13 @@ describe('ActionAuthorizationService', () => {
             caller,
             requesterId: 30,
           }),
-        ).rejects.toThrowError(new ApprovalNotAllowedError([1, 10, 16]));
+        ).rejects.toThrowError(new ApprovalNotAllowedError([1, 10, 16, 20]));
 
+        // Two time during canApproveCustomAction
+        // Two time during roleIdsAllowedToApprove computation
+        // Even if there is two approves conditions they have equivalent condition hashes
+        // so it's only computed once for both conditions
+        // (We group roleId by condition hash to gain performances)
         expect(collection.aggregate).toHaveBeenCalledTimes(4);
       });
     });

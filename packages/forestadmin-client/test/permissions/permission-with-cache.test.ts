@@ -428,4 +428,42 @@ describe('PermissionService', () => {
       expect(result).toBe(conditions);
     });
   });
+
+  describe('getRoleIdsAllowedToApproveWithoutConditions', () => {
+    it(
+      'should get all roles ids AllowedToApprove for a specific custom action ' +
+        'excluding roles with a condition for this action',
+      async () => {
+        const roleIds = Symbol('roleIds');
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const permissionService = new PermissionServiceWithCache(
+          actionPermissionService,
+          factories.renderingPermission.build(),
+        );
+
+        generateCustomActionIdentifierMock.mockReturnValue('identifier');
+
+        (
+          actionPermissionService.getRoleIdsAllowedToApproveWithoutConditions as jest.Mock
+        ).mockResolvedValue(roleIds);
+
+        const result = await permissionService.getRoleIdsAllowedToApproveWithoutConditions({
+          customActionName: 'do-something',
+          collectionName: 'actors',
+        });
+
+        expect(
+          actionPermissionService.getRoleIdsAllowedToApproveWithoutConditions,
+        ).toHaveBeenCalledWith('identifier');
+
+        expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
+          CustomActionEvent.Approve,
+          'do-something',
+          'actors',
+        );
+
+        expect(result).toBe(roleIds);
+      },
+    );
+  });
 });
