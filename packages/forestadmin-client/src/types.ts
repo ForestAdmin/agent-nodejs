@@ -1,6 +1,6 @@
 import type { ChartRequest } from './charts/chart-handler';
 import type { Chart, QueryChart } from './charts/types';
-import type { CollectionActionEvent, RawTree } from './permissions/types';
+import type { CollectionActionEvent, RawTree, RawTreeWithSources } from './permissions/types';
 import type { Client } from 'openid-client';
 
 import { UserInfo } from './auth/types';
@@ -43,7 +43,6 @@ export interface ForestAdminClient {
     userId: number | string;
     collectionName: string;
   }): Promise<RawTree>;
-
   markScopesAsUpdated(renderingId: number | string): void;
 }
 
@@ -54,6 +53,11 @@ export interface PermissionService {
     collectionName: string;
   }): Promise<boolean>;
   canTriggerCustomAction(params: {
+    userId: number | string;
+    customActionName: string;
+    collectionName: string;
+  }): Promise<boolean>;
+  doesTriggerCustomActionRequiresApproval(params: {
     userId: number | string;
     customActionName: string;
     collectionName: string;
@@ -80,6 +84,31 @@ export interface PermissionService {
     renderingId: number | string;
     segmentQuery: string;
   }): Promise<boolean>;
+
+  getConditionalTriggerCondition(params: {
+    userId: number | string;
+    customActionName: string;
+    collectionName: string;
+  }): Promise<RawTreeWithSources>;
+  getConditionalRequiresApprovalCondition(params: {
+    userId: number | string;
+    customActionName: string;
+    collectionName: string;
+  }): Promise<RawTreeWithSources>;
+  getConditionalApproveCondition(params: {
+    userId: number | string;
+    customActionName: string;
+    collectionName: string;
+  }): Promise<RawTreeWithSources>;
+
+  getConditionalApproveConditions(params: {
+    customActionName: string;
+    collectionName: string;
+  }): Promise<Map<number, RawTreeWithSources>>;
+  getRoleIdsAllowedToApproveWithoutConditions(params: {
+    customActionName: string;
+    collectionName: string;
+  }): Promise<Array<number>>;
 }
 
 export interface ChartHandlerInterface {

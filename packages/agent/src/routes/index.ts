@@ -13,7 +13,7 @@ import Get from './access/get';
 import List from './access/list';
 import ListRelated from './access/list-related';
 import BaseRoute from './base-route';
-import ActionRoute from './modification/action';
+import ActionRoute from './modification/action/action';
 import AssociateRelated from './modification/associate-related';
 import Create from './modification/create';
 import Delete from './modification/delete';

@@ -1,13 +1,18 @@
-import { ActionResult, DataSource, Filter } from '@forestadmin/datasource-toolkit';
+import {
+  ActionResult,
+  DataSource,
+  Filter,
+  UnprocessableError,
+} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import { Readable } from 'stream';
 
-import ActionRoute from '../../../src/routes/modification/action';
-import * as factories from '../../__factories__';
+import ActionRoute from '../../../../src/routes/modification/action/action';
+import * as factories from '../../../__factories__';
 
 // This part of the context is the same in all tests.
 const baseContext = {
-  state: { user: { email: 'john.doe@domain.com' } },
+  state: { user: { id: '42', email: 'john.doe@domain.com' } },
   customProperties: { query: { email: 'john.doe@domain.com', timezone: 'Europe/Paris' } },
   requestBody: {
     data: {
@@ -25,11 +30,21 @@ describe('ActionRoute', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
   const router = factories.router.mockAllMethods().build();
   const services = factories.forestAdminHttpDriverServices.build();
+
   let dataSource: DataSource;
   let route: ActionRoute;
 
   beforeEach(() => {
     jest.resetAllMocks();
+    (
+      options.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+    ).mockResolvedValue(true);
+    (
+      options.forestAdminClient.permissionService.canApproveCustomAction as jest.Mock
+    ).mockResolvedValue(true);
+    (
+      options.forestAdminClient.permissionService.canRequestCustomActionParameters as jest.Mock
+    ).mockResolvedValue(true);
   });
 
   test('setupRoutes should register three routes', () => {
@@ -75,8 +90,37 @@ describe('ActionRoute', () => {
       route = new ActionRoute(services, options, dataSource, 'books', 'My_Action');
     });
 
+    describe('when the request contains requester_id', () => {
+      test('it should reject with UnprocessableError (prevent forged request)', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                requester_id: 'requesterId',
+              },
+            },
+          },
+        });
+
+        const verifySignedActionParameters = options.forestAdminClient
+          .verifySignedActionParameters as jest.Mock;
+        const nextMock = jest.fn();
+
+        await expect(
+          // @ts-expect-error: test private method
+          route.middlewareCustomActionApprovalRequestData.call(route, context, nextMock),
+        ).rejects.toThrow(UnprocessableError);
+
+        expect(nextMock).not.toHaveBeenCalled();
+
+        expect(verifySignedActionParameters).not.toHaveBeenCalled();
+      });
+    });
+
     describe('when the request is an approval', () => {
-      test('it should get the signed parameters, check rights and change body', async () => {
+      test('it should get the signed parameters and change body', async () => {
         const context = createMockContext({
           ...baseContext,
           requestBody: {
@@ -90,10 +134,8 @@ describe('ActionRoute', () => {
           },
         });
 
-        const verifySignedActionParameters = services.authorization
+        const verifySignedActionParameters = options.forestAdminClient
           .verifySignedActionParameters as jest.Mock;
-        const assertCanApproveCustomAction = services.authorization
-          .assertCanApproveCustomAction as jest.Mock;
 
         const signedParams = {
           data: {
@@ -113,13 +155,55 @@ describe('ActionRoute', () => {
         expect(nextMock).toHaveBeenCalled();
 
         expect(verifySignedActionParameters).toHaveBeenCalledWith('someSignedJWT');
-        expect(assertCanApproveCustomAction).toHaveBeenCalledWith({
-          context,
-          customActionName: 'My_Action',
-          collectionName: 'books',
-          requesterId: 42,
-        });
         expect(context.request.body).toStrictEqual(signedParams);
+      });
+    });
+  });
+
+  describe('checking user authorization', () => {
+    beforeEach(() => {
+      dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'books',
+          schema: {
+            actions: { MySingleAction: { scope: 'Single' } },
+            fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+          },
+          getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
+          execute: jest.fn().mockResolvedValue({
+            type: 'Error',
+            message: 'the result does not matter',
+          }),
+        }),
+      ]);
+
+      route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
+    });
+    describe('when the request is an approval', () => {
+      test('it should check rights', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+                requester_id: 42,
+              },
+            },
+          },
+        });
+
+        const assertCanApproveCustomAction = jest.spyOn(
+          // @ts-expect-error: test private attributes
+          route.actionAuthorizationService,
+          'assertCanApproveCustomAction',
+        );
+
+        // @ts-expect-error: test private method
+        await route.handleExecute.call(route, context);
+
+        expect(assertCanApproveCustomAction).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -137,24 +221,21 @@ describe('ActionRoute', () => {
           requestBody: originalBody,
         });
 
-        const assertCanTriggerCustomAction = services.authorization
-          .assertCanTriggerCustomAction as jest.Mock;
-        const nextMock = jest.fn();
+        const assertCanTriggerCustomAction = jest.spyOn(
+          // @ts-expect-error: test private attributes
+          route.actionAuthorizationService,
+          'assertCanTriggerCustomAction',
+        );
 
         // @ts-expect-error: test private method
-        await route.middlewareCustomActionApprovalRequestData.call(route, context, nextMock);
+        await route.handleExecute.call(route, context);
 
-        expect(nextMock).toHaveBeenCalled();
         expect(context.request.body.data).toStrictEqual({
           attributes: {
             ...baseContext.requestBody.data.attributes,
           },
         });
-        expect(assertCanTriggerCustomAction).toHaveBeenCalledWith({
-          context,
-          customActionName: 'My_Action',
-          collectionName: 'books',
-        });
+        expect(assertCanTriggerCustomAction).toHaveBeenCalledTimes(1);
         expect(context.request.body).toStrictEqual(originalBody);
       });
     });
@@ -197,7 +278,7 @@ describe('ActionRoute', () => {
       await route.handleExecute(context);
 
       expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         'MySingleAction',
         { firstname: 'John' },
         {
@@ -363,7 +444,7 @@ describe('ActionRoute', () => {
       await route.handleHook(context);
 
       expect(dataSource.getCollection('books').getForm).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         'MySingleAction',
         null,
         {
@@ -398,7 +479,7 @@ describe('ActionRoute', () => {
       await route.handleHook(context);
 
       expect(dataSource.getCollection('books').getForm).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         'MySingleAction',
         { firstname: 'John' },
         {
@@ -455,7 +536,7 @@ describe('ActionRoute', () => {
       await route.handleExecute(context);
 
       expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         'MyBulkAction',
         { firstname: 'John' },
         {
@@ -509,7 +590,7 @@ describe('ActionRoute', () => {
       await route.handleExecute(context);
 
       expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         'MyGlobalAction',
         expect.any(Object),
         new Filter({
@@ -576,7 +657,7 @@ describe('ActionRoute', () => {
       await route.handleExecute(context);
 
       expect(dataSource.getCollection('reviews').execute).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         'MySingleAction',
         expect.any(Object),
         new Filter({
@@ -657,7 +738,7 @@ describe('ActionRoute', () => {
       await route.handleExecute(context);
 
       expect(dataSource.getCollection('reviews').execute).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
         'MyBulkAction',
         expect.any(Object),
         new Filter({

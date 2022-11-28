@@ -3,6 +3,7 @@ import ForestHttpApi from '../../src/permissions/forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
 } from '../../src/permissions/generate-actions-from-permissions';
+import { RawTreeWithSources } from '../../src/permissions/types';
 
 jest.mock('../../src/permissions/forest-http-api', () => ({
   getEnvironmentPermissions: jest.fn(),
@@ -266,6 +267,125 @@ describe('ActionPermissionService', () => {
         expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(2);
         expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(2);
       });
+    });
+  });
+
+  describe('getCustomActionCondition', () => {
+    it('should return the custom action condition if it exists', async () => {
+      const customActionCondition = {
+        field: 'filed',
+        operator: 'equal',
+        value: 'value',
+        source: 'data',
+      } as RawTreeWithSources;
+
+      const actionConditions = new Map([[10, customActionCondition]]);
+
+      const { service, options, permissions } = setup({
+        everythingAllowed: true,
+        actionsByRole: new Map([
+          ['action1Identifier', { allowedRoles: new Set([]), conditionsByRole: actionConditions }],
+        ]),
+        actionsGloballyAllowed: new Set(),
+      });
+
+      const condition = await service.getCustomActionCondition(10, 'action1Identifier');
+      expect(condition).toBe(customActionCondition);
+
+      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(getEnvironmentPermissionsMock).toHaveBeenCalledWith(options);
+
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledWith(permissions);
+    });
+
+    it('should return undefined the custom action condition if it does not exist', async () => {
+      const { service } = setup({
+        everythingAllowed: false,
+        actionsByRole: new Map(),
+        actionsGloballyAllowed: new Set(['action2']),
+      });
+
+      const condition = await service.getCustomActionCondition(10, 'action1Identifier');
+      expect(condition).toBeUndefined();
+
+      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return null if we cannot found any condition for this role', async () => {
+      const { service } = setup({
+        everythingAllowed: false,
+        actionsByRole: new Map(),
+        actionsGloballyAllowed: new Set(['action2']),
+      });
+
+      const condition = await service.getCustomActionCondition(10, 'action1Identifier');
+      expect(condition).toBeUndefined();
+
+      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getAllCustomActionConditions', () => {
+    it('should return all conditions for this custom action if it exists', async () => {
+      const customActionCondition = {
+        field: 'filed',
+        operator: 'not_equal',
+        value: 'value',
+        source: 'data',
+      } as RawTreeWithSources;
+
+      const actionConditions = new Map([
+        [42, customActionCondition],
+        [43, customActionCondition],
+      ]);
+
+      const { service, options, permissions } = setup({
+        everythingAllowed: true,
+        actionsByRole: new Map([
+          ['action1Identifier', { allowedRoles: new Set([]), conditionsByRole: actionConditions }],
+        ]),
+        actionsGloballyAllowed: new Set(),
+      });
+
+      const conditions = await service.getAllCustomActionConditions('action1Identifier');
+      expect(conditions).toBe(actionConditions);
+
+      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(getEnvironmentPermissionsMock).toHaveBeenCalledWith(options);
+
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledWith(permissions);
+    });
+
+    it('should return undefined the custom action identifier does not exist', async () => {
+      const { service } = setup({
+        everythingAllowed: false,
+        actionsByRole: new Map(),
+        actionsGloballyAllowed: new Set(),
+      });
+
+      const conditions = await service.getAllCustomActionConditions('action1Identifier');
+      expect(conditions).toBeUndefined();
+
+      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return undefined if we cannot found any conditions', async () => {
+      const { service } = setup({
+        everythingAllowed: false,
+        actionsByRole: new Map([['action1Identifier', { allowedRoles: new Set([]) }]]),
+        actionsGloballyAllowed: new Set(),
+      });
+
+      const conditions = await service.getAllCustomActionConditions('action1Identifier');
+      expect(conditions).toBeUndefined();
+
+      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });
   });
 });

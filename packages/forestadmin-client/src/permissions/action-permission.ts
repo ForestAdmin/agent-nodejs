@@ -110,4 +110,38 @@ export default class ActionPermissionService {
 
     return generateActionsFromPermissions(rawPermissions);
   }
+
+  public async getCustomActionCondition(roleId: number, actionName: string) {
+    const permissions = await this.getPermissions();
+
+    const conditionFilter = permissions.actionsByRole.get(actionName)?.conditionsByRole.get(roleId);
+
+    return conditionFilter;
+  }
+
+  public async getAllCustomActionConditions(actionName: string) {
+    const permissions = await this.getPermissions();
+
+    return permissions.actionsByRole.get(actionName)?.conditionsByRole;
+  }
+
+  public async getRoleIdsAllowedToApproveWithoutConditions(actionName: string) {
+    const permissions = await this.getPermissions();
+
+    const approvalPermission = permissions.actionsByRole.get(actionName);
+
+    if (!approvalPermission) {
+      return [];
+    }
+
+    if (!approvalPermission.conditionsByRole) {
+      // Without condition allowed roles are simply the role allowed to approve
+      return Array.from(approvalPermission.allowedRoles);
+    }
+
+    // All allowed roles excluding the one with conditions
+    return Array.from(approvalPermission.allowedRoles).filter(
+      roleId => !approvalPermission.conditionsByRole.has(roleId),
+    );
+  }
 }

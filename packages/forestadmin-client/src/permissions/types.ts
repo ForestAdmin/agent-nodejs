@@ -25,10 +25,24 @@ export type RawTreeLeaf = KeysToSnakeCase<PlainConditionTreeLeaf>;
 
 export type RawTree = GenericRawTree<RawTreeLeaf, RawTreeBranch>;
 
+export type CustomActionRawTreeLeafSource = 'data' | 'input';
+export type RawTreeLeafWithSources = RawTreeLeaf & { source: CustomActionRawTreeLeafSource };
+export type RawTreeBranchWithSources = {
+  aggregator: RawTreeBranch['aggregator'];
+  conditions: Array<RawTreeBranchWithSources | RawTreeLeafWithSources>;
+};
+
+export type RawTreeWithSources = GenericRawTree<RawTreeLeafWithSources, RawTreeBranchWithSources>;
+
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
 
 export type RightDescriptionWithRolesV4 = { roles: number[] };
 export type RightDescriptionV4 = boolean | RightDescriptionWithRolesV4;
+
+export type RightConditionByRolesV4 = {
+  roleId: number;
+  filter: RawTreeWithSources;
+};
 
 export interface EnvironmentCollectionAccessPermissionsV4 {
   browseEnabled: RightDescriptionV4;
@@ -41,8 +55,11 @@ export interface EnvironmentCollectionAccessPermissionsV4 {
 
 export interface EnvironmentSmartActionPermissionsV4 {
   triggerEnabled: RightDescriptionV4;
+  triggerConditions: RightConditionByRolesV4[];
   approvalRequired: RightDescriptionV4;
+  approvalRequiredConditions: RightConditionByRolesV4[];
   userApprovalEnabled: RightDescriptionV4;
+  userApprovalConditions: RightConditionByRolesV4[];
   selfApprovalEnabled: RightDescriptionV4;
 }
 
