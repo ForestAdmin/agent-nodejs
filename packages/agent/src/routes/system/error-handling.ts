@@ -29,6 +29,7 @@ export default class ErrorHandling extends BaseRoute {
           {
             name: this.getErrorName(e),
             detail: this.getErrorMessage(e),
+            // We needed to maintaining this due to the frontend app/utils/ember-error-util.js
             status,
             ...(data ? { data } : {}),
           },
@@ -73,7 +74,16 @@ export default class ErrorHandling extends BaseRoute {
   }
 
   private getErrorPayload(error: Error & { data: unknown }): unknown {
-    return error.data;
+    if (
+      error instanceof HttpError ||
+      error instanceof ValidationError ||
+      error instanceof UnprocessableError ||
+      error instanceof ForbiddenError
+    ) {
+      return error.data;
+    }
+
+    return null;
   }
 
   private debugLogError(context: Context, error: Error): void {
