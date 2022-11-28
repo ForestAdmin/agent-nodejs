@@ -1,7 +1,10 @@
-import { Collection, Filter, PaginatedFilter } from '@forestadmin/datasource-toolkit';
+import { Collection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import WriteDecorator from '../../../src/decorators/write/collection';
+
+const caller = factories.caller.build();
+const filter = factories.filter.build();
 
 describe('WriteDecorator > When there are no relations', () => {
   let collection: Collection;
@@ -34,17 +37,12 @@ describe('WriteDecorator > When there are no relations', () => {
         decorator.replaceFieldWriting('name', handler);
 
         // when
-        await decorator.update(factories.caller.build(), new Filter({}), {
-          name: 'a name',
-        });
+        await decorator.update(caller, filter, { name: 'a name' });
 
         // then
         expect(handler).toHaveBeenCalledWith(
           'a name',
-          expect.objectContaining({
-            action: 'update',
-            record: { name: 'a name' },
-          }),
+          expect.objectContaining({ action: 'update', record: { name: 'a name' } }),
         );
       });
     });
@@ -57,15 +55,12 @@ describe('WriteDecorator > When there are no relations', () => {
         decorator.replaceFieldWriting('name', handler);
 
         // when
-        await decorator.create(factories.caller.build(), [{ name: 'a name' }]);
+        await decorator.create(caller, [{ name: 'a name' }]);
 
         // then
         expect(handler).toHaveBeenCalledWith(
           'a name',
-          expect.objectContaining({
-            action: 'create',
-            record: { name: 'a name' },
-          }),
+          expect.objectContaining({ action: 'create', record: { name: 'a name' } }),
         );
       });
     });
@@ -77,9 +72,7 @@ describe('WriteDecorator > When there are no relations', () => {
       decorator.replaceFieldWriting('name', handler);
 
       // when
-      await decorator.update(factories.caller.build(), factories.filter.build(), {
-        name: 'orius',
-      });
+      await decorator.update(caller, filter, { name: 'orius' });
 
       // then
       expect(handler).toHaveBeenCalledWith(
@@ -93,8 +86,6 @@ describe('WriteDecorator > When there are no relations', () => {
       decorator.replaceFieldWriting('name', handler);
 
       // when
-      const caller = factories.caller.build();
-      const filter = factories.filter.build();
       await decorator.update(caller, filter, { name: 'jean', otherField: 'aValue' });
 
       // then
@@ -110,25 +101,16 @@ describe('WriteDecorator > When there are no relations', () => {
         decorator.replaceFieldWriting('age', ageDefinition);
 
         // when
-        await decorator.update(factories.caller.build(), factories.filter.build(), {
-          name: 'orius',
-          age: '10',
-        });
+        await decorator.update(caller, filter, { name: 'orius', age: '10' });
 
         // then
         expect(nameDefinition).toHaveBeenCalledWith(
           'orius',
-          expect.objectContaining({
-            action: 'update',
-            record: { name: 'orius', age: '10' },
-          }),
+          expect.objectContaining({ action: 'update', record: { name: 'orius', age: '10' } }),
         );
         expect(ageDefinition).toHaveBeenCalledWith(
           '10',
-          expect.objectContaining({
-            action: 'update',
-            record: { name: 'orius', age: '10' },
-          }),
+          expect.objectContaining({ action: 'update', record: { name: 'orius', age: '10' } }),
         );
       });
 
@@ -142,10 +124,7 @@ describe('WriteDecorator > When there are no relations', () => {
         decorator.replaceFieldWriting('age', ageDefinition);
 
         // when
-        await decorator.update(factories.caller.build(), factories.filter.build(), {
-          name: 'orius',
-          age: '10',
-        });
+        await decorator.update(caller, filter, { name: 'orius', age: '10' });
 
         // then
         expect(nameDefinition).toHaveBeenCalledWith(
@@ -157,7 +136,7 @@ describe('WriteDecorator > When there are no relations', () => {
         expect(ageDefinition).toHaveBeenCalledWith(
           '10',
           expect.objectContaining({
-            record: { name: 'orius', age: '10' }, // ADDED_FIELD should not be hear
+            record: { name: 'orius', age: '10' }, // ADDED_FIELD should not be here
           }),
         );
       });
@@ -169,8 +148,6 @@ describe('WriteDecorator > When there are no relations', () => {
         decorator.replaceFieldWriting('age', ageDefinition);
 
         // when
-        const caller = factories.caller.build();
-        const filter = factories.filter.build();
         await decorator.update(caller, filter, { name: 'orius', age: '10' });
 
         // then
@@ -186,8 +163,6 @@ describe('WriteDecorator > When there are no relations', () => {
         decorator.replaceFieldWriting('name', nameDefinition);
 
         // when
-        const caller = factories.caller.build();
-        const filter = factories.filter.build();
         await decorator.update(caller, filter, { name: 'orius', otherField: 'a value' });
 
         // then
@@ -206,8 +181,6 @@ describe('WriteDecorator > When there are no relations', () => {
             decorator.replaceFieldWriting('age', ageDefinition);
 
             // when
-            const caller = factories.caller.build();
-            const filter = factories.filter.build();
             await decorator.update(caller, filter, { name: 'orius', age: '10' });
 
             // then
@@ -226,13 +199,10 @@ describe('WriteDecorator > When there are no relations', () => {
             decorator.replaceFieldWriting('age', ageDefinitionTriggerName);
 
             // when
-            const caller = factories.caller.build();
-            await decorator.update(caller, factories.filter.build(), {
-              age: '10',
-            });
+            await decorator.update(caller, filter, { age: '10' });
 
             // then
-            expect(collection.update).toHaveBeenCalledWith(caller, expect.any(PaginatedFilter), {
+            expect(collection.update).toHaveBeenCalledWith(caller, filter, {
               name: 'triggeredChangedName',
             });
           });
@@ -246,12 +216,10 @@ describe('WriteDecorator > When there are no relations', () => {
             decorator.replaceFieldWriting('age', ageDefinitionTriggerName);
 
             // when
-            const caller = factories.caller.build();
-            const filter = factories.filter.build();
             await decorator.update(caller, filter, { age: '10' });
 
             // then
-            expect(collection.update).toHaveBeenCalledWith(caller, expect.any(PaginatedFilter), {
+            expect(collection.update).toHaveBeenCalledWith(caller, filter, {
               price: 'triggeredChangedPrice',
             });
           });
@@ -262,15 +230,11 @@ describe('WriteDecorator > When there are no relations', () => {
     describe('create', () => {
       it('calls create on the child collection with the result of the handler', async () => {
         decorator.replaceFieldWriting('name', () => ({ name: 'changed name' }));
-        collection.create = jest.fn().mockResolvedValue([
-          {
-            name: 'changed name',
-            otherField: 'other value',
-          },
-        ]);
+        collection.create = jest
+          .fn()
+          .mockResolvedValue([{ name: 'changed name', otherField: 'other value' }]);
 
         // when
-        const caller = factories.caller.build();
         await decorator.create(caller, [
           { name: 'orius', otherField: 'other value 1' },
           { name: 'orius', otherField: 'other value 2' },
