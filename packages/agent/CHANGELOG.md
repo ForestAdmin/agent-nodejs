@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.2...@forestadmin/agent@1.4.3) (2022-11-28)
+
+
+### Bug Fixes
+
+* **error-handling:** prevent data leak during error handling ([#559](https://github.com/ForestAdmin/agent-nodejs/issues/559)) ([3cd89e3](https://github.com/ForestAdmin/agent-nodejs/commit/3cd89e3a529ca865ec139a190957a2dd381844d6))
+
 ## @forestadmin/agent [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.1...@forestadmin/agent@1.4.2) (2022-11-23)
 
 
