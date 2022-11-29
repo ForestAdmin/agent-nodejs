@@ -6,8 +6,6 @@ export type Schema = {
       'lastname': string;
       'storeId': number;
       '_id': string;
-      'address_city': string;
-      'address_country': string;
     };
     nested: {
       'address': Schema['account_address']['plain'] & Schema['account_address']['nested'];
@@ -47,8 +45,6 @@ export type Schema = {
       'parent:lastname': string;
       'parent:storeId': number;
       'parent:_id': string;
-      'parent:address_city': string;
-      'parent:address_country': string;
       'parent:store:id': number;
       'parent:store:name': string;
       'parent:store:ownerId': number;
@@ -75,8 +71,6 @@ export type Schema = {
       'parent:lastname': string;
       'parent:storeId': number;
       'parent:_id': string;
-      'parent:address_city': string;
-      'parent:address_country': string;
       'parent:address:streetNumber': number;
       'parent:address:streetName': string;
       'parent:address:city': string;
@@ -114,8 +108,6 @@ export type Schema = {
       'parent:parent:lastname': string;
       'parent:parent:storeId': number;
       'parent:parent:_id': string;
-      'parent:parent:address_city': string;
-      'parent:parent:address_country': string;
       'parent:parent:address:streetNumber': number;
       'parent:parent:address:streetName': string;
       'parent:parent:address:city': string;
