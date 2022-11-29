@@ -10,17 +10,17 @@ import {
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
-import OperatorEmulationDecorator from '../../../src/decorators/operators-emulate/collection';
+import OperatorsEmulateCollectionDecorator from '../../../src/decorators/operators-emulate/collection';
 
-describe('OperatorsEmulate', () => {
+describe('OperatorsEmulateCollectionDecorator', () => {
   describe('when the collection pk does not supports == or in operators', () => {
     // State
     let dataSource: DataSource;
-    let decoratedDataSource: DataSourceDecorator<OperatorEmulationDecorator>;
+    let decoratedDataSource: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
 
     // Convenience: Direct access to collections before and after decoration
     let books: Collection;
-    let newBooks: OperatorEmulationDecorator;
+    let newBooks: OperatorsEmulateCollectionDecorator;
 
     // Build datasource
     beforeEach(() => {
@@ -41,7 +41,10 @@ describe('OperatorsEmulate', () => {
 
     // Build decorator
     beforeEach(() => {
-      decoratedDataSource = new DataSourceDecorator(dataSource, OperatorEmulationDecorator);
+      decoratedDataSource = new DataSourceDecorator(
+        dataSource,
+        OperatorsEmulateCollectionDecorator,
+      );
       newBooks = decoratedDataSource.getCollection('books');
     });
 
@@ -55,13 +58,13 @@ describe('OperatorsEmulate', () => {
   describe('when the collection pk supports the == and in operators', () => {
     // State
     let dataSource: DataSource;
-    let decoratedDataSource: DataSourceDecorator<OperatorEmulationDecorator>;
+    let decoratedDataSource: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
 
     // Convenience: Direct access to collections before and after decoration
     let books: Collection;
     let persons: Collection;
-    let newBooks: OperatorEmulationDecorator;
-    let newPersons: OperatorEmulationDecorator;
+    let newBooks: OperatorsEmulateCollectionDecorator;
+    let newPersons: OperatorsEmulateCollectionDecorator;
 
     // Build datasource
     beforeEach(() => {
@@ -101,7 +104,10 @@ describe('OperatorsEmulate', () => {
 
     // Build decorator
     beforeEach(() => {
-      decoratedDataSource = new DataSourceDecorator(dataSource, OperatorEmulationDecorator);
+      decoratedDataSource = new DataSourceDecorator(
+        dataSource,
+        OperatorsEmulateCollectionDecorator,
+      );
 
       newBooks = decoratedDataSource.getCollection('books');
       newPersons = decoratedDataSource.getCollection('persons');

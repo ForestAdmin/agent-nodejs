@@ -7,7 +7,7 @@ import DataSourceDecorator from './datasource-decorator';
 import EmptyCollectionDecorator from './empty/collection';
 import HookCollectionDecorator from './hook/collection';
 import OperatorsEmulateCollectionDecorator from './operators-emulate/collection';
-import OperatorsReplaceCollectionDecorator from './operators-replace/collection';
+import OperatorsEquivalenceCollectionDecorator from './operators-equivalence/collection';
 import PublicationFieldCollectionDecorator from './publication-field/collection';
 import RelationCollectionDecorator from './relation/collection';
 import RenameFieldCollectionDecorator from './rename-field/collection';
@@ -23,12 +23,9 @@ export default class DecoratorsStack {
   chart: ChartDataSourceDecorator;
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
-  earlyOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
-  empty: DataSourceDecorator<EmptyCollectionDecorator>;
   relation: DataSourceDecorator<RelationCollectionDecorator>;
   lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
-  lateOpReplace: DataSourceDecorator<OperatorsReplaceCollectionDecorator>;
   publication: DataSourceDecorator<PublicationFieldCollectionDecorator>;
   renameField: DataSourceDecorator<RenameFieldCollectionDecorator>;
   schema: DataSourceDecorator<SchemaCollectionDecorator>;
@@ -47,18 +44,19 @@ export default class DecoratorsStack {
 
     /* eslint-disable no-multi-assign */
     // Step 0: Do not query datasource when we know the result with yield an empty set.
-    last = this.empty = new DataSourceDecorator(last, EmptyCollectionDecorator);
+    last = new DataSourceDecorator(last, EmptyCollectionDecorator);
+    last = new DataSourceDecorator(last, OperatorsEquivalenceCollectionDecorator);
 
     // Step 1: Computed-Relation-Computed sandwich (needed because some emulated relations depend
     // on computed fields, and some computed fields depend on relation...)
     // Note that replacement goes before emulation, as replacements may use emulated operators.
     last = this.earlyComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
-    last = this.earlyOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
+    last = new DataSourceDecorator(last, OperatorsEquivalenceCollectionDecorator);
     last = this.relation = new DataSourceDecorator(last, RelationCollectionDecorator);
     last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
-    last = this.lateOpReplace = new DataSourceDecorator(last, OperatorsReplaceCollectionDecorator);
+    last = new DataSourceDecorator(last, OperatorsEquivalenceCollectionDecorator);
 
     // Step 2: Those need access to all fields. They can be loaded in any order.
     last = this.search = new DataSourceDecorator(last, SearchCollectionDecorator);
