@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.2...@forestadmin/datasource-customizer@1.4.3) (2022-11-29)
+
+
+### Bug Fixes
+
+* **customizer:** resolve operator equivalence between datasource composition and computed fields ([#561](https://github.com/ForestAdmin/agent-nodejs/issues/561)) ([95c9a12](https://github.com/ForestAdmin/agent-nodejs/commit/95c9a12d91dab71f07f14e77d154098edc500b5a))
+
 ## @forestadmin/datasource-customizer [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.1...@forestadmin/datasource-customizer@1.4.2) (2022-11-07)
 
 
