@@ -19,6 +19,6 @@ export default class WriteCustomizationContext<
     super(collection, caller);
 
     this.action = action;
-    this.record = record;
+    this.record = Object.freeze({ ...record });
   }
 }

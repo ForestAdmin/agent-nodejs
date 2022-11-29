@@ -16,7 +16,7 @@ import SearchCollectionDecorator from './search/collection';
 import SegmentCollectionDecorator from './segment/collection';
 import SortEmulateCollectionDecorator from './sort-emulate/collection';
 import ValidationCollectionDecorator from './validation/collection';
-import WriteCollectionDecorator from './write/collection';
+import WriteCollectionDecorator from './write/collection-write-replace';
 
 export default class DecoratorsStack {
   action: DataSourceDecorator<ActionCollectionDecorator>;
