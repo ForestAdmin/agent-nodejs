@@ -16,7 +16,7 @@ import SearchCollectionDecorator from './search/collection';
 import SegmentCollectionDecorator from './segment/collection';
 import SortEmulateCollectionDecorator from './sort-emulate/collection';
 import ValidationCollectionDecorator from './validation/collection';
-import WriteCollectionDecorator from './write/collection-write-replace';
+import WriteDataSourceDecorator from './write/datasource';
 
 export default class DecoratorsStack {
   action: DataSourceDecorator<ActionCollectionDecorator>;
@@ -33,7 +33,7 @@ export default class DecoratorsStack {
   segment: DataSourceDecorator<SegmentCollectionDecorator>;
   sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
   validation: DataSourceDecorator<ValidationCollectionDecorator>;
-  write: DataSourceDecorator<WriteCollectionDecorator>;
+  write: WriteDataSourceDecorator;
   hook: DataSourceDecorator<HookCollectionDecorator>;
   dataSource: DataSource;
 
@@ -68,7 +68,7 @@ export default class DecoratorsStack {
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
     last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);
-    last = this.write = new DataSourceDecorator(last, WriteCollectionDecorator);
+    last = this.write = new WriteDataSourceDecorator(last);
     last = this.hook = new DataSourceDecorator(last, HookCollectionDecorator);
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code

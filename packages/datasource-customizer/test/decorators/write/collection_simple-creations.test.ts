@@ -1,7 +1,8 @@
 import { Collection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import WriteReplacerCollectionDecorator from '../../../src/decorators/write/collection-write-replace';
+import WriteDataSourceDecorator from '../../../src/decorators/write/datasource';
+import WriteReplacerCollectionDecorator from '../../../src/decorators/write/write-replace/collection';
 
 const caller = factories.caller.build();
 
@@ -25,7 +26,7 @@ describe('WriteDecorator > Create with no relations', () => {
     );
 
     collection = dataSource.getCollection('books');
-    decorator = new WriteReplacerCollectionDecorator(collection, dataSource);
+    decorator = new WriteDataSourceDecorator(dataSource).getCollection('books');
   });
 
   test('should do nothing when no rewritting is defined', async () => {

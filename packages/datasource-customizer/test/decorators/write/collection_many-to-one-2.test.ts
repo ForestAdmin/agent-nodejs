@@ -3,7 +3,7 @@ import { Collection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
-import WriteReplacerCollectionDecorator from '../../../src/decorators/write/collection-write-replace';
+import WriteReplacerCollectionDecorator from '../../../src/decorators/write/write-replace/collection';
 
 const caller = factories.caller.build();
 let authorIdSequence = 0;

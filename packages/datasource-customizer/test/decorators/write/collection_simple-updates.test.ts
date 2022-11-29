@@ -1,7 +1,7 @@
 import { Collection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import WriteReplacerCollectionDecorator from '../../../src/decorators/write/collection-write-replace';
+import WriteReplacerCollectionDecorator from '../../../src/decorators/write/write-replace/collection';
 
 const caller = factories.caller.build();
 const filter = factories.filter.build();
