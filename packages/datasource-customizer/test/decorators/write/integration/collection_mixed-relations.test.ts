@@ -1,8 +1,8 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import WriteDecorator from '../../../src/decorators/write/collection';
+import WriteDataSourceDecorator from '../../../../src/decorators/write/datasource';
 
-describe('WriteDecorator', () => {
+describe('WriteDataSourceDecorator > with mixed relations', () => {
   const setupWithManyToOneAndOneToOneRelation = () => {
     const dataSource = factories.dataSource.buildWithCollections([
       factories.collection.build({
@@ -44,45 +44,48 @@ describe('WriteDecorator', () => {
       }),
     ]);
 
-    return { dataSource, collection: dataSource.getCollection('books') };
+    const decorated = new WriteDataSourceDecorator(dataSource);
+
+    return { dataSource, decorated };
   };
 
   it('creates the relations and attaches to the new collection', async () => {
     // given
-    const { collection, dataSource } = setupWithManyToOneAndOneToOneRelation();
-    const authorsCollection = dataSource.getCollection('authors');
-    const formatsCollection = dataSource.getCollection('formats');
+    const { dataSource, decorated } = setupWithManyToOneAndOneToOneRelation();
+    const books = dataSource.getCollection('books');
+    const authors = dataSource.getCollection('authors');
+    const formats = dataSource.getCollection('formats');
+    const decoratedBooks = decorated.getCollection('books');
 
-    const decoratedCollection = new WriteDecorator(collection, dataSource);
     const titleDefinition = jest.fn().mockResolvedValue({
       myAuthor: { name: 'Orius' },
       myFormat: { name: 'XXL' },
       title: 'a name',
     });
-    decoratedCollection.replaceFieldWriting('title', titleDefinition);
+    decoratedBooks.replaceFieldWriting('title', titleDefinition);
 
-    collection.create = jest
+    books.create = jest
       .fn()
       .mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-426614174087', title: 'a name' }]);
-    authorsCollection.create = jest
+    authors.create = jest
       .fn()
       .mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-111111111111', name: 'Orius' }]);
-    formatsCollection.create = jest
+    formats.create = jest
       .fn()
       .mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-222222222222', name: 'XXL' }]);
 
     // when
     const caller = factories.caller.build();
-    await decoratedCollection.create(caller, [{ title: 'a title' }]);
+    await decoratedBooks.create(caller, [{ title: 'a title' }]);
 
     // then
-    expect(collection.create).toHaveBeenCalledTimes(1);
-    expect(collection.create).toHaveBeenCalledWith(caller, [
+    expect(books.create).toHaveBeenCalledTimes(1);
+    expect(books.create).toHaveBeenCalledWith(caller, [
       { formatId: '123e4567-e89b-12d3-a456-222222222222', title: 'a name' },
     ]);
-    expect(authorsCollection.create).toHaveBeenCalledWith(caller, [
+    expect(authors.create).toHaveBeenCalledWith(caller, [
       { bookId: '123e4567-e89b-12d3-a456-426614174087', name: 'Orius' },
     ]);
-    expect(formatsCollection.create).toHaveBeenCalledWith(caller, [{ name: 'XXL' }]);
+    expect(formats.create).toHaveBeenCalledWith(caller, [{ name: 'XXL' }]);
   });
 });

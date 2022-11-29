@@ -1,7 +1,8 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 
 import DataSourceDecorator from '../datasource-decorator';
-import RelationWriterCollectionDecorator from './relation/collection';
+import CreateRelationsCollectionDecorator from './create-relations/collection';
+import UpdateRelationsCollectionDecorator from './update-relations/collection';
 import WriteReplacerCollectionDecorator from './write-replace/collection';
 
 /**
@@ -9,7 +10,8 @@ import WriteReplacerCollectionDecorator from './write-replace/collection';
  */
 export default class WriteDataSourceDecorator extends DataSourceDecorator<WriteReplacerCollectionDecorator> {
   constructor(childDataSource: DataSource) {
-    const decorator = new DataSourceDecorator(childDataSource, RelationWriterCollectionDecorator);
-    super(decorator, WriteReplacerCollectionDecorator);
+    const create = new DataSourceDecorator(childDataSource, CreateRelationsCollectionDecorator);
+    const update = new DataSourceDecorator(create, UpdateRelationsCollectionDecorator);
+    super(update, WriteReplacerCollectionDecorator);
   }
 }

@@ -47,7 +47,7 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     const newPatch = await this.rewritePatch(caller, 'update', patch);
 
-    this.childCollection.update(caller, filter, newPatch);
+    return this.childCollection.update(caller, filter, newPatch);
   }
 
   /**
@@ -59,49 +59,58 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
     patch: RecordData,
     usedHandlers: string[] = [],
   ): Promise<RecordData> {
-    const keys = Object.keys(patch);
-
-    // Either call our field handlers or delegate everything to relation.
+    // We rewrite the patch by applying all handlers on each field.
     const context = new WriteCustomizationContext(this, caller, action, patch);
-    const noRecursionPatch = {};
-    const recursionPatches = keys.map(async key => {
-      const schema = this.schema.fields[key];
+    const patches = await Promise.all(
+      Object.keys(patch).map(key => this.rewriteKey(context, key, usedHandlers)),
+    );
 
-      // Handle common errors with proper messages.
-      if (!schema) throw new Error(`Unknown field: "${key}"`);
-      if (usedHandlers.includes(key))
-        throw new Error(`Cycle detected: ${usedHandlers.join(' -> ')}.`);
+    // We now have a list of patches (one per field) that we can merge.
+    const newPatch = this.deepMerge(...patches);
 
-      // Handle column case
-      if (schema?.type === 'Column') {
-        const handler = this.handlers[key] ?? (v => ({ [key]: v }));
-        const fieldPatch = ((await handler(patch[key], context)) ?? {}) as RecordData[];
+    // Check that the customer handlers did not introduce invalid data.
+    if (Object.keys(newPatch).length > 0) RecordValidator.validate(this, newPatch);
 
-        if (fieldPatch && fieldPatch.constructor !== Object)
-          throw new Error(`The write handler of ${key} should return an object or nothing.`);
+    return newPatch;
+  }
 
-        // Isolate changes from handlers that change their own value.
-        if (fieldPatch[key] !== undefined) {
-          noRecursionPatch[key] = fieldPatch[key];
-          delete fieldPatch[key];
-        }
+  private async rewriteKey(
+    context: WriteCustomizationContext,
+    key: string,
+    used: string[],
+  ): Promise<RecordData> {
+    // Guard against infinite recursion.
+    if (used.includes(key)) throw new Error(`Cycle detected: ${used.join(' -> ')}.`);
 
-        // Recurse for the remaining changes.
-        return this.rewritePatch(caller, action, fieldPatch, [...usedHandlers, key]);
-      }
+    const { record, action, caller } = context;
+    const schema = this.schema.fields[key];
 
-      // Completely delegate rewriting to the relation itself.
-      noRecursionPatch[key] = await this.dataSource
-        .getCollection(schema.foreignCollection)
-        .rewritePatch(caller, action, patch[key]);
+    // Handle Column fields.
+    if (schema?.type === 'Column') {
+      // We either call the customer handler or a default one that does nothing.
+      const handler = this.handlers[key] ?? (v => ({ [key]: v }));
+      const fieldPatch = ((await handler(record[key], context)) ?? {}) as RecordData;
 
-      return {};
-    });
+      if (fieldPatch && !this.isObject(fieldPatch))
+        throw new Error(`The write handler of ${key} should return an object or nothing.`);
 
-    const finalPatch = this.deepMerge(noRecursionPatch, ...(await Promise.all(recursionPatches)));
-    if (Object.keys(finalPatch).length > 0) RecordValidator.validate(this, finalPatch);
+      // Isolate change to our own value (which should not recurse) and the rest which should
+      // trigger the other handlers.
+      const { [key]: value, ...recursionPatch } = fieldPatch;
+      const newPatch = await this.rewritePatch(caller, action, recursionPatch, [...used, key]);
 
-    return finalPatch;
+      return value !== undefined ? this.deepMerge({ [key]: value }, newPatch) : newPatch;
+    }
+
+    // Handle relation fields.
+    if (schema?.type === 'ManyToOne' || schema?.type === 'OneToOne') {
+      // Delegate relations to the appropriate collection.
+      const relation = this.dataSource.getCollection(schema.foreignCollection);
+
+      return { [key]: await relation.rewritePatch(caller, action, record[key]) };
+    }
+
+    throw new Error(`Unknown field: "${key}"`);
   }
 
   /**
@@ -112,22 +121,18 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
 
     for (const patch of patches) {
       for (const [key, value] of Object.entries(patch)) {
-        if (acc[key] === undefined) {
-          acc[key] = value;
-        } else if (
-          value &&
-          typeof value === 'object' &&
-          Object.getPrototypeOf(value) === Object.prototype
-        ) {
-          // We could check that this is a relation field but we choose to only check for objects
-          // to allow customers to use this for JSON fields.
-          acc[key] = this.deepMerge(acc[key], value);
-        } else {
-          throw new Error(`Conflict value on the field "${key}". It received several values.`);
-        }
+        // We could check that this is a relation field but we choose to only check for objects
+        // to allow customers to use this for JSON fields.
+        if (acc[key] === undefined) acc[key] = value;
+        else if (this.isObject(value)) acc[key] = this.deepMerge(acc[key], value);
+        else throw new Error(`Conflict value on the field "${key}". It received several values.`);
       }
     }
 
     return acc;
+  }
+
+  private isObject(value: unknown): value is Record<string, unknown> {
+    return value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype;
   }
 }
