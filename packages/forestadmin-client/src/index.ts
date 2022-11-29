@@ -1,3 +1,4 @@
+import AuthService from './auth';
 import ChartHandler from './charts/chart-handler';
 import ForestAdminClient from './forest-admin-client-with-cache';
 import IpWhiteListService from './ip-whitelist';
@@ -31,6 +32,7 @@ export {
   RenderingPermissionV4,
   UserPermissionV4,
 } from './permissions/types';
+export { UserInfo } from './auth/types';
 
 export default function createForestAdminClient(
   options: ForestAdminClientOptions,
@@ -51,6 +53,7 @@ export default function createForestAdminClient(
   const chartHandler = new ChartHandler(contextVariablesInstantiator);
   const ipWhitelistPermission = new IpWhiteListService(optionsWithDefaults);
   const schemaService = new SchemaService(optionsWithDefaults);
+  const authService = new AuthService(optionsWithDefaults);
 
   return new ForestAdminClient(
     optionsWithDefaults,
@@ -60,6 +63,7 @@ export default function createForestAdminClient(
     chartHandler,
     ipWhitelistPermission,
     schemaService,
+    authService,
   );
 }
 

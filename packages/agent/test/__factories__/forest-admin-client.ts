@@ -26,6 +26,8 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
     getChartWithContextInjected: jest.fn(),
     getQueryForChart: jest.fn(),
   },
+  getOpenIdClient: jest.fn(),
+  getUserInfo: jest.fn(),
 }));
 
 export default forestAdminClientFactory;

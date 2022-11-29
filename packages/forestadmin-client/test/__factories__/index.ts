@@ -7,3 +7,4 @@ export { default as contextVariablesInstantiator } from './utils/context-variabl
 export { default as forestAdminClientOptions } from './forest-admin-client-options';
 export { default as ipWhiteList } from './ip-whitelist';
 export { default as schema } from './schema';
+export { default as auth } from './auth';

@@ -1,7 +1,9 @@
 import type { ChartRequest } from './charts/chart-handler';
 import type { Chart, QueryChart } from './charts/types';
 import type { CollectionActionEvent, RawTree } from './permissions/types';
+import type { Client } from 'openid-client';
 
+import { UserInfo } from './auth/types';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
 import { ForestServerCollection } from './schema/types';
 import ContextVariables, { RequestContextVariables } from './utils/context-variables';
@@ -32,6 +34,9 @@ export interface ForestAdminClient {
     agentName: string,
     agentVersion: string,
   ): Promise<boolean>;
+  getOpenIdClient(): Promise<Client>;
+
+  getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo>;
 
   getScope(params: {
     renderingId: number | string;
