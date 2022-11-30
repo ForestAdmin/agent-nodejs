@@ -15,6 +15,11 @@ connection.model(
       streetName: String,
       city: String,
       country: String,
+      sub: {
+        importance: { type: String, enum: ['high', 'medium', 'low'] },
+        title: String,
+        amount: Number,
+      },
     },
 
     bills: [

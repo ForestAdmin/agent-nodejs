@@ -5,19 +5,21 @@ export type Schema = {
       'firstname': string;
       'lastname': string;
       'storeId': number;
+      'address': {streetNumber: number; streetName: string; city: string; country: string; sub: {importance: string; title: string; amount: number}};
+      'bills': Array<{title: string; amount: number; issueDate: string; items: Array<{importance: string; title: string; amount: number}>}>;
       '_id': string;
+      'address@@@streetNumber': string;
+      'address@@@streetName': string;
+      'address@@@city': string;
+      'address@@@country': string;
+      'address@@@sub@@@importance': string;
+      'address@@@sub@@@title': string;
+      'address@@@sub@@@amount': string;
     };
     nested: {
-      'address': Schema['account_address']['plain'] & Schema['account_address']['nested'];
       'store': Schema['store']['plain'] & Schema['store']['nested'];
     };
     flat: {
-      'address:streetNumber': number;
-      'address:streetName': string;
-      'address:city': string;
-      'address:country': string;
-      'address:_id': string;
-      'address:parentId': string;
       'store:id': number;
       'store:name': string;
       'store:ownerId': number;
@@ -26,102 +28,6 @@ export type Schema = {
       'store:owner:firstName': string;
       'store:owner:lastName': string;
       'store:owner:fullName': string;
-    };
-  };
-  'account_address': {
-    plain: {
-      'streetNumber': number;
-      'streetName': string;
-      'city': string;
-      'country': string;
-      '_id': string;
-      'parentId': string;
-    };
-    nested: {
-      'parent': Schema['account']['plain'] & Schema['account']['nested'];
-    };
-    flat: {
-      'parent:firstname': string;
-      'parent:lastname': string;
-      'parent:storeId': number;
-      'parent:_id': string;
-      'parent:store:id': number;
-      'parent:store:name': string;
-      'parent:store:ownerId': number;
-      'parent:store:ownerFullName': string;
-      'parent:store:owner:id': number;
-      'parent:store:owner:firstName': string;
-      'parent:store:owner:lastName': string;
-      'parent:store:owner:fullName': string;
-    };
-  };
-  'account_bills': {
-    plain: {
-      'title': string;
-      'amount': number;
-      'issueDate': string;
-      '_id': string;
-      'parentId': string;
-    };
-    nested: {
-      'parent': Schema['account']['plain'] & Schema['account']['nested'];
-    };
-    flat: {
-      'parent:firstname': string;
-      'parent:lastname': string;
-      'parent:storeId': number;
-      'parent:_id': string;
-      'parent:address:streetNumber': number;
-      'parent:address:streetName': string;
-      'parent:address:city': string;
-      'parent:address:country': string;
-      'parent:address:_id': string;
-      'parent:address:parentId': string;
-      'parent:store:id': number;
-      'parent:store:name': string;
-      'parent:store:ownerId': number;
-      'parent:store:ownerFullName': string;
-      'parent:store:owner:id': number;
-      'parent:store:owner:firstName': string;
-      'parent:store:owner:lastName': string;
-      'parent:store:owner:fullName': string;
-    };
-  };
-  'account_bills_items': {
-    plain: {
-      'importance': 'high' | 'medium' | 'low';
-      'title': string;
-      'amount': number;
-      '_id': string;
-      'parentId': string;
-    };
-    nested: {
-      'parent': Schema['account_bills']['plain'] & Schema['account_bills']['nested'];
-    };
-    flat: {
-      'parent:title': string;
-      'parent:amount': number;
-      'parent:issueDate': string;
-      'parent:_id': string;
-      'parent:parentId': string;
-      'parent:parent:firstname': string;
-      'parent:parent:lastname': string;
-      'parent:parent:storeId': number;
-      'parent:parent:_id': string;
-      'parent:parent:address:streetNumber': number;
-      'parent:parent:address:streetName': string;
-      'parent:parent:address:city': string;
-      'parent:parent:address:country': string;
-      'parent:parent:address:_id': string;
-      'parent:parent:address:parentId': string;
-      'parent:parent:store:id': number;
-      'parent:parent:store:name': string;
-      'parent:parent:store:ownerId': number;
-      'parent:parent:store:ownerFullName': string;
-      'parent:parent:store:owner:id': number;
-      'parent:parent:store:owner:firstName': string;
-      'parent:parent:store:owner:lastName': string;
-      'parent:parent:store:owner:fullName': string;
     };
   };
   'card': {

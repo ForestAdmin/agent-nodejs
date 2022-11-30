@@ -3,7 +3,14 @@ import type {
   CollectionCustomizer,
   DataSourceCustomizer,
 } from '@forestadmin/datasource-customizer';
-import type { CollectionSchema, RelationSchema } from '@forestadmin/datasource-toolkit';
+
+import {
+  CollectionSchema,
+  ColumnSchema,
+  ColumnType,
+  RecordUtils,
+  RelationSchema,
+} from '@forestadmin/datasource-toolkit';
 
 function getColumns(schema: CollectionSchema): string[] {
   return Object.keys(schema.fields).filter(fieldName => schema.fields[fieldName].type === 'Column');
@@ -38,6 +45,7 @@ function getRelation(
 
 /**
  * Import all fields of a relation in the current collection.
+ *
  * @param dataSourceCustomizer - The dataSource customizer provided by the agent.
  * @param collectionCustomizer - The collection customizer instance provided by the agent.
  * @param options - The options of the plugin.
@@ -81,4 +89,51 @@ export async function importFields(
   }
 
   return this;
+}
+
+function listPaths(name: string, type: ColumnType, level: number): string[] {
+  if (level === 0 || typeof type !== 'object') return [name];
+
+  return Object.keys(type)
+    .map(key => listPaths(`${name}:${key}`, type[key], level - 1))
+    .flat();
+}
+
+export async function flattenField(
+  dataSourceCustomizer: DataSourceCustomizer,
+  collectionCustomizer: CollectionCustomizer,
+  options?: {
+    field: string;
+    level: number;
+    readonly?: boolean;
+  },
+): Promise<void> {
+  const schema = collectionCustomizer.schema.fields[options.field] as ColumnSchema;
+
+  collectionCustomizer.removeField(options.field);
+
+  for (const path of listPaths(options.field, schema.columnType, options.level)) {
+    const alias = path.replace(/:/g, '@@@');
+
+    collectionCustomizer.addField(alias, {
+      columnType: 'String',
+      dependencies: [options.field],
+      getValues: records => records.map(r => RecordUtils.getFieldValue(r, path)),
+    });
+
+    if (!schema.isReadOnly && !options.readonly) {
+      collectionCustomizer.replaceFieldWriting(alias, value => {
+        const parts = path.split(':');
+        const writingPath = {};
+
+        parts.reduce((nestedPath, currentPath, index) => {
+          nestedPath[currentPath] = index === parts.length - 1 ? value : {};
+
+          return nestedPath[currentPath];
+        }, writingPath);
+
+        return writingPath;
+      });
+    }
+  }
 }
