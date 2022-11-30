@@ -9,31 +9,31 @@ function getColumns(schema: CollectionSchema): string[] {
   return Object.keys(schema.fields).filter(fieldName => schema.fields[fieldName].type === 'Column');
 }
 
-function getRelationOrThrowError(
+function getRelation(
   relationName: string,
+  dataSourceCustomizer: DataSourceCustomizer,
   collectionCustomizer: CollectionCustomizer,
 ): RelationSchema {
-  const relation = collectionCustomizer.schema.fields[relationName] as RelationSchema;
+  const parts = relationName.split(':');
+  const relation = collectionCustomizer.schema.fields[parts[0]];
 
-  if (relation === undefined) {
-    throw new Error(
-      `Relation ${relationName} not found in collection ${collectionCustomizer.name}`,
-    );
+  if (relation?.type !== 'ManyToOne' && relation?.type !== 'OneToOne') {
+    const name = `'${collectionCustomizer.name}.${relationName}'`;
+
+    let message: string;
+    if (!relation) message = `Relation ${name} not found`;
+    else if (relation.type === 'Column') message = `${relationName} is a column, not a relation`;
+    else message = `Relation ${name} is not a ManyToOne or OneToOne relation`;
+    throw new Error(message);
   }
 
-  if (relation.type === 'ManyToMany') {
-    throw new Error(
-      `Relation ${relationName} is a ManyToMany relation. This plugin does not support it.`,
-    );
-  }
-
-  if (relation.type === 'OneToMany') {
-    throw new Error(
-      `Relation ${relationName} is a ManyToOne relation. This plugin does not support it.`,
-    );
-  }
-
-  return relation;
+  return parts.length > 1
+    ? getRelation(
+        parts.slice(1).join(':'),
+        dataSourceCustomizer,
+        dataSourceCustomizer.getCollection(relation.foreignCollection),
+      )
+    : relation;
 }
 
 /**
@@ -68,21 +68,17 @@ export async function importFields(
   }
 
   const { relationName, include, exclude, readonly } = options;
-
-  const relation = getRelationOrThrowError(relationName, collectionCustomizer);
+  const relation = getRelation(relationName, dataSourceCustomizer, collectionCustomizer);
   const foreignCollection = dataSourceCustomizer.getCollection(relation.foreignCollection);
-  const columns =
-    include?.length > 0 ? new Set(include) : new Set(getColumns(foreignCollection.schema));
+  const columns = new Set(include?.length > 0 ? include : getColumns(foreignCollection.schema));
+  if (exclude?.length > 0) exclude.forEach(column => columns.delete(column));
 
-  if (exclude?.length > 0) {
-    exclude.forEach(column => columns.delete(column));
-  }
-
-  columns.forEach(column => {
+  for (const column of columns) {
     const path = `${relationName}:${column}`;
-    const supportedFormatByFrontend = `${relationName}_${column}`;
-    collectionCustomizer.importField(supportedFormatByFrontend, { path, readonly });
-  });
+    const alias = path.replace(/:/g, '@@@');
+
+    collectionCustomizer.importField(alias, { path, readonly });
+  }
 
   return this;
 }
