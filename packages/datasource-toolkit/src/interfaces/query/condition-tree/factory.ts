@@ -72,7 +72,7 @@ export default class ConditionTreeFactory {
     throw new Error('Failed to instantiate condition tree from json');
   }
 
-  static matchFields(fields: string[], values: unknown[][]): ConditionTree {
+  private static matchFields(fields: string[], values: unknown[][]): ConditionTree {
     if (values.length === 0) return ConditionTreeFactory.MatchNone;
 
     if (fields.length === 1) {
