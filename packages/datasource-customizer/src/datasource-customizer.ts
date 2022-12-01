@@ -10,7 +10,7 @@ import CollectionCustomizer from './collection-customizer';
 import { DataSourceChartDefinition } from './decorators/chart/types';
 import CompositeDatasource from './decorators/composite-datasource';
 import DecoratorsStack from './decorators/decorators-stack';
-import PublicationCollectionDataSourceDecorator from './decorators/publication-collection/datasource';
+import PublicationDataSourceDecorator from './decorators/publication/datasource';
 import RenameCollectionDataSourceDecorator from './decorators/rename-collection/datasource';
 import { TCollectionName, TSchema } from './templates';
 import { DataSourceOptions, Plugin } from './types';
@@ -61,7 +61,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
       let dataSource = await factory(logger);
 
       if (options?.include || options?.exclude) {
-        const publicationDecorator = new PublicationCollectionDataSourceDecorator(dataSource);
+        const publicationDecorator = new PublicationDataSourceDecorator(dataSource);
         publicationDecorator.keepCollectionsMatching(options.include, options.exclude);
         dataSource = publicationDecorator;
       }
@@ -121,6 +121,20 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    */
   getCollection<N extends TCollectionName<S>>(name: N): CollectionCustomizer<S, N> {
     return new CollectionCustomizer<S, N>(this, this.stack, name);
+  }
+
+  /**
+   * Remove collections from the exported schema (they will still be usable within the agent).
+   * @param names the fields to remove
+   * @example
+   * .removeField('aFieldToRemove', 'anotherFieldToRemove');
+   */
+  removeCollection(...names: TCollectionName<S>[]): this {
+    this.stack.queueCustomization(async () => {
+      this.stack.publication.keepCollectionsMatching(undefined, names);
+    });
+
+    return this;
   }
 
   /**

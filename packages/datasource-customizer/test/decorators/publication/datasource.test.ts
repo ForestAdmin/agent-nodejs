@@ -1,11 +1,11 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import PublicationCollectionDataSourceDecorator from '../../../src/decorators/publication-collection/datasource';
+import PublicationDataSourceDecorator from '../../../src/decorators/publication/datasource';
 
-describe('PublicationCollectionDataSourceDecorator', () => {
+describe('PublicationDataSourceDecorator', () => {
   let dataSource: DataSource;
-  let decoratedDataSource: PublicationCollectionDataSourceDecorator;
+  let decoratedDataSource: PublicationDataSourceDecorator;
 
   beforeEach(() => {
     dataSource = factories.dataSource.buildWithCollections([
@@ -62,7 +62,7 @@ describe('PublicationCollectionDataSourceDecorator', () => {
       }),
     ]);
 
-    decoratedDataSource = new PublicationCollectionDataSourceDecorator(dataSource);
+    decoratedDataSource = new PublicationDataSourceDecorator(dataSource);
   });
 
   test('should return all collections when no parameter is provided', () => {

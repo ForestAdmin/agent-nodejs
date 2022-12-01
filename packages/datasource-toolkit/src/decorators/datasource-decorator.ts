@@ -1,4 +1,3 @@
-import BaseDataSource from '../base-datasource';
 import { Caller } from '../interfaces/caller';
 import { Chart } from '../interfaces/chart';
 import { Collection, DataSource } from '../interfaces/collection';
@@ -8,42 +7,39 @@ type CollectionDecoratorConstructor<CollectionDecorator extends Collection> = {
   new (c: Collection, d: DataSource): CollectionDecorator;
 };
 
-export default class DataSourceDecorator<
-  CollectionDecorator extends Collection = Collection,
-> extends BaseDataSource<CollectionDecorator> {
+export default class DataSourceDecorator<CollectionDecorator extends Collection = Collection>
+  implements DataSource<CollectionDecorator>
+{
   protected readonly childDataSource: DataSource;
   private readonly CollectionDecoratorCtor: CollectionDecoratorConstructor<CollectionDecorator>;
-  private readonly addCollectionToChildDataSource: (collection: Collection) => void;
+  private readonly decorators: WeakMap<Collection, CollectionDecorator> = new WeakMap();
 
-  override get schema(): DataSourceSchema {
+  get schema(): DataSourceSchema {
     return this.childDataSource.schema;
+  }
+
+  get collections(): CollectionDecorator[] {
+    return this.childDataSource.collections.map(collection => {
+      if (!this.decorators.has(collection))
+        this.decorators.set(collection, new this.CollectionDecoratorCtor(collection, this));
+
+      return this.decorators.get(collection);
+    });
   }
 
   constructor(
     childDataSource: DataSource,
     CollectionDecoratorCtor: CollectionDecoratorConstructor<CollectionDecorator>,
   ) {
-    super();
-
-    this.addCollectionToChildDataSource = childDataSource.addCollection.bind(childDataSource);
-    Reflect.defineProperty(childDataSource, 'addCollection', {
-      value: this.addCollectionObserver.bind(this),
-    });
-
     this.childDataSource = childDataSource;
     this.CollectionDecoratorCtor = CollectionDecoratorCtor;
-
-    this.childDataSource.collections.forEach(collection =>
-      this.addCollection(new this.CollectionDecoratorCtor(collection, this)),
-    );
   }
 
-  override renderChart(caller: Caller, name: string): Promise<Chart> {
+  getCollection(name: string): CollectionDecorator {
+    return this.collections.find(c => c.name === name);
+  }
+
+  renderChart(caller: Caller, name: string): Promise<Chart> {
     return this.childDataSource.renderChart(caller, name);
-  }
-
-  private addCollectionObserver(collection: Collection) {
-    this.addCollectionToChildDataSource(collection);
-    this.addCollection(new this.CollectionDecoratorCtor(collection, this));
   }
 }

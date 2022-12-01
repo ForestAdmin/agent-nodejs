@@ -97,7 +97,7 @@ export default class CollectionCustomizer<
   }
 
   /**
-   * Remove field by setting its visibility to false.
+   * Remove fields from the exported schema (they will still be usable within the agent).
    * @param names the fields to remove
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-delete#renaming-and-removing-fields Documentation Link}
    * @example
