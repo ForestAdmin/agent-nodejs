@@ -72,3 +72,6 @@ export * from './schema/types';
 export { default as ContextVariablesInjector } from './utils/context-variables-injector';
 export { default as ContextVariables } from './utils/context-variables';
 export { default as ChartHandler } from './charts/chart-handler';
+
+// export is necessary for the agent-generator package
+export { default as SchemaService } from './schema';

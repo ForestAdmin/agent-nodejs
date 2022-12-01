@@ -8,8 +8,6 @@ import { ForestServerCollection } from './types';
 type SerializedSchema = { meta: { schemaFileHash: string } };
 
 export default class SchemaService {
-  private serializer: JSONAPISerializer = this.getSerializer();
-
   constructor(private options: ForestAdminClientOptionsWithDefaults) {}
 
   async postSchema(
@@ -17,7 +15,7 @@ export default class SchemaService {
     agentName: string,
     agentVersion: string,
   ): Promise<boolean> {
-    const apimap = this.serialize(schema, agentName, agentVersion);
+    const apimap = SchemaService.serialize(schema, agentName, agentVersion);
     const shouldSend = await this.doServerWantsSchema(apimap.meta.schemaFileHash);
 
     if (shouldSend) {
@@ -27,7 +25,7 @@ export default class SchemaService {
     return shouldSend;
   }
 
-  private serialize(
+  static serialize(
     schema: ForestServerCollection[],
     agentName: string,
     agentVersion: string,
@@ -47,13 +45,13 @@ export default class SchemaService {
       .update(JSON.stringify({ ...schema, meta }))
       .digest('hex');
 
-    return this.serializer.serialize('collections', data, {
+    return SchemaService.serializer.serialize('collections', data, {
       ...meta,
       schemaFileHash,
     }) as SerializedSchema;
   }
 
-  private getSerializer(): JSONAPISerializer {
+  private static get serializer(): JSONAPISerializer {
     const serializer = new JSONAPISerializer();
     serializer.register('collections', {
       // Pass the metadata provided to the serialization fn

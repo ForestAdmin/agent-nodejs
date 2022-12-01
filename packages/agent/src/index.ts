@@ -10,3 +10,6 @@ export function createAgent<S extends TSchema = TSchema>(options: AgentOptions):
 export { Agent };
 export { CollectionCustomizer };
 export { AgentOptions } from './types';
+
+// export is necessary for the agent-generator package
+export { default as SchemaGenerator } from './utils/forest-schema/generator-collection';
