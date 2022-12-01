@@ -12,52 +12,59 @@ function getFieldValue(object: Record<string, RecordData>, path: string): unknow
     : getFieldValue(object[parts[0]], parts.slice(1).join(':'));
 }
 
-function listPaths(name: string, type: ColumnType, level: number): string[] {
+function listPaths(columnName: string, type: ColumnType, level: number): string[] {
   return level === 0 || typeof type !== 'object'
-    ? [name]
+    ? [columnName]
     : Object.keys(type)
-        .map(key => listPaths(`${name}:${key}`, type[key], level - 1))
+        .map(key => listPaths(`${columnName}:${key}`, type[key], level - 1))
         .flat();
+}
+
+function flattenPath(customizer: CollectionCustomizer, path: string, readonly?: boolean): void {
+  const field = path.substring(0, path.indexOf(':'));
+  const schema = customizer.schema.fields[field] as ColumnSchema;
+  const alias = path.replace(/:/g, '@@@');
+
+  customizer.addField(alias, {
+    columnType: getFieldValue({ [field]: schema.columnType as RecordData }, path) as ColumnType,
+    dependencies: [field],
+    getValues: records => records.map(r => getFieldValue(r, path)),
+  });
+
+  if (!schema.isReadOnly && !readonly) {
+    customizer.replaceFieldWriting(alias, value => {
+      const parts = path.split(':');
+      const writingPath = {};
+
+      parts.reduce((nestedPath, currentPath, index) => {
+        nestedPath[currentPath] = index === parts.length - 1 ? value : {};
+
+        return nestedPath[currentPath];
+      }, writingPath);
+
+      return writingPath;
+    });
+  }
 }
 
 export default async function flattenColumn(
   dataSourceCustomizer: DataSourceCustomizer,
   collectionCustomizer: CollectionCustomizer,
   options?: {
-    field: string;
+    columnName: string;
+    include?: string[];
+    exclude?: string[];
     level: number;
     readonly?: boolean;
   },
 ): Promise<void> {
-  const schema = collectionCustomizer.schema.fields[options.field] as ColumnSchema;
+  const schema = collectionCustomizer.schema.fields[options.columnName] as ColumnSchema;
+  const maxLevel = options.include ? 10 : options.level ?? 1;
+  const paths = listPaths(options.columnName, schema.columnType, maxLevel)
+    .filter(path => !options.include || options.include.includes(path))
+    .filter(path => !options.exclude?.includes(path));
 
-  collectionCustomizer.removeField(options.field);
-
-  for (const path of listPaths(options.field, schema.columnType, options.level)) {
-    const alias = path.replace(/:/g, '@@@');
-
-    collectionCustomizer.addField(alias, {
-      columnType: getFieldValue(
-        { [options.field]: schema.columnType as RecordData },
-        path,
-      ) as ColumnType,
-      dependencies: [options.field],
-      getValues: records => records.map(r => getFieldValue(r, path)),
-    });
-
-    if (!schema.isReadOnly && !options.readonly) {
-      collectionCustomizer.replaceFieldWriting(alias, value => {
-        const parts = path.split(':');
-        const writingPath = {};
-
-        parts.reduce((nestedPath, currentPath, index) => {
-          nestedPath[currentPath] = index === parts.length - 1 ? value : {};
-
-          return nestedPath[currentPath];
-        }, writingPath);
-
-        return writingPath;
-      });
-    }
+  for (const path of paths) {
+    flattenPath(collectionCustomizer, path, options.readonly);
   }
 }
