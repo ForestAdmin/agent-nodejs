@@ -8,13 +8,13 @@ export type Schema = {
       'address': {streetNumber: number; streetName: string; city: string; country: string; sub: {importance: string; title: string; amount: number}};
       'bills': Array<{title: string; amount: number; issueDate: string; items: Array<{importance: string; title: string; amount: number}>}>;
       '_id': string;
-      'address@@@streetNumber': string;
+      'address@@@streetNumber': number;
       'address@@@streetName': string;
       'address@@@city': string;
       'address@@@country': string;
       'address@@@sub@@@importance': string;
       'address@@@sub@@@title': string;
-      'address@@@sub@@@amount': string;
+      'address@@@sub@@@amount': number;
     };
     nested: {
       'store': Schema['store']['plain'] & Schema['store']['nested'];

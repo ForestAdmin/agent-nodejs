@@ -2,9 +2,9 @@ import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import { ColumnSchema, DataSource } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import { importFields } from '../src';
+import flattenRelation from '../src/flatten-relation';
 
-describe('plugin importFields', () => {
+describe('plugin flattenRelation', () => {
   const logger = () => {};
 
   const setupWithOneToOneRelation = (): DataSource => {
@@ -66,7 +66,7 @@ describe('plugin importFields', () => {
     const customizer = new DataSourceCustomizer();
     customizer.addDataSource(async () => setupWithOneToOneRelation());
     const dataSource = await customizer
-      .customizeCollection('book', book => book.use(importFields, { relationName: 'owner' }))
+      .customizeCollection('book', book => book.use(flattenRelation, { relationName: 'owner' }))
       .getDataSource(logger);
 
     expect(Object.keys(dataSource.getCollection('book').schema.fields)).toEqual([
@@ -83,7 +83,7 @@ describe('plugin importFields', () => {
       customizer.addDataSource(async () => setupWithOneToOneRelation());
       const dataSource = await customizer
         .customizeCollection('book', book =>
-          book.use(importFields, { relationName: 'owner', readonly: true }),
+          book.use(flattenRelation, { relationName: 'owner', readonly: true }),
         )
         .getDataSource(logger);
 
@@ -97,7 +97,7 @@ describe('plugin importFields', () => {
     it('should throw an error', async () => {
       const customizer = new DataSourceCustomizer();
       await expect(
-        customizer.use(importFields, { relationName: 'aRelation' }).getDataSource(logger),
+        customizer.use(flattenRelation, { relationName: 'aRelation' }).getDataSource(logger),
       ).rejects.toThrow(
         'This plugin should be called when you are' +
           ' customizing a collection not directly on the agent',
@@ -111,7 +111,7 @@ describe('plugin importFields', () => {
       customizer.addDataSource(async () => setupWithOneToOneRelation());
       await expect(
         customizer
-          .customizeCollection('book', book => book.use(importFields))
+          .customizeCollection('book', book => book.use(flattenRelation))
           .getDataSource(logger),
       ).rejects.toThrow('Relation name is required');
     });
@@ -122,7 +122,7 @@ describe('plugin importFields', () => {
       await expect(
         customizer
           .customizeCollection('book', book =>
-            book.use(importFields, {} as { relationName: string }),
+            book.use(flattenRelation, {} as { relationName: string }),
           )
           .getDataSource(logger),
       ).rejects.toThrow('Relation name is required');
@@ -135,7 +135,9 @@ describe('plugin importFields', () => {
       customizer.addDataSource(async () => setupWithOneToOneRelation());
       await expect(
         customizer
-          .customizeCollection('book', book => book.use(importFields, { relationName: 'notExist' }))
+          .customizeCollection('book', book =>
+            book.use(flattenRelation, { relationName: 'notExist' }),
+          )
           .getDataSource(logger),
       ).rejects.toThrow('Relation notExist not found in collection book');
     });
@@ -147,7 +149,9 @@ describe('plugin importFields', () => {
       customizer.addDataSource(async () => setupWithManyToManyRelation());
       await expect(
         customizer
-          .customizeCollection('books', book => book.use(importFields, { relationName: 'authors' }))
+          .customizeCollection('books', book =>
+            book.use(flattenRelation, { relationName: 'authors' }),
+          )
           .getDataSource(logger),
       ).rejects.toThrow(
         'Relation authors is a ManyToMany relation. This plugin does not support it.',
@@ -161,7 +165,9 @@ describe('plugin importFields', () => {
       customizer.addDataSource(async () => setupWithOneManyRelation());
       await expect(
         customizer
-          .customizeCollection('books', book => book.use(importFields, { relationName: 'authors' }))
+          .customizeCollection('books', book =>
+            book.use(flattenRelation, { relationName: 'authors' }),
+          )
           .getDataSource(logger),
       ).rejects.toThrow(
         'Relation authors is a ManyToOne relation. This plugin does not support it.',
@@ -175,7 +181,7 @@ describe('plugin importFields', () => {
       customizer.addDataSource(async () => setupWithOneToOneRelation());
       const dataSource = await customizer
         .customizeCollection('book', book =>
-          book.use(importFields, { relationName: 'owner', exclude: ['bookId'] }),
+          book.use(flattenRelation, { relationName: 'owner', exclude: ['bookId'] }),
         )
         .getDataSource(logger);
 
@@ -193,7 +199,7 @@ describe('plugin importFields', () => {
       customizer.addDataSource(async () => setupWithOneToOneRelation());
       const dataSource = await customizer
         .customizeCollection('book', book =>
-          book.use(importFields, { relationName: 'owner', include: ['bookId'] }),
+          book.use(flattenRelation, { relationName: 'owner', include: ['bookId'] }),
         )
         .getDataSource(logger);
 
@@ -210,7 +216,7 @@ describe('plugin importFields', () => {
         customizer.addDataSource(async () => setupWithOneToOneRelation());
         const dataSource = await customizer
           .customizeCollection('book', book =>
-            book.use(importFields, {
+            book.use(flattenRelation, {
               relationName: 'owner',
               include: ['bookId'],
               exclude: ['bookId'],
@@ -233,7 +239,7 @@ describe('plugin importFields', () => {
         await expect(
           customizer
             .customizeCollection('book', book =>
-              book.use(importFields, {
+              book.use(flattenRelation, {
                 relationName: 'owner',
                 include: ['doesNotExist'],
               }),

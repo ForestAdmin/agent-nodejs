@@ -1,10 +1,10 @@
-This plugin allows you to import fields from a given [one-to-one](../../../agent-customization/relationships/single-record.md#one-to-one-relations) or [many-to-one](../../../agent-customization/relationships/single-record.md#many-to-one-relations) relations.
+This plugin allows you to either import fields from a given [one-to-one](../../../agent-customization/relationships/single-record.md#one-to-one-relations) or [many-to-one](../../../agent-customization/relationships/single-record.md#many-to-one-relations) relations.
 It is useful when you want to repatriate multiple fields inside one collection.
 
 ## Installation
 
 ```bash
-yarn add @forestadmin/plugin-import-fields
+yarn add @forestadmin/plugin-flattener
 ```
 
 ## Examples
@@ -15,7 +15,7 @@ The address collection has the following structure: _id, street, city, zipCode, 
 If we want to import all the fields inside fo the `customer` collection:
 
 ```javascript
-const { importFields } = require('@forestadmin/plugin-import-fields');
+const { importFields } = require('@forestadmin/plugin-flattener');
 
 agent.customizeCollection('customer', collection => {
   return collection.use(importFields, { relationName: 'address' });
