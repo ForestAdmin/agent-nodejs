@@ -1,3 +1,13 @@
+## example [1.1.17](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.16...example@1.1.17) (2022-12-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.4.5
+
 ## example [1.1.16](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.15...example@1.1.16) (2022-11-29)
 
 
