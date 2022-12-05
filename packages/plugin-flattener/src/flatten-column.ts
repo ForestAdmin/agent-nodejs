@@ -7,7 +7,7 @@ import type { ColumnSchema, ColumnType, RecordData } from '@forestadmin/datasour
 function getFieldValue(object: Record<string, RecordData>, path: string): unknown {
   const parts = path.split(':');
 
-  return path.length === 1
+  return parts.length === 1
     ? object[parts[0]]
     : getFieldValue(object[parts[0]], parts.slice(1).join(':'));
 }
@@ -31,7 +31,7 @@ function flattenPath(customizer: CollectionCustomizer, path: string, readonly?: 
     getValues: records => records.map(r => getFieldValue(r, path)),
   });
 
-  if (!schema.isReadOnly && !readonly) {
+  if (!schema.isReadOnly && !readonly)
     customizer.replaceFieldWriting(alias, value => {
       const parts = path.split(':');
       const writingPath = {};
@@ -44,27 +44,29 @@ function flattenPath(customizer: CollectionCustomizer, path: string, readonly?: 
 
       return writingPath;
     });
-  }
 }
 
 export default async function flattenColumn(
-  dataSourceCustomizer: DataSourceCustomizer,
-  collectionCustomizer: CollectionCustomizer,
+  dataSource: DataSourceCustomizer,
+  collection: CollectionCustomizer,
   options?: {
     columnName: string;
     include?: string[];
     exclude?: string[];
-    level: number;
+    level?: number;
     readonly?: boolean;
   },
 ): Promise<void> {
-  const schema = collectionCustomizer.schema.fields[options.columnName] as ColumnSchema;
-  const maxLevel = options.include ? 10 : options.level ?? 1;
+  if (!options || !options.columnName) throw new Error('options.columnName is required.');
+  if (!collection) throw new Error('This plugin can only be called when customizing collections.');
+
+  const schema = collection.schema.fields[options.columnName] as ColumnSchema;
+  const maxLevel = options.include ? 6 : options.level ?? 1;
   const paths = listPaths(options.columnName, schema.columnType, maxLevel)
     .filter(path => !options.include || options.include.includes(path))
     .filter(path => !options.exclude?.includes(path));
 
   for (const path of paths) {
-    flattenPath(collectionCustomizer, path, options.readonly);
+    flattenPath(collection, path, options.readonly);
   }
 }
