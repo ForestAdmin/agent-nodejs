@@ -336,19 +336,13 @@ export default class ActionAuthorizationService {
 
   /**
    * Given a map it groups keys based on their hash values
-   * @param actionConditionsByRoleId
-   * @returns
    */
   private static transformToRolesIdsGroupByConditions<T>(
-    actionConditionsByRoleId?: Map<number, T>,
+    actionConditionsByRoleId: Map<number, T>,
   ): {
     roleIds: number[];
     condition: T;
   }[] {
-    if (!actionConditionsByRoleId) {
-      return [];
-    }
-
     const rolesIdsGroupByConditions = Array.from(
       actionConditionsByRoleId,
       ([roleId, condition]) => {

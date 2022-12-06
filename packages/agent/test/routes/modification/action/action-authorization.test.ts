@@ -320,6 +320,7 @@ describe('ActionAuthorizationService', () => {
             .getRoleIdsAllowedToApproveWithoutConditions as jest.Mock
         ).mockResolvedValue([1, 16]);
       });
+
       it('should do nothing if the user can approve a custom action', async () => {
         (forestAdminClient.permissionService.canApproveCustomAction as jest.Mock).mockResolvedValue(
           true,
