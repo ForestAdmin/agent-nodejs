@@ -233,6 +233,7 @@ export default class ActionAuthorizationService {
         collectionName: collection.name,
       });
 
+    // Optimization - We groupBy conditions to only make the aggregate count once when possible
     const rolesIdsGroupByConditions =
       ActionAuthorizationService.transformToRolesIdsGroupByConditions(actionConditionsByRoleId);
 
@@ -240,7 +241,6 @@ export default class ActionAuthorizationService {
     let conditionRecordsCounts: number[];
 
     if (rolesIdsGroupByConditions.length > 0) {
-      // Currently we are making one call for nothing in this case
       [requestRecordsCount, ...conditionRecordsCounts] = await Promise.all([
         ActionAuthorizationService.aggregateCountConditionIntersection(
           caller,
