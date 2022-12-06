@@ -33,11 +33,11 @@ export default async function flattenColumn(
   if (!collection) throw new Error('This plugin can only be called when customizing collections.');
 
   const { columnName, include, exclude, level, readonly } = options;
+  const errorMessage = `'${collection.name}.${columnName}' cannot be flattened`;
   const schema = collection.schema.fields[options.columnName];
-  if (schema.type !== 'Column')
-    throw new Error(`'${collection.name}.${columnName}' is not a column.`);
-  if (typeof schema.columnType === 'string' || Array.isArray(schema.columnType))
-    throw new Error(`'${collection.name}.${columnName}' cannot be flattened.`);
+  if (schema.type !== 'Column') throw new Error(`${errorMessage}' (not a column).`);
+  if (typeof schema.columnType === 'string') throw new Error(`${errorMessage}' (primitive).`);
+  if (Array.isArray(schema.columnType)) throw new Error(`${errorMessage}' (array).`);
 
   const maxLevel = include ? 6 : level ?? 1;
   if (maxLevel < 1) throw new Error('options.level must be greater than 0.');
@@ -46,17 +46,15 @@ export default async function flattenColumn(
     .filter(path => !include || include.find(p => path === includeStrToPath(columnName, p)))
     .filter(path => !exclude?.find(p => path === includeStrToPath(columnName, p)));
 
-  if (paths.length) {
-    for (const path of paths) {
-      collection.addField(path, makeField(columnName, path, schema));
-      collection.replaceFieldWriting(path, makeWriteHandler(path));
-    }
+  if (!paths.length) throw new Error(`${errorMessage}' (no fields match level/include/exclude).`);
 
-    if (!schema.isReadOnly && !readonly) {
-      collection.addHook('Before', 'Create', makeCreateHook(paths));
-      collection.addHook('Before', 'Update', makeUpdateHook(collection, columnName, paths));
-    }
-  } else {
-    throw new Error(`No fields to flatten in '${collection.name}.${columnName}'.`);
+  for (const path of paths) {
+    collection.addField(path, makeField(columnName, path, schema));
+    collection.replaceFieldWriting(path, makeWriteHandler(path));
+  }
+
+  if (!schema.isReadOnly && !readonly) {
+    collection.addHook('Before', 'Create', makeCreateHook(paths));
+    collection.addHook('Before', 'Update', makeUpdateHook(collection, columnName, paths));
   }
 }

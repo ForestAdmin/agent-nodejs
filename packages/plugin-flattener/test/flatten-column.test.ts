@@ -27,6 +27,7 @@ describe('flattenColumn', () => {
               foreignKeyTarget: 'id',
             }),
             title: factories.columnSchema.build(),
+            tags: factories.columnSchema.build({ columnType: ['String'] }),
             author: factories.columnSchema.build({
               columnType: {
                 name: 'String',
@@ -74,7 +75,17 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow("'book.title' cannot be flattened.");
+    ).rejects.toThrow("'book.title' cannot be flattened' (primitive).");
+  });
+
+  it('should throw when target is an array', async () => {
+    const options = { columnName: 'tags' };
+
+    await expect(
+      customizer
+        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .getDataSource(logger),
+    ).rejects.toThrow("'book.tags' cannot be flattened' (array).");
   });
 
   it('should throw when target is a relation', async () => {
@@ -84,7 +95,7 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow("'book.myself' is not a column.");
+    ).rejects.toThrow("'book.myself' cannot be flattened' (not a column).");
   });
 
   it('should throw level is invalid', async () => {
@@ -104,7 +115,9 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow("No fields to flatten in 'book.author'.");
+    ).rejects.toThrow(
+      "'book.author' cannot be flattened' (no fields match level/include/exclude).",
+    );
   });
 
   describe('when flattening a single level', () => {

@@ -24,8 +24,11 @@ export function makeField(columnName: string, path: string, schema: ColumnSchema
 }
 
 export function makeWriteHandler(path: string) {
+  // We're ignoring this line in coverage because it's not callable: we're adding a write handler
+  // only so that the field is marked as writable, but all the writes are handled by the hooks.
+
+  // istanbul ignore next
   return () => {
-    // istanbul ignore next
     throw new Error(`Cannot write on computed field '${path}'. Did you inhibit BeforeHooks?`);
   };
 }

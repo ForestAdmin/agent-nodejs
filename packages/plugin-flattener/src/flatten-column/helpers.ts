@@ -26,10 +26,6 @@ export function includeStrToPath(columnName: string, include: string): string {
   return `${columnName}@@@${include.replace(/[.:]/g, '@@@')}`;
 }
 
-export function pathToIncludeStr(path: string): string {
-  return path.split('@@@').slice(1).join(':');
-}
-
 /**
  * Recursively update the first object with the values of the second one.
  *
