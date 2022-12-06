@@ -6,8 +6,9 @@ import flattenColumn from '../src/flatten-column';
 
 const logger = () => {};
 
+// Working around a bug from a decorator which rewrites search in filters
+const filter = factories.filter.build({ search: null as unknown as undefined });
 const caller = factories.caller.build();
-const filter = factories.filter.build();
 
 describe('flattenColumn', () => {
   let dataSource: DataSource;
@@ -20,6 +21,11 @@ describe('flattenColumn', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.uuidPrimaryKey().build(),
+            myself: factories.manyToOneSchema.build({
+              foreignCollection: 'book',
+              foreignKey: 'id',
+              foreignKeyTarget: 'id',
+            }),
             title: factories.columnSchema.build(),
             author: factories.columnSchema.build({
               columnType: {
@@ -29,6 +35,7 @@ describe('flattenColumn', () => {
             }),
           },
         }),
+        create: jest.fn().mockImplementation((_, records) => Promise.resolve(records)),
       }),
     );
 
@@ -50,7 +57,7 @@ describe('flattenColumn', () => {
     ).rejects.toThrow('options.columnName is required.');
   });
 
-  it('should throw when column name is missing', async () => {
+  it('should throw when target is missing', async () => {
     const options = {} as { columnName: string };
 
     await expect(
@@ -58,6 +65,46 @@ describe('flattenColumn', () => {
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
     ).rejects.toThrow('options.columnName is required.');
+  });
+
+  it('should throw when target is a primitive', async () => {
+    const options = { columnName: 'title' };
+
+    await expect(
+      customizer
+        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .getDataSource(logger),
+    ).rejects.toThrow("'book.title' cannot be flattened.");
+  });
+
+  it('should throw when target is a relation', async () => {
+    const options = { columnName: 'myself' };
+
+    await expect(
+      customizer
+        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .getDataSource(logger),
+    ).rejects.toThrow("'book.myself' is not a column.");
+  });
+
+  it('should throw level is invalid', async () => {
+    const options = { columnName: 'author', level: -1 };
+
+    await expect(
+      customizer
+        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .getDataSource(logger),
+    ).rejects.toThrow('options.level must be greater than 0.');
+  });
+
+  it('should throw when no subcolumn match the provided rules', async () => {
+    const options = { columnName: 'author', level: 2, exclude: ['name', 'address:city'] };
+
+    await expect(
+      customizer
+        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .getDataSource(logger),
+    ).rejects.toThrow("No fields to flatten in 'book.author'.");
   });
 
   describe('when flattening a single level', () => {
@@ -73,9 +120,7 @@ describe('flattenColumn', () => {
     it('should update the schema', async () => {
       const { fields } = decorated.getCollection('book').schema;
       expect(fields['author@@@name']).toMatchObject({ columnType: 'String' });
-      expect(fields['author@@@address']).toMatchObject({
-        columnType: { city: 'String' },
-      });
+      expect(fields['author@@@address']).toMatchObject({ columnType: { city: 'String' } });
     });
 
     it('should work when listing data the flattened field is null', async () => {
@@ -101,10 +146,7 @@ describe('flattenColumn', () => {
         {
           id: '1',
           title: 'The Lord of the Rings',
-          author: {
-            name: 'J.R.R. Tolkien',
-            address: { city: 'New York' },
-          },
+          author: { name: 'J.R.R. Tolkien', address: { city: 'New York' } },
         },
       ]);
 
@@ -120,23 +162,132 @@ describe('flattenColumn', () => {
         },
       ]);
     });
+
+    it('should rewrite creation', async () => {
+      const baseCreate = dataSource.getCollection('book').create as jest.Mock;
+
+      await decorated.getCollection('book').create(caller, [
+        { 'author@@@name': 'Tolkien', 'author@@@address': { city: 'New York' } },
+        { 'author@@@name': 'Verne', 'author@@@address': { city: 'Paris' } },
+      ]);
+
+      expect(baseCreate).toHaveBeenCalledTimes(1);
+      expect(baseCreate).toHaveBeenCalledWith(caller, [
+        { author: { name: 'Tolkien', address: { city: 'New York' } } },
+        { author: { name: 'Verne', address: { city: 'Paris' } } },
+      ]);
+    });
+
+    it('should not list and call update only once when there is nothing to unflatten', async () => {
+      const baseList = dataSource.getCollection('book').list as jest.Mock;
+      const baseUpdate = dataSource.getCollection('book').update as jest.Mock;
+
+      await decorated.getCollection('book').update(caller, filter, { title: 'new title' });
+
+      expect(baseList).not.toHaveBeenCalled();
+      expect(baseUpdate).toHaveBeenCalledTimes(1);
+      expect(baseUpdate).toHaveBeenCalledWith(caller, filter, { title: 'new title' });
+    });
+
+    it('should call update as many times as needed when unflattening', async () => {
+      const baseList = dataSource.getCollection('book').list as jest.Mock;
+      const baseUpdate = dataSource.getCollection('book').update as jest.Mock;
+
+      baseList.mockResolvedValue([
+        {
+          id: '1',
+          title: 'The Lord of the Rings',
+          author: { name: 'J.R.R. Tolkien', address: { city: 'New York' } },
+        },
+        { id: '2', title: 'The two towers', author: null },
+      ]);
+
+      await decorated
+        .getCollection('book')
+        .update(caller, filter, { title: 'new title', 'author@@@name': 'Tolkien' });
+
+      expect(baseList).toHaveBeenCalledTimes(1);
+      expect(baseList).toHaveBeenCalledWith(caller, filter, new Projection('id', 'author'));
+
+      expect(baseUpdate).toHaveBeenCalledTimes(3);
+
+      // Normal update
+      expect(baseUpdate).toHaveBeenCalledWith(caller, filter, { title: 'new title' });
+
+      // Updates performed by the plugin
+      expect(baseUpdate).toHaveBeenCalledWith(
+        caller,
+        // not sure why I need to specify search == null. It's related to a bug in a decorator.
+        { conditionTree: { field: 'id', operator: 'Equal', value: '1' }, search: null },
+        { author: { name: 'Tolkien', address: { city: 'New York' } } },
+      );
+      expect(baseUpdate).toHaveBeenCalledWith(
+        caller,
+        { conditionTree: { field: 'id', operator: 'Equal', value: '2' }, search: null },
+        { author: { name: 'Tolkien' } },
+      );
+    });
+
+    it('should group updates when possible when updating', async () => {
+      const baseList = dataSource.getCollection('book').list as jest.Mock;
+      const baseUpdate = dataSource.getCollection('book').update as jest.Mock;
+
+      baseList.mockResolvedValue([
+        { id: '1', title: 'The Lord of the Rings', author: { name: 'J.R.R. Tolkien' } },
+        { id: '2', title: 'The two towers', author: null },
+      ]);
+
+      await decorated.getCollection('book').update(caller, filter, { 'author@@@name': 'Tolkien' });
+
+      expect(baseList).toHaveBeenCalledTimes(1);
+      expect(baseList).toHaveBeenCalledWith(caller, filter, new Projection('id', 'author'));
+
+      expect(baseUpdate).toHaveBeenCalledTimes(1);
+      expect(baseUpdate).toHaveBeenCalledWith(
+        caller,
+        { conditionTree: { field: 'id', operator: 'In', value: ['1', '2'] }, search: null },
+        { author: { name: 'Tolkien' } },
+      );
+    });
   });
 
   describe('when flattening recursively', () => {
-    let decoratedDataSource: DataSource;
-
-    beforeEach(async () => {
+    it('flatten two levels when no include/exclude is provided', async () => {
       const options = { columnName: 'author', level: 2 };
-      decoratedDataSource = await customizer
+      const decoratedDataSource = await customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger);
+
+      const { fields } = decoratedDataSource.getCollection('book').schema;
+      expect(fields).toHaveProperty('author@@@name');
+      expect(fields).toHaveProperty('author@@@address@@@city');
     });
 
-    it('should update the schema', async () => {
+    it('flatten two levels when include is provided', async () => {
+      const options = { columnName: 'author', include: ['name', 'address:city'] };
+      const decoratedDataSource = await customizer
+        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .getDataSource(logger);
+
       const { fields } = decoratedDataSource.getCollection('book').schema;
-      expect(fields['author@@@name']).toMatchObject({ columnType: 'String' });
-      expect(fields['author@@@name']).toMatchObject({ columnType: 'String' });
-      expect(fields['author@@@address@@@city']).toMatchObject({ columnType: 'String' });
+      expect(fields).toHaveProperty('author@@@name');
+      expect(fields).toHaveProperty('author@@@address@@@city');
+    });
+
+    it('flatten fields specified by include/exclude rules', async () => {
+      const options = {
+        columnName: 'author',
+        include: ['name', 'address:city'],
+        exclude: ['name'],
+      };
+
+      const decoratedDataSource = await customizer
+        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .getDataSource(logger);
+
+      const { fields } = decoratedDataSource.getCollection('book').schema;
+      expect(fields).not.toHaveProperty('author@@@name');
+      expect(fields).toHaveProperty('author@@@address@@@city');
     });
   });
 });
