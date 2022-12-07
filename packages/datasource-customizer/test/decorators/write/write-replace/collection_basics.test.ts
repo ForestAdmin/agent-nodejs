@@ -28,13 +28,29 @@ describe('WriteDecorator > When their are no relations', () => {
     );
   });
 
-  it('should mark fields as writable', () => {
+  it('should mark fields as writable when handler is defined', () => {
     const collection = dataSource.getCollection('books');
     const decorator = new WriteDecorator(collection, dataSource);
 
+    expect((collection.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
     expect((decorator.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
 
     decorator.replaceFieldWriting('name', () => undefined);
+
+    expect((collection.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
     expect((decorator.schema.fields.name as ColumnSchema).isReadOnly).toEqual(false);
+  });
+
+  it('should mark fields as readonly when handler is null', () => {
+    const collection = dataSource.getCollection('books');
+    const decorator = new WriteDecorator(collection, dataSource);
+
+    expect((collection.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
+    expect((decorator.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
+
+    decorator.replaceFieldWriting('name', null);
+
+    expect((collection.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
+    expect((decorator.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
   });
 });

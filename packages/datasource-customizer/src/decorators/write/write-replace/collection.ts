@@ -30,8 +30,11 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
   protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
     const schema = { ...childSchema, fields: { ...childSchema.fields } };
 
-    for (const name of Object.keys(this.handlers)) {
-      (schema.fields[name] as ColumnSchema).isReadOnly = false;
+    for (const [fieldName, handler] of Object.entries(this.handlers)) {
+      schema.fields[fieldName] = {
+        ...(schema.fields[fieldName] as ColumnSchema),
+        isReadOnly: handler === null,
+      };
     }
 
     return schema;
