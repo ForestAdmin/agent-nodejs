@@ -12,7 +12,7 @@ import {
   RecordData,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import { Model, PipelineStage } from 'mongoose';
+import { Error, Model, PipelineStage } from 'mongoose';
 
 import MongooseSchema from './mongoose/schema';
 import {
@@ -51,7 +51,54 @@ export default class MongooseCollection extends BaseCollection {
     this.addFields(FieldsGenerator.buildFieldsSchema(model, prefix, ignoredFields));
   }
 
+  async list(
+    caller: Caller,
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
+    const lookupProjection = projection.union(
+      filter.conditionTree?.projection,
+      filter.sort?.projection,
+    );
+
+    const records = await this.model.aggregate([
+      ...this.buildBasePipeline(filter, lookupProjection),
+      ...ProjectionGenerator.project(projection),
+    ]);
+
+    return replaceMongoTypes(records);
+  }
+
+  async aggregate(
+    caller: Caller,
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]> {
+    const lookupProjection = aggregation.projection.union(filter.conditionTree?.projection);
+    const rows = await this.model.aggregate([
+      ...this.buildBasePipeline(filter, lookupProjection),
+      ...GroupGenerator.group(aggregation),
+      { $sort: { value: -1 as const } },
+      ...(limit ? [{ $limit: limit }] : []),
+    ]);
+
+    return replaceMongoTypes(rows);
+  }
+
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
+    return this.handleValidationError(() => this._create(caller, data));
+  }
+
+  async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+    return this.handleValidationError(() => this._update(caller, filter, patch));
+  }
+
+  async delete(caller: Caller, filter: Filter): Promise<void> {
+    return this.handleValidationError(() => this._delete(caller, filter));
+  }
+
+  private async _create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     // If there is no prefix, we can delegate the work to mongoose directly.
     if (!this.prefix) {
       const { insertedIds } = await this.model.insertMany(data, { rawResult: true });
@@ -99,25 +146,7 @@ export default class MongooseCollection extends BaseCollection {
     return results;
   }
 
-  async list(
-    caller: Caller,
-    filter: PaginatedFilter,
-    projection: Projection,
-  ): Promise<RecordData[]> {
-    const lookupProjection = projection.union(
-      filter.conditionTree?.projection,
-      filter.sort?.projection,
-    );
-
-    const records = await this.model.aggregate([
-      ...this.buildBasePipeline(filter, lookupProjection),
-      ...ProjectionGenerator.project(projection),
-    ]);
-
-    return replaceMongoTypes(records);
-  }
-
-  async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+  private async _update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     // Fetch the ids of the documents OR subdocuments that will be updated.
     // We need to do that regardless of `this.prefix` because the filter may contain conditions on
     // relationships.
@@ -169,7 +198,7 @@ export default class MongooseCollection extends BaseCollection {
     }
   }
 
-  async delete(caller: Caller, filter: Filter): Promise<void> {
+  private async _delete(caller: Caller, filter: Filter): Promise<void> {
     const records = await this.list(caller, filter, new Projection('_id'));
     const ids = records.map(record => record._id);
 
@@ -215,23 +244,6 @@ export default class MongooseCollection extends BaseCollection {
     }
   }
 
-  async aggregate(
-    caller: Caller,
-    filter: Filter,
-    aggregation: Aggregation,
-    limit?: number,
-  ): Promise<AggregateResult[]> {
-    const lookupProjection = aggregation.projection.union(filter.conditionTree?.projection);
-    const rows = await this.model.aggregate([
-      ...this.buildBasePipeline(filter, lookupProjection),
-      ...GroupGenerator.group(aggregation),
-      { $sort: { value: -1 as const } },
-      ...(limit ? [{ $limit: limit }] : []),
-    ]);
-
-    return replaceMongoTypes(rows);
-  }
-
   private buildBasePipeline(
     filter: PaginatedFilter,
     lookupProjection: Projection,
@@ -247,5 +259,18 @@ export default class MongooseCollection extends BaseCollection {
       ...LookupGenerator.lookup(this.model, this.prefix, lookupProjection),
       ...FilterGenerator.filter(this.model, this.prefix, filter),
     ];
+  }
+
+  private async handleValidationError<T>(callback: () => Promise<T>): Promise<T> {
+    try {
+      // Do not remove the await here, it's important!
+      return await callback();
+    } catch (error) {
+      if (error instanceof Error.ValidationError) {
+        throw new ValidationError(error.message);
+      }
+
+      throw error;
+    }
   }
 }
