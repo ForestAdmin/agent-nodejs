@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.4.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.3...@forestadmin/datasource-customizer@1.4.4) (2022-12-07)
+
+
+### Bug Fixes
+
+* **customizer:** fix issues with replaceFieldWriting ([#564](https://github.com/ForestAdmin/agent-nodejs/issues/564)) ([a43a618](https://github.com/ForestAdmin/agent-nodejs/commit/a43a618d495190b4b1bf987f237acda4c691e996))
+
 ## @forestadmin/datasource-customizer [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.2...@forestadmin/datasource-customizer@1.4.3) (2022-11-29)
 
 
