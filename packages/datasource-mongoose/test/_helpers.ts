@@ -18,7 +18,13 @@ export const setupReview = async (dbName = 'test') => {
   connection.model(
     'review',
     new Schema({
-      title: { type: String },
+      title: {
+        type: String,
+        validate: {
+          validator: v => v !== 'forbidden title',
+          message: 'title cannot be "forbidden title"',
+        },
+      },
       message: { type: String },
       rating: { type: Number },
       tags: { type: [String] },
