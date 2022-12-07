@@ -67,10 +67,13 @@ export default class CreateRelationsCollectionDecorator extends CollectionDecora
 
     // Create the relations when the fk is not present
     if (creations.length) {
-      const subRecords = entries.map(({ subRecord }) => subRecord);
+      // Not sure which behavior is better (we'll go with the first option for now):
+      // - create a new record for each record in the original create request
+      // - use object-hash to create a single record for each unique subRecord
+      const subRecords = creations.map(({ subRecord }) => subRecord);
       const relatedRecords = await relation.create(caller, subRecords);
 
-      for (const { index } of entries)
+      for (const { index } of creations)
         records[index][schema.foreignKey] = relatedRecords[index][schema.foreignKeyTarget];
     }
 
