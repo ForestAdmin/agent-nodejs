@@ -1,7 +1,7 @@
 import { Caller, Collection } from '@forestadmin/datasource-toolkit';
 
-import CollectionCustomizationContext from '../../context/collection-context';
-import { TCollectionName, TPartialSimpleRow, TSchema } from '../../templates';
+import CollectionCustomizationContext from '../../../context/collection-context';
+import { TCollectionName, TPartialSimpleRow, TSchema } from '../../../templates';
 
 export default class WriteCustomizationContext<
   S extends TSchema = TSchema,
@@ -19,6 +19,6 @@ export default class WriteCustomizationContext<
     super(collection, caller);
 
     this.action = action;
-    this.record = record;
+    this.record = Object.freeze({ ...record });
   }
 }

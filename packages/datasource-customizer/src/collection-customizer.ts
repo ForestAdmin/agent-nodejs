@@ -16,7 +16,7 @@ import { OperatorDefinition } from './decorators/operators-emulate/types';
 import { RelationDefinition } from './decorators/relation/types';
 import { SearchDefinition } from './decorators/search/types';
 import { SegmentDefinition } from './decorators/segment/types';
-import { WriteDefinition } from './decorators/write/types';
+import { WriteDefinition } from './decorators/write/write-replace/types';
 import addExternalRelation from './plugins/add-external-relation';
 import importField from './plugins/import-field';
 import { TCollectionName, TColumnName, TFieldName, TSchema, TSortClause } from './templates';

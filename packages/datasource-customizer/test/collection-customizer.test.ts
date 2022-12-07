@@ -11,7 +11,7 @@ import {
   DataSourceCustomizer,
 } from '../src';
 import { ActionDefinition } from '../src/decorators/actions/types/actions';
-import { WriteDefinition } from '../src/decorators/write/types';
+import { WriteDefinition } from '../src/decorators/write/write-replace/types';
 
 describe('Builder > Collection', () => {
   const logger = () => {};
