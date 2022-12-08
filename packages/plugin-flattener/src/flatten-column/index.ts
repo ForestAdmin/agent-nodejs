@@ -32,6 +32,7 @@ export default async function flattenColumn(
   if (!options || !options.columnName) throw new Error('options.columnName is required.');
   if (!collection) throw new Error('This plugin can only be called when customizing collections.');
 
+  // Handle errors
   const { columnName, include, exclude, level, readonly } = options;
   const errorMessage = `'${collection.name}.${columnName}' cannot be flattened`;
   const schema = collection.schema.fields[options.columnName];
@@ -42,18 +43,21 @@ export default async function flattenColumn(
   const maxLevel = include ? 6 : level ?? 1;
   if (maxLevel < 1) throw new Error('options.level must be greater than 0.');
 
+  // Make list of paths to flatten
   const paths = listPaths(columnName, schema.columnType, maxLevel)
     .filter(path => !include || include.find(p => path === includeStrToPath(columnName, p)))
     .filter(path => !exclude?.find(p => path === includeStrToPath(columnName, p)));
 
   if (!paths.length) throw new Error(`${errorMessage}' (no fields match level/include/exclude).`);
 
+  // Implement read
   for (const path of paths) {
     collection.addField(path, makeField(columnName, path, schema));
-    collection.replaceFieldWriting(path, makeWriteHandler(path));
   }
 
+  // Implement write
   if (!schema.isReadOnly && !readonly) {
+    for (const path of paths) collection.replaceFieldWriting(path, makeWriteHandler(path));
     collection.addHook('Before', 'Create', makeCreateHook(paths));
     collection.addHook('Before', 'Update', makeUpdateHook(collection, columnName, paths));
   }
