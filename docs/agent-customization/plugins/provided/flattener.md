@@ -58,7 +58,7 @@ agent.customizeCollection('customer', collection => {
     // Subfields to flatten (defaults to all subfields of the relation)
     include: ['street', 'city', 'country:name', 'country:isoCode'],
 
-    // Subfields to exclude from flattening (defaults to none)
+    // Subfields to exclude from flattening (defaults to an empty array)
     exclude: [],
 
     // Either if the newly created columns should be readonly or not (defaults to false)
