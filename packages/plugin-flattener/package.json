@@ -1,7 +1,7 @@
 {
-  "name": "@forestadmin/plugin-import-fields",
-  "version": "1.0.6",
-  "description": "A plugin that import all fields from a relation",
+  "name": "@forestadmin/plugin-flattener",
+  "version": "1.0.0",
+  "description": "A plugin that allows to flatten columns and relations in Forest Admin",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "files": [
@@ -14,7 +14,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
-    "directory": "packages/plugin-import-fields"
+    "directory": "packages/plugin-flattener"
   },
   "scripts": {
     "build": "tsc",
@@ -25,6 +25,10 @@
   },
   "devDependencies": {
     "@forestadmin/datasource-customizer": "1.4.4",
-    "@forestadmin/datasource-toolkit": "1.1.1"
+    "@types/object-hash": "^3.0.1"
+  },
+  "dependencies": {
+    "@forestadmin/datasource-toolkit": "1.1.1",
+    "object-hash": "^3.0.0"
   }
 }
