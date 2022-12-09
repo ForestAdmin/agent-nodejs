@@ -1,3 +1,13 @@
+## @forestadmin/datasource-dummy [1.0.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.10...@forestadmin/datasource-dummy@1.0.11) (2022-12-09)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.0
+
 ## @forestadmin/datasource-dummy [1.0.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.9...@forestadmin/datasource-dummy@1.0.10) (2022-12-07)
 
 
