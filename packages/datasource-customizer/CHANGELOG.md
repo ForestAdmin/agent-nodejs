@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.4...@forestadmin/datasource-customizer@1.5.0) (2022-12-09)
+
+
+### Features
+
+* **plugin-flattener:** rename plugin, and add support for nested relations and field flattening ([#565](https://github.com/ForestAdmin/agent-nodejs/issues/565)) ([8158b2f](https://github.com/ForestAdmin/agent-nodejs/commit/8158b2f5fc38e52e466c09f9ba365e4c42b01108))
+
 ## @forestadmin/datasource-customizer [1.4.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.3...@forestadmin/datasource-customizer@1.4.4) (2022-12-07)
 
 
