@@ -19,7 +19,7 @@ This method allows you to flatten deeply nested columns of your models.
 Note that when using this method, the collection won't be filterable nor sortable by this column.
 
 ```javascript
-import { flattenColumn } from '@forestadmin/plugin-flattener';
+const { flattenColumn } = require('@forestadmin/plugin-flattener');
 
 agent.customizeCollection('customer', collection => {
   collection.use(flattenColumn, {
@@ -44,7 +44,7 @@ agent.customizeCollection('customer', collection => {
 
 ### `flattenRelation`
 
-This method allows you to either import fields from a given [one-to-one](../../../agent-customization/relationships/single-record.md#one-to-one-relations) or [many-to-one](../../../agent-customization/relationships/single-record.md#many-to-one-relations) relations.
+This method allows you to import fields from a given [one-to-one](../../../agent-customization/relationships/single-record.md#one-to-one-relations) or [many-to-one](../../../agent-customization/relationships/single-record.md#many-to-one-relations) relations.
 
 It is useful when you want to repatriate multiple fields inside one collection.
 

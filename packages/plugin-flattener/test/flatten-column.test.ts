@@ -58,7 +58,7 @@ describe('flattenColumn', () => {
     ).rejects.toThrow('options.columnName is required.');
   });
 
-  it('should throw when target is missing', async () => {
+  it('should throw when target is not provided', async () => {
     const options = {} as { columnName: string };
 
     await expect(
@@ -66,6 +66,16 @@ describe('flattenColumn', () => {
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
     ).rejects.toThrow('options.columnName is required.');
+  });
+
+  it('should throw when target does not exists', async () => {
+    const options = { columnName: 'doctor who?' };
+
+    await expect(
+      customizer
+        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .getDataSource(logger),
+    ).rejects.toThrow("'book.doctor who?' cannot be flattened' (not found).");
   });
 
   it('should throw when target is a primitive', async () => {
@@ -118,6 +128,16 @@ describe('flattenColumn', () => {
     ).rejects.toThrow(
       "'book.author' cannot be flattened' (no fields match level/include/exclude).",
     );
+  });
+
+  it('should throw when include has invalid column', async () => {
+    const options = { columnName: 'author', include: ['missing'] };
+
+    await expect(
+      customizer
+        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .getDataSource(logger),
+    ).rejects.toThrow("Cannot add field 'author@@@missing' (dependency not found).");
   });
 
   describe('when flattening a single level', () => {
@@ -192,6 +212,8 @@ describe('flattenColumn', () => {
     });
 
     it('should not list and call update only once when there is nothing to unflatten', async () => {
+      // Here we test that the hook will delegate the update to the base collection
+      // without calling list, and without rewriting the patch
       const baseList = dataSource.getCollection('book').list as jest.Mock;
       const baseUpdate = dataSource.getCollection('book').update as jest.Mock;
 
@@ -202,17 +224,47 @@ describe('flattenColumn', () => {
       expect(baseUpdate).toHaveBeenCalledWith(caller, filter, { title: 'new title' });
     });
 
+    it('should delegate updates when possible when updating', async () => {
+      // Here we test that the hook will delegate the update to the base collection
+      // once it has unflattened the patch, calling list, and checked that the patch
+      // is the same for all records.
+      const baseList = dataSource.getCollection('book').list as jest.Mock;
+      const baseUpdate = dataSource.getCollection('book').update as jest.Mock;
+
+      baseList.mockResolvedValue([
+        { id: '1', title: 'The Lord of the Rings', author: { name: 'J.R.R. Tolkien' } },
+        { id: '2', title: 'The two towers', author: null },
+      ]);
+
+      await decorated
+        .getCollection('book')
+        .update(caller, filter, { title: 'newTitle', 'author@@@name': 'Tolkien' });
+
+      expect(baseList).toHaveBeenCalledTimes(1);
+      expect(baseList).toHaveBeenCalledWith(caller, filter, new Projection('id', 'author'));
+
+      expect(baseUpdate).toHaveBeenCalledTimes(1);
+      expect(baseUpdate).toHaveBeenCalledWith(caller, filter, {
+        title: 'newTitle',
+        author: { name: 'Tolkien' },
+      });
+    });
+
     it('should call update as many times as needed when unflattening', async () => {
+      // Here we test that the hook will NOT delegate the update to the base collection
+      // when it sees that the patch is different for some records, but that it will
+      // group the updates so that it calls update as few times as possible.
       const baseList = dataSource.getCollection('book').list as jest.Mock;
       const baseUpdate = dataSource.getCollection('book').update as jest.Mock;
 
       baseList.mockResolvedValue([
         {
           id: '1',
-          title: 'The Lord of the Rings',
+          title: 'The fellowship of the ring',
           author: { name: 'J.R.R. Tolkien', address: { city: 'New York' } },
         },
         { id: '2', title: 'The two towers', author: null },
+        { id: '3', title: 'The return of the king', author: null },
       ]);
 
       await decorated
@@ -236,29 +288,7 @@ describe('flattenColumn', () => {
       );
       expect(baseUpdate).toHaveBeenCalledWith(
         caller,
-        { conditionTree: { field: 'id', operator: 'Equal', value: '2' }, search: null },
-        { author: { name: 'Tolkien' } },
-      );
-    });
-
-    it('should group updates when possible when updating', async () => {
-      const baseList = dataSource.getCollection('book').list as jest.Mock;
-      const baseUpdate = dataSource.getCollection('book').update as jest.Mock;
-
-      baseList.mockResolvedValue([
-        { id: '1', title: 'The Lord of the Rings', author: { name: 'J.R.R. Tolkien' } },
-        { id: '2', title: 'The two towers', author: null },
-      ]);
-
-      await decorated.getCollection('book').update(caller, filter, { 'author@@@name': 'Tolkien' });
-
-      expect(baseList).toHaveBeenCalledTimes(1);
-      expect(baseList).toHaveBeenCalledWith(caller, filter, new Projection('id', 'author'));
-
-      expect(baseUpdate).toHaveBeenCalledTimes(1);
-      expect(baseUpdate).toHaveBeenCalledWith(
-        caller,
-        { conditionTree: { field: 'id', operator: 'In', value: ['1', '2'] }, search: null },
+        { conditionTree: { field: 'id', operator: 'In', value: ['2', '3'] }, search: null },
         { author: { name: 'Tolkien' } },
       );
     });

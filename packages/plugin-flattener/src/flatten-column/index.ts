@@ -21,17 +21,19 @@ function optionsToPaths(collection: CollectionCustomizer, options: FlattenColumn
   const errorMessage = `'${collection.name}.${columnName}' cannot be flattened`;
   const schema = collection.schema.fields[options.columnName];
 
+  if (!schema) throw new Error(`${errorMessage}' (not found).`);
   if (schema.type !== 'Column') throw new Error(`${errorMessage}' (not a column).`);
   if (typeof schema.columnType === 'string') throw new Error(`${errorMessage}' (primitive).`);
   if (Array.isArray(schema.columnType)) throw new Error(`${errorMessage}' (array).`);
 
-  const maxLevel = include ? 6 : level ?? 1;
-  if (maxLevel < 1) throw new Error('options.level must be greater than 0.');
+  let paths = include?.map(p => includeStrToPath(columnName, p));
 
-  // Make list of paths to flatten
-  const paths = listPaths(columnName, schema.columnType, maxLevel)
-    .filter(path => !include || include.find(p => path === includeStrToPath(columnName, p)))
-    .filter(path => !exclude?.find(p => path === includeStrToPath(columnName, p)));
+  if (!paths?.length) {
+    if (level < 1) throw new Error('options.level must be greater than 0.');
+    paths = listPaths(columnName, schema.columnType, level ?? 1);
+  }
+
+  paths = paths.filter(path => !exclude?.find(p => path === includeStrToPath(columnName, p)));
 
   if (!paths.length) throw new Error(`${errorMessage}' (no fields match level/include/exclude).`);
 
@@ -61,16 +63,20 @@ export default async function flattenColumn(
   const paths = optionsToPaths(collection, options);
   const schema = collection.schema.fields[options.columnName] as ColumnSchema;
 
-  // Implement read
+  // Add fields that reads the value from the deeply nested column
   for (const path of paths) {
     collection.addField(path, makeField(options.columnName, path, schema));
   }
 
   // Implement write
   if (!schema.isReadOnly && !options.readonly) {
+    // Add hooks to intercept the creation and update of the column (replaceFieldWriting would not
+    // work because it is called once per field, and we need to intercept the whole patch).
     collection.addHook('Before', 'Create', makeCreateHook(paths));
     collection.addHook('Before', 'Update', makeUpdateHook(collection, options.columnName, paths));
 
+    // They will never get called because the hooks will modify the patch, but we need them
+    // so that the field is flagged as writable.
     for (const path of paths) {
       collection.replaceFieldWriting(path, makeWriteHandler(path));
     }

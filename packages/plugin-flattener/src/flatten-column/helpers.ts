@@ -70,12 +70,11 @@ export function getValue(object: unknown, path: string): unknown {
  * unflattenPathsInPlace(['address@@@streetName'], { 'address@@@streetName': 'rue de la paix' })
  * // => { address: { streetName: 'rue de la paix' } }
  */
-export function unflattenPathsInPlace(paths: string[], patch: RecordData): RecordData {
+export function unflattenPathsInPlace(paths: string[], patch: RecordData): void {
   const keysToRewrite = paths.filter(p => patch[p] !== undefined);
-  const externalPatch = {};
 
   for (const key of keysToRewrite) {
-    let subExternalPatch = externalPatch;
+    let subExternalPatch = patch;
     const parts = key.split('@@@');
 
     for (const [index, part] of parts.entries()) {
@@ -89,6 +88,4 @@ export function unflattenPathsInPlace(paths: string[], patch: RecordData): Recor
 
     delete patch[key];
   }
-
-  return externalPatch;
 }

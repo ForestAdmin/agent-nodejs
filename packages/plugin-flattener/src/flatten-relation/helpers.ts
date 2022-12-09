@@ -13,8 +13,8 @@ export function getRelation(
   dataSource: DataSourceCustomizer,
   collection: CollectionCustomizer,
 ): RelationSchema {
-  const parts = relationName.split(':');
-  const relation = collection.schema.fields[parts[0]];
+  const [field, ...nested] = relationName.split(':');
+  const relation = collection.schema.fields[field];
 
   if (relation?.type !== 'ManyToOne' && relation?.type !== 'OneToOne') {
     const name = `'${collection.name}.${relationName}'`;
@@ -27,9 +27,9 @@ export function getRelation(
     throw new Error(message);
   }
 
-  return parts.length > 1
+  return nested.length > 0
     ? getRelation(
-        parts.slice(1).join(':'),
+        nested.join(':'),
         dataSource,
         dataSource.getCollection(relation.foreignCollection),
       )

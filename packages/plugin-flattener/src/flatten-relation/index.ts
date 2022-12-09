@@ -34,7 +34,7 @@ export default async function flattenRelation(
   const foreignCollection = dataSource.getCollection(relation.foreignCollection);
 
   const columns = new Set(include?.length > 0 ? include : getColumns(foreignCollection.schema));
-  if (exclude?.length > 0) exclude.forEach(column => columns.delete(column));
+  exclude?.forEach(column => columns.delete(column));
 
   for (const column of columns) {
     const path = `${relationName}:${column}`;

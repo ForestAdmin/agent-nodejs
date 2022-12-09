@@ -16,8 +16,11 @@ import hashRecord from 'object-hash';
 import { deepUpdateInPlace, getValue, unflattenPathsInPlace } from './helpers';
 
 export function makeField(columnName: string, path: string, schema: ColumnSchema) {
+  const columnType = getValue({ [columnName]: schema.columnType }, path) as ColumnType;
+  if (!columnType) throw new Error(`Cannot add field '${path}' (dependency not found).`);
+
   return {
-    columnType: getValue({ [columnName]: schema.columnType }, path) as ColumnType,
+    columnType,
     dependencies: [columnName],
     getValues: records => records.map(r => getValue(r, path)),
   };
@@ -36,8 +39,7 @@ export function makeWriteHandler(path: string) {
 export function makeCreateHook(paths: string[]) {
   return async (context: HookBeforeCreateContext) => {
     for (const record of context.data) {
-      const externalPatch = unflattenPathsInPlace(paths, record);
-      deepUpdateInPlace(record, externalPatch);
+      unflattenPathsInPlace(paths, record);
     }
   };
 }
@@ -48,35 +50,47 @@ export function makeUpdateHook(
   paths: string[],
 ) {
   return async (context: HookBeforeUpdateContext) => {
-    const externalPatch = unflattenPathsInPlace(paths, context.patch);
-    if (Object.keys(externalPatch).length === 0) return;
+    unflattenPathsInPlace(paths, context.patch);
 
-    // Generate patches to update the nested column
+    // We're not updating the nested column, so we don't have anything to do.
+    if (!context.patch[columnName]) return;
+
+    // List the records that we're updating, and group them by the patch that we'll need to apply
     const projection = [...SchemaUtils.getPrimaryKeys(collection.schema), columnName];
-    const allRecords = await context.collection.list(context.filter, projection);
-    const allRecordByPatch = {};
+    const records = await context.collection.list(context.filter, projection);
+    const recordsByPatch = new Map();
 
-    for (const record of allRecords) {
+    for (const record of records) {
       const patchForThatRecord = { [columnName]: record[columnName] };
-      deepUpdateInPlace(patchForThatRecord, externalPatch);
+      deepUpdateInPlace(patchForThatRecord, { [columnName]: context.patch[columnName] });
 
       const hash = hashRecord(patchForThatRecord);
-      allRecordByPatch[hash] ??= { records: [], patch: patchForThatRecord };
-      allRecordByPatch[hash].records.push(record);
+      if (!recordsByPatch.has(hash))
+        recordsByPatch.set(hash, { matches: [], patch: patchForThatRecord });
+      recordsByPatch.get(hash).matches.push(record);
     }
 
-    // Update the nested column by grouping records by patch
-    // This is done to avoid too many requests to the database (we do one per distinct patch
-    // instead of one per record)
-    const promises = Object.values(allRecordByPatch).map(async ({ records, patch }) => {
-      const conditionTree = ConditionTreeFactory.matchRecords(collection.schema, records);
+    if (recordsByPatch.size === 1) {
+      // All records have the same patch!
+      // That happened either because we got only one record, or because we got lucky.
+      // In any case, we don't need to perform separate requests.
+      const { patch } = recordsByPatch.values().next().value;
 
-      await context.collection.update(
-        { conditionTree: conditionTree as unknown as TConditionTree },
-        patch,
-      );
-    });
+      context.patch[columnName] = patch[columnName];
+    } else {
+      // Different patches need to be applied to different groups of records.
+      // We need to perform separate requests.
+      const promises = [...recordsByPatch.values()].map(({ matches, patch }) => {
+        const conditionTree = ConditionTreeFactory.matchRecords(collection.schema, matches);
+        const filter = { conditionTree: conditionTree as unknown as TConditionTree };
 
-    await Promise.all(promises);
+        return context.collection.update(filter, patch);
+      });
+
+      await Promise.all(promises);
+
+      // Tell child decorators that we've already handled the update.
+      delete context.patch[columnName];
+    }
   };
 }
