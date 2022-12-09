@@ -1,3 +1,18 @@
+# @forestadmin/plugin-flattener 1.0.0 (2022-12-09)
+
+
+### Features
+
+* **plugin-flattener:** rename plugin, and add support for nested relations and field flattening ([#565](https://github.com/ForestAdmin/agent-nodejs/issues/565)) ([8158b2f](https://github.com/ForestAdmin/agent-nodejs/commit/8158b2f5fc38e52e466c09f9ba365e4c42b01108))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.0
+
 ## @forestadmin/plugin-import-fields [1.0.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-import-fields@1.0.5...@forestadmin/plugin-import-fields@1.0.6) (2022-12-07)
 
 
