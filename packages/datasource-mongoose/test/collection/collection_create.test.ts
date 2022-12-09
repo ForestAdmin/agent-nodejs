@@ -1,12 +1,14 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable jest/no-disabled-tests */
 
-import { Projection } from '@forestadmin/datasource-toolkit';
+import { Projection, ValidationError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Connection, Types } from 'mongoose';
 
 import MongooseDatasource from '../../src/datasource';
 import { setupReview, setupWith2ManyToManyRelations } from '../_helpers';
+
+const caller = factories.caller.build();
 
 describe('MongooseCollection', () => {
   let connection: Connection;
@@ -16,6 +18,16 @@ describe('MongooseCollection', () => {
   });
 
   describe('create', () => {
+    it('should throw a validation error when the validation fails', async () => {
+      connection = await setupReview('collection_create');
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+
+      await expect(
+        review.create(factories.caller.build(), [{ title: 'forbidden title' }]),
+      ).rejects.toThrowError(ValidationError);
+    });
+
     it('should return the list of the created records', async () => {
       connection = await setupReview('collection_create');
       const dataSource = new MongooseDatasource(connection);
@@ -50,7 +62,7 @@ describe('MongooseCollection', () => {
       const reviews = dataSource.getCollection('review');
       const reviewMessages = dataSource.getCollection('review_message');
 
-      await reviews.create(null, [
+      await reviews.create(caller, [
         {
           message: 'a message',
           title: 'a title',
@@ -60,7 +72,7 @@ describe('MongooseCollection', () => {
         },
       ]);
 
-      const handler = () => reviewMessages.create(null, [{ content: 'something' }]);
+      const handler = () => reviewMessages.create(caller, [{ content: 'something' }]);
       await expect(handler).rejects.toThrow('Trying to create a subrecord with no parent');
     });
 
