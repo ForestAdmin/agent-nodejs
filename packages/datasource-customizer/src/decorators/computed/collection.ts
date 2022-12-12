@@ -55,6 +55,8 @@ export default class ComputedCollection extends CollectionDecorator {
   ): Promise<RecordData[]> {
     const childProjection = projection.replace(path => rewriteField(this, path));
     const records = await this.childCollection.list(caller, filter, childProjection);
+    if (childProjection.equals(projection)) return records;
+
     const context = new CollectionCustomizationContext(this, caller);
 
     return computeFromRecords(context, this, childProjection, projection, records);

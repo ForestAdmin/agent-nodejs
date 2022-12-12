@@ -2,6 +2,17 @@ import Projection from '../../src/interfaces/query/projection';
 import * as factories from '../__factories__';
 
 describe('Projection', () => {
+  describe('equals()', () => {
+    test('should remove duplicates', () => {
+      const projection1 = new Projection('id', 'name', 'address');
+      const projection2 = new Projection('id', 'name');
+      const projection3 = new Projection('id', 'name');
+
+      expect(projection1.equals(projection2)).toBe(false);
+      expect(projection2.equals(projection3)).toBe(true);
+    });
+  });
+
   describe('replace()', () => {
     test('should remove duplicates', () => {
       const projection = new Projection('id', 'name').replace(() => 'id');

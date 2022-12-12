@@ -21,6 +21,10 @@ export default class Projection extends Array<string> {
     }, {});
   }
 
+  equals(other: Projection): boolean {
+    return this.length === other.length && this.every(field => other.includes(field));
+  }
+
   replace(handler: (path: string) => Projection | string | string[], bind?: unknown): Projection {
     return this.map(handler, bind).reduce<Projection>((memo, newPaths) => {
       if (typeof newPaths === 'string') return memo.union([newPaths]);

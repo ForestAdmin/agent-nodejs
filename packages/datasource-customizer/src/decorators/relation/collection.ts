@@ -41,6 +41,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     const newFilter = await this.refineFilter(caller, filter);
     const newProjection = projection.replace(this.rewriteField, this).withPks(this);
     const records = await this.childCollection.list(caller, newFilter, newProjection);
+    if (newProjection.equals(projection)) return records;
 
     await this.reprojectInPlace(caller, records, projection);
 
