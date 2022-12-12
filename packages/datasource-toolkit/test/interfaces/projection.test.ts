@@ -3,7 +3,7 @@ import * as factories from '../__factories__';
 
 describe('Projection', () => {
   describe('equals()', () => {
-    test('should remove duplicates', () => {
+    test('should work', () => {
       const projection1 = new Projection('id', 'name', 'address');
       const projection2 = new Projection('id', 'name');
       const projection3 = new Projection('id', 'name');
