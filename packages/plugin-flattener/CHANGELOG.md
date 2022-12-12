@@ -1,3 +1,10 @@
+## @forestadmin/plugin-flattener [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.0...@forestadmin/plugin-flattener@1.0.1) (2022-12-12)
+
+
+### Bug Fixes
+
+* **plugin-flattener:** fix list of published files ([#572](https://github.com/ForestAdmin/agent-nodejs/issues/572)) ([75e3c61](https://github.com/ForestAdmin/agent-nodejs/commit/75e3c613c39616d71adb58fbe38c5a56380f8fcc))
+
 # @forestadmin/plugin-flattener 1.0.0 (2022-12-09)
 
 
