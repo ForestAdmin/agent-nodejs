@@ -27,7 +27,7 @@
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.5.5",
     "sequelize": "6.21.3",
-    "superagent": "^7.0.1",
+    "superagent": "^8.0.6",
     "mongoose": "6.6.3",
     "tedious": "^14.3.0"
   },
