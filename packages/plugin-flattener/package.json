@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "files": [
-    "dist/src/**/*.js",
-    "dist/src/**/*.d.ts"
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
   ],
   "publishConfig": {
     "access": "public"
