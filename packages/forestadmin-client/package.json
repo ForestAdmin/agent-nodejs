@@ -17,7 +17,7 @@
     "lru-cache": "^7.3.1",
     "object-hash": "^3.0.0",
     "openid-client": "5.2.1",
-    "superagent": "^7.0.1"
+    "superagent": "^8.0.6"
   },
   "files": [
     "dist/**/*.js",
