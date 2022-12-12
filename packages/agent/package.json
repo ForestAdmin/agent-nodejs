@@ -28,7 +28,7 @@
     "koa-jwt": "^4.0.3",
     "luxon": "^2.3.0",
     "object-hash": "^3.0.0",
-    "superagent": "^7.0.1",
+    "superagent": "^8.0.6",
     "uuid": "^8.3.2"
   },
   "files": [
