@@ -55,11 +55,13 @@ export function deepUpdateInPlace(memo: RecordData, newData: RecordData): void {
  * // => 'rue de la paix'
  */
 export function getValue(object: unknown, path: string): unknown {
-  const parts = path.split('@@@');
+  if (object === undefined || object === null) {
+    return object;
+  }
 
-  return parts.length === 1
-    ? object[parts[0]]
-    : getValue(object[parts[0]], parts.slice(1).join('@@@'));
+  const [key, ...rest] = path.split('@@@');
+
+  return rest.length === 0 ? object[key] : getValue(object[key], rest.join('@@@'));
 }
 
 /**

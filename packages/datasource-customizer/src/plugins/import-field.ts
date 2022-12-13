@@ -26,7 +26,7 @@ export default async function importField<
       if (fieldSchema.type === 'Column') return { schema: fieldSchema };
       if (fieldSchema.type === 'ManyToOne' || fieldSchema.type === 'OneToOne')
         return { collection: fieldSchema.foreignCollection };
-      throw new Error('Invalid options.path');
+      throw new Error(`Invalid options.path: ${options.path}}`);
     },
     { collection: collectionCustomizer.name },
   );

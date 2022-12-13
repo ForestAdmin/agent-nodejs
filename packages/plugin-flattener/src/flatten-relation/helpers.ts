@@ -2,36 +2,34 @@ import type {
   CollectionCustomizer,
   DataSourceCustomizer,
 } from '@forestadmin/datasource-customizer';
-import type { CollectionSchema, RelationSchema } from '@forestadmin/datasource-toolkit';
+import type { CollectionSchema, FieldSchema } from '@forestadmin/datasource-toolkit';
 
-export function getColumns(schema: CollectionSchema): string[] {
-  return Object.keys(schema.fields).filter(name => schema.fields[name].type === 'Column');
+export function getFields(schema: CollectionSchema, types: FieldSchema['type'][]): Set<string> {
+  return new Set(
+    Object.keys(schema.fields).filter(name => types.includes(schema.fields[name].type)),
+  );
 }
 
-export function getRelation(
-  relationName: string,
+export function getSchema(
+  path: string,
   dataSource: DataSourceCustomizer,
   collection: CollectionCustomizer,
-): RelationSchema {
-  const [field, ...nested] = relationName.split(':');
-  const relation = collection.schema.fields[field];
+): FieldSchema {
+  const identifier = `'${collection.name}.${path}'`;
+  const [name, ...nested] = path.split(':');
+  const field = collection.schema.fields[name];
 
-  if (relation?.type !== 'ManyToOne' && relation?.type !== 'OneToOne') {
-    const name = `'${collection.name}.${relationName}'`;
+  if (!field) throw new Error(`Field ${identifier} not found`);
+  if (nested.length === 0) return field;
 
+  if (field?.type !== 'ManyToOne' && field?.type !== 'OneToOne') {
     let message: string;
-    if (!relation) message = `Relation ${name} not found`;
-    else if (relation.type === 'Column') message = `${name} is a column, not a relation`;
-    else message = `${name} is not a ManyToOne or OneToOne relation`;
+    if (!field) message = `Relation ${identifier} not found`;
+    else if (field.type === 'Column') message = `${identifier} is a column, not a relation`;
+    else message = `${identifier} is not a ManyToOne or OneToOne relation`;
 
     throw new Error(message);
   }
 
-  return nested.length > 0
-    ? getRelation(
-        nested.join(':'),
-        dataSource,
-        dataSource.getCollection(relation.foreignCollection),
-      )
-    : relation;
+  return getSchema(nested.join(':'), dataSource, dataSource.getCollection(field.foreignCollection));
 }

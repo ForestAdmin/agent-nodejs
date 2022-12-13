@@ -169,7 +169,7 @@ describe('flattenRelation', () => {
         customizer
           .customizeCollection('books', book => book.use(flattenRelation, { relationName: 'id' }))
           .getDataSource(logger),
-      ).rejects.toThrow("'books.id' is a column, not a relation");
+      ).rejects.toThrow("'books.id' must be either ManyToOne or OneToOne.");
     });
 
     it('should throw if error.relationName is not the expected relation type', async () => {
@@ -181,7 +181,7 @@ describe('flattenRelation', () => {
             book.use(flattenRelation, { relationName: 'authors' }),
           )
           .getDataSource(logger),
-      ).rejects.toThrow("'books.authors' is not a ManyToOne or OneToOne relation");
+      ).rejects.toThrow("'books.authors' must be either ManyToOne or OneToOne.");
     });
   });
 
@@ -249,7 +249,7 @@ describe('flattenRelation', () => {
               book.use(flattenRelation, { relationName: 'owner', include: ['doesNotExist'] }),
             )
             .getDataSource(logger),
-        ).rejects.toThrow('Field doesNotExist not found in collection owner');
+        ).rejects.toThrow("Field 'owner.doesNotExist' is not a column, OneToOne or ManyToOne.");
       });
     });
   });

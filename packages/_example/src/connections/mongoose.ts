@@ -15,22 +15,20 @@ connection.model(
       streetName: String,
       city: String,
       country: String,
-    },
 
-    bills: [
-      {
-        title: String,
-        amount: Number,
-        issueDate: Date,
-        items: [
-          {
+      bills: [
+        {
+          title: String,
+          amount: Number,
+          issueDate: Date,
+          items: {
             importance: { type: String, enum: ['high', 'medium', 'low'] },
             title: String,
             amount: Number,
           },
-        ],
-      },
-    ],
+        },
+      ],
+    },
   }),
 );
 
