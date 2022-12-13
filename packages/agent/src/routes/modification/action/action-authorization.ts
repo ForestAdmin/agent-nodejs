@@ -237,26 +237,25 @@ export default class ActionAuthorizationService {
     const rolesIdsGroupByConditions =
       ActionAuthorizationService.transformToRolesIdsGroupByConditions(actionConditionsByRoleId);
 
-    let requestRecordsCount: number;
-    let conditionRecordsCounts: number[];
+    if (!rolesIdsGroupByConditions.length) {
+      return roleIdsAllowedToApproveWithoutConditions;
+    }
 
-    if (rolesIdsGroupByConditions.length > 0) {
-      [requestRecordsCount, ...conditionRecordsCounts] = await Promise.all([
+    const [requestRecordsCount, ...conditionRecordsCounts] = await Promise.all([
+      ActionAuthorizationService.aggregateCountConditionIntersection(
+        caller,
+        collection,
+        filterForAllCaller,
+      ),
+      ...rolesIdsGroupByConditions.map(({ condition }) =>
         ActionAuthorizationService.aggregateCountConditionIntersection(
           caller,
           collection,
           filterForAllCaller,
+          condition,
         ),
-        ...rolesIdsGroupByConditions.map(({ condition }) =>
-          ActionAuthorizationService.aggregateCountConditionIntersection(
-            caller,
-            collection,
-            filterForAllCaller,
-            condition,
-          ),
-        ),
-      ]);
-    }
+      ),
+    ]);
 
     return rolesIdsGroupByConditions.reduce(
       (roleIdsAllowedToApprove, { roleIds }, currentIndex) => {
@@ -293,11 +292,10 @@ export default class ActionAuthorizationService {
         ),
       ]);
 
-      // If some records don't match the condition then the user
+      // If all records condition the condition everything is ok
+      // Otherwise when some records don't match the condition then the user
       // is not allow to perform the conditional action
-      if (matchingRecordsCount !== requestRecordsCount) {
-        return false;
-      }
+      return matchingRecordsCount === requestRecordsCount;
     }
 
     return true;

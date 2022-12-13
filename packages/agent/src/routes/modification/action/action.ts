@@ -58,8 +58,10 @@ export default class ActionRoute extends CollectionRoute {
     const { dataSource } = this.collection;
 
     const caller = QueryStringParser.parseCaller(context);
-    const filterForCaller = await this.getRecordSelection(context);
-    const filterForAllCaller = await this.getRecordSelection(context, false);
+    const [filterForCaller, filterForAllCaller] = await Promise.all([
+      this.getRecordSelection(context),
+      this.getRecordSelection(context, false),
+    ]);
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
 
     const canPerformCustomActionParams = {
