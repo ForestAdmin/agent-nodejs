@@ -9,5 +9,8 @@ export default class CustomActionRequiresApprovalError extends ForbiddenError {
     this.data = {
       roleIdsAllowedToApprove,
     };
+
+    // Needed to test it... (due to toMatchObject)
+    this.name = 'CustomActionRequiresApprovalError';
   }
 }
