@@ -48,6 +48,8 @@ export default class QueryConverter {
     value?: any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): any {
+    const valueAsArray = this.asArray(value);
+
     if (operator === null) throw new Error('Invalid (null) operator.');
 
     switch (operator) {
@@ -67,17 +69,17 @@ export default class QueryConverter {
         return this.where(this.fn('LOWER', this.col(field)), 'LIKE', value.toLocaleLowerCase());
 
       case 'NotContains':
-        return {
-          [Op.not]: this.makeWhereClause(field, 'Like', `%${value}%`) as WhereOperators,
-        };
+        return { [Op.not]: this.makeWhereClause(field, 'Like', `%${value}%`) as WhereOperators };
       case 'Equal':
         return { [Op.eq]: value };
       case 'GreaterThan':
         return { [Op.gt]: value };
       case 'In':
-        return { [Op.in]: this.asArray(value) };
+        return valueAsArray.includes(null)
+          ? { [Op.or]: [{ [Op.in]: valueAsArray.filter(v => v !== null) }, { [Op.ne]: null }] }
+          : { [Op.in]: valueAsArray };
       case 'IncludesAll':
-        return { [Op.contains]: this.asArray(value) };
+        return { [Op.contains]: valueAsArray };
       case 'LessThan':
         return { [Op.lt]: value };
       case 'Missing':
@@ -85,7 +87,9 @@ export default class QueryConverter {
       case 'NotEqual':
         return { [Op.ne]: value };
       case 'NotIn':
-        return { [Op.notIn]: this.asArray(value) };
+        return valueAsArray.includes(null)
+          ? { [Op.notIn]: valueAsArray.filter(v => v !== null), [Op.ne]: null }
+          : { [Op.notIn]: valueAsArray };
       case 'Present':
         return { [Op.ne]: null };
       default:
