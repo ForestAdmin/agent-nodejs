@@ -39,7 +39,6 @@ describe('Utils > TypeConverter', () => {
       it('should return the matching set of operators', () => {
         expect(TypeConverter.operatorsForColumnType(['Boolean'])).toEqual(
           new Set<Operator>([
-            'Blank',
             'Equal',
             'In',
             'IncludesAll',
@@ -54,42 +53,21 @@ describe('Utils > TypeConverter', () => {
 
     describe('with a non-array type', () => {
       describe.each([
-        ['Boolean', 'Boolean', ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present']],
+        ['Boolean', 'Boolean', ['Equal', 'Missing', 'NotEqual', 'Present']],
         [
           'Universally Unique Identifier',
           'Uuid',
-          [
-            'Blank',
-            'Equal',
-            'Missing',
-            'NotEqual',
-            'Present',
-            'StartsWith',
-            'EndsWith',
-            'Contains',
-            'Like',
-          ],
+          ['Equal', 'Missing', 'NotEqual', 'Present', 'StartsWith', 'EndsWith', 'Contains', 'Like'],
         ],
         [
           'Numerical',
           'Number',
-          [
-            'Blank',
-            'Equal',
-            'GreaterThan',
-            'In',
-            'LessThan',
-            'Missing',
-            'NotEqual',
-            'NotIn',
-            'Present',
-          ],
+          ['Equal', 'GreaterThan', 'In', 'LessThan', 'Missing', 'NotEqual', 'NotIn', 'Present'],
         ],
         [
           'Textual',
           'String',
           [
-            'Blank',
             'Equal',
             'In',
             'Like',
@@ -106,10 +84,10 @@ describe('Utils > TypeConverter', () => {
         [
           'Temporal',
           'Date',
-          ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present', 'LessThan', 'GreaterThan'],
+          ['Equal', 'Missing', 'NotEqual', 'Present', 'LessThan', 'GreaterThan'],
         ],
-        ['Enum', 'Enum', ['Blank', 'Equal', 'In', 'Missing', 'NotEqual', 'NotIn', 'Present']],
-        ['JSON', 'Json', ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present']],
+        ['Enum', 'Enum', ['Equal', 'In', 'Missing', 'NotEqual', 'NotIn', 'Present']],
+        ['JSON', 'Json', ['Equal', 'Missing', 'NotEqual', 'Present']],
         ['Unsupported', 'Blob', []],
       ])('with "%s" types', (message, dataType, operatorList) => {
         it('should return the matching set of operators for type "%s"', () => {

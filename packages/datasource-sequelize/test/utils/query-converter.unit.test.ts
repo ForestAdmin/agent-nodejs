@@ -208,7 +208,6 @@ describe('Utils > QueryConverter', () => {
         const defaultStringValue = 'VaLuE';
 
         it.each([
-          ['Blank', undefined, { [Op.or]: [{ [Op.is]: null }, { [Op.eq]: '' }] }],
           ['Equal', defaultIntegerValue, { [Op.eq]: defaultIntegerValue }],
           ['GreaterThan', defaultIntegerValue, { [Op.gt]: defaultIntegerValue }],
           ['In', defaultArrayValue, { [Op.in]: defaultArrayValue }],

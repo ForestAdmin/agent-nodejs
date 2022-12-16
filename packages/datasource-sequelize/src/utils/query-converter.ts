@@ -51,11 +51,6 @@ export default class QueryConverter {
     if (operator === null) throw new Error('Invalid (null) operator.');
 
     switch (operator) {
-      case 'Blank':
-        return {
-          [Op.or]: [this.makeWhereClause(field, 'Missing'), { [Op.eq]: '' }],
-        };
-
       case 'Like':
         if (this.dialect === 'sqlite')
           return this.where(this.col(field), 'GLOB', value.replace(/%/g, '*').replace(/_/g, '?'));

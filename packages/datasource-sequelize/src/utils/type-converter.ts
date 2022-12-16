@@ -79,13 +79,7 @@ export default class TypeConverter {
     return TypeConverter.getColumnTypeFromDataType(dataType);
   }
 
-  private static readonly baseOperators: Operator[] = [
-    'Blank',
-    'Equal',
-    'Missing',
-    'NotEqual',
-    'Present',
-  ];
+  private static readonly baseOperators: Operator[] = ['Equal', 'Missing', 'NotEqual', 'Present'];
 
   public static operatorsForColumnType(columnType: ColumnType): Set<Operator> {
     if (Array.isArray(columnType)) {
