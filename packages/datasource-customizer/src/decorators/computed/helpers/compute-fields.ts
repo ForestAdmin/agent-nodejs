@@ -13,7 +13,7 @@ async function computeField(
   promises: Promise<unknown[]>[],
 ): Promise<unknown[]> {
   return transformUniqueValues(
-    unflatten(await Promise.all(promises), new Projection(...paths)),
+    unflatten(await Promise.all(promises), paths),
     async uniquePartials => computed.getValues(uniquePartials, ctx),
   );
 }
