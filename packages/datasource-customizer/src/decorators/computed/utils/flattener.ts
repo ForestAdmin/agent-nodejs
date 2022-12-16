@@ -32,27 +32,27 @@ export function unflatten(flatList: unknown[][], projection: string[]): unknown[
   const numRecords = flatList[0]?.length ?? 0;
   const records = [];
 
-  for (let i = 0; i < numRecords; i += 1) records[i] = {};
+  for (let recordIndex = 0; recordIndex < numRecords; recordIndex += 1) {
+    records[recordIndex] = {};
 
-  for (const [pathIndex, path] of projection.entries()) {
-    const parts = path.split(':').filter(part => part !== markerName);
-
-    for (let recordIndex = 0; recordIndex < numRecords; recordIndex += 1) {
+    for (const [pathIndex, path] of projection.entries()) {
+      // When a marker is found, the parent is null.
+      const parts = path.split(':').filter(part => part !== markerName);
       const value = flatList[pathIndex][recordIndex];
 
-      if (value !== undefined) {
-        let record = records[recordIndex];
+      // Ignore undefined values.
+      if (value === undefined) continue; // eslint-disable-line no-continue
 
-        for (let partIndex = 0; partIndex < parts.length; partIndex += 1) {
-          const part = parts[partIndex];
+      // Set all others (including null)
+      let record = records[recordIndex];
 
-          if (partIndex === parts.length - 1) {
-            record[part] = value;
-          } else {
-            if (!record[part]) record[part] = {};
-            record = record[part];
-          }
-        }
+      for (let partIndex = 0; partIndex < parts.length; partIndex += 1) {
+        const part = parts[partIndex];
+
+        if (partIndex === parts.length - 1) record[part] = value;
+        else if (!record[part]) record[part] = {};
+
+        record = record[part];
       }
     }
   }
