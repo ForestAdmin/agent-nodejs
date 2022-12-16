@@ -4,7 +4,7 @@ import CollectionCustomizationContext from '../../../context/collection-context'
 import ComputedCollection from '../collection';
 import { ComputedDefinition } from '../types';
 import transformUniqueValues from '../utils/deduplication';
-import { flatten, unflatten } from '../utils/flattener';
+import { flatten, unflatten, withNullMarkers } from '../utils/flattener';
 
 async function computeField(
   ctx: CollectionCustomizationContext,
@@ -51,7 +51,7 @@ export default async function computeFromRecords(
   records: RecordData[],
 ): Promise<RecordData[]> {
   // Format data for easy computation (one cell per path, with all values).
-  const paths = recordsProjection.slice() as Projection;
+  const paths = withNullMarkers(recordsProjection);
   const promises = flatten(records, paths).map(values => Promise.resolve(values));
 
   // Queue all computations, and perform them all at once
@@ -59,8 +59,10 @@ export default async function computeFromRecords(
   const values = await Promise.all(promises);
 
   // Quick reproject and unflatten.
+  const finalProjection = withNullMarkers(desiredProjection);
+
   return unflatten(
-    desiredProjection.map(path => values[paths.indexOf(path)]),
-    desiredProjection,
+    finalProjection.map(path => values[paths.indexOf(path)]),
+    finalProjection,
   );
 }

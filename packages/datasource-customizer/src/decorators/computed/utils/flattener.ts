@@ -1,35 +1,80 @@
-import { Projection, RecordData, RecordUtils } from '@forestadmin/datasource-toolkit';
+/**
+ * To compute the fields in parallel, it is much easier to represent the records as a group of
+ * arrays, one array per field.
+ *
+ * The issue with this transformation is that it is not a bijective function.
+ *
+ * When we flatten:
+ * - { title: 'Foundation', author: { country: null } }
+ *
+ * After flattening/unflattening, we don't know if the original record was:
+ * - { title: 'Foundation', author: { country: null } }
+ * - { title: 'Foundation', author: null }
+ *
+ * This is why we add a special marker to the projection, to keep track of null values.
+ */
 
-type FlatRecordList = Array<unknown[]>;
+const markerName = '__nullMarker';
 
-export function unflatten(flatList: FlatRecordList, projection: Projection): RecordData[] {
-  const numRecords = flatList[0]?.length ?? 0;
-  const records = [];
-  for (let i = 0; i < numRecords; i += 1) records[i] = {};
+export function withNullMarkers(projection: string[]): string[] {
+  const set = new Set(projection);
 
-  // Set fields
-  for (const column of projection.columns) {
-    const pathIndex = projection.indexOf(column);
-
-    for (const [index, value] of flatList[pathIndex].entries())
-      records[index][column] = value ?? null;
+  for (const path of projection) {
+    const parts = path.split(':');
+    for (let i = 1; i < parts.length; i += 1)
+      set.add(`${parts.slice(0, i).join(':')}:${markerName}`);
   }
 
-  // Set relations
-  for (const [relation, paths] of Object.entries(projection.relations)) {
-    const subFlatList = [];
-    for (const path of paths) subFlatList.push(flatList[projection.indexOf(`${relation}:${path}`)]);
-
-    const subRecords = unflatten(subFlatList, paths);
-    for (const index of records.keys()) records[index][relation] = subRecords[index];
-  }
-
-  // Keep only objects where at least a non-null value is set
-  return records.map(r => {
-    return Object.values(r).some(v => v !== null) ? r : null;
-  });
+  return [...set];
 }
 
-export function flatten(records: RecordData[], projection: string[]): FlatRecordList {
-  return projection.map(field => records.map(r => RecordUtils.getFieldValue(r, field)));
+export function unflatten(flatList: unknown[][], projection: string[]): unknown[] {
+  const numRecords = flatList[0]?.length ?? 0;
+  const records = [];
+
+  for (let i = 0; i < numRecords; i += 1) records[i] = {};
+
+  for (const [pathIndex, path] of projection.entries()) {
+    const parts = path.split(':').filter(part => part !== markerName);
+
+    for (let recordIndex = 0; recordIndex < numRecords; recordIndex += 1) {
+      const value = flatList[pathIndex][recordIndex];
+
+      if (value !== undefined) {
+        let record = records[recordIndex];
+
+        for (let partIndex = 0; partIndex < parts.length; partIndex += 1) {
+          const part = parts[partIndex];
+
+          if (partIndex === parts.length - 1) {
+            record[part] = value;
+          } else {
+            if (!record[part]) record[part] = {};
+            record = record[part];
+          }
+        }
+      }
+    }
+  }
+
+  return records;
+}
+
+export function flatten(records: unknown[], paths: string[]): unknown[][] {
+  return paths.map(field => {
+    const parts = field.split(':');
+
+    return records.map(record => {
+      let value = record;
+
+      for (let i = 0; i < parts.length - 1; i += 1) {
+        value = value?.[parts[i]];
+      }
+
+      // for markers, the value tells us which fields are null so that we can set them.
+      if (parts[parts.length - 1] === markerName) return value === null ? null : undefined;
+
+      return value?.[parts[parts.length - 1]];
+    });
+  });
 }
