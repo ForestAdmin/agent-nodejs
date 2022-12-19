@@ -35,67 +35,31 @@ describe('Utils > TypeConverter', () => {
   });
 
   describe('operatorsForColumnType', () => {
-    describe('with an array type', () => {
-      it('should return the matching set of operators', () => {
-        expect(TypeConverter.operatorsForColumnType(['Boolean'])).toEqual(
-          new Set<Operator>([
-            'Equal',
-            'In',
-            'IncludesAll',
-            'Missing',
-            'NotEqual',
-            'NotIn',
-            'Present',
-          ]),
-        );
-      });
-    });
+    const presence = ['Present', 'Missing'] as const;
+    const equality = ['Equal', 'NotEqual', 'In', 'NotIn'] as const;
+    const orderables = ['LessThan', 'GreaterThan'] as const;
+    const strings = ['Like', 'ILike', 'NotContains'] as const;
 
-    describe('with a non-array type', () => {
-      describe.each([
-        ['Boolean', 'Boolean', ['Equal', 'Missing', 'NotEqual', 'Present']],
-        [
-          'Universally Unique Identifier',
-          'Uuid',
-          ['Equal', 'Missing', 'NotEqual', 'Present', 'StartsWith', 'EndsWith', 'Contains', 'Like'],
-        ],
-        [
-          'Numerical',
-          'Number',
-          ['Equal', 'GreaterThan', 'In', 'LessThan', 'Missing', 'NotEqual', 'NotIn', 'Present'],
-        ],
-        [
-          'Textual',
-          'String',
-          [
-            'Equal',
-            'In',
-            'Like',
-            'ILike',
-            'LongerThan',
-            'Missing',
-            'NotContains',
-            'NotEqual',
-            'NotIn',
-            'Present',
-            'ShorterThan',
-          ],
-        ],
-        [
-          'Temporal',
-          'Date',
-          ['Equal', 'Missing', 'NotEqual', 'Present', 'LessThan', 'GreaterThan'],
-        ],
-        ['Enum', 'Enum', ['Equal', 'In', 'Missing', 'NotEqual', 'NotIn', 'Present']],
-        ['JSON', 'Json', ['Equal', 'Missing', 'NotEqual', 'Present']],
-        ['Unsupported', 'Blob', []],
-      ])('with "%s" types', (message, dataType, operatorList) => {
-        it('should return the matching set of operators for type "%s"', () => {
-          expect(TypeConverter.operatorsForColumnType(dataType as ColumnType)).toEqual(
-            new Set<Operator>(operatorList as Operator[]),
-          );
-        });
-      });
+    it.each([
+      // Primitive type
+      ['Boolean', [...presence, ...equality]],
+      ['Date', [...presence, ...equality, ...orderables]],
+      ['Enum', ['Present', 'Missing', 'Equal', 'NotEqual', 'In', 'NotIn']],
+      ['Number', [...presence, ...equality, ...orderables]],
+      ['String', [...presence, ...equality, ...orderables, ...strings]],
+      ['Uuid', [...presence, ...equality]],
+
+      // Array type
+      [['Boolean'], [...presence, ...equality, 'IncludesAll']],
+
+      // Composite and unsupported types
+      ['Json', presence],
+      [{ a: 'String' }, presence],
+      ['I_am_not_a_suported_type', presence],
+    ])('should return the matching set of operators for type "%s"', (dataType, operatorList) => {
+      expect(TypeConverter.operatorsForColumnType(dataType as ColumnType)).toEqual(
+        new Set<Operator>(operatorList as Operator[]),
+      );
     });
   });
 });
