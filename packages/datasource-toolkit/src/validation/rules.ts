@@ -49,7 +49,7 @@ export const MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE: Readonly<
   Timeonly: [...BASE_OPERATORS, 'LessThan', 'GreaterThan'],
   Enum: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
   Json: ['Blank', 'Missing', 'Present'],
-  Boolean: BASE_OPERATORS,
+  Boolean: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
   Point: BASE_OPERATORS,
   Uuid: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
 });
@@ -57,16 +57,41 @@ export const MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE: Readonly<
 export const MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE: Readonly<
   Record<PrimitiveTypes, readonly (ValidationTypes | PrimitiveTypes)[]>
 > = Object.freeze({
-  String: ['String', ValidationTypesArray.String, ValidationPrimaryTypes.Null],
-  Number: ['Number', ValidationTypesArray.Number, ValidationPrimaryTypes.Null],
-  Boolean: ['Boolean', ValidationTypesArray.Boolean, ValidationPrimaryTypes.Null],
-  Enum: ['Enum', ValidationTypesArray.Enum, ValidationPrimaryTypes.Null],
+  String: [
+    'String',
+    ValidationTypesArray.String,
+    ValidationTypesArray.Empty,
+    ValidationPrimaryTypes.Null,
+  ],
+  Number: [
+    'Number',
+    ValidationTypesArray.Number,
+    ValidationTypesArray.Empty,
+    ValidationPrimaryTypes.Null,
+  ],
+  Boolean: [
+    'Boolean',
+    ValidationTypesArray.Boolean,
+    ValidationTypesArray.Empty,
+    ValidationPrimaryTypes.Null,
+  ],
+  Enum: [
+    'Enum',
+    ValidationTypesArray.Enum,
+    ValidationTypesArray.Empty,
+    ValidationPrimaryTypes.Null,
+  ],
   Date: ['Date', ValidationPrimaryTypes.Null],
   Dateonly: ['Dateonly', ValidationPrimaryTypes.Null],
   Json: ['Json', ValidationPrimaryTypes.Null],
   Point: ['Point', ValidationPrimaryTypes.Null],
   Timeonly: ['Timeonly', ValidationPrimaryTypes.Null],
-  Uuid: ['Uuid', ValidationTypesArray.Uuid, ValidationPrimaryTypes.Null],
+  Uuid: [
+    'Uuid',
+    ValidationTypesArray.Uuid,
+    ValidationTypesArray.Empty,
+    ValidationPrimaryTypes.Null,
+  ],
 });
 
 function computeAllowedTypesForOperators(): Record<Operator, PrimitiveTypes[]> {

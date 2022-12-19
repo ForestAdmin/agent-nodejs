@@ -83,12 +83,11 @@ export default class FieldValidator {
     let isEnumAllowed: boolean;
 
     if (type === ValidationTypesArray.Enum) {
-      const enumValuesConditionTree = enumValue as Array<string>;
-      isEnumAllowed = enumValuesConditionTree.every(value =>
-        columnSchema.enumValues.includes(value),
-      );
+      isEnumAllowed = (enumValue as Array<string>).every(v => columnSchema.enumValues.includes(v));
     } else {
-      isEnumAllowed = columnSchema.enumValues.includes(enumValue as string);
+      isEnumAllowed =
+        type === ValidationTypesArray.Empty ||
+        columnSchema.enumValues.includes(enumValue as string);
     }
 
     if (!isEnumAllowed) {
