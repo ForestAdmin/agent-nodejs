@@ -212,6 +212,8 @@ describe('Utils > QueryConverter', () => {
           ['Equal', integerValue, { [Op.eq]: integerValue }],
           ['Equal', null, { [Op.is]: null }],
           ['GreaterThan', integerValue, { [Op.gt]: integerValue }],
+          ['In', [2], { [Op.eq]: 2 }],
+          ['In', [null], { [Op.is]: null }],
           ['In', simpleArrayValue, { [Op.in]: simpleArrayValue }],
           [
             'In',
@@ -222,6 +224,8 @@ describe('Utils > QueryConverter', () => {
           ['LessThan', integerValue, { [Op.lt]: integerValue }],
           ['Missing', undefined, { [Op.is]: null }],
           ['NotEqual', integerValue, { [Op.ne]: integerValue }],
+          ['NotIn', [2], { [Op.ne]: 2 }],
+          ['NotIn', [null], { [Op.ne]: null }],
           ['NotIn', simpleArrayValue, { [Op.notIn]: simpleArrayValue }],
           ['NotIn', arrayValueWithNull, { [Op.notIn]: simpleArrayValue, [Op.ne]: null }],
           ['Present', undefined, { [Op.ne]: null }],
@@ -368,32 +372,19 @@ describe('Utils > QueryConverter', () => {
     });
 
     describe('with array operator', () => {
-      describe.each([
-        ['In', 'In', Op.in],
-        ['IncludesAll', 'IncludesAll', Op.contains],
-        ['NotIn', 'NotIn', Op.notIn],
-      ])('"%s"', (message, operator, sequelizeOperator) => {
-        it('should handle atomic values', () => {
-          const model = setupModel();
-          const queryConverter = new QueryConverter(model);
+      it.each([
+        ['In', Op.in],
+        ['IncludesAll', Op.contains],
+        ['NotIn', Op.notIn],
+      ])('should handle array values "%s"', (operator, sequelizeOperator) => {
+        const model = setupModel();
+        const queryConverter = new QueryConverter(model);
 
-          const sequelizeFilter = queryConverter.getWhereFromConditionTree(
-            new ConditionTreeLeaf('__field_1__', operator as Operator, 42),
-          );
+        const sequelizeFilter = queryConverter.getWhereFromConditionTree(
+          new ConditionTreeLeaf('__field_1__', operator as Operator, [42, 43]),
+        );
 
-          expect(sequelizeFilter).toHaveProperty('__field_1__', { [sequelizeOperator]: [42] });
-        });
-
-        it('should handle array values', () => {
-          const model = setupModel();
-          const queryConverter = new QueryConverter(model);
-
-          const sequelizeFilter = queryConverter.getWhereFromConditionTree(
-            new ConditionTreeLeaf('__field_1__', operator as Operator, [42]),
-          );
-
-          expect(sequelizeFilter).toHaveProperty('__field_1__', { [sequelizeOperator]: [42] });
-        });
+        expect(sequelizeFilter).toHaveProperty('__field_1__', { [sequelizeOperator]: [42, 43] });
       });
     });
   });
