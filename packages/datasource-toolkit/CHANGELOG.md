@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.1...@forestadmin/datasource-toolkit@1.1.2) (2022-12-19)
+
+
+### Bug Fixes
+
+* **condition-tree:** allow empty list with In operator ([#578](https://github.com/ForestAdmin/agent-nodejs/issues/578)) ([a674e1c](https://github.com/ForestAdmin/agent-nodejs/commit/a674e1c99bdd47dea945507e34c354ec3254f0f2))
+
 ## @forestadmin/datasource-toolkit [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.0...@forestadmin/datasource-toolkit@1.1.1) (2022-11-07)
 
 
