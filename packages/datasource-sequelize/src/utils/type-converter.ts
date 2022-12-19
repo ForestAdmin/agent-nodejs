@@ -80,27 +80,30 @@ export default class TypeConverter {
   }
 
   public static operatorsForColumnType(columnType: ColumnType): Set<Operator> {
-    const presence = ['Present', 'Missing'] as const;
+    const result: Operator[] = ['Present', 'Missing'];
     const equality = ['Equal', 'NotEqual', 'In', 'NotIn'] as const;
-    const orderables = ['LessThan', 'GreaterThan'] as const;
-    const strings = ['Like', 'ILike', 'NotContains'] as const;
 
     if (typeof columnType === 'string') {
-      if (['Boolean', 'Enum', 'Uuid'].includes(columnType))
-        return new Set<Operator>([...presence, ...equality]);
+      const orderables = ['LessThan', 'GreaterThan'] as const;
+      const strings = ['Like', 'ILike', 'NotContains'] as const;
 
-      if (['Date', 'Dateonly', 'Number'].includes(columnType))
-        return new Set<Operator>([...presence, ...equality, ...orderables]);
+      if (['Boolean', 'Enum', 'Uuid'].includes(columnType)) {
+        result.push(...equality);
+      }
 
-      if (['String'].includes(columnType))
-        return new Set<Operator>([...presence, ...equality, ...orderables, ...strings]);
+      if (['Date', 'Dateonly', 'Number'].includes(columnType)) {
+        result.push(...equality, ...orderables);
+      }
+
+      if (['String'].includes(columnType)) {
+        result.push(...equality, ...orderables, ...strings);
+      }
     }
 
     if (Array.isArray(columnType)) {
-      return new Set<Operator>([...presence, ...equality, 'IncludesAll']);
+      result.push(...equality, 'IncludesAll');
     }
 
-    // Json and composite types.
-    return new Set<Operator>([...presence]);
+    return new Set(result);
   }
 }
