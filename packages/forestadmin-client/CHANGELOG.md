@@ -1,3 +1,13 @@
+## @forestadmin/forestadmin-client [1.0.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.0.3...@forestadmin/forestadmin-client@1.0.4) (2022-12-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.2
+
 ## @forestadmin/forestadmin-client [1.0.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.0.2...@forestadmin/forestadmin-client@1.0.3) (2022-12-12)
 
 ## @forestadmin/forestadmin-client [1.0.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.0.1...@forestadmin/forestadmin-client@1.0.2) (2022-12-05)
