@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.0.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.0.4...@forestadmin/forestadmin-client@1.0.5) (2022-12-19)
+
+
+### Bug Fixes
+
+* **forestadmin-client:** display error message from the server when provided ([#574](https://github.com/ForestAdmin/agent-nodejs/issues/574)) ([65bfb79](https://github.com/ForestAdmin/agent-nodejs/commit/65bfb797c238fa4398df779948f7dba7784778f9))
+
 ## @forestadmin/forestadmin-client [1.0.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.0.3...@forestadmin/forestadmin-client@1.0.4) (2022-12-19)
 
 
