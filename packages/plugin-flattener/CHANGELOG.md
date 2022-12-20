@@ -1,3 +1,18 @@
+## @forestadmin/plugin-flattener [1.0.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.2...@forestadmin/plugin-flattener@1.0.3) (2022-12-20)
+
+
+### Bug Fixes
+
+* **computed:** keep track of nested null values when building DAG for computation ([#575](https://github.com/ForestAdmin/agent-nodejs/issues/575)) ([2a33096](https://github.com/ForestAdmin/agent-nodejs/commit/2a330969651945525ec349d6732f532f71399aa4))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.2
+
 ## @forestadmin/plugin-flattener [1.0.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.1...@forestadmin/plugin-flattener@1.0.2) (2022-12-19)
 
 
