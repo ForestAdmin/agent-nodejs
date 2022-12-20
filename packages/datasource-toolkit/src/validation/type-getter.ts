@@ -26,6 +26,7 @@ export default class TypeGetter {
     typeContext?: PrimitiveTypes,
   ): ValidationTypes | PrimitiveTypes {
     if (value.length === 0) return ValidationTypesArray.Empty;
+
     if (TypeGetter.isArrayOf('Number', value, typeContext)) return ValidationTypesArray.Number;
 
     if (TypeGetter.isArrayOf('Uuid', value, typeContext)) return ValidationTypesArray.Uuid;
@@ -33,6 +34,8 @@ export default class TypeGetter {
     if (TypeGetter.isArrayOf('Boolean', value, typeContext)) return ValidationTypesArray.Boolean;
 
     if (TypeGetter.isArrayOf('String', value, typeContext)) return ValidationTypesArray.String;
+
+    if (TypeGetter.isArrayOf('Json', value, typeContext)) return ValidationTypesArray.Json;
 
     if (TypeGetter.isArrayOf('Enum', value, typeContext)) return ValidationTypesArray.Enum;
 
@@ -56,7 +59,7 @@ export default class TypeGetter {
 
     if (TypeGetter.isValidDate(value)) return TypeGetter.getDateType(value);
 
-    if (TypeGetter.isJson(value)) return 'Json';
+    if (TypeGetter.isJson(value, typeContext)) return 'Json';
 
     if (TypeGetter.isPoint(value, typeContext)) return 'Point';
 
@@ -77,7 +80,9 @@ export default class TypeGetter {
     );
   }
 
-  private static isJson(value: string): boolean {
+  private static isJson(value: string, typeContext?: PrimitiveTypes): boolean {
+    if (typeContext === 'Json') return true;
+
     try {
       return !!JSON.parse(value);
     } catch {

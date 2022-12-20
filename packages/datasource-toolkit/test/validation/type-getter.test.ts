@@ -72,6 +72,24 @@ describe('TypeGetter', () => {
       it('should return the expected type', () => {
         expect(TypeGetter.get(JSON.stringify({ message: 'hello' }))).toEqual('Json');
       });
+
+      describe('when the value is an array of string and the expected type is json', () => {
+        it('should return the expected type', () => {
+          expect(TypeGetter.get(['item1'], 'Json')).toEqual('ArrayOfJson');
+        });
+      });
+
+      describe('when the value is an array of plain object the expected type is json', () => {
+        it('should return the expected type', () => {
+          expect(TypeGetter.get([{ foo: 'bar' }], 'Json')).toEqual('ArrayOfJson');
+        });
+      });
+
+      describe('when the value is a valid JSON', () => {
+        it('should return the expected type', () => {
+          expect(TypeGetter.get('item1', 'Json')).toEqual('Json');
+        });
+      });
     });
 
     describe('when the value is an object', () => {

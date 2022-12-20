@@ -48,7 +48,7 @@ export const MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE: Readonly<
   Date: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS, 'BeforeXHoursAgo', 'AfterXHoursAgo'],
   Timeonly: [...BASE_OPERATORS, 'LessThan', 'GreaterThan'],
   Enum: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
-  Json: ['Blank', 'Missing', 'Present'],
+  Json: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
   Boolean: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
   Point: BASE_OPERATORS,
   Uuid: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
@@ -83,7 +83,12 @@ export const MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE: Readonly<
   ],
   Date: ['Date', ValidationPrimaryTypes.Null],
   Dateonly: ['Dateonly', ValidationPrimaryTypes.Null],
-  Json: ['Json', ValidationPrimaryTypes.Null],
+  Json: [
+    'Json',
+    ValidationTypesArray.Json,
+    ValidationTypesArray.Empty,
+    ValidationPrimaryTypes.Null,
+  ],
   Point: ['Point', ValidationPrimaryTypes.Null],
   Timeonly: ['Timeonly', ValidationPrimaryTypes.Null],
   Uuid: [

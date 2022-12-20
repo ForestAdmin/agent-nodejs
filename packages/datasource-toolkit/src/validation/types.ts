@@ -4,6 +4,7 @@ export enum ValidationTypesArray {
   Number = 'ArrayOfNumber',
   String = 'ArrayOfString',
   Uuid = 'ArrayOfUuid',
+  Json = 'ArrayOfJson',
   Empty = 'EmptyArray',
 }
 
