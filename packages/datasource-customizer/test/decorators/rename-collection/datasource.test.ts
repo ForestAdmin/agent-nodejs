@@ -282,8 +282,10 @@ describe('RenameCollectionDecorator', () => {
       dataSource.renameCollections(name => (name === 'librariesBooks' ? 'lib' : null));
 
       const collectionNames = dataSource.collections.map(c => c.name);
+      expect(collectionNames).toHaveLength(3);
+      expect(collectionNames).toContain('libraries');
       expect(collectionNames).toContain('lib');
-      expect(collectionNames).not.toContain('librariesBooks');
+      expect(collectionNames).toContain('books');
     });
   });
 });
