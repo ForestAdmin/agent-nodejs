@@ -220,6 +220,7 @@ describe('Utils > QueryConverter', () => {
             arrayValueWithNull,
             { [Op.or]: [{ [Op.in]: simpleArrayValue }, { [Op.is]: null }] },
           ],
+          ['In', [integerValue], { [Op.eq]: integerValue }],
           ['IncludesAll', simpleArrayValue, { [Op.contains]: simpleArrayValue }],
           ['LessThan', integerValue, { [Op.lt]: integerValue }],
           ['Missing', undefined, { [Op.is]: null }],
@@ -227,7 +228,16 @@ describe('Utils > QueryConverter', () => {
           ['NotIn', [2], { [Op.ne]: 2 }],
           ['NotIn', [null], { [Op.ne]: null }],
           ['NotIn', simpleArrayValue, { [Op.notIn]: simpleArrayValue }],
-          ['NotIn', arrayValueWithNull, { [Op.notIn]: simpleArrayValue, [Op.ne]: null }],
+          [
+            'NotIn',
+            arrayValueWithNull,
+            { [Op.and]: [{ [Op.ne]: null }, { [Op.notIn]: simpleArrayValue }] },
+          ],
+          [
+            'NotIn',
+            [null, integerValue],
+            { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: integerValue }] },
+          ],
           ['Present', undefined, { [Op.ne]: null }],
           ['NotContains', stringValue, { [Op.not]: { [Op.like]: `%${stringValue}%` } }],
         ])(

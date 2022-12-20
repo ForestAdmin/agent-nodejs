@@ -86,7 +86,9 @@ export default class QueryConverter {
     if (valueAsArray.includes(null)) {
       const valueAsArrayWithoutNull = valueAsArray.filter(v => v !== null);
 
-      return { [Op.or]: [{ [Op.in]: valueAsArrayWithoutNull }, { [Op.is]: null }] };
+      return {
+        [Op.or]: [this.makeInWhereClause(field, valueAsArrayWithoutNull), { [Op.is]: null }],
+      };
     }
 
     return { [Op.in]: valueAsArray };
@@ -101,9 +103,10 @@ export default class QueryConverter {
 
     if (valueAsArray.includes(null)) {
       const valueAsArrayWithoutNull = valueAsArray.filter(v => v !== null);
-      const notInCase = this.makeNotInWhereClause(field, valueAsArrayWithoutNull);
 
-      return { [Op.ne]: null, ...(notInCase as object) };
+      return {
+        [Op.and]: [{ [Op.ne]: null }, this.makeNotInWhereClause(field, valueAsArrayWithoutNull)],
+      };
     }
 
     return { [Op.notIn]: valueAsArray };
