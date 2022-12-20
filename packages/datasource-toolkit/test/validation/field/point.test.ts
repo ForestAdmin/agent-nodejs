@@ -23,6 +23,6 @@ describe('on field of type point', () => {
         }),
         'd,a',
       ),
-    ).toThrow('Wrong type for "point": d,a. Expects Point');
+    ).toThrow('The given value NaN,NaN is not supported');
   });
 });

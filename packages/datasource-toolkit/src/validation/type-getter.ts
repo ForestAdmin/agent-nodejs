@@ -25,9 +25,12 @@ export default class TypeGetter {
     value: Array<unknown>,
     typeContext: PrimitiveTypes,
   ): ValidationTypes | PrimitiveTypes {
+    if (!ValidationTypesArray[typeContext]) {
+      throw new Error(`Type ${typeContext} is not supported in array`);
+    }
+
     if (value.length === 0) {
-      if (ValidationTypesArray[typeContext]) return ValidationTypesArray[typeContext];
-      throw new Error(`Type ${typeContext} is not supported for arrays`);
+      return ValidationTypesArray[typeContext];
     }
 
     if (TypeGetter.isArrayOf('Number', value, typeContext)) return ValidationTypesArray.Number;
@@ -42,7 +45,7 @@ export default class TypeGetter {
 
     if (TypeGetter.isArrayOf('Enum', value, typeContext)) return ValidationTypesArray.Enum;
 
-    return ValidationPrimaryTypes.Null;
+    throw new Error(`The given value ${value} is not supported`);
   }
 
   private static getDateType(value: string): PrimitiveTypes {
@@ -62,7 +65,7 @@ export default class TypeGetter {
 
     if (TypeGetter.isValidDate(value)) return TypeGetter.getDateType(value);
 
-    if (TypeGetter.isJson(value, typeContext)) return 'Json';
+    if (typeContext === 'Json') return 'Json';
 
     if (TypeGetter.isPoint(value, typeContext)) return 'Point';
 
@@ -81,16 +84,6 @@ export default class TypeGetter {
       typeContext === 'Point' &&
       TypeGetter.get(potentialPoint.map(Number), 'Number') === ValidationTypesArray.Number
     );
-  }
-
-  private static isJson(value: string, typeContext: PrimitiveTypes): boolean {
-    if (typeContext === 'Json') return true;
-
-    try {
-      return !!JSON.parse(value);
-    } catch {
-      return false;
-    }
   }
 
   private static isArrayOf(

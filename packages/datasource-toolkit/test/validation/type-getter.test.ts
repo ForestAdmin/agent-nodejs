@@ -1,5 +1,5 @@
 import TypeGetter from '../../src/validation/type-getter';
-import { ValidationPrimaryTypes, ValidationTypesArray } from '../../src/validation/types';
+import { ValidationTypesArray } from '../../src/validation/types';
 
 describe('TypeGetter', () => {
   describe('get', () => {
@@ -52,14 +52,20 @@ describe('TypeGetter', () => {
       });
 
       describe('when the values are strings and numbers', () => {
-        it('should return null', () => {
-          expect(TypeGetter.get(['str', 1, 'str'], 'String')).toEqual(ValidationPrimaryTypes.Null);
+        it('should throw an error', () => {
+          expect(() => TypeGetter.get(['str', 1, 'str'], 'String')).toThrowError();
         });
       });
 
       describe('when there is no value', () => {
         it('should return the expected type', () => {
           expect(TypeGetter.get([], 'Uuid')).toEqual(ValidationTypesArray.Uuid);
+        });
+      });
+
+      describe('when the array is empty and the given context is not allowed to use array', () => {
+        it('should return null', () => {
+          expect(() => TypeGetter.get([], 'Point')).toThrowError();
         });
       });
     });
