@@ -1,3 +1,18 @@
+## @forestadmin/datasource-customizer [1.5.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.2...@forestadmin/datasource-customizer@1.5.3) (2022-12-20)
+
+
+### Performance Improvements
+
+* **customizer:** improve CPU usage and response time ([#571](https://github.com/ForestAdmin/agent-nodejs/issues/571)) ([addd8f8](https://github.com/ForestAdmin/agent-nodejs/commit/addd8f8d88c670a825440aa0a928a2761c8da688))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.3
+
 ## @forestadmin/datasource-customizer [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.1...@forestadmin/datasource-customizer@1.5.2) (2022-12-20)
 
 
