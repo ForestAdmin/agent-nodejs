@@ -106,6 +106,7 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
   ): Promise<RecordData[]> {
     const childProjection = projection.replace(field => this.pathToChildCollection(field));
     const records = await super.list(caller, filter, childProjection);
+    if (childProjection.equals(projection)) return records;
 
     return records.map(record => this.recordFromChildCollection(record));
   }

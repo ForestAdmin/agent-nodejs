@@ -136,17 +136,19 @@ export default class Serializer {
   }
 
   private stripUndefinedsInPlace(record: unknown): void {
-    if (record === null || typeof record !== 'object') {
-      return;
-    }
+    if (record !== null && typeof record === 'object') {
+      const keys = Object.keys(record);
+      let i = keys.length;
 
-    const indexable = record as Record<string, unknown>;
+      // eslint-disable-next-line no-plusplus
+      while (i--) {
+        const key = keys[i];
 
-    for (const key of Object.keys(indexable)) {
-      if (indexable[key] === undefined) {
-        delete indexable[key];
-      } else {
-        this.stripUndefinedsInPlace(indexable[key]);
+        if (record[key] === undefined) {
+          delete record[key];
+        } else {
+          this.stripUndefinedsInPlace(record[key]);
+        }
       }
     }
   }

@@ -139,20 +139,32 @@ describe('CollectionDecorator', () => {
     });
 
     it('when the child schema changes everytime, refine schema should be called', async () => {
+      const dataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'books' }),
+      );
+      const collection = dataSource.getCollection('books');
+
       // "Identity decorator"
+      const ParentDecorator = class extends CollectionDecorator {
+        public override markSchemaAsDirty(): void {
+          super.markSchemaAsDirty();
+        }
+      };
+
       const refineSchema = jest.fn().mockImplementation(child => child);
-      const MyDecorator = class extends CollectionDecorator {
+      const ChildDecorator = class extends CollectionDecorator {
         override refineSchema = refineSchema;
       };
 
-      // Create collections
-      const child = factories.collection.build({ schema: factories.collectionSchema.build() });
-      Object.defineProperty(child, 'schema', { get: () => factories.collectionSchema.build() });
+      const parent = new ParentDecorator(collection, dataSource);
+      const child = new ChildDecorator(parent, dataSource);
+      parent.markSchemaAsDirty();
+      child.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
+      parent.markSchemaAsDirty();
+      child.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
+      parent.markSchemaAsDirty();
+      child.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
 
-      const parent = new MyDecorator(child, null);
-      parent.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
-      parent.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
-      parent.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
       expect(refineSchema).toHaveBeenCalledTimes(3);
     });
   });

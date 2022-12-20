@@ -23,9 +23,8 @@ export default class CollectionDecorator implements Collection {
   private lastSubSchema: CollectionSchema;
 
   get schema(): CollectionSchema {
-    const subSchema = this.childCollection.schema;
-
-    if (!this.lastSchema || this.lastSubSchema !== subSchema) {
+    if (!this.lastSchema) {
+      const subSchema = this.childCollection.schema;
       this.lastSchema = this.refineSchema(subSchema);
       this.lastSubSchema = subSchema;
     }
@@ -40,6 +39,15 @@ export default class CollectionDecorator implements Collection {
   constructor(childCollection: Collection, dataSource: DataSource) {
     this.childCollection = childCollection;
     this.dataSource = dataSource;
+
+    if (childCollection instanceof CollectionDecorator) {
+      const { markSchemaAsDirty } = childCollection;
+
+      childCollection.markSchemaAsDirty = () => {
+        this.markSchemaAsDirty();
+        markSchemaAsDirty.call(childCollection);
+      };
+    }
   }
 
   async execute(
