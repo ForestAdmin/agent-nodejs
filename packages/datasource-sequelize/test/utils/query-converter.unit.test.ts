@@ -212,8 +212,8 @@ describe('Utils > QueryConverter', () => {
           ['Equal', integerValue, { [Op.eq]: integerValue }],
           ['Equal', null, { [Op.is]: null }],
           ['GreaterThan', integerValue, { [Op.gt]: integerValue }],
-          ['In', [2], { [Op.eq]: 2 }],
           ['In', [null], { [Op.is]: null }],
+          ['In', [null, 2], { [Op.or]: [{ [Op.eq]: 2 }, { [Op.is]: null }] }],
           ['In', simpleArrayValue, { [Op.in]: simpleArrayValue }],
           [
             'In',
