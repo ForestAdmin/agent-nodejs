@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.1...@forestadmin/datasource-customizer@1.5.2) (2022-12-20)
+
+
+### Bug Fixes
+
+* **computed:** keep track of nested null values when building DAG for computation ([#575](https://github.com/ForestAdmin/agent-nodejs/issues/575)) ([2a33096](https://github.com/ForestAdmin/agent-nodejs/commit/2a330969651945525ec349d6732f532f71399aa4))
+
 ## @forestadmin/datasource-customizer [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.0...@forestadmin/datasource-customizer@1.5.1) (2022-12-19)
 
 
