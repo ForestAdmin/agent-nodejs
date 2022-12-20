@@ -8,6 +8,8 @@ export default class TypeGetter {
   static get(value: unknown, typeContext: PrimitiveTypes): PrimitiveTypes | ValidationTypes {
     if (Array.isArray(value)) return TypeGetter.getArrayType(value, typeContext);
 
+    if (typeContext === 'Json') return 'Json';
+
     if (typeof value === 'string') return TypeGetter.getTypeFromString(value, typeContext);
 
     if (typeof value === 'number' && !Number.isNaN(Number(value))) return 'Number';
@@ -15,8 +17,6 @@ export default class TypeGetter {
     if (value instanceof Date && DateTime.fromJSDate(value).isValid) return 'Date';
 
     if (typeof value === 'boolean') return 'Boolean';
-
-    if (typeof value === 'object' && typeContext === 'Json') return 'Json';
 
     return ValidationPrimaryTypes.Null;
   }
@@ -64,8 +64,6 @@ export default class TypeGetter {
     if (uuidValidate(value)) return 'Uuid';
 
     if (TypeGetter.isValidDate(value)) return TypeGetter.getDateType(value);
-
-    if (typeContext === 'Json') return 'Json';
 
     if (TypeGetter.isPoint(value, typeContext)) return 'Point';
 
