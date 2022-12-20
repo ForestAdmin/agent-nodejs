@@ -85,9 +85,7 @@ export default class FieldValidator {
     if (type === ValidationTypesArray.Enum) {
       isEnumAllowed = (enumValue as Array<string>).every(v => columnSchema.enumValues.includes(v));
     } else {
-      isEnumAllowed =
-        type === ValidationTypesArray.Empty ||
-        columnSchema.enumValues.includes(enumValue as string);
+      isEnumAllowed = columnSchema.enumValues.includes(enumValue as string);
     }
 
     if (!isEnumAllowed) {

@@ -6,27 +6,27 @@ describe('TypeGetter', () => {
     describe('when the value is an Array', () => {
       describe('when all the values are numbers', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get([1, 2, 3])).toEqual(ValidationTypesArray.Number);
+          expect(TypeGetter.get([1, 2, 3], 'Number')).toEqual(ValidationTypesArray.Number);
         });
 
         it('should return the expected type when there are negative numbers', () => {
-          expect(TypeGetter.get([-1, 2, 3])).toEqual(ValidationTypesArray.Number);
+          expect(TypeGetter.get([-1, 2, 3], 'Number')).toEqual(ValidationTypesArray.Number);
         });
       });
 
       describe('when all the values are boolean', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get([true, false])).toEqual(ValidationTypesArray.Boolean);
+          expect(TypeGetter.get([true, false], 'Boolean')).toEqual(ValidationTypesArray.Boolean);
         });
       });
 
       describe('when all the values are Uuid', () => {
         it('should return the expected type', () => {
           expect(
-            TypeGetter.get([
-              '2d162303-78bf-599e-b197-93590ac3d315',
-              '2d162303-78bf-599e-b197-93590ac3d315',
-            ]),
+            TypeGetter.get(
+              ['2d162303-78bf-599e-b197-93590ac3d315', '2d162303-78bf-599e-b197-93590ac3d315'],
+              'Uuid',
+            ),
           ).toEqual(ValidationTypesArray.Uuid);
         });
       });
@@ -39,7 +39,9 @@ describe('TypeGetter', () => {
         });
 
         it('should return the expected type', () => {
-          expect(TypeGetter.get(['str', 'str2', 'str'])).toEqual(ValidationTypesArray.String);
+          expect(TypeGetter.get(['str', 'str2', 'str'], 'String')).toEqual(
+            ValidationTypesArray.String,
+          );
         });
       });
 
@@ -51,26 +53,26 @@ describe('TypeGetter', () => {
 
       describe('when the values are strings and numbers', () => {
         it('should return null', () => {
-          expect(TypeGetter.get(['str', 1, 'str'])).toEqual(ValidationPrimaryTypes.Null);
+          expect(TypeGetter.get(['str', 1, 'str'], 'String')).toEqual(ValidationPrimaryTypes.Null);
         });
       });
 
       describe('when there is no value', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get([])).toEqual(ValidationTypesArray.Empty);
+          expect(TypeGetter.get([], 'Uuid')).toEqual(ValidationTypesArray.Uuid);
         });
       });
     });
 
     describe('when the value is a number', () => {
       it('should the expected type', () => {
-        expect(TypeGetter.get(1526)).toEqual('Number');
+        expect(TypeGetter.get(1526, 'Number')).toEqual('Number');
       });
     });
 
     describe('when the value is a json', () => {
       it('should return the expected type', () => {
-        expect(TypeGetter.get(JSON.stringify({ message: 'hello' }))).toEqual('Json');
+        expect(TypeGetter.get(JSON.stringify({ message: 'hello' }), 'Json')).toEqual('Json');
       });
 
       describe('when the value is an array of string and the expected type is json', () => {
@@ -93,8 +95,8 @@ describe('TypeGetter', () => {
     });
 
     describe('when the value is an object', () => {
-      it('should return null', () => {
-        expect(TypeGetter.get({ message: 'hello' })).toEqual(ValidationPrimaryTypes.Null);
+      it('should return Json', () => {
+        expect(TypeGetter.get({ message: 'hello' }, 'Json')).toEqual('Json');
       });
     });
 
@@ -107,19 +109,19 @@ describe('TypeGetter', () => {
 
       describe('when it is a date without time', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get('2016-05-25')).toEqual('Dateonly');
+          expect(TypeGetter.get('2016-05-25', 'Dateonly')).toEqual('Dateonly');
         });
       });
 
       describe('when it is a date with time', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get('2016-05-25T09:24:15.123')).toEqual('Date');
+          expect(TypeGetter.get('2016-05-25T09:24:15.123', 'Date')).toEqual('Date');
         });
       });
 
       describe('when there is only the time', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get('09:24:15.123')).toEqual('Timeonly');
+          expect(TypeGetter.get('09:24:15.123', 'Date')).toEqual('Timeonly');
         });
       });
     });
@@ -145,7 +147,7 @@ describe('TypeGetter', () => {
 
       describe('when it is an uuid', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get('2d162303-78bf-599e-b197-93590ac3d315')).toEqual('Uuid');
+          expect(TypeGetter.get('2d162303-78bf-599e-b197-93590ac3d315', 'Uuid')).toEqual('Uuid');
         });
       });
 
@@ -165,7 +167,7 @@ describe('TypeGetter', () => {
 
       describe('when it is not an uuid or a number', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get('a string')).toEqual('String');
+          expect(TypeGetter.get('a string', 'String')).toEqual('String');
         });
       });
     });

@@ -5,7 +5,7 @@ import { PrimitiveTypes } from '../interfaces/schema';
 import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 
 export default class TypeGetter {
-  static get(value: unknown, typeContext?: PrimitiveTypes): PrimitiveTypes | ValidationTypes {
+  static get(value: unknown, typeContext: PrimitiveTypes): PrimitiveTypes | ValidationTypes {
     if (Array.isArray(value)) return TypeGetter.getArrayType(value, typeContext);
 
     if (typeof value === 'string') return TypeGetter.getTypeFromString(value, typeContext);
@@ -23,9 +23,12 @@ export default class TypeGetter {
 
   private static getArrayType(
     value: Array<unknown>,
-    typeContext?: PrimitiveTypes,
+    typeContext: PrimitiveTypes,
   ): ValidationTypes | PrimitiveTypes {
-    if (value.length === 0) return ValidationTypesArray.Empty;
+    if (value.length === 0) {
+      if (ValidationTypesArray[typeContext]) return ValidationTypesArray[typeContext];
+      throw new Error(`Type ${typeContext} is not supported for arrays`);
+    }
 
     if (TypeGetter.isArrayOf('Number', value, typeContext)) return ValidationTypesArray.Number;
 
@@ -52,7 +55,7 @@ export default class TypeGetter {
     return 'Date';
   }
 
-  private static getTypeFromString(value: string, typeContext?: PrimitiveTypes): PrimitiveTypes {
+  private static getTypeFromString(value: string, typeContext: PrimitiveTypes): PrimitiveTypes {
     if (['Enum', 'String'].includes(typeContext)) return typeContext;
 
     if (uuidValidate(value)) return 'Uuid';
@@ -80,7 +83,7 @@ export default class TypeGetter {
     );
   }
 
-  private static isJson(value: string, typeContext?: PrimitiveTypes): boolean {
+  private static isJson(value: string, typeContext: PrimitiveTypes): boolean {
     if (typeContext === 'Json') return true;
 
     try {
