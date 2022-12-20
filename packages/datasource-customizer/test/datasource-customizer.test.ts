@@ -128,14 +128,13 @@ describe('DataSourceCustomizer', () => {
 
     it('should throw when renaming to an existing collection', async () => {
       const customizer = new DataSourceCustomizer();
-      const dataSource1 = factories.dataSource.buildWithCollection(
+      const dataSource = factories.dataSource.buildWithCollections([
         factories.collection.build({ name: 'collection' }),
-      );
-      const dataSource2 = factories.dataSource.buildWithCollection(
-        factories.collection.build({ name: 'collection' }),
-      );
-      customizer.addDataSource(async () => dataSource1);
-      customizer.addDataSource(async () => dataSource2, { rename: { collection: 'collection' } });
+        factories.collection.build({ name: 'otherCollection' }),
+      ]);
+      customizer.addDataSource(async () => dataSource, {
+        rename: { otherCollection: 'collection' },
+      });
 
       await expect(customizer.getDataSource(logger)).rejects.toThrowError(
         'The given new collection name "collection" is already defined in the dataSource',

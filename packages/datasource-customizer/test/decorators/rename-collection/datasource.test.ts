@@ -248,7 +248,16 @@ describe('RenameCollectionDecorator', () => {
   });
 
   describe('renameCollections', () => {
-    it('should rename a collection when the rename option is given', () => {
+    it('should work with undefined', () => {
+      const dataSource = setupWithManyToManyRelation();
+
+      dataSource.renameCollections();
+
+      const collectionNames = dataSource.collections.map(c => c.name);
+      expect(collectionNames).toContain('librariesBooks');
+    });
+
+    it('should work when using plain object', () => {
       const dataSource = setupWithManyToManyRelation();
 
       dataSource.renameCollections({ librariesBooks: 'lib' });
@@ -256,6 +265,27 @@ describe('RenameCollectionDecorator', () => {
       const collectionNames = dataSource.collections.map(c => c.name);
       expect(collectionNames).toContain('lib');
       expect(collectionNames).not.toContain('librariesBooks');
+    });
+
+    it('should rename collection using a function', () => {
+      const dataSource = setupWithManyToManyRelation();
+
+      dataSource.renameCollections(name => (name === 'librariesBooks' ? 'lib' : name));
+
+      const collectionNames = dataSource.collections.map(c => c.name);
+      expect(collectionNames).toContain('lib');
+      expect(collectionNames).not.toContain('librariesBooks');
+    });
+
+    it('should rename collection using a function returning null', () => {
+      const dataSource = setupWithManyToManyRelation();
+      dataSource.renameCollections(name => (name === 'librariesBooks' ? 'lib' : null));
+
+      const collectionNames = dataSource.collections.map(c => c.name);
+      expect(collectionNames).toHaveLength(3);
+      expect(collectionNames).toContain('libraries');
+      expect(collectionNames).toContain('lib');
+      expect(collectionNames).toContain('books');
     });
   });
 });
