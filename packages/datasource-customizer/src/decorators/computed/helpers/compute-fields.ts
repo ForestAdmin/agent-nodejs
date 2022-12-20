@@ -28,7 +28,8 @@ function queueField(
   // Skip double computations (we're not checking before adding to queue).
   if (!paths.includes(newPath)) {
     const computed = collection.getComputed(newPath);
-    const nestedDependencies = new Projection(...computed.dependencies).nest(
+    const computedDependencies = withNullMarkers(computed.dependencies);
+    const nestedDependencies = new Projection(...computedDependencies).nest(
       newPath.includes(':') ? newPath.substring(0, newPath.lastIndexOf(':')) : null,
     );
 
@@ -39,7 +40,7 @@ function queueField(
     const dependencyValues = nestedDependencies.map(path => promises[paths.indexOf(path)]);
 
     paths.push(newPath);
-    promises.push(computeField(ctx, computed, computed.dependencies, dependencyValues));
+    promises.push(computeField(ctx, computed, computedDependencies, dependencyValues));
   }
 }
 
