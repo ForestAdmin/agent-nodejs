@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.5.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.3...@forestadmin/datasource-customizer@1.5.4) (2022-12-20)
+
+
+### Bug Fixes
+
+* **customizer:** add support for collection renaming function ([#579](https://github.com/ForestAdmin/agent-nodejs/issues/579)) ([000fa85](https://github.com/ForestAdmin/agent-nodejs/commit/000fa8523212fc211941d1d0de9788b34af4111d))
+
 ## @forestadmin/datasource-customizer [1.5.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.2...@forestadmin/datasource-customizer@1.5.3) (2022-12-20)
 
 
