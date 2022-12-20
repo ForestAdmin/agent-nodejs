@@ -1,3 +1,13 @@
+## @forestadmin/agent [1.4.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.10...@forestadmin/agent@1.4.11) (2022-12-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.2
+
 ## @forestadmin/agent [1.4.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.9...@forestadmin/agent@1.4.10) (2022-12-19)
 
 
