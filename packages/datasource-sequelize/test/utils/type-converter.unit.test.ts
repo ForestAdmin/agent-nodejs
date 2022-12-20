@@ -44,7 +44,7 @@ describe('Utils > TypeConverter', () => {
       // Primitive type
       ['Boolean', [...presence, ...equality]],
       ['Date', [...presence, ...equality, ...orderables]],
-      ['Boolean', [...presence, ...equality]],
+      ['Enum', [...presence, ...equality]],
       ['Number', [...presence, ...equality, ...orderables]],
       ['String', [...presence, ...equality, ...orderables, ...strings]],
       ['Uuid', [...presence, ...equality]],
