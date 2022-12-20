@@ -1,8 +1,9 @@
 import { ValidationError } from '../errors';
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
+import { MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE } from './rules';
 import TypeGetter from './type-getter';
-import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
+import { ValidationTypes, ValidationTypesArray } from './types';
 
 export default class FieldValidator {
   static validate(collection: Collection, field: string, values?: unknown[]) {
@@ -23,12 +24,7 @@ export default class FieldValidator {
       }
 
       if (values !== undefined) {
-        values.forEach(value =>
-          FieldValidator.validateValue(field, schema, value, [
-            schema.columnType as PrimitiveTypes,
-            ValidationPrimaryTypes.Null,
-          ]),
-        );
+        values.forEach(value => FieldValidator.validateValue(field, schema, value));
       }
     } else {
       const prefix = field.substring(0, dotIndex);
@@ -55,8 +51,8 @@ export default class FieldValidator {
     field: string,
     schema: ColumnSchema,
     value: unknown,
-    allowedTypes: readonly (PrimitiveTypes | ValidationTypes)[] = [
-      schema.columnType as PrimitiveTypes,
+    allowedTypes: readonly (PrimitiveTypes | ValidationTypes)[] = MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE[
+      schema.columnType as PrimitiveTypes
     ],
   ): void {
     // FIXME: handle complex type from ColumnType

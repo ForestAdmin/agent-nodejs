@@ -26,6 +26,18 @@ describe('on field of type json', () => {
     ).not.toThrow();
   });
 
+  test('valid (json array) value type should not throw error', () => {
+    expect(() =>
+      FieldValidator.validateValue(
+        'json',
+        factories.columnSchema.build({
+          columnType: 'Json',
+        }),
+        ['email'],
+      ),
+    ).not.toThrow();
+  });
+
   test('a failed declaration of an plain object should also be a valid a json', () => {
     expect(() =>
       FieldValidator.validateValue(
