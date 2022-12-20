@@ -58,8 +58,8 @@ export function getValue(object: unknown, path: string): unknown {
   const parts = path.split('@@@');
 
   return parts.length === 1
-    ? object[parts[0]]
-    : getValue(object[parts[0]], parts.slice(1).join('@@@'));
+    ? object?.[parts[0]] ?? null
+    : getValue(object?.[parts[0]], parts.slice(1).join('@@@'));
 }
 
 /**

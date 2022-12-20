@@ -4,7 +4,7 @@ import CollectionCustomizationContext from '../../../context/collection-context'
 import ComputedCollection from '../collection';
 import { ComputedDefinition } from '../types';
 import transformUniqueValues from '../utils/deduplication';
-import { flatten, unflatten } from '../utils/flattener';
+import { flatten, unflatten, withNullMarkers } from '../utils/flattener';
 
 async function computeField(
   ctx: CollectionCustomizationContext,
@@ -13,7 +13,7 @@ async function computeField(
   promises: Promise<unknown[]>[],
 ): Promise<unknown[]> {
   return transformUniqueValues(
-    unflatten(await Promise.all(promises), new Projection(...paths)),
+    unflatten(await Promise.all(promises), paths),
     async uniquePartials => computed.getValues(uniquePartials, ctx),
   );
 }
@@ -28,7 +28,8 @@ function queueField(
   // Skip double computations (we're not checking before adding to queue).
   if (!paths.includes(newPath)) {
     const computed = collection.getComputed(newPath);
-    const nestedDependencies = new Projection(...computed.dependencies).nest(
+    const computedDependencies = withNullMarkers(computed.dependencies);
+    const nestedDependencies = new Projection(...computedDependencies).nest(
       newPath.includes(':') ? newPath.substring(0, newPath.lastIndexOf(':')) : null,
     );
 
@@ -39,7 +40,7 @@ function queueField(
     const dependencyValues = nestedDependencies.map(path => promises[paths.indexOf(path)]);
 
     paths.push(newPath);
-    promises.push(computeField(ctx, computed, computed.dependencies, dependencyValues));
+    promises.push(computeField(ctx, computed, computedDependencies, dependencyValues));
   }
 }
 
@@ -51,7 +52,7 @@ export default async function computeFromRecords(
   records: RecordData[],
 ): Promise<RecordData[]> {
   // Format data for easy computation (one cell per path, with all values).
-  const paths = recordsProjection.slice() as Projection;
+  const paths = withNullMarkers(recordsProjection);
   const promises = flatten(records, paths).map(values => Promise.resolve(values));
 
   // Queue all computations, and perform them all at once
@@ -59,8 +60,10 @@ export default async function computeFromRecords(
   const values = await Promise.all(promises);
 
   // Quick reproject and unflatten.
+  const finalProjection = withNullMarkers(desiredProjection);
+
   return unflatten(
-    desiredProjection.map(path => values[paths.indexOf(path)]),
-    desiredProjection,
+    finalProjection.map(path => values[paths.indexOf(path)]),
+    finalProjection,
   );
 }
