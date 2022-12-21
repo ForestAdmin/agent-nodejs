@@ -1,0 +1,33 @@
+{
+  "name": "@forestadmin/plugin-aws-s3",
+  "version": "0.0.0-development",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/plugin-aws-s3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.157.0",
+    "@aws-sdk/s3-request-presigner": "^3.157.0"
+  },
+  "devDependencies": {
+    "@forestadmin/datasource-customizer": "1.5.6",
+    "@forestadmin/datasource-toolkit": "1.2.0"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  }
+}

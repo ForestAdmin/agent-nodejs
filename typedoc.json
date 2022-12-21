@@ -9,7 +9,8 @@
     "packages/datasource-mongoose",
     "packages/datasource-sequelize",
     "packages/datasource-sql",
-    "packages/datasource-toolkit"
+    "packages/datasource-toolkit",
+    "packages/plugin-aws-s3"
   ],
   "out": "api-reference",
   "name": "Forest Admin - API reference"

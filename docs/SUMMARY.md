@@ -62,6 +62,7 @@
 - [Hooks](agent-customization/hooks/README.md)
 - [Plugins](agent-customization/plugins/README.md)
   - Provided plugins
+    - [AWS S3](agent-customization/plugins/provided/aws-s3.md)
     - [Flattener](agent-customization/plugins/provided/flattener.md)
   - [Write your own](agent-customization/plugins/custom.md)
 - [Relationships](agent-customization/relationships/README.md)
@@ -107,10 +108,6 @@
   - [push](deployment/forest-cli-commands/push.md)
   - [environments:reset](deployment/forest-cli-commands/environments-reset.md)
   - [deploy](deployment/forest-cli-commands/deploy.md)
-
-## Examples
-
-- [Upload a file to S3](agent-customization/examples/upload-file-to-s3.md)
 
 ## Under the hood
 
