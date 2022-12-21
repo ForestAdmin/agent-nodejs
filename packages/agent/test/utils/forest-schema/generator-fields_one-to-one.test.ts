@@ -63,7 +63,7 @@ describe('SchemaGeneratorFields > One to One', () => {
       isPrimaryKey: false,
       isReadOnly: true,
       isRequired: false,
-      isSortable: false,
+      isSortable: true,
       isVirtual: false,
       validations: [],
     });

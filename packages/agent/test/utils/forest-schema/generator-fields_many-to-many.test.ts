@@ -80,11 +80,11 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       defaultValue: null,
       enums: null,
       integration: null,
-      isFilterable: false,
+      isFilterable: true,
       isPrimaryKey: false,
       isReadOnly: true,
       isRequired: false,
-      isSortable: false,
+      isSortable: true,
       isVirtual: false,
       validations: [],
     });
@@ -111,7 +111,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
         enums: null,
         integration: null,
         isReadOnly: true,
-        isSortable: false,
+        isSortable: true,
         isVirtual: false,
       });
     });
