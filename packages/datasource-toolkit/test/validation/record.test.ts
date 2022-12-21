@@ -38,6 +38,24 @@ describe('RecordValidator', () => {
     });
   });
 
+  describe('when the given field is a number and the given value is an array', () => {
+    test('should throw an error', () => {
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            name: factories.columnSchema.build(),
+          },
+        }),
+      });
+
+      expect(() =>
+        RecordValidator.validate(collection, {
+          name: ['this field is in collection'],
+        }),
+      ).toThrow();
+    });
+  });
+
   describe('when the given field is a oneToOne relation', () => {
     test('should not throw an error when the record data match the collection', () => {
       const dataSourceBook = factories.dataSource.buildWithCollections([
