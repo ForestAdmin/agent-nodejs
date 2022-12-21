@@ -3,7 +3,7 @@ import { Collection } from '../interfaces/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 import { MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE } from './rules';
 import TypeGetter from './type-getter';
-import { ValidationTypes, ValidationTypesArray } from './types';
+import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 
 export default class FieldValidator {
   static validate(collection: Collection, field: string, values?: unknown[]) {
@@ -24,7 +24,12 @@ export default class FieldValidator {
       }
 
       if (values !== undefined) {
-        values.forEach(value => FieldValidator.validateValue(field, schema, value));
+        values.forEach(value =>
+          FieldValidator.validateValue(field, schema, value, [
+            schema.columnType as PrimitiveTypes,
+            ValidationPrimaryTypes.Null,
+          ]),
+        );
       }
     } else {
       const prefix = field.substring(0, dotIndex);
