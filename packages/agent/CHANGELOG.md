@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.4.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.13...@forestadmin/agent@1.4.14) (2022-12-21)
+
+
+### Bug Fixes
+
+* array of json should be supported in a condition tree ([#580](https://github.com/ForestAdmin/agent-nodejs/issues/580)) ([61f254d](https://github.com/ForestAdmin/agent-nodejs/commit/61f254d96a98d8c062756fa1da456165973735f8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.5
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.4
+* **@forestadmin/forestadmin-client:** upgraded to 1.0.7
+
 ## @forestadmin/agent [1.4.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.12...@forestadmin/agent@1.4.13) (2022-12-20)
 
 
