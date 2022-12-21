@@ -49,23 +49,23 @@ export type ForestServerActionField = {
   widget: null | 'belongsto select' | 'file picker';
 };
 
-export type ForestServerField = Partial<{
+export type ForestServerField = {
   field: string;
   type: ForestServerColumnType;
   defaultValue: unknown;
   enums: null | string[];
-  integration: null; // Always null on forest-express
+  integration: null;
   isFilterable: boolean;
   isPrimaryKey: boolean;
   isReadOnly: boolean;
   isRequired: boolean;
   isSortable: boolean;
-  isVirtual: boolean; // Computed. Not sure what is done with that knowledge on the frontend.
+  isVirtual: false;
   reference: null | string;
   inverseOf: null | string;
   relationship: 'BelongsTo' | 'BelongsToMany' | 'HasMany' | 'HasOne';
   validations: Array<{ message: string | null; type: ValidationType; value: unknown }>;
-}>;
+};
 
 export type ForestServerSegment = {
   id: string;
