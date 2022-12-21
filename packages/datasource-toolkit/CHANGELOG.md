@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.3...@forestadmin/datasource-toolkit@1.1.4) (2022-12-21)
+
+
+### Bug Fixes
+
+* array of json should be supported in a condition tree ([#580](https://github.com/ForestAdmin/agent-nodejs/issues/580)) ([61f254d](https://github.com/ForestAdmin/agent-nodejs/commit/61f254d96a98d8c062756fa1da456165973735f8))
+
 ## @forestadmin/datasource-toolkit [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.2...@forestadmin/datasource-toolkit@1.1.3) (2022-12-20)
 
 
