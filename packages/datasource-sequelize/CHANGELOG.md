@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.2.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.2.2...@forestadmin/datasource-sequelize@1.2.3) (2022-12-21)
+
+
+### Bug Fixes
+
+* **sequelize:** invalid query generated when using the blank operator on uuid ([#576](https://github.com/ForestAdmin/agent-nodejs/issues/576)) ([b41e8cc](https://github.com/ForestAdmin/agent-nodejs/commit/b41e8cc687fc132a9f794b56e01517a02f3a2afa))
+
 ## @forestadmin/datasource-sequelize [1.2.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.2.1...@forestadmin/datasource-sequelize@1.2.2) (2022-12-20)
 
 
