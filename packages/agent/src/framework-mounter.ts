@@ -37,9 +37,10 @@ export default class FrameworkMounter {
    * @param host host that should be used, default to the unspecified IPv6 address (::) when IPv6
    *  is available, or the unspecified IPv4 address (0.0.0.0) otherwise.
    */
-  mountOnStandaloneServer(port = 3351, host?: string): this {
+  mountOnStandaloneServer(port?: number, host?: string): this {
+    const chosenPort = port || Number(process.env.PORT) || 3351;
     const server = createServer(this.getConnectCallback(true));
-    server.listen(port, host);
+    server.listen(chosenPort, host);
 
     this.logger(
       'Info',
