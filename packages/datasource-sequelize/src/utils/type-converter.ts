@@ -79,58 +79,31 @@ export default class TypeConverter {
     return TypeConverter.getColumnTypeFromDataType(dataType);
   }
 
-  private static readonly baseOperators: Operator[] = [
-    'Blank',
-    'Equal',
-    'Missing',
-    'NotEqual',
-    'Present',
-  ];
-
   public static operatorsForColumnType(columnType: ColumnType): Set<Operator> {
-    if (Array.isArray(columnType)) {
-      return new Set<Operator>([...TypeConverter.baseOperators, 'In', 'IncludesAll', 'NotIn']);
+    const result: Operator[] = ['Present', 'Missing'];
+    const equality: Operator[] = ['Equal', 'NotEqual', 'In', 'NotIn'];
+
+    if (typeof columnType === 'string') {
+      const orderables: Operator[] = ['LessThan', 'GreaterThan'];
+      const strings: Operator[] = ['Like', 'ILike', 'NotContains'];
+
+      if (['Boolean', 'Enum', 'Uuid'].includes(columnType)) {
+        result.push(...equality);
+      }
+
+      if (['Date', 'Dateonly', 'Number'].includes(columnType)) {
+        result.push(...equality, ...orderables);
+      }
+
+      if (['String'].includes(columnType)) {
+        result.push(...equality, ...orderables, ...strings);
+      }
     }
 
-    switch (columnType) {
-      case 'Boolean':
-        return new Set<Operator>([...TypeConverter.baseOperators]);
-      case 'Uuid':
-        return new Set<Operator>([
-          ...TypeConverter.baseOperators,
-          'Contains',
-          'EndsWith',
-          'Like',
-          'StartsWith',
-        ]);
-      case 'Number':
-        return new Set<Operator>([
-          ...TypeConverter.baseOperators,
-          'GreaterThan',
-          'In',
-          'LessThan',
-          'NotIn',
-        ]);
-      case 'String':
-        return new Set<Operator>([
-          ...TypeConverter.baseOperators,
-          'In',
-          'Like',
-          'ILike',
-          'LongerThan',
-          'NotContains',
-          'NotIn',
-          'ShorterThan',
-        ]);
-      case 'Date':
-      case 'Dateonly':
-        return new Set<Operator>([...TypeConverter.baseOperators, 'GreaterThan', 'LessThan']);
-      case 'Enum':
-        return new Set<Operator>([...TypeConverter.baseOperators, 'In', 'NotIn']);
-      case 'Json':
-        return new Set<Operator>([...TypeConverter.baseOperators]);
-      default:
-        return new Set<Operator>();
+    if (Array.isArray(columnType)) {
+      result.push(...equality, 'IncludesAll');
     }
+
+    return new Set(result);
   }
 }

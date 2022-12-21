@@ -14,7 +14,6 @@ import {
   Op,
   OrderItem,
   Sequelize,
-  WhereOperators,
   WhereOptions,
 } from 'sequelize';
 
@@ -35,67 +34,99 @@ export default class QueryConverter {
     this.where = this.model.sequelize.where;
   }
 
-  private asArray(value: unknown) {
-    if (!Array.isArray(value)) return [value];
-
-    return value;
-  }
-
-  private makeWhereClause(
-    field: string,
-    operator: Operator,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    value?: any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): any {
-    if (operator === null) throw new Error('Invalid (null) operator.');
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private makeWhereClause(field: string, operator: Operator, value?: unknown): any {
     switch (operator) {
-      case 'Blank':
-        return {
-          [Op.or]: [this.makeWhereClause(field, 'Missing'), { [Op.eq]: '' }],
-        };
-
-      case 'Like':
-        if (this.dialect === 'sqlite')
-          return this.where(this.col(field), 'GLOB', value.replace(/%/g, '*').replace(/_/g, '?'));
-        if (this.dialect === 'mysql' || this.dialect === 'mariadb')
-          return this.where(this.fn('BINARY', this.col(field)), 'LIKE', value);
-
-        return { [Op.like]: value };
-
-      case 'ILike':
-        if (this.dialect === 'postgres') return { [Op.iLike]: value };
-        if (this.dialect === 'mysql' || this.dialect === 'mariadb' || this.dialect === 'sqlite')
-          return { [Op.like]: value };
-
-        return this.where(this.fn('LOWER', this.col(field)), 'LIKE', value.toLocaleLowerCase());
-
-      case 'NotContains':
-        return {
-          [Op.not]: this.makeWhereClause(field, 'Like', `%${value}%`) as WhereOperators,
-        };
-      case 'Equal':
-        return { [Op.eq]: value };
-      case 'GreaterThan':
-        return { [Op.gt]: value };
-      case 'In':
-        return { [Op.in]: this.asArray(value) };
-      case 'IncludesAll':
-        return { [Op.contains]: this.asArray(value) };
-      case 'LessThan':
-        return { [Op.lt]: value };
-      case 'Missing':
-        return { [Op.is]: null };
-      case 'NotEqual':
-        return { [Op.ne]: value };
-      case 'NotIn':
-        return { [Op.notIn]: this.asArray(value) };
+      // Presence
       case 'Present':
         return { [Op.ne]: null };
+      case 'Missing':
+        return { [Op.is]: null };
+
+      // Equality
+      case 'Equal':
+        return { [value !== null ? Op.eq : Op.is]: value };
+      case 'NotEqual':
+        return { [Op.ne]: value };
+      case 'In':
+        return this.makeInWhereClause(field, value);
+      case 'NotIn':
+        return this.makeNotInWhereClause(field, value);
+
+      // Orderables
+      case 'LessThan':
+        return { [Op.lt]: value };
+      case 'GreaterThan':
+        return { [Op.gt]: value };
+
+      // Strings
+      case 'Like':
+        return this.makeLikeWhereClause(field, value as string, true);
+      case 'ILike':
+        return this.makeLikeWhereClause(field, value as string, false);
+      case 'NotContains':
+        return { [Op.not]: this.makeLikeWhereClause(field, `%${value}%`, true) };
+
+      // Arrays
+      case 'IncludesAll':
+        return { [Op.contains]: Array.isArray(value) ? value : [value] };
+
       default:
         throw new Error(`Unsupported operator: "${operator}".`);
     }
+  }
+
+  private makeInWhereClause(field: string, value: unknown): unknown {
+    const valueAsArray = value as unknown[];
+
+    if (valueAsArray.length === 1) {
+      return this.makeWhereClause(field, 'Equal', valueAsArray[0]);
+    }
+
+    if (valueAsArray.includes(null)) {
+      const valueAsArrayWithoutNull = valueAsArray.filter(v => v !== null);
+
+      return {
+        [Op.or]: [this.makeInWhereClause(field, valueAsArrayWithoutNull), { [Op.is]: null }],
+      };
+    }
+
+    return { [Op.in]: valueAsArray };
+  }
+
+  private makeNotInWhereClause(field: string, value: unknown): unknown {
+    const valueAsArray = value as unknown[];
+
+    if (valueAsArray.length === 1) {
+      return this.makeWhereClause(field, 'NotEqual', valueAsArray[0]);
+    }
+
+    if (valueAsArray.includes(null)) {
+      const valueAsArrayWithoutNull = valueAsArray.filter(v => v !== null);
+
+      return {
+        [Op.and]: [{ [Op.ne]: null }, this.makeNotInWhereClause(field, valueAsArrayWithoutNull)],
+      };
+    }
+
+    return { [Op.notIn]: valueAsArray };
+  }
+
+  private makeLikeWhereClause(field: string, value: string, caseSensitive: boolean): unknown {
+    if (caseSensitive) {
+      if (this.dialect === 'sqlite')
+        return this.where(this.col(field), 'GLOB', value.replace(/%/g, '*').replace(/_/g, '?'));
+      if (this.dialect === 'mysql' || this.dialect === 'mariadb')
+        return this.where(this.fn('BINARY', this.col(field)), 'LIKE', value);
+
+      return { [Op.like]: value };
+    }
+
+    if (this.dialect === 'postgres') return { [Op.iLike]: value };
+    if (this.dialect === 'mysql' || this.dialect === 'mariadb' || this.dialect === 'sqlite')
+      return { [Op.like]: value };
+
+    return this.where(this.fn('LOWER', this.col(field)), 'LIKE', value.toLocaleLowerCase());
   }
 
   /*
