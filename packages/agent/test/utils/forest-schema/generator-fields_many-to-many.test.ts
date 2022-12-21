@@ -84,7 +84,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
       isPrimaryKey: false,
       isReadOnly: true,
       isRequired: false,
-      isSortable: false,
+      isSortable: true,
       isVirtual: false,
       validations: [],
     });

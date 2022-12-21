@@ -130,7 +130,7 @@ export default class SchemaGeneratorFields {
       isPrimaryKey: false,
       isRequired: false,
       isReadOnly: Boolean(isReadOnly),
-      isSortable: false,
+      isSortable: true,
       validations: [],
       reference: `${foreignCollection.name}.${targetName}`,
     };
