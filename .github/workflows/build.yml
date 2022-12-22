@@ -58,6 +58,11 @@ jobs:
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
+      - name: Download build
+        uses: actions/download-artifact@v3
+        with:
+          name: build
+          path: 'packages/'
       - name: Lint commit message
         uses: wagoid/commitlint-github-action@v5
       - name: Lint Typescript
