@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.15...@forestadmin/agent@1.5.0) (2022-12-22)
+
+
+### Features
+
+* custom action support conditional trigger, requiresApproval and approve ([#562](https://github.com/ForestAdmin/agent-nodejs/issues/562)) ([666a3ce](https://github.com/ForestAdmin/agent-nodejs/commit/666a3ceb26ea2bb841ee3adfb567b2b554ef61cc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.6
+* **@forestadmin/datasource-toolkit:** upgraded to 1.2.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.0
+
 ## @forestadmin/agent [1.4.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.14...@forestadmin/agent@1.4.15) (2022-12-22)
 
 
