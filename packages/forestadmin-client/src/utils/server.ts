@@ -36,6 +36,7 @@ export default class ServerUtils {
 
     if ((e as ResponseError).response) {
       const status = (e as ResponseError)?.response?.status;
+      const message = (e as ResponseError)?.response?.body?.errors?.[0]?.detail;
 
       // 0 == offline, 502 == bad gateway from proxy
       if (status === 0 || status === 502)
@@ -52,6 +53,9 @@ export default class ServerUtils {
           'Forest is in maintenance for a few minutes. We are upgrading your experience in ' +
             'the forest. We just need a few more minutes to get it right.',
         );
+
+      // If the server has something to say about the error, we display it.
+      if (message) throw new Error(message);
 
       throw new Error(
         'An unexpected error occurred while contacting the ForestAdmin server. ' +

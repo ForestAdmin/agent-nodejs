@@ -1,3 +1,46 @@
+## @forestadmin/datasource-sql [1.1.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.7...@forestadmin/datasource-sql@1.1.8) (2022-12-21)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.2.4
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.4
+
+## @forestadmin/datasource-sql [1.1.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.6...@forestadmin/datasource-sql@1.1.7) (2022-12-21)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.2.3
+
+## @forestadmin/datasource-sql [1.1.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.5...@forestadmin/datasource-sql@1.1.6) (2022-12-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.2.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.3
+
+## @forestadmin/datasource-sql [1.1.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.4...@forestadmin/datasource-sql@1.1.5) (2022-12-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.2.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.2
+
 ## @forestadmin/datasource-sql [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.3...@forestadmin/datasource-sql@1.1.4) (2022-11-07)
 
 

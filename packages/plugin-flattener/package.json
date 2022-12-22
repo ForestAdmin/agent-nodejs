@@ -1,0 +1,34 @@
+{
+  "name": "@forestadmin/plugin-flattener",
+  "version": "1.0.6",
+  "description": "A plugin that allows to flatten columns and relations in Forest Admin",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/plugin-flattener"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@forestadmin/datasource-customizer": "1.5.5",
+    "@types/object-hash": "^3.0.1"
+  },
+  "dependencies": {
+    "@forestadmin/datasource-toolkit": "1.1.4",
+    "object-hash": "^3.0.0"
+  }
+}

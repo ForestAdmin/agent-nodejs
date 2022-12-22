@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/forestadmin-client",
-  "version": "1.0.2",
+  "version": "1.0.7",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -17,7 +17,7 @@
     "lru-cache": "^7.3.1",
     "object-hash": "^3.0.0",
     "openid-client": "5.2.1",
-    "superagent": "^7.0.1"
+    "superagent": "^8.0.6"
   },
   "files": [
     "dist/**/*.js",
@@ -31,7 +31,7 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@forestadmin/datasource-toolkit": "1.1.1",
+    "@forestadmin/datasource-toolkit": "1.1.4",
     "@types/json-api-serializer": "2.6.3",
     "@types/jsonwebtoken": "^8.5.8",
     "@types/lru-cache": "^7.6.1",

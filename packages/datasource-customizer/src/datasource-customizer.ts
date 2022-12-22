@@ -66,7 +66,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
 
       if (options?.rename) {
         const renamedDecorator = new RenameCollectionDataSourceDecorator(dataSource);
-        renamedDecorator.renameCollections(options?.rename);
+        renamedDecorator.renameCollections(options.rename);
         dataSource = renamedDecorator;
       }
 

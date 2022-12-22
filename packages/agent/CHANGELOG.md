@@ -1,3 +1,116 @@
+## @forestadmin/agent [1.4.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.14...@forestadmin/agent@1.4.15) (2022-12-22)
+
+
+### Bug Fixes
+
+* **agent:** default to using the unspecified IPv6 and PORT environment variable ([#583](https://github.com/ForestAdmin/agent-nodejs/issues/583)) ([6ea4905](https://github.com/ForestAdmin/agent-nodejs/commit/6ea4905538eba820fd445d812c5d7f73666521a9))
+
+## @forestadmin/agent [1.4.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.13...@forestadmin/agent@1.4.14) (2022-12-21)
+
+
+### Bug Fixes
+
+* array of json should be supported in a condition tree ([#580](https://github.com/ForestAdmin/agent-nodejs/issues/580)) ([61f254d](https://github.com/ForestAdmin/agent-nodejs/commit/61f254d96a98d8c062756fa1da456165973735f8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.5
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.4
+* **@forestadmin/forestadmin-client:** upgraded to 1.0.7
+
+## @forestadmin/agent [1.4.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.12...@forestadmin/agent@1.4.13) (2022-12-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.4
+
+## @forestadmin/agent [1.4.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.11...@forestadmin/agent@1.4.12) (2022-12-20)
+
+
+### Performance Improvements
+
+* **customizer:** improve CPU usage and response time ([#571](https://github.com/ForestAdmin/agent-nodejs/issues/571)) ([addd8f8](https://github.com/ForestAdmin/agent-nodejs/commit/addd8f8d88c670a825440aa0a928a2761c8da688))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.3
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.0.6
+
+## @forestadmin/agent [1.4.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.10...@forestadmin/agent@1.4.11) (2022-12-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.2
+
+## @forestadmin/agent [1.4.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.9...@forestadmin/agent@1.4.10) (2022-12-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.0.5
+
+## @forestadmin/agent [1.4.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.8...@forestadmin/agent@1.4.9) (2022-12-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.0.4
+
+## @forestadmin/agent [1.4.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.7...@forestadmin/agent@1.4.8) (2022-12-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.0.3
+
+## @forestadmin/agent [1.4.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.6...@forestadmin/agent@1.4.7) (2022-12-09)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.0
+
+## @forestadmin/agent [1.4.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.5...@forestadmin/agent@1.4.6) (2022-12-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.4.4
+
 ## @forestadmin/agent [1.4.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.4...@forestadmin/agent@1.4.5) (2022-12-05)
 
 

@@ -1,3 +1,66 @@
+## @forestadmin/datasource-customizer [1.5.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.4...@forestadmin/datasource-customizer@1.5.5) (2022-12-21)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.4
+
+## @forestadmin/datasource-customizer [1.5.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.3...@forestadmin/datasource-customizer@1.5.4) (2022-12-20)
+
+
+### Bug Fixes
+
+* **customizer:** add support for collection renaming function ([#579](https://github.com/ForestAdmin/agent-nodejs/issues/579)) ([000fa85](https://github.com/ForestAdmin/agent-nodejs/commit/000fa8523212fc211941d1d0de9788b34af4111d))
+
+## @forestadmin/datasource-customizer [1.5.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.2...@forestadmin/datasource-customizer@1.5.3) (2022-12-20)
+
+
+### Performance Improvements
+
+* **customizer:** improve CPU usage and response time ([#571](https://github.com/ForestAdmin/agent-nodejs/issues/571)) ([addd8f8](https://github.com/ForestAdmin/agent-nodejs/commit/addd8f8d88c670a825440aa0a928a2761c8da688))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.3
+
+## @forestadmin/datasource-customizer [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.1...@forestadmin/datasource-customizer@1.5.2) (2022-12-20)
+
+
+### Bug Fixes
+
+* **computed:** keep track of nested null values when building DAG for computation ([#575](https://github.com/ForestAdmin/agent-nodejs/issues/575)) ([2a33096](https://github.com/ForestAdmin/agent-nodejs/commit/2a330969651945525ec349d6732f532f71399aa4))
+
+## @forestadmin/datasource-customizer [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.0...@forestadmin/datasource-customizer@1.5.1) (2022-12-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.2
+
+# @forestadmin/datasource-customizer [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.4...@forestadmin/datasource-customizer@1.5.0) (2022-12-09)
+
+
+### Features
+
+* **plugin-flattener:** rename plugin, and add support for nested relations and field flattening ([#565](https://github.com/ForestAdmin/agent-nodejs/issues/565)) ([8158b2f](https://github.com/ForestAdmin/agent-nodejs/commit/8158b2f5fc38e52e466c09f9ba365e4c42b01108))
+
+## @forestadmin/datasource-customizer [1.4.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.3...@forestadmin/datasource-customizer@1.4.4) (2022-12-07)
+
+
+### Bug Fixes
+
+* **customizer:** fix issues with replaceFieldWriting ([#564](https://github.com/ForestAdmin/agent-nodejs/issues/564)) ([a43a618](https://github.com/ForestAdmin/agent-nodejs/commit/a43a618d495190b4b1bf987f237acda4c691e996))
+
 ## @forestadmin/datasource-customizer [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.4.2...@forestadmin/datasource-customizer@1.4.3) (2022-11-29)
 
 

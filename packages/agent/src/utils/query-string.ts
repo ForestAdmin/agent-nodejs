@@ -20,6 +20,8 @@ const DEFAULT_ITEMS_PER_PAGE = 15;
 const DEFAULT_PAGE_TO_SKIP = 1;
 
 export default class QueryStringParser {
+  private static VALID_TIMEZONES = new Set<string>();
+
   static parseConditionTree(collection: Collection, context: Context): ConditionTree {
     try {
       const filters =
@@ -43,19 +45,15 @@ export default class QueryStringParser {
   static parseProjection(collection: Collection, context: Context): Projection {
     try {
       const fields = context.request.query[`fields[${collection.name}]`];
+      if (fields === '' || fields === undefined) return ProjectionFactory.all(collection);
 
-      if (fields === '' || fields === undefined) {
-        return ProjectionFactory.all(collection);
-      }
-
+      const { schema } = collection;
       const rootFields = fields.toString().split(',');
-      const explicitRequest = rootFields.map(field => {
-        const schema = collection.schema.fields[field];
-
-        return schema.type === 'Column'
+      const explicitRequest = rootFields.map(field =>
+        schema.fields[field].type === 'Column'
           ? field
-          : `${field}:${context.request.query[`fields[${field}]`]}`;
-      });
+          : `${field}:${context.request.query[`fields[${field}]`]}`,
+      );
 
       ProjectionValidator.validate(collection, explicitRequest);
 
@@ -117,16 +115,20 @@ export default class QueryStringParser {
       throw new ValidationError('Missing timezone');
     }
 
-    // This is a method to validate a timezone using node only
-    // @see https://stackoverflow.com/questions/44115681
-    if (!Intl || !Intl.DateTimeFormat().resolvedOptions().timeZone) {
-      throw new Error('Time zones are not available in this environment');
-    }
+    if (!QueryStringParser.VALID_TIMEZONES.has(timezone)) {
+      // This is a method to validate a timezone using node only
+      // @see https://stackoverflow.com/questions/44115681
+      if (!Intl || !Intl.DateTimeFormat().resolvedOptions().timeZone) {
+        throw new Error('Time zones are not available in this environment');
+      }
 
-    try {
-      Intl.DateTimeFormat('en-US', { timeZone: timezone });
-    } catch {
-      throw new ValidationError(`Invalid timezone: "${timezone}"`);
+      try {
+        Intl.DateTimeFormat('en-US', { timeZone: timezone });
+      } catch {
+        throw new ValidationError(`Invalid timezone: "${timezone}"`);
+      }
+
+      QueryStringParser.VALID_TIMEZONES.add(timezone);
     }
 
     return { ...context.state.user, timezone };

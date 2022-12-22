@@ -6,11 +6,7 @@ import ConditionTreeLeaf from '../interfaces/query/condition-tree/nodes/leaf';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 import CollectionUtils from '../utils/collection';
 import FieldValidator from './field';
-import {
-  MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE,
-  MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE,
-  MAP_ALLOWED_TYPES_FOR_OPERATOR,
-} from './rules';
+import { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE, MAP_ALLOWED_TYPES_FOR_OPERATOR } from './rules';
 import TypeGetter from './type-getter';
 
 export default class ConditionTreeValidator {
@@ -115,8 +111,6 @@ export default class ConditionTreeValidator {
     columnSchema: ColumnSchema,
   ): void {
     const { value, field, operator } = conditionTree;
-    const { columnType } = columnSchema;
-    const allowedTypes = MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE[columnType as PrimitiveTypes];
 
     // exclude some cases where the value is not related to the columnType of the field
     if (
@@ -127,7 +121,7 @@ export default class ConditionTreeValidator {
       operator !== 'PreviousXDays' &&
       operator !== 'PreviousXDaysToDate'
     ) {
-      FieldValidator.validateValue(field, columnSchema, value, allowedTypes);
+      FieldValidator.validateValue(field, columnSchema, value);
     }
   }
 }

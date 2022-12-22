@@ -177,11 +177,11 @@ describe('Utils > QueryConverter', () => {
         });
 
         it.each([
-          ['AND', 'And', Op.and],
-          ['OR', 'Or', Op.or],
+          ['And', Op.and],
+          ['Or', Op.or],
         ])(
           'should generate a "%s where" Sequelize filter from conditions',
-          (message, aggregator, operator) => {
+          (aggregator, operator) => {
             const conditions = [
               new ConditionTreeLeaf('__field_1__', 'Equal', '__value_1__'),
               new ConditionTreeLeaf('__field_2__', 'Equal', '__value_2__'),
@@ -203,26 +203,43 @@ describe('Utils > QueryConverter', () => {
       });
 
       describe('with a ConditionTreeLeaf node', () => {
-        const defaultArrayValue = [21, 42, 84];
-        const defaultIntegerValue = 42;
-        const defaultStringValue = 'VaLuE';
+        const simpleArrayValue = [21, 42, 84];
+        const arrayValueWithNull = [21, 42, null, 84];
+        const integerValue = 42;
+        const stringValue = 'VaLuE';
 
         it.each([
-          ['Blank', undefined, { [Op.or]: [{ [Op.is]: null }, { [Op.eq]: '' }] }],
-          ['Equal', defaultIntegerValue, { [Op.eq]: defaultIntegerValue }],
-          ['GreaterThan', defaultIntegerValue, { [Op.gt]: defaultIntegerValue }],
-          ['In', defaultArrayValue, { [Op.in]: defaultArrayValue }],
-          ['IncludesAll', defaultArrayValue, { [Op.contains]: defaultArrayValue }],
-          ['LessThan', defaultIntegerValue, { [Op.lt]: defaultIntegerValue }],
-          ['Missing', undefined, { [Op.is]: null }],
-          ['NotEqual', defaultIntegerValue, { [Op.ne]: defaultIntegerValue }],
-          ['NotIn', defaultArrayValue, { [Op.notIn]: defaultArrayValue }],
-          ['Present', undefined, { [Op.ne]: null }],
+          ['Equal', integerValue, { [Op.eq]: integerValue }],
+          ['Equal', null, { [Op.is]: null }],
+          ['GreaterThan', integerValue, { [Op.gt]: integerValue }],
+          ['In', [null], { [Op.is]: null }],
+          ['In', [null, 2], { [Op.or]: [{ [Op.eq]: 2 }, { [Op.is]: null }] }],
+          ['In', simpleArrayValue, { [Op.in]: simpleArrayValue }],
           [
-            'NotContains',
-            defaultStringValue,
-            { [Op.not]: { [Op.like]: `%${defaultStringValue}%` } },
+            'In',
+            arrayValueWithNull,
+            { [Op.or]: [{ [Op.in]: simpleArrayValue }, { [Op.is]: null }] },
           ],
+          ['In', [integerValue], { [Op.eq]: integerValue }],
+          ['IncludesAll', simpleArrayValue, { [Op.contains]: simpleArrayValue }],
+          ['LessThan', integerValue, { [Op.lt]: integerValue }],
+          ['Missing', undefined, { [Op.is]: null }],
+          ['NotEqual', integerValue, { [Op.ne]: integerValue }],
+          ['NotIn', [2], { [Op.ne]: 2 }],
+          ['NotIn', [null], { [Op.ne]: null }],
+          ['NotIn', simpleArrayValue, { [Op.notIn]: simpleArrayValue }],
+          [
+            'NotIn',
+            arrayValueWithNull,
+            { [Op.and]: [{ [Op.ne]: null }, { [Op.notIn]: simpleArrayValue }] },
+          ],
+          [
+            'NotIn',
+            [null, integerValue],
+            { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: integerValue }] },
+          ],
+          ['Present', undefined, { [Op.ne]: null }],
+          ['NotContains', stringValue, { [Op.not]: { [Op.like]: `%${stringValue}%` } }],
         ])(
           'should generate a "where" Sequelize filter from a "%s" operator',
           (operator, value, where) => {
@@ -287,17 +304,6 @@ describe('Utils > QueryConverter', () => {
 
             expect(sequelizeFilter).toHaveProperty('__field_1__', where);
           });
-        });
-
-        it('should fail with a null operator', () => {
-          const model = setupModel();
-          const queryConverter = new QueryConverter(model);
-
-          expect(() =>
-            queryConverter.getWhereFromConditionTree(
-              new ConditionTreeLeaf('__field_1__', null, '__value__'),
-            ),
-          ).toThrow('Invalid (null) operator.');
         });
 
         it('should fail with an invalid operator', () => {
@@ -376,32 +382,19 @@ describe('Utils > QueryConverter', () => {
     });
 
     describe('with array operator', () => {
-      describe.each([
-        ['In', 'In', Op.in],
-        ['IncludesAll', 'IncludesAll', Op.contains],
-        ['NotIn', 'NotIn', Op.notIn],
-      ])('"%s"', (message, operator, sequelizeOperator) => {
-        it('should handle atomic values', () => {
-          const model = setupModel();
-          const queryConverter = new QueryConverter(model);
+      it.each([
+        ['In', Op.in],
+        ['IncludesAll', Op.contains],
+        ['NotIn', Op.notIn],
+      ])('should handle array values "%s"', (operator, sequelizeOperator) => {
+        const model = setupModel();
+        const queryConverter = new QueryConverter(model);
 
-          const sequelizeFilter = queryConverter.getWhereFromConditionTree(
-            new ConditionTreeLeaf('__field_1__', operator as Operator, 42),
-          );
+        const sequelizeFilter = queryConverter.getWhereFromConditionTree(
+          new ConditionTreeLeaf('__field_1__', operator as Operator, [42, 43]),
+        );
 
-          expect(sequelizeFilter).toHaveProperty('__field_1__', { [sequelizeOperator]: [42] });
-        });
-
-        it('should handle array values', () => {
-          const model = setupModel();
-          const queryConverter = new QueryConverter(model);
-
-          const sequelizeFilter = queryConverter.getWhereFromConditionTree(
-            new ConditionTreeLeaf('__field_1__', operator as Operator, [42]),
-          );
-
-          expect(sequelizeFilter).toHaveProperty('__field_1__', { [sequelizeOperator]: [42] });
-        });
+        expect(sequelizeFilter).toHaveProperty('__field_1__', { [sequelizeOperator]: [42, 43] });
       });
     });
   });

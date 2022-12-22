@@ -33,14 +33,19 @@ export default class FrameworkMounter {
 
   /**
    * Expose the agent on a given port and host
-   * @param port port that should be used.
-   * @param host host that should be used.
+   * @param port port that should be used, defaults to 3351 or to the `PORT` environment variable.
+   * @param host host that should be used, default to the unspecified IPv6 address (::) when IPv6
+   *  is available, or the unspecified IPv4 address (0.0.0.0) otherwise.
    */
-  mountOnStandaloneServer(port = 3351, host = 'localhost'): this {
+  mountOnStandaloneServer(port?: number, host?: string): this {
+    const chosenPort = port || Number(process.env.PORT) || 3351;
     const server = createServer(this.getConnectCallback(true));
-    server.listen(port, host);
+    server.listen(chosenPort, host);
 
-    this.logger('Info', `Successfully mounted on Standalone server (http://${host}:${port})`);
+    this.logger(
+      'Info',
+      `Successfully mounted on Standalone server (http://${host ?? '0.0.0.0'}:${port})`,
+    );
 
     this.onStop.push(async () => {
       server.close();

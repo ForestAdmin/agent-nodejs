@@ -22,8 +22,8 @@ export class HookBeforeUpdateContext<
     return Object.freeze(this._filter as unknown as TFilter<S, N>);
   }
 
-  get patch() {
-    return Object.freeze(this._patch as unknown as TRow<S, N>);
+  get patch(): TRow<S, N> {
+    return this._patch;
   }
 }
 

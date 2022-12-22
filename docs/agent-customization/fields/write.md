@@ -63,8 +63,8 @@ Handling relationships inside a `replaceFieldWriting` will only work for `ManyTo
 
 In this simple example, we have two collections that are linked together:
 
-- `Users` have a `job` and a `portfolioId` as foreignKey
-- `Portfolios` have a `title`
+- The `Users` collection has a `job` and a `portfolioId` as foreignKey
+- The `Portfolios` collection has a `title`
 
 When the user updates his `job` field we want also to update the `title` of the portfolio by the `job` name.
 

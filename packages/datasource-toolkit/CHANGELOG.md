@@ -1,3 +1,24 @@
+## @forestadmin/datasource-toolkit [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.3...@forestadmin/datasource-toolkit@1.1.4) (2022-12-21)
+
+
+### Bug Fixes
+
+* array of json should be supported in a condition tree ([#580](https://github.com/ForestAdmin/agent-nodejs/issues/580)) ([61f254d](https://github.com/ForestAdmin/agent-nodejs/commit/61f254d96a98d8c062756fa1da456165973735f8))
+
+## @forestadmin/datasource-toolkit [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.2...@forestadmin/datasource-toolkit@1.1.3) (2022-12-20)
+
+
+### Performance Improvements
+
+* **customizer:** improve CPU usage and response time ([#571](https://github.com/ForestAdmin/agent-nodejs/issues/571)) ([addd8f8](https://github.com/ForestAdmin/agent-nodejs/commit/addd8f8d88c670a825440aa0a928a2761c8da688))
+
+## @forestadmin/datasource-toolkit [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.1...@forestadmin/datasource-toolkit@1.1.2) (2022-12-19)
+
+
+### Bug Fixes
+
+* **condition-tree:** allow empty list with In operator ([#578](https://github.com/ForestAdmin/agent-nodejs/issues/578)) ([a674e1c](https://github.com/ForestAdmin/agent-nodejs/commit/a674e1c99bdd47dea945507e34c354ec3254f0f2))
+
 ## @forestadmin/datasource-toolkit [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.0...@forestadmin/datasource-toolkit@1.1.1) (2022-11-07)
 
 

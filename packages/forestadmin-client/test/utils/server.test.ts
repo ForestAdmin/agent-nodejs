@@ -90,4 +90,15 @@ describe('ServerUtils', () => {
 
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(unknownError);
   });
+
+  describe('when the server send back a message', () => {
+    it('should forward a new error containing the message', async () => {
+      const message = 'this is a message sent from forest server';
+      nock(options.forestServerUrl)
+        .get('/endpoint')
+        .reply(424, { errors: [{ detail: message }] });
+
+      await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(message);
+    });
+  });
 });

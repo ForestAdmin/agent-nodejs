@@ -437,7 +437,7 @@ describe('QueryStringParser', () => {
 
       test('should throw a HTTP 500 when the timezone cannot be validated', () => {
         const context = createMockContext({
-          customProperties: { query: { timezone: 'America/Los_Angeles' } },
+          customProperties: { query: { timezone: 'Europe/Paris' } },
         });
 
         const fn = () => QueryStringParser.parseCaller(context);

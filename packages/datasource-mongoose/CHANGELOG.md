@@ -1,3 +1,40 @@
+## @forestadmin/datasource-mongoose [1.2.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.2.2...@forestadmin/datasource-mongoose@1.2.3) (2022-12-21)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.4
+
+## @forestadmin/datasource-mongoose [1.2.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.2.1...@forestadmin/datasource-mongoose@1.2.2) (2022-12-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.3
+
+## @forestadmin/datasource-mongoose [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.2.0...@forestadmin/datasource-mongoose@1.2.1) (2022-12-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.1.2
+
+# @forestadmin/datasource-mongoose [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.1.3...@forestadmin/datasource-mongoose@1.2.0) (2022-12-09)
+
+
+### Features
+
+* **mongoose:** convert mongoose validation errors so that they show up on the frontend ([#567](https://github.com/ForestAdmin/agent-nodejs/issues/567)) ([a04e07d](https://github.com/ForestAdmin/agent-nodejs/commit/a04e07dcec493a7d56cb6823f35d3bcdf6652ed9))
+
 ## @forestadmin/datasource-mongoose [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.1.2...@forestadmin/datasource-mongoose@1.1.3) (2022-11-22)
 
 
