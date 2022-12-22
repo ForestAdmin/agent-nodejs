@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.4.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.14...@forestadmin/agent@1.4.15) (2022-12-22)
+
+
+### Bug Fixes
+
+* **agent:** default to using the unspecified IPv6 and PORT environment variable ([#583](https://github.com/ForestAdmin/agent-nodejs/issues/583)) ([6ea4905](https://github.com/ForestAdmin/agent-nodejs/commit/6ea4905538eba820fd445d812c5d7f73666521a9))
+
 ## @forestadmin/agent [1.4.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.13...@forestadmin/agent@1.4.14) (2022-12-21)
 
 
