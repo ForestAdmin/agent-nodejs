@@ -33,7 +33,7 @@ export default class FrameworkMounter {
 
   /**
    * Expose the agent on a given port and host
-   * @param port port that should be used, defaults to 3351.
+   * @param port port that should be used, defaults to 3351 or to the `PORT` environment variable.
    * @param host host that should be used, default to the unspecified IPv6 address (::) when IPv6
    *  is available, or the unspecified IPv4 address (0.0.0.0) otherwise.
    */
