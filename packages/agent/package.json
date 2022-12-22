@@ -22,7 +22,7 @@
     "forest-ip-utils": "^1.0.1",
     "json-api-serializer": "^2.6.6",
     "json-stringify-pretty-compact": "^3.0.0",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "koa": "^2.13.4",
     "koa-bodyparser": "^4.3.0",
     "koa-jwt": "^4.0.3",
