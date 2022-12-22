@@ -180,7 +180,7 @@ describe('ActionRoute', () => {
       route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
     });
     describe('when the request is an approval', () => {
-      test('it should check rights', async () => {
+      test('it should resolve when authorized to perform', async () => {
         const context = createMockContext({
           ...baseContext,
           requestBody: {
@@ -194,21 +194,35 @@ describe('ActionRoute', () => {
           },
         });
 
-        const assertCanApproveCustomAction = jest.spyOn(
-          // @ts-expect-error: test private attributes
-          route.actionAuthorizationService,
-          'assertCanApproveCustomAction',
-        );
+        // @ts-expect-error: test private method
+        await expect(route.handleExecute.call(route, context)).resolves.toBe(undefined);
+      });
+
+      test('it should reject when not authorized to perform', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+                requester_id: 42,
+              },
+            },
+          },
+        });
+
+        (
+          options.forestAdminClient.permissionService.canApproveCustomAction as jest.Mock
+        ).mockResolvedValue(false);
 
         // @ts-expect-error: test private method
-        await route.handleExecute.call(route, context);
-
-        expect(assertCanApproveCustomAction).toHaveBeenCalledTimes(1);
+        await expect(route.handleExecute.call(route, context)).rejects.toThrow();
       });
     });
 
     describe('when the request is a trigger', () => {
-      test('should not change data request when approval request is not detected', async () => {
+      test('it should resolve when authorized to perform', async () => {
         const originalBody = {
           data: {
             attributes: {
@@ -221,22 +235,29 @@ describe('ActionRoute', () => {
           requestBody: originalBody,
         });
 
-        const assertCanTriggerCustomAction = jest.spyOn(
-          // @ts-expect-error: test private attributes
-          route.actionAuthorizationService,
-          'assertCanTriggerCustomAction',
-        );
+        // @ts-expect-error: test private method
+        await expect(route.handleExecute.call(route, context)).resolves.toBe(undefined);
+      });
+
+      test('it should reject when not authorized to perform', async () => {
+        const originalBody = {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+            },
+          },
+        };
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: originalBody,
+        });
+
+        (
+          options.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+        ).mockResolvedValue(false);
 
         // @ts-expect-error: test private method
-        await route.handleExecute.call(route, context);
-
-        expect(context.request.body.data).toStrictEqual({
-          attributes: {
-            ...baseContext.requestBody.data.attributes,
-          },
-        });
-        expect(assertCanTriggerCustomAction).toHaveBeenCalledTimes(1);
-        expect(context.request.body).toStrictEqual(originalBody);
+        await expect(route.handleExecute.call(route, context)).rejects.toThrow();
       });
     });
   });

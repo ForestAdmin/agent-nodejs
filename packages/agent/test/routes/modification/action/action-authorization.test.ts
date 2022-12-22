@@ -2,8 +2,6 @@ import { ForbiddenError } from '@forestadmin/datasource-toolkit';
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 
 import ActionAuthorizationService from '../../../../src/routes/modification/action/action-authorization';
-import ApprovalNotAllowedError from '../../../../src/routes/modification/action/errors/approvalNotAllowedError';
-import CustomActionRequiresApprovalError from '../../../../src/routes/modification/action/errors/customActionRequiresApprovalError';
 import CustomActionTriggerForbiddenError from '../../../../src/routes/modification/action/errors/customActionTriggerForbiddenError';
 import InvalidActionConditionError from '../../../../src/routes/modification/action/errors/invalidActionConditionError';
 import * as factories from '../../../__factories__';
@@ -189,7 +187,13 @@ describe('ActionAuthorizationService', () => {
               filterForAllCaller,
               caller,
             }),
-          ).rejects.toThrowError(new CustomActionRequiresApprovalError([1, 16]));
+          ).rejects.toMatchObject({
+            name: 'CustomActionRequiresApprovalError',
+            message: 'This action requires to be approved.',
+            data: {
+              roleIdsAllowedToApprove: [1, 16],
+            },
+          });
         },
       );
 
@@ -245,7 +249,13 @@ describe('ActionAuthorizationService', () => {
                 filterForAllCaller,
                 caller,
               }),
-            ).rejects.toThrowError(new CustomActionRequiresApprovalError([1, 16]));
+            ).rejects.toMatchObject({
+              name: 'CustomActionRequiresApprovalError',
+              message: 'This action requires to be approved.',
+              data: {
+                roleIdsAllowedToApprove: [1, 16],
+              },
+            });
 
             // One time during doesTriggerCustomActionRequiresApproval
             // Not called during roleIdsAllowedToApprove computation (No Approve condition)
@@ -253,7 +263,6 @@ describe('ActionAuthorizationService', () => {
           },
         );
 
-        // Those tests all InvalidActionConditionError errors
         it(
           'should throw an error InvalidActionConditionError when we cannot compute the ' +
             ' filter',
@@ -377,27 +386,13 @@ describe('ActionAuthorizationService', () => {
             caller,
             requesterId: 30,
           }),
-        ).rejects.toStrictEqual(new ApprovalNotAllowedError([10, 12, 13]));
-        /**
-         * @fixme Issue with toThrowError
-         * */
-
-        let thrownError;
-
-        try {
-          await authorization.assertCanApproveCustomAction({
-            customActionName: 'do-something',
-            collection,
-            filterForCaller,
-            filterForAllCaller,
-            caller,
-            requesterId: 30,
-          });
-        } catch (error) {
-          thrownError = error;
-        }
-
-        expect(thrownError.data).toEqual(new ApprovalNotAllowedError([1, 16]).data);
+        ).rejects.toMatchObject({
+          name: 'ApprovalNotAllowedError',
+          message: "You don't have permission to approve this action.",
+          data: {
+            roleIdsAllowedToApprove: [1, 16],
+          },
+        });
 
         expect(collection.aggregate).not.toHaveBeenCalled();
       });
@@ -477,7 +472,13 @@ describe('ActionAuthorizationService', () => {
             caller,
             requesterId: 30,
           }),
-        ).rejects.toThrowError(new ApprovalNotAllowedError([1, 10, 16, 20]));
+        ).rejects.toMatchObject({
+          name: 'ApprovalNotAllowedError',
+          message: "You don't have permission to approve this action.",
+          data: {
+            roleIdsAllowedToApprove: [1, 16, 10, 20],
+          },
+        });
 
         // Two time during canApproveCustomAction
         // Two time during roleIdsAllowedToApprove computation
