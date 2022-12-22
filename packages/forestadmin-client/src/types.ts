@@ -1,12 +1,14 @@
 import type { ChartRequest } from './charts/chart-handler';
 import type { Chart, QueryChart } from './charts/types';
-import type { CollectionActionEvent, RawTree, RawTreeWithSources } from './permissions/types';
 import type { Client } from 'openid-client';
 
 import { UserInfo } from './auth/types';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
+import { CollectionActionEvent, RawTree, RawTreeWithSources } from './permissions/types';
 import { ForestServerCollection } from './schema/types';
 import ContextVariables, { RequestContextVariables } from './utils/context-variables';
+
+export type { CollectionActionEvent, RawTree, RawTreeWithSources } from './permissions/types';
 
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LoggerLevel, message: unknown) => void;
