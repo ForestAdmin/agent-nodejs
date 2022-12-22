@@ -1,4 +1,6 @@
-import { ForestAdminClientOptionsWithDefaults } from '../types';
+import type { ForestAdminClientOptionsWithDefaults } from '../types';
+import type { RawTreeWithSources } from './types';
+
 import ForestHttpApi from './forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
@@ -109,5 +111,41 @@ export default class ActionPermissionService {
     const rawPermissions = await ForestHttpApi.getEnvironmentPermissions(this.options);
 
     return generateActionsFromPermissions(rawPermissions);
+  }
+
+  public async getCustomActionCondition(
+    roleId: number,
+    actionName: string,
+  ): Promise<RawTreeWithSources | undefined> {
+    const permissions = await this.getPermissions();
+
+    const conditionFilter = permissions.actionsByRole.get(actionName)?.conditionsByRole.get(roleId);
+
+    return conditionFilter;
+  }
+
+  public async getAllCustomActionConditions(
+    actionName: string,
+  ): Promise<Map<number, RawTreeWithSources> | undefined> {
+    const permissions = await this.getPermissions();
+
+    return permissions.actionsByRole.get(actionName)?.conditionsByRole;
+  }
+
+  public async getRoleIdsAllowedToApproveWithoutConditions(
+    actionName: string,
+  ): Promise<Array<number>> {
+    const permissions = await this.getPermissions();
+
+    const approvalPermission = permissions.actionsByRole.get(actionName);
+
+    if (!approvalPermission) {
+      return [];
+    }
+
+    // All allowed roles excluding the one with conditions
+    return Array.from(approvalPermission.allowedRoles).filter(
+      roleId => !approvalPermission.conditionsByRole?.has(roleId),
+    );
   }
 }
