@@ -11,14 +11,10 @@ import { HttpCode } from '../../../src/types';
 import * as factories from '../../__factories__';
 
 class FakePayloadError extends ForbiddenError {
-  private readonly data: { property: string };
-
-  constructor(...args) {
-    super(...args);
-
-    this.data = {
+  constructor(message: string) {
+    super(message, {
       property: 'value',
-    };
+    });
   }
 }
 

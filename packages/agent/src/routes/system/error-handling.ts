@@ -1,4 +1,5 @@
 import {
+  BusinessError,
   ForbiddenError,
   UnprocessableError,
   ValidationError,
@@ -52,12 +53,7 @@ export default class ErrorHandling extends BaseRoute {
   }
 
   private getErrorMessage(error: Error): string {
-    if (
-      error instanceof HttpError ||
-      error instanceof ValidationError ||
-      error instanceof UnprocessableError ||
-      error instanceof ForbiddenError
-    ) {
+    if (error instanceof HttpError || error instanceof BusinessError) {
       return error.message;
     }
 
@@ -70,16 +66,11 @@ export default class ErrorHandling extends BaseRoute {
   }
 
   private getErrorName(error: Error): string {
-    return error.constructor.name;
+    return error.name || error.constructor.name;
   }
 
   private getErrorPayload(error: Error & { data: unknown }): unknown {
-    if (
-      error instanceof HttpError ||
-      error instanceof ValidationError ||
-      error instanceof UnprocessableError ||
-      error instanceof ForbiddenError
-    ) {
+    if (error instanceof BusinessError) {
       return error.data;
     }
 
