@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.5.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.5.2...@forestadmin/agent@1.5.3) (2022-12-23)
+
+
+### Bug Fixes
+
+* **agent:** mark all one-to-many and many-to-many relations as sortable ([#581](https://github.com/ForestAdmin/agent-nodejs/issues/581)) ([1cf7611](https://github.com/ForestAdmin/agent-nodejs/commit/1cf7611597572d2e4fa9f2b67899973d8bdc5b57))
+
 ## @forestadmin/agent [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.5.1...@forestadmin/agent@1.5.2) (2022-12-23)
 
 
