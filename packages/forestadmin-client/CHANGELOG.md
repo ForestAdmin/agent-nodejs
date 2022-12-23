@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.1...@forestadmin/forestadmin-client@1.1.2) (2022-12-23)
+
+
+### Bug Fixes
+
+* export defined types for permissions ([#588](https://github.com/ForestAdmin/agent-nodejs/issues/588)) ([8bf973c](https://github.com/ForestAdmin/agent-nodejs/commit/8bf973c1b848829576d851cc9c07fb00f09030ed))
+
 ## @forestadmin/forestadmin-client [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.0...@forestadmin/forestadmin-client@1.1.1) (2022-12-22)
 
 
