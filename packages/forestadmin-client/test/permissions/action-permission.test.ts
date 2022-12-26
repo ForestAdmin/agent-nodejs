@@ -42,6 +42,20 @@ describe('ActionPermissionService', () => {
     jest.clearAllMocks();
   });
 
+  describe('isDevelopmentPermission', () => {
+    it('should return the value of everythingAllowed', async () => {
+      const { service } = setup({
+        everythingAllowed: true,
+        actionsByRole: new Map(),
+        actionsGloballyAllowed: new Set(),
+      });
+
+      const isDevelopmentPermission = await service.isDevelopmentPermission();
+
+      expect(isDevelopmentPermission).toStrictEqual(true);
+    });
+  });
+
   describe('can', () => {
     it('should return true if everything is allowed', async () => {
       const { service, options, permissions } = setup({

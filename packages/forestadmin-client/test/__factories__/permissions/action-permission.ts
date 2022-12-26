@@ -5,7 +5,7 @@ import ActionPermissionService from '../../../src/permissions/action-permission'
 export class ActionPermissionsFactory extends Factory<ActionPermissionService> {
   mockAllMethods() {
     return this.afterBuild(permissions => {
-      permissions.isEverythingAllowed = jest.fn();
+      permissions.isDevelopmentPermission = jest.fn();
       permissions.can = jest.fn();
       permissions.canOneOf = jest.fn();
       permissions.getCustomActionCondition = jest.fn();

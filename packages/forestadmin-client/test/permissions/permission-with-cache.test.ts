@@ -302,7 +302,7 @@ describe('PermissionService', () => {
 
         generateCustomActionIdentifierMock.mockReturnValue('identifier');
 
-        (actionPermissionService.isEverythingAllowed as jest.Mock).mockResolvedValue(true);
+        (actionPermissionService.isDevelopmentPermission as jest.Mock).mockResolvedValue(true);
 
         (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
 
@@ -314,7 +314,7 @@ describe('PermissionService', () => {
           collectionName: 'actors',
         });
 
-        expect(actionPermissionService.isEverythingAllowed).toHaveBeenCalled();
+        expect(actionPermissionService.isDevelopmentPermission).toHaveBeenCalled();
         expect(actionPermissionService.can).not.toHaveBeenCalled();
         expect(generateCustomActionIdentifierMock).not.toHaveBeenCalled();
 

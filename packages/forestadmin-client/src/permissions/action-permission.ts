@@ -12,9 +12,10 @@ export default class ActionPermissionService {
 
   constructor(private readonly options: ForestAdminClientOptionsWithDefaults) {}
 
-  public async isEverythingAllowed(): Promise<boolean> {
+  public async isDevelopmentPermission(): Promise<boolean> {
     const permissions = await this.getPermissions();
 
+    // everythingAllowed is true only for development environment
     return permissions.everythingAllowed;
   }
 
