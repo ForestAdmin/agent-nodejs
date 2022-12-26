@@ -187,7 +187,7 @@ describe('PermissionService', () => {
   });
 
   describe('canRequestCustomActionParameters', () => {
-    it('should check if the user has the right to trigger or trigger with approval', async () => {
+    it('should check if the user has the right to trigger', async () => {
       const actionPermissionService = factories.actionPermission.mockAllMethods().build();
       const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
       const permissionService = new PermissionServiceWithCache(
@@ -195,9 +195,8 @@ describe('PermissionService', () => {
         renderingPermissionService,
       );
 
-      (actionPermissionService.canOneOf as jest.Mock).mockResolvedValue(true);
+      (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
       generateCustomActionIdentifierMock.mockReturnValueOnce('identifier1');
-      generateCustomActionIdentifierMock.mockReturnValueOnce('identifier2');
 
       (renderingPermissionService.getUser as jest.Mock).mockResolvedValue({ roleId: 10 });
 
@@ -207,20 +206,13 @@ describe('PermissionService', () => {
         collectionName: 'jedis',
       });
 
-      expect(actionPermissionService.canOneOf).toHaveBeenCalledWith(10, [
-        'identifier1',
-        'identifier2',
-      ]);
+      expect(actionPermissionService.can).toHaveBeenCalledWith(10, 'identifier1');
       expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
         CustomActionEvent.Trigger,
         'doSomething',
         'jedis',
       );
-      expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
-        CustomActionEvent.RequireApproval,
-        'doSomething',
-        'jedis',
-      );
+
       expect(result).toBe(true);
     });
   });
