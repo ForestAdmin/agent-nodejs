@@ -12,6 +12,12 @@ export default class ActionPermissionService {
 
   constructor(private readonly options: ForestAdminClientOptionsWithDefaults) {}
 
+  public async isEverythingAllowed(): Promise<boolean> {
+    const permissions = await this.getPermissions();
+
+    return permissions.everythingAllowed;
+  }
+
   public canOneOf(roleId: number, actionNames: string[]): Promise<boolean> {
     return this.hasPermissionOrRefetch({
       roleId,

@@ -66,6 +66,12 @@ export default class PermissionServiceWithCache implements PermissionService {
     customActionName: string;
     collectionName: string;
   }): Promise<boolean> {
+    // In development everything is allowed so the can function will return true
+    // but we don't want to enable requires approval!
+    if (await this.actionPermissionService.isEverythingAllowed()) {
+      return false;
+    }
+
     const roleId = await this.getRoleIdForUserId(userId);
 
     return this.actionPermissionService.can(
