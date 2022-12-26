@@ -2,8 +2,8 @@ import { ForbiddenError } from '@forestadmin/datasource-toolkit';
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 
 import ActionAuthorizationService from '../../../../src/routes/modification/action/action-authorization';
-import CustomActionTriggerForbiddenError from '../../../../src/routes/modification/action/errors/customActionTriggerForbiddenError';
-import InvalidActionConditionError from '../../../../src/routes/modification/action/errors/invalidActionConditionError';
+import CustomActionTriggerForbiddenError from '../../../../src/routes/modification/action/errors/custom-action-trigger-forbidden-error';
+import InvalidActionConditionError from '../../../../src/routes/modification/action/errors/invalid-action-condition-error';
 import * as factories from '../../../__factories__';
 
 describe('ActionAuthorizationService', () => {
