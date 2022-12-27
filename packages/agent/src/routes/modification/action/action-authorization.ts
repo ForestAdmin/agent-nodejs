@@ -10,10 +10,10 @@ import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import hashObject from 'object-hash';
 
 import ConditionTreeParser from '../../../utils/condition-tree-parser';
-import ApprovalNotAllowedError from './errors/approvalNotAllowedError';
-import CustomActionRequiresApprovalError from './errors/customActionRequiresApprovalError';
-import CustomActionTriggerForbiddenError from './errors/customActionTriggerForbiddenError';
-import InvalidActionConditionError from './errors/invalidActionConditionError';
+import ApprovalNotAllowedError from './errors/approval-not-allowed-error';
+import CustomActionRequiresApprovalError from './errors/custom-action-requires-approval-error';
+import CustomActionTriggerForbiddenError from './errors/custom-action-trigger-forbidden-error';
+import InvalidActionConditionError from './errors/invalid-action-condition-error';
 
 type CanPerformCustomActionParams = {
   caller: Caller;
