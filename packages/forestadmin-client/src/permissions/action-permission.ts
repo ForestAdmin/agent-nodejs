@@ -12,6 +12,13 @@ export default class ActionPermissionService {
 
   constructor(private readonly options: ForestAdminClientOptionsWithDefaults) {}
 
+  public async isDevelopmentPermission(): Promise<boolean> {
+    const permissions = await this.getPermissions();
+
+    // isDevelopment is true only for development environment
+    return permissions.isDevelopment;
+  }
+
   public canOneOf(roleId: number, actionNames: string[]): Promise<boolean> {
     return this.hasPermissionOrRefetch({
       roleId,
@@ -82,8 +89,9 @@ export default class ActionPermissionService {
     actionName: string;
     roleId: number;
   }): boolean {
+    // In development everything is allowed
     return Boolean(
-      permissions.everythingAllowed ||
+      permissions.isDevelopment ||
         permissions.actionsGloballyAllowed.has(actionName) ||
         permissions.actionsByRole.get(actionName)?.allowedRoles.has(roleId),
     );

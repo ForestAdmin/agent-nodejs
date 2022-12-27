@@ -19,12 +19,12 @@ jest.mock('../../src/permissions/generate-action-identifier', () => ({
 }));
 
 describe('generateActionsFromPermissions', () => {
-  describe('when everything is allowed', () => {
+  describe('when in development', () => {
     it('should return a permission where everything is allowed', () => {
       const result = generateActionsFromPermissions(true);
 
       expect(result).toMatchObject({
-        everythingAllowed: true,
+        isDevelopment: true,
       });
     });
   });
@@ -50,7 +50,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set([
               'collection:collection-id:browse',
               'collection:collection-id:read',
@@ -91,7 +91,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set(),
             actionsByRole: new Map(),
           });
@@ -117,7 +117,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set(),
             actionsByRole: new Map([
               ['collection:collection-id:browse', { allowedRoles: new Set([2]) }],
@@ -172,7 +172,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set([
               'custom:collection-id:custom-action-id:approve',
               'custom:collection-id:custom-action-id:self-approve',
@@ -221,7 +221,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set(),
             actionsByRole: new Map(),
           });
@@ -257,7 +257,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set(),
             actionsByRole: new Map([
               [
@@ -350,7 +350,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set(),
             actionsByRole: new Map([
               [

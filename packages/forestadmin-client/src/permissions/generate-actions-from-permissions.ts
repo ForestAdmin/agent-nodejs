@@ -16,7 +16,7 @@ import {
 } from './types';
 
 export type ActionPermissions = {
-  everythingAllowed: boolean;
+  isDevelopment: boolean;
   actionsGloballyAllowed: Set<string>;
   actionsByRole: Map<string, ActionPermission>;
 };
@@ -143,7 +143,7 @@ export default function generateActionsFromPermissions(
 ): ActionPermissions {
   if (environmentPermissions === true) {
     return {
-      everythingAllowed: true,
+      isDevelopment: true,
       actionsGloballyAllowed: new Set(),
       actionsByRole: new Map(),
     };
@@ -157,7 +157,7 @@ export default function generateActionsFromPermissions(
   };
 
   return {
-    everythingAllowed: false,
+    isDevelopment: false,
     actionsGloballyAllowed: generateActionsGloballyAllowed(allPermissions),
     actionsByRole: generateActionsByRole(allPermissions),
   };

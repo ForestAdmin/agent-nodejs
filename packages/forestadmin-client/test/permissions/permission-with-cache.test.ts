@@ -16,6 +16,10 @@ const generateCollectionActionIdentifierMock = generateCollectionActionIdentifie
 const generateCustomActionIdentifierMock = generateCustomActionIdentifier as jest.Mock;
 
 describe('PermissionService', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
   describe('canOnCollection', () => {
     it('should return the result of actionPermissionService and pass the right event', async () => {
       const userId = 1;
@@ -285,6 +289,37 @@ describe('PermissionService', () => {
       );
 
       expect(result).toBe(true);
+    });
+
+    describe('when in development environment', () => {
+      it('should return false', async () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const permissionService = new PermissionServiceWithCache(
+          actionPermissionService,
+          renderingPermissionService,
+        );
+
+        generateCustomActionIdentifierMock.mockReturnValue('identifier');
+
+        (actionPermissionService.isDevelopmentPermission as jest.Mock).mockResolvedValue(true);
+
+        (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
+
+        (renderingPermissionService.getUser as jest.Mock).mockResolvedValue({ roleId: 10 });
+
+        const result = await permissionService.doesTriggerCustomActionRequiresApproval({
+          userId: 42,
+          customActionName: 'do-something',
+          collectionName: 'actors',
+        });
+
+        expect(actionPermissionService.isDevelopmentPermission).toHaveBeenCalled();
+        expect(actionPermissionService.can).not.toHaveBeenCalled();
+        expect(generateCustomActionIdentifierMock).not.toHaveBeenCalled();
+
+        expect(result).toBe(false);
+      });
     });
   });
 

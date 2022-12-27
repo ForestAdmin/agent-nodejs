@@ -42,10 +42,24 @@ describe('ActionPermissionService', () => {
     jest.clearAllMocks();
   });
 
+  describe('isDevelopmentPermission', () => {
+    it('should return the value of isDevelopment', async () => {
+      const { service } = setup({
+        isDevelopment: true,
+        actionsByRole: new Map(),
+        actionsGloballyAllowed: new Set(),
+      });
+
+      const isDevelopmentPermission = await service.isDevelopmentPermission();
+
+      expect(isDevelopmentPermission).toStrictEqual(true);
+    });
+  });
+
   describe('can', () => {
-    it('should return true if everything is allowed', async () => {
+    it('should return true if isDevelopment', async () => {
       const { service, options, permissions } = setup({
-        everythingAllowed: true,
+        isDevelopment: true,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(),
       });
@@ -62,7 +76,7 @@ describe('ActionPermissionService', () => {
 
     it('should return true if the action is globally allowed', async () => {
       const { service } = setup({
-        everythingAllowed: false,
+        isDevelopment: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(['action']),
       });
@@ -73,7 +87,7 @@ describe('ActionPermissionService', () => {
 
     it('should return true if the action is allowed for the user', async () => {
       const { service } = setup({
-        everythingAllowed: false,
+        isDevelopment: false,
         actionsByRole: new Map([['action', { allowedRoles: new Set([10]) }]]),
         actionsGloballyAllowed: new Set(),
       });
@@ -86,12 +100,12 @@ describe('ActionPermissionService', () => {
       it('should refresh the cache and return the second result', async () => {
         const { service } = setup(
           {
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsByRole: new Map(),
             actionsGloballyAllowed: new Set(),
           },
           {
-            everythingAllowed: true,
+            isDevelopment: true,
             actionsByRole: new Map([]),
             actionsGloballyAllowed: new Set(),
           },
@@ -107,12 +121,12 @@ describe('ActionPermissionService', () => {
       it('should return false if the user is still not authorized', async () => {
         const { service } = setup(
           {
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsByRole: new Map(),
             actionsGloballyAllowed: new Set(),
           },
           {
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsByRole: new Map([]),
             actionsGloballyAllowed: new Set(),
           },
@@ -128,7 +142,7 @@ describe('ActionPermissionService', () => {
 
     it('should reuse the cache if 2 calls are made in a short time', async () => {
       const { service, options } = setup({
-        everythingAllowed: false,
+        isDevelopment: false,
         actionsByRole: new Map([['action', { allowedRoles: new Set([10]) }]]),
         actionsGloballyAllowed: new Set(),
       });
@@ -150,12 +164,12 @@ describe('ActionPermissionService', () => {
     it('should update the cache if 2 calls are made in a long time', async () => {
       const { service, options } = setup(
         {
-          everythingAllowed: false,
+          isDevelopment: false,
           actionsByRole: new Map([['action', { allowedRoles: new Set([10]) }]]),
           actionsGloballyAllowed: new Set(),
         },
         {
-          everythingAllowed: false,
+          isDevelopment: false,
           actionsByRole: new Map([['action', { allowedRoles: new Set([10]) }]]),
           actionsGloballyAllowed: new Set(),
         },
@@ -177,9 +191,9 @@ describe('ActionPermissionService', () => {
   });
 
   describe('canOneOf', () => {
-    it('should return true if everything is allowed', async () => {
+    it('should return true if isDevelopment', async () => {
       const { service, options, permissions } = setup({
-        everythingAllowed: true,
+        isDevelopment: true,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(),
       });
@@ -196,7 +210,7 @@ describe('ActionPermissionService', () => {
 
     it('should return true if one of the actions is globally allowed', async () => {
       const { service } = setup({
-        everythingAllowed: false,
+        isDevelopment: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
       });
@@ -211,7 +225,7 @@ describe('ActionPermissionService', () => {
 
     it('should return true if one of the actions is allowed for the user', async () => {
       const { service } = setup({
-        everythingAllowed: false,
+        isDevelopment: false,
         actionsByRole: new Map([['action2', { allowedRoles: new Set([10]) }]]),
         actionsGloballyAllowed: new Set(),
       });
@@ -228,12 +242,12 @@ describe('ActionPermissionService', () => {
       it('should refresh the cache and return the second result', async () => {
         const { service } = setup(
           {
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsByRole: new Map(),
             actionsGloballyAllowed: new Set(),
           },
           {
-            everythingAllowed: true,
+            isDevelopment: true,
             actionsByRole: new Map([]),
             actionsGloballyAllowed: new Set(),
           },
@@ -249,12 +263,12 @@ describe('ActionPermissionService', () => {
       it('should return false if the user is still not authorized', async () => {
         const { service } = setup(
           {
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsByRole: new Map(),
             actionsGloballyAllowed: new Set(),
           },
           {
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsByRole: new Map([]),
             actionsGloballyAllowed: new Set(),
           },
@@ -282,7 +296,7 @@ describe('ActionPermissionService', () => {
       const actionConditions = new Map([[10, customActionCondition]]);
 
       const { service, options, permissions } = setup({
-        everythingAllowed: true,
+        isDevelopment: true,
         actionsByRole: new Map([
           ['action1Identifier', { allowedRoles: new Set([]), conditionsByRole: actionConditions }],
         ]),
@@ -301,7 +315,7 @@ describe('ActionPermissionService', () => {
 
     it('should return undefined the custom action condition if it does not exist', async () => {
       const { service } = setup({
-        everythingAllowed: false,
+        isDevelopment: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
       });
@@ -315,7 +329,7 @@ describe('ActionPermissionService', () => {
 
     it('should return null if we cannot found any condition for this role', async () => {
       const { service } = setup({
-        everythingAllowed: false,
+        isDevelopment: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
       });
@@ -343,7 +357,7 @@ describe('ActionPermissionService', () => {
       ]);
 
       const { service, options, permissions } = setup({
-        everythingAllowed: true,
+        isDevelopment: true,
         actionsByRole: new Map([
           ['action1Identifier', { allowedRoles: new Set([]), conditionsByRole: actionConditions }],
         ]),
@@ -362,7 +376,7 @@ describe('ActionPermissionService', () => {
 
     it('should return undefined the custom action identifier does not exist', async () => {
       const { service } = setup({
-        everythingAllowed: false,
+        isDevelopment: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(),
       });
@@ -376,7 +390,7 @@ describe('ActionPermissionService', () => {
 
     it('should return undefined if we cannot found any conditions', async () => {
       const { service } = setup({
-        everythingAllowed: false,
+        isDevelopment: false,
         actionsByRole: new Map([['action1Identifier', { allowedRoles: new Set([]) }]]),
         actionsGloballyAllowed: new Set(),
       });
@@ -393,7 +407,7 @@ describe('ActionPermissionService', () => {
     describe('when no conditions are defined', () => {
       it('should return all role ids for this custom action if it exists', async () => {
         const { service, options, permissions } = setup({
-          everythingAllowed: true,
+          isDevelopment: true,
           actionsByRole: new Map([['action1Identifier', { allowedRoles: new Set([1, 2, 3]) }]]),
           actionsGloballyAllowed: new Set(),
         });
@@ -427,7 +441,7 @@ describe('ActionPermissionService', () => {
         ]);
 
         const { service, options, permissions } = setup({
-          everythingAllowed: true,
+          isDevelopment: true,
           actionsByRole: new Map([
             [
               'action1Identifier',
@@ -453,7 +467,7 @@ describe('ActionPermissionService', () => {
 
     it('should return an empty array if the custom action identifier does not exist', async () => {
       const { service } = setup({
-        everythingAllowed: false,
+        isDevelopment: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(),
       });
@@ -470,7 +484,7 @@ describe('ActionPermissionService', () => {
 
     it('should return an empty array if we cannot found any roles allowed', async () => {
       const { service } = setup({
-        everythingAllowed: false,
+        isDevelopment: false,
         actionsByRole: new Map([['action1Identifier', { allowedRoles: new Set([]) }]]),
         actionsGloballyAllowed: new Set(),
       });
