@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.3...@forestadmin/forestadmin-client@1.1.4) (2022-12-27)
+
+
+### Bug Fixes
+
+* **security:** only allows requesting custom action parameters when allowed to trigger ([#591](https://github.com/ForestAdmin/agent-nodejs/issues/591)) ([6fbd05b](https://github.com/ForestAdmin/agent-nodejs/commit/6fbd05b525834c886e4af4096404b647b8a78001))
+
 ## @forestadmin/forestadmin-client [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.2...@forestadmin/forestadmin-client@1.1.3) (2022-12-27)
 
 
