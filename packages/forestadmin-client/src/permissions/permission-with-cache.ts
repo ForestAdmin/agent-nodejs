@@ -203,14 +203,10 @@ export default class PermissionServiceWithCache implements PermissionService {
   }): Promise<boolean> {
     const roleId = await this.getRoleIdForUserId(userId);
 
-    return this.actionPermissionService.canOneOf(roleId, [
+    return this.actionPermissionService.can(
+      roleId,
       generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
-      generateCustomActionIdentifier(
-        CustomActionEvent.RequireApproval,
-        customActionName,
-        collectionName,
-      ),
-    ]);
+    );
   }
 
   public async canExecuteChart({
