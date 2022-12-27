@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.2...@forestadmin/forestadmin-client@1.1.3) (2022-12-27)
+
+
+### Bug Fixes
+
+* **requires-approval:** development environment should trigger without requiring an approval ([#589](https://github.com/ForestAdmin/agent-nodejs/issues/589)) ([efd4045](https://github.com/ForestAdmin/agent-nodejs/commit/efd4045f08bc5f207e3d2768bdbfbf95b35b8ad4))
+
 ## @forestadmin/forestadmin-client [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.1...@forestadmin/forestadmin-client@1.1.2) (2022-12-23)
 
 
