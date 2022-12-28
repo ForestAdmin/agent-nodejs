@@ -57,6 +57,33 @@ export default class PermissionServiceWithCache implements PermissionService {
     );
   }
 
+  public async doesTriggerCustomActionRequiresApproval({
+    userId,
+    collectionName,
+    customActionName,
+  }: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+  }): Promise<boolean> {
+    // In development everything is allowed (even RequireApproval)
+    // but we don't want to require approvals!
+    if (await this.actionPermissionService.isDevelopmentPermission()) {
+      return false;
+    }
+
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.can(
+      roleId,
+      generateCustomActionIdentifier(
+        CustomActionEvent.RequireApproval,
+        customActionName,
+        collectionName,
+      ),
+    );
+  }
+
   public async canApproveCustomAction({
     userId,
     collectionName,
@@ -86,6 +113,85 @@ export default class PermissionServiceWithCache implements PermissionService {
     return this.actionPermissionService.can(roleId, actionIdentifier);
   }
 
+  public async getConditionalTriggerCondition({
+    userId,
+    collectionName,
+    customActionName,
+  }: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+  }) {
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.getCustomActionCondition(
+      roleId,
+      generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
+    );
+  }
+
+  public async getConditionalRequiresApprovalCondition({
+    userId,
+    collectionName,
+    customActionName,
+  }: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+  }) {
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.getCustomActionCondition(
+      roleId,
+      generateCustomActionIdentifier(
+        CustomActionEvent.RequireApproval,
+        customActionName,
+        collectionName,
+      ),
+    );
+  }
+
+  public async getConditionalApproveCondition({
+    userId,
+    collectionName,
+    customActionName,
+  }: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+  }) {
+    const roleId = await this.getRoleIdForUserId(userId);
+
+    return this.actionPermissionService.getCustomActionCondition(
+      roleId,
+      generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
+    );
+  }
+
+  public async getConditionalApproveConditions({
+    collectionName,
+    customActionName,
+  }: {
+    customActionName: string;
+    collectionName: string;
+  }) {
+    return this.actionPermissionService.getAllCustomActionConditions(
+      generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
+    );
+  }
+
+  public async getRoleIdsAllowedToApproveWithoutConditions({
+    collectionName,
+    customActionName,
+  }: {
+    customActionName: string;
+    collectionName: string;
+  }) {
+    return this.actionPermissionService.getRoleIdsAllowedToApproveWithoutConditions(
+      generateCustomActionIdentifier(CustomActionEvent.Approve, customActionName, collectionName),
+    );
+  }
+
   public async canRequestCustomActionParameters({
     userId,
     collectionName,
@@ -97,14 +203,10 @@ export default class PermissionServiceWithCache implements PermissionService {
   }): Promise<boolean> {
     const roleId = await this.getRoleIdForUserId(userId);
 
-    return this.actionPermissionService.canOneOf(roleId, [
+    return this.actionPermissionService.can(
+      roleId,
       generateCustomActionIdentifier(CustomActionEvent.Trigger, customActionName, collectionName),
-      generateCustomActionIdentifier(
-        CustomActionEvent.RequireApproval,
-        customActionName,
-        collectionName,
-      ),
-    ]);
+    );
   }
 
   public async canExecuteChart({

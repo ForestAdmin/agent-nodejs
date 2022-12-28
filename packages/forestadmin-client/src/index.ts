@@ -23,6 +23,8 @@ export {
   ForestAdminClient,
   ChartHandlerInterface,
   ContextVariablesInstantiatorInterface,
+  RawTree,
+  RawTreeWithSources,
 } from './types';
 export { IpWhitelistConfiguration } from './ip-whitelist/types';
 

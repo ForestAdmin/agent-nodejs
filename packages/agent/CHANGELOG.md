@@ -1,3 +1,74 @@
+## @forestadmin/agent [1.5.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.5.4...@forestadmin/agent@1.5.5) (2022-12-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.4
+
+## @forestadmin/agent [1.5.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.5.3...@forestadmin/agent@1.5.4) (2022-12-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.3
+
+## @forestadmin/agent [1.5.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.5.2...@forestadmin/agent@1.5.3) (2022-12-23)
+
+
+### Bug Fixes
+
+* **agent:** mark all one-to-many and many-to-many relations as sortable ([#581](https://github.com/ForestAdmin/agent-nodejs/issues/581)) ([1cf7611](https://github.com/ForestAdmin/agent-nodejs/commit/1cf7611597572d2e4fa9f2b67899973d8bdc5b57))
+
+## @forestadmin/agent [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.5.1...@forestadmin/agent@1.5.2) (2022-12-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.2
+
+## @forestadmin/agent [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.5.0...@forestadmin/agent@1.5.1) (2022-12-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.1
+
+# @forestadmin/agent [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.15...@forestadmin/agent@1.5.0) (2022-12-22)
+
+
+### Features
+
+* custom action support conditional trigger, requiresApproval and approve ([#562](https://github.com/ForestAdmin/agent-nodejs/issues/562)) ([666a3ce](https://github.com/ForestAdmin/agent-nodejs/commit/666a3ceb26ea2bb841ee3adfb567b2b554ef61cc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.6
+* **@forestadmin/datasource-toolkit:** upgraded to 1.2.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.0
+
+## @forestadmin/agent [1.4.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.14...@forestadmin/agent@1.4.15) (2022-12-22)
+
+
+### Bug Fixes
+
+* **agent:** default to using the unspecified IPv6 and PORT environment variable ([#583](https://github.com/ForestAdmin/agent-nodejs/issues/583)) ([6ea4905](https://github.com/ForestAdmin/agent-nodejs/commit/6ea4905538eba820fd445d812c5d7f73666521a9))
+
 ## @forestadmin/agent [1.4.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.4.13...@forestadmin/agent@1.4.14) (2022-12-21)
 
 

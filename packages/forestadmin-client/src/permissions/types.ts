@@ -1,34 +1,34 @@
 import type { Chart } from '../charts/types';
-import type {
-  PlainConditionTreeBranch,
-  PlainConditionTreeLeaf,
-} from '@forestadmin/datasource-toolkit';
-
-type CamelToSnakeCase<S extends string> = S extends `${infer T}${infer U}`
-  ? `${T extends Capitalize<T> ? '_' : ''}${Lowercase<T>}${CamelToSnakeCase<U>}`
-  : S;
-
-type PascalToSnakeCase<S extends string> = S extends `${infer T}${infer U}`
-  ? `${Lowercase<T>}${CamelToSnakeCase<U>}`
-  : S;
-
-type KeysToSnakeCase<T> = T extends object
-  ? {
-      [K in keyof T]: T[K] extends string ? PascalToSnakeCase<T[K]> : KeysToSnakeCase<T[K]>;
-    }
-  : T;
 
 type GenericRawTree<RawLeaf, RawBranch> = RawBranch | RawLeaf;
 
-export type RawTreeBranch = KeysToSnakeCase<PlainConditionTreeBranch>;
-export type RawTreeLeaf = KeysToSnakeCase<PlainConditionTreeLeaf>;
+export type RawTreeBranch = {
+  aggregator: string;
+  conditions: Array<RawTreeBranch | RawTreeLeaf>;
+};
+
+export type RawTreeLeaf = { field: string; operator: string; value?: unknown };
 
 export type RawTree = GenericRawTree<RawTreeLeaf, RawTreeBranch>;
+
+export type CustomActionRawTreeLeafSource = 'data' | 'input';
+export type RawTreeLeafWithSources = RawTreeLeaf & { source: CustomActionRawTreeLeafSource };
+export type RawTreeBranchWithSources = {
+  aggregator: RawTreeBranch['aggregator'];
+  conditions: Array<RawTreeBranchWithSources | RawTreeLeafWithSources>;
+};
+
+export type RawTreeWithSources = GenericRawTree<RawTreeLeafWithSources, RawTreeBranchWithSources>;
 
 export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
 
 export type RightDescriptionWithRolesV4 = { roles: number[] };
 export type RightDescriptionV4 = boolean | RightDescriptionWithRolesV4;
+
+export type RightConditionByRolesV4 = {
+  roleId: number;
+  filter: RawTreeWithSources;
+};
 
 export interface EnvironmentCollectionAccessPermissionsV4 {
   browseEnabled: RightDescriptionV4;
@@ -41,8 +41,11 @@ export interface EnvironmentCollectionAccessPermissionsV4 {
 
 export interface EnvironmentSmartActionPermissionsV4 {
   triggerEnabled: RightDescriptionV4;
+  triggerConditions: RightConditionByRolesV4[];
   approvalRequired: RightDescriptionV4;
+  approvalRequiredConditions: RightConditionByRolesV4[];
   userApprovalEnabled: RightDescriptionV4;
+  userApprovalConditions: RightConditionByRolesV4[];
   selfApprovalEnabled: RightDescriptionV4;
 }
 

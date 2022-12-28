@@ -19,12 +19,12 @@ jest.mock('../../src/permissions/generate-action-identifier', () => ({
 }));
 
 describe('generateActionsFromPermissions', () => {
-  describe('when everything is allowed', () => {
+  describe('when in development', () => {
     it('should return a permission where everything is allowed', () => {
       const result = generateActionsFromPermissions(true);
 
       expect(result).toMatchObject({
-        everythingAllowed: true,
+        isDevelopment: true,
       });
     });
   });
@@ -50,7 +50,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set([
               'collection:collection-id:browse',
               'collection:collection-id:read',
@@ -91,7 +91,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set(),
             actionsByRole: new Map(),
           });
@@ -99,7 +99,7 @@ describe('generateActionsFromPermissions', () => {
       });
 
       describe('allowed by role', () => {
-        it('should generate permissions with a list of users', () => {
+        it('should generate permissions with a list of roles', () => {
           const result = generateActionsFromPermissions({
             collections: {
               'collection-id': {
@@ -117,7 +117,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set(),
             actionsByRole: new Map([
               ['collection:collection-id:browse', { allowedRoles: new Set([2]) }],
@@ -137,37 +137,6 @@ describe('generateActionsFromPermissions', () => {
               action,
               'collection-id',
             );
-          });
-        });
-
-        it('should correctly handle a role that is not defined', async () => {
-          const result = generateActionsFromPermissions({
-            collections: {
-              'collection-id': {
-                collection: {
-                  addEnabled: { roles: [1, 2] },
-                  browseEnabled: { roles: [1, 2] },
-                  deleteEnabled: { roles: [1, 2] },
-                  editEnabled: { roles: [1, 2] },
-                  exportEnabled: { roles: [1, 2] },
-                  readEnabled: { roles: [1, 2] },
-                },
-                actions: {},
-              },
-            },
-          });
-
-          expect(result).toEqual({
-            everythingAllowed: false,
-            actionsGloballyAllowed: new Set(),
-            actionsByRole: new Map([
-              ['collection:collection-id:browse', { allowedRoles: new Set([1, 2]) }],
-              ['collection:collection-id:add', { allowedRoles: new Set([1, 2]) }],
-              ['collection:collection-id:read', { allowedRoles: new Set([1, 2]) }],
-              ['collection:collection-id:edit', { allowedRoles: new Set([1, 2]) }],
-              ['collection:collection-id:delete', { allowedRoles: new Set([1, 2]) }],
-              ['collection:collection-id:export', { allowedRoles: new Set([1, 2]) }],
-            ]),
           });
         });
       });
@@ -190,9 +159,12 @@ describe('generateActionsFromPermissions', () => {
                 actions: {
                   'custom-action-id': {
                     triggerEnabled: true,
-                    selfApprovalEnabled: true,
+                    triggerConditions: [],
                     approvalRequired: true,
+                    approvalRequiredConditions: [],
                     userApprovalEnabled: true,
+                    userApprovalConditions: [],
+                    selfApprovalEnabled: true,
                   },
                 },
               },
@@ -200,7 +172,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set([
               'custom:collection-id:custom-action-id:approve',
               'custom:collection-id:custom-action-id:self-approve',
@@ -236,9 +208,12 @@ describe('generateActionsFromPermissions', () => {
                 actions: {
                   'custom-action-id': {
                     triggerEnabled: false,
-                    selfApprovalEnabled: false,
+                    triggerConditions: [],
                     approvalRequired: false,
+                    approvalRequiredConditions: [],
                     userApprovalEnabled: false,
+                    userApprovalConditions: [],
+                    selfApprovalEnabled: false,
                   },
                 },
               },
@@ -246,7 +221,7 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set(),
             actionsByRole: new Map(),
           });
@@ -269,9 +244,12 @@ describe('generateActionsFromPermissions', () => {
                 actions: {
                   'custom-action-id': {
                     triggerEnabled: { roles: [1] },
-                    selfApprovalEnabled: { roles: [2] },
+                    triggerConditions: [],
                     approvalRequired: { roles: [1, 2] },
+                    approvalRequiredConditions: [],
                     userApprovalEnabled: { roles: [3] },
+                    userApprovalConditions: [],
+                    selfApprovalEnabled: { roles: [2] },
                   },
                 },
               },
@@ -279,18 +257,156 @@ describe('generateActionsFromPermissions', () => {
           });
 
           expect(result).toEqual({
-            everythingAllowed: false,
+            isDevelopment: false,
             actionsGloballyAllowed: new Set(),
             actionsByRole: new Map([
-              ['custom:collection-id:custom-action-id:approve', { allowedRoles: new Set([3]) }],
+              [
+                'custom:collection-id:custom-action-id:approve',
+                { allowedRoles: new Set([3]), conditionsByRole: new Map() },
+              ],
               [
                 'custom:collection-id:custom-action-id:self-approve',
                 { allowedRoles: new Set([2]) },
               ],
-              ['custom:collection-id:custom-action-id:trigger', { allowedRoles: new Set([1]) }],
+              [
+                'custom:collection-id:custom-action-id:trigger',
+                { allowedRoles: new Set([1]), conditionsByRole: new Map() },
+              ],
               [
                 'custom:collection-id:custom-action-id:require-approval',
-                { allowedRoles: new Set([1, 2]) },
+                { allowedRoles: new Set([1, 2]), conditionsByRole: new Map() },
+              ],
+            ]),
+          });
+
+          const generateCustomActionIdentifierMock = generateCustomActionIdentifier as jest.Mock;
+
+          Object.values(CustomActionEvent).forEach(action => {
+            expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
+              action,
+              'custom-action-id',
+              'collection-id',
+            );
+          });
+        });
+      });
+
+      describe('allowed by role with conditions', () => {
+        it('should generate permissions with a list of users', () => {
+          const result = generateActionsFromPermissions({
+            collections: {
+              'collection-id': {
+                collection: {
+                  addEnabled: false,
+                  browseEnabled: false,
+                  deleteEnabled: false,
+                  editEnabled: false,
+                  exportEnabled: false,
+                  readEnabled: false,
+                },
+                actions: {
+                  'custom-action-id': {
+                    triggerEnabled: { roles: [1] },
+                    selfApprovalEnabled: { roles: [2] },
+                    approvalRequired: { roles: [1, 2] },
+                    userApprovalEnabled: { roles: [3] },
+                    triggerConditions: [
+                      {
+                        roleId: 1,
+                        filter: {
+                          field: 'filed',
+                          operator: 'equal',
+                          value: 'value',
+                          source: 'data',
+                        },
+                      },
+                    ],
+                    approvalRequiredConditions: [
+                      {
+                        roleId: 2,
+                        filter: {
+                          field: 'filed2',
+                          operator: 'not_equal',
+                          value: 'value',
+                          source: 'data',
+                        },
+                      },
+                    ],
+                    userApprovalConditions: [
+                      {
+                        roleId: 3,
+                        filter: {
+                          field: 'filed3',
+                          operator: 'greater_than',
+                          value: 'value',
+                          source: 'data',
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          });
+
+          expect(result).toEqual({
+            isDevelopment: false,
+            actionsGloballyAllowed: new Set(),
+            actionsByRole: new Map([
+              [
+                'custom:collection-id:custom-action-id:approve',
+                {
+                  allowedRoles: new Set([3]),
+                  conditionsByRole: new Map([
+                    [
+                      3,
+                      {
+                        field: 'filed3',
+                        operator: 'greater_than',
+                        source: 'data',
+                        value: 'value',
+                      },
+                    ],
+                  ]),
+                },
+              ],
+              [
+                'custom:collection-id:custom-action-id:self-approve',
+                { allowedRoles: new Set([2]) },
+              ],
+              [
+                'custom:collection-id:custom-action-id:trigger',
+                {
+                  allowedRoles: new Set([1]),
+                  conditionsByRole: new Map([
+                    [
+                      1,
+                      {
+                        field: 'filed',
+                        operator: 'equal',
+                        source: 'data',
+                        value: 'value',
+                      },
+                    ],
+                  ]),
+                },
+              ],
+              [
+                'custom:collection-id:custom-action-id:require-approval',
+                {
+                  allowedRoles: new Set([1, 2]),
+                  conditionsByRole: new Map([
+                    [
+                      2,
+                      {
+                        field: 'filed2',
+                        operator: 'not_equal',
+                        source: 'data',
+                        value: 'value',
+                      },
+                    ],
+                  ]),
+                },
               ],
             ]),
           });

@@ -16,6 +16,10 @@ const generateCollectionActionIdentifierMock = generateCollectionActionIdentifie
 const generateCustomActionIdentifierMock = generateCustomActionIdentifier as jest.Mock;
 
 describe('PermissionService', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
   describe('canOnCollection', () => {
     it('should return the result of actionPermissionService and pass the right event', async () => {
       const userId = 1;
@@ -183,7 +187,7 @@ describe('PermissionService', () => {
   });
 
   describe('canRequestCustomActionParameters', () => {
-    it('should check if the user has the right to trigger or trigger with approval', async () => {
+    it('should check if the user has the right to trigger', async () => {
       const actionPermissionService = factories.actionPermission.mockAllMethods().build();
       const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
       const permissionService = new PermissionServiceWithCache(
@@ -191,9 +195,8 @@ describe('PermissionService', () => {
         renderingPermissionService,
       );
 
-      (actionPermissionService.canOneOf as jest.Mock).mockResolvedValue(true);
+      (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
       generateCustomActionIdentifierMock.mockReturnValueOnce('identifier1');
-      generateCustomActionIdentifierMock.mockReturnValueOnce('identifier2');
 
       (renderingPermissionService.getUser as jest.Mock).mockResolvedValue({ roleId: 10 });
 
@@ -203,20 +206,13 @@ describe('PermissionService', () => {
         collectionName: 'jedis',
       });
 
-      expect(actionPermissionService.canOneOf).toHaveBeenCalledWith(10, [
-        'identifier1',
-        'identifier2',
-      ]);
+      expect(actionPermissionService.can).toHaveBeenCalledWith(10, 'identifier1');
       expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
         CustomActionEvent.Trigger,
         'doSomething',
         'jedis',
       );
-      expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
-        CustomActionEvent.RequireApproval,
-        'doSomething',
-        'jedis',
-      );
+
       expect(result).toBe(true);
     });
   });
@@ -254,5 +250,247 @@ describe('PermissionService', () => {
       });
       expect(result).toBe(true);
     });
+  });
+
+  describe('doesTriggerCustomActionRequiresApproval', () => {
+    it('should check if the user needs the require an approval', async () => {
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const permissionService = new PermissionServiceWithCache(
+        actionPermissionService,
+        renderingPermissionService,
+      );
+
+      generateCustomActionIdentifierMock.mockReturnValue('identifier');
+
+      (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
+
+      (renderingPermissionService.getUser as jest.Mock).mockResolvedValue({ roleId: 10 });
+
+      const result = await permissionService.doesTriggerCustomActionRequiresApproval({
+        userId: 42,
+        customActionName: 'do-something',
+        collectionName: 'actors',
+      });
+
+      expect(actionPermissionService.can).toHaveBeenCalledWith(10, 'identifier');
+      expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
+        CustomActionEvent.RequireApproval,
+        'do-something',
+        'actors',
+      );
+
+      expect(result).toBe(true);
+    });
+
+    describe('when in development environment', () => {
+      it('should return false', async () => {
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const permissionService = new PermissionServiceWithCache(
+          actionPermissionService,
+          renderingPermissionService,
+        );
+
+        generateCustomActionIdentifierMock.mockReturnValue('identifier');
+
+        (actionPermissionService.isDevelopmentPermission as jest.Mock).mockResolvedValue(true);
+
+        (actionPermissionService.can as jest.Mock).mockResolvedValue(true);
+
+        (renderingPermissionService.getUser as jest.Mock).mockResolvedValue({ roleId: 10 });
+
+        const result = await permissionService.doesTriggerCustomActionRequiresApproval({
+          userId: 42,
+          customActionName: 'do-something',
+          collectionName: 'actors',
+        });
+
+        expect(actionPermissionService.isDevelopmentPermission).toHaveBeenCalled();
+        expect(actionPermissionService.can).not.toHaveBeenCalled();
+        expect(generateCustomActionIdentifierMock).not.toHaveBeenCalled();
+
+        expect(result).toBe(false);
+      });
+    });
+  });
+
+  describe('getConditionalTriggerCondition', () => {
+    it('should get the trigger condition for a specific custom action', async () => {
+      const condition = Symbol('condition');
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const permissionService = new PermissionServiceWithCache(
+        actionPermissionService,
+        renderingPermissionService,
+      );
+
+      generateCustomActionIdentifierMock.mockReturnValue('identifier');
+
+      (actionPermissionService.getCustomActionCondition as jest.Mock).mockResolvedValue(condition);
+
+      (renderingPermissionService.getUser as jest.Mock).mockResolvedValue({ roleId: 10 });
+
+      const result = await permissionService.getConditionalTriggerCondition({
+        userId: 42,
+        customActionName: 'do-something',
+        collectionName: 'actors',
+      });
+
+      expect(actionPermissionService.getCustomActionCondition).toHaveBeenCalledWith(
+        10,
+        'identifier',
+      );
+      expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
+        CustomActionEvent.Trigger,
+        'do-something',
+        'actors',
+      );
+
+      expect(result).toBe(condition);
+    });
+  });
+
+  describe('getConditionalRequiresApprovalCondition', () => {
+    it('should get the trigger condition for a specific custom action', async () => {
+      const condition = Symbol('condition');
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const permissionService = new PermissionServiceWithCache(
+        actionPermissionService,
+        renderingPermissionService,
+      );
+
+      generateCustomActionIdentifierMock.mockReturnValue('identifier');
+
+      (actionPermissionService.getCustomActionCondition as jest.Mock).mockResolvedValue(condition);
+
+      (renderingPermissionService.getUser as jest.Mock).mockResolvedValue({ roleId: 10 });
+
+      const result = await permissionService.getConditionalRequiresApprovalCondition({
+        userId: 42,
+        customActionName: 'do-something',
+        collectionName: 'actors',
+      });
+
+      expect(actionPermissionService.getCustomActionCondition).toHaveBeenCalledWith(
+        10,
+        'identifier',
+      );
+      expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
+        CustomActionEvent.RequireApproval,
+        'do-something',
+        'actors',
+      );
+
+      expect(result).toBe(condition);
+    });
+  });
+
+  describe('getConditionalApproveCondition', () => {
+    it('should get the trigger condition for a specific custom action', async () => {
+      const condition = Symbol('condition');
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const permissionService = new PermissionServiceWithCache(
+        actionPermissionService,
+        renderingPermissionService,
+      );
+
+      generateCustomActionIdentifierMock.mockReturnValue('identifier');
+
+      (actionPermissionService.getCustomActionCondition as jest.Mock).mockResolvedValue(condition);
+
+      (renderingPermissionService.getUser as jest.Mock).mockResolvedValue({ roleId: 10 });
+
+      const result = await permissionService.getConditionalApproveCondition({
+        userId: 42,
+        customActionName: 'do-something',
+        collectionName: 'actors',
+      });
+
+      expect(actionPermissionService.getCustomActionCondition).toHaveBeenCalledWith(
+        10,
+        'identifier',
+      );
+      expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
+        CustomActionEvent.Approve,
+        'do-something',
+        'actors',
+      );
+
+      expect(result).toBe(condition);
+    });
+  });
+
+  describe('getConditionalApproveConditions', () => {
+    it('should get all approve conditions for a specific custom action', async () => {
+      const conditions = Symbol('conditions');
+      const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+      const permissionService = new PermissionServiceWithCache(
+        actionPermissionService,
+        factories.renderingPermission.build(),
+      );
+
+      generateCustomActionIdentifierMock.mockReturnValue('identifier');
+
+      (actionPermissionService.getAllCustomActionConditions as jest.Mock).mockResolvedValue(
+        conditions,
+      );
+
+      const result = await permissionService.getConditionalApproveConditions({
+        customActionName: 'do-something',
+        collectionName: 'actors',
+      });
+
+      expect(actionPermissionService.getAllCustomActionConditions).toHaveBeenCalledWith(
+        'identifier',
+      );
+      expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
+        CustomActionEvent.Approve,
+        'do-something',
+        'actors',
+      );
+
+      expect(result).toBe(conditions);
+    });
+  });
+
+  describe('getRoleIdsAllowedToApproveWithoutConditions', () => {
+    it(
+      'should get all roles ids AllowedToApprove for a specific custom action ' +
+        'excluding roles with a condition for this action',
+      async () => {
+        const roleIds = Symbol('roleIds');
+        const actionPermissionService = factories.actionPermission.mockAllMethods().build();
+        const permissionService = new PermissionServiceWithCache(
+          actionPermissionService,
+          factories.renderingPermission.build(),
+        );
+
+        generateCustomActionIdentifierMock.mockReturnValue('identifier');
+
+        (
+          actionPermissionService.getRoleIdsAllowedToApproveWithoutConditions as jest.Mock
+        ).mockResolvedValue(roleIds);
+
+        const result = await permissionService.getRoleIdsAllowedToApproveWithoutConditions({
+          customActionName: 'do-something',
+          collectionName: 'actors',
+        });
+
+        expect(
+          actionPermissionService.getRoleIdsAllowedToApproveWithoutConditions,
+        ).toHaveBeenCalledWith('identifier');
+
+        expect(generateCustomActionIdentifierMock).toHaveBeenCalledWith(
+          CustomActionEvent.Approve,
+          'do-something',
+          'actors',
+        );
+
+        expect(result).toBe(roleIds);
+      },
+    );
   });
 });

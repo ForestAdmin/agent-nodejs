@@ -3,26 +3,30 @@ import {
   DataSource,
   Filter,
   FilterFactory,
+  UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context, Next } from 'koa';
 
-import { ForestAdminHttpDriverServices } from '../../services';
+import { ForestAdminHttpDriverServices } from '../../../services';
 import {
   SmartActionApprovalRequestBody,
   SmartActionRequestBody,
-} from '../../services/authorization/types';
-import { AgentOptionsWithDefaults, HttpCode } from '../../types';
-import BodyParser from '../../utils/body-parser';
-import ContextFilterFactory from '../../utils/context-filter-factory';
-import ForestValueConverter from '../../utils/forest-schema/action-values';
-import SchemaGeneratorActions from '../../utils/forest-schema/generator-actions';
-import IdUtils from '../../utils/id';
-import QueryStringParser from '../../utils/query-string';
-import CollectionRoute from '../collection-route';
+} from '../../../services/authorization/types';
+import { AgentOptionsWithDefaults, HttpCode } from '../../../types';
+import BodyParser from '../../../utils/body-parser';
+import ContextFilterFactory from '../../../utils/context-filter-factory';
+import ForestValueConverter from '../../../utils/forest-schema/action-values';
+import SchemaGeneratorActions from '../../../utils/forest-schema/generator-actions';
+import IdUtils from '../../../utils/id';
+import QueryStringParser from '../../../utils/query-string';
+import CollectionRoute from '../../collection-route';
+import ActionAuthorizationService from './action-authorization';
 
 export default class ActionRoute extends CollectionRoute {
   private readonly actionName: string;
+
+  private actionAuthorizationService: ActionAuthorizationService;
 
   constructor(
     services: ForestAdminHttpDriverServices,
@@ -33,6 +37,8 @@ export default class ActionRoute extends CollectionRoute {
   ) {
     super(services, options, dataSource, collectionName);
     this.actionName = actionName;
+
+    this.actionAuthorizationService = new ActionAuthorizationService(options.forestAdminClient);
   }
 
   setupRoutes(router: Router): void {
@@ -50,18 +56,48 @@ export default class ActionRoute extends CollectionRoute {
 
   private async handleExecute(context: Context): Promise<void> {
     const { dataSource } = this.collection;
+
     const caller = QueryStringParser.parseCaller(context);
-    const filter = await this.getRecordSelection(context);
+    const [filterForCaller, filterForAllCaller] = await Promise.all([
+      this.getRecordSelection(context),
+      this.getRecordSelection(context, false),
+    ]);
+    const requestBody = context.request.body as SmartActionApprovalRequestBody;
+
+    const canPerformCustomActionParams = {
+      caller,
+      customActionName: this.actionName,
+      collection: this.collection,
+      filterForCaller,
+      filterForAllCaller,
+    };
+
+    if (requestBody?.data?.attributes?.requester_id) {
+      await this.actionAuthorizationService.assertCanApproveCustomAction({
+        ...canPerformCustomActionParams,
+        requesterId: requestBody.data.attributes.requester_id,
+      });
+    } else {
+      await this.actionAuthorizationService.assertCanTriggerCustomAction(
+        canPerformCustomActionParams,
+      );
+    }
+
     const rawData = context.request.body.data.attributes.values;
 
     // As forms are dynamic, we don't have any way to ensure that we're parsing the data correctly
     // => better send invalid data to the getForm() customer handler than to the execute() one.
     const unsafeData = ForestValueConverter.makeFormDataUnsafe(rawData);
-    const fields = await this.collection.getForm(caller, this.actionName, unsafeData, filter);
+    const fields = await this.collection.getForm(
+      caller,
+      this.actionName,
+      unsafeData,
+      filterForCaller,
+    );
 
     // Now that we have the field list, we can parse the data again.
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
-    const result = await this.collection.execute(caller, this.actionName, data, filter);
+    const result = await this.collection.execute(caller, this.actionName, data, filterForCaller);
 
     if (result?.type === 'Error') {
       context.response.status = HttpCode.BadRequest;
@@ -88,8 +124,10 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async handleHook(context: Context): Promise<void> {
-    await this.services.authorization.assertCanRequestCustomActionParameters(
-      context,
+    const { id: userId } = context.state.user;
+
+    await this.actionAuthorizationService.assertCanRequestCustomActionParameters(
+      userId,
       this.actionName,
       this.collection.name,
     );
@@ -114,34 +152,31 @@ export default class ActionRoute extends CollectionRoute {
   private async middlewareCustomActionApprovalRequestData(context: Context, next: Next) {
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
 
+    // We forbid requester_id from default request as it's only retrieved from
+    // signed_approval_request
+    if (requestBody?.data?.attributes?.requester_id) {
+      throw new UnprocessableError();
+    }
+
     if (requestBody?.data?.attributes?.signed_approval_request) {
       const signedParameters =
-        this.services.authorization.verifySignedActionParameters<SmartActionRequestBody>(
+        this.options.forestAdminClient.verifySignedActionParameters<SmartActionRequestBody>(
           requestBody.data.attributes.signed_approval_request,
         );
-      await this.services.authorization.assertCanApproveCustomAction({
-        context,
-        customActionName: this.actionName,
-        collectionName: this.collection.name,
-        requesterId: signedParameters?.data?.attributes?.requester_id,
-      });
+
       context.request.body = signedParameters;
-    } else {
-      await this.services.authorization.assertCanTriggerCustomAction({
-        context,
-        customActionName: this.actionName,
-        collectionName: this.collection.name,
-      });
     }
 
     return next();
   }
 
-  private async getRecordSelection(context: Context): Promise<Filter> {
+  private async getRecordSelection(context: Context, includeUserScope = true): Promise<Filter> {
     const attributes = context.request?.body?.data?.attributes;
 
-    // Match user filter + search + scope + segment.
-    const scope = await this.services.authorization.getScope(this.collection, context);
+    // Match user filter + search + scope? + segment.
+    const scope = includeUserScope
+      ? await this.services.authorization.getScope(this.collection, context)
+      : null;
     let filter = ContextFilterFactory.build(this.collection, context, scope);
 
     // Restrict the filter to the selected records for single or bulk actions.

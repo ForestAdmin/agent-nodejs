@@ -1,4 +1,3 @@
-import { Collection } from '@forestadmin/datasource-toolkit';
 import {
   ChainedSQLQueryError,
   ChartType,
@@ -82,177 +81,6 @@ describe('AuthorizationService', () => {
     });
   });
 
-  describe('assertCanTriggerCustomAction', () => {
-    it('should do nothing if the user can trigger a custom action', async () => {
-      const context = { state: { user: { id: 42 } } } as Context;
-
-      const forestAdminClient = factories.forestAdminClient.build();
-
-      (forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock).mockResolvedValue(
-        true,
-      );
-
-      const authorization = new AuthorizationService(forestAdminClient);
-
-      await expect(
-        authorization.assertCanTriggerCustomAction({
-          context,
-          customActionName: 'do-something',
-          collectionName: 'actors',
-        }),
-      ).resolves.toBe(undefined);
-
-      expect(forestAdminClient.permissionService.canTriggerCustomAction).toHaveBeenCalledWith({
-        userId: 42,
-        customActionName: 'do-something',
-        collectionName: 'actors',
-      });
-    });
-
-    it('should throw an error if the user cannot trigger', async () => {
-      const context = {
-        state: { user: { id: 42 } },
-        throw: jest.fn(),
-      } as unknown as Context;
-
-      const forestAdminClient = factories.forestAdminClient.build();
-
-      (forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock).mockResolvedValue(
-        false,
-      );
-
-      const authorization = new AuthorizationService(forestAdminClient);
-
-      await authorization.assertCanTriggerCustomAction({
-        context,
-        collectionName: 'actors',
-        customActionName: 'do-something',
-      });
-
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
-    });
-  });
-
-  describe('assertCanApproveCustomAction', () => {
-    it('should do nothing if the user can approve a custom action', async () => {
-      const context = { state: { user: { id: 42 } } } as Context;
-
-      const forestAdminClient = factories.forestAdminClient.build();
-
-      (forestAdminClient.permissionService.canApproveCustomAction as jest.Mock).mockResolvedValue(
-        true,
-      );
-
-      const authorization = new AuthorizationService(forestAdminClient);
-
-      await expect(
-        authorization.assertCanApproveCustomAction({
-          context,
-          customActionName: 'do-something',
-          collectionName: 'actors',
-          requesterId: 30,
-        }),
-      ).resolves.toBe(undefined);
-
-      expect(forestAdminClient.permissionService.canApproveCustomAction).toHaveBeenCalledWith({
-        userId: 42,
-        customActionName: 'do-something',
-        collectionName: 'actors',
-        requesterId: 30,
-      });
-    });
-
-    it('should throw an error if the user cannot approve', async () => {
-      const context = {
-        state: { user: { id: 42 } },
-        throw: jest.fn(),
-      } as unknown as Context;
-
-      const forestAdminClient = factories.forestAdminClient.build();
-
-      (forestAdminClient.permissionService.canApproveCustomAction as jest.Mock).mockResolvedValue(
-        false,
-      );
-
-      const authorization = new AuthorizationService(forestAdminClient);
-
-      await authorization.assertCanApproveCustomAction({
-        context,
-        collectionName: 'actors',
-        customActionName: 'do-something',
-        requesterId: 30,
-      });
-
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
-    });
-  });
-
-  describe('assertCanRequestCustomActionParameters', () => {
-    it('should not do anything if the user has the right to execute action hooks', async () => {
-      const forestAdminClient = factories.forestAdminClient.build();
-
-      const authorizationService = new AuthorizationService(forestAdminClient);
-
-      const context = {
-        state: {
-          user: {
-            id: 35,
-            renderingId: 42,
-          },
-        },
-        throw: jest.fn(),
-      } as unknown as Context;
-
-      (
-        forestAdminClient.permissionService.canRequestCustomActionParameters as jest.Mock
-      ).mockResolvedValue(true);
-
-      await authorizationService.assertCanRequestCustomActionParameters(
-        context,
-        'custom-action',
-        'books',
-      );
-
-      expect(context.throw).not.toHaveBeenCalled();
-
-      expect(
-        forestAdminClient.permissionService.canRequestCustomActionParameters,
-      ).toHaveBeenCalledWith({
-        userId: 35,
-        customActionName: 'custom-action',
-        collectionName: 'books',
-      });
-    });
-
-    it('should throw an error if the user does not have the right', async () => {
-      const forestAdminClient = factories.forestAdminClient.build();
-
-      const authorizationService = new AuthorizationService(forestAdminClient);
-
-      const context = {
-        state: {
-          user: {
-            id: 35,
-            renderingId: 42,
-          },
-        },
-        throw: jest.fn(),
-      } as unknown as Context;
-
-      (
-        forestAdminClient.permissionService.canRequestCustomActionParameters as jest.Mock
-      ).mockResolvedValue(false);
-
-      await authorizationService.assertCanRequestCustomActionParameters(
-        context,
-        'custom-action',
-        'books',
-      );
-
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
-    });
-  });
-
   describe('getScope', () => {
     it('should return the scope for the given user', async () => {
       const forestAdminClient = factories.forestAdminClient.build();
@@ -260,7 +88,7 @@ describe('AuthorizationService', () => {
       const authorizationService = new AuthorizationService(forestAdminClient);
 
       const user = { id: 666, renderingId: 42 };
-      const collection = { name: 'books' } as Collection;
+      const collection = factories.collection.build({ name: 'books' });
       const context = {
         state: {
           user,
@@ -514,23 +342,6 @@ describe('AuthorizationService', () => {
       authorizationService.invalidateScopeCache(42);
 
       expect(forestAdminClient.markScopesAsUpdated).toHaveBeenCalledWith(42);
-    });
-  });
-
-  describe('verifySignedActionParameters', () => {
-    it('should return the result from the client', () => {
-      const forestAdminClient = factories.forestAdminClient.build();
-
-      const authorizationService = new AuthorizationService(forestAdminClient);
-
-      const signed = { foo: 'bar' };
-
-      (forestAdminClient.verifySignedActionParameters as jest.Mock).mockReturnValue(signed);
-
-      const result = authorizationService.verifySignedActionParameters('signed');
-
-      expect(result).toBe(signed);
-      expect(forestAdminClient.verifySignedActionParameters).toHaveBeenCalledWith('signed');
     });
   });
 });

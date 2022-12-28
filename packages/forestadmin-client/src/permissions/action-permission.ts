@@ -1,4 +1,6 @@
-import { ForestAdminClientOptionsWithDefaults } from '../types';
+import type { ForestAdminClientOptionsWithDefaults } from '../types';
+import type { RawTreeWithSources } from './types';
+
 import ForestHttpApi from './forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
@@ -10,33 +12,32 @@ export default class ActionPermissionService {
 
   constructor(private readonly options: ForestAdminClientOptionsWithDefaults) {}
 
-  public canOneOf(roleId: number, actionNames: string[]): Promise<boolean> {
-    return this.hasPermissionOrRefetch({
-      roleId,
-      actionNames,
-      allowRefetch: true,
-    });
+  public async isDevelopmentPermission(): Promise<boolean> {
+    const permissions = await this.getPermissions();
+
+    // isDevelopment is true only for development environment
+    return permissions.isDevelopment;
   }
 
   public can(roleId: number, actionName: string): Promise<boolean> {
     return this.hasPermissionOrRefetch({
       roleId,
-      actionNames: [actionName],
+      actionName,
       allowRefetch: true,
     });
   }
 
   private async hasPermissionOrRefetch({
     roleId,
-    actionNames,
+    actionName,
     allowRefetch,
   }: {
     roleId: number;
-    actionNames: string[];
+    actionName: string;
     allowRefetch: boolean;
   }): Promise<boolean> {
     const permissions = await this.getPermissions();
-    const isAllowed = this.isAllowedOneOf({ permissions, actionNames, roleId });
+    const isAllowed = this.isAllowed({ permissions, actionName, roleId });
 
     if (!isAllowed && allowRefetch) {
       this.permissionsPromise = undefined;
@@ -44,31 +45,18 @@ export default class ActionPermissionService {
 
       return this.hasPermissionOrRefetch({
         roleId,
-        actionNames,
+        actionName,
         allowRefetch: false,
       });
     }
 
     this.options.logger(
       'Debug',
-      `User ${roleId} is ${isAllowed ? '' : 'not '}allowed to perform ${
-        actionNames.length > 1 ? ' one of ' : ''
-      }${actionNames.join(', ')}`,
+      `User ${roleId} is ${isAllowed ? '' : 'not '}allowed to perform
+      }${actionName}`,
     );
 
     return isAllowed;
-  }
-
-  private isAllowedOneOf({
-    permissions,
-    actionNames,
-    roleId,
-  }: {
-    permissions: ActionPermissions;
-    actionNames: string[];
-    roleId: number;
-  }): boolean {
-    return actionNames.some(actionName => this.isAllowed({ permissions, actionName, roleId }));
   }
 
   private isAllowed({
@@ -80,8 +68,9 @@ export default class ActionPermissionService {
     actionName: string;
     roleId: number;
   }): boolean {
+    // In development everything is allowed
     return Boolean(
-      permissions.everythingAllowed ||
+      permissions.isDevelopment ||
         permissions.actionsGloballyAllowed.has(actionName) ||
         permissions.actionsByRole.get(actionName)?.allowedRoles.has(roleId),
     );
@@ -109,5 +98,41 @@ export default class ActionPermissionService {
     const rawPermissions = await ForestHttpApi.getEnvironmentPermissions(this.options);
 
     return generateActionsFromPermissions(rawPermissions);
+  }
+
+  public async getCustomActionCondition(
+    roleId: number,
+    actionName: string,
+  ): Promise<RawTreeWithSources | undefined> {
+    const permissions = await this.getPermissions();
+
+    const conditionFilter = permissions.actionsByRole.get(actionName)?.conditionsByRole.get(roleId);
+
+    return conditionFilter;
+  }
+
+  public async getAllCustomActionConditions(
+    actionName: string,
+  ): Promise<Map<number, RawTreeWithSources> | undefined> {
+    const permissions = await this.getPermissions();
+
+    return permissions.actionsByRole.get(actionName)?.conditionsByRole;
+  }
+
+  public async getRoleIdsAllowedToApproveWithoutConditions(
+    actionName: string,
+  ): Promise<Array<number>> {
+    const permissions = await this.getPermissions();
+
+    const approvalPermission = permissions.actionsByRole.get(actionName);
+
+    if (!approvalPermission) {
+      return [];
+    }
+
+    // All allowed roles excluding the one with conditions
+    return Array.from(approvalPermission.allowedRoles).filter(
+      roleId => !approvalPermission.conditionsByRole?.has(roleId),
+    );
   }
 }

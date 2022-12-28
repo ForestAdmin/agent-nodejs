@@ -56,70 +56,6 @@ export default class AuthorizationService {
     }
   }
 
-  public async assertCanTriggerCustomAction({
-    context,
-    customActionName,
-    collectionName,
-  }: {
-    context: Context;
-    customActionName: string;
-    collectionName: string;
-  }): Promise<void> {
-    const { id: userId } = context.state.user;
-    const canTrigger = await this.forestAdminClient.permissionService.canTriggerCustomAction({
-      userId,
-      customActionName,
-      collectionName,
-    });
-
-    if (!canTrigger) {
-      context.throw(HttpCode.Forbidden, 'Forbidden');
-    }
-  }
-
-  public async assertCanApproveCustomAction({
-    context,
-    customActionName,
-    collectionName,
-    requesterId,
-  }: {
-    context: Context;
-    customActionName: string;
-    collectionName: string;
-    requesterId: number | string;
-  }): Promise<void> {
-    const { id: userId } = context.state.user;
-    const canApprove = await this.forestAdminClient.permissionService.canApproveCustomAction({
-      userId,
-      customActionName,
-      collectionName,
-      requesterId,
-    });
-
-    if (!canApprove) {
-      context.throw(HttpCode.Forbidden, 'Forbidden');
-    }
-  }
-
-  public async assertCanRequestCustomActionParameters(
-    context: Context,
-    customActionName: string,
-    collectionName: string,
-  ) {
-    const { id: userId } = context.state.user;
-
-    const canRequest =
-      await this.forestAdminClient.permissionService.canRequestCustomActionParameters({
-        userId,
-        customActionName,
-        collectionName,
-      });
-
-    if (!canRequest) {
-      context.throw(HttpCode.Forbidden, 'Forbidden');
-    }
-  }
-
   public async assertCanExecuteChart(context: Context): Promise<void> {
     const { renderingId, id: userId } = context.state.user;
     const { body: chartRequest } = context.request;
@@ -163,9 +99,5 @@ export default class AuthorizationService {
 
   public invalidateScopeCache(renderingId: number | string) {
     this.forestAdminClient.markScopesAsUpdated(renderingId);
-  }
-
-  public verifySignedActionParameters<TSignedParameters>(signedToken: string): TSignedParameters {
-    return this.forestAdminClient.verifySignedActionParameters(signedToken);
   }
 }

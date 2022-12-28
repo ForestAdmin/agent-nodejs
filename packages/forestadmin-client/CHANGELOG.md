@@ -1,3 +1,46 @@
+## @forestadmin/forestadmin-client [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.3...@forestadmin/forestadmin-client@1.1.4) (2022-12-27)
+
+
+### Bug Fixes
+
+* **security:** only allows requesting custom action parameters when allowed to trigger ([#591](https://github.com/ForestAdmin/agent-nodejs/issues/591)) ([6fbd05b](https://github.com/ForestAdmin/agent-nodejs/commit/6fbd05b525834c886e4af4096404b647b8a78001))
+
+## @forestadmin/forestadmin-client [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.2...@forestadmin/forestadmin-client@1.1.3) (2022-12-27)
+
+
+### Bug Fixes
+
+* **requires-approval:** development environment should trigger without requiring an approval ([#589](https://github.com/ForestAdmin/agent-nodejs/issues/589)) ([efd4045](https://github.com/ForestAdmin/agent-nodejs/commit/efd4045f08bc5f207e3d2768bdbfbf95b35b8ad4))
+
+## @forestadmin/forestadmin-client [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.1...@forestadmin/forestadmin-client@1.1.2) (2022-12-23)
+
+
+### Bug Fixes
+
+* export defined types for permissions ([#588](https://github.com/ForestAdmin/agent-nodejs/issues/588)) ([8bf973c](https://github.com/ForestAdmin/agent-nodejs/commit/8bf973c1b848829576d851cc9c07fb00f09030ed))
+
+## @forestadmin/forestadmin-client [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.0...@forestadmin/forestadmin-client@1.1.1) (2022-12-22)
+
+
+### Bug Fixes
+
+* add missing type exports for external uses ([#587](https://github.com/ForestAdmin/agent-nodejs/issues/587)) ([51a0494](https://github.com/ForestAdmin/agent-nodejs/commit/51a049488138ca5f5c69c369d8d513f4d5cbff19))
+
+# @forestadmin/forestadmin-client [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.0.7...@forestadmin/forestadmin-client@1.1.0) (2022-12-22)
+
+
+### Features
+
+* custom action support conditional trigger, requiresApproval and approve ([#562](https://github.com/ForestAdmin/agent-nodejs/issues/562)) ([666a3ce](https://github.com/ForestAdmin/agent-nodejs/commit/666a3ceb26ea2bb841ee3adfb567b2b554ef61cc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.2.0
+
 ## @forestadmin/forestadmin-client [1.0.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.0.6...@forestadmin/forestadmin-client@1.0.7) (2022-12-21)
 
 

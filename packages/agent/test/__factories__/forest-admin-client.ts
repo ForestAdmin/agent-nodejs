@@ -18,6 +18,12 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
     canRequestCustomActionParameters: jest.fn(),
     canExecuteChart: jest.fn(),
     canTriggerCustomAction: jest.fn(),
+    doesTriggerCustomActionRequiresApproval: jest.fn(),
+    getConditionalTriggerCondition: jest.fn(),
+    getConditionalRequiresApprovalCondition: jest.fn(),
+    getConditionalApproveCondition: jest.fn(),
+    getConditionalApproveConditions: jest.fn(),
+    getRoleIdsAllowedToApproveWithoutConditions: jest.fn(),
   },
   contextVariablesInstantiator: {
     buildContextVariables: jest.fn(),

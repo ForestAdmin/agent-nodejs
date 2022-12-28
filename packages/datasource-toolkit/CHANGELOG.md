@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.4...@forestadmin/datasource-toolkit@1.2.0) (2022-12-22)
+
+
+### Features
+
+* custom action support conditional trigger, requiresApproval and approve ([#562](https://github.com/ForestAdmin/agent-nodejs/issues/562)) ([666a3ce](https://github.com/ForestAdmin/agent-nodejs/commit/666a3ceb26ea2bb841ee3adfb567b2b554ef61cc))
+
 ## @forestadmin/datasource-toolkit [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.3...@forestadmin/datasource-toolkit@1.1.4) (2022-12-21)
 
 
