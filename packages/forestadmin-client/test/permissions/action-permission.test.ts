@@ -1,5 +1,4 @@
 import ActionPermissionService from '../../src/permissions/action-permission';
-import ForestHttpApi from '../../src/permissions/forest-http-api';
 import generateActionsFromPermissions, {
   ActionPermissions,
 } from '../../src/permissions/generate-actions-from-permissions';
@@ -15,7 +14,7 @@ jest.mock('../../src/permissions/generate-actions-from-permissions', () => ({
 }));
 
 const generateActionsFromPermissionsMock = generateActionsFromPermissions as jest.Mock;
-const getEnvironmentPermissionsMock = ForestHttpApi.getEnvironmentPermissions as jest.Mock;
+const getEnvironmentPermissionsMock: jest.Mock = jest.fn();
 
 describe('ActionPermissionService', () => {
   function setup(...actionsPermissions: ActionPermissions[]) {
@@ -26,7 +25,7 @@ describe('ActionPermissionService', () => {
       isProduction: true,
       logger: jest.fn(),
     };
-    const service = new ActionPermissionService(options);
+    const service = new ActionPermissionService(options, getEnvironmentPermissionsMock);
 
     const permissions = { collections: {} };
 

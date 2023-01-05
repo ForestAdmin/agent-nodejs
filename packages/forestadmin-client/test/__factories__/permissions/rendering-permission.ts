@@ -26,6 +26,7 @@ const renderingPermissionsFactory = RenderingPermissionsFactory.define(
         logger: () => {},
       },
       userPermissionsFactory.build(),
+      jest.fn(),
     ),
 );
 

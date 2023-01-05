@@ -10,7 +10,7 @@ describe('ForestHttpApi', () => {
   const options = factories.forestAdminClientOptions.build();
 
   test('getEnvironmentPermissions should call the right endpoint', async () => {
-    await ForestHttpApi.getEnvironmentPermissions(options);
+    await new ForestHttpApi().getEnvironmentPermissions(options);
 
     expect(ServerUtils.query).toHaveBeenCalledWith(
       options,
@@ -20,13 +20,13 @@ describe('ForestHttpApi', () => {
   });
 
   test('getUsers should call the right endpoint', async () => {
-    await ForestHttpApi.getUsers(options);
+    await new ForestHttpApi().getUsers(options);
 
     expect(ServerUtils.query).toHaveBeenCalledWith(options, 'get', '/liana/v4/permissions/users');
   });
 
   test('getRenderingPermissions should call the right endpoint', async () => {
-    await ForestHttpApi.getRenderingPermissions(42, options);
+    await new ForestHttpApi().getRenderingPermissions(42, options);
 
     expect(ServerUtils.query).toHaveBeenCalledWith(
       options,

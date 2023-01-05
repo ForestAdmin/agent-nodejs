@@ -2,7 +2,6 @@ import { ChartType } from '../../src/charts/types';
 import ChainedSQLQueryError from '../../src/permissions/errors/chained-sql-query-error';
 import EmptySQLQueryError from '../../src/permissions/errors/empty-sql-query-error';
 import NonSelectSQLQueryError from '../../src/permissions/errors/non-select-sql-query-error';
-import ForestHttpApi from '../../src/permissions/forest-http-api';
 import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
 import isSegmentQueryAllowed from '../../src/permissions/is-segment-query-authorized';
 import RenderingPermissionService from '../../src/permissions/rendering-permission';
@@ -39,8 +38,7 @@ describe('RenderingPermissionService', () => {
   function setup() {
     const userPermission = userPermissionsFactory.mockAllMethods().build();
     const getUserInfoMock = userPermission.getUserInfo as jest.Mock;
-
-    const getRenderingPermissionsMock = ForestHttpApi.getRenderingPermissions as jest.Mock;
+    const getRenderingPermissionsMock = jest.fn();
 
     const options = {
       forestServerUrl: 'https://api.dev',
@@ -49,7 +47,11 @@ describe('RenderingPermissionService', () => {
       permissionsCacheDurationInSeconds: 1000,
       logger: jest.fn(),
     };
-    const renderingPermission = new RenderingPermissionService(options, userPermission);
+    const renderingPermission = new RenderingPermissionService(
+      options,
+      userPermission,
+      getRenderingPermissionsMock,
+    );
 
     const hashServerChartsMock = hashServerCharts as jest.Mock;
     const hashChartRequestMock = hashChartRequest as jest.Mock;

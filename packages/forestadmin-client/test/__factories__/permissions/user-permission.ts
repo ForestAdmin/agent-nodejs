@@ -12,12 +12,15 @@ export class UserPermissionsFactory extends Factory<UserPermissionService> {
 
 const userPermissionsFactory = UserPermissionsFactory.define(
   () =>
-    new UserPermissionService({
-      envSecret: '123',
-      forestServerUrl: 'http://api',
-      permissionsCacheDurationInSeconds: 15 * 60,
-      logger: () => {},
-    }),
+    new UserPermissionService(
+      {
+        envSecret: '123',
+        forestServerUrl: 'http://api',
+        permissionsCacheDurationInSeconds: 15 * 60,
+        logger: () => {},
+      },
+      jest.fn(),
+    ),
 );
 
 export default userPermissionsFactory;

@@ -16,12 +16,15 @@ export class ActionPermissionsFactory extends Factory<ActionPermissionService> {
 
 const actionPermissionsFactory = ActionPermissionsFactory.define(
   () =>
-    new ActionPermissionService({
-      envSecret: '123',
-      forestServerUrl: 'http://api',
-      permissionsCacheDurationInSeconds: 15 * 60,
-      logger: () => {},
-    }),
+    new ActionPermissionService(
+      {
+        envSecret: '123',
+        forestServerUrl: 'http://api',
+        permissionsCacheDurationInSeconds: 15 * 60,
+        logger: () => {},
+      },
+      jest.fn(),
+    ),
 );
 
 export default actionPermissionsFactory;

@@ -1,4 +1,3 @@
-import ForestHttpApi from '../../src/permissions/forest-http-api';
 import UserPermissionService from '../../src/permissions/user-permission';
 
 jest.mock('../../src/permissions/forest-http-api', () => ({
@@ -21,9 +20,8 @@ describe('UserPermission', () => {
       permissionsCacheDurationInSeconds: 15 * 60,
       logger: jest.fn(),
     };
-    const userPermissions = new UserPermissionService(options);
-
-    const getUsersMock = ForestHttpApi.getUsers as jest.Mock;
+    const getUsersMock = jest.fn();
+    const userPermissions = new UserPermissionService(options, getUsersMock);
 
     return { userPermissions, options, getUsersMock };
   }
