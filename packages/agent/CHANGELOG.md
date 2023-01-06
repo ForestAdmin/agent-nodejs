@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.5.5...@forestadmin/agent@1.6.0) (2023-01-06)
+
+
+### Features
+
+* **agent:** provide detail when projections fail to validate ([#594](https://github.com/ForestAdmin/agent-nodejs/issues/594)) ([a5fa9d7](https://github.com/ForestAdmin/agent-nodejs/commit/a5fa9d743b64f80a63bacf2c0c3fc2b91cd29b5a))
+
 ## @forestadmin/agent [1.5.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.5.4...@forestadmin/agent@1.5.5) (2022-12-27)
 
 
