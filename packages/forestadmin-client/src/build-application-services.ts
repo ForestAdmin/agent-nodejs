@@ -17,42 +17,45 @@ import defaultLogger from './utils/default-logger';
 export default function buildApplicationServices(
   forestServerRepository: ForestServerRepository,
   options: ForestAdminClientOptions,
-) {
-  const optionsWithDefaults: ForestAdminClientOptionsWithDefaults = {
+): {
+  optionsWithDefaults: ForestAdminClientOptionsWithDefaults;
+  renderingPermission: RenderingPermissionService;
+  schema: SchemaService;
+  contextVariables: ContextVariablesInstantiator;
+  ipWhitelist: IpWhiteListService;
+  permission: PermissionService;
+  chartHandler: ChartHandler;
+  auth: AuthService;
+} {
+  const optionsWithDefaults = {
     forestServerUrl: 'https://api.forestadmin.com',
     permissionsCacheDurationInSeconds: 15 * 60,
     logger: defaultLogger,
     ...options,
   };
 
-  const actionPermission = new ActionPermissionService(
-    optionsWithDefaults,
-    forestServerRepository.getEnvironmentPermissions,
-  );
-  const userPermission = new UserPermissionService(
-    optionsWithDefaults,
-    forestServerRepository.getUsers,
-  );
+  const { getEnvironmentPermissions, getUsers, getRenderingPermissions } = forestServerRepository;
+
   const renderingPermission = new RenderingPermissionService(
     optionsWithDefaults,
-    userPermission,
-    forestServerRepository.getRenderingPermissions,
+    new UserPermissionService(optionsWithDefaults, getUsers),
+    getRenderingPermissions,
   );
-  const permissionService = new PermissionService(actionPermission, renderingPermission);
-  const contextVariablesInstantiator = new ContextVariablesInstantiator(renderingPermission);
-  const chartHandler = new ChartHandler(contextVariablesInstantiator);
-  const ipWhitelistPermission = new IpWhiteListService(optionsWithDefaults);
-  const schemaService = new SchemaService(optionsWithDefaults);
-  const authService = new AuthService(optionsWithDefaults);
+  const contextVariables = new ContextVariablesInstantiator(renderingPermission);
+
+  const permission = new PermissionService(
+    new ActionPermissionService(optionsWithDefaults, getEnvironmentPermissions),
+    renderingPermission,
+  );
 
   return {
-    optionsWithDefaults,
-    permissionService,
     renderingPermission,
-    contextVariablesInstantiator,
-    chartHandler,
-    ipWhitelistPermission,
-    schemaService,
-    authService,
+    optionsWithDefaults,
+    permission,
+    contextVariables,
+    chartHandler: new ChartHandler(contextVariables),
+    ipWhitelist: new IpWhiteListService(optionsWithDefaults),
+    schema: new SchemaService(optionsWithDefaults),
+    auth: new AuthService(optionsWithDefaults),
   };
 }

@@ -18,7 +18,6 @@ export {
   RawTree,
   RawTreeWithSources,
   ForestServerRepository,
-  HttpOptions,
 } from './types';
 export { IpWhitelistConfiguration } from './ip-whitelist/types';
 
@@ -36,24 +35,24 @@ export default function createForestAdminClient(
 ): ForestAdminClient {
   const {
     optionsWithDefaults,
-    permissionService,
+    permission,
     renderingPermission,
-    contextVariablesInstantiator,
+    contextVariables,
     chartHandler,
-    ipWhitelistPermission,
-    schemaService,
-    authService,
+    ipWhitelist,
+    schema,
+    auth,
   } = buildApplicationServices(new ForestHttpApi(), options);
 
   return new ForestAdminClientWithCache(
     optionsWithDefaults,
-    permissionService,
+    permission,
     renderingPermission,
-    contextVariablesInstantiator,
+    contextVariables,
     chartHandler,
-    ipWhitelistPermission,
-    schemaService,
-    authService,
+    ipWhitelist,
+    schema,
+    auth,
   );
 }
 

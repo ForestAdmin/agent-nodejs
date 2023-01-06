@@ -1,6 +1,8 @@
-import { ForestServerRepository, HttpOptions } from '../types';
+import { ForestAdminClientOptionsWithDefaults, ForestServerRepository } from '../types';
 import ServerUtils from '../utils/server';
 import { EnvironmentPermissionsV4, RenderingPermissionV4, UserPermissionV4 } from './types';
+
+type HttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'envSecret' | 'forestServerUrl'>;
 
 export default class ForestHttpApi implements ForestServerRepository {
   async getEnvironmentPermissions(options: HttpOptions): Promise<EnvironmentPermissionsV4> {

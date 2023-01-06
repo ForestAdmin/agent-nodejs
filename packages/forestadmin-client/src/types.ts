@@ -141,16 +141,8 @@ export interface ContextVariablesInstantiatorInterface {
   }): Promise<ContextVariables>;
 }
 
-export type HttpOptions = Pick<
-  ForestAdminClientOptionsWithDefaults,
-  'envSecret' | 'forestServerUrl'
->;
-
 export interface ForestServerRepository {
-  getEnvironmentPermissions: (options: HttpOptions) => Promise<EnvironmentPermissionsV4>;
-  getUsers: (options: HttpOptions) => Promise<UserPermissionV4[]>;
-  getRenderingPermissions: (
-    renderingId: number,
-    options: HttpOptions,
-  ) => Promise<RenderingPermissionV4>;
+  getEnvironmentPermissions: (...args) => Promise<EnvironmentPermissionsV4>;
+  getUsers: (...args) => Promise<UserPermissionV4[]>;
+  getRenderingPermissions: (renderingId: number, ...args) => Promise<RenderingPermissionV4>;
 }
