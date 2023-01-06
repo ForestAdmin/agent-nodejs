@@ -59,7 +59,7 @@ export default class QueryStringParser {
 
       return new Projection(...explicitRequest);
     } catch (e) {
-      throw new ValidationError(`Invalid projection`);
+      throw new ValidationError(`Invalid projection: ${e.message}}`);
     }
   }
 
