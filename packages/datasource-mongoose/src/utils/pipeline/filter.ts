@@ -181,29 +181,9 @@ export default class FilterGenerator {
   }
 
   private static formatStringFieldName(field: string): string {
-    const parentPath = this.getParentPath(field);
-    const fieldName = this.getFieldName(field);
+    const parts = field.split('.');
+    parts.push(`string_${parts.pop()}`);
 
-    if (parentPath === field) {
-      return `string_${fieldName}`;
-    }
-
-    return `${parentPath}.string_${fieldName}`;
-  }
-
-  private static getParentPath(path: string): string {
-    if (!path.includes('.')) {
-      return path;
-    }
-
-    return path.split('.').slice(0, -1).join('.');
-  }
-
-  private static getFieldName(path: string): string {
-    if (!path.includes('.')) {
-      return path;
-    }
-
-    return path.split('.').slice(-1).join('.');
+    return parts.join('.');
   }
 }
