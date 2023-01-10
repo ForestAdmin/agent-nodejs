@@ -4,8 +4,8 @@ import { Filter, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Connection, Schema, Types } from 'mongoose';
 
-import MongooseDatasource from '../../src/datasource';
-import { setupReview, setupWith2ManyToManyRelations } from '../_helpers';
+import MongooseDatasource from '../../../src/datasource';
+import { setupReview } from '../_helpers';
 
 describe('MongooseCollection > update', () => {
   let connection: Connection;
@@ -16,7 +16,7 @@ describe('MongooseCollection > update', () => {
 
   it('should update a record that was just created', async () => {
     // given
-    connection = await setupReview('collection_update');
+    connection = await setupReview('collection_review_update');
     const dataSource = new MongooseDatasource(connection);
     const review = dataSource.getCollection('review');
     const record = { _id: new Types.ObjectId(), message: 'old message' };
@@ -48,7 +48,7 @@ describe('MongooseCollection > update', () => {
     /** **************************************************** */
 
     // Setup
-    connection = await setupReview('collection_update');
+    connection = await setupReview('collection_review_update');
     const options = { asModels: { review: ['nestedField'] } };
     const dataSource = new MongooseDatasource(connection, options);
 
@@ -76,57 +76,9 @@ describe('MongooseCollection > update', () => {
     });
   });
 
-  it('should update a value in array of objectids (used for a many to many relation)', async () => {
-    // given
-    connection = await setupWith2ManyToManyRelations('collection_update');
-    const dataSource = new MongooseDatasource(connection);
-    const store = dataSource.getCollection('store');
-    const owner = dataSource.getCollection('owner');
-    const ownerStore = dataSource.getCollection('owner_stores');
-
-    const storeRecordA = { _id: new Types.ObjectId().toString(), name: 'A' };
-    const storeRecordB = { _id: new Types.ObjectId().toString(), name: 'B' };
-    await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
-    const ownerRecordA = { _id: new Types.ObjectId().toString(), stores: [storeRecordA._id] };
-    const ownerRecordB = { _id: new Types.ObjectId().toString() };
-    await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
-
-    // when
-    await ownerStore.update(
-      factories.caller.build(),
-      new Filter({
-        conditionTree: factories.conditionTreeBranch.build({
-          aggregator: 'And',
-          conditions: [
-            factories.conditionTreeLeaf.build({
-              value: ownerRecordA._id,
-              operator: 'Equal',
-              field: 'parentId',
-            }),
-            factories.conditionTreeLeaf.build({
-              value: storeRecordA._id,
-              operator: 'Equal',
-              field: 'content',
-            }),
-          ],
-        }),
-      }),
-      { parentId: ownerRecordA._id, content: storeRecordB._id },
-    );
-
-    // then
-
-    const expectedOwnerStore = await ownerStore.list(
-      factories.caller.build(),
-      factories.filter.build(),
-      new Projection('parentId', 'content'),
-    );
-    expect(expectedOwnerStore).toEqual([{ parentId: ownerRecordA._id, content: storeRecordB._id }]);
-  });
-
   describe('when update only one record', () => {
     it('should call updateOne hook', async () => {
-      connection = await setupReview('collection_update');
+      connection = await setupReview('collection_review_update');
 
       const modelSchema = new Schema({
         prop: String,
@@ -148,7 +100,7 @@ describe('MongooseCollection > update', () => {
 
     describe('on a flattened model', () => {
       it('should call updateOne hook of the parent model', async () => {
-        connection = await setupReview('collection_update');
+        connection = await setupReview('collection_review_update');
 
         const modelSchema = new Schema({
           nested: {
@@ -177,7 +129,7 @@ describe('MongooseCollection > update', () => {
 
   describe('when update more than one record', () => {
     it('should call updateMany hook', async () => {
-      connection = await setupReview('collection_update');
+      connection = await setupReview('collection_review_update');
 
       const modelSchema = new Schema({
         prop: String,
@@ -209,7 +161,7 @@ describe('MongooseCollection > update', () => {
 
     describe('on a flattened model', () => {
       it('should call updateMany hook of the parent model', async () => {
-        connection = await setupReview('collection_update');
+        connection = await setupReview('collection_review_update');
 
         const modelSchema = new Schema({
           nested: {
