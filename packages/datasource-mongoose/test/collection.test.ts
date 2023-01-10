@@ -3,8 +3,8 @@
 
 import { Connection, Schema, model } from 'mongoose';
 
-import MongooseCollection from '../../src/collection';
-import MongooseDatasource from '../../src/datasource';
+import MongooseCollection from '../src/collection';
+import MongooseDatasource from '../src/datasource';
 
 describe('MongooseCollection', () => {
   let connection: Connection;
