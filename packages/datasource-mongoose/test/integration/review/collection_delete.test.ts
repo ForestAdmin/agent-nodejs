@@ -4,8 +4,8 @@ import { Caller, Filter, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Connection, Schema, Types } from 'mongoose';
 
-import MongooseDatasource from '../../src/datasource';
-import { setupReview, setupWith2ManyToManyRelations } from '../_helpers';
+import MongooseDatasource from '../../../src/datasource';
+import { setupReview } from '../../_helpers';
 
 describe('MongooseCollection', () => {
   let connection: Connection;
@@ -16,7 +16,7 @@ describe('MongooseCollection', () => {
 
   it('Delete a record', async () => {
     // given
-    connection = await setupReview('collection_delete');
+    connection = await setupReview('collection_review_delete');
     const dataSource = new MongooseDatasource(connection);
     const review = dataSource.getCollection('review');
     const record = { _id: new Types.ObjectId(), message: 'old message' };
@@ -40,7 +40,7 @@ describe('MongooseCollection', () => {
 
   it('delete a subrecord', async () => {
     // Create collection
-    connection = await setupReview('collection_delete');
+    connection = await setupReview('collection_review_delete');
     connection.model<unknown>(
       'books',
       new Schema({ author: { firstname: String, lastname: String } }),
@@ -62,53 +62,5 @@ describe('MongooseCollection', () => {
       .findById(oldRecord._id);
     expect(newRecord?.author?.firstname).toBe(undefined);
     expect(newRecord?.author?.lastname).toBe(undefined);
-  });
-
-  it('delete an element within an array', async () => {
-    // given
-    connection = await setupWith2ManyToManyRelations('collection_delete');
-    const dataSource = new MongooseDatasource(connection);
-    const store = dataSource.getCollection('store');
-    const owner = dataSource.getCollection('owner');
-    const ownerStore = dataSource.getCollection('owner_stores');
-
-    const storeRecordA = { _id: new Types.ObjectId().toString(), name: 'A' };
-    const storeRecordB = { _id: new Types.ObjectId().toString(), name: 'B' };
-    await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
-
-    const ownerRecordA = { _id: new Types.ObjectId().toString(), stores: [storeRecordA._id] };
-    const ownerRecordB = { _id: new Types.ObjectId().toString() };
-    await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
-
-    // when
-    await ownerStore.delete(
-      factories.caller.build(),
-      new Filter({
-        conditionTree: factories.conditionTreeBranch.build({
-          aggregator: 'And',
-          conditions: [
-            factories.conditionTreeLeaf.build({
-              value: ownerRecordA._id,
-              operator: 'Equal',
-              field: 'parentId',
-            }),
-            factories.conditionTreeLeaf.build({
-              value: storeRecordA._id,
-              operator: 'Equal',
-              field: 'content',
-            }),
-          ],
-        }),
-      }),
-    );
-
-    // then
-    const expectedOwnerStore = await ownerStore.list(
-      factories.caller.build(),
-      factories.filter.build(),
-      new Projection(),
-    );
-
-    expect(expectedOwnerStore).toEqual([]);
   });
 });
