@@ -12,7 +12,7 @@ import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factorie
 import { Connection, Types } from 'mongoose';
 
 import MongooseDatasource from '../../../src/datasource';
-import { setupReview } from '../../_helpers';
+import { setupReview } from '../_helpers';
 
 describe('MongooseCollection', () => {
   let connection: Connection;

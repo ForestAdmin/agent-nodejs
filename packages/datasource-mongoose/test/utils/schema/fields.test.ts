@@ -1,9 +1,13 @@
-import { ColumnSchema, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import { Schema } from 'mongoose';
+import {
+  ColumnSchema,
+  Operator,
+  PrimitiveTypes,
+  RecordData,
+} from '@forestadmin/datasource-toolkit';
+import { Model, Schema, deleteModel, model } from 'mongoose';
 
 import FieldsGenerator from '../../../src/utils/schema/fields';
 import FilterOperatorsGenerator from '../../../src/utils/schema/filter-operators';
-import { buildModel } from '../../_helpers';
 
 const defaultValues = {
   defaultValue: undefined,
@@ -12,6 +16,16 @@ const defaultValues = {
   isReadOnly: false,
   validation: null,
 };
+
+function buildModel(schema: Schema, modelName = 'aModel'): Model<RecordData> {
+  try {
+    deleteModel(modelName);
+  } catch {
+    // Ignore error
+  }
+
+  return model(modelName, schema);
+}
 
 describe('SchemaFieldsGenerator', () => {
   describe('buildFieldsSchema', () => {

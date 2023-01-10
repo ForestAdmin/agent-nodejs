@@ -1,15 +1,4 @@
-/* eslint-disable import/prefer-default-export */
-import { RecordData } from '@forestadmin/datasource-toolkit';
-import { Model, Schema, Types, createConnection, deleteModel, model } from 'mongoose';
-
-export const buildModel = (schema: Schema, modelName = 'aModel'): Model<RecordData> => {
-  try {
-    deleteModel(modelName);
-    // eslint-disable-next-line no-empty
-  } catch {}
-
-  return model(modelName, schema);
-};
+import { Schema, Types, createConnection } from 'mongoose';
 
 export const setupReview = async (dbName = 'test') => {
   const connectionString = 'mongodb://root:password@localhost:27019';
