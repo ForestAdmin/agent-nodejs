@@ -1,4 +1,7 @@
-import { MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE } from './rules';
+import {
+  MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE,
+  MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE_CONDITION_TREE,
+} from './rules';
 import TypeGetter from './type-getter';
 import { ValidationTypes, ValidationTypesArray } from './types';
 import { ValidationError } from '../errors';
@@ -24,14 +27,7 @@ export default class FieldValidator {
       }
 
       if (values !== undefined) {
-        values.forEach(value =>
-          FieldValidator.validateValue(
-            field,
-            schema,
-            value,
-            MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE[schema.columnType as PrimitiveTypes],
-          ),
-        );
+        values.forEach(value => FieldValidator.validateValueForField(field, schema, value));
       }
     } else {
       const prefix = field.substring(0, dotIndex);
@@ -54,7 +50,29 @@ export default class FieldValidator {
     }
   }
 
-  static validateValue(
+  static validateValueForId(field: string, schema: ColumnSchema, value: unknown): void {
+    FieldValidator.validateValue(field, schema, value, [schema.columnType as PrimitiveTypes]);
+  }
+
+  static validateValueForField(field: string, schema: ColumnSchema, value: unknown): void {
+    FieldValidator.validateValue(
+      field,
+      schema,
+      value,
+      MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE[schema.columnType as PrimitiveTypes],
+    );
+  }
+
+  static validateValueForConditionTree(field: string, schema: ColumnSchema, value: unknown): void {
+    FieldValidator.validateValue(
+      field,
+      schema,
+      value,
+      MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE_CONDITION_TREE[schema.columnType as PrimitiveTypes],
+    );
+  }
+
+  private static validateValue(
     field: string,
     schema: ColumnSchema,
     value: unknown,

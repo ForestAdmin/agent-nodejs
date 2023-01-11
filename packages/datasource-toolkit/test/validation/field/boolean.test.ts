@@ -4,7 +4,7 @@ import * as factories from '../../__factories__';
 describe('on field of type boolean', () => {
   test('valid value type should not throw error', () => {
     expect(() =>
-      FieldValidator.validateValue(
+      FieldValidator.validateValueForField(
         'boolean',
         factories.columnSchema.build({
           columnType: 'Boolean',
@@ -16,7 +16,7 @@ describe('on field of type boolean', () => {
 
   test('invalid value type should throw error', () => {
     expect(() =>
-      FieldValidator.validateValue(
+      FieldValidator.validateValueForField(
         'boolean',
         factories.columnSchema.build({
           columnType: 'Boolean',

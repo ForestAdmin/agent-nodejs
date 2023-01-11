@@ -4,7 +4,7 @@ import * as factories from '../../__factories__';
 describe('on field of type point', () => {
   test('valid value type should not throw error', () => {
     expect(() =>
-      FieldValidator.validateValue(
+      FieldValidator.validateValueForField(
         'point',
         factories.columnSchema.build({
           columnType: 'Point',
@@ -16,7 +16,7 @@ describe('on field of type point', () => {
 
   test('invalid value type should throw error', () => {
     expect(() =>
-      FieldValidator.validateValue(
+      FieldValidator.validateValueForField(
         'point',
         factories.columnSchema.build({
           columnType: 'Point',
