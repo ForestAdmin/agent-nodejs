@@ -1,5 +1,9 @@
 import FieldValidator from './field';
-import { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE, MAP_ALLOWED_TYPES_FOR_OPERATOR } from './rules';
+import {
+  MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE,
+  MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE_CONDITION_TREE,
+  MAP_ALLOWED_TYPES_FOR_OPERATOR,
+} from './rules';
 import TypeGetter from './type-getter';
 import { ValidationError } from '../errors';
 import { Collection } from '../interfaces/collection';
@@ -121,7 +125,12 @@ export default class ConditionTreeValidator {
       operator !== 'PreviousXDays' &&
       operator !== 'PreviousXDaysToDate'
     ) {
-      FieldValidator.validateValue(field, columnSchema, value);
+      FieldValidator.validateValue(
+        field,
+        columnSchema,
+        value,
+        MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE_CONDITION_TREE[columnSchema.columnType as PrimitiveTypes],
+      );
     }
   }
 }
