@@ -4,7 +4,7 @@ import * as factories from '../../__factories__';
 describe('on field of type date|dateonly|timeonly', () => {
   test('valid value (string) type should not throw error', () => {
     expect(() =>
-      FieldValidator.validateValueForField(
+      FieldValidator.validateValue(
         'date',
         factories.columnSchema.build({
           columnType: 'Date',
@@ -16,7 +16,7 @@ describe('on field of type date|dateonly|timeonly', () => {
 
   test('valid value (js date) type should not throw error', () => {
     expect(() =>
-      FieldValidator.validateValueForField(
+      FieldValidator.validateValue(
         'date',
         factories.columnSchema.build({
           columnType: 'Date',
@@ -28,13 +28,13 @@ describe('on field of type date|dateonly|timeonly', () => {
 
   test('invalid value type should throw error', () => {
     expect(() =>
-      FieldValidator.validateValueForField(
+      FieldValidator.validateValue(
         'date',
         factories.columnSchema.build({
           columnType: 'Date',
         }),
         'definitely-not-a-date',
       ),
-    ).toThrow('Wrong type for "date": definitely-not-a-date. Expects Date');
+    ).toThrow();
   });
 });

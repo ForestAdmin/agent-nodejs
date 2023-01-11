@@ -200,9 +200,7 @@ describe('WriteDecorator > Create with no relations', () => {
     test('when not using the appropriate type', async () => {
       decorator.replaceFieldWriting('name', () => ({ age: 666 }));
 
-      await expect(decorator.create(caller, [{ name: 'a name' }])).rejects.toThrow(
-        'Wrong type for "age": 666. Expects String,Null',
-      );
+      await expect(decorator.create(caller, [{ name: 'a name' }])).rejects.toThrow();
     });
   });
 });

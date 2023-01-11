@@ -4,7 +4,7 @@ import * as factories from '../../__factories__';
 describe('on field of type enum', () => {
   test('valid value type should not throw error', () => {
     expect(() =>
-      FieldValidator.validateValueForField(
+      FieldValidator.validateValue(
         'enum',
         factories.columnSchema.build({
           columnType: 'Enum',
@@ -17,7 +17,7 @@ describe('on field of type enum', () => {
 
   test('invalid value type should throw error', () => {
     expect(() =>
-      FieldValidator.validateValueForField(
+      FieldValidator.validateValue(
         'enum',
         factories.columnSchema.build({
           columnType: 'Enum',
@@ -25,6 +25,6 @@ describe('on field of type enum', () => {
         }),
         'd',
       ),
-    ).toThrow('The given enum value(s) [d] is not listed in [a,b,c]');
+    ).toThrow('The given enum value(s) d is not listed in [a,b,c]');
   });
 });

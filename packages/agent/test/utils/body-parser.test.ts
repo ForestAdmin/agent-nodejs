@@ -111,7 +111,7 @@ describe('BodyParser', () => {
               },
             },
           },
-          'Wrong type for "id": string. Expects Uuid',
+          'The given value has a wrong type for "id": string.\n Expects "Uuid"',
         ],
       ])('should throw an error when %s', async (_, body, errorMessage) => {
         const context = createMockContext({ requestBody: body });

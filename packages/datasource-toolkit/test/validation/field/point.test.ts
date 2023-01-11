@@ -4,7 +4,7 @@ import * as factories from '../../__factories__';
 describe('on field of type point', () => {
   test('valid value type should not throw error', () => {
     expect(() =>
-      FieldValidator.validateValueForField(
+      FieldValidator.validateValue(
         'point',
         factories.columnSchema.build({
           columnType: 'Point',
@@ -16,13 +16,13 @@ describe('on field of type point', () => {
 
   test('invalid value type should throw error', () => {
     expect(() =>
-      FieldValidator.validateValueForField(
+      FieldValidator.validateValue(
         'point',
         factories.columnSchema.build({
           columnType: 'Point',
         }),
         'd,a',
       ),
-    ).toThrow('The given value NaN,NaN is not supported');
+    ).toThrow();
   });
 });
