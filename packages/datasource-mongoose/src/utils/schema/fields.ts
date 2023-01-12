@@ -6,27 +6,26 @@ import {
   ColumnType,
   ManyToOneSchema,
   PrimitiveTypes,
-  RecordData,
 } from '@forestadmin/datasource-toolkit';
 import { Model, SchemaType } from 'mongoose';
 
 import FilterOperatorsGenerator from './filter-operators';
 import MongooseSchema, { SchemaBranch, SchemaNode } from '../../mongoose/schema';
+import { Stack } from '../../types';
 import { escape } from '../helpers';
 
 /** Generate forest admin schema from mongoose schema */
 export default class FieldsGenerator {
   static buildFieldsSchema(
-    model: Model<RecordData>,
-    prefix: string = null,
-    skips: string[] = [],
+    model: Model<unknown>,
+    stack: Stack = [{ prefix: null, asFields: [], asModels: [] }],
   ): CollectionSchema['fields'] {
     const ourSchema: CollectionSchema['fields'] = {};
-    const childSchema = MongooseSchema.fromModel(model).getSubSchema(prefix, true);
+    const childSchema = MongooseSchema.fromModel(model).applyStack(stack);
 
     // Add columns and many to one relations
     for (const [name, field] of Object.entries(childSchema.fields)) {
-      if (name !== 'parent' && !skips.includes(name)) {
+      if (name !== 'parent') {
         ourSchema[name] = this.buildColumnSchema(field);
         if (field instanceof SchemaType && field.options.ref)
           ourSchema[`${name}__manyToOne`] = this.buildManyToOne(field.options.ref, name);
@@ -34,10 +33,8 @@ export default class FieldsGenerator {
     }
 
     // When a prefix is used add pk + fk + many to one relation to the parent.
-    if (prefix?.length) {
-      const parentPrefix = prefix.includes('.')
-        ? prefix.substring(0, prefix.lastIndexOf('.'))
-        : null;
+    if (stack.length > 1) {
+      const parentPrefix = stack[stack.length - 2].prefix;
 
       ourSchema._id = this.buildVirtualPrimaryKey();
       ourSchema.parentId = {
@@ -47,7 +44,7 @@ export default class FieldsGenerator {
       };
 
       ourSchema.parent = this.buildManyToOne(
-        escape(parentPrefix ? `${model.modelName}.${parentPrefix}` : model.modelName),
+        escape(parentPrefix !== null ? `${model.modelName}.${parentPrefix}` : model.modelName),
         'parentId',
       );
     }

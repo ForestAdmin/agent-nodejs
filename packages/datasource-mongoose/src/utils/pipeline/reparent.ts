@@ -1,6 +1,6 @@
-import { Model, PipelineStage, SchemaType } from 'mongoose';
+import { Model, PipelineStage } from 'mongoose';
 
-import MongooseSchema, { SchemaNode } from '../../mongoose/schema';
+import MongooseSchema from '../../mongoose/schema';
 
 /**
  * Generate pipeline to query submodels.
@@ -9,26 +9,28 @@ import MongooseSchema, { SchemaNode } from '../../mongoose/schema';
  * without loosing the parent (which may be needed later on).
  */
 export default class ReparentGenerator {
-  static reparent(model: Model<unknown>, prefix: string | null): PipelineStage[] {
-    if (!prefix?.length) return [];
+  static reparent(
+    model: Model<unknown>,
+    stack: { prefix: string | null; asFields: string[]; asModels: string[] }[],
+  ): PipelineStage[] {
+    const schema = MongooseSchema.fromModel(model);
 
-    // Take only the part of the records we are interested in
-    const pipeline = [];
-    let schema: SchemaNode = MongooseSchema.fromModel(model).fields;
+    return stack.flatMap((step, index) => {
+      if (index === 0) return this.unflatten(step.asFields);
 
-    for (const part of prefix.split('.')) {
-      pipeline.push(
-        ...(schema[part]['[]']
-          ? this.reparentArray(part, schema[part]['[]'] instanceof SchemaType)
-          : this.reparentObject(part, schema[part] instanceof SchemaType)),
-      );
+      const localSchema = schema.getSubSchema(step.prefix);
+      const relativePrefix =
+        stack[index - 1].prefix !== null
+          ? step.prefix.substring(stack[index - 1].prefix.length + 1)
+          : step.prefix;
 
-      schema = schema[part];
-      if (schema['[]']) schema = schema['[]'];
-    }
-
-    // If we end up on a field, create a virtual record
-    return pipeline;
+      return [
+        ...(localSchema.isArray
+          ? this.reparentArray(relativePrefix, localSchema.isLeaf)
+          : this.reparentObject(relativePrefix, localSchema.isLeaf)),
+        ...this.unflatten(step.asFields),
+      ];
+    });
   }
 
   private static reparentArray(prefix: string, inDoc: boolean): PipelineStage[] {
@@ -68,5 +70,14 @@ export default class ReparentGenerator {
         },
       },
     ];
+  }
+
+  static unflatten(asFields: string[]): PipelineStage[] {
+    return asFields.length
+      ? [
+          { $addFields: Object.fromEntries(asFields.map(f => [f.replace(/\./g, '@@@'), `$${f}`])) },
+          { $project: Object.fromEntries(asFields.map(f => [f, 0])) },
+        ]
+      : [];
   }
 }

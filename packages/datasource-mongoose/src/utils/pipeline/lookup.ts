@@ -2,14 +2,15 @@ import { Projection } from '@forestadmin/datasource-toolkit';
 import { Model, PipelineStage } from 'mongoose';
 
 import MongooseSchema, { SchemaNode } from '../../mongoose/schema';
+import { Stack } from '../../types';
 
 /**
  * Transform a forest admin projection into a mongo pipeline that performs the lookups
  * and transformations to target them
  */
 export default class LookupGenerator {
-  static lookup(model: Model<unknown>, prefix: string, projection: Projection): PipelineStage[] {
-    const childSchema = MongooseSchema.fromModel(model).getSubSchema(prefix, true).fields;
+  static lookup(model: Model<unknown>, stack: Stack, projection: Projection): PipelineStage[] {
+    const childSchema = MongooseSchema.fromModel(model).applyStack(stack, true).fields;
 
     return this.lookupProjection(model.db.models, null, childSchema, projection);
   }

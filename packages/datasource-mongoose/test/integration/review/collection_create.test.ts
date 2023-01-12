@@ -5,7 +5,7 @@ import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factorie
 import { Connection } from 'mongoose';
 
 import MongooseDatasource from '../../../src/datasource';
-import { setupReview } from '../_helpers';
+import { setupReview } from '../_build-models';
 
 const caller = factories.caller.build();
 
@@ -45,9 +45,9 @@ describe('MongooseCollection', () => {
     ]);
 
     expect(records).toEqual([
-      { ...expectedRecord, _id: expect.any(Object) },
-      { ...expectedRecord, _id: expect.any(Object) },
-      { ...expectedRecord, _id: expect.any(Object) },
+      { ...expectedRecord, _id: expect.any(String) },
+      { ...expectedRecord, _id: expect.any(String) },
+      { ...expectedRecord, _id: expect.any(String) },
     ]);
     const persistedRecord = await connection.models.review.find();
     expect(persistedRecord).toHaveLength(3);
@@ -56,9 +56,9 @@ describe('MongooseCollection', () => {
   it('should throw on nested collection if parentId is missing', async () => {
     connection = await setupReview('collection_review_create');
 
-    const dataSource = new MongooseDatasource(connection, { asModels: { review: ['message'] } });
+    const dataSource = new MongooseDatasource(connection, { asModels: { review: ['editorIds'] } });
     const reviews = dataSource.getCollection('review');
-    const reviewMessages = dataSource.getCollection('review_message');
+    const reviewEditors = dataSource.getCollection('review_editorIds');
 
     await reviews.create(caller, [
       {
@@ -66,11 +66,10 @@ describe('MongooseCollection', () => {
         title: 'a title',
         tags: ['A'],
         modificationDates: [],
-        editorIds: [],
       },
     ]);
 
-    const handler = () => reviewMessages.create(caller, [{ content: 'something' }]);
+    const handler = () => reviewEditors.create(caller, [{ content: 'something' }]);
     await expect(handler).rejects.toThrow('Trying to create a subrecord with no parent');
   });
 
@@ -86,9 +85,6 @@ describe('MongooseCollection', () => {
       };
 
       const records = await review.create(factories.caller.build(), [data, data, data]);
-
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       expect(records[0].nestedField.nested).toEqual([{ level: 10 }]);
 
       const persistedRecord = await connection.models.review.find();
@@ -98,7 +94,7 @@ describe('MongooseCollection', () => {
     describe('when the nested record is a JSON', () => {
       it('returns the list of the created nested records', async () => {
         connection = await setupReview('collection_review_create');
-        const dataSource = new MongooseDatasource(connection);
+        const dataSource = new MongooseDatasource(connection, { flattenMode: 'none' });
         const review = dataSource.getCollection('review');
         const data = {
           message: 'a message',

@@ -15,6 +15,7 @@ import {
 import { Error, Model, PipelineStage } from 'mongoose';
 
 import MongooseSchema from './mongoose/schema';
+import { Stack } from './types';
 import {
   buildSubdocumentPatch,
   compareIds,
@@ -22,6 +23,7 @@ import {
   groupIdsByPath,
   replaceMongoTypes,
   splitId,
+  unflattenRecord,
 } from './utils/helpers';
 import FilterGenerator from './utils/pipeline/filter';
 import GroupGenerator from './utils/pipeline/group';
@@ -33,22 +35,18 @@ import FieldsGenerator from './utils/schema/fields';
 
 export default class MongooseCollection extends BaseCollection {
   model: Model<RecordData>;
-  prefix: string;
-  ignoredFields: string[];
+  stack: Stack;
 
-  constructor(
-    dataSource: DataSource,
-    model: Model<RecordData>,
-    prefix: string = null,
-    ignoredFields: string[] = [],
-  ) {
-    super(prefix ? escape(`${model.modelName}.${prefix}`) : model.modelName, dataSource);
+  constructor(dataSource: DataSource, model: Model<RecordData>, stack: Stack) {
+    const { prefix } = stack[stack.length - 1];
+    const name = prefix ? escape(`${model.modelName}.${prefix}`) : model.modelName;
+
+    super(name, dataSource);
     this.model = model;
-    this.prefix = prefix;
-    this.ignoredFields = ignoredFields;
+    this.stack = stack;
 
     this.enableCount();
-    this.addFields(FieldsGenerator.buildFieldsSchema(model, prefix, ignoredFields));
+    this.addFields(FieldsGenerator.buildFieldsSchema(model, stack));
   }
 
   async list(
@@ -98,18 +96,33 @@ export default class MongooseCollection extends BaseCollection {
     return this.handleValidationError(() => this._delete(caller, filter));
   }
 
-  private async _create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
-    // If there is no prefix, we can delegate the work to mongoose directly.
-    if (!this.prefix) {
+  private async _create(caller: Caller, flatData: RecordData[]): Promise<RecordData[]> {
+    const { asFields } = this.stack[this.stack.length - 1];
+    const data = flatData.map(fd => unflattenRecord(fd, asFields));
+
+    // For root models, we can simply insert the records.
+    if (this.stack.length < 2) {
       const { insertedIds } = await this.model.insertMany(data, { rawResult: true });
 
-      return data.map((record, index) => ({ _id: insertedIds[index], ...record }));
+      return flatData.map((record, index) => ({
+        _id: replaceMongoTypes(insertedIds[index]),
+        ...record,
+      }));
     }
 
+    // Only array fields can create subdocuments (the others should use update)
+    const schema = MongooseSchema.fromModel(this.model).applyStack(this.stack);
+    if (!schema.isArray)
+      throw new ValidationError('Trying to create subrecords on a non-array field');
+
     // Transform list of subrecords to a list of modifications that we'll apply to the root record.
-    const fieldName = this.prefix.substring(this.prefix.lastIndexOf('.') + 1);
-    const schema = MongooseSchema.fromModel(this.model).getSubSchema(this.prefix);
-    const updates: Map<unknown, { path: string; records: unknown[] }> = new Map();
+    const lastStackStep = this.stack[this.stack.length - 1];
+    const fieldName =
+      this.stack.length > 2
+        ? lastStackStep.prefix.substring(this.stack[this.stack.length - 2].prefix.length + 1)
+        : lastStackStep.prefix;
+
+    const updates: Record<string, { rootId: unknown; path: string; records: unknown[] }> = {};
     const results = [];
 
     for (const record of data) {
@@ -117,27 +130,23 @@ export default class MongooseCollection extends BaseCollection {
       if (!parentId) throw new ValidationError('Trying to create a subrecord with no parent');
 
       const [rootId, path] = splitId(`${parentId}.${fieldName}`);
-      if (!updates.has(rootId)) updates.set(rootId, { path, records: [] });
+      const rootIdString = String(rootId);
+      if (!updates[rootIdString]) updates[rootIdString] = { rootId, path, records: [] };
 
       // unwrap 'content' on leafs
-      updates.get(rootId).records.push(schema.isLeaf ? rest.content : rest);
+      updates[rootIdString].records.push(schema.isLeaf ? rest.content : rest);
 
       results.push({
-        _id: schema.isArray // arrays have indexes in their ids
-          ? `${rootId}.${path}.${updates.get(rootId).records.length - 1}`
-          : `${rootId}.${path}`,
+        _id: `${rootId}.${path}.${updates[rootIdString].records.length - 1}`,
         ...record,
       });
     }
 
     // Apply the modifications to the root document.
-    const promises = [...updates.entries()].map(async ([rootId, { path, records }]) =>
+    const promises = Object.values(updates).map(({ rootId, path, records }) =>
       this.model.updateOne(
         { _id: rootId },
-        schema.isArray
-          ? { $push: { [path]: { $each: records, position: 0 } } }
-          : { $set: { [path]: records[0] } },
-        { rawResult: true },
+        { $push: { [path]: { $position: 0, $each: records } } },
       ),
     );
 
@@ -146,20 +155,25 @@ export default class MongooseCollection extends BaseCollection {
     return results;
   }
 
-  private async _update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+  private async _update(caller: Caller, filter: Filter, flatPatch: RecordData): Promise<void> {
+    const { asFields } = this.stack[this.stack.length - 1];
+    const patch = unflattenRecord(flatPatch, asFields, true);
+
     // Fetch the ids of the documents OR subdocuments that will be updated.
     // We need to do that regardless of `this.prefix` because the filter may contain conditions on
     // relationships.
     const records = await this.list(caller, filter, new Projection('_id'));
     const ids = records.map(record => record._id);
 
-    if (!this.prefix) {
+    if (this.stack.length < 2) {
       // We are updating a real document, we can delegate the work to mongoose directly.
-      if (ids.length > 1) {
-        await this.model.updateMany({ _id: ids }, patch, { rawResult: true });
-      } else {
-        await this.model.updateOne({ _id: ids }, patch, { rawResult: true });
-      }
+      await (ids.length > 1
+        ? this.model.updateMany({ _id: ids }, patch, { rawResult: true })
+        : this.model.updateOne({ _id: ids }, patch, { rawResult: true }));
+    } else if (patch.parentId && ids.some(id => !id.startsWith(patch.parentId))) {
+      // When we update subdocuments, we need to make sure that the new parent is the same as the
+      // old one: reparenting is not supported.
+      throw new ValidationError(`'${this.name}' is virtual: records cannot be reparented.`);
     } else {
       // We are updating a subdocument (this.prefix is set).
 
@@ -172,26 +186,23 @@ export default class MongooseCollection extends BaseCollection {
 
       // Also note, that when we are using a single field as a model, an extra level of nesting is
       // added (this is common when using the flattener to create many to many relationships)
-      const { isLeaf } = MongooseSchema.fromModel(this.model).getSubSchema(this.prefix);
+      const { isLeaf } = MongooseSchema.fromModel(this.model).applyStack(this.stack);
 
       // `idsByPath` contains one entry if using the flattener in object-mode, but potentially many
       // if using the flattener in array-mode.
       const idsByPath = groupIdsByPath(ids);
 
       // Perform the updates.
-      const promises = Object.entries(idsByPath).map(async ([path, rootIds]) => {
+      const promises = Object.entries(idsByPath).map(([path, rootIds]) => {
         // When using object-mode flattener, path == this.prefix.
         // When using array-mode flattener, path == this.prefix + '.0' (or '.1', etc).
         // (Both can be used at the same time as this is a recursive process).
         const subdocPatch = buildSubdocumentPatch(path, patch, isLeaf);
+        if (!Object.keys(subdocPatch).length) return null;
 
-        if (Object.keys(subdocPatch).length) {
-          if (ids.length > 1 || rootIds.length > 1) {
-            await this.model.updateMany({ _id: rootIds }, subdocPatch, { rawResult: true });
-          } else {
-            await this.model.updateOne({ _id: rootIds }, subdocPatch, { rawResult: true });
-          }
-        }
+        return ids.length > 1
+          ? this.model.updateMany({ _id: rootIds }, subdocPatch, { rawResult: true })
+          : this.model.updateOne({ _id: rootIds }, subdocPatch, { rawResult: true });
       });
 
       await Promise.all(promises);
@@ -202,13 +213,13 @@ export default class MongooseCollection extends BaseCollection {
     const records = await this.list(caller, filter, new Projection('_id'));
     const ids = records.map(record => record._id);
 
-    if (!this.prefix) {
+    if (this.stack.length < 2) {
       await this.model.deleteMany({ _id: ids }, { rawResult: true });
 
       return;
     }
 
-    const schema = MongooseSchema.fromModel(this.model).getSubSchema(this.prefix);
+    const schema = MongooseSchema.fromModel(this.model).applyStack(this.stack);
     const idsByPath = groupIdsByPath(ids);
 
     if (schema.isArray) {
@@ -249,15 +260,10 @@ export default class MongooseCollection extends BaseCollection {
     lookupProjection: Projection,
   ): PipelineStage[] {
     return [
-      ...ReparentGenerator.reparent(this.model, this.prefix),
-      ...VirtualFieldsGenerator.addVirtual(
-        this.model,
-        this.prefix,
-        this.ignoredFields,
-        lookupProjection,
-      ),
-      ...LookupGenerator.lookup(this.model, this.prefix, lookupProjection),
-      ...FilterGenerator.filter(this.model, this.prefix, filter),
+      ...ReparentGenerator.reparent(this.model, this.stack),
+      ...VirtualFieldsGenerator.addVirtual(this.model, this.stack, lookupProjection),
+      ...LookupGenerator.lookup(this.model, this.stack, lookupProjection),
+      ...FilterGenerator.filter(this.model, this.stack, filter),
     ];
   }
 

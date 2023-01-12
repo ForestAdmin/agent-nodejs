@@ -5,7 +5,7 @@ import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factorie
 import { Connection, Types } from 'mongoose';
 
 import MongooseDatasource from '../../../src/datasource';
-import { setupWith2ManyToManyRelations } from '../_helpers';
+import { setupWith2ManyToManyRelations } from '../_build-models';
 
 describe('MongooseCollection > update', () => {
   let connection: Connection;

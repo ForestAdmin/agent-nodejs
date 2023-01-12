@@ -1,6 +1,7 @@
 import { Projection } from '@forestadmin/datasource-toolkit';
 import mongoose, { Model, Schema } from 'mongoose';
 
+import { Stack } from '../../../src/types';
 import LookupGenerator from '../../../src/utils/pipeline/lookup';
 
 describe('LookupGenerator', () => {
@@ -17,7 +18,7 @@ describe('LookupGenerator', () => {
       }),
     );
 
-    books = mongoose.model(
+    books = mongoose.model<unknown>(
       'books',
       new Schema({
         title: String,
@@ -37,31 +38,33 @@ describe('LookupGenerator', () => {
     mongoose.deleteModel('editors');
   });
 
-  it('should crash when non-existent relations are asked for', () => {
-    const projection = new Projection('myAuthor:firstname');
-    const generator = () => LookupGenerator.lookup(books, null, projection);
-
-    expect(generator).toThrow("Unexpected relation: 'myAuthor'");
-  });
-
   describe('with the root collection', () => {
+    const stack: Stack = [{ prefix: null, asFields: [], asModels: [] }];
+
+    it('should crash when non-existent relations are asked for', () => {
+      const projection = new Projection('myAuthor:firstname');
+      const generator = () => LookupGenerator.lookup(books, stack, projection);
+
+      expect(generator).toThrow("Unexpected relation: 'myAuthor'");
+    });
+
     it('should do nothing with projection that only contains columns', () => {
       const projection = new Projection('title');
-      const pipeline = LookupGenerator.lookup(books, null, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection);
 
       expect(pipeline).toStrictEqual([]);
     });
 
     it('should do nothing with projection that only contains fake relations', () => {
       const projection = new Projection('author:firstname');
-      const pipeline = LookupGenerator.lookup(books, null, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection);
 
       expect(pipeline).toStrictEqual([]);
     });
 
     it('should load the editor (relation)', () => {
       const projection = new Projection('editor__manyToOne:firstname');
-      const pipeline = LookupGenerator.lookup(books, null, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection);
 
       expect(pipeline).toStrictEqual([
         {
@@ -78,7 +81,7 @@ describe('LookupGenerator', () => {
 
     it('should load the author country (relation within fake relation)', () => {
       const projection = new Projection('author:country__manyToOne:name');
-      const pipeline = LookupGenerator.lookup(books, null, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection);
 
       expect(pipeline).toStrictEqual([
         {
@@ -100,7 +103,7 @@ describe('LookupGenerator', () => {
 
     it('should load the editor country (nested relation)', () => {
       const projection = new Projection('editor__manyToOne:country__manyToOne:name');
-      const pipeline = LookupGenerator.lookup(books, null, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection);
 
       expect(pipeline).toStrictEqual([
         {
@@ -131,9 +134,14 @@ describe('LookupGenerator', () => {
   });
 
   describe('with a reparented collection', () => {
+    const stack: Stack = [
+      { prefix: null, asFields: [], asModels: ['author'] },
+      { prefix: 'author', asFields: [], asModels: [] },
+    ];
+
     it('should load the author country (relation)', () => {
       const projection = new Projection('country__manyToOne:firstname');
-      const pipeline = LookupGenerator.lookup(books, 'author', projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection);
 
       expect(pipeline).toStrictEqual([
         {
@@ -150,7 +158,7 @@ describe('LookupGenerator', () => {
 
     it('should load the editor (relation within fake relation)', () => {
       const projection = new Projection('parent:editor__manyToOne:firstname');
-      const pipeline = LookupGenerator.lookup(books, 'author', projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection);
 
       expect(pipeline).toStrictEqual([
         {

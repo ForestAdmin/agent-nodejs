@@ -35,6 +35,32 @@ export function recursiveSet(target: any, path: string, value: unknown): void {
 }
 
 /**
+ * Remove a value in a plain object recursively
+ * If the value is an object and is empty, it will be removed.
+ *
+ * @example
+ * const a = { field: { subfield: 42 } };
+ * recursiveDelete(a, 'field.subfield');
+ * a == {  }
+ */
+export function recursiveDelete(target: any, path: string): void {
+  const index = path.indexOf('.');
+
+  if (index !== -1) {
+    const prefix = path.substring(0, index);
+    const suffix = path.substring(index + 1);
+
+    recursiveDelete(target[prefix], suffix);
+
+    if (Object.keys(target[prefix]).length === 0) {
+      delete target[prefix];
+    }
+  } else {
+    delete target[path];
+  }
+}
+
+/**
  * Compare two ids.
  * This is useful to ensure we perform array operations in the right order.
  *
@@ -137,4 +163,37 @@ export function buildSubdocumentPatch(
   }
 
   return cleanPatch;
+}
+
+/**
+ * Unflattend patches and records
+ */
+export function unflattenRecord(
+  record: RecordData,
+  asFields: string[],
+  patchMode = false,
+): RecordData {
+  const newRecord = { ...record };
+
+  for (const field of asFields) {
+    const alias = field.replace(/\./g, '@@@');
+    const value = newRecord[alias];
+
+    if (value !== undefined) {
+      if (patchMode) newRecord[field] = value;
+      else recursiveSet(newRecord, field, value);
+      delete newRecord[alias];
+    }
+  }
+
+  return newRecord;
+}
+
+/**
+ * Similar to projection.unnest
+ * @example
+ * unnest(['firstname', 'book.title', 'book.author'], 'book') == ['title', 'author']
+ */
+export function unnest(strings: string[], prefix: string): string[] {
+  return strings.filter(f => f.startsWith(`${prefix}.`)).map(f => f.substring(prefix.length + 1));
 }

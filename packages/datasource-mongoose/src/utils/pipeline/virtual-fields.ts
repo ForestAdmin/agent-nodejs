@@ -1,7 +1,7 @@
 import { Projection } from '@forestadmin/datasource-toolkit';
-import { Model, PipelineStage } from 'mongoose';
+import { AnyExpression, Model, PipelineStage } from 'mongoose';
 
-import MongooseSchema from '../../mongoose/schema';
+import { Stack } from '../../types';
 
 /**
  * When using the `asModel` options, users can request/filter on the virtual _id and parentId fields
@@ -17,73 +17,50 @@ import MongooseSchema from '../../mongoose/schema';
  * injected to save resources.
  */
 export default class VirtualFieldsGenerator {
-  static addVirtual(
-    model: Model<unknown>,
-    prefix: string,
-    ignoredFields: string[],
-    projection: Projection,
-  ): PipelineStage[] {
-    const schema = MongooseSchema.fromModel(model).getSubSchema(prefix, true);
+  static addVirtual(model: Model<unknown>, stack: Stack, projection: Projection): PipelineStage[] {
     const set = {};
 
-    for (const [relation, subProjection] of Object.entries(projection.relations)) {
-      // if it is a virtual one to one (<=> inverse of "parent")
-      if (ignoredFields.includes(relation)) {
-        const virtuals = this.getVirtuals(
-          relation,
-          schema.getSubSchema(relation, true),
-          subProjection,
-        );
+    for (const colonField of projection) {
+      const field = colonField.replace(/:/g, '.');
+      const isFromOneToOne = stack[stack.length - 1].asModels.some(f => field.startsWith(`${f}.`));
 
-        for (const [key, value] of Object.entries(virtuals)) {
-          set[key] = value;
-        }
+      if (isFromOneToOne) {
+        set[field] = this.getPath(field);
       }
     }
 
     return Object.keys(set).length ? [{ $addFields: set }] : [];
   }
 
-  static getVirtuals(
-    path: string,
-    schema: MongooseSchema,
-    projection: Projection,
-  ): Record<string, unknown> {
-    const result = {};
+  private static getPath(field: string): AnyExpression {
+    if (field.endsWith('._id')) {
+      const suffix = field.substring(0, field.length - 4);
 
-    if (projection.columns.includes('_id')) {
-      result[`${path}._id`] = { $concat: [{ $toString: '$_id' }, `.${path}`] };
+      return { $concat: [{ $toString: '$_id' }, `.${suffix}`] };
     }
 
-    if (projection.columns.includes('parentId')) {
-      const dotIndex = path.lastIndexOf('.');
-      const parentPath = dotIndex !== -1 ? path.substring(0, dotIndex) : null;
-      result[`${path}.parentId`] = parentPath
-        ? { $concat: [{ $toString: '$_id' }, `.${parentPath}`] }
-        : '$_id';
-    }
+    if (field.endsWith('.parentId')) {
+      if (field.split('.').length > 2) {
+        // Implementing this would require us to have knowledge of the value of asModel for
+        // for virtual models under the current one, which the `stack` variable does not have.
 
-    if (projection.columns.includes('content') && schema.isLeaf) {
-      result[`${path}.content`] = `$${path}`;
-    }
+        // If the expcetion causes issues we could simply return
+        // `$${field.substring(0, field.length - 9)}._id` but that would not work if the customer
+        // jumped over multiple levels of nesting.
 
-    for (const [relation, subProjection] of Object.entries(projection.relations)) {
-      // If we're asking for data that is inside of this mongo document (and not a __manyToOne)
-      // This condition should be equivalent to `!relation.endWith('__manyToOne')` but we want
-      // to get rid of the fact that the code depends on the naming.
-      if (schema.fields[relation]) {
-        const subVirtuals = this.getVirtuals(
-          `${path}.${relation}`,
-          schema.getSubSchema(relation, true),
-          subProjection,
-        );
+        // As this is a use case that never happens from the UI, and that can be worked around when
+        // using the API, we decided to not implement it.
 
-        for (const [key, value] of Object.entries(subVirtuals)) {
-          result[key] = value;
-        }
+        throw new Error('Fetching virtual parentId deeper than 1 level is not supported.');
       }
+
+      return '$_id';
     }
 
-    return result;
+    if (field.endsWith('.content')) {
+      // FIXME: we should check that this is really a leaf field because "content" can't
+      // really be used as a reserved word
+      return `$${field.substring(0, field.length - 8)}`;
+    }
   }
 }

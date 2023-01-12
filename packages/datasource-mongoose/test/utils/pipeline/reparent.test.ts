@@ -22,12 +22,17 @@ describe('ReparentGenerator', () => {
   });
 
   it('should generate an empty pipeline for the null prefix', () => {
-    const pipeline = ReparentGenerator.reparent(model, null);
+    const stack = [{ prefix: null, asFields: [], asModels: [] }];
+    const pipeline = ReparentGenerator.reparent(model, stack);
     expect(pipeline).toEqual([]);
   });
 
   it('should generate a single $replaceRoot to unnest an object', () => {
-    const pipeline = ReparentGenerator.reparent(model, 'author');
+    const pipeline = ReparentGenerator.reparent(model, [
+      { prefix: null, asFields: [], asModels: ['author'] },
+      { prefix: 'author', asFields: [], asModels: [] },
+    ]);
+
     expect(pipeline).toEqual([
       {
         $replaceRoot: {
@@ -47,7 +52,11 @@ describe('ReparentGenerator', () => {
   });
 
   it('should generate an $unwind and $replaceRoot to unnest an array of objects', () => {
-    const pipeline = ReparentGenerator.reparent(model, 'editions');
+    const pipeline = ReparentGenerator.reparent(model, [
+      { prefix: null, asFields: [], asModels: ['editions'] },
+      { prefix: 'editions', asFields: [], asModels: [] },
+    ]);
+
     expect(pipeline).toEqual([
       { $unwind: { includeArrayIndex: 'index', path: '$editions' } },
       {
@@ -68,7 +77,11 @@ describe('ReparentGenerator', () => {
   });
 
   it('should generate a $replaceRoot to unnest a field', () => {
-    const pipeline = ReparentGenerator.reparent(model, 'title');
+    const pipeline = ReparentGenerator.reparent(model, [
+      { prefix: null, asFields: [], asModels: ['title'] },
+      { prefix: 'title', asFields: [], asModels: [] },
+    ]);
+
     expect(pipeline).toEqual([
       {
         $replaceRoot: {
@@ -88,7 +101,12 @@ describe('ReparentGenerator', () => {
   });
 
   it('should generate two $replaceRoot to unnest a deeply nested field', () => {
-    const pipeline = ReparentGenerator.reparent(model, 'author.lastname');
+    const pipeline = ReparentGenerator.reparent(model, [
+      { prefix: null, asFields: [], asModels: ['author'] },
+      { prefix: 'author', asFields: [], asModels: ['lastname'] },
+      { prefix: 'author.lastname', asFields: [], asModels: [] },
+    ]);
+
     expect(pipeline).toEqual([
       {
         $replaceRoot: {
@@ -122,7 +140,10 @@ describe('ReparentGenerator', () => {
   });
 
   it('should generate an $unwind and $replaceRoot to unnest an array of primitives', () => {
-    const pipeline = ReparentGenerator.reparent(model, 'publishers');
+    const pipeline = ReparentGenerator.reparent(model, [
+      { prefix: null, asFields: [], asModels: ['publishers'] },
+      { prefix: 'publishers', asFields: [], asModels: [] },
+    ]);
 
     expect(pipeline).toEqual([
       { $unwind: { includeArrayIndex: 'index', path: '$publishers' } },

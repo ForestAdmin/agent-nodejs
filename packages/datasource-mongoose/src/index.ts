@@ -11,5 +11,5 @@ export function createMongooseDataSource(
   connection: Connection,
   options: MongooseOptions = {},
 ): DataSourceFactory {
-  return async () => new MongooseDatasource(connection, options);
+  return async logger => new MongooseDatasource(connection, options, logger);
 }

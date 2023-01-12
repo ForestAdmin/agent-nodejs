@@ -19,7 +19,9 @@ describe('MongooseCollection', () => {
 
     const carsModel = model('aModel', new Schema({ aField: { type: Number } }));
 
-    const mongooseCollection = new MongooseCollection(dataSource, carsModel);
+    const mongooseCollection = new MongooseCollection(dataSource, carsModel, [
+      { prefix: null, asFields: [], asModels: [] },
+    ]);
 
     expect(mongooseCollection.dataSource).toEqual(dataSource);
     expect(mongooseCollection.name).toEqual('aModel');

@@ -9,21 +9,16 @@ import { DateTime } from 'luxon';
 import { Model, PipelineStage, Types, isValidObjectId } from 'mongoose';
 
 import MongooseSchema from '../../mongoose/schema';
+import { Stack } from '../../types';
 
 const STRING_OPERATORS = ['Like', 'ILike', 'NotContains', 'LongerThan', 'ShorterThan'];
 
 /** Transform a forest admin filter into mongo pipeline */
 export default class FilterGenerator {
-  static filter(
-    model: Model<unknown>,
-    prefix: string | null,
-    filter: PaginatedFilter,
-  ): PipelineStage[] {
-    const schema = MongooseSchema.fromModel(model).getSubSchema(prefix, true);
-
+  static filter(model: Model<unknown>, stack: Stack, filter: PaginatedFilter): PipelineStage[] {
     const fields = new Set<string>();
     const tree = filter?.conditionTree;
-    const match = this.computeMatch(schema, tree, fields);
+    const match = this.computeMatch(model, stack, tree, fields);
     const sort = this.computeSort(filter?.sort);
 
     const pipeline = [];
@@ -37,14 +32,17 @@ export default class FilterGenerator {
   }
 
   private static computeMatch(
-    schema: MongooseSchema,
+    model: Model<unknown>,
+    stack: Stack,
     tree: ConditionTree,
     fields: Set<string>,
   ): PipelineStage.Match['$match'] {
+    const schema = MongooseSchema.fromModel(model).applyStack(stack, true);
+
     if (tree instanceof ConditionTreeBranch) {
       return {
         [`$${tree.aggregator.toLowerCase()}`]: tree.conditions.map(condition =>
-          this.computeMatch(schema, condition, fields),
+          this.computeMatch(model, stack, condition, fields),
         ),
       };
     }
@@ -71,10 +69,7 @@ export default class FilterGenerator {
     let { value } = leaf;
     leaf.field = this.formatNestedFieldPath(leaf.field);
 
-    const {
-      isArray,
-      schemaType: { instance },
-    } = schema.getSubSchema(leaf.field, true);
+    const [isArray, instance] = this.getFieldMetadata(schema, leaf.field);
 
     // @fixme I'm really not sure that this can work in all cases.
     // It assumes that the type of the value is the same than the type of the column
@@ -185,5 +180,24 @@ export default class FilterGenerator {
     parts.push(`string_${parts.pop()}`);
 
     return parts.join('.');
+  }
+
+  private static getFieldMetadata(schema: MongooseSchema, field: string): [boolean, string] {
+    // nested _ids are strings
+    let isArray: boolean;
+    let instance: string;
+
+    try {
+      // This may crash when we query virtual one to one relationships, because their virtual
+      // fields are not in the schema (This is documented in MongooseSchema)
+      const subSchema = schema.getSubSchema(field);
+      isArray = subSchema.isArray;
+      instance = subSchema.schemaType.instance;
+    } catch {
+      isArray = false;
+      instance = 'String';
+    }
+
+    return [isArray, instance];
   }
 }
