@@ -8,11 +8,8 @@ import RenderingPermissionService from '../../src/permissions/rendering-permissi
 import { PermissionLevel, RawTree } from '../../src/permissions/types';
 import verifySQLQuery from '../../src/permissions/verify-sql-query';
 import ContextVariablesInjector from '../../src/utils/context-variables-injector';
+import * as factories from '../__factories__';
 import userPermissionsFactory from '../__factories__/permissions/user-permission';
-
-jest.mock('../../src/permissions/forest-http-api', () => ({
-  getRenderingPermissions: jest.fn(),
-}));
 
 jest.mock('../../src/permissions/hash-chart', () => ({
   __esModule: true,
@@ -38,7 +35,6 @@ describe('RenderingPermissionService', () => {
   function setup() {
     const userPermission = userPermissionsFactory.mockAllMethods().build();
     const getUserInfoMock = userPermission.getUserInfo as jest.Mock;
-    const getRenderingPermissionsMock = jest.fn();
 
     const options = {
       forestServerUrl: 'https://api.dev',
@@ -47,10 +43,12 @@ describe('RenderingPermissionService', () => {
       permissionsCacheDurationInSeconds: 1000,
       logger: jest.fn(),
     };
+
+    const serverInterface = factories.forestAdminServerInterface.build();
     const renderingPermission = new RenderingPermissionService(
       options,
       userPermission,
-      getRenderingPermissionsMock,
+      serverInterface,
     );
 
     const hashServerChartsMock = hashServerCharts as jest.Mock;
@@ -62,7 +60,7 @@ describe('RenderingPermissionService', () => {
       userPermission,
       renderingPermission,
       getUserInfoMock,
-      getRenderingPermissionsMock,
+      serverInterface,
       hashServerChartsMock,
       hashChartRequestMock,
       verifySQLQueryMock,
@@ -73,8 +71,7 @@ describe('RenderingPermissionService', () => {
 
   describe('getScope', () => {
     it('should retrieve the users and rendering info, generate scope and return it', async () => {
-      const { renderingPermission, getUserInfoMock, getRenderingPermissionsMock, options } =
-        setup();
+      const { renderingPermission, getUserInfoMock, serverInterface, options } = setup();
 
       const scope = { field: 'title', operator: 'NotContains', value: '[test]' };
       const team = { id: 1, name: 'dream' };
@@ -98,7 +95,9 @@ describe('RenderingPermissionService', () => {
         roleId: 33,
       };
 
-      getRenderingPermissionsMock.mockResolvedValueOnce(renderingPermissions);
+      serverInterface.getRenderingPermissions = jest
+        .fn()
+        .mockResolvedValueOnce(renderingPermissions);
       getUserInfoMock.mockResolvedValueOnce(userInfo);
 
       const expected: RawTree = { field: 'test', operator: 'equal', value: 'me' };
@@ -110,7 +109,7 @@ describe('RenderingPermissionService', () => {
         userId: 42,
       });
 
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(42, options);
       expect(getUserInfoMock).toHaveBeenCalledWith(42);
 
       expect(ContextVariablesInjector.injectContextInFilter).toHaveBeenCalledWith(
@@ -122,8 +121,7 @@ describe('RenderingPermissionService', () => {
     });
 
     it('should retry to get the permissions if a collection does not exist', async () => {
-      const { renderingPermission, getUserInfoMock, getRenderingPermissionsMock, options } =
-        setup();
+      const { renderingPermission, getUserInfoMock, serverInterface, options } = setup();
 
       const scope = { field: 'title', operator: 'NotContains', value: '[test]' };
       const team = { id: 1, name: 'dream' };
@@ -152,8 +150,10 @@ describe('RenderingPermissionService', () => {
         roleId: 33,
       };
 
-      getRenderingPermissionsMock.mockResolvedValueOnce(renderingPermissions1);
-      getRenderingPermissionsMock.mockResolvedValueOnce(renderingPermissions2);
+      serverInterface.getRenderingPermissions = jest
+        .fn()
+        .mockResolvedValueOnce(renderingPermissions1)
+        .mockResolvedValueOnce(renderingPermissions2);
       getUserInfoMock.mockResolvedValue(userInfo);
 
       const expected: RawTree = { field: 'test', operator: 'equal', value: 'me' };
@@ -165,8 +165,8 @@ describe('RenderingPermissionService', () => {
         userId: '42',
       });
 
-      expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(42, options);
       expect(getUserInfoMock).toHaveBeenCalledWith('42');
 
       expect(ContextVariablesInjector.injectContextInFilter).toHaveBeenCalledWith(
@@ -178,7 +178,7 @@ describe('RenderingPermissionService', () => {
     });
 
     it('should not retry more than once', async () => {
-      const { renderingPermission, getUserInfoMock, getRenderingPermissionsMock } = setup();
+      const { renderingPermission, getUserInfoMock, serverInterface } = setup();
 
       const team = { id: 1, name: 'dream' };
       const renderingPermissions = {
@@ -197,7 +197,7 @@ describe('RenderingPermissionService', () => {
         roleId: 33,
       };
 
-      getRenderingPermissionsMock.mockResolvedValue(renderingPermissions);
+      serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue(renderingPermissions);
       getUserInfoMock.mockResolvedValue(userInfo);
 
       const expected: RawTree = { field: 'test', operator: 'equal', value: 'me' };
@@ -209,7 +209,7 @@ describe('RenderingPermissionService', () => {
         userId: 42,
       });
 
-      expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
 
       expect(ContextVariablesInjector.injectContextInFilter).not.toHaveBeenCalled();
 
@@ -241,13 +241,13 @@ describe('RenderingPermissionService', () => {
 
   describe('getTeam', () => {
     it('should return the team', async () => {
-      const { renderingPermission, getRenderingPermissionsMock, options } = setup();
+      const { renderingPermission, serverInterface, options } = setup();
 
       const team = {
         name: 'team 1',
         id: 23,
       };
-      getRenderingPermissionsMock.mockResolvedValueOnce({
+      serverInterface.getRenderingPermissions = jest.fn().mockResolvedValueOnce({
         collections: {},
         stats: {},
         team,
@@ -256,7 +256,7 @@ describe('RenderingPermissionService', () => {
       const teamReceived = await renderingPermission.getTeam(123);
 
       expect(teamReceived).toBe(team);
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(123, options);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(123, options);
     });
   });
 
@@ -264,8 +264,7 @@ describe('RenderingPermissionService', () => {
     it.each([PermissionLevel.Admin, PermissionLevel.Developer, PermissionLevel.Editor])(
       'should return true if the user is a %d',
       async permissionLevel => {
-        const { renderingPermission, getUserInfoMock, getRenderingPermissionsMock, options } =
-          setup();
+        const { renderingPermission, getUserInfoMock, serverInterface, options } = setup();
 
         const userInfo = {
           id: 42,
@@ -277,7 +276,7 @@ describe('RenderingPermissionService', () => {
 
         getUserInfoMock.mockResolvedValue(userInfo);
 
-        getRenderingPermissionsMock.mockResolvedValue({
+        serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue({
           collections: {},
           stats: {},
           team: {},
@@ -297,7 +296,7 @@ describe('RenderingPermissionService', () => {
         expect(result).toBe(true);
 
         expect(getUserInfoMock).toHaveBeenCalledWith(42);
-        expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
+        expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(60, options);
       },
     );
 
@@ -306,7 +305,7 @@ describe('RenderingPermissionService', () => {
         const {
           renderingPermission,
           getUserInfoMock,
-          getRenderingPermissionsMock,
+          serverInterface,
           options,
           hashServerChartsMock,
           hashChartRequestMock,
@@ -323,7 +322,7 @@ describe('RenderingPermissionService', () => {
         getUserInfoMock.mockResolvedValue(userInfo);
 
         const stats = { lines: [{ type: 'Line' }] };
-        getRenderingPermissionsMock.mockResolvedValue({
+        serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue({
           collections: {},
           stats,
           team: {},
@@ -345,7 +344,7 @@ describe('RenderingPermissionService', () => {
         expect(result).toBe(true);
 
         expect(getUserInfoMock).toHaveBeenCalledWith(42);
-        expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
+        expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(60, options);
         expect(hashChartRequestMock).toHaveBeenCalledWith({
           type: ChartType.Value,
           sourceCollectionName: 'jedi',
@@ -361,7 +360,7 @@ describe('RenderingPermissionService', () => {
             const {
               renderingPermission,
               getUserInfoMock,
-              getRenderingPermissionsMock,
+              serverInterface,
               options,
               hashServerChartsMock,
               hashChartRequestMock,
@@ -380,7 +379,7 @@ describe('RenderingPermissionService', () => {
             verifySQLQueryMock.mockRejectedValue(new EmptySQLQueryError());
 
             const stats = { queries: [{ type: 'Value', query: '  ' }] };
-            getRenderingPermissionsMock.mockResolvedValue({
+            serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue({
               collections: {},
               stats,
               team: {},
@@ -400,7 +399,7 @@ describe('RenderingPermissionService', () => {
             await expect(result).rejects.toThrowError(EmptySQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
-            expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
+            expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(60, options);
             expect(hashChartRequestMock).toHaveBeenCalledWith({
               type: ChartType.Value,
               query: '  ',
@@ -414,7 +413,7 @@ describe('RenderingPermissionService', () => {
             const {
               renderingPermission,
               getUserInfoMock,
-              getRenderingPermissionsMock,
+              serverInterface,
               options,
               hashServerChartsMock,
               hashChartRequestMock,
@@ -433,7 +432,7 @@ describe('RenderingPermissionService', () => {
             verifySQLQueryMock.mockRejectedValue(new ChainedSQLQueryError());
 
             const stats = { queries: [{ type: 'Value', query: '  ' }] };
-            getRenderingPermissionsMock.mockResolvedValue({
+            serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue({
               collections: {},
               stats,
               team: {},
@@ -453,7 +452,7 @@ describe('RenderingPermissionService', () => {
             await expect(result).rejects.toThrowError(ChainedSQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
-            expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
+            expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(60, options);
             expect(hashChartRequestMock).toHaveBeenCalledWith({
               type: ChartType.Value,
               query: 'SELECT count(*) as value FROM jedis; SELECT count(*) as value FROM siths;',
@@ -467,7 +466,7 @@ describe('RenderingPermissionService', () => {
             const {
               renderingPermission,
               getUserInfoMock,
-              getRenderingPermissionsMock,
+              serverInterface,
               options,
               hashServerChartsMock,
               hashChartRequestMock,
@@ -486,7 +485,7 @@ describe('RenderingPermissionService', () => {
             verifySQLQueryMock.mockRejectedValue(new NonSelectSQLQueryError());
 
             const stats = { queries: [{ type: 'Value', query: '  ' }] };
-            getRenderingPermissionsMock.mockResolvedValue({
+            serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue({
               collections: {},
               stats,
               team: {},
@@ -506,7 +505,7 @@ describe('RenderingPermissionService', () => {
             await expect(result).rejects.toThrowError(NonSelectSQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
-            expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
+            expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(60, options);
             expect(hashChartRequestMock).toHaveBeenCalledWith({
               type: ChartType.Value,
               query: 'UPDATE jedis SET padawan_id = ?',
@@ -521,7 +520,7 @@ describe('RenderingPermissionService', () => {
           const {
             renderingPermission,
             getUserInfoMock,
-            getRenderingPermissionsMock,
+            serverInterface,
             options,
             hashServerChartsMock,
             hashChartRequestMock,
@@ -538,17 +537,19 @@ describe('RenderingPermissionService', () => {
           getUserInfoMock.mockResolvedValue(userInfo);
 
           const stats1 = { lines: [{ type: 'Line' }] };
-          getRenderingPermissionsMock.mockResolvedValueOnce({
-            collections: {},
-            stats: stats1,
-            team: {},
-          });
           const stats2 = { lines: [{ type: 'Line' }] };
-          getRenderingPermissionsMock.mockResolvedValueOnce({
-            collections: {},
-            stats: stats2,
-            team: {},
-          });
+          serverInterface.getRenderingPermissions = jest
+            .fn()
+            .mockResolvedValueOnce({
+              collections: {},
+              stats: stats1,
+              team: {},
+            })
+            .mockResolvedValueOnce({
+              collections: {},
+              stats: stats2,
+              team: {},
+            });
           hashServerChartsMock.mockReturnValueOnce(new Set(['HASH1']));
           hashServerChartsMock.mockReturnValueOnce(new Set(['HASH2']));
           hashChartRequestMock.mockReturnValue('HASH2');
@@ -568,8 +569,8 @@ describe('RenderingPermissionService', () => {
 
           expect(getUserInfoMock).toHaveBeenCalledWith(42);
           expect(getUserInfoMock).toHaveBeenCalledTimes(2);
-          expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
-          expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
+          expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(60, options);
+          expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
 
           expect(hashChartRequestMock).toHaveBeenCalledWith({
             type: ChartType.Value,
@@ -587,7 +588,7 @@ describe('RenderingPermissionService', () => {
           const {
             renderingPermission,
             getUserInfoMock,
-            getRenderingPermissionsMock,
+            serverInterface,
             options,
             hashServerChartsMock,
             hashChartRequestMock,
@@ -604,7 +605,7 @@ describe('RenderingPermissionService', () => {
           getUserInfoMock.mockResolvedValue(userInfo);
 
           const stats = { lines: [{ type: 'Line' }] };
-          getRenderingPermissionsMock.mockResolvedValue({
+          serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue({
             collections: {},
             stats,
             team: {},
@@ -627,8 +628,8 @@ describe('RenderingPermissionService', () => {
 
           expect(getUserInfoMock).toHaveBeenCalledWith(42);
           expect(getUserInfoMock).toHaveBeenCalledTimes(2);
-          expect(getRenderingPermissionsMock).toHaveBeenCalledWith(60, options);
-          expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
+          expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(60, options);
+          expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
 
           expect(hashChartRequestMock).toHaveBeenCalledWith({
             type: ChartType.Value,
@@ -649,7 +650,7 @@ describe('RenderingPermissionService', () => {
       const {
         renderingPermission,
         getUserInfoMock,
-        getRenderingPermissionsMock,
+        serverInterface,
         hashServerChartsMock,
         hashChartRequestMock,
       } = setup();
@@ -665,7 +666,7 @@ describe('RenderingPermissionService', () => {
       getUserInfoMock.mockResolvedValue(userInfo);
 
       const stats = { lines: [{ type: 'Line' }] };
-      getRenderingPermissionsMock.mockResolvedValue({
+      serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue({
         collections: {},
         stats,
         team: {},
@@ -699,14 +700,14 @@ describe('RenderingPermissionService', () => {
       expect(result1).toBe(true);
       expect(result2).toBe(true);
 
-      expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
     });
 
     it('should not invalidate the cache of other renderings', async () => {
       const {
         renderingPermission,
         getUserInfoMock,
-        getRenderingPermissionsMock,
+        serverInterface,
         hashServerChartsMock,
         hashChartRequestMock,
       } = setup();
@@ -722,7 +723,7 @@ describe('RenderingPermissionService', () => {
       getUserInfoMock.mockResolvedValue(userInfo);
 
       const stats = { lines: [{ type: 'Line' }] };
-      getRenderingPermissionsMock.mockResolvedValue({
+      serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue({
         collections: {},
         stats,
         team: {},
@@ -756,7 +757,7 @@ describe('RenderingPermissionService', () => {
       expect(result1).toBe(true);
       expect(result2).toBe(true);
 
-      expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -764,7 +765,7 @@ describe('RenderingPermissionService', () => {
     it('should return true if the segment query is allowed', async () => {
       const {
         renderingPermission,
-        getRenderingPermissionsMock,
+        serverInterface,
         verifySQLQueryMock,
         isSegmentQueryAllowedMock,
         options,
@@ -783,7 +784,7 @@ describe('RenderingPermissionService', () => {
         stats: {},
       };
 
-      getRenderingPermissionsMock.mockResolvedValue(permissions);
+      serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue(permissions);
       verifySQLQueryMock.mockReturnValue(true);
       isSegmentQueryAllowedMock.mockReturnValue(true);
 
@@ -799,16 +800,11 @@ describe('RenderingPermissionService', () => {
         'SELECT * from actors',
         actorsPermissions.segments,
       );
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(42, options);
     });
 
     it('should return false if the collection does not have an entry in permissions', async () => {
-      const {
-        renderingPermission,
-        getRenderingPermissionsMock,
-        isSegmentQueryAllowedMock,
-        options,
-      } = setup();
+      const { renderingPermission, serverInterface, isSegmentQueryAllowedMock, options } = setup();
 
       const permissions = {
         team: { id: 33 },
@@ -816,7 +812,7 @@ describe('RenderingPermissionService', () => {
         stats: {},
       };
 
-      getRenderingPermissionsMock.mockResolvedValue(permissions);
+      serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue(permissions);
 
       const result = await renderingPermission.canExecuteSegmentQuery({
         renderingId: 42,
@@ -827,13 +823,13 @@ describe('RenderingPermissionService', () => {
       expect(result).toBe(false);
 
       expect(isSegmentQueryAllowedMock).not.toHaveBeenCalled();
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(42, options);
     });
 
     it('should return false if the query is not allowed', async () => {
       const {
         renderingPermission,
-        getRenderingPermissionsMock,
+        serverInterface,
         verifySQLQueryMock,
         isSegmentQueryAllowedMock,
         options,
@@ -852,7 +848,7 @@ describe('RenderingPermissionService', () => {
         stats: {},
       };
 
-      getRenderingPermissionsMock.mockResolvedValue(permissions);
+      serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue(permissions);
       verifySQLQueryMock.mockReturnValue(true);
       isSegmentQueryAllowedMock.mockReturnValue(false);
 
@@ -868,13 +864,13 @@ describe('RenderingPermissionService', () => {
         'SELECT * from actors',
         actorsPermissions.segments,
       );
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(42, options);
     });
 
     it('should refresh the cache if the query is not allowed', async () => {
       const {
         renderingPermission,
-        getRenderingPermissionsMock,
+        serverInterface,
         isSegmentQueryAllowedMock,
         verifySQLQueryMock,
         options,
@@ -906,7 +902,8 @@ describe('RenderingPermissionService', () => {
         stats: {},
       };
 
-      getRenderingPermissionsMock
+      serverInterface.getRenderingPermissions = jest
+        .fn()
         .mockResolvedValueOnce(permissions1)
         .mockResolvedValueOnce(permissions2);
       isSegmentQueryAllowedMock.mockReturnValueOnce(false).mockReturnValueOnce(true);
@@ -925,8 +922,8 @@ describe('RenderingPermissionService', () => {
         'SELECT * from actors',
         actorsPermissions2.segments,
       );
-      expect(getRenderingPermissionsMock).toHaveBeenCalledTimes(2);
-      expect(getRenderingPermissionsMock).toHaveBeenCalledWith(42, options);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(42, options);
     });
   });
 });

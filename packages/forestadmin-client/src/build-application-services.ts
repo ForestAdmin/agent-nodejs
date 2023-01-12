@@ -9,13 +9,13 @@ import SchemaService from './schema';
 import {
   ForestAdminClientOptions,
   ForestAdminClientOptionsWithDefaults,
-  ForestServerRepository,
+  ForestAdminServerInterface,
 } from './types';
 import ContextVariablesInstantiator from './utils/context-variables-instantiator';
 import defaultLogger from './utils/default-logger';
 
 export default function buildApplicationServices(
-  forestServerRepository: ForestServerRepository,
+  forestAdminServerInterface: ForestAdminServerInterface,
   options: ForestAdminClientOptions,
 ): {
   optionsWithDefaults: ForestAdminClientOptionsWithDefaults;
@@ -34,17 +34,15 @@ export default function buildApplicationServices(
     ...options,
   };
 
-  const { getEnvironmentPermissions, getUsers, getRenderingPermissions } = forestServerRepository;
-
   const renderingPermission = new RenderingPermissionService(
     optionsWithDefaults,
-    new UserPermissionService(optionsWithDefaults, getUsers),
-    getRenderingPermissions,
+    new UserPermissionService(optionsWithDefaults, forestAdminServerInterface),
+    forestAdminServerInterface,
   );
   const contextVariables = new ContextVariablesInstantiator(renderingPermission);
 
   const permission = new PermissionService(
-    new ActionPermissionService(optionsWithDefaults, getEnvironmentPermissions),
+    new ActionPermissionService(optionsWithDefaults, forestAdminServerInterface),
     renderingPermission,
   );
 

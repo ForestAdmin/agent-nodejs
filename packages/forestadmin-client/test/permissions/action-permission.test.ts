@@ -3,10 +3,7 @@ import generateActionsFromPermissions, {
   ActionPermissions,
 } from '../../src/permissions/generate-actions-from-permissions';
 import { RawTreeWithSources } from '../../src/permissions/types';
-
-jest.mock('../../src/permissions/forest-http-api', () => ({
-  getEnvironmentPermissions: jest.fn(),
-}));
+import * as factories from '../__factories__';
 
 jest.mock('../../src/permissions/generate-actions-from-permissions', () => ({
   __esModule: true,
@@ -14,7 +11,6 @@ jest.mock('../../src/permissions/generate-actions-from-permissions', () => ({
 }));
 
 const generateActionsFromPermissionsMock = generateActionsFromPermissions as jest.Mock;
-const getEnvironmentPermissionsMock: jest.Mock = jest.fn();
 
 describe('ActionPermissionService', () => {
   function setup(...actionsPermissions: ActionPermissions[]) {
@@ -25,16 +21,17 @@ describe('ActionPermissionService', () => {
       isProduction: true,
       logger: jest.fn(),
     };
-    const service = new ActionPermissionService(options, getEnvironmentPermissionsMock);
+    const serverInterface = factories.forestAdminServerInterface.build();
+    const service = new ActionPermissionService(options, serverInterface);
 
     const permissions = { collections: {} };
 
-    getEnvironmentPermissionsMock.mockResolvedValue(permissions);
+    serverInterface.getEnvironmentPermissions = jest.fn().mockResolvedValue(permissions);
     actionsPermissions.forEach(actionPermissions => {
       generateActionsFromPermissionsMock.mockReturnValueOnce(actionPermissions);
     });
 
-    return { service, permissions, options };
+    return { service, permissions, options, serverInterface };
   }
 
   beforeEach(() => {
@@ -57,7 +54,7 @@ describe('ActionPermissionService', () => {
 
   describe('can', () => {
     it('should return true if isDevelopment', async () => {
-      const { service, options, permissions } = setup({
+      const { service, options, permissions, serverInterface } = setup({
         isDevelopment: true,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(),
@@ -66,8 +63,8 @@ describe('ActionPermissionService', () => {
       const can = await service.can(1, 'action');
       expect(can).toBe(true);
 
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledWith(options);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledWith(options);
 
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledWith(permissions);
@@ -97,7 +94,7 @@ describe('ActionPermissionService', () => {
 
     describe('when the user is not allowed in the first place', () => {
       it('should refresh the cache and return the second result', async () => {
-        const { service } = setup(
+        const { service, serverInterface } = setup(
           {
             isDevelopment: false,
             actionsByRole: new Map(),
@@ -113,12 +110,12 @@ describe('ActionPermissionService', () => {
         const can = await service.can(10, 'action');
         expect(can).toBe(true);
 
-        expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(2);
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
         expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(2);
       });
 
       it('should return false if the user is still not authorized', async () => {
-        const { service } = setup(
+        const { service, serverInterface } = setup(
           {
             isDevelopment: false,
             actionsByRole: new Map(),
@@ -134,13 +131,13 @@ describe('ActionPermissionService', () => {
         const can = await service.can(10, 'action');
         expect(can).toBe(false);
 
-        expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(2);
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
         expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(2);
       });
     });
 
     it('should reuse the cache if 2 calls are made in a short time', async () => {
-      const { service, options } = setup({
+      const { service, options, serverInterface } = setup({
         isDevelopment: false,
         actionsByRole: new Map([['action', { allowedRoles: new Set([10]) }]]),
         actionsGloballyAllowed: new Set(),
@@ -156,12 +153,12 @@ describe('ActionPermissionService', () => {
       expect(can1).toBe(true);
       expect(can2).toBe(true);
 
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });
 
     it('should update the cache if 2 calls are made in a long time', async () => {
-      const { service, options } = setup(
+      const { service, options, serverInterface } = setup(
         {
           isDevelopment: false,
           actionsByRole: new Map([['action', { allowedRoles: new Set([10]) }]]),
@@ -184,7 +181,7 @@ describe('ActionPermissionService', () => {
       expect(can1).toBe(true);
       expect(can2).toBe(true);
 
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(2);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(2);
     });
   });
@@ -200,7 +197,7 @@ describe('ActionPermissionService', () => {
 
       const actionConditions = new Map([[10, customActionCondition]]);
 
-      const { service, options, permissions } = setup({
+      const { service, options, permissions, serverInterface } = setup({
         isDevelopment: true,
         actionsByRole: new Map([
           ['action1Identifier', { allowedRoles: new Set([]), conditionsByRole: actionConditions }],
@@ -211,15 +208,15 @@ describe('ActionPermissionService', () => {
       const condition = await service.getCustomActionCondition(10, 'action1Identifier');
       expect(condition).toBe(customActionCondition);
 
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledWith(options);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledWith(options);
 
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledWith(permissions);
     });
 
     it('should return undefined the custom action condition if it does not exist', async () => {
-      const { service } = setup({
+      const { service, serverInterface } = setup({
         isDevelopment: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
@@ -228,12 +225,12 @@ describe('ActionPermissionService', () => {
       const condition = await service.getCustomActionCondition(10, 'action1Identifier');
       expect(condition).toBeUndefined();
 
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });
 
     it('should return null if we cannot found any condition for this role', async () => {
-      const { service } = setup({
+      const { service, serverInterface } = setup({
         isDevelopment: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(['action2']),
@@ -242,7 +239,7 @@ describe('ActionPermissionService', () => {
       const condition = await service.getCustomActionCondition(10, 'action1Identifier');
       expect(condition).toBeUndefined();
 
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });
   });
@@ -261,7 +258,7 @@ describe('ActionPermissionService', () => {
         [43, customActionCondition],
       ]);
 
-      const { service, options, permissions } = setup({
+      const { service, options, permissions, serverInterface } = setup({
         isDevelopment: true,
         actionsByRole: new Map([
           ['action1Identifier', { allowedRoles: new Set([]), conditionsByRole: actionConditions }],
@@ -272,15 +269,15 @@ describe('ActionPermissionService', () => {
       const conditions = await service.getAllCustomActionConditions('action1Identifier');
       expect(conditions).toBe(actionConditions);
 
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledWith(options);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledWith(options);
 
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledWith(permissions);
     });
 
     it('should return undefined the custom action identifier does not exist', async () => {
-      const { service } = setup({
+      const { service, serverInterface } = setup({
         isDevelopment: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(),
@@ -289,12 +286,12 @@ describe('ActionPermissionService', () => {
       const conditions = await service.getAllCustomActionConditions('action1Identifier');
       expect(conditions).toBeUndefined();
 
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });
 
     it('should return undefined if we cannot found any conditions', async () => {
-      const { service } = setup({
+      const { service, serverInterface } = setup({
         isDevelopment: false,
         actionsByRole: new Map([['action1Identifier', { allowedRoles: new Set([]) }]]),
         actionsGloballyAllowed: new Set(),
@@ -303,7 +300,7 @@ describe('ActionPermissionService', () => {
       const conditions = await service.getAllCustomActionConditions('action1Identifier');
       expect(conditions).toBeUndefined();
 
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });
   });
@@ -311,7 +308,7 @@ describe('ActionPermissionService', () => {
   describe('getRoleIdsAllowedToApproveWithoutConditions', () => {
     describe('when no conditions are defined', () => {
       it('should return all role ids for this custom action if it exists', async () => {
-        const { service, options, permissions } = setup({
+        const { service, options, permissions, serverInterface } = setup({
           isDevelopment: true,
           actionsByRole: new Map([['action1Identifier', { allowedRoles: new Set([1, 2, 3]) }]]),
           actionsGloballyAllowed: new Set(),
@@ -323,8 +320,8 @@ describe('ActionPermissionService', () => {
 
         expect(rolesIds).toStrictEqual([1, 2, 3]);
 
-        expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
-        expect(getEnvironmentPermissionsMock).toHaveBeenCalledWith(options);
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledWith(options);
 
         expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
         expect(generateActionsFromPermissionsMock).toHaveBeenCalledWith(permissions);
@@ -345,7 +342,7 @@ describe('ActionPermissionService', () => {
           [2, customActionCondition],
         ]);
 
-        const { service, options, permissions } = setup({
+        const { service, options, permissions, serverInterface } = setup({
           isDevelopment: true,
           actionsByRole: new Map([
             [
@@ -362,8 +359,8 @@ describe('ActionPermissionService', () => {
 
         expect(rolesIds).toStrictEqual([3]);
 
-        expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
-        expect(getEnvironmentPermissionsMock).toHaveBeenCalledWith(options);
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledWith(options);
 
         expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
         expect(generateActionsFromPermissionsMock).toHaveBeenCalledWith(permissions);
@@ -371,7 +368,7 @@ describe('ActionPermissionService', () => {
     });
 
     it('should return an empty array if the custom action identifier does not exist', async () => {
-      const { service } = setup({
+      const { service, serverInterface } = setup({
         isDevelopment: false,
         actionsByRole: new Map(),
         actionsGloballyAllowed: new Set(),
@@ -383,12 +380,12 @@ describe('ActionPermissionService', () => {
 
       expect(rolesIds).toStrictEqual([]);
 
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });
 
     it('should return an empty array if we cannot found any roles allowed', async () => {
-      const { service } = setup({
+      const { service, serverInterface } = setup({
         isDevelopment: false,
         actionsByRole: new Map([['action1Identifier', { allowedRoles: new Set([]) }]]),
         actionsGloballyAllowed: new Set(),
@@ -398,7 +395,7 @@ describe('ActionPermissionService', () => {
       );
       expect(rolesIds).toStrictEqual([]);
 
-      expect(getEnvironmentPermissionsMock).toHaveBeenCalledTimes(1);
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
     });
   });

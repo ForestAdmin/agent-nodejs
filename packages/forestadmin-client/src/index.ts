@@ -17,7 +17,7 @@ export {
   ContextVariablesInstantiatorInterface,
   RawTree,
   RawTreeWithSources,
-  ForestServerRepository,
+  ForestAdminServerInterface,
 } from './types';
 export { IpWhitelistConfiguration } from './ip-whitelist/types';
 

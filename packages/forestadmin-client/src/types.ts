@@ -141,7 +141,7 @@ export interface ContextVariablesInstantiatorInterface {
   }): Promise<ContextVariables>;
 }
 
-export interface ForestServerRepository {
+export interface ForestAdminServerInterface {
   getEnvironmentPermissions: (...args) => Promise<EnvironmentPermissionsV4>;
   getUsers: (...args) => Promise<UserPermissionV4[]>;
   getRenderingPermissions: (renderingId: number, ...args) => Promise<RenderingPermissionV4>;

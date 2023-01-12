@@ -1,4 +1,4 @@
-import { ForestAdminClientOptionsWithDefaults, ForestServerRepository } from '../types';
+import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 import { UserPermissionV4 } from './types';
 
 export default class UserPermissionService {
@@ -11,7 +11,7 @@ export default class UserPermissionService {
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
-    private readonly getUsers: ForestServerRepository['getUsers'],
+    private readonly forestAdminServerInterface: ForestAdminServerInterface,
   ) {}
 
   public async getUserInfo(userId: number | string): Promise<UserPermissionV4 | undefined> {
@@ -28,9 +28,9 @@ export default class UserPermissionService {
       // The response here is not awaited in order to be set in the cache
       // allowing subsequent calls to getUserInfo to use the cache even if
       // the response is not yet available.
-      this.userInfoById = this.getUsers(this.options).then(
-        users => new Map(users.map(user => [`${user.id}`, user])),
-      );
+      this.userInfoById = this.forestAdminServerInterface
+        .getUsers(this.options)
+        .then(users => new Map(users.map(user => [`${user.id}`, user])));
     }
 
     return (await this.userInfoById).get(`${userId}`);

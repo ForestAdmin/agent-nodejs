@@ -1,6 +1,7 @@
 import { Factory } from 'fishery';
 
 import ActionPermissionService from '../../../src/permissions/action-permission';
+import { forestAdminServerInterface } from '../index';
 
 export class ActionPermissionsFactory extends Factory<ActionPermissionService> {
   mockAllMethods() {
@@ -23,7 +24,7 @@ const actionPermissionsFactory = ActionPermissionsFactory.define(
         permissionsCacheDurationInSeconds: 15 * 60,
         logger: () => {},
       },
-      jest.fn(),
+      forestAdminServerInterface.build(),
     ),
 );
 

@@ -1,7 +1,7 @@
 import LruCache from 'lru-cache';
 
 import { Chart, QueryChart } from '../charts/types';
-import { ForestAdminClientOptionsWithDefaults, ForestServerRepository } from '../types';
+import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 import ContextVariables from '../utils/context-variables';
 import ContextVariablesInjector from '../utils/context-variables-injector';
 import { hashChartRequest, hashServerCharts } from './hash-chart';
@@ -28,7 +28,7 @@ export default class RenderingPermissionService {
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
     private readonly userPermissions: UserPermissionService,
-    private readonly getRenderingPermissions: ForestServerRepository['getRenderingPermissions'],
+    private readonly forestAdminServerInterface: ForestAdminServerInterface,
   ) {
     this.permissionsByRendering = new LruCache({
       max: 256,
@@ -147,7 +147,10 @@ export default class RenderingPermissionService {
   private async loadPermissions(renderingId: number): Promise<RenderingPermission> {
     this.options.logger('Debug', `Loading rendering permissions for rendering ${renderingId}`);
 
-    const rawPermissions = await this.getRenderingPermissions(renderingId, this.options);
+    const rawPermissions = await this.forestAdminServerInterface.getRenderingPermissions(
+      renderingId,
+      this.options,
+    );
     const charts = hashServerCharts(rawPermissions.stats);
 
     return {
