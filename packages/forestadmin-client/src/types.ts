@@ -4,7 +4,14 @@ import type { Client } from 'openid-client';
 
 import { UserInfo } from './auth/types';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
-import { CollectionActionEvent, RawTree, RawTreeWithSources } from './permissions/types';
+import {
+  CollectionActionEvent,
+  EnvironmentPermissionsV4,
+  RawTree,
+  RawTreeWithSources,
+  RenderingPermissionV4,
+  UserPermissionV4,
+} from './permissions/types';
 import { ForestServerCollection } from './schema/types';
 import ContextVariables, { RequestContextVariables } from './utils/context-variables';
 
@@ -132,4 +139,10 @@ export interface ContextVariablesInstantiatorInterface {
     renderingId: string | number;
     userId: string | number;
   }): Promise<ContextVariables>;
+}
+
+export interface ForestAdminServerInterface {
+  getEnvironmentPermissions: (...args) => Promise<EnvironmentPermissionsV4>;
+  getUsers: (...args) => Promise<UserPermissionV4[]>;
+  getRenderingPermissions: (renderingId: number, ...args) => Promise<RenderingPermissionV4>;
 }

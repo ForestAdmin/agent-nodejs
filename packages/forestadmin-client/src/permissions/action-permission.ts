@@ -1,7 +1,7 @@
 import type { ForestAdminClientOptionsWithDefaults } from '../types';
 import type { RawTreeWithSources } from './types';
 
-import ForestHttpApi from './forest-http-api';
+import { ForestAdminServerInterface } from '../types';
 import generateActionsFromPermissions, {
   ActionPermissions,
 } from './generate-actions-from-permissions';
@@ -10,7 +10,10 @@ export default class ActionPermissionService {
   private permissionsPromise: Promise<ActionPermissions> | undefined;
   private permissionExpirationTimestamp: number | undefined;
 
-  constructor(private readonly options: ForestAdminClientOptionsWithDefaults) {}
+  constructor(
+    private readonly options: ForestAdminClientOptionsWithDefaults,
+    private readonly forestAdminServerInterface: ForestAdminServerInterface,
+  ) {}
 
   public async isDevelopmentPermission(): Promise<boolean> {
     const permissions = await this.getPermissions();
@@ -95,7 +98,9 @@ export default class ActionPermissionService {
   private async fetchEnvironmentPermissions(): Promise<ActionPermissions> {
     this.options.logger('Debug', 'Fetching environment permissions');
 
-    const rawPermissions = await ForestHttpApi.getEnvironmentPermissions(this.options);
+    const rawPermissions = await this.forestAdminServerInterface.getEnvironmentPermissions(
+      this.options,
+    );
 
     return generateActionsFromPermissions(rawPermissions);
   }
