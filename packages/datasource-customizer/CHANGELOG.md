@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.5.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.6...@forestadmin/datasource-customizer@1.5.7) (2023-01-13)
+
+
+### Bug Fixes
+
+* **customizer:** validation decorator should only validate its own rules ([#602](https://github.com/ForestAdmin/agent-nodejs/issues/602)) ([b626a89](https://github.com/ForestAdmin/agent-nodejs/commit/b626a89642faaf2805fb663feea4593852becae3))
+
 ## @forestadmin/datasource-customizer [1.5.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.5...@forestadmin/datasource-customizer@1.5.6) (2022-12-22)
 
 
