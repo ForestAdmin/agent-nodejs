@@ -1,5 +1,5 @@
-import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 import { UserPermissionV4 } from './types';
+import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 
 export default class UserPermissionService {
   private cacheExpirationTimestamp = 0;

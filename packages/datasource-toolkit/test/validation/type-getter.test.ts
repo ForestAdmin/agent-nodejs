@@ -53,7 +53,7 @@ describe('TypeGetter', () => {
 
       describe('when the values are strings and numbers', () => {
         it('should throw an error', () => {
-          expect(() => TypeGetter.get(['str', 1, 'str'], 'String')).toThrowError();
+          expect(() => TypeGetter.get(['str', 1, 'str'], 'String')).toThrow();
         });
       });
 
@@ -65,7 +65,7 @@ describe('TypeGetter', () => {
 
       describe('when the array is empty and the given context is not allowed to use array', () => {
         it('should return null', () => {
-          expect(() => TypeGetter.get([], 'Point')).toThrowError();
+          expect(() => TypeGetter.get([], 'Point')).toThrow();
         });
       });
     });

@@ -1,6 +1,3 @@
-import { Collection } from '../../../collection';
-import { RecordData } from '../../../record';
-import Projection from '../../projection';
 import { PlainConditionTreeBranch } from './branch';
 import {
   AsyncLeafReplacer,
@@ -9,6 +6,9 @@ import {
   LeafTester,
   PlainConditionTreeLeaf,
 } from './leaf';
+import { Collection } from '../../../collection';
+import { RecordData } from '../../../record';
+import Projection from '../../projection';
 
 export type PlainConditionTree = PlainConditionTreeBranch | PlainConditionTreeLeaf;
 

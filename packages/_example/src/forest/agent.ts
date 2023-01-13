@@ -3,10 +3,6 @@ import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 
-import mongoose from '../connections/mongoose';
-import sequelizeMsSql from '../connections/sequelize-mssql';
-import sequelizeMySql from '../connections/sequelize-mysql';
-import sequelizePostgres from '../connections/sequelize-postgres';
 import customizeAccount from './customizations/account';
 import customizeCard from './customizations/card';
 import customizeComment from './customizations/comment';
@@ -19,6 +15,10 @@ import customizeReview from './customizations/review';
 import customizeStore from './customizations/store';
 import createTypicode from './datasources/typicode';
 import { Schema } from './typings';
+import mongoose from '../connections/mongoose';
+import sequelizeMsSql from '../connections/sequelize-mssql';
+import sequelizeMySql from '../connections/sequelize-mysql';
+import sequelizePostgres from '../connections/sequelize-postgres';
 
 export default function makeAgent() {
   const envOptions: AgentOptions = {

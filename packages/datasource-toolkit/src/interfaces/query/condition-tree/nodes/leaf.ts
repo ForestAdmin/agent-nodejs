@@ -1,3 +1,5 @@
+import ConditionTree, { PlainConditionTree } from './base';
+import { Operator, allOperators, intervalOperators, uniqueOperators } from './operators';
 import CollectionUtils from '../../../../utils/collection';
 import RecordUtils from '../../../../utils/record';
 import { Collection } from '../../../collection';
@@ -6,8 +8,6 @@ import { ColumnSchema } from '../../../schema';
 import Projection from '../../projection';
 import ConditionTreeEquivalent from '../equivalence';
 import ConditionTreeFactory from '../factory';
-import ConditionTree, { PlainConditionTree } from './base';
-import { Operator, allOperators, intervalOperators, uniqueOperators } from './operators';
 
 export type PlainConditionTreeLeaf = { field: string; operator: Operator; value?: unknown };
 
@@ -27,7 +27,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
   }
 
   get useIntervalOperator() {
-    return intervalOperators.includes(this.operator as typeof intervalOperators[number]);
+    return intervalOperators.includes(this.operator as (typeof intervalOperators)[number]);
   }
 
   constructor(field: string, operator: Operator, value?: unknown) {

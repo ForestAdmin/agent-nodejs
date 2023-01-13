@@ -396,7 +396,7 @@ describe('RenderingPermissionService', () => {
               userId: 42,
             });
 
-            await expect(result).rejects.toThrowError(EmptySQLQueryError);
+            await expect(result).rejects.toThrow(EmptySQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
             expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(60, options);
@@ -449,7 +449,7 @@ describe('RenderingPermissionService', () => {
               userId: 42,
             });
 
-            await expect(result).rejects.toThrowError(ChainedSQLQueryError);
+            await expect(result).rejects.toThrow(ChainedSQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
             expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(60, options);
@@ -502,7 +502,7 @@ describe('RenderingPermissionService', () => {
               userId: 42,
             });
 
-            await expect(result).rejects.toThrowError(NonSelectSQLQueryError);
+            await expect(result).rejects.toThrow(NonSelectSQLQueryError);
 
             expect(getUserInfoMock).toHaveBeenCalledWith(42);
             expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(60, options);

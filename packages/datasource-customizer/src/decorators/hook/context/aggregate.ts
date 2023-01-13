@@ -2,6 +2,7 @@
 
 import { Aggregation, Caller, Collection, Filter } from '@forestadmin/datasource-toolkit';
 
+import HookContext from './hook';
 import {
   TAggregateResult,
   TAggregation,
@@ -9,7 +10,6 @@ import {
   TFilter,
   TSchema,
 } from '../../../templates';
-import HookContext from './hook';
 
 export class HookBeforeAggregateContext<
   S extends TSchema = TSchema,

@@ -54,16 +54,16 @@ export default class ChartRoute extends CollectionRoute {
   }
 
   private async makeChart(context: Context) {
-    const { type } = <Chart>context.request.body;
+    const chartRequest = context.request.body as Chart;
     const { renderingId, id: userId } = <Caller>context.state.user;
 
     context.request.body = await this.services.chartHandler.getChartWithContextInjected({
       userId,
       renderingId,
-      chartRequest: context.request.body,
+      chartRequest,
     });
 
-    switch (type) {
+    switch (chartRequest.type) {
       case ChartType.Value:
         return this.makeValueChart(context);
       case ChartType.Leaderboard:
@@ -75,7 +75,7 @@ export default class ChartRoute extends CollectionRoute {
       case ChartType.Line:
         return this.makeLineChart(context);
       default:
-        throw new ValidationError(`Invalid Chart type "${type}"`);
+        throw new ValidationError(`Invalid Chart type "${chartRequest.type}"`);
     }
   }
 

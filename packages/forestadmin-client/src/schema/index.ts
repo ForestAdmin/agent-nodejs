@@ -1,9 +1,9 @@
 import crypto from 'crypto';
 import JSONAPISerializer from 'json-api-serializer';
 
+import { ForestServerCollection } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import ServerUtils from '../utils/server';
-import { ForestServerCollection } from './types';
 
 type SerializedSchema = { meta: { schemaFileHash: string } };
 

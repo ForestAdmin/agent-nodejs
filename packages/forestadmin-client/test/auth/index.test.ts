@@ -37,7 +37,7 @@ describe('AuthService', () => {
       '/oidc/.well-known/openid-configuration',
     );
     expect(issuerMock).toHaveBeenCalledWith(fakeConfig);
-    expect(registerMock).toBeCalledWith(
+    expect(registerMock).toHaveBeenCalledWith(
       { token_endpoint_auth_method: 'none' },
       { initialAccessToken: options.envSecret },
     );

@@ -1,10 +1,10 @@
 import { ActionResult, ActionScope } from '@forestadmin/datasource-toolkit';
 
+import { DynamicField } from './fields';
 import { TCollectionName, TSchema } from '../../../templates';
 import ActionContext from '../context/base';
 import ActionContextSingle from '../context/single';
 import ResultBuilder from '../result-builder';
-import { DynamicField } from './fields';
 
 export { ActionContext, ActionContextSingle };
 

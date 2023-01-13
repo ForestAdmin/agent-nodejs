@@ -26,7 +26,9 @@ export default class Authentication extends BaseRoute {
   }
 
   private async handleAuthentication(context: Context): Promise<void> {
-    const renderingId = Number(context.request.body?.renderingId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = context.request.body as any;
+    const renderingId = Number(body?.renderingId);
     Authentication.checkRenderingId(renderingId);
 
     const authorizationUrl = this.client.authorizationUrl({

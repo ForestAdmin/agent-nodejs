@@ -1,8 +1,8 @@
 import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
 
+import BaseRoute from './base-route';
 import { ForestAdminHttpDriverServices } from '../services';
 import { AgentOptionsWithDefaults, RouteType } from '../types';
-import BaseRoute from './base-route';
 
 export default abstract class CollectionRoute extends BaseRoute {
   type = RouteType.PrivateRoute;

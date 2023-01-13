@@ -1,7 +1,5 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 
-import { ForestAdminHttpDriverServices as Services } from '../services';
-import { AgentOptionsWithDefaults as Options } from '../types';
 import CollectionApiChartRoute from './access/api-chart-collection';
 import DataSourceApiChartRoute from './access/api-chart-datasource';
 import Chart from './access/chart';
@@ -27,6 +25,8 @@ import ScopeInvalidation from './security/scope-invalidation';
 import ErrorHandling from './system/error-handling';
 import HealthCheck from './system/healthcheck';
 import Logger from './system/logger';
+import { ForestAdminHttpDriverServices as Services } from '../services';
+import { AgentOptionsWithDefaults as Options } from '../types';
 
 export const ROOT_ROUTES_CTOR = [
   Authentication,

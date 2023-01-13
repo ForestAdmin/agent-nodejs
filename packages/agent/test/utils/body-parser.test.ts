@@ -61,7 +61,7 @@ describe('BodyParser', () => {
           data: [{ bad_id: '2d162303-78bf-599e-b197-93590ac3d315' }],
         },
       });
-      expect(() => BodyParser.parseSelectionIds(setupSchema(), context)).toThrowError();
+      expect(() => BodyParser.parseSelectionIds(setupSchema(), context)).toThrow();
     });
 
     describe('when some attributes are badly provided', () => {
@@ -115,9 +115,7 @@ describe('BodyParser', () => {
         ],
       ])('should throw an error when %s', async (_, body, errorMessage) => {
         const context = createMockContext({ requestBody: body });
-        expect(() => BodyParser.parseSelectionIds(setupSchema(), context)).toThrowError(
-          errorMessage,
-        );
+        expect(() => BodyParser.parseSelectionIds(setupSchema(), context)).toThrow(errorMessage);
       });
     });
   });

@@ -7,10 +7,10 @@ import {
   RecordValidator,
 } from '@forestadmin/datasource-toolkit';
 
-import CollectionDecorator from '../../collection-decorator';
-import DataSourceDecorator from '../../datasource-decorator';
 import WriteCustomizationContext from './context';
 import { WriteDefinition } from './types';
+import CollectionDecorator from '../../collection-decorator';
+import DataSourceDecorator from '../../datasource-decorator';
 
 export default class WriteReplacerCollectionDecorator extends CollectionDecorator {
   private handlers: Record<string, WriteDefinition> = {};

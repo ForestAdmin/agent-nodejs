@@ -28,11 +28,11 @@ export default class AssociateRelatedRoute extends RelationRoute {
 
   public async handleAssociateRelatedRoute(context: Context): Promise<void> {
     await this.services.authorization.assertCanEdit(context, this.collection.name);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = context.request.body as any;
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
-    const targetedRelationId = IdUtils.unpackId(
-      this.foreignCollection.schema,
-      context.request.body?.data[0].id,
-    );
+    const targetedRelationId = IdUtils.unpackId(this.foreignCollection.schema, body?.data[0].id);
     const scope = await this.services.authorization.getScope(this.foreignCollection, context);
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
     const caller = QueryStringParser.parseCaller(context);

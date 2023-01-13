@@ -27,7 +27,7 @@ describe('Utils > Aggregation', () => {
       const { model } = setup();
       const aggregationUtils = new AggregationUtils(model);
 
-      expect(() => aggregationUtils.quoteField('unknown')).toThrowError(
+      expect(() => aggregationUtils.quoteField('unknown')).toThrow(
         'Invalid access: "unknown" on "model" does not exist.',
       );
     });

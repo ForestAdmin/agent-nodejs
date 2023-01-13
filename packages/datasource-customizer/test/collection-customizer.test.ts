@@ -105,7 +105,7 @@ describe('Builder > Collection', () => {
 
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({ countable: false });
       expect(self.schema.countable).toBeFalsy();
       expect(self).toEqual(customizer);
@@ -120,7 +120,7 @@ describe('Builder > Collection', () => {
       const self = customizer.disableCount();
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({ countable: false });
       expect(self.schema.countable).toBeFalsy();
       expect(self).toEqual(customizer);
@@ -135,7 +135,7 @@ describe('Builder > Collection', () => {
       const self = customizer.renameField('firstName', 'renamed');
       const dataSource = await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'renamed');
       expect(self.schema.fields.renamed).toBeUndefined();
       expect(dataSource.getCollection('authors').schema.fields.renamed).toBeDefined();
@@ -151,7 +151,7 @@ describe('Builder > Collection', () => {
       const self = customizer.removeField('firstName', 'lastName');
       const dataSource = await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(2);
+      expect(spy).toHaveBeenCalledTimes(2);
       expect(spy).toHaveBeenNthCalledWith(1, 'firstName', false);
       expect(spy).toHaveBeenNthCalledWith(2, 'lastName', false);
       expect(self.schema.fields.firstName).toBeDefined();
@@ -171,7 +171,7 @@ describe('Builder > Collection', () => {
       const self = customizer.addAction('action name', actionDefinition);
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('action name', actionDefinition);
       expect(self.schema.actions['action name']).toBeDefined();
       expect(self).toEqual(customizer);
@@ -187,7 +187,7 @@ describe('Builder > Collection', () => {
       const self = customizer.addChart('chart name', chartDefinition);
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('chart name', chartDefinition);
       expect(self.schema.charts).toContain('chart name');
       expect(self).toEqual(customizer);
@@ -202,7 +202,7 @@ describe('Builder > Collection', () => {
       const self = customizer.addFieldValidation('firstName', 'LongerThan', 5);
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', { operator: 'LongerThan', value: 5 });
       expect((self.schema.fields.firstName as ColumnSchema).validation).toStrictEqual([
         { operator: 'LongerThan', value: 5 },
@@ -219,7 +219,7 @@ describe('Builder > Collection', () => {
       const self = customizer.importField('firstNameCopy', { path: 'firstName' });
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstNameCopy', {
         columnType: 'String',
         dependencies: ['firstName'],
@@ -287,7 +287,7 @@ describe('Builder > Collection', () => {
           readonly: false,
         });
 
-        await expect(dsc.getDataSource(logger)).rejects.toThrowError(
+        await expect(dsc.getDataSource(logger)).rejects.toThrow(
           'Readonly option should not be false because the field' +
             ' "translator:nameInReadOnly" is not writable',
         );
@@ -320,7 +320,7 @@ describe('Builder > Collection', () => {
       const self = customizer.addField('new field', fieldDefinition);
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
       expect(self.schema.fields['new field']).toBeDefined();
       expect(self).toEqual(customizer);
@@ -350,7 +350,7 @@ describe('Builder > Collection', () => {
       const self = customizer.addField('new field', fieldDefinition);
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
       expect(self.schema.fields['new field']).toBeDefined();
       expect(self).toEqual(customizer);
@@ -375,7 +375,7 @@ describe('Builder > Collection', () => {
       });
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstNameCopy', {
         columnType: [{ firstname: 'String', lastName: 'String' }],
         dependencies: ['authorId'],
@@ -408,7 +408,7 @@ describe('Builder > Collection', () => {
       });
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myAuthor', {
         type: 'ManyToOne',
         foreignCollection: 'authors',
@@ -430,7 +430,7 @@ describe('Builder > Collection', () => {
       });
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myBookAuthor', {
         type: 'OneToOne',
         foreignCollection: 'book_author',
@@ -452,7 +452,7 @@ describe('Builder > Collection', () => {
       });
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myBookAuthors', {
         type: 'OneToMany',
         foreignCollection: 'book_author',
@@ -475,7 +475,7 @@ describe('Builder > Collection', () => {
       });
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('myBooks', {
         type: 'ManyToMany',
         foreignCollection: 'books',
@@ -502,7 +502,7 @@ describe('Builder > Collection', () => {
       const self = customizer.addSegment('new segment', generator);
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new segment', generator);
       expect(self.schema.segments).toEqual(expect.arrayContaining(['new segment']));
       expect(self).toEqual(customizer);
@@ -519,7 +519,7 @@ describe('Builder > Collection', () => {
       const self = customizer.emulateFieldSorting('firstName');
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName');
       expect(self).toEqual(customizer);
     });
@@ -536,7 +536,7 @@ describe('Builder > Collection', () => {
       const self = customizer.replaceFieldSorting('firstName', sortClauses);
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', new Sort(...sortClauses));
       expect(self).toEqual(customizer);
     });
@@ -553,7 +553,7 @@ describe('Builder > Collection', () => {
       const self = customizer.replaceFieldWriting('firstName', definition);
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', definition);
       expect(self).toEqual(customizer);
     });
@@ -569,7 +569,7 @@ describe('Builder > Collection', () => {
       const self = customizer.emulateFieldFiltering('lastName');
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(19);
+      expect(spy).toHaveBeenCalledTimes(19);
       expect(self).toEqual(customizer);
     });
   });
@@ -583,7 +583,7 @@ describe('Builder > Collection', () => {
       const self = customizer.emulateFieldOperator('firstName', 'Present');
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'Present');
       expect(self).toEqual(customizer);
     });
@@ -599,7 +599,7 @@ describe('Builder > Collection', () => {
       const self = customizer.replaceFieldOperator('firstName', 'Present', replacer);
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('firstName', 'Present', replacer);
       expect(self).toEqual(customizer);
     });
@@ -616,7 +616,7 @@ describe('Builder > Collection', () => {
       const self = customizer.replaceSearch(replacer);
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith(replacer);
       expect(self).toEqual(customizer);
     });
@@ -632,7 +632,7 @@ describe('Builder > Collection', () => {
       const self = customizer.addHook('Before', 'List', hookHandler);
       await dsc.getDataSource(logger);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('Before', 'List', hookHandler);
       expect(self).toEqual(customizer);
     });

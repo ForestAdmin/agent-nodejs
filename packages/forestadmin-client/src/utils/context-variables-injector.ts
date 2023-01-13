@@ -1,5 +1,5 @@
-import { RawTree, RawTreeBranch } from '../permissions/types';
 import ContextVariables from './context-variables';
+import { RawTree, RawTreeBranch } from '../permissions/types';
 
 export default class ContextVariablesInjector {
   private static isTreeBranch(filter: RawTree): filter is RawTreeBranch {

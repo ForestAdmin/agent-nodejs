@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "@forestadmin/datasource-customizer": "1.5.7",
-    "@types/object-hash": "^3.0.1"
+    "@types/object-hash": "^3.0.2"
   },
   "dependencies": {
     "@forestadmin/datasource-toolkit": "1.2.0",

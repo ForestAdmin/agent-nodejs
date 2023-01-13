@@ -17,7 +17,7 @@ describe('CollectionChartContext', () => {
   const context = new CollectionChartContext(collection, factories.caller.build(), [1, 2]);
 
   test('recordId should throw an error', () => {
-    expect(() => context.recordId).toThrowError(
+    expect(() => context.recordId).toThrow(
       'Collection is using a composite pk: use `context.compositeRecordId`.',
     );
   });

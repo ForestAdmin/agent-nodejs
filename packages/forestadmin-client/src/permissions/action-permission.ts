@@ -1,10 +1,10 @@
-import type { ForestAdminClientOptionsWithDefaults } from '../types';
 import type { RawTreeWithSources } from './types';
+import type { ForestAdminClientOptionsWithDefaults } from '../types';
 
-import { ForestAdminServerInterface } from '../types';
 import generateActionsFromPermissions, {
   ActionPermissions,
 } from './generate-actions-from-permissions';
+import { ForestAdminServerInterface } from '../types';
 
 export default class ActionPermissionService {
   private permissionsPromise: Promise<ActionPermissions> | undefined;

@@ -14,7 +14,9 @@ export default class ScopeInvalidation extends BaseRoute {
 
   /** Route called when scopes are modified so that we don't have to wait for expiration. */
   private async invalidateCache(context: Context): Promise<void> {
-    const renderingId = Number(context.request.body?.renderingId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = context.request.body as any;
+    const renderingId = Number(body?.renderingId);
 
     if (Number.isNaN(renderingId)) {
       throw new ValidationError('Malformed body');

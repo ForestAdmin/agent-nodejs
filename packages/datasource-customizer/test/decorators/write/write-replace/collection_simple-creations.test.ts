@@ -152,7 +152,7 @@ describe('WriteDecorator > Create with no relations', () => {
     test('when the handler returns a unexpected type', async () => {
       decorator.replaceFieldWriting('age', async () => 'RETURN_SHOULD_FAIL');
 
-      await expect(decorator.create(caller, [{ age: '10' }])).rejects.toThrowError(
+      await expect(decorator.create(caller, [{ age: '10' }])).rejects.toThrow(
         'The write handler of age should return an object or nothing.',
       );
     });
@@ -160,7 +160,7 @@ describe('WriteDecorator > Create with no relations', () => {
     test('when the handler returns non existent fields', async () => {
       decorator.replaceFieldWriting('age', () => ({ author: 'Asimov' }));
 
-      await expect(decorator.create(caller, [{ age: '10' }])).rejects.toThrowError(
+      await expect(decorator.create(caller, [{ age: '10' }])).rejects.toThrow(
         'Unknown field: "author"',
       );
     });
@@ -168,7 +168,7 @@ describe('WriteDecorator > Create with no relations', () => {
     test('when the handler returns non existent relations', async () => {
       decorator.replaceFieldWriting('age', () => ({ author: { lastname: 'Asimov' } }));
 
-      await expect(decorator.create(caller, [{ age: '10' }])).rejects.toThrowError(
+      await expect(decorator.create(caller, [{ age: '10' }])).rejects.toThrow(
         'Unknown field: "author"',
       );
     });

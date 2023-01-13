@@ -59,15 +59,11 @@ export default class ArrayTypeGetter {
     columnName: string,
   ): Promise<{ type: string; special: string[] }> {
     const replacements = { tableName, columnName };
+    const [{ type, special }] = await this.sequelize.query<{ type: string; special: string }>(
+      this.query,
+      { replacements, type: QueryTypes.SELECT },
+    );
 
-    const [{ type, special }] = await this.sequelize.query(this.query, {
-      replacements,
-      type: QueryTypes.SELECT,
-    });
-
-    return {
-      type: type.toUpperCase(),
-      special: special ? this.fromArray(special) : [],
-    };
+    return { type: type.toUpperCase(), special: special ? this.fromArray(special) : [] };
   }
 }

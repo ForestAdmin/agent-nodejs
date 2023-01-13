@@ -1,5 +1,3 @@
-import { Chart } from '../charts/types';
-import { PermissionService } from '../types';
 import ActionPermission from './action-permission';
 import {
   generateCollectionActionIdentifier,
@@ -7,6 +5,8 @@ import {
 } from './generate-action-identifier';
 import RenderingPermissionService from './rendering-permission';
 import { CollectionActionEvent, CustomActionEvent } from './types';
+import { Chart } from '../charts/types';
+import { PermissionService } from '../types';
 
 export default class PermissionServiceWithCache implements PermissionService {
   constructor(

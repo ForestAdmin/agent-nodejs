@@ -57,8 +57,9 @@ export default class AuthorizationService {
   }
 
   public async assertCanExecuteChart(context: Context): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const chartRequest = context.request.body as any;
     const { renderingId, id: userId } = context.state.user;
-    const { body: chartRequest } = context.request;
 
     try {
       const canRetrieve = await this.forestAdminClient.permissionService.canExecuteChart({

@@ -196,7 +196,7 @@ describe('RecordValidator', () => {
         RecordValidator.validate(dataSourceBook.getCollection('book'), {
           relation: { name: 'a name' },
         }),
-      ).toThrowError();
+      ).toThrow();
     });
   });
 
@@ -226,7 +226,7 @@ describe('RecordValidator', () => {
         RecordValidator.validate(dataSourceBook.getCollection('book'), {
           relation: { name: 'a name' },
         }),
-      ).not.toThrowError();
+      ).not.toThrow();
     });
   });
 

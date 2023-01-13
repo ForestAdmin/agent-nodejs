@@ -324,7 +324,7 @@ describe('CollectionUtils', () => {
             baseFilter,
             aggregation,
           ),
-        ).rejects.toThrowError(
+        ).rejects.toThrow(
           'Relation aNonSupportedRelationField has invalid type should be one of' +
             ' OneToMany or ManyToMany.',
         );
@@ -428,7 +428,7 @@ describe('CollectionUtils', () => {
             baseFilter,
             factories.projection.build(),
           ),
-        ).rejects.toThrowError(
+        ).rejects.toThrow(
           'Relation aNonSupportedRelationField has invalid type should be one of' +
             ' OneToMany or ManyToMany.',
         );

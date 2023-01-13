@@ -1,7 +1,7 @@
 import { Caller, DataSource } from '@forestadmin/datasource-toolkit';
 
-import { TCollectionName, TSchema } from '../../templates';
 import RelaxedCollection from './collection';
+import { TCollectionName, TSchema } from '../../templates';
 
 /** DataSource wrapper which accepts plain objects in all methods */
 export default class RelaxedDataSource<S extends TSchema = TSchema> {

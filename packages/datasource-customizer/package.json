@@ -23,14 +23,14 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@types/luxon": "^2.0.9",
-    "@types/object-hash": "^2.2.1",
-    "@types/uuid": "^8.3.4"
+    "@types/luxon": "^3.2.0",
+    "@types/object-hash": "^3.0.2",
+    "@types/uuid": "^9.0.0"
   },
   "dependencies": {
     "@forestadmin/datasource-toolkit": "1.2.0",
-    "luxon": "^2.3.0",
+    "luxon": "^3.2.1",
     "object-hash": "^3.0.0",
-    "uuid": "^8.3.2"
+    "uuid": "^9.0.0"
   }
 }

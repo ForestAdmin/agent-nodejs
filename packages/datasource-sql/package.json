@@ -15,7 +15,7 @@
     "@forestadmin/datasource-sequelize": "1.2.5",
     "@forestadmin/datasource-toolkit": "1.2.0",
     "pluralize": "^8.0.0",
-    "sequelize": "6.21.3"
+    "sequelize": "^6.28.0"
   },
   "files": [
     "dist/**/*.js",

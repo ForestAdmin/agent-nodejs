@@ -1,5 +1,7 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
+import PaginatedFilter from './paginated';
+import Filter from './unpaginated';
 import CollectionUtils from '../../../utils/collection';
 import SchemaUtils from '../../../utils/schema';
 import { Caller } from '../../caller';
@@ -10,8 +12,6 @@ import ConditionTreeFactory from '../condition-tree/factory';
 import ConditionTree from '../condition-tree/nodes/base';
 import ConditionTreeLeaf from '../condition-tree/nodes/leaf';
 import Projection from '../projection';
-import PaginatedFilter from './paginated';
-import Filter from './unpaginated';
 
 export default class FilterFactory {
   private static getPreviousConditionTree(

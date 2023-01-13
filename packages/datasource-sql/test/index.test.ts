@@ -6,7 +6,7 @@ describe('createSqlDataSource', () => {
       const factory = createSqlDataSource('invalid');
       const logger = jest.fn();
 
-      await expect(() => factory(logger)).rejects.toThrowError(
+      await expect(() => factory(logger)).rejects.toThrow(
         'Connection Uri "invalid" provided to SQL data source is not valid.' +
           ' Should be <dialect>://<connection>.',
       );

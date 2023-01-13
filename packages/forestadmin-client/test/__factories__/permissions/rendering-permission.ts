@@ -1,8 +1,8 @@
 import { Factory } from 'fishery';
 
+import userPermissionsFactory from './user-permission';
 import RenderingPermissionService from '../../../src/permissions/rendering-permission';
 import { forestAdminServerInterface } from '../index';
-import userPermissionsFactory from './user-permission';
 
 export class RenderingPermissionsFactory extends Factory<RenderingPermissionService> {
   mockAllMethods() {

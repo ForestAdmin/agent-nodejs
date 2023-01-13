@@ -1,8 +1,8 @@
 import { Client, ClientAuthMethod, Issuer, IssuerMetadata } from 'openid-client';
 
+import { UserInfo } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import ServerUtils from '../utils/server';
-import { UserInfo } from './types';
 
 export default class AuthService {
   constructor(private options: ForestAdminClientOptionsWithDefaults) {}

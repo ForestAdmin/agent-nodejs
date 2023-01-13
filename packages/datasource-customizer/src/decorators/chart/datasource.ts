@@ -1,10 +1,10 @@
 import { Caller, Chart, DataSource, DataSourceSchema } from '@forestadmin/datasource-toolkit';
 
-import AgentCustomizationContext from '../../context/agent-context';
-import DataSourceDecorator from '../datasource-decorator';
 import ChartCollectionDecorator from './collection';
 import ResultBuilder from './result-builder';
 import { DataSourceChartDefinition } from './types';
+import AgentCustomizationContext from '../../context/agent-context';
+import DataSourceDecorator from '../datasource-decorator';
 
 export default class ChartDataSourceDecorator extends DataSourceDecorator<ChartCollectionDecorator> {
   private charts: Record<string, DataSourceChartDefinition> = {};

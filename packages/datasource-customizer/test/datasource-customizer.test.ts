@@ -88,7 +88,7 @@ describe('DataSourceCustomizer', () => {
             collection.disableCount();
           })
           .getDataSource(logger),
-      ).rejects.toThrowError("Collection 'unknown' not found");
+      ).rejects.toThrow("Collection 'unknown' not found");
     });
 
     it('should provide collection customizer otherwise', async () => {
@@ -121,7 +121,7 @@ describe('DataSourceCustomizer', () => {
       customizer.addDataSource(async () => dataSource1);
       customizer.addDataSource(async () => dataSource2, { rename: { missing: 'updatedName' } });
 
-      await expect(customizer.getDataSource(logger)).rejects.toThrowError(
+      await expect(customizer.getDataSource(logger)).rejects.toThrow(
         'The given collection name "missing" does not exist',
       );
     });
@@ -136,7 +136,7 @@ describe('DataSourceCustomizer', () => {
         rename: { otherCollection: 'collection' },
       });
 
-      await expect(customizer.getDataSource(logger)).rejects.toThrowError(
+      await expect(customizer.getDataSource(logger)).rejects.toThrow(
         'The given new collection name "collection" is already defined in the dataSource',
       );
     });
@@ -152,7 +152,7 @@ describe('DataSourceCustomizer', () => {
       customizer.addDataSource(async () => dataSource1);
       customizer.addDataSource(async () => dataSource2, { rename: { collection: 'updatedName' } });
 
-      await expect(customizer.getDataSource(logger)).resolves.not.toThrowError();
+      await expect(customizer.getDataSource(logger)).resolves.not.toThrow();
     });
 
     it('should hide collections', async () => {
@@ -175,7 +175,7 @@ describe('DataSourceCustomizer', () => {
       );
       customizer.addDataSource(async () => dataSource, { rename: null as unknown as undefined });
 
-      await expect(customizer.getDataSource(logger)).resolves.not.toThrowError();
+      await expect(customizer.getDataSource(logger)).resolves.not.toThrow();
     });
   });
 

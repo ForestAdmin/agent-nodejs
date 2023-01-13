@@ -1,6 +1,6 @@
+import { EnvironmentPermissionsV4, RenderingPermissionV4, UserPermissionV4 } from './types';
 import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 import ServerUtils from '../utils/server';
-import { EnvironmentPermissionsV4, RenderingPermissionV4, UserPermissionV4 } from './types';
 
 type HttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'envSecret' | 'forestServerUrl'>;
 

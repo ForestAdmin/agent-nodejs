@@ -10,9 +10,9 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { Model, SchemaType } from 'mongoose';
 
+import FilterOperatorsGenerator from './filter-operators';
 import MongooseSchema, { SchemaBranch, SchemaNode } from '../../mongoose/schema';
 import { escape } from '../helpers';
-import FilterOperatorsGenerator from './filter-operators';
 
 /** Generate forest admin schema from mongoose schema */
 export default class FieldsGenerator {
