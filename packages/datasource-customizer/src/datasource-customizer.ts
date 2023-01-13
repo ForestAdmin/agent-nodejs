@@ -151,10 +151,6 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   }
 
   async updateTypesOnFileSystem(typingsPath: string, typingsMaxDepth: number): Promise<void> {
-    return TypingGenerator.updateTypesOnFileSystem(
-      this.stack.validation,
-      typingsPath,
-      typingsMaxDepth,
-    );
+    return TypingGenerator.updateTypesOnFileSystem(this.stack.hook, typingsPath, typingsMaxDepth);
   }
 }
