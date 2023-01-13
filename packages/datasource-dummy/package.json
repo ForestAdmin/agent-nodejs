@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-dummy",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -12,7 +12,7 @@
     "directory": "packages/datasource-dummy"
   },
   "dependencies": {
-    "@forestadmin/datasource-customizer": "1.5.6",
+    "@forestadmin/datasource-customizer": "1.5.7",
     "@forestadmin/datasource-toolkit": "1.2.0"
   },
   "files": [
