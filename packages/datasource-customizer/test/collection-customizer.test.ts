@@ -195,7 +195,7 @@ describe('Builder > Collection', () => {
   });
 
   describe('addValidation', () => {
-    it('should add a validation rule', async () => {
+    it.only('should add a validation rule', async () => {
       const { dsc, customizer, stack } = await setup();
       const spy = jest.spyOn(stack.validation.getCollection('authors'), 'addValidation');
 

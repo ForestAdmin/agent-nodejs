@@ -69,10 +69,10 @@ export default class DecoratorsStack {
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
     last = this.write = new WriteDataSourceDecorator(last);
     last = this.hook = new DataSourceDecorator(last, HookCollectionDecorator);
+    last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
     // is consistent.
-    last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);
     last = this.publication = new DataSourceDecorator(last, PublicationFieldCollectionDecorator);
     last = this.renameField = new DataSourceDecorator(last, RenameFieldCollectionDecorator);
     /* eslint-enable no-multi-assign */

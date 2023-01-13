@@ -31,7 +31,7 @@ export default class CollectionCustomizer<
   readonly name: string;
 
   get schema(): CollectionSchema {
-    return this.stack.hook.getCollection(this.name).schema;
+    return this.stack.validation.getCollection(this.name).schema;
   }
 
   constructor(dataSourceCustomizer: DataSourceCustomizer<S>, stack: DecoratorsStack, name: string) {
