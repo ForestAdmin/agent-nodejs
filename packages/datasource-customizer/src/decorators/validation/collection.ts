@@ -23,7 +23,8 @@ export default class ValidationDecorator extends CollectionDecorator {
     FieldValidator.validate(this, name);
 
     const field = this.childCollection.schema.fields[name] as ColumnSchema;
-    if (!field) throw new Error('Cannot add validators on a relation, use the foreign key instead');
+    if (field?.type !== 'Column')
+      throw new Error('Cannot add validators on a relation, use the foreign key instead');
     if (field.isReadOnly) throw new Error('Cannot add validators on a readonly field');
 
     this.validation[name] ??= [];
@@ -56,13 +57,13 @@ export default class ValidationDecorator extends CollectionDecorator {
   }
 
   private validate(record: RecordData, timezone: string, allFields: boolean): void {
-    for (const [name, field] of Object.entries(this.schema.fields)) {
-      if (field.type === 'Column' && (allFields || record[name] !== undefined)) {
-        // When setting a field to null, we skip all validators but "Present"
-        let rules = field.validation ?? [];
-        if (record[name] === null) rules = rules.filter(r => r.operator === 'Present');
+    for (const [name, rules] of Object.entries(this.validation)) {
+      if (allFields || record[name] !== undefined) {
+        // When setting a field to null, only the "Present" validator is relevant
+        const applicableRules =
+          record[name] === null ? rules.filter(r => r.operator === 'Present') : rules;
 
-        for (const validator of rules) {
+        for (const validator of applicableRules) {
           const rawLeaf = { field: name, ...validator };
           const tree = ConditionTreeFactory.fromPlainObject(rawLeaf) as ConditionTreeLeaf;
           ConditionTreeValidator.validate(tree, this);

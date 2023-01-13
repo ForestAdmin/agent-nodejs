@@ -67,9 +67,9 @@ export default class DecoratorsStack {
     last = this.chart = new ChartDataSourceDecorator(last);
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
-    last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);
     last = this.write = new WriteDataSourceDecorator(last);
     last = this.hook = new DataSourceDecorator(last, HookCollectionDecorator);
+    last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
     // is consistent.
