@@ -1,4 +1,4 @@
-Relationships that point to a single record are displayed in the frontend as links.
+Relationships that point to a single record are displayed in the GUI as links.
 
 Once configured, they can be used in
 [charts](https://docs.forestadmin.com/user-guide/dashboards/charts),
@@ -7,6 +7,10 @@ Once configured, they can be used in
 [segments](https://docs.forestadmin.com/user-guide/collections/segments).
 
 ![Many-to-One relation in the table view](../../assets/relationships-single-link.png)
+
+{% hint style="info" %}
+Note that, for performance reasons when sorting a table-view on customizer-defined relations, Forest Admin will always sort on the primary key of the related collection.
+{% endhint %}
 
 ## Many-to-One relations
 
