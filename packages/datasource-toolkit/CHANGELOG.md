@@ -1,3 +1,5 @@
+## @forestadmin/datasource-toolkit [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.2.0...@forestadmin/datasource-toolkit@1.2.1) (2023-01-16)
+
 # @forestadmin/datasource-toolkit [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.4...@forestadmin/datasource-toolkit@1.2.0) (2022-12-22)
 
 
