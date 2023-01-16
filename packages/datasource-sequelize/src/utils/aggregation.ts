@@ -99,15 +99,24 @@ export default class AggregationUtils {
   computeResult(
     rows: Model<unknown, unknown>[],
     groups: Aggregation['groups'],
-    castToNumber: boolean,
+    expectsNumber: boolean,
   ): AggregateResult[] {
-    return rows.map(row => ({
-      value: castToNumber ? Number(row[this.aggregateFieldName]) : row[this.aggregateFieldName],
-      group: (groups ?? []).reduce((memo, { field }) => {
-        memo[field] = Serializer.serializeValue(row[this.getGroupFieldName(field)]);
+    return rows.map(row => {
+      let value = row[this.aggregateFieldName];
 
-        return memo;
-      }, {}),
-    }));
+      // Workaround Sequelize casting sums to strings.
+      // This happens since sequelize@6.27.0 because sequelize implemented support for bigints.
+      if (expectsNumber && typeof value === 'string' && !Number.isNaN(Number(value)))
+        value = Number(value);
+
+      return {
+        value,
+        group: (groups ?? []).reduce((memo, { field }) => {
+          memo[field] = Serializer.serializeValue(row[this.getGroupFieldName(field)]);
+
+          return memo;
+        }, {}),
+      };
+    });
   }
 }

@@ -3,6 +3,7 @@ import {
   Aggregation,
   BaseCollection,
   Caller,
+  CollectionUtils,
   ColumnSchema,
   DataSource,
   Filter,
@@ -121,11 +122,16 @@ export default class SequelizeCollection extends BaseCollection {
     limit?: number,
   ): Promise<AggregateResult[]> {
     let aggregationField = aggregation.field;
+    let aggregationFieldSchema: ColumnSchema | undefined;
 
     if (aggregation.operation === 'Count' || !aggregationField) {
       aggregationField = '*';
     } else {
       aggregationField = this.aggregationUtils.quoteField(aggregationField);
+      aggregationFieldSchema = CollectionUtils.getFieldSchema(
+        this,
+        aggregation.field,
+      ) as ColumnSchema;
     }
 
     const aggregationFunction = this.fn(
@@ -164,13 +170,10 @@ export default class SequelizeCollection extends BaseCollection {
 
     const rows = await this.model.findAll(query);
 
-    // This is a workaround to avoid Sequelize to cast the result to a string.
-    // This happens since sequelize@6.27.0 because sequelize implemented support for bigints and
-    // seems to be casting some integers to strings even when integers are expected.
-    const castToNumbers =
-      aggregation.operation === 'Count' ||
-      (this.schema.fields[aggregation.field] as ColumnSchema).columnType === 'Number';
-
-    return this.aggregationUtils.computeResult(rows, aggregation.groups, castToNumbers);
+    return this.aggregationUtils.computeResult(
+      rows,
+      aggregation.groups,
+      aggregationFieldSchema?.columnType === 'Number',
+    );
   }
 }

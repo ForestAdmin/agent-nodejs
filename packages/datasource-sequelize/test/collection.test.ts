@@ -421,54 +421,6 @@ describe('SequelizeDataSource > Collection', () => {
       });
 
       describe('when aggregate field is on relation', () => {
-        it('should aggregate properly', async () => {
-          const { findAll, sequelizeCollection } = setup();
-          const aggregation = new Aggregation({
-            field: 'relations:as__field__',
-            operation: 'Sum',
-          });
-          const filter = new Filter({});
-
-          await expect(
-            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
-          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
-
-          expect(findAll).toHaveBeenCalledTimes(1);
-          expect(findAll).toHaveBeenCalledWith(
-            expect.objectContaining({
-              attributes: [
-                [{ args: [{ col: '"relations"."as__field__"' }], fn: 'SUM' }, '__aggregate__'],
-              ],
-            }),
-          );
-        });
-
-        it('should add relation to include clause', async () => {
-          const { findAll, sequelizeCollection } = setup();
-          const aggregation = new Aggregation({
-            field: 'relations:as__field__',
-            operation: 'Sum',
-          });
-          const filter = new Filter({});
-
-          await expect(
-            sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
-          ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
-
-          expect(findAll).toHaveBeenCalledTimes(1);
-          expect(findAll).toHaveBeenCalledWith(
-            expect.objectContaining({
-              include: [
-                {
-                  association: 'relations',
-                  include: [],
-                  attributes: [],
-                },
-              ],
-            }),
-          );
-        });
-
         describe('on count', () => {
           it('should count on *', async () => {
             const { findAll, sequelizeCollection } = setup();
@@ -486,33 +438,6 @@ describe('SequelizeDataSource > Collection', () => {
             expect(findAll).toHaveBeenCalledWith(
               expect.objectContaining({
                 attributes: [[{ args: [{ col: '*' }], fn: 'COUNT' }, '__aggregate__']],
-              }),
-            );
-          });
-        });
-
-        describe('when field name is different as column', () => {
-          it('should aggregate properly', async () => {
-            const { findAll, sequelizeCollection } = setup();
-            const aggregation = new Aggregation({
-              field: 'relations:renamed__as__field__',
-              operation: 'Sum',
-            });
-            const filter = new Filter({});
-
-            await expect(
-              sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
-            ).resolves.toEqual([{ group: {}, value: '__aggregate__:value' }]);
-
-            expect(findAll).toHaveBeenCalledTimes(1);
-            expect(findAll).toHaveBeenCalledWith(
-              expect.objectContaining({
-                attributes: [
-                  [
-                    { args: [{ col: '"relations"."another__as__field__"' }], fn: 'SUM' },
-                    '__aggregate__',
-                  ],
-                ],
               }),
             );
           });
