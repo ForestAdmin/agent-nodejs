@@ -97,23 +97,17 @@ export default class AggregationUtils {
   }
 
   computeResult(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rows: Model<any, any>[],
-    aggregationQueryGroup: Aggregation['groups'],
+    rows: Model<unknown, unknown>[],
+    groups: Aggregation['groups'],
+    castToNumber: boolean,
   ): AggregateResult[] {
-    return rows.map(aggregate => {
-      const aggregateResult = {
-        value: aggregate[this.aggregateFieldName] as number,
-        group: {},
-      };
+    return rows.map(row => ({
+      value: castToNumber ? Number(row[this.aggregateFieldName]) : row[this.aggregateFieldName],
+      group: groups.reduce((memo, { field }) => {
+        memo[field] = Serializer.serializeValue(row[this.getGroupFieldName(field)]);
 
-      aggregationQueryGroup?.forEach(({ field }) => {
-        aggregateResult.group[field] = Serializer.serializeValue(
-          aggregate[this.getGroupFieldName(field)],
-        );
-      });
-
-      return aggregateResult;
-    });
+        return memo;
+      }, {}),
+    }));
   }
 }
