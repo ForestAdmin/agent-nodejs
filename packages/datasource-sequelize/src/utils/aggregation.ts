@@ -103,7 +103,7 @@ export default class AggregationUtils {
   ): AggregateResult[] {
     return rows.map(row => ({
       value: castToNumber ? Number(row[this.aggregateFieldName]) : row[this.aggregateFieldName],
-      group: groups.reduce((memo, { field }) => {
+      group: (groups ?? []).reduce((memo, { field }) => {
         memo[field] = Serializer.serializeValue(row[this.getGroupFieldName(field)]);
 
         return memo;
