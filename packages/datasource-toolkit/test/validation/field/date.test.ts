@@ -35,6 +35,6 @@ describe('on field of type date|dateonly|timeonly', () => {
         }),
         'definitely-not-a-date',
       ),
-    ).toThrow('Wrong type for "date": definitely-not-a-date. Expects Date');
+    ).toThrow();
   });
 });

@@ -21,7 +21,7 @@ describe('when the field is an enum', () => {
     });
 
     expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-      'The given enum value(s) [aRandomValue] is not listed in [anAllowedValue]',
+      'The given enum value(s) aRandomValue is not listed in [anAllowedValue]',
     );
   });
 
@@ -44,7 +44,7 @@ describe('when the field is an enum', () => {
     });
 
     expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-      'The given enum value(s) [allowedValue,aRandomValue] is not listed in [allowedValue]',
+      'The given enum value(s) aRandomValue is not listed in [allowedValue]',
     );
   });
 

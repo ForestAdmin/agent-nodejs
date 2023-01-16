@@ -1,6 +1,5 @@
 import { MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE } from './rules';
 import TypeGetter from './type-getter';
-import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 import { ValidationError } from '../errors';
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
@@ -24,12 +23,7 @@ export default class FieldValidator {
       }
 
       if (values !== undefined) {
-        values.forEach(value =>
-          FieldValidator.validateValue(field, schema, value, [
-            schema.columnType as PrimitiveTypes,
-            ValidationPrimaryTypes.Null,
-          ]),
-        );
+        values.forEach(value => FieldValidator.validateValue(field, schema, value));
       }
     } else {
       const prefix = field.substring(0, dotIndex);
@@ -52,11 +46,15 @@ export default class FieldValidator {
     }
   }
 
+  static validateValueForId(field: string, schema: ColumnSchema, value: unknown): void {
+    FieldValidator.validateValue(field, schema, value, [schema.columnType as PrimitiveTypes]);
+  }
+
   static validateValue(
     field: string,
     schema: ColumnSchema,
     value: unknown,
-    allowedTypes: readonly (PrimitiveTypes | ValidationTypes)[] = MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE[
+    allowedTypes: readonly PrimitiveTypes[] = MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE[
       schema.columnType as PrimitiveTypes
     ],
   ): void {
@@ -67,31 +65,25 @@ export default class FieldValidator {
 
     const type = TypeGetter.get(value, schema.columnType as PrimitiveTypes);
 
-    if (allowedTypes && !allowedTypes.includes(type)) {
-      throw new ValidationError(`Wrong type for "${field}": ${value}. Expects ${allowedTypes}`);
+    if (!allowedTypes?.includes(type)) {
+      throw new ValidationError(
+        `The given value has a wrong type for "${field}": ${value}.\n Expects ${JSON.stringify(
+          allowedTypes,
+        ).slice(1, -1)}`,
+      );
     }
 
     if (value && schema.columnType === 'Enum') {
-      FieldValidator.checkEnumValue(type, schema, value);
+      FieldValidator.checkEnumValue(schema, value);
     }
   }
 
-  private static checkEnumValue(
-    type: PrimitiveTypes | ValidationTypes,
-    columnSchema: ColumnSchema,
-    enumValue: unknown,
-  ) {
-    let isEnumAllowed: boolean;
-
-    if (type === ValidationTypesArray.Enum) {
-      isEnumAllowed = (enumValue as Array<string>).every(v => columnSchema.enumValues.includes(v));
-    } else {
-      isEnumAllowed = columnSchema.enumValues.includes(enumValue as string);
-    }
+  private static checkEnumValue(columnSchema: ColumnSchema, enumValue: unknown) {
+    const isEnumAllowed = columnSchema.enumValues.includes(enumValue as string);
 
     if (!isEnumAllowed) {
       throw new ValidationError(
-        `The given enum value(s) [${enumValue}] is not listed in [${columnSchema.enumValues}]`,
+        `The given enum value(s) ${enumValue} is not listed in [${columnSchema.enumValues}]`,
       );
     }
   }

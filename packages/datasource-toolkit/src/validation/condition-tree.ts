@@ -1,6 +1,9 @@
 import FieldValidator from './field';
-import { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE, MAP_ALLOWED_TYPES_FOR_OPERATOR } from './rules';
-import TypeGetter from './type-getter';
+import {
+  MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE,
+  MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE,
+  MAP_ALLOWED_TYPES_FOR_OPERATOR_CONDITION_TREE,
+} from './rules';
 import { ValidationError } from '../errors';
 import { Collection } from '../interfaces/collection';
 import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
@@ -70,24 +73,9 @@ export default class ConditionTreeValidator {
     conditionTree: ConditionTreeLeaf,
     columnSchema: ColumnSchema,
   ): void {
-    const { value } = conditionTree;
-    const valueType = TypeGetter.get(value, columnSchema.columnType as PrimitiveTypes);
-
-    const allowedTypes = MAP_ALLOWED_TYPES_FOR_OPERATOR[conditionTree.operator];
-
-    if (!allowedTypes.includes(valueType)) {
-      throw new ValidationError(
-        `The given value attribute '${JSON.stringify(
-          value,
-        )} (type: ${valueType})' has an unexpected value ` +
-          `for the given operator '${conditionTree.operator}'.\n` +
-          `${
-            allowedTypes.length === 0
-              ? 'The value attribute must be empty.'
-              : `The allowed types of the field value are: [${allowedTypes}].`
-          }`,
-      );
-    }
+    const { value, field } = conditionTree;
+    const allowedTypes = MAP_ALLOWED_TYPES_FOR_OPERATOR_CONDITION_TREE[conditionTree.operator];
+    this.validateValues(field, columnSchema, value, allowedTypes);
   }
 
   private static throwIfOperatorNotAllowedWithColumnType(
@@ -121,7 +109,23 @@ export default class ConditionTreeValidator {
       operator !== 'PreviousXDays' &&
       operator !== 'PreviousXDaysToDate'
     ) {
-      FieldValidator.validateValue(field, columnSchema, value);
+      const types = MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE[columnSchema.columnType as PrimitiveTypes];
+      this.validateValues(field, columnSchema, value, types);
+    }
+  }
+
+  private static validateValues(
+    field: string,
+    columnSchema: ColumnSchema,
+    value: unknown,
+    allowedTypes: readonly PrimitiveTypes[],
+  ): void {
+    if (Array.isArray(value)) {
+      (value as Array<unknown>).forEach(itemValue =>
+        FieldValidator.validateValue(field, columnSchema, itemValue, allowedTypes),
+      );
+    } else {
+      FieldValidator.validateValue(field, columnSchema, value, allowedTypes);
     }
   }
 }

@@ -1,4 +1,3 @@
-import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 import { Operator } from '../interfaces/query/condition-tree/nodes/operators';
 import { PrimitiveTypes } from '../interfaces/schema';
 
@@ -55,22 +54,22 @@ export const MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE: Readonly<
 });
 
 export const MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE: Readonly<
-  Record<PrimitiveTypes, readonly (ValidationTypes | PrimitiveTypes)[]>
+  Record<PrimitiveTypes, readonly PrimitiveTypes[]>
 > = Object.freeze({
-  String: ['String', ValidationTypesArray.String, ValidationPrimaryTypes.Null],
-  Number: ['Number', ValidationTypesArray.Number, ValidationPrimaryTypes.Null],
-  Boolean: ['Boolean', ValidationTypesArray.Boolean, ValidationPrimaryTypes.Null],
-  Enum: ['Enum', ValidationTypesArray.Enum, ValidationPrimaryTypes.Null],
-  Date: ['Date', ValidationPrimaryTypes.Null],
-  Dateonly: ['Dateonly', ValidationPrimaryTypes.Null],
-  Json: ['Json', ValidationTypesArray.Json, ValidationPrimaryTypes.Null],
-  Point: ['Point', ValidationPrimaryTypes.Null],
-  Timeonly: ['Timeonly', ValidationPrimaryTypes.Null],
-  Uuid: ['Uuid', ValidationTypesArray.Uuid, ValidationPrimaryTypes.Null],
+  String: ['String', null],
+  Number: ['Number', null],
+  Boolean: ['Boolean', null],
+  Enum: ['Enum', null],
+  Date: ['Date', null],
+  Dateonly: ['Dateonly', null],
+  Json: ['Json', null],
+  Point: ['Point', null],
+  Timeonly: ['Timeonly', null],
+  Uuid: ['Uuid', null],
 });
 
-function computeAllowedTypesForOperators(): Record<Operator, PrimitiveTypes[]> {
-  return Object.keys(MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE).reduce((mapMemo, type) => {
+const defaultsOperators = Object.keys(MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE).reduce(
+  (mapMemo, type) => {
     const allowedOperators = MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE[type];
     allowedOperators.forEach(operator => {
       if (mapMemo[operator]) {
@@ -81,17 +80,18 @@ function computeAllowedTypesForOperators(): Record<Operator, PrimitiveTypes[]> {
     });
 
     return mapMemo;
-  }, {} as Record<Operator, PrimitiveTypes[]>);
-}
+  },
+  {} as Record<Operator, PrimitiveTypes[]>,
+);
 
-const NO_TYPES_ALLOWED: ValidationTypes[] = [ValidationPrimaryTypes.Null];
-export const MAP_ALLOWED_TYPES_FOR_OPERATOR: Readonly<
-  Record<Operator, readonly (ValidationTypes | PrimitiveTypes)[]>
+const NO_TYPES_ALLOWED = [null];
+export const MAP_ALLOWED_TYPES_FOR_OPERATOR_CONDITION_TREE: Readonly<
+  Record<Operator, readonly PrimitiveTypes[]>
 > = Object.freeze({
-  ...computeAllowedTypesForOperators(),
-  In: Object.values(ValidationTypesArray),
-  NotIn: Object.values(ValidationTypesArray),
-  IncludesAll: Object.values(ValidationTypesArray),
+  ...defaultsOperators,
+  In: [...defaultsOperators.In, null],
+  NotIn: [...defaultsOperators.NotIn, null],
+  IncludesAll: [...defaultsOperators.IncludesAll, null],
 
   Blank: NO_TYPES_ALLOWED,
   Missing: NO_TYPES_ALLOWED,

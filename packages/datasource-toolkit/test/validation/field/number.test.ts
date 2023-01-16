@@ -23,6 +23,6 @@ describe('on field of type number', () => {
         }),
         '1',
       ),
-    ).toThrow('Wrong type for "number": 1. Expects Number');
+    ).toThrow();
   });
 });

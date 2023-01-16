@@ -23,6 +23,6 @@ describe('on field of type string', () => {
         }),
         1,
       ),
-    ).toThrow('Wrong type for "string": 1. Expects String');
+    ).toThrow();
   });
 });

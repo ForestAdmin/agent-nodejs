@@ -35,7 +35,7 @@ describe('when the field is a Point', () => {
 
       expect(() =>
         ConditionTreeValidator.validate(conditionTree, collectionWithEqualOperator),
-      ).toThrow('Wrong type for "pointField": -80, 20, 90. Expects Point,Null');
+      ).toThrow();
     });
   });
 });

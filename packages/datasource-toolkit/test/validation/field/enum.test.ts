@@ -25,6 +25,6 @@ describe('on field of type enum', () => {
         }),
         'd',
       ),
-    ).toThrow('The given enum value(s) [d] is not listed in [a,b,c]');
+    ).toThrow('The given enum value(s) d is not listed in [a,b,c]');
   });
 });

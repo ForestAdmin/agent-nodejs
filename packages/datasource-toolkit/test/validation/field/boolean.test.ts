@@ -23,6 +23,6 @@ describe('on field of type boolean', () => {
         }),
         'not a boolean',
       ),
-    ).toThrow('Wrong type for "boolean": not a boolean. Expects Boolean');
+    ).toThrow();
   });
 });

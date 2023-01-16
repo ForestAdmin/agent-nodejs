@@ -1,13 +1,10 @@
 import { DateTime } from 'luxon';
 import { validate as uuidValidate } from 'uuid';
 
-import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 import { PrimitiveTypes } from '../interfaces/schema';
 
 export default class TypeGetter {
-  static get(value: unknown, typeContext: PrimitiveTypes): PrimitiveTypes | ValidationTypes {
-    if (Array.isArray(value)) return TypeGetter.getArrayType(value, typeContext);
-
+  static get(value: unknown, typeContext: PrimitiveTypes): PrimitiveTypes {
     if (typeContext === 'Json') return 'Json';
 
     if (typeof value === 'string') return TypeGetter.getTypeFromString(value, typeContext);
@@ -18,34 +15,9 @@ export default class TypeGetter {
 
     if (typeof value === 'boolean') return 'Boolean';
 
-    return ValidationPrimaryTypes.Null;
-  }
+    if (value === null || value === undefined) return null;
 
-  private static getArrayType(
-    value: Array<unknown>,
-    typeContext: PrimitiveTypes,
-  ): ValidationTypes | PrimitiveTypes {
-    if (!ValidationTypesArray[typeContext]) {
-      throw new Error(`Type ${typeContext} is not supported in array`);
-    }
-
-    if (value.length === 0) {
-      return ValidationTypesArray[typeContext];
-    }
-
-    if (TypeGetter.isArrayOf('Number', value, typeContext)) return ValidationTypesArray.Number;
-
-    if (TypeGetter.isArrayOf('Uuid', value, typeContext)) return ValidationTypesArray.Uuid;
-
-    if (TypeGetter.isArrayOf('Boolean', value, typeContext)) return ValidationTypesArray.Boolean;
-
-    if (TypeGetter.isArrayOf('String', value, typeContext)) return ValidationTypesArray.String;
-
-    if (TypeGetter.isArrayOf('Json', value, typeContext)) return ValidationTypesArray.Json;
-
-    if (TypeGetter.isArrayOf('Enum', value, typeContext)) return ValidationTypesArray.Enum;
-
-    throw new Error(`The given value ${value} is not supported`);
+    return undefined;
   }
 
   private static getDateType(value: string): PrimitiveTypes {
@@ -80,15 +52,7 @@ export default class TypeGetter {
     return (
       potentialPoint.length === 2 &&
       typeContext === 'Point' &&
-      TypeGetter.get(potentialPoint.map(Number), 'Number') === ValidationTypesArray.Number
+      potentialPoint.every(point => TypeGetter.get(Number(point), 'Number') === 'Number')
     );
-  }
-
-  private static isArrayOf(
-    type: PrimitiveTypes,
-    values: Array<unknown>,
-    typeContext: PrimitiveTypes,
-  ) {
-    return values.every(item => TypeGetter.get(item, typeContext) === type);
   }
 }

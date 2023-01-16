@@ -75,5 +75,29 @@ describe('FieldValidator', () => {
         );
       });
     });
+
+    describe('when validating a json field with an array value', () => {
+      test('should allow the array as a value', () => {
+        const dataSource = factories.dataSource.buildWithCollection(
+          factories.collection.build({
+            name: 'owner',
+            schema: factories.collectionSchema.build({
+              fields: {
+                jsonField: factories.columnSchema.build({
+                  columnType: 'Json',
+                  filterOperators: new Set(['In']),
+                }),
+              },
+            }),
+          }),
+        );
+
+        expect(() =>
+          FieldValidator.validate(dataSource.getCollection('owner'), 'jsonField', [
+            ['item1', 'item2'],
+          ]),
+        ).not.toThrow();
+      });
+    });
   });
 });
