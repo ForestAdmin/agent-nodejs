@@ -1,6 +1,6 @@
+import { IpWhitelistConfiguration } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import ServerUtils from '../utils/server';
-import { IpWhitelistConfiguration } from './types';
 
 type RawIpWhiteList = {
   data: {

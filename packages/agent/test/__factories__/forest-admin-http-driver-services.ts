@@ -1,8 +1,8 @@
 import { Factory } from 'fishery';
 
-import { ForestAdminHttpDriverServices } from '../../src/services';
 import factoryAuthorization from './authorization/authorization';
 import factorySerializer from './serializer';
+import { ForestAdminHttpDriverServices } from '../../src/services';
 
 export default Factory.define<ForestAdminHttpDriverServices>(() => ({
   serializer: factorySerializer.build(),

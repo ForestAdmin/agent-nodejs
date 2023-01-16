@@ -25,12 +25,14 @@ export default class UpdateRelation extends RelationRoute {
   }
 
   public async handleUpdateRelationRoute(context: Context): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = context.request.body as any;
     const relation = this.collection.schema.fields[this.relationName];
     const caller = QueryStringParser.parseCaller(context);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 
-    const linkedId = context.request.body?.data?.id
-      ? IdUtils.unpackId(this.foreignCollection.schema, context.request.body.data.id)
+    const linkedId = body?.data?.id
+      ? IdUtils.unpackId(this.foreignCollection.schema, body.data.id)
       : null;
 
     if (relation.type === 'ManyToOne') {

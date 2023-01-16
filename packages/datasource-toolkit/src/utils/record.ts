@@ -1,6 +1,6 @@
+import SchemaUtils from './schema';
 import { CompositeId, RecordData } from '../interfaces/record';
 import { CollectionSchema } from '../interfaces/schema';
-import SchemaUtils from './schema';
 
 export default class RecordUtils {
   static getPrimaryKey(schema: CollectionSchema, record: RecordData): CompositeId {

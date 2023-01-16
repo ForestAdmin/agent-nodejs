@@ -210,7 +210,7 @@ describe('AuthorizationService', () => {
         new EmptySQLQueryError(),
       );
 
-      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrowError(
+      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrow(
         new EmptySQLQueryError(),
       );
 
@@ -249,7 +249,7 @@ describe('AuthorizationService', () => {
         new ChainedSQLQueryError(),
       );
 
-      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrowError(
+      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrow(
         new ChainedSQLQueryError(),
       );
 
@@ -288,7 +288,7 @@ describe('AuthorizationService', () => {
         new NonSelectSQLQueryError(),
       );
 
-      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrowError(
+      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrow(
         new NonSelectSQLQueryError(),
       );
 
@@ -327,9 +327,7 @@ describe('AuthorizationService', () => {
         new Error('unknown'),
       );
 
-      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrowError(
-        'unknown',
-      );
+      await expect(authorizationService.assertCanExecuteChart(context)).rejects.toThrow('unknown');
     });
   });
 

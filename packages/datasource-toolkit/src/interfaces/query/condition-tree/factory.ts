@@ -1,11 +1,11 @@
-import RecordUtils from '../../../utils/record';
-import SchemaUtils from '../../../utils/schema';
-import { CompositeId, RecordData } from '../../record';
-import { CollectionSchema, ColumnSchema } from '../../schema';
 import ConditionTree from './nodes/base';
 import ConditionTreeBranch, { Aggregator } from './nodes/branch';
 import ConditionTreeLeaf from './nodes/leaf';
 import { Operator } from './nodes/operators';
+import RecordUtils from '../../../utils/record';
+import SchemaUtils from '../../../utils/schema';
+import { CompositeId, RecordData } from '../../record';
+import { CollectionSchema, ColumnSchema } from '../../schema';
 
 export type GenericTreeBranch = { aggregator: Aggregator; conditions: Array<GenericTree> };
 export type GenericTreeLeaf = { field: string; operator: Operator; value?: unknown };

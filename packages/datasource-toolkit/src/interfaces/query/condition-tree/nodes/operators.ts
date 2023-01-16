@@ -62,4 +62,4 @@ export const otherOperators = [
 
 export const allOperators = [...uniqueOperators, ...intervalOperators, ...otherOperators] as const;
 
-export type Operator = typeof allOperators[number];
+export type Operator = (typeof allOperators)[number];

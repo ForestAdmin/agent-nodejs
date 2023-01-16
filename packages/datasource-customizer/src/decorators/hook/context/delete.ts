@@ -2,8 +2,8 @@
 
 import { Caller, Collection, Filter } from '@forestadmin/datasource-toolkit';
 
-import { TCollectionName, TFilter, TSchema } from '../../../templates';
 import HookContext from './hook';
+import { TCollectionName, TFilter, TSchema } from '../../../templates';
 
 export class HookBeforeDeleteContext<
   S extends TSchema = TSchema,

@@ -1,3 +1,4 @@
+import SchemaUtils from './schema';
 import { Caller } from '../interfaces/caller';
 import { Collection } from '../interfaces/collection';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
@@ -8,7 +9,6 @@ import Filter from '../interfaces/query/filter/unpaginated';
 import Projection from '../interfaces/query/projection';
 import { CompositeId, RecordData } from '../interfaces/record';
 import { FieldSchema, RelationSchema } from '../interfaces/schema';
-import SchemaUtils from './schema';
 
 export default class CollectionUtils {
   static getFieldSchema(collection: Collection, path: string): FieldSchema {

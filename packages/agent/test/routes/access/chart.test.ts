@@ -908,7 +908,7 @@ describe('ChartRoute', () => {
             ...defaultContext,
           });
 
-          await expect(chart.handleChart(context)).rejects.toThrowError(
+          await expect(chart.handleChart(context)).rejects.toThrow(
             new ValidationError(
               'Failed to generate leaderboard chart: parameters do not match pre-requisites',
             ),

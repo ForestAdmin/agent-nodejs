@@ -287,7 +287,7 @@ describe('ActionAuthorizationService', () => {
                 filterForAllCaller,
                 caller,
               }),
-            ).rejects.toThrowError(new InvalidActionConditionError());
+            ).rejects.toThrow(new InvalidActionConditionError());
           },
         );
 
@@ -309,7 +309,7 @@ describe('ActionAuthorizationService', () => {
                 filterForAllCaller,
                 caller,
               }),
-            ).rejects.toThrowError(new InvalidActionConditionError());
+            ).rejects.toThrow(new InvalidActionConditionError());
           },
         );
       });

@@ -35,7 +35,7 @@ describe('IpWhitelist', () => {
         });
 
         const ipWhitelistService = new IpWhitelist(services, options);
-        await expect(ipWhitelistService.bootstrap()).resolves.not.toThrowError();
+        await expect(ipWhitelistService.bootstrap()).resolves.not.toThrow();
       });
     });
 
@@ -50,7 +50,7 @@ describe('IpWhitelist', () => {
 
         const ipWhitelistService = new IpWhitelist(services, options);
 
-        await expect(ipWhitelistService.bootstrap()).rejects.toThrowError();
+        await expect(ipWhitelistService.bootstrap()).rejects.toThrow();
       });
     });
   });

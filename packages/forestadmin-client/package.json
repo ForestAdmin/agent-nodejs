@@ -13,10 +13,10 @@
   },
   "dependencies": {
     "json-api-serializer": "^2.6.6",
-    "jsonwebtoken": "^8.5.1",
-    "lru-cache": "^7.3.1",
+    "jsonwebtoken": "^9.0.0",
+    "lru-cache": "^7.14.1",
     "object-hash": "^3.0.0",
-    "openid-client": "5.2.1",
+    "openid-client": "^5.3.1",
     "superagent": "^8.0.6"
   },
   "files": [
@@ -32,9 +32,9 @@
   },
   "devDependencies": {
     "@forestadmin/datasource-toolkit": "1.2.0",
-    "@types/json-api-serializer": "2.6.3",
-    "@types/jsonwebtoken": "^8.5.8",
-    "@types/lru-cache": "^7.6.1",
-    "@types/superagent": "^4.1.15"
+    "@types/json-api-serializer": "^2.6.3",
+    "@types/jsonwebtoken": "^9.0.1",
+    "@types/lru-cache": "^7.10.10",
+    "@types/superagent": "^4.1.16"
   }
 }

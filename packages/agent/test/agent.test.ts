@@ -1,8 +1,8 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import Agent from '../src/agent';
 import * as factories from './__factories__';
+import Agent from '../src/agent';
 
 // Mock routes
 const mockSetupRoute = jest.fn();

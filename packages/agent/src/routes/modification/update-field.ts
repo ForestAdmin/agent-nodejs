@@ -24,8 +24,10 @@ export default class UpdateField extends CollectionRoute {
   public async handleUpdate(context: Context): Promise<void> {
     await this.services.authorization.assertCanEdit(context, this.collection.name);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = context.request.body as any;
     const { field, index, id } = context.params;
-    const subRecord = context.request.body?.data?.attributes;
+    const subRecord = body?.data?.attributes;
 
     // Validate parameters
     // @fixme At the time of writing this route, the Validator does not support composite types

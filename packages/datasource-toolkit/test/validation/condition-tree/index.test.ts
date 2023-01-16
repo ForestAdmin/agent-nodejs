@@ -10,7 +10,7 @@ describe('ConditionTreeValidation', () => {
         const collection = factories.collection.build();
         const conditionTree = new Date() as unknown as ConditionTree;
 
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrowError(
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
           'Unexpected condition tree type',
         );
       });
@@ -23,7 +23,7 @@ describe('ConditionTreeValidation', () => {
           aggregator: 'and' as Aggregator, // should be 'And'
         });
 
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrowError(
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
           "The given aggregator 'and' is not supported. The supported values are: ['Or', 'And']",
         );
       });
@@ -34,7 +34,7 @@ describe('ConditionTreeValidation', () => {
         const collection = factories.collection.build();
         const conditionTree = factories.conditionTreeBranch.build({ conditions: null });
 
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrowError(
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
           `The given conditions 'null' were expected to be an array`,
         );
       });
@@ -57,7 +57,7 @@ describe('ConditionTreeValidation', () => {
           }),
         });
 
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrowError(
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
           "Column not found 'a collection.fieldDoesNotExistInSchema'",
         );
       });
@@ -100,7 +100,7 @@ describe('ConditionTreeValidation', () => {
 
           expect(() =>
             ConditionTreeValidator.validate(conditionTree, dataSource.getCollection('books')),
-          ).not.toThrowError();
+          ).not.toThrow();
         });
       });
 
@@ -157,7 +157,7 @@ describe('ConditionTreeValidation', () => {
           }),
         });
 
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrowError();
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
       });
 
       describe('when there are several fields', () => {
@@ -188,9 +188,7 @@ describe('ConditionTreeValidation', () => {
             }),
           });
 
-          expect(() =>
-            ConditionTreeValidator.validate(conditionTree, collection),
-          ).not.toThrowError();
+          expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
         });
       });
     });
@@ -267,7 +265,7 @@ describe('ConditionTreeValidation', () => {
           }),
         });
 
-        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrowError();
+        expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow();
       });
     });
   });

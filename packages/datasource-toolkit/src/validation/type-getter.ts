@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon';
 import { validate as uuidValidate } from 'uuid';
 
-import { PrimitiveTypes } from '../interfaces/schema';
 import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
+import { PrimitiveTypes } from '../interfaces/schema';
 
 export default class TypeGetter {
   static get(value: unknown, typeContext: PrimitiveTypes): PrimitiveTypes | ValidationTypes {

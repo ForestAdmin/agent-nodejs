@@ -1,8 +1,8 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { ModelAttributes, Sequelize } from 'sequelize';
 
-import { Table } from '../introspection/types';
 import SequelizeTypeFactory from './helpers/sequelize-type';
+import { Table } from '../introspection/types';
 
 export default class ModelBuilder {
   static defineModels(sequelize: Sequelize, logger: Logger, tables: Table[]): void {

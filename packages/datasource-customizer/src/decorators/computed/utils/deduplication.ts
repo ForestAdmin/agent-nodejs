@@ -10,7 +10,7 @@ export default async function transformUniqueValues<Input, Output>(
 
   for (const input of inputs) {
     if (input !== null) {
-      const hash = hashRecord(input);
+      const hash = hashRecord(input as Record<string, unknown>);
 
       if (indexes[hash] === undefined) {
         indexes[hash] = uniqueInputs.length;

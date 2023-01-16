@@ -56,12 +56,15 @@ export default class CollectionApiChartRoute extends CollectionRoute {
   }
 
   private async renderChart(context: Context): Promise<Chart> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = context.request.body as any;
+
     return this.collection.renderChart(
       QueryStringParser.parseCaller(context),
       this.chartName,
       IdUtils.unpackId(
         this.collection.schema,
-        String(context.request.body?.record_id ?? context.request.query?.record_id),
+        String(body?.record_id ?? context.request.query?.record_id),
       ),
     );
   }

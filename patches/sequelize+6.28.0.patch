@@ -72,10 +72,10 @@ index 704fcbb..698c580 100644
    /**
     * Inserts a new record
 diff --git a/node_modules/sequelize/types/model.d.ts b/node_modules/sequelize/types/model.d.ts
-index 7155761..810fb2f 100644
+index ccdb79d..023dd62 100644
 --- a/node_modules/sequelize/types/model.d.ts
 +++ b/node_modules/sequelize/types/model.d.ts
-@@ -1634,6 +1634,8 @@ export interface ModelAttributeColumnOptions<M extends Model = Model> extends Co
+@@ -1637,6 +1637,8 @@ export interface ModelAttributeColumnOptions<M extends Model = Model> extends Co
     */
    values?: readonly string[];
  

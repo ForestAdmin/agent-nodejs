@@ -8,6 +8,7 @@ import {
 import Router from '@koa/router';
 import { Context, Next } from 'koa';
 
+import ActionAuthorizationService from './action-authorization';
 import { ForestAdminHttpDriverServices } from '../../../services';
 import {
   SmartActionApprovalRequestBody,
@@ -21,7 +22,6 @@ import SchemaGeneratorActions from '../../../utils/forest-schema/generator-actio
 import IdUtils from '../../../utils/id';
 import QueryStringParser from '../../../utils/query-string';
 import CollectionRoute from '../../collection-route';
-import ActionAuthorizationService from './action-authorization';
 
 export default class ActionRoute extends CollectionRoute {
   private readonly actionName: string;
@@ -83,7 +83,7 @@ export default class ActionRoute extends CollectionRoute {
       );
     }
 
-    const rawData = context.request.body.data.attributes.values;
+    const rawData = requestBody.data.attributes.values;
 
     // As forms are dynamic, we don't have any way to ensure that we're parsing the data correctly
     // => better send invalid data to the getForm() customer handler than to the execute() one.
@@ -124,6 +124,8 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async handleHook(context: Context): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = context.request.body as any;
     const { id: userId } = context.state.user;
 
     await this.actionAuthorizationService.assertCanRequestCustomActionParameters(
@@ -133,7 +135,7 @@ export default class ActionRoute extends CollectionRoute {
     );
 
     const { dataSource } = this.collection;
-    const forestFields = context.request.body?.data?.attributes?.fields;
+    const forestFields = body?.data?.attributes?.fields;
     const data = forestFields
       ? ForestValueConverter.makeFormDataFromFields(dataSource, forestFields)
       : null;
@@ -171,7 +173,9 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async getRecordSelection(context: Context, includeUserScope = true): Promise<Filter> {
-    const attributes = context.request?.body?.data?.attributes;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = context.request.body as any;
+    const attributes = body?.data?.attributes;
 
     // Match user filter + search + scope? + segment.
     const scope = includeUserScope

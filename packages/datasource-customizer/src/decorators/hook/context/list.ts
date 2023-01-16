@@ -8,8 +8,8 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import { TCollectionName, TFieldName, TPaginatedFilter, TRow, TSchema } from '../../../templates';
 import HookContext from './hook';
+import { TCollectionName, TFieldName, TPaginatedFilter, TRow, TSchema } from '../../../templates';
 
 export class HookBeforeListContext<
   S extends TSchema = TSchema,

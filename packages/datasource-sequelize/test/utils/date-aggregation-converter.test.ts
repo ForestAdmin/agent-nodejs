@@ -10,7 +10,7 @@ describe('Utils > DateAggregationConverter', () => {
         const sequelize = new Sequelize({ dialect: 'postgres' });
         sequelize.getDialect = jest.fn().mockReturnValue('unknown');
         const dateAggregationConverter = new DateAggregationConverter(sequelize);
-        expect(() => dateAggregationConverter.convertToDialect('a__field', 'Day')).toThrowError(
+        expect(() => dateAggregationConverter.convertToDialect('a__field', 'Day')).toThrow(
           'Unsupported dialect: "unknown"',
         );
       });
@@ -51,7 +51,7 @@ describe('Utils > DateAggregationConverter', () => {
         const dateAggregationConverter = setup();
         expect(() =>
           dateAggregationConverter.convertToDialect('a__field', 'unknown' as DateOperation),
-        ).toThrowError('Unknown Date operation: "unknown"');
+        ).toThrow('Unknown Date operation: "unknown"');
       });
 
       it('should return the right aggregation function for Year operation', () => {
@@ -131,7 +131,7 @@ describe('Utils > DateAggregationConverter', () => {
         const dateAggregationConverter = setup();
         expect(() =>
           dateAggregationConverter.convertToDialect('a__field', 'unknown' as DateOperation),
-        ).toThrowError('Unknown Date operation: "unknown"');
+        ).toThrow('Unknown Date operation: "unknown"');
       });
 
       it.each([

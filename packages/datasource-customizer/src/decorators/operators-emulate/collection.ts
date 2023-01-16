@@ -14,10 +14,10 @@ import {
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
+import { OperatorDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
-import { OperatorDefinition } from './types';
 
 export default class OperatorsEmulateCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;

@@ -1,5 +1,5 @@
 diff --git a/node_modules/openid-client/types/index.d.ts b/node_modules/openid-client/types/index.d.ts
-index d54f98a..adbb05d 100644
+index d6b5aa0..471e2b6 100644
 --- a/node_modules/openid-client/types/index.d.ts
 +++ b/node_modules/openid-client/types/index.d.ts
 @@ -433,6 +433,7 @@ export interface MtlsEndpointAliases {

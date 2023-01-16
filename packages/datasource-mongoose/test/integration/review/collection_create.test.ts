@@ -23,7 +23,7 @@ describe('MongooseCollection', () => {
 
     await expect(
       review.create(factories.caller.build(), [{ title: 'forbidden title' }]),
-    ).rejects.toThrowError(ValidationError);
+    ).rejects.toThrow(ValidationError);
   });
 
   it('should return the list of the created records', async () => {

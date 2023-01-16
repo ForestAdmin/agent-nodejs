@@ -8,13 +8,13 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import CollectionDecorator from '../collection-decorator';
-import DataSourceDecorator from '../datasource-decorator';
 import ActionContext from './context/base';
 import ActionContextSingle from './context/single';
 import ResultBuilder from './result-builder';
 import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
 import { DynamicField, ValueOrHandler } from './types/fields';
+import CollectionDecorator from '../collection-decorator';
+import DataSourceDecorator from '../datasource-decorator';
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;

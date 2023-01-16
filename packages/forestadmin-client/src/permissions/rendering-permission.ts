@@ -1,9 +1,5 @@
 import LruCache from 'lru-cache';
 
-import { Chart, QueryChart } from '../charts/types';
-import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
-import ContextVariables from '../utils/context-variables';
-import ContextVariablesInjector from '../utils/context-variables-injector';
 import { hashChartRequest, hashServerCharts } from './hash-chart';
 import isSegmentQueryAllowed from './is-segment-query-authorized';
 import {
@@ -15,6 +11,10 @@ import {
 } from './types';
 import UserPermissionService from './user-permission';
 import verifySQLQuery from './verify-sql-query';
+import { Chart, QueryChart } from '../charts/types';
+import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
+import ContextVariables from '../utils/context-variables';
+import ContextVariablesInjector from '../utils/context-variables-injector';
 
 export type RenderingPermission = {
   team: Team;

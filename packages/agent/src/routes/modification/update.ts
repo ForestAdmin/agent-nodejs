@@ -19,9 +19,9 @@ export default class UpdateRoute extends CollectionRoute {
   public async handleUpdate(context: Context): Promise<void> {
     await this.services.authorization.assertCanEdit(context, this.collection.name);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = context.request.body as any;
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
-
-    const { body } = context.request;
 
     if ('relationships' in body.data) {
       delete body.data.relationships;

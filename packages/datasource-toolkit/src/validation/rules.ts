@@ -1,6 +1,6 @@
+import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 import { Operator } from '../interfaces/query/condition-tree/nodes/operators';
 import { PrimitiveTypes } from '../interfaces/schema';
-import { ValidationPrimaryTypes, ValidationTypes, ValidationTypesArray } from './types';
 
 const BASE_OPERATORS: Operator[] = ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present'];
 

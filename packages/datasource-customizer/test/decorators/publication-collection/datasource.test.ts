@@ -79,13 +79,13 @@ describe('PublicationCollectionDataSourceDecorator', () => {
 
   describe('keepCollectionsMatching', () => {
     it('should throw an error if a name is unknown', () => {
-      expect(() => decoratedDataSource.keepCollectionsMatching(['unknown'])).toThrowError(
+      expect(() => decoratedDataSource.keepCollectionsMatching(['unknown'])).toThrow(
         'Unknown collection name: "unknown"',
       );
 
-      expect(() =>
-        decoratedDataSource.keepCollectionsMatching(undefined, ['unknown']),
-      ).toThrowError('Unknown collection name: "unknown"');
+      expect(() => decoratedDataSource.keepCollectionsMatching(undefined, ['unknown'])).toThrow(
+        'Unknown collection name: "unknown"',
+      );
     });
 
     it('should be able to remove "librariesBooks" collection', () => {

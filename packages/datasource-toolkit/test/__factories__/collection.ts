@@ -1,10 +1,10 @@
 // eslint-disable-next-line max-classes-per-file
 import { Factory } from 'fishery';
 
+import collectionSchemaFactory from './schema/collection-schema';
 import { ActionField } from '../../src/interfaces/action';
 import { Collection } from '../../src/interfaces/collection';
 import { ActionSchema } from '../../src/interfaces/schema';
-import collectionSchemaFactory from './schema/collection-schema';
 
 export class CollectionFactory extends Factory<Collection> {
   buildWithAction(name: string, schema: ActionSchema, fields: ActionField[] = null): Collection {

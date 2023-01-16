@@ -1,8 +1,8 @@
 import { Factory } from 'fishery';
 
-import PermissionServiceWithCache from '../../../src/permissions/permission-with-cache';
 import actionPermissionsFactory from './action-permission';
 import renderingPermissionsFactory from './rendering-permission';
+import PermissionServiceWithCache from '../../../src/permissions/permission-with-cache';
 
 export class PermissionServiceFactory extends Factory<PermissionServiceWithCache> {
   mockAllMethods() {

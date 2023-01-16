@@ -1,7 +1,7 @@
 import { Caller, DataSource } from '@forestadmin/datasource-toolkit';
 
-import { TSchema } from '../templates';
 import RelaxedDataSource from './relaxed-wrappers/datasource';
+import { TSchema } from '../templates';
 
 export default class AgentCustomizationContext<S extends TSchema = TSchema> {
   private realDataSource: DataSource;

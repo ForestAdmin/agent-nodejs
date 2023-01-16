@@ -39,7 +39,7 @@ describe('ChartCollectionDecorator', () => {
     const fn = () =>
       decoratedBook.addChart('childChart', jest.fn().mockResolvedValue({ countCurrent: 2 }));
 
-    expect(fn).toThrowError("Chart 'childChart' already exists.");
+    expect(fn).toThrow("Chart 'childChart' already exists.");
   });
 
   describe('when a chart is added (single pk)', () => {
