@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.6.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.6.2...@forestadmin/agent@1.6.3) (2023-01-16)
+
+
+### Bug Fixes
+
+* when json array is passed to the validator ([#601](https://github.com/ForestAdmin/agent-nodejs/issues/601)) ([f275c22](https://github.com/ForestAdmin/agent-nodejs/commit/f275c223b9338ab3685eb9734fbfdefb4d3a16bf))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.9
+* **@forestadmin/datasource-toolkit:** upgraded to 1.2.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.6
+
 ## @forestadmin/agent [1.6.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.6.1...@forestadmin/agent@1.6.2) (2023-01-16)
 
 
