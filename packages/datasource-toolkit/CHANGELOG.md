@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.2.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.2.1...@forestadmin/datasource-toolkit@1.2.2) (2023-01-16)
+
+
+### Bug Fixes
+
+* when json array is passed to the validator ([#601](https://github.com/ForestAdmin/agent-nodejs/issues/601)) ([f275c22](https://github.com/ForestAdmin/agent-nodejs/commit/f275c223b9338ab3685eb9734fbfdefb4d3a16bf))
+
 ## @forestadmin/datasource-toolkit [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.2.0...@forestadmin/datasource-toolkit@1.2.1) (2023-01-16)
 
 # @forestadmin/datasource-toolkit [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.1.4...@forestadmin/datasource-toolkit@1.2.0) (2022-12-22)
