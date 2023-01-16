@@ -1,3 +1,18 @@
+## @forestadmin/datasource-customizer [1.5.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.8...@forestadmin/datasource-customizer@1.5.9) (2023-01-16)
+
+
+### Bug Fixes
+
+* when json array is passed to the validator ([#601](https://github.com/ForestAdmin/agent-nodejs/issues/601)) ([f275c22](https://github.com/ForestAdmin/agent-nodejs/commit/f275c223b9338ab3685eb9734fbfdefb4d3a16bf))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.2.2
+
 ## @forestadmin/datasource-customizer [1.5.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.7...@forestadmin/datasource-customizer@1.5.8) (2023-01-16)
 
 
