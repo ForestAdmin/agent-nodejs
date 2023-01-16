@@ -9,8 +9,7 @@ Once configured, they can be used in
 ![Many-to-One relation in the table view](../../assets/relationships-single-link.png)
 
 {% hint style="info" %}
-Note that, for performance reasons when sorting a table-view on customizer-defined relations, Forest Admin will always use the `id` column of the related collection.
-This does not apply to native relations, which are sorted by the field that is displayed on the table-view.
+Note that, for performance reasons when sorting a table-view on customizer-defined relations, Forest Admin will always sort on the primary key of the related collection.
 {% endhint %}
 
 ## Many-to-One relations
