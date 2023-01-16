@@ -276,7 +276,7 @@ describe('MongooseDatasource', () => {
           flattenOptions: { aModel: { asFields: ['idontexist'] } },
         });
 
-      expect(fn).toThrowError(`Field 'idontexist' not found.`);
+      expect(fn).toThrow(`Field 'idontexist' not found.`);
     });
 
     test('should throw when crossing array boundary with asFields', async () => {
@@ -286,7 +286,7 @@ describe('MongooseDatasource', () => {
           flattenOptions: { aModel: { asFields: ['nested.objectList.id'] } },
         });
 
-      expect(fn).toThrowError(
+      expect(fn).toThrow(
         'Either add all intermediary arrays to asModels, or remove it from asFields.',
       );
     });
@@ -298,7 +298,7 @@ describe('MongooseDatasource', () => {
           flattenOptions: { aModel: { asModels: ['nested.objectList.id'] } },
         });
 
-      expect(fn).toThrowError(
+      expect(fn).toThrow(
         'Either add all intermediary arrays to asModels, or remove it from asModels.',
       );
     });
@@ -310,7 +310,7 @@ describe('MongooseDatasource', () => {
           flattenOptions: { aModel: { asFields: ['name'] } },
         });
 
-      expect(fn).toThrowError('it is already at the root of the model.');
+      expect(fn).toThrow('it is already at the root of the model.');
     });
 
     test('should throw flattening field at root of virtual model', async () => {
@@ -322,7 +322,7 @@ describe('MongooseDatasource', () => {
           },
         });
 
-      expect(fn).toThrowError('it is already at the root of a collection.');
+      expect(fn).toThrow('it is already at the root of a collection.');
     });
   });
 });
