@@ -173,7 +173,7 @@ export default class SequelizeCollection extends BaseCollection {
     return this.aggregationUtils.computeResult(
       rows,
       aggregation.groups,
-      aggregationFieldSchema?.columnType === 'Number',
+      !aggregationFieldSchema || aggregationFieldSchema?.columnType === 'Number',
     );
   }
 }
