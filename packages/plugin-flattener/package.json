@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/plugin-flattener",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A plugin that allows to flatten columns and relations in Forest Admin",
   "main": "dist/index.js",
   "license": "GPL-3.0",
@@ -24,11 +24,11 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.5.7",
+    "@forestadmin/datasource-customizer": "1.5.8",
     "@types/object-hash": "^3.0.2"
   },
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.2.0",
+    "@forestadmin/datasource-toolkit": "1.2.1",
     "object-hash": "^3.0.0"
   }
 }
