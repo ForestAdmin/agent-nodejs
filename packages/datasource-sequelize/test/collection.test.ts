@@ -309,7 +309,7 @@ describe('SequelizeDataSource > Collection', () => {
 
       const findAll = jest.fn().mockResolvedValue([
         {
-          __aggregate__: 123,
+          __aggregate__: '123',
           __group_field____grouped__: '__group_field__:value',
           renamed__field____grouped__: 'renamed__field__:value',
           'relations:as__field____grouped__': 'relations:as__field__:value',
@@ -407,7 +407,7 @@ describe('SequelizeDataSource > Collection', () => {
 
           await expect(
             sequelizeCollection.aggregate(factories.caller.build(), filter, aggregation),
-          ).resolves.toEqual([{ group: {}, value: 123 }]);
+          ).resolves.toEqual([{ group: {}, value: '123' }]);
 
           expect(findAll).toHaveBeenCalledTimes(1);
           expect(findAll).toHaveBeenCalledWith(
