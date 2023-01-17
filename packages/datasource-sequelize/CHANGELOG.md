@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.2.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.2.7...@forestadmin/datasource-sequelize@1.2.8) (2023-01-17)
+
+
+### Bug Fixes
+
+* **datasource-sequelize:** cast aggregation results when numbers are expected ([#606](https://github.com/ForestAdmin/agent-nodejs/issues/606)) ([11b36b6](https://github.com/ForestAdmin/agent-nodejs/commit/11b36b68214fd68586fec51332d83de9c77df412))
+
 ## @forestadmin/datasource-sequelize [1.2.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.2.6...@forestadmin/datasource-sequelize@1.2.7) (2023-01-16)
 
 
