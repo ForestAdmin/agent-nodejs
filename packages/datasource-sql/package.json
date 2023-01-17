@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-sql",
-  "version": "1.1.11",
+  "version": "1.1.12",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -12,7 +12,7 @@
     "directory": "packages/datasource-sql"
   },
   "dependencies": {
-    "@forestadmin/datasource-sequelize": "1.2.7",
+    "@forestadmin/datasource-sequelize": "1.2.8",
     "@forestadmin/datasource-toolkit": "1.2.2",
     "pluralize": "^8.0.0",
     "sequelize": "^6.28.0"
