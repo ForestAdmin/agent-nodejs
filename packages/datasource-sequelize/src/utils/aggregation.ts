@@ -97,23 +97,26 @@ export default class AggregationUtils {
   }
 
   computeResult(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rows: Model<any, any>[],
-    aggregationQueryGroup: Aggregation['groups'],
+    rows: Model<unknown, unknown>[],
+    groups: Aggregation['groups'],
+    expectsNumber: boolean,
   ): AggregateResult[] {
-    return rows.map(aggregate => {
-      const aggregateResult = {
-        value: aggregate[this.aggregateFieldName] as number,
-        group: {},
+    return rows.map(row => {
+      let value = row[this.aggregateFieldName];
+
+      // Workaround Sequelize casting sums to strings.
+      // This happens since sequelize@6.27.0 because sequelize implemented support for bigints.
+      if (expectsNumber && typeof value === 'string' && !Number.isNaN(Number(value)))
+        value = Number(value);
+
+      return {
+        value,
+        group: (groups ?? []).reduce((memo, { field }) => {
+          memo[field] = Serializer.serializeValue(row[this.getGroupFieldName(field)]);
+
+          return memo;
+        }, {}),
       };
-
-      aggregationQueryGroup?.forEach(({ field }) => {
-        aggregateResult.group[field] = Serializer.serializeValue(
-          aggregate[this.getGroupFieldName(field)],
-        );
-      });
-
-      return aggregateResult;
     });
   }
 }

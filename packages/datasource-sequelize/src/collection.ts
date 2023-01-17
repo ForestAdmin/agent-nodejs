@@ -3,6 +3,8 @@ import {
   Aggregation,
   BaseCollection,
   Caller,
+  CollectionUtils,
+  ColumnSchema,
   DataSource,
   Filter,
   Logger,
@@ -120,11 +122,16 @@ export default class SequelizeCollection extends BaseCollection {
     limit?: number,
   ): Promise<AggregateResult[]> {
     let aggregationField = aggregation.field;
+    let aggregationFieldSchema: ColumnSchema | undefined;
 
     if (aggregation.operation === 'Count' || !aggregationField) {
       aggregationField = '*';
     } else {
       aggregationField = this.aggregationUtils.quoteField(aggregationField);
+      aggregationFieldSchema = CollectionUtils.getFieldSchema(
+        this,
+        aggregation.field,
+      ) as ColumnSchema;
     }
 
     const aggregationFunction = this.fn(
@@ -163,6 +170,10 @@ export default class SequelizeCollection extends BaseCollection {
 
     const rows = await this.model.findAll(query);
 
-    return this.aggregationUtils.computeResult(rows, aggregation.groups);
+    return this.aggregationUtils.computeResult(
+      rows,
+      aggregation.groups,
+      !aggregationFieldSchema || aggregationFieldSchema?.columnType === 'Number',
+    );
   }
 }
