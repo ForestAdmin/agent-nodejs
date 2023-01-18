@@ -1,7 +1,7 @@
 import { Connection } from 'mongoose';
 
+import setupFlattener from './_build-models';
 import MongooseDatasource from '../../../src/datasource';
-import { setupFlattener } from '../_build-models';
 
 describe('Complex flattening', () => {
   let connection: Connection;

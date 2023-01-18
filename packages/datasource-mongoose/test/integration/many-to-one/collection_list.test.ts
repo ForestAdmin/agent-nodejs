@@ -4,8 +4,8 @@ import { Projection, Sort } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Connection, Types } from 'mongoose';
 
+import setupWithManyToOneRelation from './_build-models';
 import MongooseDatasource from '../../../src/datasource';
-import { setupWithManyToOneRelation } from '../_build-models';
 
 describe('MongooseCollection', () => {
   let connection: Connection;

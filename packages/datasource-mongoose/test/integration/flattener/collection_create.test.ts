@@ -3,8 +3,8 @@ import { ConditionTreeLeaf, Filter } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Connection, Types } from 'mongoose';
 
+import setupFlattener from './_build-models';
 import MongooseDatasource from '../../../src/datasource';
-import { setupFlattener } from '../_build-models';
 
 describe('Complex flattening', () => {
   const caller = factories.caller.build();
