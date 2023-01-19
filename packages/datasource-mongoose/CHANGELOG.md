@@ -1,3 +1,18 @@
+# @forestadmin/datasource-mongoose [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.2.6...@forestadmin/datasource-mongoose@1.3.0) (2023-01-19)
+
+
+### Features
+
+* **mongoose:** implement field flattener on top of model splitter ([#593](https://github.com/ForestAdmin/agent-nodejs/issues/593)) ([d340b05](https://github.com/ForestAdmin/agent-nodejs/commit/d340b052235f40c77a07b89c3c47cf6e91d538e8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.3.0
+
 ## @forestadmin/datasource-mongoose [1.2.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.2.5...@forestadmin/datasource-mongoose@1.2.6) (2023-01-16)
 
 
