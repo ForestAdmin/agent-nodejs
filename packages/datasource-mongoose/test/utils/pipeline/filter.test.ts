@@ -7,11 +7,12 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import mongoose, { Model, Schema } from 'mongoose';
 
+import { Stack } from '../../../src/types';
 import FilterGenerator from '../../../src/utils/pipeline/filter';
 
 describe('FilterGenerator', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let model: Model<any>;
+  let model: Model<unknown>;
+  let stack: Stack;
 
   beforeAll(() => {
     const schema = new Schema({
@@ -20,7 +21,8 @@ describe('FilterGenerator', () => {
       author: { identifier: 'ObjectId', firstname: String, lastname: String },
     });
 
-    model = mongoose.model('books', schema);
+    model = mongoose.model<unknown>('books', schema);
+    stack = [{ prefix: null, asFields: [], asModels: [] }];
   });
 
   afterAll(() => {
@@ -33,7 +35,7 @@ describe('FilterGenerator', () => {
         conditionTree: new ConditionTreeLeaf('title', 'ILike', 'Foundation'),
       });
 
-      const pipeline = FilterGenerator.filter(model, null, filter);
+      const pipeline = FilterGenerator.filter(model, stack, filter);
       expect(pipeline).toStrictEqual([{ $match: { title: /^Foundation$/gi } }]);
     });
 
@@ -42,7 +44,7 @@ describe('FilterGenerator', () => {
         conditionTree: new ConditionTreeLeaf('author:identifier', 'NotContains', 'something'),
       });
 
-      const pipeline = FilterGenerator.filter(model, null, filter);
+      const pipeline = FilterGenerator.filter(model, stack, filter);
       expect(pipeline).toStrictEqual([
         { $addFields: { 'author.string_identifier': { $toString: '$author.identifier' } } },
         { $match: { 'author.string_identifier': { $not: /.*something.*/ } } },
@@ -60,7 +62,7 @@ describe('FilterGenerator', () => {
         ]),
       });
 
-      const pipeline = FilterGenerator.filter(model, null, filter);
+      const pipeline = FilterGenerator.filter(model, stack, filter);
       expect(pipeline).toStrictEqual([
         {
           $match: {
@@ -83,7 +85,7 @@ describe('FilterGenerator', () => {
     it('should generate the relevant pipeline', () => {
       const filter = new PaginatedFilter({ page: new Page(100, 150) });
 
-      const pipeline = FilterGenerator.filter(model, null, filter);
+      const pipeline = FilterGenerator.filter(model, stack, filter);
       expect(pipeline).toStrictEqual([{ $skip: 100 }, { $limit: 150 }]);
     });
   });
@@ -94,7 +96,7 @@ describe('FilterGenerator', () => {
         sort: new Sort({ field: 'author:firstname', ascending: true }),
       });
 
-      const pipeline = FilterGenerator.filter(model, null, filter);
+      const pipeline = FilterGenerator.filter(model, stack, filter);
       expect(pipeline).toStrictEqual([{ $sort: { 'author.firstname': 1 } }]);
     });
   });

@@ -12,20 +12,26 @@ export default class RelationGenerator {
    */
   static addImplicitRelations(collections: MongooseCollection[]): void {
     for (const collection of collections) {
+      // Get many to one relations
       const manyToOnes = Object.entries(collection.schema.fields).filter(
         ([, f]) => f.type === 'ManyToOne',
       ) as [string, ManyToOneSchema][];
 
-      // Create one-to-many and one-to-one
-      for (const [name, field] of manyToOnes) {
-        this.addManyToOneInverse(collection, name, field);
-      }
-
-      // @fixme this will break if _id is both a foreignkey and a pk
       // Create many to many (5 fields == _id + 2 relations + 2 foreignKeys)
-      if (manyToOnes.length === 2 && Object.keys(collection.schema.fields).length === 5) {
+      // @fixme this may break, we should check in the schema, but it's more complicated
+      const isVirtualJunction =
+        collection.name.includes('_') &&
+        manyToOnes.length === 2 &&
+        Object.keys(collection.schema.fields).length === 5;
+
+      // Create relationships
+      if (isVirtualJunction) {
         this.addManyToMany(collection, manyToOnes[0][1], manyToOnes[1][1]);
         this.addManyToMany(collection, manyToOnes[1][1], manyToOnes[0][1]);
+      } else {
+        for (const [name, field] of manyToOnes) {
+          this.addManyToOneInverse(collection, name, field);
+        }
       }
     }
   }
@@ -47,13 +53,17 @@ export default class RelationGenerator {
     if (name === 'parent') {
       // Create inverse of 'parent' relationship so that the relation name matches the actual name
       // of the data which is stored in the database.
-      const childSchema = MongooseSchema.fromModel(collection.model).getSubSchema(
-        collection.prefix,
-        true,
-      );
+      const { stack } = collection;
+      const { prefix } = stack[stack.length - 1];
+      const { isArray } = MongooseSchema.fromModel(collection.model).applyStack(stack);
 
-      inverseName = escape(collection.prefix.substring(collection.prefix.lastIndexOf('.') + 1));
-      type = childSchema.fields.parent[inverseName]['[]'] ? 'OneToMany' : 'OneToOne';
+      type = isArray ? 'OneToMany' : 'OneToOne';
+      inverseName = escape(prefix);
+
+      if (stack.length > 2) {
+        const previousLength = stack[stack.length - 2].prefix.length + 1;
+        inverseName = prefix.substring(previousLength);
+      }
     } else {
       // Native ManyToOne relationship (there is an actual foreign key in the document, this is
       // not an embedded document that we're faking as a relation).

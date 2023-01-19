@@ -139,7 +139,9 @@ export default class CollectionUtils {
           projection.nest(foreignRelation),
         );
 
-        return records.map(r => r[foreignRelation] as RecordData);
+        // Exclude null records, which may happen in case of a broken relation.
+        // This happens on databases that don't support enforced foreign keys (e.g. Mongo)
+        return records.map(r => r[foreignRelation] as RecordData).filter(Boolean);
       }
     }
 

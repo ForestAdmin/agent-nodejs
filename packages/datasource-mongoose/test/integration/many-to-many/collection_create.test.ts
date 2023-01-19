@@ -4,8 +4,8 @@ import { Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Connection, Types } from 'mongoose';
 
+import setupWith2ManyToManyRelations from './_build-models';
 import MongooseDatasource from '../../../src/datasource';
-import { setupWith2ManyToManyRelations } from '../_helpers';
 
 const caller = factories.caller.build();
 

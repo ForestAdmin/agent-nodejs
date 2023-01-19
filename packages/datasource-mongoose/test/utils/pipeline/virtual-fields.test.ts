@@ -16,7 +16,7 @@ describe('VirtualFieldsGenerator', () => {
       },
     });
 
-    model = mongoose.model('books', schema);
+    model = mongoose.model<unknown>('books', schema);
   });
 
   afterAll(() => {
@@ -25,14 +25,16 @@ describe('VirtualFieldsGenerator', () => {
 
   it('should not add fields that are not within the projection', () => {
     const projection = new Projection();
-    const pipeline = VirtualFieldsGenerator.addVirtual(model, null, ['author'], projection);
+    const stack = [{ prefix: null, asFields: [], asModels: ['author'] }];
+    const pipeline = VirtualFieldsGenerator.addVirtual(model, stack, projection);
 
     expect(pipeline).toEqual([]);
   });
 
   it('should add virtual fields fake many to one', () => {
     const projection = new Projection('author:_id', 'author:parentId');
-    const pipeline = VirtualFieldsGenerator.addVirtual(model, null, ['author'], projection);
+    const stack = [{ prefix: null, asFields: [], asModels: ['author'] }];
+    const pipeline = VirtualFieldsGenerator.addVirtual(model, stack, projection);
 
     expect(pipeline).toEqual([
       {
@@ -46,7 +48,8 @@ describe('VirtualFieldsGenerator', () => {
 
   it('should add virtual fields on boxed many to one', () => {
     const projection = new Projection('title:_id', 'title:parentId', 'title:content');
-    const pipeline = VirtualFieldsGenerator.addVirtual(model, null, ['title'], projection);
+    const stack = [{ prefix: null, asFields: [], asModels: ['title'] }];
+    const pipeline = VirtualFieldsGenerator.addVirtual(model, stack, projection);
 
     expect(pipeline).toEqual([
       {
@@ -59,21 +62,25 @@ describe('VirtualFieldsGenerator', () => {
     ]);
   });
 
-  it('should add nested dependencies (for server-side queries only)', () => {
-    const projection = new Projection(
-      'author:country:_id',
-      'author:country:parentId',
-      'author:country:name',
-    );
-    const pipeline = VirtualFieldsGenerator.addVirtual(model, null, ['author'], projection);
+  it('should add nested dependencies besides for parentId (for server-side queries only)', () => {
+    const projection = new Projection('author:country:_id', 'author:country:name');
+    const stack = [{ prefix: null, asFields: [], asModels: ['author'] }];
+    const pipeline = VirtualFieldsGenerator.addVirtual(model, stack, projection);
 
     expect(pipeline).toEqual([
       {
         $addFields: {
           'author.country._id': { $concat: [{ $toString: '$_id' }, '.author.country'] },
-          'author.country.parentId': { $concat: [{ $toString: '$_id' }, '.author'] },
         },
       },
     ]);
+  });
+
+  it('should crash on nested parentId (for server-side queries only)', () => {
+    const projection = new Projection('author:country:parentId');
+    const stack = [{ prefix: null, asFields: [], asModels: ['author'] }];
+    const fn = () => VirtualFieldsGenerator.addVirtual(model, stack, projection);
+
+    expect(fn).toThrow('Fetching virtual parentId deeper than 1 level is not supported.');
   });
 });
