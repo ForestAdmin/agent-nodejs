@@ -1,4 +1,7 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
+
+// import { createElasticsearchDataSource } from '@forestadmin/datasource-elasticsearch';
+import { createElasticsearchDataSource } from '@forestadmin/datasource-elasticsearch/dist';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
@@ -26,7 +29,7 @@ export default function makeAgent() {
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: false,
-    loggerLevel: 'Info',
+    loggerLevel: 'Debug',
     typingsPath: 'src/forest/typings.ts',
   };
 
@@ -56,6 +59,7 @@ export default function makeAgent() {
     .addDataSource(
       createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
     )
+    .addDataSource(createElasticsearchDataSource('http://localhost:9200'))
 
     .addChart('numRentals', async (context, resultBuilder) => {
       const rentals = context.dataSource.getCollection('rental');

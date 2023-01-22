@@ -128,6 +128,26 @@ export type Schema = {
       'parent:parent:store:owner:fullName': string;
     };
   };
+  'activity-logs-v1-template': {
+    plain: {
+      'renderingId': string;
+      'records': string;
+      'timingRequest': number;
+      'label': string;
+      'timingInterface': number;
+      'type': string;
+      'userId': string;
+      'createdAt': string;
+      'dashboardId': string;
+      'action': string;
+      'databaseId': number;
+      'collectionId': string;
+      'workspaceId': string;
+      '_id': string;
+    };
+    nested: {};
+    flat: {};
+  };
   'card': {
     plain: {
       'id': number;
@@ -247,6 +267,17 @@ export type Schema = {
       'rental:customer:updatedAt': string;
       'rental:customer:deletedAt': string;
     };
+  };
+  'kibana_sample_data_flights': {
+    plain: {
+      'Dest': string;
+      'AvgTicketPrice': number;
+      'Cancelled': boolean;
+      'Carrier': string;
+      '_id': string;
+    };
+    nested: {};
+    flat: {};
   };
   'owner': {
     plain: {
