@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
-import faker from '@faker-js/faker';
+import { faker } from '@faker-js/faker';
 import { Connection } from 'mongoose';
 import { Sequelize } from 'sequelize';
 
+import initMsSql from './mssql-init';
+import sequelizeMariaDb from './sequelize-mariadb';
 import mongoose from '../src/connections/mongoose';
 import sequelizeMsSql from '../src/connections/sequelize-mssql';
 import sequelizeMySql from '../src/connections/sequelize-mysql';
 import sequelizePostgres from '../src/connections/sequelize-postgres';
-import initMsSql from './mssql-init';
-import sequelizeMariaDb from './sequelize-mariadb';
 
 async function createOwnerRecords(connection: Sequelize): Promise<any[]> {
-  const ownerRecords = [];
+  const ownerRecords: any[] = [];
 
   for (let i = 0; i < 10; i += 1) {
     ownerRecords.push({ firstName: faker.name.firstName(), lastName: faker.name.lastName() });
@@ -22,13 +22,13 @@ async function createOwnerRecords(connection: Sequelize): Promise<any[]> {
 }
 
 async function createReviewRecords(connection: Sequelize, storeRecords: any[]): Promise<any[]> {
-  const reviewRecords = [];
+  const reviewRecords: any[] = [];
 
   for (let i = 0; i < 10; i += 1) {
     reviewRecords.push({
       message: faker.lorem.paragraph(1),
-      title: faker.name.title(),
-      storeId: faker.datatype.boolean() ? null : faker.random.arrayElement(storeRecords).id,
+      title: faker.random.words(3),
+      storeId: faker.datatype.boolean() ? null : faker.helpers.arrayElement(storeRecords).id,
     });
   }
 
@@ -39,7 +39,7 @@ async function createStoreRecords(connection: Sequelize, ownerRecords: any[]): P
   return connection.model('store').bulkCreate(
     ownerRecords.reduce((records, ownerRecord) => {
       for (let i = 0; i < faker.datatype.number({ min: 1, max: 2 }); i += 1) {
-        records.push({ name: faker.company.companyName(), ownerId: ownerRecord.id });
+        records.push({ name: faker.company.name(), ownerId: ownerRecord.id });
       }
 
       return records;
@@ -48,16 +48,16 @@ async function createStoreRecords(connection: Sequelize, ownerRecords: any[]): P
 }
 
 async function createAccountRecords(connection: Connection, storeRecords: any[]): Promise<void> {
-  const records = [];
+  const records: any[] = [];
 
   for (let i = 0; i < 30; i += 1) {
     records.push({
       firstname: faker.name.firstName(),
       lastname: faker.name.lastName(),
-      storeId: faker.helpers.randomize(storeRecords.map(({ id }) => id)),
+      storeId: faker.helpers.arrayElement(storeRecords).id,
       address: {
         streetNumber: faker.datatype.number(100),
-        streetName: faker.address.streetName(),
+        streetName: faker.address.street(),
         city: faker.address.cityName(),
         country: faker.address.country(),
       },
@@ -68,7 +68,7 @@ async function createAccountRecords(connection: Connection, storeRecords: any[])
           issueDate: faker.datatype.datetime(),
           items: faker.helpers.uniqueArray(
             () => ({
-              importance: faker.helpers.randomize(['high', 'medium', 'low']),
+              importance: faker.helpers.arrayElement(['high', 'medium', 'low']),
               title: faker.finance.transactionDescription(),
               amount: faker.datatype.number({ min: 1, max: 100, precision: 0.01 }),
             }),
@@ -84,7 +84,7 @@ async function createAccountRecords(connection: Connection, storeRecords: any[])
 }
 
 async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> {
-  let customerRecords = [];
+  let customerRecords: any[] = [];
 
   for (let i = 0; i < 5000; i += 1) {
     customerRecords.push({
@@ -95,12 +95,12 @@ async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> 
 
   customerRecords = await connection.model('customer').bulkCreate(customerRecords);
 
-  const cardRecords = [];
+  const cardRecords: any[] = [];
 
   for (let i = 0; i < 5; i += 1) {
     cardRecords.push({
       cardNumber: Number(faker.finance.creditCardNumber('################')),
-      cardType: faker.helpers.randomize(['visa', 'mastercard', 'american express']),
+      cardType: faker.helpers.arrayElement(['visa', 'mastercard', 'american express']),
       isActive: faker.datatype.boolean(),
       customerId: customerRecords[i].id,
     });
@@ -118,18 +118,18 @@ async function createDvdRentalsRecords(
 ): Promise<void> {
   let currentRentalRecordId = 0;
   let currentDvdRecordId = 0;
-  const dvdRecords = [];
-  const dvdRentalRecords = [];
-  const rentalRecords = [];
+  const dvdRecords: any[] = [];
+  const dvdRentalRecords: any[] = [];
+  const rentalRecords: any[] = [];
   storeRecords.forEach(storeRecord => {
-    const temporaryRentalRecords = [];
+    const temporaryRentalRecords: any[] = [];
 
     for (let i = 0; i < faker.datatype.number({ min: 2, max: 5 }); i += 1) {
       temporaryRentalRecords.push({
         id: currentRentalRecordId,
         startDate: faker.date.recent(40),
         endDate: faker.date.soon(40),
-        customerId: faker.helpers.randomize(customerRecords.map(({ id }) => id)),
+        customerId: faker.helpers.arrayElement(customerRecords).id,
       });
       currentRentalRecordId += 1;
     }
@@ -138,7 +138,7 @@ async function createDvdRentalsRecords(
       for (let id = 0; id < faker.datatype.number({ min: 1, max: 3 }); id += 1) {
         dvdRecords.push({
           id: currentDvdRecordId,
-          title: faker.name.title(),
+          title: faker.random.words(3),
           rentalPrice: faker.datatype.number({ min: 1, max: 30 }),
           storeId: storeRecord.id,
         });
