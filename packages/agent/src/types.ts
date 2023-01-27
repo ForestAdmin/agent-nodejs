@@ -1,4 +1,4 @@
-import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
+import { Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
 
@@ -41,8 +41,3 @@ export enum RouteType {
   Authentication = 3,
   PrivateRoute = 4,
 }
-
-export type SelectionIds = {
-  areExcluded: boolean;
-  ids: CompositeId[];
-};

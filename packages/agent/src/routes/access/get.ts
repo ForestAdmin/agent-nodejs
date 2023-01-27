@@ -1,14 +1,10 @@
-import {
-  ConditionTreeFactory,
-  PaginatedFilter,
-  ProjectionFactory,
-} from '@forestadmin/datasource-toolkit';
+import { ProjectionFactory } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
-import IdUtils from '../../utils/id';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
+import FilterParser from '../../utils/query-parser/filter';
 import CollectionRoute from '../collection-route';
 
 export default class GetRoute extends CollectionRoute {
@@ -19,17 +15,10 @@ export default class GetRoute extends CollectionRoute {
   public async handleGet(context: Context) {
     await this.services.authorization.assertCanRead(context, this.collection.name);
 
-    const id = IdUtils.unpackId(this.collection.schema, context.params.id);
-    const filter = new PaginatedFilter({
-      conditionTree: ConditionTreeFactory.intersect(
-        ConditionTreeFactory.matchIds(this.collection.schema, [id]),
-        await this.services.authorization.getScope(this.collection, context),
-      ),
-    });
-
+    const scope = await this.services.authorization.getScope(this.collection, context);
     const records = await this.collection.list(
-      QueryStringParser.parseCaller(context),
-      filter,
+      CallerParser.fromCtx(context),
+      FilterParser.fromListRequest(this.collection, context).intersectWith(scope),
       ProjectionFactory.all(this.collection),
     );
 

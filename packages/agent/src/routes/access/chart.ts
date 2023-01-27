@@ -25,8 +25,8 @@ import { Context } from 'koa';
 import { DateTime } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
 
-import ContextFilterFactory from '../../utils/context-filter-factory';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
+import FilterParser from '../../utils/query-parser/filter';
 import CollectionRoute from '../collection-route';
 
 export default class ChartRoute extends CollectionRoute {
@@ -82,7 +82,7 @@ export default class ChartRoute extends CollectionRoute {
   private async makeValueChart(
     context: Context,
   ): Promise<{ countCurrent: number; countPrevious?: number }> {
-    const caller = QueryStringParser.parseCaller(context);
+    const caller = CallerParser.fromCtx(context);
     const currentFilter = await this.getFilter(context);
     const result = {
       countCurrent: await this.computeValue(context, currentFilter),
@@ -117,7 +117,7 @@ export default class ChartRoute extends CollectionRoute {
     } = <PieChart>context.request.body;
 
     const rows = await this.collection.aggregate(
-      QueryStringParser.parseCaller(context),
+      CallerParser.fromCtx(context),
       await this.getFilter(context),
       new Aggregation({
         operation: aggregator,
@@ -148,7 +148,7 @@ export default class ChartRoute extends CollectionRoute {
       ),
     });
     const rows = await this.collection.aggregate(
-      QueryStringParser.parseCaller(context),
+      CallerParser.fromCtx(context),
       filterOnlyWithValues,
       new Aggregation({
         operation: aggregator,
@@ -228,7 +228,7 @@ export default class ChartRoute extends CollectionRoute {
     if (collection && filter && aggregation) {
       const rows = await this.dataSource
         .getCollection(collection)
-        .aggregate(QueryStringParser.parseCaller(context), filter, aggregation, Number(body.limit));
+        .aggregate(CallerParser.fromCtx(context), filter, aggregation, Number(body.limit));
 
       return rows.map(row => ({
         key: row.group[aggregation.groups[0].field] as string,
@@ -246,9 +246,8 @@ export default class ChartRoute extends CollectionRoute {
       context.request.body
     );
     const aggregation = new Aggregation({ operation: aggregator, field: aggregateField });
-
     const rows = await this.collection.aggregate(
-      QueryStringParser.parseCaller(context),
+      CallerParser.fromCtx(context),
       filter,
       aggregation,
     );
@@ -259,6 +258,6 @@ export default class ChartRoute extends CollectionRoute {
   private async getFilter(context: Context): Promise<Filter> {
     const scope = await this.services.authorization.getScope(this.collection, context);
 
-    return ContextFilterFactory.build(this.collection, context, scope);
+    return FilterParser.fromListRequest(this.collection, context).intersectWith(scope);
   }
 }

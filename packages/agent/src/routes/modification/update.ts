@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import {
   ConditionTreeFactory,
   Filter,
@@ -6,11 +7,14 @@ import {
   RecordValidator,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
+=======
+import { ProjectionFactory, RecordValidator } from '@forestadmin/datasource-toolkit';
+>>>>>>> 862b994b (refactor(agent): query parser)
 import Router from '@koa/router';
 import { Context } from 'koa';
 
-import IdUtils from '../../utils/id';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
+import FilterParser from '../../utils/query-parser/filter';
 import CollectionRoute from '../collection-route';
 
 export default class UpdateRoute extends CollectionRoute {
@@ -21,24 +25,18 @@ export default class UpdateRoute extends CollectionRoute {
   public async handleUpdate(context: Context): Promise<void> {
     await this.services.authorization.assertCanEdit(context, this.collection.name);
 
-    // Build caller
-    const caller = QueryStringParser.parseCaller(context);
-
-    // Build filter
-    const id = IdUtils.unpackId(this.collection.schema, context.params.id);
-    const conditionTree = ConditionTreeFactory.intersect(
-      ConditionTreeFactory.matchIds(this.collection.schema, [id]),
-      await this.services.authorization.getScope(this.collection, context),
-    );
-
     // Deserialize the record.
     const record = this.deserializeForUpdate(context.request.body);
 
-    // Perform the update and return the updated record.
-    await this.collection.update(caller, new Filter({ conditionTree }), record);
+    const scope = await this.services.authorization.getScope(this.collection, context);
+
+    const caller = CallerParser.fromCtx(context);
+    const filter = FilterParser.fromListRequest(this.collection, context).intersectWith(scope);
+    await this.collection.update(caller, filter, record);
+
     const [updateResult] = await this.collection.list(
       caller,
-      new Filter({ conditionTree }),
+      filter,
       ProjectionFactory.all(this.collection),
     );
 

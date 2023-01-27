@@ -1,3 +1,4 @@
+import ConditionTreeFactory from '../condition-tree/factory';
 import ConditionTree, { PlainConditionTree } from '../condition-tree/nodes/base';
 
 export type FilterComponents = {
@@ -33,6 +34,12 @@ export default class Filter {
 
   override(fields: FilterComponents): Filter {
     return new Filter({ ...this, ...fields });
+  }
+
+  intersectWith(conditionTree: ConditionTree): Filter {
+    return this.override({
+      conditionTree: ConditionTreeFactory.intersect(this.conditionTree, conditionTree),
+    });
   }
 
   nest(prefix: string): Filter {

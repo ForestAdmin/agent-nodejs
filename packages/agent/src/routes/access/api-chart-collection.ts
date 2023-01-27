@@ -7,7 +7,7 @@ import { v1 as uuidv1 } from 'uuid';
 import { ForestAdminHttpDriverServices } from '../../services';
 import { AgentOptionsWithDefaults } from '../../types';
 import IdUtils from '../../utils/id';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
 import CollectionRoute from '../collection-route';
 
 export default class CollectionApiChartRoute extends CollectionRoute {
@@ -60,7 +60,7 @@ export default class CollectionApiChartRoute extends CollectionRoute {
     const body = context.request.body as any;
 
     return this.collection.renderChart(
-      QueryStringParser.parseCaller(context),
+      CallerParser.fromCtx(context),
       this.chartName,
       IdUtils.unpackId(
         this.collection.schema,

@@ -11,29 +11,18 @@ import {
   PlainConditionTreeLeaf,
 } from '@forestadmin/datasource-toolkit';
 
-const STRING_TO_BOOLEAN = {
-  true: true,
-  yes: true,
-  '1': true,
-  false: false,
-  no: false,
-  '0': false,
-};
-
-export default class ConditionTreeParser {
+export default class ConditionTreeConverter {
   static fromPlainObject(collection: Collection, json: unknown): ConditionTree {
-    if (ConditionTreeParser.isLeaf(json)) {
-      const operator = ConditionTreeParser.toPascalCase(json.operator);
-      const value = ConditionTreeParser.parseValue(collection, { ...json, operator });
+    if (this.isLeaf(json)) {
+      const operator = this.toPascalCase(json.operator);
+      const value = this.parseValue(collection, { ...json, operator });
 
       return new ConditionTreeLeaf(json.field, operator, value);
     }
 
-    if (ConditionTreeParser.isBranch(json)) {
-      const aggregator = ConditionTreeParser.toPascalCase(json.aggregator) as Aggregator;
-      const conditions = json.conditions.map(subTree =>
-        ConditionTreeParser.fromPlainObject(collection, subTree),
-      );
+    if (this.isBranch(json)) {
+      const aggregator = this.toPascalCase(json.aggregator) as Aggregator;
+      const conditions = json.conditions.map(subTree => this.fromPlainObject(collection, subTree));
 
       return conditions.length !== 1
         ? new ConditionTreeBranch(aggregator, conditions)
@@ -103,9 +92,10 @@ export default class ConditionTreeParser {
       case 'Number':
         return Number(value);
       case 'Boolean':
-        return typeof value === 'string' && value in STRING_TO_BOOLEAN
-          ? STRING_TO_BOOLEAN[value]
+        return typeof value === 'string'
+          ? !['no', 'false', '0'].includes(value.toLowerCase())
           : !!value;
+
       default:
         return value;
     }

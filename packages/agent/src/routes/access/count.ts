@@ -2,8 +2,8 @@ import { Aggregation } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 
-import ContextFilterFactory from '../../utils/context-filter-factory';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
+import FilterParser from '../../utils/query-parser/filter';
 import CollectionRoute from '../collection-route';
 
 export default class CountRoute extends CollectionRoute {
@@ -16,8 +16,8 @@ export default class CountRoute extends CollectionRoute {
 
     if (this.collection.schema.countable) {
       const scope = await this.services.authorization.getScope(this.collection, context);
-      const caller = QueryStringParser.parseCaller(context);
-      const filter = ContextFilterFactory.build(this.collection, context, scope);
+      const caller = CallerParser.fromCtx(context);
+      const filter = FilterParser.fromListRequest(this.collection, context).intersectWith(scope);
 
       const aggregation = new Aggregation({ operation: 'Count' });
       const aggregationResult = await this.collection.aggregate(caller, filter, aggregation);

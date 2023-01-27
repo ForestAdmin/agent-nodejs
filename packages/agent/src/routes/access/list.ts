@@ -1,8 +1,9 @@
 import Router from '@koa/router';
 import { Context } from 'koa';
 
-import ContextFilterFactory from '../../utils/context-filter-factory';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
+import FilterParser from '../../utils/query-parser/filter';
+import ProjectionParser from '../../utils/query-parser/projection';
 import CollectionRoute from '../collection-route';
 
 export default class ListRoute extends CollectionRoute {
@@ -14,18 +15,18 @@ export default class ListRoute extends CollectionRoute {
     await this.services.authorization.assertCanBrowse(context, this.collection.name);
 
     const scope = await this.services.authorization.getScope(this.collection, context);
-    const paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
+    const filter = FilterParser.fromList(this.collection, context).intersectWith(scope);
 
     const records = await this.collection.list(
-      QueryStringParser.parseCaller(context),
-      paginatedFilter,
-      QueryStringParser.parseProjectionWithPks(this.collection, context),
+      CallerParser.fromCtx(context),
+      filter,
+      ProjectionParser.fromCtx(this.collection, context).withPks(this.collection),
     );
 
     context.response.body = this.services.serializer.serializeWithSearchMetadata(
       this.collection,
       records,
-      paginatedFilter.search,
+      filter.search,
     );
   }
 }

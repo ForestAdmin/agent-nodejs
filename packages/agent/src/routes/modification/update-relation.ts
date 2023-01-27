@@ -13,7 +13,7 @@ import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
 import RelationRoute from '../relation-route';
 
 export default class UpdateRelation extends RelationRoute {
@@ -28,7 +28,7 @@ export default class UpdateRelation extends RelationRoute {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const body = context.request.body as any;
     const relation = this.collection.schema.fields[this.relationName];
-    const caller = QueryStringParser.parseCaller(context);
+    const caller = CallerParser.fromCtx(context);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 
     const linkedId = body?.data?.id

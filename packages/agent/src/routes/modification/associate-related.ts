@@ -3,7 +3,6 @@ import {
   CollectionUtils,
   CompositeId,
   ConditionTree,
-  ConditionTreeFactory,
   ConditionTreeLeaf,
   ManyToManySchema,
   OneToManySchema,
@@ -13,9 +12,9 @@ import Router from '@koa/router';
 import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
-import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
+import FilterParser from '../../utils/query-parser/filter';
 import RelationRoute from '../relation-route';
 
 export default class AssociateRelatedRoute extends RelationRoute {
@@ -35,7 +34,7 @@ export default class AssociateRelatedRoute extends RelationRoute {
     const targetedRelationId = IdUtils.unpackId(this.foreignCollection.schema, body?.data[0].id);
     const scope = await this.services.authorization.getScope(this.foreignCollection, context);
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
-    const caller = QueryStringParser.parseCaller(context);
+    const caller = CallerParser.fromCtx(context);
 
     if (relation.type === 'OneToMany') {
       await this.associateOneToMany(caller, scope, relation, parentId, targetedRelationId, context);
@@ -61,12 +60,10 @@ export default class AssociateRelatedRoute extends RelationRoute {
       targetedRelationId,
       id,
     );
-    const filter = ContextFilterFactory.build(this.collection, context, scope, {
-      conditionTree: ConditionTreeFactory.intersect(
-        new ConditionTreeLeaf(id, 'Equal', value),
-        scope,
-      ),
-    });
+    const filter = FilterParser.fromListRequest(this.collection, context)
+      .intersectWith(scope)
+      .intersectWith(new ConditionTreeLeaf(id, 'Equal', value));
+
     value = await CollectionUtils.getValue(
       this.collection,
       caller,

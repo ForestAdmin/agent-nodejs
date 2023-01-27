@@ -2,10 +2,11 @@ import Router from '@koa/router';
 import { Context } from 'koa';
 import { Readable } from 'stream';
 
-import ContextFilterFactory from '../../utils/context-filter-factory';
 import CsvGenerator from '../../utils/csv-generator';
 import CsvRouteContext from '../../utils/csv-route-context';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
+import FilterParser from '../../utils/query-parser/filter';
+import ProjectionParser from '../../utils/query-parser/projection';
 import CollectionRoute from '../collection-route';
 
 export default class CsvRoute extends CollectionRoute {
@@ -20,10 +21,11 @@ export default class CsvRoute extends CollectionRoute {
     const { header } = context.request.query as Record<string, string>;
     CsvRouteContext.buildResponse(context);
 
-    const projection = QueryStringParser.parseProjection(this.collection, context);
     const scope = await this.services.authorization.getScope(this.collection, context);
-    const caller = QueryStringParser.parseCaller(context);
-    const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
+
+    const caller = CallerParser.fromCtx(context);
+    const filter = FilterParser.fromList(this.collection, context).intersectWith(scope);
+    const projection = ProjectionParser.fromCtx(this.collection, context);
 
     const list = this.collection.list.bind(this.collection);
     const gen = CsvGenerator.generate(caller, projection, header, filter, this.collection, list);

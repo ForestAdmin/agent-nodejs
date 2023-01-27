@@ -13,7 +13,7 @@ import {
 import Router from '@koa/router';
 import { Context } from 'koa';
 
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
 import CollectionRoute from '../collection-route';
 
 export default class CreateRoute extends CollectionRoute {
@@ -68,7 +68,7 @@ export default class CreateRoute extends CollectionRoute {
   }
 
   private async createRecord(context: Context, patch: RecordData): Promise<RecordData> {
-    const caller = QueryStringParser.parseCaller(context);
+    const caller = CallerParser.fromCtx(context);
 
     if (Object.keys(patch).length) {
       RecordValidator.validate(this.collection, patch);
@@ -84,7 +84,7 @@ export default class CreateRoute extends CollectionRoute {
     record: RecordData,
     relations: Record<string, RecordData>,
   ): Promise<void> {
-    const caller = QueryStringParser.parseCaller(context);
+    const caller = CallerParser.fromCtx(context);
 
     const promises = Object.entries(relations).map(async ([field, linked]) => {
       const relation = this.collection.schema.fields[field];
@@ -135,7 +135,7 @@ export default class CreateRoute extends CollectionRoute {
   ): Promise<unknown> {
     if (id === null) return null;
 
-    const caller = QueryStringParser.parseCaller(context);
+    const caller = CallerParser.fromCtx(context);
     const schema = this.collection.schema.fields[field] as ManyToOneSchema;
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
 

@@ -2,9 +2,9 @@ import { Aggregation, CollectionUtils } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 
-import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
+import FilterParser from '../../utils/query-parser/filter';
 import RelationRoute from '../relation-route';
 
 export default class CountRelatedRoute extends RelationRoute {
@@ -21,8 +21,10 @@ export default class CountRelatedRoute extends RelationRoute {
     if (this.foreignCollection.schema.countable) {
       const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
       const scope = await this.services.authorization.getScope(this.foreignCollection, context);
-      const caller = QueryStringParser.parseCaller(context);
-      const filter = ContextFilterFactory.build(this.foreignCollection, context, scope);
+      const caller = CallerParser.fromCtx(context);
+      const filter = FilterParser.fromListRequest(this.foreignCollection, context).intersectWith(
+        scope,
+      );
 
       const aggregationResult = await CollectionUtils.aggregateRelation(
         this.collection,

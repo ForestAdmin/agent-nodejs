@@ -1,16 +1,10 @@
-import {
-  ConditionTreeFactory,
-  FieldValidator,
-  Filter,
-  Projection,
-  ValidationError,
-} from '@forestadmin/datasource-toolkit';
+import { FieldValidator, Projection, ValidationError } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
-import IdUtils from '../../utils/id';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
+import FilterParser from '../../utils/query-parser/filter';
 import CollectionRoute from '../collection-route';
 
 export default class UpdateField extends CollectionRoute {
@@ -26,7 +20,7 @@ export default class UpdateField extends CollectionRoute {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const body = context.request.body as any;
-    const { field, index, id } = context.params;
+    const { field, index } = context.params;
     const subRecord = body?.data?.attributes;
 
     // Validate parameters
@@ -34,14 +28,9 @@ export default class UpdateField extends CollectionRoute {
     FieldValidator.validate(this.collection, field, [{ [field]: [subRecord] }]);
 
     // Create caller & filter
-    const unpackedId = IdUtils.unpackId(this.collection.schema, id);
-    const conditionTree = ConditionTreeFactory.intersect(
-      ConditionTreeFactory.matchIds(this.collection.schema, [unpackedId]),
-      await this.services.authorization.getScope(this.collection, context),
-    );
-
-    const caller = QueryStringParser.parseCaller(context);
-    const filter = new Filter({ conditionTree });
+    const scope = await this.services.authorization.getScope(this.collection, context);
+    const caller = CallerParser.fromCtx(context);
+    const filter = FilterParser.fromListRequest(this.collection, context).intersectWith(scope);
 
     // Load & check record
     const [record] = await this.collection.list(caller, filter, new Projection(field));
