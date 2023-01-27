@@ -12,7 +12,8 @@ import CompositeDatasource from './decorators/composite-datasource';
 import DecoratorsStack from './decorators/decorators-stack';
 import PublicationCollectionDataSourceDecorator from './decorators/publication-collection/datasource';
 import RenameCollectionDataSourceDecorator from './decorators/rename-collection/datasource';
-import { TCollectionName, TSchema } from './templates';
+import FieldCustomizer from './field-customizer';
+import { TCollectionName, TColumnName, TSchema } from './templates';
 import { DataSourceOptions, Plugin } from './types';
 import TypingGenerator from './typing-generator';
 
@@ -113,6 +114,23 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
     handle(this.getCollection(name));
 
     return this;
+  }
+
+  customizeField<N extends TCollectionName<S>, C extends TColumnName<S, N>>(
+    collectionName: N,
+    name: C,
+    handle: (field: FieldCustomizer<S, N, C>) => unknown,
+  ): this {
+    handle(this.getField(collectionName, name));
+
+    return this;
+  }
+
+  getField<N extends TCollectionName<S>, C extends TColumnName<S, N>>(
+    collectionName: N,
+    name: C,
+  ): FieldCustomizer<S, N, C> {
+    return new FieldCustomizer<S, N, C>(this.getCollection(collectionName), name);
   }
 
   /**

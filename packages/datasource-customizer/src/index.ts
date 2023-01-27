@@ -1,5 +1,6 @@
 export { default as CollectionCustomizer } from './collection-customizer';
 export { default as DataSourceCustomizer } from './datasource-customizer';
+export { default as FieldCustomizer } from './field-customizer';
 
 export * from './templates';
 export * from './types';

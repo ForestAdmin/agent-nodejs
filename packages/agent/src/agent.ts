@@ -4,8 +4,10 @@ import {
   DataSourceChartDefinition,
   DataSourceCustomizer,
   DataSourceOptions,
+  FieldCustomizer,
   Plugin,
   TCollectionName,
+  TColumnName,
   TSchema,
 } from '@forestadmin/datasource-customizer';
 import { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
@@ -123,6 +125,31 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.customizer.customizeCollection(name, handle);
 
     return this;
+  }
+
+  customizeField<N extends TCollectionName<S>, C extends TColumnName<S, N>>(
+    collectionName: N,
+    name: C,
+    handle: (field: FieldCustomizer<S, N, C>) => unknown,
+  ): this {
+    this.customizer.customizeField(collectionName, name, handle);
+
+    return this;
+  }
+
+  getField<N extends TCollectionName<S>, C extends TColumnName<S, N>>(
+    collectionName: N,
+    name: C,
+  ): FieldCustomizer<S, N, C> {
+    return this.customizer.getField(collectionName, name);
+  }
+
+  /**
+   * Get given collection by name
+   * @param name name of the collection
+   */
+  getCollection<N extends TCollectionName<S>>(name: N): CollectionCustomizer<S, N> {
+    return this.customizer.getCollection(name);
   }
 
   /**
