@@ -76,7 +76,7 @@ export default class FieldCustomizer<
    * @param operator The validator that you wish to add
    * @param value A configuration value that the validator may need
    * @example
-   * .addFieldValidation('firstName', 'LongerThan', 2);
+   * .addValidation('firstName', 'LongerThan', 2);
    */
   addValidation(operator: Operator, value?: unknown): this {
     this.collectionCustomizer.addFieldValidation(this.name, operator, value);
