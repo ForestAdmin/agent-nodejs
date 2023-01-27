@@ -21,16 +21,15 @@ export default class FieldCustomizer<
 
   /**
    * Add a new field on the collection.
-   * @param name the name of the field
    * @param definition The definition of the field
    * @example
-   * .addField('fullName', {
+   * .add({
    *    columnType: 'String',
    *    dependencies: ['firstName', 'lastName'],
    *    getValues: (records) => records.map(record => \`${record.lastName} ${record.firstName}\`),
    * });
    */
-  define(definition: ComputedDefinition<S, N>): this {
+  add(definition: ComputedDefinition<S, N>): this {
     this.collectionCustomizer.addField(this.name, definition);
 
     return this;
@@ -39,10 +38,9 @@ export default class FieldCustomizer<
   /**
    * Import a field from a many to one or one to one relation.
    *
-   * @param name the name of the field that will be created on the collection
    * @param options options to import the field
    * @example
-   * .importField('authorName', { path: 'author:fullName' })
+   * .import({ path: 'author:fullName' })
    */
   import(options: { path: TFieldName<S, N>; readonly?: boolean }): this {
     this.collectionCustomizer.importField(this.name, options);
@@ -52,10 +50,9 @@ export default class FieldCustomizer<
 
   /**
    * Allow to rename a field of a given collection.
-   * @param oldName the current name of the field in a given collection
    * @param newName the new name of the field
    * @example
-   * .renameField('theCurrentNameOfTheField', 'theNewNameOfTheField');
+   * .renameField('theNewNameOfTheField');
    */
   rename(newName: string): this {
     this.collectionCustomizer.renameField(this.name, newName);
@@ -65,9 +62,8 @@ export default class FieldCustomizer<
 
   /**
    * Remove field by setting its visibility to false.
-   * @param names the fields to remove
    * @example
-   * .removeField('aFieldToRemove', 'anotherFieldToRemove');
+   * .remove();
    */
   remove(): this {
     this.collectionCustomizer.removeField(this.name);
@@ -77,7 +73,6 @@ export default class FieldCustomizer<
 
   /**
    * Add a new validator to the edition form of a given field
-   * @param name The name of the field
    * @param operator The validator that you wish to add
    * @param value A configuration value that the validator may need
    * @example
@@ -92,9 +87,8 @@ export default class FieldCustomizer<
   /**
    * Enable sorting on a specific field using emulation.
    * As for all the emulation method, the field sorting will be done in-memory.
-   * @param name the name of the field to enable emulation on
    * @example
-   * .emulateFieldSorting('fullName');
+   * .emulateSorting('fullName');
    */
   emulateSorting(): this {
     this.collectionCustomizer.emulateFieldSorting(this.name);
@@ -105,10 +99,9 @@ export default class FieldCustomizer<
   /**
    * Replace an implementation for the sorting.
    * The field sorting will be done by the datasource.
-   * @param name the name of the field to enable sort
    * @param equivalentSort the sort equivalent
    * @example
-   * .replaceFieldSorting(
+   * .replaceSorting(
    *   'fullName',
    *   [
    *     { field: 'firstName', ascending: true },
@@ -125,7 +118,6 @@ export default class FieldCustomizer<
   /**
    * Enable filtering on a specific field using emulation.
    * As for all the emulation method, the field filtering will be done in-memory.
-   * @param name the name of the field to enable emulation on
    * @example
    * .emulateFiltering('aField');
    */
@@ -138,10 +130,9 @@ export default class FieldCustomizer<
   /**
    * Enable filtering on a specific field with a specific operator using emulation.
    * As for all the emulation method, the field filtering will be done in-memory.
-   * @param name the name of the field to enable emulation on
    * @param operator the operator to emulate
    * @example
-   * .emulateFieldOperator('aField', 'In');
+   * .emulateOperator('aField', 'In');
    */
   emulateOperator(operator: Operator): this {
     this.collectionCustomizer.emulateFieldOperator(this.name, operator);
@@ -152,11 +143,10 @@ export default class FieldCustomizer<
   /**
    * Replace an implementation for a specific operator on a specific field.
    * The operator replacement will be done by the datasource.
-   * @param name the name of the field to filter on
    * @param operator the operator to replace
    * @param replacer the proposed implementation
    * @example
-   * .replaceFieldOperator('fullName', 'Contains', (value) => {
+   * .replaceOperator('fullName', 'Contains', (value) => {
    *    return {
    *      aggregator: 'Or',
    *      conditions: [{
@@ -179,10 +169,9 @@ export default class FieldCustomizer<
 
   /**
    * Replace the write behavior of a field.
-   * @param name the name of the field
    * @param definition the function or a value to represent the write behavior
    * @example
-   * .replaceFieldWriting('fullName', fullName => {
+   * .replaceWriting('fullName', fullName => {
    *   const [firstName, lastName] = fullName.split(' ');
    *   return { firstName, lastName };
    * });

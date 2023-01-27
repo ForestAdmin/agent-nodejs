@@ -12,7 +12,7 @@ export default (collection: CollectionCustomizer<Schema, 'customer'>) => {
 
   // apres
   collection.customizeField('firstName', field => {
-    field.define({});
+    field.add({});
 
     field.addValidation('Present');
     field.addValidation('LongerThan', 2);
