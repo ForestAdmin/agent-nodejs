@@ -34,6 +34,7 @@ export default class OptionsValidator {
     copyOptions.permissionsCacheDurationInSeconds =
       copyOptions.permissionsCacheDurationInSeconds ?? 15 * 60;
     copyOptions.loggerLevel = copyOptions.loggerLevel || 'Info';
+    copyOptions.skipSchemaUpdate = copyOptions.skipSchemaUpdate || false;
 
     copyOptions.forestAdminClient =
       copyOptions.forestAdminClient ||

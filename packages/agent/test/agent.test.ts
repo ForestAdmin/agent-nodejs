@@ -135,5 +135,17 @@ describe('Agent', () => {
         expect.stringMatching(/\d+\.\d+\.\d+.*/),
       );
     });
+
+    test('start should not update schema when specified', async () => {
+      const agent = new Agent({ ...options, skipSchemaUpdate: true });
+      await agent.start();
+
+      expect(mockSetupRoute).toHaveBeenCalledTimes(1);
+      expect(mockBootstrap).toHaveBeenCalledTimes(1);
+      expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
+      expect(mockGetDataSource).toHaveBeenCalledTimes(1);
+      expect(mockUpdateTypesOnFileSystem).not.toHaveBeenCalled();
+      expect(mockPostSchema).not.toHaveBeenCalled();
+    });
   });
 });

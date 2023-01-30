@@ -16,6 +16,7 @@ export type AgentOptions = {
   typingsPath?: string | null;
   typingsMaxDepth?: number;
   permissionsCacheDurationInSeconds?: number;
+  skipSchemaUpdate?: boolean;
   forestAdminClient?: ForestAdminClient;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;

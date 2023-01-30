@@ -17,6 +17,7 @@ describe('OptionsValidator', () => {
       expect(options).toHaveProperty('schemaPath', '.forestadmin-schema.json');
       expect(options).toHaveProperty('typingsMaxDepth', 5);
       expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 900);
+      expect(options).toHaveProperty('skipSchemaUpdate', false);
     });
 
     test('logger should be callable', () => {
