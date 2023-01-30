@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.6.4...@forestadmin/agent@1.7.0) (2023-01-30)
+
+
+### Features
+
+* **agent:** allow skipping sending the schema ([#613](https://github.com/ForestAdmin/agent-nodejs/issues/613)) ([c38d3ca](https://github.com/ForestAdmin/agent-nodejs/commit/c38d3cadca5d5c54aa735142984d861a57289082))
+
 ## @forestadmin/agent [1.6.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.6.3...@forestadmin/agent@1.6.4) (2023-01-19)
 
 
