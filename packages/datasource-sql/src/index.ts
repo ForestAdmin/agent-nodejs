@@ -10,17 +10,25 @@ import ModelBuilder from './orm-builder/model';
 import RelationBuilder from './orm-builder/relations';
 
 function createEmptySequelize(uriOrOptions: ConnectionOptions, logger: Logger): Sequelize {
-  const logging = (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
-
   if (typeof uriOrOptions === 'string' && !/.*:\/\//g.test(uriOrOptions))
     throw new Error(
       `Connection Uri "${uriOrOptions}" provided to SQL data source is not valid.` +
         ' Should be <dialect>://<connection>.',
     );
 
-  return typeof uriOrOptions === 'string'
-    ? new Sequelize(uriOrOptions, { logging })
-    : new Sequelize({ ...uriOrOptions, logging });
+  const logging = (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
+  let sequelize: Sequelize;
+
+  if (typeof uriOrOptions === 'string') {
+    sequelize = new Sequelize(uriOrOptions, { logging });
+  } else if (uriOrOptions.uri) {
+    const { uri, ...options } = uriOrOptions;
+    sequelize = new Sequelize(uri, { ...options, logging });
+  } else {
+    sequelize = new Sequelize({ ...uriOrOptions, logging });
+  }
+
+  return sequelize;
 }
 
 export async function introspect(
