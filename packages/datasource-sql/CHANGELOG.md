@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.13...@forestadmin/datasource-sql@1.2.0) (2023-01-31)
+
+
+### Features
+
+* **datasource-sql:** allow construction with both uri and options ([#614](https://github.com/ForestAdmin/agent-nodejs/issues/614)) ([f834bb1](https://github.com/ForestAdmin/agent-nodejs/commit/f834bb1d1d9c145c893b0a7cf7e9e22a61559837))
+
 ## @forestadmin/datasource-sql [1.1.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.12...@forestadmin/datasource-sql@1.1.13) (2023-01-19)
 
 
