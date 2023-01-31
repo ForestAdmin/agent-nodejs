@@ -1,22 +1,16 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
-export default async (
-  dialect: string,
-  connectionUrl: string,
-  database: string,
-): Promise<Sequelize> => {
+export default async (baseUri: string, database: string): Promise<Sequelize> => {
   let sequelize: Sequelize | null = null;
 
   try {
-    let connectionUri = `${dialect}://${connectionUrl}`;
-    sequelize = new Sequelize(connectionUri, { logging: false });
+    sequelize = new Sequelize(baseUri, { logging: false });
 
     await sequelize.getQueryInterface().dropDatabase(database);
     await sequelize.getQueryInterface().createDatabase(database);
     await sequelize.close();
 
-    connectionUri = `${dialect}://${connectionUrl}/${database}`;
-    sequelize = new Sequelize(connectionUri, { logging: false });
+    sequelize = new Sequelize(`${baseUri}/${database}`, { logging: false });
 
     sequelize.define(
       'person',
