@@ -5,19 +5,27 @@ import { DataTypes } from 'sequelize';
 import { ColumnType, SequelizeColumnType } from '../../introspection/types';
 
 export default class SequelizeTypeFactory {
-  static makeSequelizeType(type: ColumnType): SequelizeColumnType {
+  static makeType(
+    dialect: string,
+    type: ColumnType,
+    table: string,
+    columnName: string,
+  ): SequelizeColumnType {
     switch (type.type) {
       case 'scalar':
         if (DataTypes[type.subType]) return DataTypes[type.subType];
         throw new Error(`Unexpected type: ${type.subType}`);
 
       case 'enum':
-        return type.name
+        // Use a custom type only if the name is not the default one.
+        // This should prevent side-effects on most cases if the custom type fails to mimic the
+        // default one and cause issues, while still allowing to use custom types when required.
+        return dialect === 'postgres' && type.name && type.name !== `enum_${table}_${columnName}`
           ? this.makeCustomEnumType(type.name, type.values)
           : DataTypes.ENUM(...type.values);
 
       case 'array':
-        return DataTypes.ARRAY(this.makeSequelizeType(type.subType));
+        return DataTypes.ARRAY(this.makeType(dialect, type.subType, table, columnName));
 
       default:
         throw new Error();

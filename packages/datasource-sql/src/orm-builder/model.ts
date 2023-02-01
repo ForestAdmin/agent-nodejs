@@ -15,6 +15,7 @@ export default class ModelBuilder {
     const modelAttrs: ModelAttributes = {};
     const hasTimestamps = this.hasTimestamps(table);
     const isParanoid = this.isParanoid(table);
+    const dialect = sequelize.getDialect();
 
     for (const column of table.columns) {
       const isExplicit =
@@ -25,7 +26,7 @@ export default class ModelBuilder {
       if (isExplicit)
         modelAttrs[column.name] = {
           ...column,
-          type: SequelizeTypeFactory.makeSequelizeType(column.type),
+          type: SequelizeTypeFactory.makeType(dialect, column.type, table.name, column.name),
         };
     }
 

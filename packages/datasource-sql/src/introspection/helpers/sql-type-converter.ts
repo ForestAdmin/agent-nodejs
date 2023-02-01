@@ -81,14 +81,7 @@ export default class SqlTypeConverter {
       const queryGen = queryInterface.queryGenerator as { fromArray: (values: string) => string[] };
       const enumValues = queryGen.fromArray(rawEnumValues);
 
-      // Provide the name to the enum if it's not the default one (enum_<table>_<column>)
-      // This is so that when building the sequelize model, we use the default convention for
-      // enum definition when there is no need to define custom sequelize types.
-      if (udtName !== `enum_${tableName}_${columnName}`) {
-        subType = { type: 'enum', name: udtName, values: enumValues };
-      } else {
-        subType = { type: 'enum', values: enumValues };
-      }
+      subType = { type: 'enum', name: udtName, values: enumValues };
     } else {
       const dataTypeWithLength = charLength ? `${dataType}(${charLength})` : dataType;
 

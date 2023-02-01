@@ -162,7 +162,11 @@ describe('SqlTypeConverter', () => {
 
           expect(await converter.convert('arrayTable', 'arrayEnum', description)).toStrictEqual({
             type: 'array',
-            subType: { type: 'enum', values: ['enum1', 'enum2'] },
+            subType: {
+              type: 'enum',
+              name: 'enum_arrayTable_arrayEnum',
+              values: ['enum1', 'enum2'],
+            },
           });
         } finally {
           await sequelize?.close();
