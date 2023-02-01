@@ -9,11 +9,11 @@ import {
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import hashObject from 'object-hash';
 
-import ConditionTreeParser from '../../../utils/condition-tree-parser';
 import ApprovalNotAllowedError from './errors/approval-not-allowed-error';
 import CustomActionRequiresApprovalError from './errors/custom-action-requires-approval-error';
 import CustomActionTriggerForbiddenError from './errors/custom-action-trigger-forbidden-error';
 import InvalidActionConditionError from './errors/invalid-action-condition-error';
+import ConditionTreeParser from '../../../utils/condition-tree-parser';
 
 type CanPerformCustomActionParams = {
   caller: Caller;

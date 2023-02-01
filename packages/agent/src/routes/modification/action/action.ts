@@ -9,6 +9,7 @@ import { UserInfo } from '@forestadmin/forestadmin-client';
 import Router from '@koa/router';
 import { Context, Next } from 'koa';
 
+import ActionAuthorizationService from './action-authorization';
 import { ForestAdminHttpDriverServices } from '../../../services';
 import {
   SmartActionApprovalRequestBody,
@@ -22,7 +23,6 @@ import SchemaGeneratorActions from '../../../utils/forest-schema/generator-actio
 import IdUtils from '../../../utils/id';
 import QueryStringParser from '../../../utils/query-string';
 import CollectionRoute from '../../collection-route';
-import ActionAuthorizationService from './action-authorization';
 
 export default class ActionRoute extends CollectionRoute {
   private readonly actionName: string;
