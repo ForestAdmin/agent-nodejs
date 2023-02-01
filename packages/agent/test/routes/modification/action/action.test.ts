@@ -2,12 +2,14 @@ import {
   ActionResult,
   DataSource,
   Filter,
+  ForbiddenError,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import { Readable } from 'stream';
 
 import ActionRoute from '../../../../src/routes/modification/action/action';
+import CustomActionTriggerForbiddenError from '../../../../src/routes/modification/action/errors/custom-action-trigger-forbidden-error';
 import * as factories from '../../../__factories__';
 
 // This part of the context is the same in all tests.
@@ -456,6 +458,55 @@ describe('ActionRoute', () => {
         // @ts-expect-error: test private method
         await route.handleExecute(context);
       }).rejects.toThrow();
+    });
+
+    test('handleExecute should throw an error if the user is not authorized', async () => {
+      // Test
+      const context = createMockContext({
+        ...baseContext,
+        requestBody: {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+              values: { firstname: 'John' },
+            },
+          },
+        },
+      });
+
+      const canTriggerActions = options.forestAdminClient.permissionService
+        .canTriggerCustomAction as jest.Mock;
+
+      canTriggerActions.mockResolvedValue(false);
+
+      // @ts-expect-error: test private method
+      await expect(route.handleExecute(context)).rejects.toBeInstanceOf(
+        CustomActionTriggerForbiddenError,
+      );
+
+      expect(canTriggerActions).toHaveBeenCalledWith({
+        customActionName: 'MySingleAction',
+        collectionName: 'books',
+        userId: '42',
+      });
+    });
+
+    test('handleHook should throw an error if the user is not authorized', async () => {
+      const context = createMockContext(baseContext);
+
+      const canRequestCustomActionParameters = options.forestAdminClient.permissionService
+        .canRequestCustomActionParameters as jest.Mock;
+
+      canRequestCustomActionParameters.mockResolvedValue(false);
+
+      // @ts-expect-error: test private method
+      await expect(route.handleHook(context)).rejects.toThrow(new ForbiddenError());
+
+      expect(canRequestCustomActionParameters).toHaveBeenCalledWith({
+        customActionName: 'MySingleAction',
+        collectionName: 'books',
+        userId: '42',
+      });
     });
 
     test('handleHook should generate a clean form if called without params', async () => {
