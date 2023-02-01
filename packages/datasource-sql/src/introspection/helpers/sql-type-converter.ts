@@ -81,7 +81,11 @@ export default class SqlTypeConverter {
       const queryGen = queryInterface.queryGenerator as { fromArray: (values: string) => string[] };
       const enumValues = queryGen.fromArray(rawEnumValues);
 
-      subType = { type: 'enum', name: udtName, values: enumValues };
+      if (this.sequelize.getDialect() === 'postgres') {
+        subType = { type: 'enum', name: udtName, values: enumValues };
+      } else {
+        subType = { type: 'enum', values: enumValues };
+      }
     } else {
       const dataTypeWithLength = charLength ? `${dataType}(${charLength})` : dataType;
 
