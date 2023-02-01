@@ -25,7 +25,22 @@ export type ScalarSubType =
 export type ColumnType =
   | { type: 'scalar'; subType: ScalarSubType }
   | { type: 'array'; subType: ColumnType }
-  | { type: 'enum'; values: string[] };
+  | {
+      type: 'enum';
+
+      /**
+       * When using postgres, name of the type of this enum (e.g. "enum_users_role")
+       *
+       * This is needed when the enum is used in an array, because sequelize needs to cast when
+       * inserting into that column.
+       * As this is not needed for enums which are not used in arrays, and requires extra
+       * introspection queries, it is filled only when needed.
+       */
+      name?: string;
+
+      /** list of values that the enum can take */
+      values: string[];
+    };
 
 export type Table = {
   name: string;

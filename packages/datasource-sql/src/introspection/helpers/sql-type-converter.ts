@@ -47,12 +47,14 @@ export default class SqlTypeConverter {
   /** Get the type of an array from sequelize column description */
   private async getArrayType(tableName: string, columnName: string): Promise<ColumnType> {
     // Get the type of the elements in the array from the database
-    const [{ dataType, charLength, rawEnumValues }] = await this.sequelize.query<{
+    const [{ udtName, dataType, charLength, rawEnumValues }] = await this.sequelize.query<{
+      udtName: string;
       charLength: number;
       dataType: string;
       rawEnumValues: string;
     }>(
       `SELECT
+        e.udt_name AS "udtName",
         e.data_type AS "dataType",
         e.character_maximum_length as "charLength",
         (
@@ -79,7 +81,14 @@ export default class SqlTypeConverter {
       const queryGen = queryInterface.queryGenerator as { fromArray: (values: string) => string[] };
       const enumValues = queryGen.fromArray(rawEnumValues);
 
-      subType = { type: 'enum', values: enumValues };
+      // Provide the name to the enum if it's not the default one (enum_<table>_<column>)
+      // This is so that when building the sequelize model, we use the default convention for
+      // enum definition when there is no need to define custom sequelize types.
+      if (udtName !== `enum_${tableName}_${columnName}`) {
+        subType = { type: 'enum', name: udtName, values: enumValues };
+      } else {
+        subType = { type: 'enum', values: enumValues };
+      }
     } else {
       const dataTypeWithLength = charLength ? `${dataType}(${charLength})` : dataType;
 
