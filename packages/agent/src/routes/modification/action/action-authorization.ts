@@ -93,14 +93,18 @@ export default class ActionAuthorizationService {
     }
   }
 
-  public async assertCanRequestCustomActionParameters(
-    caller: Caller,
-    customActionName: string,
-    collectionName: string,
-  ) {
+  public async assertCanRequestCustomActionParameters({
+    userId,
+    customActionName,
+    collectionName,
+  }: {
+    userId: number;
+    customActionName: string;
+    collectionName: string;
+  }) {
     const canRequest =
       await this.forestAdminClient.permissionService.canRequestCustomActionParameters({
-        userId: caller.id,
+        userId,
         customActionName,
         collectionName,
       });

@@ -5,6 +5,7 @@ import {
   FilterFactory,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
+import { UserInfo } from '@forestadmin/forestadmin-client';
 import Router from '@koa/router';
 import { Context, Next } from 'koa';
 
@@ -126,13 +127,13 @@ export default class ActionRoute extends CollectionRoute {
   private async handleHook(context: Context): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const body = context.request.body as any;
-    const { id: userId } = context.state.user;
+    const { id: userId } = context.state.user as UserInfo;
 
-    await this.actionAuthorizationService.assertCanRequestCustomActionParameters(
+    await this.actionAuthorizationService.assertCanRequestCustomActionParameters({
       userId,
-      this.actionName,
-      this.collection.name,
-    );
+      customActionName: this.actionName,
+      collectionName: this.collection.name,
+    });
 
     const { dataSource } = this.collection;
     const forestFields = body?.data?.attributes?.fields;

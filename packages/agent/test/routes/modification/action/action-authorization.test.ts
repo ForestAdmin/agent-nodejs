@@ -498,11 +498,11 @@ describe('ActionAuthorizationService', () => {
         forestAdminClient.permissionService.canRequestCustomActionParameters as jest.Mock
       ).mockResolvedValue(true);
 
-      await authorizationService.assertCanRequestCustomActionParameters(
-        caller,
-        'custom-action',
-        'books',
-      );
+      await authorizationService.assertCanRequestCustomActionParameters({
+        userId: 1,
+        customActionName: 'custom-action',
+        collectionName: 'books',
+      });
 
       expect(
         forestAdminClient.permissionService.canRequestCustomActionParameters,
@@ -521,11 +521,11 @@ describe('ActionAuthorizationService', () => {
       ).mockResolvedValue(false);
 
       await expect(
-        authorizationService.assertCanRequestCustomActionParameters(
-          caller,
-          'custom-action',
-          'books',
-        ),
+        authorizationService.assertCanRequestCustomActionParameters({
+          userId: 1,
+          customActionName: 'custom-action',
+          collectionName: 'books',
+        }),
       ).rejects.toThrow(new ForbiddenError());
     });
   });
