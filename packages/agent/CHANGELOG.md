@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.7.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.7.0...@forestadmin/agent@1.7.1) (2023-02-01)
+
+
+### Bug Fixes
+
+* **custom-actions:** return async enum values of custom action forms instead of a ForbiddenError ([#615](https://github.com/ForestAdmin/agent-nodejs/issues/615)) ([65beb76](https://github.com/ForestAdmin/agent-nodejs/commit/65beb76e06d5875daf839ec62e0ca48ff6c95fd2))
+
 # @forestadmin/agent [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.6.4...@forestadmin/agent@1.7.0) (2023-01-30)
 
 
