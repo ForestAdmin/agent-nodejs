@@ -7,28 +7,24 @@ export type SequelizeReference = Awaited<
   ReturnType<QueryInterface['getForeignKeyReferencesForTable']>
 >[number];
 
+export type ScalarSubType =
+  | 'BIGINT'
+  | 'BOOLEAN'
+  | 'DATE'
+  | 'DATEONLY'
+  | 'DOUBLE'
+  | 'FLOAT'
+  | 'INET'
+  | 'JSON'
+  | 'JSONB'
+  | 'NUMBER'
+  | 'STRING'
+  | 'TIME'
+  | 'UUID';
+
 export type ColumnType =
-  | {
-      type: 'scalar';
-      subType:
-        | 'BIGINT'
-        | 'BOOLEAN'
-        | 'DATE'
-        | 'DATEONLY'
-        | 'DOUBLE'
-        | 'FLOAT'
-        | 'INET'
-        | 'JSON'
-        | 'JSONB'
-        | 'NUMBER'
-        | 'STRING'
-        | 'TIME'
-        | 'UUID';
-    }
-  | {
-      type: 'array';
-      subType: ColumnType;
-    }
+  | { type: 'scalar'; subType: ScalarSubType }
+  | { type: 'array'; subType: ColumnType }
   | { type: 'enum'; values: string[] };
 
 export type Table = {
