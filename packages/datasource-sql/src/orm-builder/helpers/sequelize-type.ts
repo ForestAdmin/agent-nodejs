@@ -40,8 +40,8 @@ export default class SequelizeTypeFactory {
       // Markers to tell @forestadmin/datasource-sequelize to consider this type as an enum
       // when transforming sequelize models to forest collections.
       // Otherwise, we would get the "Skipping column" error
-      static readonly isEnum = true;
-      readonly isEnum = true;
+      static readonly isDataSourceSqlEnum = true;
+      readonly isDataSourceSqlEnum = true;
 
       // Setting this tells sequelize the name of the type in the database.
       // This is used, most notably, when casting values (which happens when the enum is used in
