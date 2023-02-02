@@ -22,26 +22,25 @@ export default class Introspector {
 
       return await Promise.all(tableNames.map(name => this.getTable(sequelize, logger, name)));
     } catch (e) {
-      if ((e as SequelizeConnectionError).name === 'SequelizeConnectionError') {
-        throw new ConnectionError(e.message);
-      } else if ((e as SequelizeConnectionError).name === 'SequelizeHostNotFoundError') {
-        throw new HostNotFoundError(e.message);
-      } else if ((e as SequelizeConnectionError).name === 'SequelizeConnectionRefusedError') {
-        throw new ConnectionRefusedError(e.message);
-      } else if ((e as SequelizeConnectionError).name === 'SequelizeHostNotReachableError') {
-        throw new HostNotReachableError(e.message);
-      } else if ((e as SequelizeConnectionError).name === 'SequelizeAccessDeniedError') {
-        throw new AccessDeniedError(e.message);
-      } else if (
-        (e as SequelizeConnectionError).name === 'SequelizeConnectionAcquireTimeoutError'
-      ) {
-        throw new ConnectionAcquireTimeoutError(e.message);
-      } else if ((e as SequelizeConnectionError).name === 'SequelizeConnectionTimedOutError') {
-        throw new ConnectionTimedOutError(e.message);
-      } else if ((e as SequelizeConnectionError).name === 'SequelizeInvalidConnectionError') {
-        throw new InvalidConnectionError(e.message);
-      } else {
-        throw new ConnectionError(e.message);
+      switch ((e as SequelizeConnectionError).name) {
+        case 'SequelizeConnectionError':
+          throw new ConnectionError(e.message);
+        case 'SequelizeHostNotFoundError':
+          throw new HostNotFoundError(e.message);
+        case 'SequelizeConnectionRefusedError':
+          throw new ConnectionRefusedError(e.message);
+        case 'SequelizeHostNotReachableError':
+          throw new HostNotReachableError(e.message);
+        case 'SequelizeAccessDeniedError':
+          throw new AccessDeniedError(e.message);
+        case 'SequelizeConnectionAcquireTimeoutError':
+          throw new ConnectionAcquireTimeoutError(e.message);
+        case 'SequelizeConnectionTimedOutError':
+          throw new ConnectionTimedOutError(e.message);
+        case 'SequelizeInvalidConnectionError':
+          throw new InvalidConnectionError(e.message);
+        default:
+          throw new ConnectionError(e.message);
       }
     }
   }
