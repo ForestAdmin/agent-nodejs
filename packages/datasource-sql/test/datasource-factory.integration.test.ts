@@ -55,17 +55,6 @@ describe('SqlDataSourceFactory > Integration', () => {
         );
       });
     });
-
-    describe('when client has lost his connection', () => {
-      it('should throw an error', async () => {
-        const notReachableHost = '10';
-        const uri = `${dialect}://${notReachableHost}/${databaseName}`;
-
-        await expect(() => introspect(uri, logger)).rejects.toThrow(
-          'Host not reachable: connect EHOSTUNREACH 0.0.0.10:5432 - Local',
-        );
-      });
-    });
   });
 
   describe('when the table has an "id" without primary key constraint', () => {

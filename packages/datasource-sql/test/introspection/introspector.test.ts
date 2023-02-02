@@ -3,6 +3,7 @@ import {
   ConnectionAcquireTimeoutError,
   ConnectionTimedOutError,
   HostNotFoundError,
+  HostNotReachableError,
   InvalidConnectionError,
   Sequelize,
 } from 'sequelize';
@@ -75,6 +76,19 @@ describe('Introspector', () => {
 
       await expect(() => Introspector.introspect(sequelize, aLogger)).rejects.toThrow(
         'Invalid connection: anError',
+      );
+    });
+  });
+
+  describe('when the host is not reachable', () => {
+    it('should throw an error', async () => {
+      const sequelize = new Sequelize(anUri);
+      sequelize.getQueryInterface = jest.fn(() => {
+        throw new HostNotReachableError(new Error('anError'));
+      });
+
+      await expect(() => Introspector.introspect(sequelize, aLogger)).rejects.toThrow(
+        'Host not reachable: anError',
       );
     });
   });
