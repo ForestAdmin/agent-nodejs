@@ -1,15 +1,49 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { Dialect, Sequelize } from 'sequelize';
+import { Dialect, Sequelize, ConnectionError as SequelizeConnectionError } from 'sequelize';
 
+import {
+  AccessDeniedError,
+  ConnectionAcquireTimeoutError,
+  ConnectionError,
+  ConnectionRefusedError,
+  ConnectionTimedOutError,
+  HostNotFoundError,
+  HostNotReachableError,
+  InvalidConnectionError,
+} from './errors';
 import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
 import { SequelizeColumn, SequelizeIndex, SequelizeReference, Table } from './types';
 
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
-    const tableNames = await this.getTableNames(sequelize);
+    try {
+      const tableNames = await this.getTableNames(sequelize);
 
-    return Promise.all(tableNames.map(name => this.getTable(sequelize, logger, name)));
+      return await Promise.all(tableNames.map(name => this.getTable(sequelize, logger, name)));
+    } catch (e) {
+      if ((e as SequelizeConnectionError).name === 'SequelizeConnectionError') {
+        throw new ConnectionError(e.message);
+      } else if ((e as SequelizeConnectionError).name === 'SequelizeHostNotFoundError') {
+        throw new HostNotFoundError(e.message);
+      } else if ((e as SequelizeConnectionError).name === 'SequelizeConnectionRefusedError') {
+        throw new ConnectionRefusedError(e.message);
+      } else if ((e as SequelizeConnectionError).name === 'SequelizeHostNotReachableError') {
+        throw new HostNotReachableError(e.message);
+      } else if ((e as SequelizeConnectionError).name === 'SequelizeAccessDeniedError') {
+        throw new AccessDeniedError(e.message);
+      } else if (
+        (e as SequelizeConnectionError).name === 'SequelizeConnectionAcquireTimeoutError'
+      ) {
+        throw new ConnectionAcquireTimeoutError(e.message);
+      } else if ((e as SequelizeConnectionError).name === 'SequelizeConnectionTimedOutError') {
+        throw new ConnectionTimedOutError(e.message);
+      } else if ((e as SequelizeConnectionError).name === 'SequelizeInvalidConnectionError') {
+        throw new InvalidConnectionError(e.message);
+      } else {
+        throw new ConnectionError(e.message);
+      }
+    }
   }
 
   /** Get names of all tables in the public schema of the db */

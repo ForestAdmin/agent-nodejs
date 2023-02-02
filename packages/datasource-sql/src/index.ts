@@ -29,7 +29,7 @@ export async function introspect(
 ): Promise<Table[]> {
   const sequelize = createEmptySequelize(uriOrOptions, logger);
   const tables = await Introspector.introspect(sequelize, logger);
-  sequelize.close();
+  await sequelize.close();
 
   return tables;
 }
