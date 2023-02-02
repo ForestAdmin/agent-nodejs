@@ -47,12 +47,14 @@ export default class SqlTypeConverter {
   /** Get the type of an array from sequelize column description */
   private async getArrayType(tableName: string, columnName: string): Promise<ColumnType> {
     // Get the type of the elements in the array from the database
-    const [{ dataType, rawEnumValues }] = await this.sequelize.query<{
+    const [{ dataType, charLength, rawEnumValues }] = await this.sequelize.query<{
+      charLength: number;
       dataType: string;
       rawEnumValues: string;
     }>(
       `SELECT
         e.data_type AS "dataType",
+        e.character_maximum_length as "charLength",
         (
           SELECT array_agg(en.enumlabel)
           FROM pg_catalog.pg_type t JOIN pg_catalog.pg_enum en ON t.oid = en.enumtypid
@@ -79,14 +81,16 @@ export default class SqlTypeConverter {
 
       subType = { type: 'enum', values: enumValues };
     } else {
-      subType = { type: 'scalar', subType: this.convertScalarType(dataType) };
+      const dataTypeWithLength = charLength ? `${dataType}(${charLength})` : dataType;
+
+      subType = { type: 'scalar', subType: this.convertScalarType(dataTypeWithLength) };
     }
 
     return { type: 'array', subType };
   }
 
   private convertScalarType(type: string): ScalarSubType {
-    switch (type) {
+    switch (type.toUpperCase()) {
       case 'JSON':
         return 'JSON';
       case 'TINYINT(1)': // MYSQL bool
