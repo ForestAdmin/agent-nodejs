@@ -61,11 +61,11 @@ export default class QueryConverter {
 
       // Strings
       case 'Like':
-        return this.makeLikeWhereClause(field, value as string, true);
+        return this.makeLikeWhereClause(field, value as string, true, false);
       case 'ILike':
-        return this.makeLikeWhereClause(field, value as string, false);
+        return this.makeLikeWhereClause(field, value as string, false, false);
       case 'NotContains':
-        return { [Op.not]: this.makeLikeWhereClause(field, `%${value}%`, true) };
+        return this.makeLikeWhereClause(field, `%${value}%`, true, true);
 
       // Arrays
       case 'IncludesAll':
@@ -112,21 +112,33 @@ export default class QueryConverter {
     return { [Op.notIn]: valueAsArray };
   }
 
-  private makeLikeWhereClause(field: string, value: string, caseSensitive: boolean): unknown {
-    if (caseSensitive) {
-      if (this.dialect === 'sqlite')
-        return this.where(this.col(field), 'GLOB', value.replace(/%/g, '*').replace(/_/g, '?'));
-      if (this.dialect === 'mysql' || this.dialect === 'mariadb')
-        return this.where(this.fn('BINARY', this.col(field)), 'LIKE', value);
+  private makeLikeWhereClause(
+    field: string,
+    value: string,
+    caseSensitive: boolean,
+    not: boolean,
+  ): unknown {
+    const op = not ? 'NOT LIKE' : 'LIKE';
+    const seqOp = not ? Op.notLike : Op.like;
 
-      return { [Op.like]: value };
+    if (caseSensitive) {
+      if (this.dialect === 'sqlite') {
+        const sqLiteOp = not ? 'NOT GLOB' : 'GLOB';
+
+        return this.where(this.col(field), sqLiteOp, value.replace(/%/g, '*').replace(/_/g, '?'));
+      }
+
+      if (this.dialect === 'mysql' || this.dialect === 'mariadb')
+        return this.where(this.fn('BINARY', this.col(field)), op, value);
+
+      return { [seqOp]: value };
     }
 
     if (this.dialect === 'postgres') return { [Op.iLike]: value };
     if (this.dialect === 'mysql' || this.dialect === 'mariadb' || this.dialect === 'sqlite')
-      return { [Op.like]: value };
+      return { [seqOp]: value };
 
-    return this.where(this.fn('LOWER', this.col(field)), 'LIKE', value.toLocaleLowerCase());
+    return this.where(this.fn('LOWER', this.col(field)), op, value.toLocaleLowerCase());
   }
 
   /*
