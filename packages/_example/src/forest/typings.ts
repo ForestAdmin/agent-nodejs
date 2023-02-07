@@ -178,6 +178,14 @@ export type Schema = {
     nested: {};
     flat: {};
   };
+  'dev_xp_members': {
+    plain: {
+      'id': number;
+      'name': string;
+    };
+    nested: {};
+    flat: {};
+  };
   'dvd': {
     plain: {
       'id': number;

@@ -28,6 +28,7 @@
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
     "sequelize": "^6.28.0",
+    "sqlite3": "^5.1.4",
     "superagent": "^8.0.6",
     "tedious": "^15.1.2"
   },
