@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import JSONAPISerializer from 'json-api-serializer';
 
-import { ForestServerCollection } from './types';
+import { ForestServerCollection, SchemaMetadata } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import ServerUtils from '../utils/server';
 
@@ -10,12 +10,8 @@ type SerializedSchema = { meta: { schemaFileHash: string } };
 export default class SchemaService {
   constructor(private options: ForestAdminClientOptionsWithDefaults) {}
 
-  async postSchema(
-    schema: ForestServerCollection[],
-    agentName: string,
-    agentVersion: string,
-  ): Promise<boolean> {
-    const apimap = SchemaService.serialize(schema, agentName, agentVersion);
+  async postSchema(schema: ForestServerCollection[], metadata: SchemaMetadata): Promise<boolean> {
+    const apimap = SchemaService.serialize(schema, metadata);
     const shouldSend = await this.doServerWantsSchema(apimap.meta.schemaFileHash);
 
     if (shouldSend) {
@@ -25,28 +21,16 @@ export default class SchemaService {
     return shouldSend;
   }
 
-  static serialize(
-    schema: ForestServerCollection[],
-    agentName: string,
-    agentVersion: string,
-  ): SerializedSchema {
+  static serialize(schema: ForestServerCollection[], metadata: SchemaMetadata): SerializedSchema {
     const data = schema.map(c => ({ id: c.name, ...c }));
-    const meta = {
-      liana: agentName,
-      liana_version: agentVersion,
-      stack: {
-        engine: 'nodejs',
-        engine_version: process.versions && process.versions.node,
-      },
-    };
 
     const schemaFileHash = crypto
       .createHash('sha1')
-      .update(JSON.stringify({ ...schema, meta }))
+      .update(JSON.stringify({ ...schema, metadata }))
       .digest('hex');
 
     return SchemaService.serializer.serialize('collections', data, {
-      ...meta,
+      ...metadata,
       schemaFileHash,
     }) as SerializedSchema;
   }

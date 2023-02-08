@@ -10,7 +10,7 @@ import SchemaGeneratorActions from './generator-actions';
 import SchemaGeneratorFields from './generator-fields';
 import SchemaGeneratorSegments from './generator-segments';
 
-export default class SchemaGenerator {
+export default class SchemaGeneratorCollection {
   /** Build forest-server schema for a collection */
   static async buildSchema(collection: Collection): Promise<ForestServerCollection> {
     return {

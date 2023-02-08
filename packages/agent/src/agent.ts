@@ -9,7 +9,7 @@ import {
   TSchema,
 } from '@forestadmin/datasource-customizer';
 import { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
-import { ForestServerCollection } from '@forestadmin/forestadmin-client';
+import { ForestServerCollection, SchemaMetadata } from '@forestadmin/forestadmin-client';
 import cors from '@koa/cors';
 import Router from '@koa/router';
 import { readFile, writeFile } from 'fs/promises';
@@ -20,7 +20,7 @@ import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices from './services';
 import { AgentOptions, AgentOptionsWithDefaults } from './types';
-import SchemaGenerator from './utils/forest-schema/generator-collection';
+import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
 
 /**
@@ -164,28 +164,28 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private async sendSchema(dataSource: DataSource): Promise<void> {
     const { schemaPath } = this.options;
 
-    // Load or generate schema
-    let schema: ForestServerCollection[];
+    // Either load the schema from the file system or build it
+    let collections: ForestServerCollection[];
+    let metadata: SchemaMetadata;
 
     if (this.options.isProduction) {
       try {
-        schema = JSON.parse(await readFile(schemaPath, { encoding: 'utf-8' }));
+        const localFile = JSON.parse(await readFile(schemaPath, { encoding: 'utf-8' }));
+        collections = localFile.collections;
+        metadata = localFile.metadata;
       } catch (e) {
         throw new Error(`Can't load ${schemaPath}. Providing a schema is mandatory in production.`);
       }
     } else {
-      schema = await Promise.all(dataSource.collections.map(c => SchemaGenerator.buildSchema(c)));
+      collections = await SchemaGenerator.buildSchema(dataSource);
+      metadata = SchemaGenerator.buildSchemaMetadata();
 
-      const pretty = stringify(schema, { maxLength: 80 });
+      const pretty = stringify({ collections, metadata }, { maxLength: 100 });
       await writeFile(schemaPath, pretty, { encoding: 'utf-8' });
     }
 
     // Send schema to forest servers
-    const name = 'forest-nodejs-agent';
-    const { version } = require('../package.json'); // eslint-disable-line @typescript-eslint/no-var-requires,global-require,max-len
-    const updated = await this.options.forestAdminClient.postSchema(schema, name, version);
-
-    // Log
+    const updated = await this.options.forestAdminClient.postSchema(collections, metadata);
     const message = updated
       ? 'Schema was updated, sending new version'
       : 'Schema was not updated since last run';
