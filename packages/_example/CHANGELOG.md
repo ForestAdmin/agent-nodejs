@@ -1,3 +1,10 @@
+# example [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.44...example@1.2.0) (2023-02-08)
+
+
+### Features
+
+* **example:** add sqlite example ([#620](https://github.com/ForestAdmin/agent-nodejs/issues/620)) ([aff678a](https://github.com/ForestAdmin/agent-nodejs/commit/aff678ab397d6944c6cfe8429a054a040415b8f4))
+
 ## example [1.1.44](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.1.43...example@1.1.44) (2023-02-01)
 
 
