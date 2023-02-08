@@ -253,18 +253,24 @@ describe('Utils > QueryConverter', () => {
           },
         );
 
-        describe('with a "not contains" and a "sqlite" dialect', () => {
-          it('should use my code', () => {
-            const model = setupModel('sqlite');
+        describe('with  "sqlite" dialect', () => {
+          const model = setupModel('sqlite');
+          const queryConverter = new QueryConverter(model);
 
+          it('should return a correct squelizeFilter with NOT GLOB for a NOT CONTAINS case', () => {
             const conditionTree = new ConditionTreeLeaf('__field_1__', 'NotContains', 'test');
-            const queryConverter = new QueryConverter(model);
             const sequelizeFilter = queryConverter.getWhereFromConditionTree(conditionTree);
-            expect(sequelizeFilter).not.toHaveProperty('__field_1__', 'test');
+            expect(sequelizeFilter).toEqual({
+              __field_1__: {
+                attribute: { col: '__field_1__' },
+                comparator: 'NOT GLOB',
+                logic: '*test*',
+              },
+            });
           });
         });
 
-        describe('whith "Like" operator', () => {
+        describe('with "Like" operator', () => {
           it.each([
             [
               'mariadb',
