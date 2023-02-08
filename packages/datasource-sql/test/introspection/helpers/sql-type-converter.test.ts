@@ -23,54 +23,6 @@ const makeColumnDescriptionForEnum = (enumValues: Array<string>): ColumnDescript
 };
 
 describe('SqlTypeConverter', () => {
-  it('should return arrayType', async () => {
-    let sequelize: Sequelize | null = null;
-
-    try {
-      const database = 'datasource-sql-array-type-getter-test';
-      let connectionUri = `postgres://test:password@localhost:5443`;
-      sequelize = new Sequelize(connectionUri, { logging: false });
-      await sequelize.getQueryInterface().dropDatabase(database);
-      await sequelize.getQueryInterface().createDatabase(database);
-      await sequelize.close();
-
-      connectionUri = `${connectionUri}/${database}`;
-      sequelize = new Sequelize(connectionUri, { logging: false });
-
-      sequelize.define(
-        'arrayTable',
-        {
-          arrayInt: DataTypes.ARRAY(DataTypes.INTEGER),
-          arrayString: DataTypes.ARRAY(DataTypes.STRING),
-          arrayEnum: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
-        },
-        { tableName: 'arrayTable' },
-      );
-
-      await sequelize.sync({ force: true });
-
-      const converter = new SqlTypeConverter(sequelize);
-      const description = makeColumnDescriptionForType('ARRAY');
-
-      expect(await converter.convert('arrayTable', 'arrayInt', description)).toStrictEqual({
-        type: 'array',
-        subType: { type: 'scalar', subType: 'NUMBER' },
-      });
-
-      expect(await converter.convert('arrayTable', 'arrayString', description)).toStrictEqual({
-        type: 'array',
-        subType: { type: 'scalar', subType: 'STRING' },
-      });
-
-      expect(await converter.convert('arrayTable', 'arrayEnum', description)).toStrictEqual({
-        type: 'array',
-        subType: { type: 'enum', values: ['enum1', 'enum2'] },
-      });
-    } finally {
-      await sequelize?.close();
-    }
-  });
-
   describe('convert', () => {
     describe.each([
       ['JSON', DataTypes.JSON, 'JSON'],
@@ -165,6 +117,56 @@ describe('SqlTypeConverter', () => {
             ),
           ).toEqual({ type: 'scalar', subType: 'STRING' });
         });
+      });
+    });
+
+    describe('from a table with arrays of integers, strings and enums', () => {
+      it('should detect the proper types', async () => {
+        let sequelize: Sequelize | null = null;
+
+        try {
+          const database = 'datasource-sql-array-type-getter-test';
+          let connectionUri = `postgres://test:password@localhost:5443`;
+          sequelize = new Sequelize(connectionUri, { logging: false });
+          await sequelize.getQueryInterface().dropDatabase(database);
+          await sequelize.getQueryInterface().createDatabase(database);
+          await sequelize.close();
+
+          connectionUri = `${connectionUri}/${database}`;
+          sequelize = new Sequelize(connectionUri, { logging: false });
+
+          sequelize.define(
+            'arrayTable',
+            {
+              arrayInt: DataTypes.ARRAY(DataTypes.INTEGER),
+              arrayString: DataTypes.ARRAY(DataTypes.STRING),
+              arrayEnum: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
+            },
+            { tableName: 'arrayTable' },
+          );
+
+          await sequelize.sync({ force: true });
+
+          const converter = new SqlTypeConverter(sequelize);
+          const description = makeColumnDescriptionForType('ARRAY');
+
+          expect(await converter.convert('arrayTable', 'arrayInt', description)).toStrictEqual({
+            type: 'array',
+            subType: { type: 'scalar', subType: 'NUMBER' },
+          });
+
+          expect(await converter.convert('arrayTable', 'arrayString', description)).toStrictEqual({
+            type: 'array',
+            subType: { type: 'scalar', subType: 'STRING' },
+          });
+
+          expect(await converter.convert('arrayTable', 'arrayEnum', description)).toStrictEqual({
+            type: 'array',
+            subType: { type: 'enum', values: ['enum1', 'enum2'] },
+          });
+        } finally {
+          await sequelize?.close();
+        }
       });
     });
 
