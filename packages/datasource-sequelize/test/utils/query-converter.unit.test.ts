@@ -253,6 +253,17 @@ describe('Utils > QueryConverter', () => {
           },
         );
 
+        describe('with a "not contains" and a "sqlite" dialect', () => {
+          it('should use my code', () => {
+            const model = setupModel('sqlite');
+
+            const conditionTree = new ConditionTreeLeaf('__field_1__', 'NotContains', 'test');
+            const queryConverter = new QueryConverter(model);
+            const sequelizeFilter = queryConverter.getWhereFromConditionTree(conditionTree);
+            expect(sequelizeFilter).not.toHaveProperty('__field_1__', 'test');
+          });
+        });
+
         describe('whith "Like" operator', () => {
           it.each([
             [
