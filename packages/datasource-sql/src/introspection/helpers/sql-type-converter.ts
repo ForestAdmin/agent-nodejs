@@ -24,7 +24,7 @@ export default class SqlTypeConverter {
         return this.getEnumType(columnInfo);
 
       default:
-        return { type: 'scalar', subType: this.convertScalarType(columnInfo.type) };
+        return { type: 'scalar', subType: this.getScalarType(columnInfo.type) };
     }
   }
 
@@ -83,13 +83,13 @@ export default class SqlTypeConverter {
     } else {
       const dataTypeWithLength = charLength ? `${dataType}(${charLength})` : dataType;
 
-      subType = { type: 'scalar', subType: this.convertScalarType(dataTypeWithLength) };
+      subType = { type: 'scalar', subType: this.getScalarType(dataTypeWithLength) };
     }
 
     return { type: 'array', subType };
   }
 
-  private convertScalarType(type: string): ScalarSubType {
+  private getScalarType(type: string): ScalarSubType {
     switch (type.toUpperCase()) {
       case 'JSON':
         return 'JSON';
