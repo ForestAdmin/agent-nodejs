@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.7.1...@forestadmin/agent@1.8.0) (2023-02-09)
+
+
+### Features
+
+* **agent:** provide error information to the logger ([#623](https://github.com/ForestAdmin/agent-nodejs/issues/623)) ([fef447c](https://github.com/ForestAdmin/agent-nodejs/commit/fef447c77d8c694c6e7d332d6c1139a28d582b7c))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.11
+* **@forestadmin/datasource-toolkit:** upgraded to 1.4.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.8
+
 ## @forestadmin/agent [1.7.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.7.0...@forestadmin/agent@1.7.1) (2023-02-01)
 
 
