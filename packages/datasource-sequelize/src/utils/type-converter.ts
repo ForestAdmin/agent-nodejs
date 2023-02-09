@@ -29,6 +29,9 @@ export default class TypeConverter {
   }
 
   private static getColumnTypeFromDataType(dataType: AbstractDataType): PrimitiveTypes {
+    // See postgres enum handling in @datasource-sql
+    if ((dataType as { isDataSourceSqlEnum?: boolean }).isDataSourceSqlEnum) return 'Enum';
+
     switch (dataType.key) {
       case DataTypes.BOOLEAN.key:
         return 'Boolean';

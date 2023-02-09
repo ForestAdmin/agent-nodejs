@@ -121,20 +121,18 @@ describe('SqlTypeConverter', () => {
     });
 
     describe('from a table with arrays of integers, strings and enums', () => {
-      it('should detect the proper types', async () => {
+      it('should detect the proper types on %s', async () => {
+        const connectionUri = 'postgres://test:password@localhost:5443';
         let sequelize: Sequelize | null = null;
 
         try {
           const database = 'datasource-sql-array-type-getter-test';
-          let connectionUri = `postgres://test:password@localhost:5443`;
           sequelize = new Sequelize(connectionUri, { logging: false });
           await sequelize.getQueryInterface().dropDatabase(database);
           await sequelize.getQueryInterface().createDatabase(database);
           await sequelize.close();
 
-          connectionUri = `${connectionUri}/${database}`;
-          sequelize = new Sequelize(connectionUri, { logging: false });
-
+          sequelize = new Sequelize(`${connectionUri}/${database}`, { logging: false });
           sequelize.define(
             'arrayTable',
             {
@@ -162,7 +160,11 @@ describe('SqlTypeConverter', () => {
 
           expect(await converter.convert('arrayTable', 'arrayEnum', description)).toStrictEqual({
             type: 'array',
-            subType: { type: 'enum', values: ['enum1', 'enum2'] },
+            subType: {
+              type: 'enum',
+              name: 'enum_arrayTable_arrayEnum',
+              values: ['enum1', 'enum2'],
+            },
           });
         } finally {
           await sequelize?.close();
