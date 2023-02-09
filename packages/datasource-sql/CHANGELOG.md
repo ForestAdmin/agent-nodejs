@@ -1,3 +1,18 @@
+## @forestadmin/datasource-sql [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.0...@forestadmin/datasource-sql@1.2.1) (2023-02-09)
+
+
+### Bug Fixes
+
+* **datasource-sql:** allow using custom enum names ([#616](https://github.com/ForestAdmin/agent-nodejs/issues/616)) ([7585fd6](https://github.com/ForestAdmin/agent-nodejs/commit/7585fd6e28237335fa16843c32250696b6157444))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.2.10
+
 # @forestadmin/datasource-sql [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.1.13...@forestadmin/datasource-sql@1.2.0) (2023-01-31)
 
 
