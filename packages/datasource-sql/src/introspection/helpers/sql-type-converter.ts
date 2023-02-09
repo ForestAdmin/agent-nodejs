@@ -44,7 +44,11 @@ export default class SqlTypeConverter {
     return { type: 'enum', values: enumOptions.replace(/'/g, '').split(',') };
   }
 
-  /** Get the type of an array from sequelize column description */
+  /**
+   * Get the type of an array from sequelize column description
+   * Note that we don't need to write multiple SQL queries, because arrays are only supported by
+   * Postgres
+   */
   private async getArrayType(tableName: string, columnName: string): Promise<ColumnType> {
     // Get the type of the elements in the array from the database
     const [{ udtName, dataType, charLength, rawEnumValues }] = await this.sequelize.query<{
@@ -81,11 +85,7 @@ export default class SqlTypeConverter {
       const queryGen = queryInterface.queryGenerator as { fromArray: (values: string) => string[] };
       const enumValues = queryGen.fromArray(rawEnumValues);
 
-      if (this.sequelize.getDialect() === 'postgres') {
-        subType = { type: 'enum', name: udtName, values: enumValues };
-      } else {
-        subType = { type: 'enum', values: enumValues };
-      }
+      subType = { type: 'enum', name: udtName, values: enumValues };
     } else {
       const dataTypeWithLength = charLength ? `${dataType}(${charLength})` : dataType;
 

@@ -28,7 +28,7 @@ export default class SequelizeTypeFactory {
         return DataTypes.ARRAY(this.makeType(dialect, type.subType, table, columnName));
 
       default:
-        throw new Error();
+        throw new Error('Invalid type');
     }
   }
 
