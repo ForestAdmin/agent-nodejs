@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.2.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.2.10...@forestadmin/datasource-sequelize@1.2.11) (2023-02-09)
+
+
+### Bug Fixes
+
+* not contains filter generate an error in sequelize ([#621](https://github.com/ForestAdmin/agent-nodejs/issues/621)) ([a80ce3d](https://github.com/ForestAdmin/agent-nodejs/commit/a80ce3d43d0cc830bbca2892b5ed12898ba93ad7))
+
 ## @forestadmin/datasource-sequelize [1.2.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.2.9...@forestadmin/datasource-sequelize@1.2.10) (2023-02-09)
 
 
