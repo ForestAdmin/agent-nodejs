@@ -14,9 +14,13 @@ export default class Logger extends BaseRoute {
 
   private async logger(context: Context, next: Next): Promise<void> {
     const timer = Date.now();
+    let error: Error;
 
     try {
       await next();
+    } catch (e) {
+      error = e;
+      throw e;
     } finally {
       let logLevel: LoggerLevel = 'Info';
       if (context.response.status >= HttpCode.BadRequest) logLevel = 'Warn';
@@ -26,7 +30,7 @@ export default class Logger extends BaseRoute {
       message += ` ${context.request.method} ${context.request.path}`;
       message += ` - ${Date.now() - timer}ms`;
 
-      this.options?.logger(logLevel, message);
+      this.options?.logger(logLevel, message, error);
     }
   }
 }

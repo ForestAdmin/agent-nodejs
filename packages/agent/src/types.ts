@@ -35,8 +35,8 @@ export enum HttpCode {
 
 export enum RouteType {
   // Changing the values of this enum changes the order in which routes are loaded into koa-router.
-  LoggerHandler = 0,
-  ErrorHandler = 1,
+  ErrorHandler = 0,
+  LoggerHandler = 1,
   PublicRoute = 2,
   Authentication = 3,
   PrivateRoute = 4,
