@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.2.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.3...@forestadmin/datasource-sql@1.2.4) (2023-02-09)
+
+
+### Bug Fixes
+
+* **datasource-sql:** make enumlist typing case sensitive and schema aware ([#624](https://github.com/ForestAdmin/agent-nodejs/issues/624)) ([afab98a](https://github.com/ForestAdmin/agent-nodejs/commit/afab98a1c1f89b71231d964a0baa8f850f603213))
+
 ## @forestadmin/datasource-sql [1.2.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.2...@forestadmin/datasource-sql@1.2.3) (2023-02-09)
 
 
