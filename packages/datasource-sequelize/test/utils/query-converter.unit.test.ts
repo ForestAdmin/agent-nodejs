@@ -239,7 +239,7 @@ describe('Utils > QueryConverter', () => {
             { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: integerValue }] },
           ],
           ['Present', undefined, { [Op.ne]: null }],
-          ['NotContains', stringValue, { [Op.not]: { [Op.like]: `%${stringValue}%` } }],
+          ['NotContains', stringValue, { [Op.notLike]: `%${stringValue}%` }],
         ])(
           'should generate a "where" Sequelize filter from a "%s" operator',
           (operator, value, where) => {
@@ -253,7 +253,24 @@ describe('Utils > QueryConverter', () => {
           },
         );
 
-        describe('whith "Like" operator', () => {
+        describe('with  "sqlite" dialect', () => {
+          const model = setupModel('sqlite');
+          const queryConverter = new QueryConverter(model);
+
+          it('should return a correct squelizeFilter with NOT GLOB for a NOT CONTAINS case', () => {
+            const conditionTree = new ConditionTreeLeaf('__field_1__', 'NotContains', 'test');
+            const sequelizeFilter = queryConverter.getWhereFromConditionTree(conditionTree);
+            expect(sequelizeFilter).toEqual({
+              __field_1__: {
+                attribute: { col: '__field_1__' },
+                comparator: 'NOT GLOB',
+                logic: '*test*',
+              },
+            });
+          });
+        });
+
+        describe('with "Like" operator', () => {
           it.each([
             [
               'mariadb',
