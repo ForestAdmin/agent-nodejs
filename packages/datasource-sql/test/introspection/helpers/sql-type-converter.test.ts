@@ -162,6 +162,7 @@ describe('SqlTypeConverter', () => {
             type: 'array',
             subType: {
               type: 'enum',
+              schema: 'public',
               name: 'enum_arrayTable_arrayEnum',
               values: ['enum1', 'enum2'],
             },

@@ -73,7 +73,7 @@ describe('ModelBuilder', () => {
             allowNull: false,
             autoIncrement: false,
             primaryKey: false,
-            type: { type: 'enum', name: 'custom_type', values: ['a', 'b', 'c'] },
+            type: { type: 'enum', schema: 'public', name: 'custom_type', values: ['a', 'b', 'c'] },
             constraints: [],
             defaultValue: null,
             unique: false,
@@ -85,6 +85,8 @@ describe('ModelBuilder', () => {
     ModelBuilder.defineModels(sequelize, () => {}, tables);
 
     expect(sequelize.models.myTable).toBeDefined();
-    expect(sequelize.models.myTable.rawAttributes.enumList.type.toString({})).toBe('custom_type');
+    expect(sequelize.models.myTable.rawAttributes.enumList.type.toString({})).toBe(
+      '"public"."custom_type"',
+    );
   });
 });

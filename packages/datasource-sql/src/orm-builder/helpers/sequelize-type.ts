@@ -21,7 +21,7 @@ export default class SequelizeTypeFactory {
         // This should prevent side-effects on most cases if the custom type fails to mimic the
         // default one and cause issues, while still allowing to use custom types when required.
         return dialect === 'postgres' && type.name && type.name !== `enum_${table}_${columnName}`
-          ? this.makeCustomEnumType(type.name, type.values)
+          ? this.makeCustomEnumType(type.schema, type.name, type.values)
           : DataTypes.ENUM(...type.values);
 
       case 'array':
@@ -43,7 +43,13 @@ export default class SequelizeTypeFactory {
    * @see https://github.com/sequelize/sequelize/blob/v6.28.0/src/dialects/postgres/data-types.js#L491
    * @see https://github.com/sequelize/sequelize/blob/v6.28.0/src/utils.js#L555
    */
-  private static makeCustomEnumType(name: string, values: string[]): SequelizeColumnType {
+  private static makeCustomEnumType(
+    schema: string,
+    name: string,
+    values: string[],
+  ): SequelizeColumnType {
+    const key = `${schema ? `"${schema}".` : ''}"${name}"`;
+
     const Type = class extends DataTypes.ABSTRACT {
       // Markers to tell @forestadmin/datasource-sequelize to consider this type as an enum
       // when transforming sequelize models to forest collections.
@@ -54,8 +60,8 @@ export default class SequelizeTypeFactory {
       // Setting this tells sequelize the name of the type in the database.
       // This is used, most notably, when casting values (which happens when the enum is used in
       // arrays)
-      static override key = name;
-      override key = name;
+      static override key = key;
+      override key = key;
 
       // The rest is more or less copy pasted from the sequelize source code of the ENUM type.
       // Hopefully that won't change too much when sequelize 7 is released.

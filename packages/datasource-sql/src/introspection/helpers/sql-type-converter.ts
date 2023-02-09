@@ -51,19 +51,27 @@ export default class SqlTypeConverter {
    */
   private async getArrayType(tableName: string, columnName: string): Promise<ColumnType> {
     // Get the type of the elements in the array from the database
-    const [{ udtName, dataType, charLength, rawEnumValues }] = await this.sequelize.query<{
-      udtName: string;
+    const [{ name, dataType, charLength, schema, rawEnumValues }] = await this.sequelize.query<{
+      name: string;
       charLength: number;
       dataType: string;
+      schema: string;
       rawEnumValues: string;
     }>(
       `SELECT
-        e.udt_name AS "udtName",
         e.data_type AS "dataType",
+        e.udt_name AS "name",
         e.character_maximum_length as "charLength",
         (
+          SELECT ns.nspname
+          FROM pg_catalog.pg_namespace ns
+          JOIN pg_catalog.pg_type t ON ns.oid = t.typnamespace
+          WHERE t.typname = e.udt_name
+        ) as "schema",
+        (
           SELECT array_agg(en.enumlabel)
-          FROM pg_catalog.pg_type t JOIN pg_catalog.pg_enum en ON t.oid = en.enumtypid
+          FROM pg_catalog.pg_type t
+          JOIN pg_catalog.pg_enum en ON t.oid = en.enumtypid
           WHERE t.typname = e.udt_name
         ) AS "rawEnumValues"
       FROM INFORMATION_SCHEMA.columns c
@@ -83,9 +91,9 @@ export default class SqlTypeConverter {
     if (rawEnumValues !== null) {
       const queryInterface = this.sequelize.getQueryInterface();
       const queryGen = queryInterface.queryGenerator as { fromArray: (values: string) => string[] };
-      const enumValues = queryGen.fromArray(rawEnumValues);
+      const values = queryGen.fromArray(rawEnumValues);
 
-      subType = { type: 'enum', name: udtName, values: enumValues };
+      subType = { type: 'enum', schema, name, values };
     } else {
       const dataTypeWithLength = charLength ? `${dataType}(${charLength})` : dataType;
 
