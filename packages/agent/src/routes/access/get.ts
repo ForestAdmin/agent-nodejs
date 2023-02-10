@@ -18,7 +18,7 @@ export default class GetRoute extends CollectionRoute {
     const scope = await this.services.authorization.getScope(this.collection, context);
     const records = await this.collection.list(
       CallerParser.fromCtx(context),
-      FilterParser.fromListRequest(this.collection, context).intersectWith(scope),
+      FilterParser.one(this.collection, context).intersectWith(scope),
       ProjectionFactory.all(this.collection),
     );
 

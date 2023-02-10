@@ -15,7 +15,7 @@ export default class ListRoute extends CollectionRoute {
     await this.services.authorization.assertCanBrowse(context, this.collection.name);
 
     const scope = await this.services.authorization.getScope(this.collection, context);
-    const filter = FilterParser.fromList(this.collection, context).intersectWith(scope);
+    const filter = FilterParser.multiple(this.collection, context).intersectWith(scope);
 
     const records = await this.collection.list(
       CallerParser.fromCtx(context),

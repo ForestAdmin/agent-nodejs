@@ -60,7 +60,7 @@ export default class AssociateRelatedRoute extends RelationRoute {
       targetedRelationId,
       id,
     );
-    const filter = FilterParser.fromListRequest(this.collection, context)
+    const filter = FilterParser.multiple(this.collection, context)
       .intersectWith(scope)
       .intersectWith(new ConditionTreeLeaf(id, 'Equal', value));
 

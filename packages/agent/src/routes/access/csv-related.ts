@@ -35,7 +35,7 @@ export default class CsvRelatedRoute extends RelationRoute {
 
     const caller = CallerParser.fromCtx(context);
     const projection = ProjectionParser.fromCtx(this.foreignCollection, context);
-    const filter = FilterParser.fromList(this.foreignCollection, context).intersectWith(scope);
+    const filter = FilterParser.multiple(this.foreignCollection, context).intersectWith(scope);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 
     const gen = CsvGenerator.generate(

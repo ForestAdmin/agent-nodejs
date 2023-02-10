@@ -24,7 +24,7 @@ export default class CsvRoute extends CollectionRoute {
     const scope = await this.services.authorization.getScope(this.collection, context);
 
     const caller = CallerParser.fromCtx(context);
-    const filter = FilterParser.fromList(this.collection, context).intersectWith(scope);
+    const filter = FilterParser.multiple(this.collection, context).intersectWith(scope);
     const projection = ProjectionParser.fromCtx(this.collection, context);
 
     const list = this.collection.list.bind(this.collection);

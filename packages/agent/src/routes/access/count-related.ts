@@ -22,9 +22,7 @@ export default class CountRelatedRoute extends RelationRoute {
       const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
       const scope = await this.services.authorization.getScope(this.foreignCollection, context);
       const caller = CallerParser.fromCtx(context);
-      const filter = FilterParser.fromListRequest(this.foreignCollection, context).intersectWith(
-        scope,
-      );
+      const filter = FilterParser.multiple(this.foreignCollection, context).intersectWith(scope);
 
       const aggregationResult = await CollectionUtils.aggregateRelation(
         this.collection,

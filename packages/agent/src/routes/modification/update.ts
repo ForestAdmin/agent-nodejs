@@ -31,7 +31,7 @@ export default class UpdateRoute extends CollectionRoute {
     const scope = await this.services.authorization.getScope(this.collection, context);
 
     const caller = CallerParser.fromCtx(context);
-    const filter = FilterParser.fromListRequest(this.collection, context).intersectWith(scope);
+    const filter = FilterParser.multiple(this.collection, context).intersectWith(scope);
     await this.collection.update(caller, filter, record);
 
     const [updateResult] = await this.collection.list(

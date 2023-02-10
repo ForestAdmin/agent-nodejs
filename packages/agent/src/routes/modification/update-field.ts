@@ -30,7 +30,7 @@ export default class UpdateField extends CollectionRoute {
     // Create caller & filter
     const scope = await this.services.authorization.getScope(this.collection, context);
     const caller = CallerParser.fromCtx(context);
-    const filter = FilterParser.fromListRequest(this.collection, context).intersectWith(scope);
+    const filter = FilterParser.multiple(this.collection, context).intersectWith(scope);
 
     // Load & check record
     const [record] = await this.collection.list(caller, filter, new Projection(field));

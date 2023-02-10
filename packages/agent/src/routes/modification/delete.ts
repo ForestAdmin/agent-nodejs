@@ -1,4 +1,3 @@
-import { Filter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 

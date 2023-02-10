@@ -21,7 +21,7 @@ export default class ListRelatedRoute extends RelationRoute {
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const scope = await this.services.authorization.getScope(this.foreignCollection, context);
-    const filter = FilterParser.fromList(this.foreignCollection, context).intersectWith(scope);
+    const filter = FilterParser.multiple(this.foreignCollection, context).intersectWith(scope);
 
     const records = await CollectionUtils.listRelation(
       this.collection,

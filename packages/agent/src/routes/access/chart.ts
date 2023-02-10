@@ -258,6 +258,6 @@ export default class ChartRoute extends CollectionRoute {
   private async getFilter(context: Context): Promise<Filter> {
     const scope = await this.services.authorization.getScope(this.collection, context);
 
-    return FilterParser.fromListRequest(this.collection, context).intersectWith(scope);
+    return FilterParser.multiple(this.collection, context).intersectWith(scope);
   }
 }
