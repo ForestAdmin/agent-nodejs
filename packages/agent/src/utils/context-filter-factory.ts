@@ -16,9 +16,9 @@ export default class ContextFilterFactory {
     partialFilter?: Partial<Filter>,
   ): Filter {
     return new Filter({
+      ...ContextFilterFactory.build(collection, context, scope),
       sort: QueryStringParser.parseSort(collection, context),
       page: QueryStringParser.parsePagination(context),
-      ...ContextFilterFactory.build(collection, context, scope),
       ...partialFilter,
     });
   }
