@@ -56,7 +56,7 @@ export default class DataSourceApiChartRoute extends BaseRoute {
   private async handleSmartChart(context: Context) {
     // Smart charts need the data to be unformatted
     context.response.body = await this.dataSource.renderChart(
-      QueryStringParser.parseCaller(context),
+      CallerParser.fromCtx(context),
       this.chartName,
     );
   }
