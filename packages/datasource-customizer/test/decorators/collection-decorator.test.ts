@@ -1,21 +1,13 @@
 /* eslint-disable max-classes-per-file */
 
-import {
-  Caller,
-  Collection,
-  CollectionSchema,
-  Filter,
-} from '@forestadmin/datasource-toolkit';
+import { Caller, Collection, CollectionSchema, Filter } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import CollectionDecorator from '../../src/decorators/collection-decorator';
 
 class DecoratedCollection extends CollectionDecorator {
   public override childCollection: Collection;
-  public override async refineFilter(
-    caller: Caller,
-    filter: Filter,
-  ): Promise<Filter> {
+  public override async refineFilter(caller: Caller, filter: Filter): Promise<Filter> {
     return super.refineFilter(caller, filter);
   }
 

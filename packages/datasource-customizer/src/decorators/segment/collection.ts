@@ -26,10 +26,7 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
     };
   }
 
-  public override async refineFilter(
-    caller: Caller,
-    filter?: Filter,
-  ): Promise<Filter> {
+  public override async refineFilter(caller: Caller, filter?: Filter): Promise<Filter> {
     if (!filter) {
       return null;
     }

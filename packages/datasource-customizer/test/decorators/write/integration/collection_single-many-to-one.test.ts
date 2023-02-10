@@ -1,4 +1,4 @@
-import { Filter, Filter } from '@forestadmin/datasource-toolkit';
+import { Filter } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import WriteDataSourceDecorator from '../../../../src/decorators/write/datasource';

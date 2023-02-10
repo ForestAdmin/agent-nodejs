@@ -1,4 +1,4 @@
-import { Filter, Filter } from '@forestadmin/datasource-toolkit';
+import { Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import DissociateDeleteRoute from '../../../src/routes/modification/dissociate-delete-related';

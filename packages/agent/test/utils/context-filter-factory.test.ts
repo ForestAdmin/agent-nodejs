@@ -1,8 +1,8 @@
 import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
-  Page,
   Filter,
+  Page,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';

@@ -6,7 +6,6 @@ import {
   DataSource,
   Filter,
   ManyToManySchema,
-  Filter,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';

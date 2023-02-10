@@ -1,9 +1,4 @@
-import {
-  Caller,
-  CollectionUtils,
-  Filter,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
+import { Caller, CollectionUtils, Filter, Projection } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 import { Readable } from 'stream';

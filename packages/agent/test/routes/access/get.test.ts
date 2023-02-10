@@ -1,8 +1,4 @@
-import {
-  ConditionTreeFactory,
-  Filter,
-  ProjectionFactory,
-} from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, Filter, ProjectionFactory } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import Get from '../../../src/routes/access/get';

@@ -6,8 +6,8 @@ import {
   ConditionTree,
   ConditionTreeFactory,
   ConditionTreeLeaf,
-  Operator,
   Filter,
+  Operator,
 } from '@forestadmin/datasource-toolkit';
 import { validate as uuidValidate } from 'uuid';
 
@@ -26,10 +26,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     return { ...subSchema, searchable: true };
   }
 
-  public override async refineFilter(
-    caller: Caller,
-    filter?: Filter,
-  ): Promise<Filter> {
+  public override async refineFilter(caller: Caller, filter?: Filter): Promise<Filter> {
     // Search string is not significant
     if (!filter?.search?.trim().length) {
       return filter.override({ search: null });

@@ -62,11 +62,7 @@ describe('OperatorsEquivalenceCollectionDecorator', () => {
       const tree = new ConditionTreeLeaf('col', 'Equal', 'someDate');
       const caller = factories.caller.build();
 
-      await decorator.list(
-        caller,
-        new Filter({ conditionTree: tree }),
-        new Projection('col'),
-      );
+      await decorator.list(caller, new Filter({ conditionTree: tree }), new Projection('col'));
       expect(collectionList).toHaveBeenCalledWith(
         caller,
         { conditionTree: { field: 'col', operator: 'Equal', value: 'someDate' } },
@@ -78,11 +74,7 @@ describe('OperatorsEquivalenceCollectionDecorator', () => {
       const tree = new ConditionTreeLeaf('col', 'In', ['someDate']);
       const caller = factories.caller.build();
 
-      await decorator.list(
-        caller,
-        new Filter({ conditionTree: tree }),
-        new Projection('col'),
-      );
+      await decorator.list(caller, new Filter({ conditionTree: tree }), new Projection('col'));
       expect(collectionList).toHaveBeenCalledWith(
         caller,
         { conditionTree: { field: 'col', operator: 'Equal', value: 'someDate' } },
@@ -94,11 +86,7 @@ describe('OperatorsEquivalenceCollectionDecorator', () => {
       const tree = new ConditionTreeLeaf('col', 'Blank');
       const caller = factories.caller.build();
 
-      await decorator.list(
-        caller,
-        new Filter({ conditionTree: tree }),
-        new Projection('col'),
-      );
+      await decorator.list(caller, new Filter({ conditionTree: tree }), new Projection('col'));
       expect(collectionList).toHaveBeenCalledWith(
         caller,
         { conditionTree: { field: 'col', operator: 'Equal', value: null } },

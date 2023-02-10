@@ -6,7 +6,6 @@ import {
   DataSource,
   Filter,
   Page,
-  Filter,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';

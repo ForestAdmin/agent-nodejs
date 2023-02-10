@@ -38,7 +38,6 @@ describe('RenameFieldCollectionDecorator', () => {
 
   // Convenience: Valid filters for the un-decorated persons collection
   let personsFilter: Filter;
-  let personsFilter: Filter;
 
   // Build datasource
   beforeEach(() => {
@@ -201,7 +200,6 @@ describe('RenameFieldCollectionDecorator', () => {
 
   describe('when renaming columns and relations', () => {
     // Convenience: equivalent filters for the collection after renaming stuff
-    let newPersonsFilter: Filter;
     let newPersonsFilter: Filter;
 
     // Rename stuff

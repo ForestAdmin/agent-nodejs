@@ -8,8 +8,8 @@ import {
   ConditionTreeValidator,
   FieldSchema,
   FieldValidator,
-  Operator,
   Filter,
+  Operator,
   RelationSchema,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
@@ -74,10 +74,7 @@ export default class OperatorsEmulateCollectionDecorator extends CollectionDecor
     return { ...childSchema, fields };
   }
 
-  protected override async refineFilter(
-    caller: Caller,
-    filter: Filter,
-  ): Promise<Filter> {
+  protected override async refineFilter(caller: Caller, filter: Filter): Promise<Filter> {
     return filter?.override({
       conditionTree: await filter.conditionTree?.replaceLeafsAsync(leaf =>
         this.replaceLeaf(caller, leaf, []),

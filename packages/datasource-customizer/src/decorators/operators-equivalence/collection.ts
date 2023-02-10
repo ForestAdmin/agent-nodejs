@@ -40,10 +40,7 @@ export default class OperatorsEquivalenceCollectionDecorator extends CollectionD
     return { ...childSchema, fields };
   }
 
-  protected override async refineFilter(
-    caller: Caller,
-    filter?: Filter,
-  ): Promise<Filter> {
+  protected override async refineFilter(caller: Caller, filter?: Filter): Promise<Filter> {
     return filter?.override({
       conditionTree: filter.conditionTree?.replaceLeafs(leaf => {
         const schema = CollectionUtils.getFieldSchema(

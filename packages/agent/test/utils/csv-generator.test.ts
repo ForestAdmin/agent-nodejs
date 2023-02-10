@@ -1,10 +1,4 @@
-import {
-  ConditionTreeLeaf,
-  Page,
-  Filter,
-  Projection,
-  Sort,
-} from '@forestadmin/datasource-toolkit';
+import { ConditionTreeLeaf, Filter, Page, Projection, Sort } from '@forestadmin/datasource-toolkit';
 
 import CsvGenerator, { CHUNK_SIZE } from '../../src/utils/csv-generator';
 import * as factories from '../__factories__';

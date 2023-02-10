@@ -1,8 +1,4 @@
-import {
-  ConditionTreeFactory,
-  Filter,
-  ProjectionFactory,
-} from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, Filter, ProjectionFactory } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 
