@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/plugin-aws-s3",
-  "version": "0.0.0-development",
+  "version": "1.0.0",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
