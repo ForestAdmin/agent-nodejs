@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Collection,
   ConditionTree,
@@ -18,9 +17,6 @@ import { Context } from 'koa';
 import CallerParser from './caller';
 import ConditionTreeConverter from '../condition-tree-converter';
 import IdUtils from '../id';
-
-const DEFAULT_ITEMS_PER_PAGE = 15;
-const DEFAULT_PAGE_TO_SKIP = 1;
 
 /**
  * This class is responsible for making sense of the parameters sent by the client, and telling
@@ -109,15 +105,8 @@ export default class FilterParser {
 
   /** Extract user filters from request */
   private static parseUserFilter(collection: Collection, context: Context): ConditionTree {
-    const { query, body } = context.request as any;
-
     try {
-      const filters =
-        body?.data?.attributes?.all_records_subset_query?.filters ??
-        body?.filters ??
-        body?.filter ??
-        query?.filters;
-
+      const filters = this.getValue(context, 'filters') || this.getValue(context, 'filter');
       if (!filters) return null;
 
       const json = typeof filters === 'object' ? filters : JSON.parse(filters.toString());
@@ -131,10 +120,7 @@ export default class FilterParser {
   }
 
   private static parseSearch(collection: Collection, context: Context): string {
-    const { query, body } = context.request as any;
-    const search =
-      body?.data?.attributes?.all_records_subset_query?.search?.toString() ??
-      query.search?.toString();
+    const search = this.getValue(context, 'search');
 
     if (search && !collection.schema.searchable) {
       throw new ValidationError(`Collection is not searchable`);
@@ -144,46 +130,25 @@ export default class FilterParser {
   }
 
   private static parseSearchExtended(context: Context): boolean {
-    const { query, body } = context.request as any;
-    const extended =
-      body?.data?.attributes?.all_records_subset_query?.searchExtended?.toString() ??
-      query.searchExtended?.toString();
+    const extended = this.getValue(context, 'searchExtended', '0');
 
     return !!extended && extended !== '0' && extended !== 'false';
   }
 
   private static parseSegment(collection: Collection, context: Context): string {
-    const { query, body } = context.request as any;
-    const segment =
-      body?.data?.attributes?.all_records_subset_query?.segment?.toString() ??
-      query.segment?.toString();
+    const segment = this.getValue(context, 'segment');
 
-    if (!segment) {
-      return null;
-    }
-
-    if (!collection.schema.segments.includes(segment)) {
+    if (segment && !collection.schema.segments.includes(segment))
       throw new ValidationError(`Invalid segment: "${segment}"`);
-    }
 
     return segment;
   }
 
   private static parsePagination(context: Context): Page {
-    const { query, body } = context.request as any;
-    const queryItemsPerPage = (
-      body?.data?.attributes?.all_records_subset_query?.['page[size]'] ??
-      query['page[size]'] ??
-      DEFAULT_ITEMS_PER_PAGE
-    ).toString();
-    const queryPageToSkip = (
-      body?.data?.attributes?.all_records_subset_query?.['page[number]'] ??
-      query['page[number]'] ??
-      DEFAULT_PAGE_TO_SKIP
-    ).toString();
-
+    const queryItemsPerPage = this.getValue(context, 'page[size]', '15');
+    const queryPageToSkip = this.getValue(context, 'page[number]', '1');
     const itemsPerPage = Number.parseInt(queryItemsPerPage, 10);
-    let pageToSkip = Number.parseInt(queryPageToSkip, 10);
+    const pageToSkip = Number.parseInt(queryPageToSkip, 10);
 
     if (
       Number.isNaN(itemsPerPage) ||
@@ -194,16 +159,11 @@ export default class FilterParser {
       throw new ValidationError(`Invalid pagination [limit: ${itemsPerPage}, skip: ${pageToSkip}]`);
     }
 
-    pageToSkip = Math.max(pageToSkip - 1, 0);
-    pageToSkip *= itemsPerPage;
-
-    return new Page(pageToSkip, itemsPerPage);
+    return new Page(pageToSkip * itemsPerPage, itemsPerPage);
   }
 
   private static parseSort(collection: Collection, context: Context): Sort {
-    const { query, body } = context.request as any;
-    const sortString =
-      body?.data?.attributes?.all_records_subset_query?.sort?.toString() ?? query.sort?.toString();
+    const sortString = this.getValue(context, 'sort');
 
     try {
       if (!sortString) return SortFactory.byPrimaryKeys(collection);
@@ -219,5 +179,17 @@ export default class FilterParser {
     } catch {
       throw new ValidationError(`Invalid sort: ${sortString}`);
     }
+  }
+
+  private static getValue(context: Context, name: string, fallback: string = null): any {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { query, body } = context.request as any;
+
+    return (
+      body?.data?.attributes?.all_records_subset_query?.[name] ??
+      body?.[name] ??
+      query?.[name] ??
+      fallback
+    );
   }
 }
