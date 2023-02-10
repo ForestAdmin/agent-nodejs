@@ -52,7 +52,7 @@ export default class ActionRoute extends CollectionRoute {
 
     const caller = CallerParser.fromCtx(context);
     const [filterForCaller, filterForAllCaller] = await Promise.all([
-      this.getRecordSelection(context),
+      this.getRecordSelection(context, true),
       this.getRecordSelection(context, false),
     ]);
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
@@ -134,7 +134,7 @@ export default class ActionRoute extends CollectionRoute {
       : null;
 
     const caller = CallerParser.fromCtx(context);
-    const filter = await this.getRecordSelection(context);
+    const filter = await this.getRecordSelection(context, true);
     const fields = await this.collection.getForm(caller, this.actionName, data, filter);
 
     context.response.body = {
@@ -165,7 +165,7 @@ export default class ActionRoute extends CollectionRoute {
     return next();
   }
 
-  private async getRecordSelection(context: Context, includeUserScope = true): Promise<Filter> {
+  private async getRecordSelection(context: Context, includeUserScope: boolean): Promise<Filter> {
     const [filter, scope] = await Promise.all([
       FilterParser.action(this.collection, context),
       this.services.authorization.getScope(this.collection, context),
