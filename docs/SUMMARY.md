@@ -64,7 +64,7 @@
 
   - Provided plugins
     - [AWS S3](agent-customization/plugins/provided/aws-s3.md)
-    - [Avanced Export](agent-customization/plugins/provided/export-advanced.md)
+    - [Advanced Export](agent-customization/plugins/provided/export-advanced.md)
     - [Flattener](agent-customization/plugins/provided/flattener.md)
   - [Write your own](agent-customization/plugins/custom.md)
 

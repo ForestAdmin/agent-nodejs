@@ -8,7 +8,7 @@ npm install @forestadmin/export-advanced
 
 ## Configuration
 
-The plugin can be used directly on the agent, or on a specific collection.
+The plugin can be used directly on the agent, or a specific collection.
 Using it on the agent will enable the export for all collections.
 
 All settings are optional. Not providing them will open a form in the UI to configure the export.
