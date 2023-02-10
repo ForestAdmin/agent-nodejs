@@ -87,9 +87,9 @@ describe('RelaxedWrappers', () => {
     });
 
     test('should forward null filter to execute()', async () => {
-      await relaxed.execute('action', {}, null);
+      await relaxed.execute('action', {});
 
-      expect(collection.execute).toHaveBeenCalledWith(caller, 'action', {}, null);
+      expect(collection.execute).toHaveBeenCalledWith(caller, 'action', {}, new Filter({}));
     });
 
     test('should forward valid filter to execute()', async () => {
@@ -109,10 +109,10 @@ describe('RelaxedWrappers', () => {
       );
     });
 
-    test('should forward null filter to update()', async () => {
-      await relaxed.getForm('action', {}, null);
+    test('should allow null filter', async () => {
+      await relaxed.getForm('action', {});
 
-      expect(collection.getForm).toHaveBeenCalledWith(caller, 'action', {}, null);
+      expect(collection.getForm).toHaveBeenCalledWith(caller, 'action', {}, new Filter({}));
     });
 
     test('should forward valid filter to getForm()', async () => {

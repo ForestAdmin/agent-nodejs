@@ -188,8 +188,8 @@ export default class RelaxedCollection<
       conditionTree: filter?.conditionTree
         ? ConditionTreeFactory.fromPlainObject(filter.conditionTree)
         : undefined,
-      sort: filter.sort ? new Sort(...filter.sort) : undefined,
-      page: filter.page ? new Page(filter.page.skip, filter.page.limit) : undefined,
+      sort: filter?.sort ? new Sort(...filter.sort) : undefined,
+      page: filter?.page ? new Page(filter.page.skip, filter.page.limit) : undefined,
     });
   }
 
