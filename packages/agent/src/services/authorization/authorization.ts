@@ -9,7 +9,7 @@ import {
 import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
-import ConditionTreeConverter from '../../utils/condition-tree-converter';
+import ConditionTreeParser from '../../utils/condition-tree-parser';
 
 export default class AuthorizationService {
   constructor(private readonly forestAdminClient: ForestAdminClient) {}
@@ -95,7 +95,7 @@ export default class AuthorizationService {
 
     if (!scope) return null;
 
-    return ConditionTreeConverter.fromPlainObject(collection, scope);
+    return ConditionTreeParser.fromPlainObject(collection, scope);
   }
 
   public invalidateScopeCache(renderingId: number | string) {

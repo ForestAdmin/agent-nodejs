@@ -11,7 +11,7 @@ import {
   PlainConditionTreeLeaf,
 } from '@forestadmin/datasource-toolkit';
 
-export default class ConditionTreeConverter {
+export default class ConditionTreeParser {
   static fromPlainObject(collection: Collection, json: unknown): ConditionTree {
     if (this.isLeaf(json)) {
       const operator = this.toPascalCase(json.operator);

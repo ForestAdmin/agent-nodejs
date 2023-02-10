@@ -15,7 +15,7 @@ import {
 import { Context } from 'koa';
 
 import CallerParser from './caller';
-import ConditionTreeConverter from '../condition-tree-converter';
+import ConditionTreeParser from '../condition-tree-parser';
 import IdUtils from '../id';
 
 /**
@@ -110,7 +110,7 @@ export default class FilterParser {
       if (!filters) return null;
 
       const json = typeof filters === 'object' ? filters : JSON.parse(filters.toString());
-      const conditionTree = ConditionTreeConverter.fromPlainObject(collection, json);
+      const conditionTree = ConditionTreeParser.fromPlainObject(collection, json);
       ConditionTreeValidator.validate(conditionTree, collection);
 
       return conditionTree;
@@ -181,6 +181,7 @@ export default class FilterParser {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static getValue(context: Context, name: string, fallback: string = null): any {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { query, body } = context.request as any;
