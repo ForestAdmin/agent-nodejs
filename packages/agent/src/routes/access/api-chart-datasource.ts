@@ -6,7 +6,7 @@ import { v1 as uuidv1 } from 'uuid';
 
 import { ForestAdminHttpDriverServices } from '../../services';
 import { AgentOptionsWithDefaults, RouteType } from '../../types';
-import QueryStringParser from '../../utils/query-string';
+import CallerParser from '../../utils/query-parser/caller';
 import BaseRoute from '../base-route';
 
 export default class DataSourceApiChartRoute extends BaseRoute {
@@ -47,10 +47,7 @@ export default class DataSourceApiChartRoute extends BaseRoute {
         id: uuidv1(),
         type: 'stats',
         attributes: {
-          value: await this.dataSource.renderChart(
-            QueryStringParser.parseCaller(context),
-            this.chartName,
-          ),
+          value: await this.dataSource.renderChart(CallerParser.fromCtx(context), this.chartName),
         },
       },
     };
