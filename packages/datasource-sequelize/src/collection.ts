@@ -8,7 +8,6 @@ import {
   DataSource,
   Filter,
   Logger,
-  PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -60,11 +59,7 @@ export default class SequelizeCollection extends BaseCollection {
     return records.map(record => Serializer.serialize(record.get({ plain: true })));
   }
 
-  async list(
-    caller: Caller,
-    filter: PaginatedFilter,
-    projection: Projection,
-  ): Promise<RecordData[]> {
+  async list(caller: Caller, filter: Filter, projection: Projection): Promise<RecordData[]> {
     let include = this.queryConverter.getIncludeWithAttributesFromProjection(projection);
 
     if (filter.conditionTree) {

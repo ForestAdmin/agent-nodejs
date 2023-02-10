@@ -8,7 +8,6 @@ import {
   FieldSchema,
   Filter,
   Operator,
-  PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -63,11 +62,7 @@ export default class BaseDummyCollection extends BaseCollection {
     return records;
   }
 
-  async list(
-    caller: Caller,
-    filter: PaginatedFilter,
-    projection: Projection,
-  ): Promise<RecordData[]> {
+  async list(caller: Caller, filter: Filter, projection: Projection): Promise<RecordData[]> {
     let result: RecordData[] = this.records.slice();
     if (filter?.conditionTree) result = filter.conditionTree.apply(result, this, caller.timezone);
     if (filter?.sort) result = filter.sort.apply(result);

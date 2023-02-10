@@ -3,7 +3,7 @@ import {
   Caller,
   Collection,
   Page,
-  PaginatedFilter,
+  Filter,
   Projection,
   RecordData,
   RecordUtils,
@@ -22,7 +22,7 @@ export default class CsvGenerator {
     caller: Caller,
     projection: Projection,
     header: string,
-    filter: PaginatedFilter,
+    filter: Filter,
     collection: Collection,
     list: Collection['list'],
   ): AsyncGenerator<string> {
@@ -42,7 +42,7 @@ export default class CsvGenerator {
       copiedFilter.page = new Page(currentIndex, CHUNK_SIZE);
 
       // eslint-disable-next-line no-await-in-loop
-      const records = await list(caller, new PaginatedFilter(copiedFilter), projection);
+      const records = await list(caller, new Filter(copiedFilter), projection);
 
       if (records.length !== 0) yield CsvGenerator.convert(records, projection);
 

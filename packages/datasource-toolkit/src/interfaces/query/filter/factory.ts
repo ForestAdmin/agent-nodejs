@@ -1,7 +1,6 @@
 import { DateTime, DateTimeUnit } from 'luxon';
 
-import PaginatedFilter from './paginated';
-import Filter from './unpaginated';
+import Filter from './index';
 import CollectionUtils from '../../../utils/collection';
 import SchemaUtils from '../../../utils/schema';
 import { Caller } from '../../caller';
@@ -100,8 +99,8 @@ export default class FilterFactory {
     id: CompositeId,
     relationName: string,
     caller: Caller,
-    baseForeignFilter: PaginatedFilter,
-  ): Promise<PaginatedFilter> {
+    baseForeignFilter: Filter,
+  ): Promise<Filter> {
     const relation = collection.schema.fields[relationName] as ManyToManySchema;
     const originValue = await CollectionUtils.getValue(
       collection,
@@ -164,7 +163,7 @@ export default class FilterFactory {
     id: CompositeId,
     relationName: string,
     caller: Caller,
-    baseForeignFilter: PaginatedFilter,
+    baseForeignFilter: Filter,
   ): Promise<Filter> {
     const relation = SchemaUtils.getToManyRelation(collection.schema, relationName);
     const originValue = await CollectionUtils.getValue(

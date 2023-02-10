@@ -2,8 +2,8 @@ import { DateTime, DateTimeUnit } from 'luxon';
 
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import { Operator } from '../../src/interfaces/query/condition-tree/nodes/operators';
+import Filter from '../../src/interfaces/query/filter';
 import FilterFactory from '../../src/interfaces/query/filter/factory';
-import Filter from '../../src/interfaces/query/filter/unpaginated';
 import * as factories from '../__factories__';
 
 const TEST_TIMEZONE = 'Europe/Dublin';

@@ -6,7 +6,6 @@ import {
   FieldSchema,
   FieldValidator,
   Filter,
-  PaginatedFilter,
   PlainSortClause,
   Projection,
   RecordData,
@@ -38,7 +37,7 @@ export default class SortEmulate extends CollectionDecorator {
 
   override async list(
     caller: Caller,
-    filter: PaginatedFilter,
+    filter: Filter,
     projection: Projection,
   ): Promise<RecordData[]> {
     const childFilter = filter.override({

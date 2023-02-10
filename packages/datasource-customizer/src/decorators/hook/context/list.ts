@@ -3,27 +3,22 @@
 import {
   Caller,
   Collection,
-  PaginatedFilter,
+  Filter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
 import HookContext from './hook';
-import { TCollectionName, TFieldName, TPaginatedFilter, TRow, TSchema } from '../../../templates';
+import { TCollectionName, TFieldName, TFilter, TRow, TSchema } from '../../../templates';
 
 export class HookBeforeListContext<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > extends HookContext<S, N> {
-  protected _filter: PaginatedFilter;
+  protected _filter: Filter;
   protected _projection: Projection;
 
-  constructor(
-    collection: Collection,
-    caller: Caller,
-    filter: PaginatedFilter,
-    projection: Projection,
-  ) {
+  constructor(collection: Collection, caller: Caller, filter: Filter, projection: Projection) {
     super(collection, caller);
 
     this._filter = filter;
@@ -31,7 +26,7 @@ export class HookBeforeListContext<
   }
 
   get filter() {
-    return Object.freeze(this._filter as unknown as TPaginatedFilter<S, N>);
+    return Object.freeze(this._filter as unknown as TFilter<S, N>);
   }
 
   get projection() {
@@ -40,7 +35,7 @@ export class HookBeforeListContext<
 }
 
 export class InternalHookBeforeListContext extends HookBeforeListContext {
-  getFilter(): PaginatedFilter {
+  getFilter(): Filter {
     return this._filter;
   }
 
@@ -58,7 +53,7 @@ export class HookAfterListContext<
   constructor(
     collection: Collection,
     caller: Caller,
-    filter: PaginatedFilter,
+    filter: Filter,
     projection: Projection,
     records: RecordData[],
   ) {

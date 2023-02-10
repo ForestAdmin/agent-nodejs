@@ -4,7 +4,7 @@ import {
   ConditionTree,
   ConditionTreeFactory,
   ConditionTreeValidator,
-  PaginatedFilter,
+  Filter,
 } from '@forestadmin/datasource-toolkit';
 
 import { SegmentDefinition } from './types';
@@ -28,8 +28,8 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
 
   public override async refineFilter(
     caller: Caller,
-    filter?: PaginatedFilter,
-  ): Promise<PaginatedFilter> {
+    filter?: Filter,
+  ): Promise<Filter> {
     if (!filter) {
       return null;
     }

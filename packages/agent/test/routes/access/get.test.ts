@@ -1,6 +1,6 @@
 import {
   ConditionTreeFactory,
-  PaginatedFilter,
+  Filter,
   ProjectionFactory,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
@@ -129,7 +129,7 @@ describe('GetRoute', () => {
 
       expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
         QueryStringParser.parseCaller(context),
-        new PaginatedFilter({
+        new Filter({
           conditionTree: ConditionTreeFactory.fromPlainObject({
             aggregator: 'And',
             conditions: [

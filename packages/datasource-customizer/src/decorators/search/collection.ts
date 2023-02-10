@@ -7,7 +7,7 @@ import {
   ConditionTreeFactory,
   ConditionTreeLeaf,
   Operator,
-  PaginatedFilter,
+  Filter,
 } from '@forestadmin/datasource-toolkit';
 import { validate as uuidValidate } from 'uuid';
 
@@ -28,8 +28,8 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
   public override async refineFilter(
     caller: Caller,
-    filter?: PaginatedFilter,
-  ): Promise<PaginatedFilter> {
+    filter?: Filter,
+  ): Promise<Filter> {
     // Search string is not significant
     if (!filter?.search?.trim().length) {
       return filter.override({ search: null });

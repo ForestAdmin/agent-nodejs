@@ -6,7 +6,7 @@ import {
   DataSource,
   Filter,
   Page,
-  PaginatedFilter,
+  Filter,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
@@ -49,13 +49,13 @@ describe('RelaxedWrappers', () => {
 
       expect(collection.list).toHaveBeenCalledWith(
         expect.anything(),
-        expect.any(PaginatedFilter),
+        expect.any(Filter),
         expect.any(Projection),
       );
 
       expect(collection.list).toHaveBeenCalledWith(
         caller,
-        new PaginatedFilter({}),
+        new Filter({}),
         new Projection('id', 'truc'),
       );
     });
@@ -72,13 +72,13 @@ describe('RelaxedWrappers', () => {
 
       expect(collection.list).toHaveBeenCalledWith(
         expect.anything(),
-        expect.any(PaginatedFilter),
+        expect.any(Filter),
         expect.any(Projection),
       );
 
       expect(collection.list).toHaveBeenCalledWith(
         caller,
-        new PaginatedFilter({
+        new Filter({
           conditionTree: new ConditionTreeLeaf('id', 'Equal', 123),
           page: new Page(0, 10),
           sort: new Sort({ field: 'id', ascending: true }),

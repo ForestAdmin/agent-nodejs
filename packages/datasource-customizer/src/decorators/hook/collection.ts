@@ -3,7 +3,6 @@ import {
   Aggregation,
   Caller,
   Filter,
-  PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -69,7 +68,7 @@ export default class CollectionHookDecorator extends CollectionDecorator {
 
   override async list(
     caller: Caller,
-    filter: PaginatedFilter,
+    filter: Filter,
     projection: Projection,
   ): Promise<RecordData[]> {
     const beforeContext = new InternalHookBeforeListContext(

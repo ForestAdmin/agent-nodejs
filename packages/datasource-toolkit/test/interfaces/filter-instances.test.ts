@@ -1,6 +1,5 @@
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
-import PaginatedFilter from '../../src/interfaces/query/filter/paginated';
-import Filter from '../../src/interfaces/query/filter/unpaginated';
+import Filter from '../../src/interfaces/query/filter';
 import Page from '../../src/interfaces/query/page';
 import Sort from '../../src/interfaces/query/sort';
 
@@ -8,7 +7,7 @@ describe('Filter', () => {
   const leaf = new ConditionTreeLeaf('column', 'GreaterThan', 0);
 
   describe('Paginated', () => {
-    const paginatedFilter = new PaginatedFilter({
+    const paginatedFilter = new Filter({
       conditionTree: leaf,
       page: new Page(),
       sort: new Sort({ field: 'column', ascending: true }),
@@ -40,7 +39,7 @@ describe('Filter', () => {
     });
 
     test('nest should crash with a segment', () => {
-      const filter = new PaginatedFilter({ segment: 'someSegment' });
+      const filter = new Filter({ segment: 'someSegment' });
 
       expect(filter.isNestable).toBeFalsy();
       expect(() => filter.nest('prefix')).toThrow();

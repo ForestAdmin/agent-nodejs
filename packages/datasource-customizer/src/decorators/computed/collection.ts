@@ -5,7 +5,6 @@ import {
   CollectionSchema,
   FieldValidator,
   Filter,
-  PaginatedFilter,
   Projection,
   RecordData,
   RelationSchema,
@@ -50,7 +49,7 @@ export default class ComputedCollection extends CollectionDecorator {
 
   override async list(
     caller: Caller,
-    filter: PaginatedFilter,
+    filter: Filter,
     projection: Projection,
   ): Promise<RecordData[]> {
     const childProjection = projection.replace(path => rewriteField(this, path));

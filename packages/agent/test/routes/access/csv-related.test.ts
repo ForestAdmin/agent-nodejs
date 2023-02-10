@@ -1,4 +1,4 @@
-import { CollectionUtils, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
+import { CollectionUtils, Filter, Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import CsvRoute from '../../../src/routes/access/csv-related';
@@ -135,7 +135,7 @@ describe('CsvRelatedRoute', () => {
         ['123e4567-e89b-12d3-a456-111111111111'],
         'myPersons',
         { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
-        expect.any(PaginatedFilter),
+        expect.any(Filter),
         expect.any(Projection),
       );
     });
@@ -229,7 +229,7 @@ describe('CsvRelatedRoute', () => {
         ['123e4567-e89b-12d3-a456-111111111111'],
         'myPersons',
         { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
-        expect.any(PaginatedFilter),
+        expect.any(Filter),
         expect.any(Projection),
       );
     });

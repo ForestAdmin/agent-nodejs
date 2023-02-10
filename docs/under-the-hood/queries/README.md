@@ -77,7 +77,7 @@ interface Collection {
   create(data: RecordData[]): Promise<RecordData[]>;
 
   /** List records matching filter */
-  list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]>;
+  list(filter: Filter, projection: Projection): Promise<RecordData[]>;
 
   /** Update records matching filter */
   update(filter: Filter, patch: RecordData): Promise<void>;

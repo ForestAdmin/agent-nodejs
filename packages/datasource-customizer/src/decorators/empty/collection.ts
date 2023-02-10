@@ -6,7 +6,6 @@ import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
   Filter,
-  PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -21,7 +20,7 @@ import CollectionDecorator from '../collection-decorator';
 export default class EmptyCollectionDecorator extends CollectionDecorator {
   override async list(
     caller: Caller,
-    filter: PaginatedFilter,
+    filter: Filter,
     projection: Projection,
   ): Promise<RecordData[]> {
     if (!this.returnsEmptySet(filter.conditionTree)) {

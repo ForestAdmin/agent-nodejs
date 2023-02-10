@@ -9,7 +9,7 @@ import {
   FieldSchema,
   FieldValidator,
   Operator,
-  PaginatedFilter,
+  Filter,
   RelationSchema,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
@@ -76,8 +76,8 @@ export default class OperatorsEmulateCollectionDecorator extends CollectionDecor
 
   protected override async refineFilter(
     caller: Caller,
-    filter: PaginatedFilter,
-  ): Promise<PaginatedFilter> {
+    filter: Filter,
+  ): Promise<Filter> {
     return filter?.override({
       conditionTree: await filter.conditionTree?.replaceLeafsAsync(leaf =>
         this.replaceLeaf(caller, leaf, []),
@@ -142,7 +142,7 @@ export default class OperatorsEmulateCollectionDecorator extends CollectionDecor
     return ConditionTreeFactory.matchRecords(
       this.schema,
       leaf.apply(
-        await this.list(caller, new PaginatedFilter({}), leaf.projection.withPks(this)),
+        await this.list(caller, new Filter({}), leaf.projection.withPks(this)),
         this,
         caller.timezone,
       ),

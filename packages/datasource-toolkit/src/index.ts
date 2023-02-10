@@ -12,9 +12,8 @@ export { default as Aggregation } from './interfaces/query/aggregation';
 export { default as ConditionTree } from './interfaces/query/condition-tree/nodes/base';
 export { default as ConditionTreeBranch } from './interfaces/query/condition-tree/nodes/branch';
 export { default as ConditionTreeLeaf } from './interfaces/query/condition-tree/nodes/leaf';
-export { default as Filter } from './interfaces/query/filter/unpaginated';
+export { default as Filter } from './interfaces/query/filter';
 export { default as Page } from './interfaces/query/page';
-export { default as PaginatedFilter } from './interfaces/query/filter/paginated';
 export { default as Projection } from './interfaces/query/projection';
 export { default as Sort } from './interfaces/query/sort';
 
@@ -35,8 +34,7 @@ export * from './interfaces/query/condition-tree/nodes/branch';
 export * from './interfaces/query/condition-tree/nodes/leaf';
 export * from './interfaces/query/condition-tree/nodes/operators';
 
-export * from './interfaces/query/filter/paginated';
-export * from './interfaces/query/filter/unpaginated';
+export * from './interfaces/query/filter';
 export * from './interfaces/query/sort';
 export * from './interfaces/query/page';
 export * from './interfaces/record';

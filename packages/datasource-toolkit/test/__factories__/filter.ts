@@ -1,5 +1,5 @@
 import { Factory } from 'fishery';
 
-import FilterPaginated from '../../src/interfaces/query/filter/paginated';
+import Filter from '../../src/interfaces/query/filter';
 
-export default Factory.define<FilterPaginated>(() => new FilterPaginated({}));
+export default Factory.define<Filter>(() => new Filter({}));

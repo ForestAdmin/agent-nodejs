@@ -2,8 +2,7 @@ import { ActionField, ActionResult } from './action';
 import { Caller } from './caller';
 import { Chart } from './chart';
 import Aggregation, { AggregateResult } from './query/aggregation';
-import PaginatedFilter from './query/filter/paginated';
-import Filter from './query/filter/unpaginated';
+import Filter from './query/filter';
 import Projection from './query/projection';
 import { CompositeId, RecordData } from './record';
 import { CollectionSchema, DataSourceSchema } from './schema';
@@ -39,7 +38,7 @@ export interface Collection {
 
   create(caller: Caller, data: RecordData[]): Promise<RecordData[]>;
 
-  list(caller: Caller, filter: PaginatedFilter, projection: Projection): Promise<RecordData[]>;
+  list(caller: Caller, filter: Filter, projection: Projection): Promise<RecordData[]>;
 
   update(caller: Caller, filter: Filter, patch: RecordData): Promise<void>;
 

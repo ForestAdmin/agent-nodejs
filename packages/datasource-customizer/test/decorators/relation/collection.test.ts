@@ -6,7 +6,7 @@ import {
   DataSource,
   Filter,
   ManyToManySchema,
-  PaginatedFilter,
+  Filter,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
@@ -644,13 +644,13 @@ describe('RelationCollectionDecorator', () => {
         // check both sides to make sure we're not getting lucky
         const ascending = await newPassports.list(
           factories.caller.build(),
-          new PaginatedFilter({ sort: new Sort({ field: 'owner:name', ascending: true }) }),
+          new Filter({ sort: new Sort({ field: 'owner:name', ascending: true }) }),
           new Projection('passportId', 'ownerId', 'owner:name'),
         );
 
         const descending = await newPassports.list(
           factories.caller.build(),
-          new PaginatedFilter({ sort: new Sort({ field: 'owner:name', ascending: false }) }),
+          new Filter({ sort: new Sort({ field: 'owner:name', ascending: false }) }),
           new Projection('passportId', 'ownerId', 'owner:name'),
         );
 

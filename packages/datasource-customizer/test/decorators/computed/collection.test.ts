@@ -2,7 +2,7 @@ import {
   Aggregation,
   Collection,
   DataSource,
-  PaginatedFilter,
+  Filter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
@@ -143,7 +143,7 @@ describe('ComputedDecorator', () => {
       const caller = factories.caller.build();
       const records = await newBooks.list(
         caller,
-        new PaginatedFilter({}),
+        new Filter({}),
         new Projection('title', 'author:fullName'),
       );
 
@@ -162,7 +162,7 @@ describe('ComputedDecorator', () => {
     test('aggregate() should use the child implementation when relevant', async () => {
       const rows = await newBooks.aggregate(
         factories.caller.build(),
-        new PaginatedFilter({}),
+        new Filter({}),
         new Aggregation({ operation: 'Count' }),
       );
 
@@ -173,7 +173,7 @@ describe('ComputedDecorator', () => {
     test('aggregate() should work with computed', async () => {
       const rows = await newBooks.aggregate(
         factories.caller.build(),
-        new PaginatedFilter({}),
+        new Filter({}),
         new Aggregation({ operation: 'Min', field: 'author:fullName' }),
       );
 

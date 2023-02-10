@@ -3,7 +3,6 @@ import {
   ConditionTreeLeaf,
   DataSource,
   Filter,
-  PaginatedFilter,
   Projection,
   RecordData,
   Sort,
@@ -177,7 +176,7 @@ describe('SequelizeDataSource > Collection', () => {
     it('should add include from condition tree, sort and projection', async () => {
       const recordData = [{ data: 'data' }];
       const { findAll, sequelizeCollection } = setup(recordData);
-      const filter = new PaginatedFilter({
+      const filter = new Filter({
         sort: new Sort({ field: 'relation1:field1', ascending: true }),
         conditionTree: new ConditionTreeLeaf('relation:aField', 'Equal', 42),
       });

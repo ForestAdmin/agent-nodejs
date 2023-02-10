@@ -5,7 +5,7 @@ import {
   ColumnSchema,
   ConditionTreeEquivalent,
   FieldSchema,
-  PaginatedFilter,
+  Filter,
   allOperators,
 } from '@forestadmin/datasource-toolkit';
 
@@ -42,8 +42,8 @@ export default class OperatorsEquivalenceCollectionDecorator extends CollectionD
 
   protected override async refineFilter(
     caller: Caller,
-    filter?: PaginatedFilter,
-  ): Promise<PaginatedFilter> {
+    filter?: Filter,
+  ): Promise<Filter> {
     return filter?.override({
       conditionTree: filter.conditionTree?.replaceLeafs(leaf => {
         const schema = CollectionUtils.getFieldSchema(

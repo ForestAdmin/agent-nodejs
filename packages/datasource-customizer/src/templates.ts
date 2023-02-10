@@ -91,14 +91,6 @@ export type TConditionTree<
   N extends TCollectionName<S> = TCollectionName<S>,
 > = TConditionTreeBranch<S, N> | TConditionTreeLeaf<S, N>;
 
-export type TPaginatedFilter<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
-> = TFilter<S, N> & {
-  sort?: Array<TSortClause<S, N>>;
-  page?: PlainPage;
-};
-
 export type TSortClause<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
@@ -129,4 +121,6 @@ export type TFilter<
   search?: string;
   searchExtended?: boolean;
   segment?: string;
+  sort?: Array<TSortClause<S, N>>;
+  page?: PlainPage;
 };

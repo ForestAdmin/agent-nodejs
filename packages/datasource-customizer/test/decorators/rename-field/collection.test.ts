@@ -5,7 +5,6 @@ import {
   ConditionTreeLeaf,
   DataSource,
   Filter,
-  PaginatedFilter,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
@@ -39,7 +38,7 @@ describe('RenameFieldCollectionDecorator', () => {
 
   // Convenience: Valid filters for the un-decorated persons collection
   let personsFilter: Filter;
-  let personsPaginatedFilter: PaginatedFilter;
+  let personsFilter: Filter;
 
   // Build datasource
   beforeEach(() => {
@@ -120,7 +119,7 @@ describe('RenameFieldCollectionDecorator', () => {
       ]),
     });
 
-    personsPaginatedFilter = new PaginatedFilter({
+    personsFilter = new Filter({
       ...personsFilter,
       sort: new Sort(
         { field: 'id', ascending: false },
@@ -171,8 +170,8 @@ describe('RenameFieldCollectionDecorator', () => {
 
       personsList.mockResolvedValue(records);
 
-      const result = await newPersons.list(caller, personsPaginatedFilter, projection);
-      expect(personsList).toHaveBeenCalledWith(caller, personsPaginatedFilter, projection);
+      const result = await newPersons.list(caller, personsFilter, projection);
+      expect(personsList).toHaveBeenCalledWith(caller, personsFilter, projection);
       expect(result).toStrictEqual(records);
     });
 
@@ -194,13 +193,8 @@ describe('RenameFieldCollectionDecorator', () => {
 
       personsAggregate.mockResolvedValue(result);
 
-      const rows = await newPersons.aggregate(caller, personsPaginatedFilter, aggregate, null);
-      expect(persons.aggregate).toHaveBeenCalledWith(
-        caller,
-        personsPaginatedFilter,
-        aggregate,
-        null,
-      );
+      const rows = await newPersons.aggregate(caller, personsFilter, aggregate, null);
+      expect(persons.aggregate).toHaveBeenCalledWith(caller, personsFilter, aggregate, null);
       expect(rows).toStrictEqual(result);
     });
   });
@@ -208,7 +202,7 @@ describe('RenameFieldCollectionDecorator', () => {
   describe('when renaming columns and relations', () => {
     // Convenience: equivalent filters for the collection after renaming stuff
     let newPersonsFilter: Filter;
-    let newPersonsPaginatedFilter: PaginatedFilter;
+    let newPersonsFilter: Filter;
 
     // Rename stuff
     beforeEach(() => {
@@ -232,7 +226,7 @@ describe('RenameFieldCollectionDecorator', () => {
         ]),
       });
 
-      newPersonsPaginatedFilter = new PaginatedFilter({
+      newPersonsFilter = new Filter({
         ...newPersonsFilter,
         sort: new Sort(
           { field: 'primaryKey', ascending: false },
@@ -265,8 +259,8 @@ describe('RenameFieldCollectionDecorator', () => {
 
       personsList.mockResolvedValue([{ id: '1', myBookPerson: { date: 'something' } }]);
 
-      const records = await newPersons.list(caller, newPersonsPaginatedFilter, projection);
-      expect(personsList).toHaveBeenCalledWith(caller, personsPaginatedFilter, expectedProjection);
+      const records = await newPersons.list(caller, newPersonsFilter, projection);
+      expect(personsList).toHaveBeenCalledWith(caller, personsFilter, expectedProjection);
       expect(records).toStrictEqual([
         { primaryKey: '1', myNovelAuthor: { createdAt: 'something' } },
       ]);
@@ -301,7 +295,7 @@ describe('RenameFieldCollectionDecorator', () => {
       const result = await newPersons.aggregate(
         caller,
 
-        newPersonsPaginatedFilter,
+        newPersonsFilter,
         new Aggregation({
           operation: 'Sum',
           field: 'primaryKey',
@@ -312,7 +306,7 @@ describe('RenameFieldCollectionDecorator', () => {
 
       expect(persons.aggregate).toHaveBeenCalledWith(
         caller,
-        personsPaginatedFilter,
+        personsFilter,
         {
           operation: 'Sum',
           field: 'id',

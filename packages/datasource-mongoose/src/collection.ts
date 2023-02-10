@@ -7,7 +7,6 @@ import {
   Caller,
   DataSource,
   Filter,
-  PaginatedFilter,
   Projection,
   RecordData,
   ValidationError,
@@ -49,11 +48,7 @@ export default class MongooseCollection extends BaseCollection {
     this.addFields(FieldsGenerator.buildFieldsSchema(model, stack));
   }
 
-  async list(
-    caller: Caller,
-    filter: PaginatedFilter,
-    projection: Projection,
-  ): Promise<RecordData[]> {
+  async list(caller: Caller, filter: Filter, projection: Projection): Promise<RecordData[]> {
     const lookupProjection = projection.union(
       filter.conditionTree?.projection,
       filter.sort?.projection,
@@ -255,10 +250,7 @@ export default class MongooseCollection extends BaseCollection {
     }
   }
 
-  private buildBasePipeline(
-    filter: PaginatedFilter,
-    lookupProjection: Projection,
-  ): PipelineStage[] {
+  private buildBasePipeline(filter: Filter, lookupProjection: Projection): PipelineStage[] {
     return [
       ...ReparentGenerator.reparent(this.model, this.stack),
       ...VirtualFieldsGenerator.addVirtual(this.model, this.stack, lookupProjection),

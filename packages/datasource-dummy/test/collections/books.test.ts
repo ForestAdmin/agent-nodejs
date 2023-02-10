@@ -1,4 +1,4 @@
-import { Aggregation, Page, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
+import { Aggregation, Filter, Page, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import BookCollection from '../../src/collections/books';
@@ -50,7 +50,7 @@ describe('DummyDataSource > Collections > Books', () => {
   describe('list', () => {
     it('should return all records', async () => {
       const bookCollection = instanciateCollection();
-      const paginatedFilter = new PaginatedFilter({});
+      const paginatedFilter = new Filter({});
       const projection = new Projection();
 
       expect(
@@ -61,7 +61,7 @@ describe('DummyDataSource > Collections > Books', () => {
     it('should return a record list of size matching the paginated filter', async () => {
       const bookCollection = instanciateCollection();
       const expectedPageLimit = 3;
-      const paginatedFilter = new PaginatedFilter({ page: new Page(0, expectedPageLimit) });
+      const paginatedFilter = new Filter({ page: new Page(0, expectedPageLimit) });
       const projection = new Projection();
 
       expect(
@@ -75,7 +75,7 @@ describe('DummyDataSource > Collections > Books', () => {
       const bookCollection = instanciateCollection();
       await bookCollection.update(null, null, { title: 'newTitle' });
 
-      const paginatedFilter = new PaginatedFilter({});
+      const paginatedFilter = new Filter({});
       const projection = new Projection('title');
       const records = await bookCollection.list(
         factories.caller.build(),
@@ -92,7 +92,7 @@ describe('DummyDataSource > Collections > Books', () => {
       const bookCollection = instanciateCollection();
       await bookCollection.delete(null, null);
 
-      const paginatedFilter = new PaginatedFilter({});
+      const paginatedFilter = new Filter({});
       const projection = new Projection();
       expect(
         await bookCollection.list(factories.caller.build(), paginatedFilter, projection),
@@ -104,7 +104,7 @@ describe('DummyDataSource > Collections > Books', () => {
     it('should return rows matching the paginated filter', async () => {
       const bookCollection = instanciateCollection();
       const expectedPageLimit = 3;
-      const paginatedFilter = new PaginatedFilter({ page: new Page(0, expectedPageLimit) });
+      const paginatedFilter = new Filter({ page: new Page(0, expectedPageLimit) });
       const aggregation = new Aggregation({
         operation: 'Count',
         groups: [{ field: 'title' }, { field: 'authorId' }],
@@ -124,7 +124,7 @@ describe('DummyDataSource > Collections > Books', () => {
 
       const rows = await bookCollection.aggregate(
         factories.caller.build(),
-        new PaginatedFilter({}),
+        new Filter({}),
         aggregation,
       );
       rows.map(row => expect(Object.keys(row.group)).toBeArrayOfSize(aggregation.groups.length));

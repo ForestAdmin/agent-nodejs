@@ -1,4 +1,4 @@
-import { Filter, PaginatedFilter } from '@forestadmin/datasource-toolkit';
+import { Filter, Filter } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import WriteDataSourceDecorator from '../../../../src/decorators/write/datasource';
@@ -118,7 +118,7 @@ describe('WriteDataSourceDecorator > With many to one relations', () => {
     });
 
     // then
-    expect(books.list).toHaveBeenCalledWith(caller, new PaginatedFilter({ conditionTree }), [
+    expect(books.list).toHaveBeenCalledWith(caller, new Filter({ conditionTree }), [
       'id',
       'myAuthor:id',
     ]);

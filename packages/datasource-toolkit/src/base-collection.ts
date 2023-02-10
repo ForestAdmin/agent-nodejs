@@ -3,8 +3,7 @@ import { Caller } from './interfaces/caller';
 import { Chart } from './interfaces/chart';
 import { Collection, DataSource } from './interfaces/collection';
 import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
-import PaginatedFilter from './interfaces/query/filter/paginated';
-import Filter from './interfaces/query/filter/unpaginated';
+import Filter from './interfaces/query/filter';
 import Projection from './interfaces/query/projection';
 import { RecordData } from './interfaces/record';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
@@ -71,11 +70,7 @@ export default abstract class BaseCollection implements Collection {
 
   abstract create(caller: Caller, data: RecordData[]): Promise<RecordData[]>;
 
-  abstract list(
-    caller: Caller,
-    filter: PaginatedFilter,
-    projection: Projection,
-  ): Promise<RecordData[]>;
+  abstract list(caller: Caller, filter: Filter, projection: Projection): Promise<RecordData[]>;
 
   abstract update(caller: Caller, filter: Filter, patch: RecordData): Promise<void>;
 

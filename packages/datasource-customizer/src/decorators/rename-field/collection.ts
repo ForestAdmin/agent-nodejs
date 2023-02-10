@@ -5,7 +5,6 @@ import {
   CollectionSchema,
   FieldSchema,
   Filter,
-  PaginatedFilter,
   Projection,
   RecordData,
   RelationSchema,
@@ -75,10 +74,7 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
     return { ...childSchema, fields };
   }
 
-  protected override async refineFilter(
-    caller: Caller,
-    filter?: PaginatedFilter,
-  ): Promise<PaginatedFilter> {
+  protected override async refineFilter(caller: Caller, filter?: Filter): Promise<Filter> {
     return filter?.override({
       conditionTree: filter.conditionTree?.replaceFields(field =>
         this.pathToChildCollection(field),
@@ -101,7 +97,7 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
 
   override async list(
     caller: Caller,
-    filter: PaginatedFilter,
+    filter: Filter,
     projection: Projection,
   ): Promise<RecordData[]> {
     const childProjection = projection.replace(field => this.pathToChildCollection(field));

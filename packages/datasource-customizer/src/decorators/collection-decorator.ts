@@ -10,7 +10,6 @@ import {
   CompositeId,
   DataSource,
   Filter,
-  PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -76,11 +75,7 @@ export default class CollectionDecorator implements Collection {
     return this.childCollection.create(caller, data);
   }
 
-  async list(
-    caller: Caller,
-    filter: PaginatedFilter,
-    projection: Projection,
-  ): Promise<RecordData[]> {
+  async list(caller: Caller, filter: Filter, projection: Projection): Promise<RecordData[]> {
     const refinedFilter = await this.refineFilter(caller, filter);
 
     return this.childCollection.list(caller, refinedFilter, projection);
@@ -117,7 +112,7 @@ export default class CollectionDecorator implements Collection {
     this.lastSchema = null;
   }
 
-  protected async refineFilter(caller: Caller, filter?: PaginatedFilter): Promise<PaginatedFilter> {
+  protected async refineFilter(caller: Caller, filter?: Filter): Promise<Filter> {
     return filter;
   }
 

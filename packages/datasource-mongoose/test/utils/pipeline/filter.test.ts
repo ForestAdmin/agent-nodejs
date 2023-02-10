@@ -1,8 +1,8 @@
 import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
+  Filter,
   Page,
-  PaginatedFilter,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 import mongoose, { Model, Schema } from 'mongoose';
@@ -31,7 +31,7 @@ describe('FilterGenerator', () => {
 
   describe('Condition tree', () => {
     it('filter should generate a $match stage', () => {
-      const filter = new PaginatedFilter({
+      const filter = new Filter({
         conditionTree: new ConditionTreeLeaf('title', 'ILike', 'Foundation'),
       });
 
@@ -40,7 +40,7 @@ describe('FilterGenerator', () => {
     });
 
     it('filter should generate a $addFields and $match stage', () => {
-      const filter = new PaginatedFilter({
+      const filter = new Filter({
         conditionTree: new ConditionTreeLeaf('author:identifier', 'NotContains', 'something'),
       });
 
@@ -52,7 +52,7 @@ describe('FilterGenerator', () => {
     });
 
     it('filter should generate a $match stage with $and and $or nodes', () => {
-      const filter = new PaginatedFilter({
+      const filter = new Filter({
         conditionTree: new ConditionTreeBranch('And', [
           new ConditionTreeLeaf('author:lastname', 'Equal', 'Asimov'),
           new ConditionTreeBranch('Or', [
@@ -83,7 +83,7 @@ describe('FilterGenerator', () => {
 
   describe('Skip & Limit', () => {
     it('should generate the relevant pipeline', () => {
-      const filter = new PaginatedFilter({ page: new Page(100, 150) });
+      const filter = new Filter({ page: new Page(100, 150) });
 
       const pipeline = FilterGenerator.filter(model, stack, filter);
       expect(pipeline).toStrictEqual([{ $skip: 100 }, { $limit: 150 }]);
@@ -92,7 +92,7 @@ describe('FilterGenerator', () => {
 
   describe('Sort', () => {
     it('should generate the relevant pipeline', () => {
-      const filter = new PaginatedFilter({
+      const filter = new Filter({
         sort: new Sort({ field: 'author:firstname', ascending: true }),
       });
 

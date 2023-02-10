@@ -1,6 +1,6 @@
 import {
   ConditionTreeFactory,
-  PaginatedFilter,
+  Filter,
   ProjectionFactory,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
@@ -20,7 +20,7 @@ export default class GetRoute extends CollectionRoute {
     await this.services.authorization.assertCanRead(context, this.collection.name);
 
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
-    const filter = new PaginatedFilter({
+    const filter = new Filter({
       conditionTree: ConditionTreeFactory.intersect(
         ConditionTreeFactory.matchIds(this.collection.schema, [id]),
         await this.services.authorization.getScope(this.collection, context),

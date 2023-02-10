@@ -4,7 +4,7 @@ import {
   Caller,
   Collection,
   CollectionSchema,
-  PaginatedFilter,
+  Filter,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
@@ -14,8 +14,8 @@ class DecoratedCollection extends CollectionDecorator {
   public override childCollection: Collection;
   public override async refineFilter(
     caller: Caller,
-    filter: PaginatedFilter,
-  ): Promise<PaginatedFilter> {
+    filter: Filter,
+  ): Promise<Filter> {
     return super.refineFilter(caller, filter);
   }
 

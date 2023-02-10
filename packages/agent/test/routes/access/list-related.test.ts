@@ -3,7 +3,7 @@ import {
   ConditionTreeFactory,
   ConditionTreeLeaf,
   Page,
-  PaginatedFilter,
+  Filter,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
@@ -104,7 +104,7 @@ describe('ListRelatedRoute', () => {
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
-          new PaginatedFilter({
+          new Filter({
             search: 'aName',
             searchExtended: false,
             page: new Page(0, 15),
@@ -209,7 +209,7 @@ describe('ListRelatedRoute', () => {
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
-          new PaginatedFilter({
+          new Filter({
             search: 'aName',
             searchExtended: false,
             page: new Page(0, 15),

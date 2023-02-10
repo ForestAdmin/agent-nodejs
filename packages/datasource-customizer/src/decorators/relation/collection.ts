@@ -8,7 +8,6 @@ import {
   ConditionTree,
   ConditionTreeLeaf,
   Filter,
-  PaginatedFilter,
   Projection,
   RecordData,
   RecordUtils,
@@ -35,7 +34,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
 
   override async list(
     caller: Caller,
-    filter: PaginatedFilter,
+    filter: Filter,
     projection: Projection,
   ): Promise<RecordData[]> {
     const newFilter = await this.refineFilter(caller, filter);
@@ -79,10 +78,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     return schema;
   }
 
-  protected override async refineFilter(
-    caller: Caller,
-    filter: PaginatedFilter,
-  ): Promise<PaginatedFilter> {
+  protected override async refineFilter(caller: Caller, filter: Filter): Promise<Filter> {
     return filter?.override({
       conditionTree: await filter.conditionTree?.replaceLeafsAsync(
         leaf => this.rewriteLeaf(caller, leaf),

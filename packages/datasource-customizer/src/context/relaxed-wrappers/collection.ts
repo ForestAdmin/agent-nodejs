@@ -7,7 +7,6 @@ import {
   ConditionTreeFactory,
   Filter,
   Page,
-  PaginatedFilter,
   Projection,
   RecordData,
   Sort,
@@ -19,7 +18,6 @@ import {
   TCollectionName,
   TFieldName,
   TFilter,
-  TPaginatedFilter,
   TPartialSimpleRow,
   TRow,
   TSchema,
@@ -104,8 +102,8 @@ export default class RelaxedCollection<
    *   }
    * }, ['id', 'amountInEur', 'description']);
    */
-  list(filter: TPaginatedFilter<S, N>, projection: TFieldName<S, N>[]): Promise<TRow<S, N>[]> {
-    const filterInstance = this.buildPaginatedFilter(filter);
+  list(filter: TFilter<S, N>, projection: TFieldName<S, N>[]): Promise<TRow<S, N>[]> {
+    const filterInstance = this.buildFilter(filter);
     const projectionInstance = this.buildProjection(projection);
     const rows = this.collection.list(this.caller, filterInstance, projectionInstance);
 
@@ -185,18 +183,7 @@ export default class RelaxedCollection<
   }
 
   private buildFilter(filter: TFilter<S, N>): Filter {
-    return filter
-      ? new Filter({
-          ...filter,
-          conditionTree: filter.conditionTree
-            ? ConditionTreeFactory.fromPlainObject(filter.conditionTree)
-            : undefined,
-        })
-      : null;
-  }
-
-  private buildPaginatedFilter(filter: TPaginatedFilter<S, N>): PaginatedFilter {
-    return new PaginatedFilter({
+    return new Filter({
       ...filter,
       conditionTree: filter?.conditionTree
         ? ConditionTreeFactory.fromPlainObject(filter.conditionTree)

@@ -1,10 +1,14 @@
 import ConditionTree, { PlainConditionTree } from '../condition-tree/nodes/base';
+import Page, { PlainPage } from '../page';
+import Sort, { PlainSortClause } from '../sort';
 
 export type FilterComponents = {
   conditionTree?: ConditionTree;
   search?: string;
   searchExtended?: boolean;
   segment?: string;
+  sort?: Sort;
+  page?: Page;
 };
 
 export type PlainFilter = {
@@ -12,6 +16,8 @@ export type PlainFilter = {
   search?: string;
   searchExtended?: boolean;
   segment?: string;
+  sort?: Array<PlainSortClause>;
+  page?: PlainPage;
 };
 
 export default class Filter {
@@ -19,6 +25,8 @@ export default class Filter {
   search?: string;
   searchExtended?: boolean;
   segment?: string;
+  sort?: Sort;
+  page?: Page;
 
   get isNestable(): boolean {
     return !this.search && !this.segment;
@@ -29,6 +37,8 @@ export default class Filter {
     this.search = parts.search;
     this.searchExtended = parts.searchExtended;
     this.segment = parts.segment;
+    this.sort = parts.sort;
+    this.page = parts.page;
   }
 
   override(fields: FilterComponents): Filter {
@@ -40,6 +50,7 @@ export default class Filter {
 
     return this.override({
       conditionTree: this.conditionTree ? this.conditionTree.nest(prefix) : this.conditionTree,
+      sort: this.sort?.nest(prefix),
     });
   }
 }

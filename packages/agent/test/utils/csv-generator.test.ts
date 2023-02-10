@@ -1,7 +1,7 @@
 import {
   ConditionTreeLeaf,
   Page,
-  PaginatedFilter,
+  Filter,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
@@ -113,7 +113,7 @@ describe('CsvGenerator', () => {
         const records = Array.from({ length: CHUNK_SIZE }, (_, n: number) => [
           { name: 'ab', id: n },
         ]);
-        const filter = new PaginatedFilter({
+        const filter = new Filter({
           conditionTree: factories.conditionTreeLeaf.build(),
         });
         const collection = factories.collection.build();

@@ -10,7 +10,6 @@ import {
   DataSourceFactory,
   Filter,
   Logger,
-  PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -27,11 +26,7 @@ class TypicodeCollection extends BaseCollection {
     this.enableSearch();
   }
 
-  async list(
-    caller: Caller,
-    filter: PaginatedFilter,
-    projection: Projection,
-  ): Promise<RecordData[]> {
+  async list(caller: Caller, filter: Filter, projection: Projection): Promise<RecordData[]> {
     let request = this.buildRequest(filter);
 
     if (filter.page) {

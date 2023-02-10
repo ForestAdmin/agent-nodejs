@@ -2,7 +2,7 @@ import {
   Collection,
   ColumnSchema,
   ConditionTreeLeaf,
-  PaginatedFilter,
+  Filter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
@@ -54,7 +54,7 @@ describe('OperatorsEquivalenceCollectionDecorator', () => {
     test('list() should work with a null condition tree', async () => {
       const caller = factories.caller.build();
 
-      await decorator.list(caller, new PaginatedFilter({}), new Projection('col'));
+      await decorator.list(caller, new Filter({}), new Projection('col'));
       expect(collectionList).toHaveBeenCalledWith(caller, {}, ['col']);
     });
 
@@ -64,7 +64,7 @@ describe('OperatorsEquivalenceCollectionDecorator', () => {
 
       await decorator.list(
         caller,
-        new PaginatedFilter({ conditionTree: tree }),
+        new Filter({ conditionTree: tree }),
         new Projection('col'),
       );
       expect(collectionList).toHaveBeenCalledWith(
@@ -80,7 +80,7 @@ describe('OperatorsEquivalenceCollectionDecorator', () => {
 
       await decorator.list(
         caller,
-        new PaginatedFilter({ conditionTree: tree }),
+        new Filter({ conditionTree: tree }),
         new Projection('col'),
       );
       expect(collectionList).toHaveBeenCalledWith(
@@ -96,7 +96,7 @@ describe('OperatorsEquivalenceCollectionDecorator', () => {
 
       await decorator.list(
         caller,
-        new PaginatedFilter({ conditionTree: tree }),
+        new Filter({ conditionTree: tree }),
         new Projection('col'),
       );
       expect(collectionList).toHaveBeenCalledWith(

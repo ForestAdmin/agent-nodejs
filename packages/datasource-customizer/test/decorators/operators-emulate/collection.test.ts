@@ -3,7 +3,7 @@ import {
   ColumnSchema,
   ConditionTreeLeaf,
   DataSource,
-  PaginatedFilter,
+  Filter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -274,7 +274,7 @@ describe('OperatorsEmulateCollectionDecorator', () => {
       test('list() should find books where title = Foundation', async () => {
         // Mock book list() implementation.
         (books.list as jest.Mock).mockImplementation(
-          (_, filter: PaginatedFilter, projection: Projection) => {
+          (_, filter: Filter, projection: Projection) => {
             // Ensure no forbideen operator is used
             const usingForbiddenOperator = filter?.conditionTree?.someLeaf(
               ({ field, operator }) =>
@@ -299,7 +299,7 @@ describe('OperatorsEmulateCollectionDecorator', () => {
           },
         );
 
-        const filter = new PaginatedFilter({
+        const filter = new Filter({
           conditionTree: new ConditionTreeLeaf('title', 'Equal', 'Foundation'),
         });
 

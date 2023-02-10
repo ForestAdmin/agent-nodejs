@@ -2,8 +2,8 @@ import {
   ConditionTree,
   ConditionTreeBranch,
   ConditionTreeLeaf,
+  Filter,
   Operator,
-  PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import { DateTime } from 'luxon';
 import { Model, PipelineStage, Types, isValidObjectId } from 'mongoose';
@@ -15,7 +15,7 @@ const STRING_OPERATORS = ['Like', 'ILike', 'NotContains', 'LongerThan', 'Shorter
 
 /** Transform a forest admin filter into mongo pipeline */
 export default class FilterGenerator {
-  static filter(model: Model<unknown>, stack: Stack, filter: PaginatedFilter): PipelineStage[] {
+  static filter(model: Model<unknown>, stack: Stack, filter: Filter): PipelineStage[] {
     const fields = new Set<string>();
     const tree = filter?.conditionTree;
     const match = this.computeMatch(model, stack, tree, fields);
@@ -146,7 +146,7 @@ export default class FilterGenerator {
     return RegExp(`^${regexp}$`, caseSensitive ? 'g' : 'gi');
   }
 
-  private static computeSort(sorts: PaginatedFilter['sort']): PipelineStage.Sort['$sort'] {
+  private static computeSort(sorts: Filter['sort']): PipelineStage.Sort['$sort'] {
     if (!sorts || sorts.length === 0) return null;
 
     const result = {};

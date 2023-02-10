@@ -1,4 +1,4 @@
-import { Filter, PaginatedFilter } from '@forestadmin/datasource-toolkit';
+import { Filter, Filter } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import DissociateDeleteRoute from '../../../src/routes/modification/dissociate-delete-related';
@@ -77,7 +77,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
 
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
         { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
-        new PaginatedFilter({
+        new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
             conditions: [
@@ -142,7 +142,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
 
         expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
           { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
-          new PaginatedFilter({
+          new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
               conditions: [
@@ -204,7 +204,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
 
           expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
             { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
-            new PaginatedFilter({
+            new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'Equal',
                 value: '123e4567-e89b-12d3-a456-426614174088',

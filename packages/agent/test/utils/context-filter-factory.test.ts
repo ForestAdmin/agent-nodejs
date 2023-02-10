@@ -2,7 +2,7 @@ import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
   Page,
-  PaginatedFilter,
+  Filter,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
@@ -58,7 +58,7 @@ describe('FilterFactory', () => {
       const filter = ContextFilterFactory.buildPaginated(collection, context, scope);
 
       expect(filter).toEqual(
-        new PaginatedFilter({
+        new Filter({
           conditionTree: new ConditionTreeBranch('And', [
             new ConditionTreeLeaf('id', 'Equal', '123e4567-e89b-12d3-a456-426614174000'),
             new ConditionTreeLeaf('id', 'Equal', '123e4567-e89b-12d3-a456-222222222222'),
@@ -80,7 +80,7 @@ describe('FilterFactory', () => {
       });
 
       expect(filter).toEqual(
-        new PaginatedFilter({
+        new Filter({
           conditionTree: null,
           search: 'searched argument',
           sort: new Sort({ field: 'id', ascending: true }),
