@@ -50,10 +50,13 @@ describe('ForestAdminClientWithCache', () => {
         factories.auth.build(),
       );
 
-      const result = await forestAdminClient.postSchema([], {
-        liana: 'forest-nodejs-agent',
-        liana_version: '1.0.0',
-        stack: { engine: 'nodejs', engine_version: '16.0.0' },
+      const result = await forestAdminClient.postSchema({
+        collections: [],
+        metadata: {
+          liana: 'forest-nodejs-agent',
+          liana_version: '1.0.0',
+          stack: { engine: 'nodejs', engine_version: '16.0.0' },
+        },
       });
       expect(result).toBe(true);
       expect(schemaService.postSchema).toHaveBeenCalledTimes(1);

@@ -12,7 +12,7 @@ import {
   RenderingPermissionV4,
   UserPermissionV4,
 } from './permissions/types';
-import { ForestServerCollection, SchemaMetadata } from './schema/types';
+import { ForestSchema } from './schema/types';
 import ContextVariables, { RequestContextVariables } from './utils/context-variables';
 
 export type { CollectionActionEvent, RawTree, RawTreeWithSources } from './permissions/types';
@@ -38,7 +38,7 @@ export interface ForestAdminClient {
 
   getIpWhitelistConfiguration(): Promise<IpWhitelistConfiguration>;
 
-  postSchema(schema: ForestServerCollection[], metadata: SchemaMetadata): Promise<boolean>;
+  postSchema(schema: ForestSchema): Promise<boolean>;
   getOpenIdClient(): Promise<Client>;
 
   getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo>;

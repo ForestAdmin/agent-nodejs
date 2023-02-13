@@ -1,11 +1,14 @@
 import type { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
-export type SchemaMetadata = {
-  liana: string;
-  liana_version: string;
-  stack: {
-    engine: string;
-    engine_version: string;
+export type ForestSchema = {
+  collections: ForestServerCollection[];
+  metadata: {
+    liana: string;
+    liana_version: string;
+    stack: {
+      engine: string;
+      engine_version: string;
+    };
   };
 };
 

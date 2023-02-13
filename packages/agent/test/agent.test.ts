@@ -93,10 +93,13 @@ describe('Agent', () => {
       expect(mockGetDataSource).toHaveBeenCalledTimes(1);
       expect(mockUpdateTypesOnFileSystem).toHaveBeenCalledTimes(1);
 
-      expect(mockPostSchema).toHaveBeenCalledWith([], {
-        liana: 'forest-nodejs-agent',
-        liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
-        stack: expect.anything(),
+      expect(mockPostSchema).toHaveBeenCalledWith({
+        collections: [],
+        metadata: {
+          liana: 'forest-nodejs-agent',
+          liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
+          stack: expect.anything(),
+        },
       });
     });
   });
@@ -129,10 +132,13 @@ describe('Agent', () => {
       expect(mockGetDataSource).toHaveBeenCalledTimes(1);
       expect(mockUpdateTypesOnFileSystem).not.toHaveBeenCalled();
 
-      expect(mockPostSchema).toHaveBeenCalledWith([], {
-        liana: 'forest-nodejs-agent',
-        liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
-        stack: expect.anything(),
+      expect(mockPostSchema).toHaveBeenCalledWith({
+        collections: [],
+        metadata: {
+          liana: 'forest-nodejs-agent',
+          liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
+          stack: expect.anything(),
+        },
       });
     });
 

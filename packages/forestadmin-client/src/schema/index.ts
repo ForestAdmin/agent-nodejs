@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import JSONAPISerializer from 'json-api-serializer';
 
-import { ForestServerCollection, SchemaMetadata } from './types';
+import { ForestSchema } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import ServerUtils from '../utils/server';
 
@@ -10,8 +10,8 @@ type SerializedSchema = { meta: { schemaFileHash: string } };
 export default class SchemaService {
   constructor(private options: ForestAdminClientOptionsWithDefaults) {}
 
-  async postSchema(schema: ForestServerCollection[], metadata: SchemaMetadata): Promise<boolean> {
-    const apimap = SchemaService.serialize(schema, metadata);
+  async postSchema(schema: ForestSchema): Promise<boolean> {
+    const apimap = SchemaService.serialize(schema);
     const shouldSend = await this.doServerWantsSchema(apimap.meta.schemaFileHash);
 
     if (shouldSend) {
@@ -21,16 +21,12 @@ export default class SchemaService {
     return shouldSend;
   }
 
-  static serialize(schema: ForestServerCollection[], metadata: SchemaMetadata): SerializedSchema {
-    const data = schema.map(c => ({ id: c.name, ...c }));
-
-    const schemaFileHash = crypto
-      .createHash('sha1')
-      .update(JSON.stringify({ ...schema, metadata }))
-      .digest('hex');
+  static serialize(schema: ForestSchema): SerializedSchema {
+    const data = schema.collections.map(c => ({ id: c.name, ...c }));
+    const schemaFileHash = crypto.createHash('sha1').update(JSON.stringify(schema)).digest('hex');
 
     return SchemaService.serializer.serialize('collections', data, {
-      ...metadata,
+      ...schema.metadata,
       schemaFileHash,
     }) as SerializedSchema;
   }

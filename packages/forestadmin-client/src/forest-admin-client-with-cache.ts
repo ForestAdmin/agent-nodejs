@@ -9,7 +9,7 @@ import RenderingPermissionService from './permissions/rendering-permission';
 import { RawTree } from './permissions/types';
 import verifyAndExtractApproval from './permissions/verify-approval';
 import SchemaService from './schema';
-import { ForestServerCollection, SchemaMetadata } from './schema/types';
+import { ForestSchema } from './schema/types';
 import {
   ForestAdminClient,
   ForestAdminClientOptionsWithDefaults,
@@ -37,8 +37,8 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     return this.ipWhitelistService.getConfiguration();
   }
 
-  async postSchema(schema: ForestServerCollection[], metadata: SchemaMetadata): Promise<boolean> {
-    return this.schemaService.postSchema(schema, metadata);
+  async postSchema(schema: ForestSchema): Promise<boolean> {
+    return this.schemaService.postSchema(schema);
   }
 
   getOpenIdClient(): Promise<Client> {

@@ -9,7 +9,7 @@ import {
   TSchema,
 } from '@forestadmin/datasource-customizer';
 import { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
-import { ForestServerCollection, SchemaMetadata } from '@forestadmin/forestadmin-client';
+import { ForestSchema } from '@forestadmin/forestadmin-client';
 import cors from '@koa/cors';
 import Router from '@koa/router';
 import { readFile, writeFile } from 'fs/promises';
@@ -165,27 +165,23 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     const { schemaPath } = this.options;
 
     // Either load the schema from the file system or build it
-    let collections: ForestServerCollection[];
-    let metadata: SchemaMetadata;
+    let schema: ForestSchema;
 
     if (this.options.isProduction) {
       try {
-        const localFile = JSON.parse(await readFile(schemaPath, { encoding: 'utf-8' }));
-        collections = localFile.collections;
-        metadata = localFile.metadata;
+        schema = JSON.parse(await readFile(schemaPath, { encoding: 'utf-8' }));
       } catch (e) {
         throw new Error(`Can't load ${schemaPath}. Providing a schema is mandatory in production.`);
       }
     } else {
-      collections = await SchemaGenerator.buildSchema(dataSource);
-      metadata = SchemaGenerator.buildSchemaMetadata();
+      schema = await SchemaGenerator.buildSchema(dataSource);
 
-      const pretty = stringify({ collections, metadata }, { maxLength: 100 });
+      const pretty = stringify(schema, { maxLength: 100 });
       await writeFile(schemaPath, pretty, { encoding: 'utf-8' });
     }
 
     // Send schema to forest servers
-    const updated = await this.options.forestAdminClient.postSchema(collections, metadata);
+    const updated = await this.options.forestAdminClient.postSchema(schema);
     const message = updated
       ? 'Schema was updated, sending new version'
       : 'Schema was not updated since last run';
