@@ -2,11 +2,10 @@ import SchemaGenerator from '../../../src/utils/forest-schema/generator';
 import * as factories from '../../__factories__';
 
 describe('SchemaGenerator', () => {
-  const dataSource = factories.dataSource.buildWithCollections([
-    factories.collection.build({ name: 'books' }),
-  ]);
-
   test('should serialize collections', async () => {
+    const dataSource = factories.dataSource.buildWithCollection(
+      factories.collection.build({ name: 'books' }),
+    );
     const schema = await SchemaGenerator.buildSchema(dataSource);
 
     expect(schema).toStrictEqual({
@@ -20,5 +19,17 @@ describe('SchemaGenerator', () => {
         },
       },
     });
+  });
+
+  test('should sort the collections by name', async () => {
+    const dataSource = factories.dataSource.buildWithCollections([
+      factories.collection.build({ name: 'b' }),
+      factories.collection.build({ name: 'B' }),
+      factories.collection.build({ name: 'ba' }),
+      factories.collection.build({ name: 'a' }),
+    ]);
+    const schema = await SchemaGenerator.buildSchema(dataSource);
+
+    expect(schema.collections.map(c => c.name)).toStrictEqual(['a', 'b', 'B', 'ba']);
   });
 });
