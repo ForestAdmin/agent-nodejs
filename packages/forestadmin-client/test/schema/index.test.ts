@@ -24,7 +24,14 @@ describe('SchemaService', () => {
     test('should post schema', async () => {
       const options = factories.forestAdminClientOptions.build();
       const schemaService = new SchemaService(options);
-      const sent = await schemaService.postSchema([], 'forest-nodejs-agent', '1.0.0');
+      const sent = await schemaService.postSchema({
+        collections: [],
+        metadata: {
+          liana: 'forest-nodejs-agent',
+          liana_version: '1.0.0',
+          stack: { engine: 'nodejs', engine_version: '16.0.0' },
+        },
+      });
 
       expect(sent).toBe(true);
       expect(ServerUtils.query).toHaveBeenCalledTimes(2);
@@ -45,11 +52,12 @@ describe('SchemaService', () => {
         expect.objectContaining({
           data: [],
           jsonapi: { version: '1.0' },
-          meta: expect.objectContaining({
+          meta: {
             liana: 'forest-nodejs-agent',
             liana_version: '1.0.0',
-            stack: expect.objectContaining({ engine: 'nodejs' }),
-          }),
+            stack: { engine: 'nodejs', engine_version: '16.0.0' },
+            schemaFileHash: expect.any(String),
+          },
         }),
       );
     });
@@ -68,7 +76,14 @@ describe('SchemaService', () => {
     test('should not post schema if known by the server', async () => {
       const options = factories.forestAdminClientOptions.build();
       const schemaService = new SchemaService(options);
-      const sent = await schemaService.postSchema([], 'forest-nodejs-agent', '1.0.0');
+      const sent = await schemaService.postSchema({
+        collections: [],
+        metadata: {
+          liana: 'forest-nodejs-agent',
+          liana_version: '1.0.0',
+          stack: { engine: 'nodejs', engine_version: '16.0.0' },
+        },
+      });
 
       expect(sent).toBe(false);
       expect(ServerUtils.query).toHaveBeenCalledTimes(1);
