@@ -1,3 +1,18 @@
+## @forestadmin/agent [1.8.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.0...@forestadmin/agent@1.8.1) (2023-02-13)
+
+
+### Bug Fixes
+
+* **schema:** use forest-express schema format for CLI compatibility ([#622](https://github.com/ForestAdmin/agent-nodejs/issues/622)) ([4ac8bcb](https://github.com/ForestAdmin/agent-nodejs/commit/4ac8bcbf9ba99d22c23a5fcebcaa4276849bcc9f))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.9
+
 # @forestadmin/agent [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.7.1...@forestadmin/agent@1.8.0) (2023-02-09)
 
 
