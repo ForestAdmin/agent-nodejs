@@ -9,7 +9,7 @@ export default class SchemaGenerator {
 
     return {
       collections: await Promise.all(
-        dataSource.collections
+        [...dataSource.collections]
           .sort((a, b) => a.name.localeCompare(b.name))
           .map(c => SchemaGeneratorCollection.buildSchema(c)),
       ),

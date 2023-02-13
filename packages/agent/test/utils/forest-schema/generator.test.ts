@@ -23,9 +23,9 @@ describe('SchemaGenerator', () => {
 
   test('should sort the collections by name', async () => {
     const dataSource = factories.dataSource.buildWithCollections([
-      factories.collection.build({ name: 'b' }),
       factories.collection.build({ name: 'B' }),
       factories.collection.build({ name: 'ba' }),
+      factories.collection.build({ name: 'b' }),
       factories.collection.build({ name: 'a' }),
     ]);
     const schema = await SchemaGenerator.buildSchema(dataSource);
