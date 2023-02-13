@@ -9,7 +9,9 @@ export default class SchemaGenerator {
 
     return {
       collections: await Promise.all(
-        dataSource.collections.map(c => SchemaGeneratorCollection.buildSchema(c)),
+        [...dataSource.collections]
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map(c => SchemaGeneratorCollection.buildSchema(c)),
       ),
       metadata: {
         liana: 'forest-nodejs-agent',
