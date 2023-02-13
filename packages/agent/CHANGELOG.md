@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.8.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.1...@forestadmin/agent@1.8.2) (2023-02-13)
+
+
+### Bug Fixes
+
+* **schema:** must be sorted by collection name to avoid conflict ([#626](https://github.com/ForestAdmin/agent-nodejs/issues/626)) ([0fc7ba0](https://github.com/ForestAdmin/agent-nodejs/commit/0fc7ba01115c267aa42a8bf951e778058010eebf))
+
 ## @forestadmin/agent [1.8.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.0...@forestadmin/agent@1.8.1) (2023-02-13)
 
 
