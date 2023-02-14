@@ -67,13 +67,13 @@ describe('PublicationCollectionDataSourceDecorator', () => {
 
   test('should return all collections when no parameter is provided', () => {
     expect(decoratedDataSource.getCollection('libraries').schema).toStrictEqual(
-      decoratedDataSource.getCollection('libraries').schema,
+      dataSource.getCollection('libraries').schema,
     );
     expect(decoratedDataSource.getCollection('librariesBooks').schema).toStrictEqual(
-      decoratedDataSource.getCollection('librariesBooks').schema,
+      dataSource.getCollection('librariesBooks').schema,
     );
     expect(decoratedDataSource.getCollection('books').schema).toStrictEqual(
-      decoratedDataSource.getCollection('books').schema,
+      dataSource.getCollection('books').schema,
     );
   });
 
