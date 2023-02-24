@@ -4,7 +4,7 @@ import { Context } from 'koa';
 
 import IdUtils from '../../utils/id';
 import CallerParser from '../../utils/query-parser/caller';
-import FilterParser from '../../utils/query-parser/filter';
+import CountFilterParser from '../../utils/query-parser/filter/count';
 import RelationRoute from '../relation-route';
 
 export default class CountRelatedRoute extends RelationRoute {
@@ -22,7 +22,9 @@ export default class CountRelatedRoute extends RelationRoute {
       const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
       const scope = await this.services.authorization.getScope(this.foreignCollection, context);
       const caller = CallerParser.fromCtx(context);
-      const filter = FilterParser.multiple(this.foreignCollection, context).intersectWith(scope);
+      const filter = CountFilterParser.fromCtx(this.foreignCollection, context).intersectWith(
+        scope,
+      );
 
       const aggregationResult = await CollectionUtils.aggregateRelation(
         this.collection,

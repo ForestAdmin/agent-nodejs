@@ -14,7 +14,7 @@ import { Context } from 'koa';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import CallerParser from '../../utils/query-parser/caller';
-import FilterParser from '../../utils/query-parser/filter';
+import ListFilterParser from '../../utils/query-parser/filter/list';
 import RelationRoute from '../relation-route';
 
 export default class AssociateRelatedRoute extends RelationRoute {
@@ -60,7 +60,7 @@ export default class AssociateRelatedRoute extends RelationRoute {
       targetedRelationId,
       id,
     );
-    const filter = FilterParser.multiple(this.collection, context)
+    const filter = ListFilterParser.fromCtx(this.collection, context)
       .intersectWith(scope)
       .intersectWith(new ConditionTreeLeaf(id, 'Equal', value));
 

@@ -14,7 +14,7 @@ import Router from '@koa/router';
 import { Context } from 'koa';
 
 import CallerParser from '../../utils/query-parser/caller';
-import FilterParser from '../../utils/query-parser/filter';
+import ListFilterParser from '../../utils/query-parser/filter/list';
 import CollectionRoute from '../collection-route';
 
 export default class UpdateRoute extends CollectionRoute {
@@ -31,7 +31,7 @@ export default class UpdateRoute extends CollectionRoute {
     const scope = await this.services.authorization.getScope(this.collection, context);
 
     const caller = CallerParser.fromCtx(context);
-    const filter = FilterParser.multiple(this.collection, context).intersectWith(scope);
+    const filter = ListFilterParser.fromCtx(this.collection, context).intersectWith(scope);
     await this.collection.update(caller, filter, record);
 
     const [updateResult] = await this.collection.list(

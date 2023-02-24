@@ -12,7 +12,7 @@ import CsvGenerator from '../../utils/csv-generator';
 import CsvRouteContext from '../../utils/csv-route-context';
 import IdUtils from '../../utils/id';
 import CallerParser from '../../utils/query-parser/caller';
-import FilterParser from '../../utils/query-parser/filter';
+import ListFilterParser from '../../utils/query-parser/filter/list';
 import ProjectionParser from '../../utils/query-parser/projection';
 import RelationRoute from '../relation-route';
 
@@ -35,7 +35,7 @@ export default class CsvRelatedRoute extends RelationRoute {
 
     const caller = CallerParser.fromCtx(context);
     const projection = ProjectionParser.fromCtx(this.foreignCollection, context);
-    const filter = FilterParser.multiple(this.foreignCollection, context).intersectWith(scope);
+    const filter = ListFilterParser.fromCtx(this.foreignCollection, context).intersectWith(scope);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 
     const gen = CsvGenerator.generate(

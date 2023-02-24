@@ -4,7 +4,7 @@ import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
 import CallerParser from '../../utils/query-parser/caller';
-import FilterParser from '../../utils/query-parser/filter';
+import ListFilterParser from '../../utils/query-parser/filter/list';
 import CollectionRoute from '../collection-route';
 
 export default class UpdateField extends CollectionRoute {
@@ -30,7 +30,7 @@ export default class UpdateField extends CollectionRoute {
     // Create caller & filter
     const scope = await this.services.authorization.getScope(this.collection, context);
     const caller = CallerParser.fromCtx(context);
-    const filter = FilterParser.multiple(this.collection, context).intersectWith(scope);
+    const filter = ListFilterParser.fromCtx(this.collection, context).intersectWith(scope);
 
     // Load & check record
     const [record] = await this.collection.list(caller, filter, new Projection(field));

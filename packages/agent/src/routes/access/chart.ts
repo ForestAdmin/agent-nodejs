@@ -26,7 +26,7 @@ import { DateTime } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
 
 import CallerParser from '../../utils/query-parser/caller';
-import FilterParser from '../../utils/query-parser/filter';
+import ListFilterParser from '../../utils/query-parser/filter/list';
 import CollectionRoute from '../collection-route';
 
 export default class ChartRoute extends CollectionRoute {
@@ -258,6 +258,6 @@ export default class ChartRoute extends CollectionRoute {
   private async getFilter(context: Context): Promise<Filter> {
     const scope = await this.services.authorization.getScope(this.collection, context);
 
-    return FilterParser.multiple(this.collection, context).intersectWith(scope);
+    return ListFilterParser.fromCtx(this.collection, context).intersectWith(scope);
   }
 }

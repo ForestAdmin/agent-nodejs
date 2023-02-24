@@ -13,7 +13,7 @@ import { AgentOptionsWithDefaults, HttpCode } from '../../../types';
 import ForestValueConverter from '../../../utils/forest-schema/action-values';
 import SchemaGeneratorActions from '../../../utils/forest-schema/generator-actions';
 import CallerParser from '../../../utils/query-parser/caller';
-import FilterParser from '../../../utils/query-parser/filter';
+import ActionFilterParser from '../../../utils/query-parser/filter/action';
 import CollectionRoute from '../../collection-route';
 
 export default class ActionRoute extends CollectionRoute {
@@ -167,7 +167,7 @@ export default class ActionRoute extends CollectionRoute {
 
   private async getRecordSelection(context: Context, includeUserScope: boolean): Promise<Filter> {
     const [filter, scope] = await Promise.all([
-      FilterParser.action(this.collection, context),
+      ActionFilterParser.fromCtx(this.collection, context),
       this.services.authorization.getScope(this.collection, context),
     ]);
 

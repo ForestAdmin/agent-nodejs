@@ -13,7 +13,7 @@ import { Context } from 'koa';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import CallerParser from '../../utils/query-parser/caller';
-import FilterParser from '../../utils/query-parser/filter';
+import ListFilterParser from '../../utils/query-parser/filter/list';
 import RelationRoute from '../relation-route';
 
 export default class DissociateDeleteRelatedRoute extends RelationRoute {
@@ -32,7 +32,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     const isDeleteMode = Boolean(context.request.query?.delete);
     const scope = await this.services.authorization.getScope(this.foreignCollection, context);
     const caller = CallerParser.fromCtx(context);
-    const filter = FilterParser.multiple(this.foreignCollection, context).intersectWith(scope);
+    const filter = ListFilterParser.fromCtx(this.foreignCollection, context).intersectWith(scope);
 
     // Dissociating a one to many or many many is quite a different job => delegate
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);

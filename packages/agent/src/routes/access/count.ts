@@ -3,7 +3,7 @@ import Router from '@koa/router';
 import { Context } from 'koa';
 
 import CallerParser from '../../utils/query-parser/caller';
-import FilterParser from '../../utils/query-parser/filter';
+import CountFilterParser from '../../utils/query-parser/filter/count';
 import CollectionRoute from '../collection-route';
 
 export default class CountRoute extends CollectionRoute {
@@ -17,7 +17,7 @@ export default class CountRoute extends CollectionRoute {
     if (this.collection.schema.countable) {
       const scope = await this.services.authorization.getScope(this.collection, context);
       const caller = CallerParser.fromCtx(context);
-      const filter = FilterParser.multiple(this.collection, context).intersectWith(scope);
+      const filter = CountFilterParser.fromCtx(this.collection, context).intersectWith(scope);
 
       const aggregation = new Aggregation({ operation: 'Count' });
       const aggregationResult = await this.collection.aggregate(caller, filter, aggregation);

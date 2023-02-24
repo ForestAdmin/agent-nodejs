@@ -4,7 +4,7 @@ import { Context } from 'koa';
 
 import IdUtils from '../../utils/id';
 import CallerParser from '../../utils/query-parser/caller';
-import FilterParser from '../../utils/query-parser/filter';
+import ListFilterParser from '../../utils/query-parser/filter/list';
 import ProjectionParser from '../../utils/query-parser/projection';
 import RelationRoute from '../relation-route';
 
@@ -21,7 +21,7 @@ export default class ListRelatedRoute extends RelationRoute {
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const scope = await this.services.authorization.getScope(this.foreignCollection, context);
-    const filter = FilterParser.multiple(this.foreignCollection, context).intersectWith(scope);
+    const filter = ListFilterParser.fromCtx(this.foreignCollection, context).intersectWith(scope);
 
     const records = await CollectionUtils.listRelation(
       this.collection,
