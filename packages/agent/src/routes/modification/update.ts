@@ -1,15 +1,9 @@
-<<<<<<< HEAD
 import {
-  ConditionTreeFactory,
-  Filter,
   ProjectionFactory,
   RecordData,
   RecordValidator,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-=======
-import { ProjectionFactory, RecordValidator } from '@forestadmin/datasource-toolkit';
->>>>>>> 862b994b (refactor(agent): query parser)
 import Router from '@koa/router';
 import { Context } from 'koa';
 

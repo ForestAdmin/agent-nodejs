@@ -1,6 +1,6 @@
 import CountFilterParser from '../../../../src/utils/query-parser/filter/count';
-import collection from '../_queries/_collection';
-import tableViewCountQuery from '../_queries/table-view-count';
+import collection from '../../../__queries__/_datasource';
+import tableViewCountQuery from '../../../__queries__/table-view-count';
 
 describe('CountFilterParser', () => {
   it('should parse tableViewCountQuery query correctly', () => {
