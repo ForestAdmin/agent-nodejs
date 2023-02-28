@@ -22,11 +22,10 @@ module.exports = {
     [
       '@semantic-release/commit-analyzer',
       {
+        preset: 'angular',
         releaseRules: [
-          {
-            scope: 'force-release',
-            release: 'patch',
-          },
+          // Example: `type(scope): subject [force release]`
+          { subject: '*[force release]*', release: 'patch' },
         ],
       },
     ],
