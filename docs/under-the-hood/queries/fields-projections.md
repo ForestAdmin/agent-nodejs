@@ -4,7 +4,31 @@ Field identifiers simply are strings that identify a column in the context of a 
 
 If we consider the following collections:
 
-![books, authors, and reviews](../../assets/collection-relations.png)
+```mermaid
+erDiagram
+  Books |o--|| Authors: ManyToOne
+  Books ||--o| Reviews: OneToMany
+
+  Books {
+      int id
+      int authorId
+      string title
+      ManyToOne myAuthor
+      OneToMany myReviews
+  }
+  Authors {
+      int id
+      string firstname
+      string lastname
+  }
+  Reviews {
+      int id
+      int bookId
+      string content
+      int rating
+  }
+```
+
 
 | Context | Field                | Valid ?                                                               |
 | ------- | -------------------- | --------------------------------------------------------------------- |
