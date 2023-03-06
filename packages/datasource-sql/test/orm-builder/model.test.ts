@@ -10,6 +10,7 @@ const baseColumn = {
   constraints: [],
   defaultValue: null,
   unique: false,
+  type: { type: 'scalar', subType: 'NUMBER' } as unknown as ColumnType,
 };
 
 describe('ModelBuilder', () => {
@@ -88,5 +89,38 @@ describe('ModelBuilder', () => {
     expect(sequelize.models.myTable.rawAttributes.enumList.type.toString({})).toBe(
       '"public"."custom_type"',
     );
+  });
+  describe('when there is no primary key', () => {
+    it('should force the primary key to true when the column is an ID', () => {
+      const sequelize = new Sequelize('postgres://');
+      const tables: Table[] = [
+        {
+          name: 'myTable',
+          columns: [{ ...baseColumn, name: 'id', primaryKey: false }],
+        },
+      ];
+
+      ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+      expect(sequelize.models.myTable).toBeDefined();
+      expect(sequelize.models.myTable.rawAttributes.id.primaryKey).toBe(true);
+    });
+
+    describe('when there is an unique field and no ID', () => {
+      it('should force at the first one the primary key to true when the field is unique', () => {
+        const sequelize = new Sequelize('postgres://');
+        const tables: Table[] = [
+          {
+            name: 'myTable',
+            columns: [{ ...baseColumn, name: 'uniqueField', primaryKey: false, unique: true }],
+          },
+        ];
+
+        ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+        expect(sequelize.models.myTable).toBeDefined();
+        expect(sequelize.models.myTable.rawAttributes.uniqueField.primaryKey).toBe(true);
+      });
+    });
   });
 });

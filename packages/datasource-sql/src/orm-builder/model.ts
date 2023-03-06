@@ -61,7 +61,17 @@ export default class ModelBuilder {
     // to be consistent with the JSON API specification.
     if (!table.columns.find(column => column.primaryKey)) {
       const columnId = table.columns.find(c => c.name === 'id');
-      if (columnId) (modelAttrs[columnId.name] as ModelAttributeColumnOptions).primaryKey = true;
+
+      if (columnId) {
+        (modelAttrs[columnId.name] as ModelAttributeColumnOptions).primaryKey = true;
+      } else {
+        // if there is no id column, we use the first unique column as primary key
+        const uniqueColumn = table.columns.find(c => c.unique);
+
+        if (uniqueColumn) {
+          (modelAttrs[uniqueColumn.name] as ModelAttributeColumnOptions).primaryKey = true;
+        }
+      }
     }
 
     return modelAttrs;
