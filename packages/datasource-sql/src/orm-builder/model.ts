@@ -13,32 +13,12 @@ export default class ModelBuilder {
   }
 
   private static defineModel(sequelize: Sequelize, logger: Logger, table: Table): void {
-    const modelAttrs: ModelAttributes = {};
     const hasTimestamps = this.hasTimestamps(table);
     const isParanoid = this.isParanoid(table);
     const dialect = sequelize.getDialect();
-
-    for (const column of table.columns) {
-      const isExplicit =
-        !(hasTimestamps && (column.name === 'updatedAt' || column.name === 'createdAt')) &&
-        !(isParanoid && column.name === 'deletedAt');
-
-      // Clone object, because sequelize modifies it.
-      if (isExplicit)
-        modelAttrs[column.name] = {
-          ...column,
-          type: SequelizeTypeFactory.makeType(dialect, column.type, table.name, column.name),
-        };
-    }
+    const modelAttrs = this.buildModelAttributes(table, hasTimestamps, isParanoid, dialect);
 
     try {
-      // When a user missing the primary key, we add it to avoid sequelize to throw an error and
-      // to be consistent with the JSON API specification.
-      if (!table.columns.find(column => column.primaryKey)) {
-        const columnId = table.columns.find(c => c.name === 'id');
-        if (columnId) (modelAttrs[columnId.name] as ModelAttributeColumnOptions).primaryKey = true;
-      }
-
       const model = sequelize.define(table.name, modelAttrs, {
         tableName: table.name,
         timestamps: hasTimestamps,
@@ -54,6 +34,37 @@ export default class ModelBuilder {
     } catch (e) {
       logger?.('Warn', `Skipping table "${table.name}" because of error: ${e.message}`);
     }
+  }
+
+  private static buildModelAttributes(
+    table: Table,
+    hasTimestamps: boolean,
+    isParanoid: boolean,
+    dialect: string,
+  ): ModelAttributes {
+    const modelAttrs: ModelAttributes = {};
+
+    for (const column of table.columns) {
+      const isExplicit =
+        !(hasTimestamps && (column.name === 'updatedAt' || column.name === 'createdAt')) &&
+        !(isParanoid && column.name === 'deletedAt');
+
+      // Clone object, because sequelize modifies it.
+      if (isExplicit)
+        modelAttrs[column.name] = {
+          ...column,
+          type: SequelizeTypeFactory.makeType(dialect, column.type, table.name, column.name),
+        };
+    }
+
+    // When a user missing the primary key, we add it to avoid sequelize to throw an error and
+    // to be consistent with the JSON API specification.
+    if (!table.columns.find(column => column.primaryKey)) {
+      const columnId = table.columns.find(c => c.name === 'id');
+      if (columnId) (modelAttrs[columnId.name] as ModelAttributeColumnOptions).primaryKey = true;
+    }
+
+    return modelAttrs;
   }
 
   private static hasTimestamps(table: Table): boolean {

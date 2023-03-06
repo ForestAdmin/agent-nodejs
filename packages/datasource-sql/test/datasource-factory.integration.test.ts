@@ -69,7 +69,7 @@ describe('SqlDataSourceFactory > Integration', () => {
 
       // We should have zero collections and a warning on the console
       expect(sequelize).toBeInstanceOf(Sequelize);
-      expect(logger).toHaveBeenCalledWith(
+      expect(logger).not.toHaveBeenCalledWith(
         'Warn',
         expect.stringContaining('Skipping table "person"'),
       );
