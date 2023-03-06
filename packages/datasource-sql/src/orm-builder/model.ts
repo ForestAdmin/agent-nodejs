@@ -1,5 +1,6 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { ModelAttributes, Sequelize } from 'sequelize';
+import { ModelAttributeColumnOptions } from 'sequelize/types/model';
 
 import SequelizeTypeFactory from './helpers/sequelize-type';
 import { Table } from '../introspection/types';
@@ -31,6 +32,13 @@ export default class ModelBuilder {
     }
 
     try {
+      // When a user missing the primary key, we add it to avoid sequelize to throw an error and
+      // to be consistent with the JSON API specification.
+      if (!table.columns.find(column => column.primaryKey)) {
+        const columnId = table.columns.find(c => c.name === 'id');
+        if (columnId) (modelAttrs[columnId.name] as ModelAttributeColumnOptions).primaryKey = true;
+      }
+
       const model = sequelize.define(table.name, modelAttrs, {
         tableName: table.name,
         timestamps: hasTimestamps,
