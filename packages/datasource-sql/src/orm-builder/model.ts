@@ -57,24 +57,30 @@ export default class ModelBuilder {
         };
     }
 
-    // When a user missing the primary key, we add it to avoid sequelize to throw an error and
-    // to be consistent with the JSON API specification.
-    if (!table.columns.find(column => column.primaryKey)) {
-      const columnId = table.columns.find(c => c.name === 'id');
-
-      if (columnId) {
-        (modelAttrs[columnId.name] as ModelAttributeColumnOptions).primaryKey = true;
-      } else {
-        // if there is no id column, we use the first unique column as primary key
-        const uniqueColumn = table.columns.find(c => c.unique);
-
-        if (uniqueColumn) {
-          (modelAttrs[uniqueColumn.name] as ModelAttributeColumnOptions).primaryKey = true;
-        }
-      }
-    }
+    this.enablePrimaryKeyInPlace(table, modelAttrs);
 
     return modelAttrs;
+  }
+
+  // When a user missing the primary key, we add it to avoid sequelize to throw an error and
+  // to be consistent with the JSON API specification.
+  private static enablePrimaryKeyInPlace(table: Table, modelAttrs: ModelAttributes) {
+    if (table.columns.find(column => column.primaryKey)) {
+      return;
+    }
+
+    const columnId = table.columns.find(c => c.name === 'id');
+
+    if (columnId) {
+      (modelAttrs[columnId.name] as ModelAttributeColumnOptions).primaryKey = true;
+    } else {
+      // if there is no id column, we use the first unique column as primary key
+      const uniqueColumn = table.columns.find(c => c.unique);
+
+      if (uniqueColumn) {
+        (modelAttrs[uniqueColumn.name] as ModelAttributeColumnOptions).primaryKey = true;
+      }
+    }
   }
 
   private static hasTimestamps(table: Table): boolean {
