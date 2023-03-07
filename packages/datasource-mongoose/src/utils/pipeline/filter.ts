@@ -83,13 +83,13 @@ export default class FilterGenerator {
       ) {
         value = (value as Array<string>).map(v => new Date(v));
       } else if (
-        instance === 'ObjectID' &&
+        ['ObjectId', 'ObjectID'].includes(instance) &&
         Array.isArray(value) &&
         value.every(v => isValidObjectId(v))
       ) {
         value = (value as Array<string>).map(id => new Types.ObjectId(id));
       }
-    } else if (instance === 'ObjectID') {
+    } else if (['ObjectId', 'ObjectID'].includes(instance)) {
       if (STRING_OPERATORS.includes(leaf.operator)) {
         fields.add(leaf.field);
         leaf.field = this.formatStringFieldName(leaf.field);

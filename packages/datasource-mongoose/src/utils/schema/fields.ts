@@ -118,7 +118,7 @@ export default class FieldsGenerator {
         return field.instance as PrimitiveTypes;
       }
 
-      if (['ObjectID', 'Buffer', 'Decimal128'].includes(field.instance)) {
+      if (['ObjectId', 'ObjectID', 'Buffer', 'Decimal128'].includes(field.instance)) {
         return 'String';
       }
 

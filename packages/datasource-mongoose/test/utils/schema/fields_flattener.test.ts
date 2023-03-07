@@ -1,3 +1,4 @@
+import { ColumnSchema } from '@forestadmin/datasource-toolkit/src/interfaces/schema';
 import { Model, Schema } from 'mongoose';
 
 import FieldsGenerator from '../../../src/utils/schema/fields';
@@ -20,6 +21,7 @@ describe('Construction', () => {
           referenceList: [{ type: Schema.Types.ObjectId, ref: 'aModel' }],
           objectList: [{ name: String, contactDetails: { email: String } }],
         },
+        fieldWithMongooseObjectID6xVersion: [{ type: 'ObjectID', ref: 'aModel' }],
       }),
     );
   });
@@ -35,6 +37,7 @@ describe('Construction', () => {
       'contactDetails',
       'referenceList',
       'nested',
+      'fieldWithMongooseObjectID6xVersion',
     ]);
   });
 
@@ -49,6 +52,7 @@ describe('Construction', () => {
       'contactDetails',
       'referenceList',
       'nested',
+      'fieldWithMongooseObjectID6xVersion',
       'contactDetails@@@email',
     ]);
   });
@@ -71,6 +75,7 @@ describe('Construction', () => {
       'name',
       'referenceList',
       'nested',
+      'fieldWithMongooseObjectID6xVersion',
       'contactDetails@@@email',
       'contactDetails@@@phone@@@home',
       'contactDetails@@@phone@@@mobile',
@@ -92,6 +97,7 @@ describe('Construction', () => {
       'contactDetails',
       'referenceList',
       'nested',
+      'fieldWithMongooseObjectID6xVersion',
       'contactDetails@@@email',
       'contactDetails@@@phone@@@home',
     ]);
@@ -111,8 +117,24 @@ describe('Construction', () => {
       'name',
       'referenceList',
       'nested',
+      'fieldWithMongooseObjectID6xVersion',
       'contactDetails@@@email',
       'contactDetails@@@phone',
     ]);
+  });
+
+  describe('when an "_id" is generated', () => {
+    it('should return a "string" as type', async () => {
+      const fields = FieldsGenerator.buildFieldsSchema(model, [
+        {
+          prefix: null,
+          asFields: [],
+          asModels: [],
+        },
+      ]) as Record<string, ColumnSchema>;
+
+      expect(fields.fieldWithMongooseObjectID6xVersion.columnType).toEqual(['String']);
+      expect(fields.referenceList.columnType).toEqual(['String']);
+    });
   });
 });
