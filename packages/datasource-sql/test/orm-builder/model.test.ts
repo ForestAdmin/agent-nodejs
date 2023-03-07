@@ -9,7 +9,6 @@ const baseColumn = {
   primaryKey: false,
   constraints: [],
   defaultValue: null,
-  unique: false,
   type: { type: 'scalar', subType: 'NUMBER' } as unknown as ColumnType,
 };
 
@@ -22,6 +21,7 @@ describe('ModelBuilder', () => {
         columns: [
           { ...baseColumn, name: 'enumList', type: { type: 'invalid' } as unknown as ColumnType },
         ],
+        unique: [],
       },
     ];
 
@@ -40,6 +40,7 @@ describe('ModelBuilder', () => {
             type: { type: 'scalar', subType: 'invalid' } as unknown as ColumnType,
           },
         ],
+        unique: [],
       },
     ];
 
@@ -54,6 +55,7 @@ describe('ModelBuilder', () => {
         columns: [
           { ...baseColumn, name: 'enumList', type: { type: 'enum', values: ['a', 'b', 'c'] } },
         ],
+        unique: [],
       },
     ];
 
@@ -77,9 +79,9 @@ describe('ModelBuilder', () => {
             type: { type: 'enum', schema: 'public', name: 'custom_type', values: ['a', 'b', 'c'] },
             constraints: [],
             defaultValue: null,
-            unique: false,
           },
         ],
+        unique: [],
       },
     ];
 
@@ -97,6 +99,7 @@ describe('ModelBuilder', () => {
         {
           name: 'myTable',
           columns: [{ ...baseColumn, name: 'id', primaryKey: false }],
+          unique: [],
         },
       ];
 
@@ -112,7 +115,8 @@ describe('ModelBuilder', () => {
         const tables: Table[] = [
           {
             name: 'myTable',
-            columns: [{ ...baseColumn, name: 'uniqueField', primaryKey: false, unique: true }],
+            columns: [{ ...baseColumn, name: 'uniqueField', primaryKey: false }],
+            unique: [['uniqueField']],
           },
         ];
 
@@ -120,6 +124,28 @@ describe('ModelBuilder', () => {
 
         expect(sequelize.models.myTable).toBeDefined();
         expect(sequelize.models.myTable.rawAttributes.uniqueField.primaryKey).toBe(true);
+      });
+    });
+
+    describe('when there are two unique field and no ID', () => {
+      it('should force at the first one the primary key to true when the field is unique', () => {
+        const sequelize = new Sequelize('postgres://');
+        const tables: Table[] = [
+          {
+            name: 'myTable',
+            columns: [
+              { ...baseColumn, name: 'fk1', primaryKey: false },
+              { ...baseColumn, name: 'fk2', primaryKey: false },
+            ],
+            unique: [['fk1', 'fk2']],
+          },
+        ];
+
+        ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+        expect(sequelize.models.myTable).toBeDefined();
+        expect(sequelize.models.myTable.rawAttributes.fk1.primaryKey).toBe(true);
+        expect(sequelize.models.myTable.rawAttributes.fk2.primaryKey).toBe(true);
       });
     });
   });

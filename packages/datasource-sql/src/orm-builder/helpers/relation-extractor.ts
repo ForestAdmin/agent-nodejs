@@ -29,7 +29,9 @@ export default class RelationExtractor {
         // Skip HasMany to junction tables
         if (!this.isJunctionTable(table))
           relations.push({
-            type: column.unique ? 'HasOne' : 'HasMany',
+            type: table.unique.some(u => u.length === 1 && u[0] === column.name)
+              ? 'HasOne'
+              : 'HasMany',
             from: constraint.table,
             to: table.name,
             originKey: column.name,

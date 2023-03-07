@@ -16,10 +16,10 @@ export default class ModelBuilder {
     const hasTimestamps = this.hasTimestamps(table);
     const isParanoid = this.isParanoid(table);
     const dialect = sequelize.getDialect();
-    const modelAttrs = this.buildModelAttributes(table, hasTimestamps, isParanoid, dialect);
+    const attributes = this.buildModelAttributes(logger, table, hasTimestamps, isParanoid, dialect);
 
     try {
-      const model = sequelize.define(table.name, modelAttrs, {
+      const model = sequelize.define(table.name, attributes, {
         tableName: table.name,
         timestamps: hasTimestamps,
         paranoid: isParanoid,
@@ -28,7 +28,7 @@ export default class ModelBuilder {
       // @see https://sequelize.org/docs/v6/other-topics/legacy/#primary-keys
       // Tell sequelize NOT to invent primary keys when we don't provide them.
       // (Note that this does not seem to work)
-      if (!modelAttrs.id && model.getAttributes().id) {
+      if (!attributes.id && model.getAttributes().id) {
         model.removeAttribute('id');
       }
     } catch (e) {
@@ -37,6 +37,7 @@ export default class ModelBuilder {
   }
 
   private static buildModelAttributes(
+    logger: Logger,
     table: Table,
     hasTimestamps: boolean,
     isParanoid: boolean,
@@ -54,32 +55,49 @@ export default class ModelBuilder {
         modelAttrs[column.name] = {
           ...column,
           type: SequelizeTypeFactory.makeType(dialect, column.type, table.name, column.name),
+          unique: table.unique.some(u => u.length === 1 && u[0] === column.name),
         };
     }
 
-    this.enablePrimaryKeyInPlace(table, modelAttrs);
+    if (!table.columns.some(c => c.primaryKey)) {
+      this.guessPrimaryKeyInPlace(logger, table, modelAttrs);
+    }
 
     return modelAttrs;
   }
 
-  // When a user missing the primary key, we add it to avoid sequelize to throw an error and
-  // to be consistent with the JSON API specification.
-  private static enablePrimaryKeyInPlace(table: Table, modelAttrs: ModelAttributes) {
-    if (table.columns.find(column => column.primaryKey)) {
-      return;
-    }
-
+  /**
+   * When the primary key is missing, we attempt to find a column that may act as such.
+   * This enables us to support tables that have no primary key.
+   */
+  private static guessPrimaryKeyInPlace(logger: Logger, table: Table, modelAttrs: ModelAttributes) {
+    // Try to find a column named "id".
     const columnId = table.columns.find(c => c.name === 'id');
 
     if (columnId) {
       (modelAttrs[columnId.name] as ModelAttributeColumnOptions).primaryKey = true;
-    } else {
-      // if there is no id column, we use the first unique column as primary key
-      const uniqueColumn = table.columns.find(c => c.unique);
 
-      if (uniqueColumn) {
-        (modelAttrs[uniqueColumn.name] as ModelAttributeColumnOptions).primaryKey = true;
-      }
+      logger?.(
+        'Warn',
+        `Table "${table.name}" has no primary key. Using "id" column as primary key.`,
+      );
+
+      return;
+    }
+
+    // If there is no id column, look at unique indexes, and use the shortest one.
+    // (hopefully only one column, but this can also be a composite key for many-to-many tables)
+    const sorted = [...table.unique].sort((a, b) => a.length - b.length);
+
+    if (sorted.length > 0) {
+      for (const column of sorted[0])
+        (modelAttrs[column] as ModelAttributeColumnOptions).primaryKey = true;
+
+      const compositePk = sorted[0].join(', ');
+      logger?.(
+        'Warn',
+        `Table "${table.name}" has no primary key. Using "${compositePk}" column(s).`,
+      );
     }
   }
 
