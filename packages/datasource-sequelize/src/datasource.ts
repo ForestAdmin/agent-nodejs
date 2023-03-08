@@ -1,5 +1,5 @@
 import { BaseDataSource, Logger } from '@forestadmin/datasource-toolkit';
-import { ModelAttributeColumnOptions, Sequelize } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
 import SequelizeCollection from './collection';
 
@@ -23,17 +23,12 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
   }
 
   protected createCollections(models: Sequelize['models'], logger?: Logger) {
-    const modelList = Object.values(models).sort((a, b) => (a.name > b.name ? 1 : -1));
-
-    for (const model of modelList) {
-      const hasPrimaryKey = Object.values(model.getAttributes()).some(
-        attr => (attr as ModelAttributeColumnOptions).primaryKey,
-      );
-
-      if (hasPrimaryKey)
-        this.addCollection(new SequelizeCollection(model.name, this, model, logger));
-      else
-        logger?.('Warn', `Skipping table "${model.name}" because of error: no primary key found.`);
-    }
+    Object.values(models)
+      // avoid schema reordering
+      .sort((modelA, modelB) => (modelA.name > modelB.name ? 1 : -1))
+      .forEach(model => {
+        const collection = new SequelizeCollection(model.name, this, model, logger);
+        this.addCollection(collection);
+      });
   }
 }

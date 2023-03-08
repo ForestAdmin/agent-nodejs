@@ -136,10 +136,41 @@ describe('ModelBuilder', () => {
         {
           name: 'myTable',
           columns: [
-            { ...baseColumn, name: 'fk1', primaryKey: false },
-            { ...baseColumn, name: 'fk2', primaryKey: false },
+            { ...baseColumn, name: 'nonUniqueField', primaryKey: false },
+            { ...baseColumn, name: 'uniqueTogether1', primaryKey: false },
+            { ...baseColumn, name: 'uniqueTogether2', primaryKey: false },
           ],
-          unique: [['fk1', 'fk2']],
+          unique: [['uniqueTogether1', 'uniqueTogether2']],
+        },
+      ];
+
+      ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+      expect(sequelize.models.myTable).toBeDefined();
+      expect(sequelize.models.myTable.rawAttributes.uniqueTogether1.primaryKey).toBe(true);
+      expect(sequelize.models.myTable.rawAttributes.uniqueTogether2.primaryKey).toBe(true);
+    });
+
+    it('should use all columns when we detect this is a many to many relation table', () => {
+      const sequelize = new Sequelize('postgres://');
+      const tables: Table[] = [
+        {
+          name: 'myTable',
+          columns: [
+            {
+              ...baseColumn,
+              name: 'fk1',
+              primaryKey: false,
+              constraints: [{ column: 'a', table: 'a' }],
+            },
+            {
+              ...baseColumn,
+              name: 'fk2',
+              primaryKey: false,
+              constraints: [{ column: 'a', table: 'a' }],
+            },
+          ],
+          unique: [],
         },
       ];
 

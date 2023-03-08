@@ -83,6 +83,15 @@ export default class ModelBuilder {
       [primaryKeys] = [...table.unique].sort((a, b) => a.length - b.length);
     }
 
+    // If all the columns have contraints (e.g. foreign keys), use all of them as a composite key.
+    if (
+      !primaryKeys.length &&
+      table.columns.length === 2 &&
+      table.columns.every(c => c.constraints.length)
+    ) {
+      primaryKeys = table.columns.map(c => c.name);
+    }
+
     for (const column of primaryKeys)
       (attributes[column] as ModelAttributeColumnOptions).primaryKey = true;
 
