@@ -11,7 +11,7 @@ import { Model, SchemaType } from 'mongoose';
 
 import FilterOperatorsGenerator from './filter-operators';
 import MongooseSchema, { SchemaBranch, SchemaNode } from '../../mongoose/schema';
-import { Stack } from '../../types';
+import { OBJECT_ID_VALUES, Stack } from '../../types';
 import { escape } from '../helpers';
 
 /** Generate forest admin schema from mongoose schema */
@@ -118,7 +118,7 @@ export default class FieldsGenerator {
         return field.instance as PrimitiveTypes;
       }
 
-      if (['ObjectId', 'ObjectID', 'Buffer', 'Decimal128'].includes(field.instance)) {
+      if ([...OBJECT_ID_VALUES, 'Buffer', 'Decimal128'].includes(field.instance)) {
         return 'String';
       }
 

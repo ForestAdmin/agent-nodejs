@@ -9,7 +9,7 @@ import { DateTime } from 'luxon';
 import { Model, PipelineStage, Types, isValidObjectId } from 'mongoose';
 
 import MongooseSchema from '../../mongoose/schema';
-import { Stack } from '../../types';
+import { OBJECT_ID_VALUES, Stack } from '../../types';
 
 const STRING_OPERATORS = ['Like', 'ILike', 'NotContains', 'LongerThan', 'ShorterThan'];
 
@@ -83,13 +83,13 @@ export default class FilterGenerator {
       ) {
         value = (value as Array<string>).map(v => new Date(v));
       } else if (
-        ['ObjectId', 'ObjectID'].includes(instance) &&
+        OBJECT_ID_VALUES.includes(instance) &&
         Array.isArray(value) &&
         value.every(v => isValidObjectId(v))
       ) {
         value = (value as Array<string>).map(id => new Types.ObjectId(id));
       }
-    } else if (['ObjectId', 'ObjectID'].includes(instance)) {
+    } else if (OBJECT_ID_VALUES.includes(instance)) {
       if (STRING_OPERATORS.includes(leaf.operator)) {
         fields.add(leaf.field);
         leaf.field = this.formatStringFieldName(leaf.field);
