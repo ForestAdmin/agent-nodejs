@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.2.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.4...@forestadmin/datasource-sql@1.2.5) (2023-03-08)
+
+
+### Bug Fixes
+
+* allow user to create a collection without primary key ([#635](https://github.com/ForestAdmin/agent-nodejs/issues/635)) ([64d38de](https://github.com/ForestAdmin/agent-nodejs/commit/64d38de6f1a6a7950d1d552d50f17e34ed0367f8))
+
 ## @forestadmin/datasource-sql [1.2.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.3...@forestadmin/datasource-sql@1.2.4) (2023-02-09)
 
 
