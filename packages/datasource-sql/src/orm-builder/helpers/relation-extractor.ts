@@ -17,6 +17,8 @@ export default class RelationExtractor {
     const relations: Relation[] = [];
 
     for (const column of table.columns) {
+      const isUnique = table.unique.some(u => u.length === 1 && u[0] === column.name);
+
       for (const constraint of column.constraints) {
         relations.push({
           type: 'BelongsTo',
@@ -29,9 +31,7 @@ export default class RelationExtractor {
         // Skip HasMany to junction tables
         if (!this.isJunctionTable(table))
           relations.push({
-            type: table.unique.some(u => u.length === 1 && u[0] === column.name)
-              ? 'HasOne'
-              : 'HasMany',
+            type: isUnique ? 'HasOne' : 'HasMany',
             from: constraint.table,
             to: table.name,
             originKey: column.name,
